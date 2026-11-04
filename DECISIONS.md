@@ -212,6 +212,11 @@ replaces "the default" in D14's `FinalSafe` row. UB stays possible in `FinalPerf
 `FinalSafe`, cheap checks such as overflow, bounds and division by zero stay as traps. Claude asked whether UB stays with
 `FinalSafe` as the safe default; the owner chose: "yes, but there's no default build mode". (Owner, 2026-11-05)
 
+**D27. What Cyborg is.** A general systems language, started from scratch, with ideas merged rather than code. From the
+owner's chat with Radium's design session: "Not literally merging, more like merging ideas, and starting from scratch.
+And maybe tune down big changes, that's what made CyborgPL insane to maintain. It's gonna be a general sys lang, and it's
+long because there's no assumptions anymore." (Owner, 2026-11-05, relayed)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude
