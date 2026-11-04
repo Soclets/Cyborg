@@ -78,6 +78,21 @@ with a bare `len` is refused in favour of `array`. There is no `len.always`. Thi
 settles what D12 left open. The owner proposed narrowed labels with `len.always` and `len.max`; Claude proposed bare
 `len` and `len.min`; the owner chose: "Heck yes. And no `.always`". (Owner, 2026-11-04)
 
+**D14. Five build modes.** From the owner's sketch, written up by a friend's Claude:
+
+| Mode | Optimization | Runtime checks | Notes |
+|---|---|---|---|
+| `Working` | you choose | all kept, no matter the cost | for developing and debugging |
+| `FinalSafe` | max | cheap checks only | the default, even when benchmarking, and noted |
+| `FinalPerf` | max | none | trust your tests |
+| `FinalShit` | max | none, more UB possible than C | comes with a curse easter egg |
+| `FinalSmall` | for size | whatever makes it smaller | UB and bad speed allowed, size only |
+
+The same sketch says: anything the Precog limb proves can drop its check safely, in any mode; contracts are checked at
+runtime unless Precog proves them; and linter strictness, such as whether `mut` must actually change, is separate from
+the build mode. Claude pointed out that with no checks, a failed check in `FinalPerf` becomes UB; the owner accepts that:
+"you test your shit throughly first". What Precog and contracts are in Cyborg is not settled here. (Owner, 2026-11-04)
+
 ## Open
 
 - **Whether the test in D9 works on a plain variable.** Claude suggested refusing it, since `if $n: bool:` on a value
@@ -87,5 +102,8 @@ settles what D12 left open. The owner proposed narrowed labels with `len.always`
 - **Radium's open ownership questions, inherited with D2.** Lending through a stored `Lend.mut`; how a `must_Give` duty
   ends in the function that receives it; a `must_Give` value in a field or returned; a parameter whose type is a stored
   borrow; a `union.tagged` case holding a borrow; going through items that are structs, unions or arrays.
-- **Type bounds.** The owner suggested `i32[min: …, max: …]`. How a value gets into a bounded type is not chosen yet.
+- **Type bounds.** The owner suggested `i32[min: …, max: …]`. How a value gets into a bounded type is not chosen yet. Claude
+  suggested `$n as i32[min: 0, max: 100]`, which crashes visibly; the owner pointed out a plain `=` could do the same
+  check silently. An `if` test stays in every build mode, since it is the program's own logic.
+- **The curse in `FinalShit`.** Not described yet.
 - **Placeholders.** The repository's name and visibility, the license and the file extension are not chosen.
