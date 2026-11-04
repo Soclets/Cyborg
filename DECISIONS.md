@@ -257,6 +257,10 @@ headers. C's union is `@csup::union.untagged number:`, inside a shield. The base
 lists the limb when it needs it. `＠std::inline.asm` stays in `std`. The owner asked why the union had no mark and suggested
 `@csup`; Claude proposed that it hold all of D31; the owner chose it: "yes". (Owner, 2026-11-05)
 
+**D36. The limb mark is a plain `@`.** `@std::inline.asm` and `@csup::union.untagged`. This replaces the fullwidth `＠`
+written in D22 and D35, which Claude copied from Radium without asking. Claude proposed it; the owner chose: "This one:
+@". (Owner, 2026-11-05)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude
@@ -271,8 +275,8 @@ lists the limb when it needs it. `＠std::inline.asm` stays in `std`. The owner 
 - **Float names.** The owner said "Types will probably look like `f32` or `float32`". Not chosen yet.
 - **Wrapping.** Radium's design session proposed that integers wrap only where that's written, and isn't sure the owner's
   "yes" covered it. Not chosen yet.
-- **More on `＠`.** Whether the mark goes only at the path's start; whether anything besides `std` has both parts; how a
-  third-party kit or limb is spelled; and whether it's the fullwidth `＠`, as written so far, or a plain `@`.
+- **More on `@`.** Whether the mark goes only at the path's start; whether other limbs have a kit part like `std`; and how a
+  third-party kit or limb is spelled.
 - **Shields, left open by D34.** What must live in one; how the walls work when the code outside isn't proven; whether
   exit checks stay in every build mode, against `FinalPerf` having none in D14; and the keyword itself.
 - **Placeholders.** The repository's name and visibility, the license and the file extension are not chosen.
