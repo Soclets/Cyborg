@@ -247,6 +247,11 @@ Rust one. Its cases are narrowings, such as `status.failed`, and a case's values
 This settles the declaration D9 left open. Claude proposed a bare `union` meaning tagged; the owner chose otherwise:
 "accuracy really matters for this one. Why don't just say it?" (Owner, 2026-11-05)
 
+**D34. Shields.** Cyborg has Radium's shields: a named block with a written reason, the only place dangerous code may
+live, listed with its size in the build report. Cyborg isn't all proven, so a shield here is closer to Rust's `unsafe`
+unless the Precog limb's strict mode is on. Claude proposed bringing them in; the owner chose it: "yes". (Owner,
+2026-11-05)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude
@@ -263,5 +268,8 @@ This settles the declaration D9 left open. Claude proposed a bare `union` meanin
   "yes" covered it. Not chosen yet.
 - **More on `＠`.** Whether the mark goes only at the path's start; whether anything besides `std` has both parts; how a
   third-party kit or limb is spelled; and whether it's the fullwidth `＠`, as written so far, or a plain `@`.
-- **C's untagged union.** D31 needs it, for C's layouts. Claude suggested putting it behind `＠`. Its spelling is not chosen yet.
+- **C's untagged union.** D31 needs it, for C's layouts. The owner asked why it would have no mark, and suggested a C
+  support limb like `@csup`. Its spelling is not chosen yet.
+- **Shields, left open by D34.** What must live in one; how the walls work when the code outside isn't proven; whether
+  exit checks stay in every build mode, against `FinalPerf` having none in D14; and the keyword itself.
 - **Placeholders.** The repository's name and visibility, the license and the file extension are not chosen.
