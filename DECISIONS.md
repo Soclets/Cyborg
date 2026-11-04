@@ -45,9 +45,18 @@ Lyftar is ready. (Owner, 2026-11-04)
 converts. Claude first suggested `as`, then dropped the push; the owner chose it after reading `if $n: bool:` as a type
 test: "maybe we'll go `as` for the conversion anyways". (Owner, 2026-11-04)
 
+**D8. Methods alongside narrowings.** Cyborg has both. A narrowing makes the thing before the `.` more specific
+(`fn.main`, `std::list.i32`), and a method is a function attached to a type, called on a receiver
+(`$xs.%append(val: 4)`). A `.` never runs code and a `.%` always does. Since D5 keeps `Give` out of `%`, methods only
+borrow, and anything that consumes its value is a plain function. Claude asked whether to drop methods and use
+`append(Lend.mut $xs, val: 4)`; the owner chose both: "yea. Because, CyborgPL was genuinely too long". (Owner, 2026-11-04)
+
 ## Open
 
-- **`if $n: bool:` as a type test.** The owner read it as "if var n is bool, do". Not chosen yet.
+- **`if $s: status.ok:` as a one-case test.** The owner read `if $n: bool:` as "if var n is bool, do". Inside the block
+  the compiler would treat the value as that case (flow typing, not a narrowing). Not chosen yet.
+- **How much of Radium's narrowing rule applies.** A bare name as the default, spelled-out defaults refused, and no
+  aliases, which matters for `i32` against `int.signed.32_bit`. Not chosen yet.
 - **Radium's open ownership questions, inherited with D2.** Lending through a stored `Lend.mut`; how a `must_Give` duty
   ends in the function that receives it; a `must_Give` value in a field or returned; a parameter whose type is a stored
   borrow; a `union.tagged` case holding a borrow; going through items that are structs, unions or arrays.
