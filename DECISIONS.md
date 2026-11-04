@@ -109,6 +109,30 @@ Done. Good fucking luck.
 
 (Owner, 2026-11-04)
 
+**D16. Radium's error format, plus warnings.** As Radium's design session described it on 2026-11-04:
+
+```
+refused: main.cy:12:5, line 12 column 5
+12 |     close(Give $f);
+   |     ^^^^^^^^^^^^^^
+ what: `$f` was already given away
+ why:  a given value is dead afterwards (D2)
+ because: main.cy:9:5, line 9 column 5
+ 9 |     send(Give $f);
+   |     ^^^^^^^^^^^^^
+     `$f` was given away here
+```
+
+The first word is the kind: `refused:` (a definite mistake while building), `unproven:` (while building, the prover could
+prove it neither way), `check failed:` (while running), and `warning:`, which Cyborg adds. The place is written twice:
+`file:line:col` for tools, with the column in UTF-8 bytes, then `line N column M` for people, with the column in grapheme
+clusters. Then comes the code line, with a `^` run under exactly the part in question. `what:` and `why:` are always
+present, `why:` cites the decision number, and there are no error codes. `when:` gives the values that break it, where
+known. `because:` links show earlier steps that led to the error, only when the compiler knows they did. Building and
+running share one layout. A message says only what is certain: with exactly one possible fix, `fix:` replaces `what:` and
+shows it as code; with more than one, there are no suggestions. The `FinalShit` curse is exempt. The `.cy` extension in
+the example is a placeholder. Claude proposed taking it whole; the owner chose it: "yup". (Owner, 2026-11-04)
+
 ## Open
 
 - **Whether the test in D9 works on a plain variable.** Claude suggested refusing it, since `if $n: bool:` on a value
@@ -121,4 +145,5 @@ Done. Good fucking luck.
 - **Type bounds.** The owner suggested `i32[min: …, max: …]`. How a value gets into a bounded type is not chosen yet. Claude
   suggested `$n as i32[min: 0, max: 100]`, which crashes visibly; the owner pointed out a plain `=` could do the same
   check silently. An `if` test stays in every build mode, since it is the program's own logic.
+- **Errors, left open by D16.** Colour, how many errors per run and their order, and any machine-readable form.
 - **Placeholders.** The repository's name and visibility, the license and the file extension are not chosen.
