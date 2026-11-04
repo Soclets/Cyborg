@@ -155,6 +155,25 @@ Done. Good fucking luck.
 and it is one of several variations. The other lines are not chosen yet. The owner: "the correct one, and that line
 should have some variations". (Owner, 2026-11-04)
 
+**D19. The curse's lines.** The extra line from D18 is one of these. Claude proposed all but the first and last; the
+owner chose: "Every, and one more", which is the last:
+
+```
+your shit better not be committed
+this better not be on main
+git blame will find you
+your future self already hates you
+tell your coworkers you're sorry
+this isn't going to prod, right?
+nobody is coming to save this binary
+hope you like debugging with no stack trace
+if this ships, you never saw me
+Even Grok wouldn't fucking joke about this
+```
+
+Claude suggested a random pick on each build, which changes only the printed message and never the binary; the owner did
+not object. (Owner, 2026-11-04)
+
 ## Open
 
 - **Whether the test in D9 works on a plain variable.** Claude suggested refusing it, since `if $n: bool:` on a value
@@ -168,5 +187,4 @@ should have some variations". (Owner, 2026-11-04)
   suggested `$n as i32[min: 0, max: 100]`, which crashes visibly; the owner pointed out a plain `=` could do the same
   check silently. An `if` test stays in every build mode, since it is the program's own logic.
 - **Errors, left open by D16.** Colour, how many errors per run and their order, and any machine-readable form.
-- **The variations in D18.** Which lines, and how one gets picked.
 - **Placeholders.** The repository's name and visibility, the license and the file extension are not chosen.
