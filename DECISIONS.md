@@ -10,4 +10,20 @@ replaces.
 consistency is stressful, a lesson from around 10 abandoned languages, so consistency is not a goal in itself.
 (Owner, 2026-11-04)
 
+**D2. Radium's ownership words, unchanged.** As Radium's design session described them on 2026-11-04:
+
+| At the call | On the parameter | Meaning |
+|---|---|---|
+| `Give $x` | `Given` | Ownership moves, and `$x` can't be used afterwards |
+| `Copy $x` | `Given` | The function owns a separate copy, and the caller's is untouched |
+| `Lend $x` | (bare) | Temporary read-only access, and the caller keeps it |
+| `Lend.mut $x` | `Lent.mut` | Temporary access that may change it, and nothing else uses it meanwhile |
+
+The call and the parameter are both written, and they must match. A bare parameter is lent; writing `Lent` alone is
+refused. Integers and `bool` are always copied and take no word. A type marked `must_Give` is linear: it is handed off
+with `Give` exactly once, or the program does not compile. Stored borrows are types: `Lend from $r reading`,
+`Lend from <$a, $b> reading`, `Lend from program reading`, `Lend.mut from …`. No word is needed to read in place
+(`$xs.len`, `for $x in $xs`) or for a fresh value that has no holder yet. Claude asked which words to change; the owner
+chose: "no change". (Owner, 2026-11-04)
+
 ## Open
