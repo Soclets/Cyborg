@@ -174,17 +174,22 @@ Even Grok wouldn't fucking joke about this
 Claude suggested a random pick on each build, which changes only the printed message and never the binary; the owner did
 not object. (Owner, 2026-11-04)
 
+**D20. A plain `=` checks bounds.** `let $b: i32[min: 0, max: 100] = $n;`, `change $b = $b + 1;` and `use_score($n)` all
+compile, and each does a runtime check when the compiler can't see the value fits. An out-of-range value crashes, or is
+UB in a build mode with no checks (D14). A literal that can't fit, like `150` here, is a compile error, arithmetic gives
+back a plain `i32`, and a bounded value goes into a plain `i32` with no check. `if $n: i32[min: 0, max: 100]:` is how to
+handle a bad value yourself, and it stays in every build mode. Claude argued for `as` until the `+ 1` example, then for
+this; the owner chose it: "we could just go b". (Owner, 2026-11-05)
+
 ## Open
 
-- **Whether the test in D9 works on a plain variable.** Claude suggested refusing it, since `if $n: bool:` on a value
-  whose type is already known is always true or always false. Not chosen yet.
+- **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude
+  suggested refusing `if $n: bool:` on a value already known to be one, since it's always true or always false. Not
+  chosen yet.
 - **How much of Radium's narrowing rule applies.** A bare name as the default, and spelled-out defaults refused. Not
   chosen yet.
 - **Radium's open ownership questions, inherited with D2.** Lending through a stored `Lend.mut`; how a `must_Give` duty
   ends in the function that receives it; a `must_Give` value in a field or returned; a parameter whose type is a stored
   borrow; a `union.tagged` case holding a borrow; going through items that are structs, unions or arrays.
-- **Type bounds.** The owner suggested `i32[min: …, max: …]`. How a value gets into a bounded type is not chosen yet. Claude
-  suggested `$n as i32[min: 0, max: 100]`, which crashes visibly; the owner pointed out a plain `=` could do the same
-  check silently. An `if` test stays in every build mode, since it is the program's own logic.
 - **Errors, left open by D16.** Colour, how many errors per run and their order, and any machine-readable form.
 - **Placeholders.** The repository's name and visibility, the license and the file extension are not chosen.
