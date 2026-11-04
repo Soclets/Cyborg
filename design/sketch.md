@@ -1,6 +1,7 @@
 # Sketch
 
-The owner's sketch of Cyborg, likely not final. This is a placeholder, not a specification.
+The owner's sketch of Cyborg, likely not final. This is a placeholder, not a specification, and
+`: str` is still undecided (see Open in `DECISIONS.md`).
 
 ```
 fn total($xs: std::list.i32[max_len: inf]) -> i32:
@@ -13,11 +14,11 @@ end fn total
 
 fn.main() -> void:
     let mut $xs: std::list.i32[max_len: inf] = empty;
-    change $xs = $xs.append(val: 4);
-    change $xs = $xs.append(val: 6);
-    change $xs = $xs.append(val: 5);
+    $xs.%append(val: 4);
+    $xs.%append(val: 6);
+    $xs.%append(val: 5);
 
-    let $t: i32 = total($xs);
+    let $t: i32 = total(Lend $xs);
     std::println("count: ", $xs.len: str);
     if $t at_least 10:
         std::println("big total: ", $t: str);

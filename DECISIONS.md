@@ -42,3 +42,10 @@ only `Lend` and `Lend.mut`, so after a `%` the value is always still alive. Givi
 Lyftar is ready. (Owner, 2026-11-04)
 
 ## Open
+
+- **Conversion.** `$t: str` converts, but `:` also annotates types, names arguments and opens blocks. Claude suggested
+  `$t as str`. The sketch keeps `: str` as a placeholder.
+- **Radium's open ownership questions, inherited with D2.** Lending through a stored `Lend.mut`; how a `must_Give` duty
+  ends in the function that receives it; a `must_Give` value in a field or returned; a parameter whose type is a stored
+  borrow; a `union.tagged` case holding a borrow; going through items that are structs, unions or arrays.
+- **Placeholders.** The repository's name and visibility, the license and the file extension are not chosen.
