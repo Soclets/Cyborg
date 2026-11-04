@@ -181,6 +181,11 @@ back a plain `i32`, and a bounded value goes into a plain `i32` with no check. `
 handle a bad value yourself, and it stays in every build mode. Claude argued for `as` until the `+ 1` example, then for
 this; the owner chose it: "we could just go b". (Owner, 2026-11-05)
 
+**D21. A linter, eventually.** Cyborg gets a tool like Rust's Clippy, separate from the compiler and the build modes
+(D14). It can force comments, and it is how the hidden checks in D20 can be made visible. Its name and rules are not
+settled here. The owner: "How about eventually a tool that forces comments? And other stuff like Clippy for our lang".
+(Owner, 2026-11-05)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude
