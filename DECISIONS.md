@@ -71,6 +71,13 @@ it". Whether every `void` function says `return void;` is not settled here. (Own
 spelled are not settled here. The owner: "I actually meant to have `array` and `list`, but I forgot to include in
 example". (Owner, 2026-11-04)
 
+**D13. Labels can have narrowings.** A label is the name in `val: 4` or `len: 8`, and it can be narrowed where a type's
+writer defines that. Bare `len` is exact, `len.max` is a limit and `len.min` is a floor, so `std::array.i32[len: 8]` is
+exactly 8, `std::list.i32[len.max: inf]` is any number, and `std::list.i32[len.min: 1, len.max: 8]` is 1 to 8. A list
+with a bare `len` is refused in favour of `array`. There is no `len.always`. This replaces the word `max_len` in D11, and
+settles what D12 left open. The owner proposed narrowed labels with `len.always` and `len.max`; Claude proposed bare
+`len` and `len.min`; the owner chose: "Heck yes. And no `.always`". (Owner, 2026-11-04)
+
 ## Open
 
 - **Whether the test in D9 works on a plain variable.** Claude suggested refusing it, since `if $n: bool:` on a value
@@ -80,5 +87,5 @@ example". (Owner, 2026-11-04)
 - **Radium's open ownership questions, inherited with D2.** Lending through a stored `Lend.mut`; how a `must_Give` duty
   ends in the function that receives it; a `must_Give` value in a field or returned; a parameter whose type is a stored
   borrow; a `union.tagged` case holding a borrow; going through items that are structs, unions or arrays.
-- **What separates `array` from `list`.** See D12. Not chosen yet.
+- **Type bounds.** The owner suggested `i32[min: …, max: …]`. How a value gets into a bounded type is not chosen yet.
 - **Placeholders.** The repository's name and visibility, the license and the file extension are not chosen.
