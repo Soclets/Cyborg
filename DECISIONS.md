@@ -218,10 +218,10 @@ shit will very much get labels, of course". (Owner, 2026-11-05)
   ends in the function that receives it; a `must_Give` value in a field or returned; a parameter whose type is a stored
   borrow; a `union.tagged` case holding a borrow; going through items that are structs, unions or arrays.
 - **Errors, left open by D16.** Colour, how many errors per run and their order, and any machine-readable form.
-- **From the owner's chat with Radium's design session, not logged yet.** The kit part written in Cyborg and the limb part
-  in the compiler; Precog's layers 1 and 2 in the core and layer 3 as a limb; contracts in base; the linter as an official
-  limb.
-- **A conflict with that chat.** No undefined behaviour there, against `FinalPerf` and `FinalShit` in D14.
+- **Float names.** The owner said "Types will probably look like `f32` or `float32`". Not chosen yet.
+- **Wrapping.** Radium's design session proposed that integers wrap only where that's written, and isn't sure the owner's
+  "yes" covered it. Not chosen yet.
+- **Benchmarks.** D14 had benchmarks use `FinalSafe`, as the default, and D26 removes the default. Not chosen yet.
 - **More on `＠`.** Whether the mark goes only at the path's start; whether anything besides `std` has both parts; how a
   third-party kit or limb is spelled; and whether it's the fullwidth `＠`, as written so far, or a plain `@`.
 - **Placeholders.** The repository's name and visibility, the license and the file extension are not chosen.
