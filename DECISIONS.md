@@ -58,12 +58,16 @@ handle it, while this test keeps compiling and skips it. The owner read `if $n: 
 applying it to union cases; the owner chose it: "Ah, yes, yes". How unions are declared is not settled here.
 (Owner, 2026-11-04)
 
+**D10. `i32`, and no chain.** A 32-bit signed integer is spelled `i32`, and `int.signed.32_bit` does not exist, so there
+is one spelling and no alias. Claude proposed it; the owner chose it: "almost every sys programmer knows `i32`, and has
+a stroke on `int.signed.32_bit`. So, keep". (Owner, 2026-11-04)
+
 ## Open
 
 - **Whether the test in D9 works on a plain variable.** Claude suggested refusing it, since `if $n: bool:` on a value
   whose type is already known is always true or always false. Not chosen yet.
-- **How much of Radium's narrowing rule applies.** A bare name as the default, spelled-out defaults refused, and no
-  aliases, which matters for `i32` against `int.signed.32_bit`. Not chosen yet.
+- **How much of Radium's narrowing rule applies.** A bare name as the default, and spelled-out defaults refused. Not
+  chosen yet.
 - **Radium's open ownership questions, inherited with D2.** Lending through a stored `Lend.mut`; how a `must_Give` duty
   ends in the function that receives it; a `must_Give` value in a field or returned; a parameter whose type is a stored
   borrow; a `union.tagged` case holding a borrow; going through items that are structs, unions or arrays.
