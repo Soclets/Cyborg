@@ -261,6 +261,10 @@ lists the limb when it needs it. `＠std::inline.asm` stays in `std`. The owner 
 written in D22 and D35, which Claude copied from Radium without asking. Claude proposed it; the owner chose: "This one:
 @". (Owner, 2026-11-05)
 
+**D37. A shield's exit checks follow the build mode.** They stay in `Working`, stay in `FinalSafe` even when expensive, are
+gone in `FinalPerf` and `FinalShit`, and are gone in `FinalSmall` if that makes it smaller. This differs from Radium,
+where they stay in every mode. Claude proposed it; the owner chose: "yea". (Owner, 2026-11-05)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude
@@ -277,6 +281,6 @@ written in D22 and D35, which Claude copied from Radium without asking. Claude p
   "yes" covered it. Not chosen yet.
 - **More on `@`.** Whether the mark goes only at the path's start; whether other limbs have a kit part like `std`; and how a
   third-party kit or limb is spelled.
-- **Shields, left open by D34.** What must live in one; how the walls work when the code outside isn't proven; whether
-  exit checks stay in every build mode, against `FinalPerf` having none in D14; and the keyword itself.
+- **Shields, left open by D34.** What must live in one; how the walls work when the code outside isn't proven; and the
+  keyword itself.
 - **Placeholders.** The repository's name and visibility, the license and the file extension are not chosen.
