@@ -22,5 +22,6 @@ fn.main() -> void:
     if $t at_least 10:
         std::println("big total: ", $t as str);
     end if
+    return void;
 end fn.main
 ```

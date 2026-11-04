@@ -62,6 +62,11 @@ applying it to union cases; the owner chose it: "Ah, yes, yes". How unions are d
 is one spelling and no alias. Claude proposed it; the owner chose it: "almost every sys programmer knows `i32`, and has
 a stroke on `int.signed.32_bit`. So, keep". (Owner, 2026-11-04)
 
+**D11. Nothing goes unsaid about being empty or unbounded.** A list always writes its `max_len`, with `inf` for
+unbounded, an empty list always writes `= empty`, and `main` says `return void;`. Claude proposed a bare `std::list.i32`
+meaning unbounded; the owner kept it written out, for the vibe: "it's consistent, and I don't really have a problem with
+it". Whether every `void` function says `return void;` is not settled here. (Owner, 2026-11-04)
+
 ## Open
 
 - **Whether the test in D9 works on a plain variable.** Claude suggested refusing it, since `if $n: bool:` on a value
@@ -71,4 +76,5 @@ a stroke on `int.signed.32_bit`. So, keep". (Owner, 2026-11-04)
 - **Radium's open ownership questions, inherited with D2.** Lending through a stored `Lend.mut`; how a `must_Give` duty
   ends in the function that receives it; a `must_Give` value in a field or returned; a parameter whose type is a stored
   borrow; a `union.tagged` case holding a borrow; going through items that are structs, unions or arrays.
+- **The word `max_len` or `inf`.** The owner is thinking of changing it for fun, "or maybe not". Not chosen yet.
 - **Placeholders.** The repository's name and visibility, the license and the file extension are not chosen.
