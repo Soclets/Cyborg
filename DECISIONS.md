@@ -207,6 +207,11 @@ shit will very much get labels, of course". (Owner, 2026-11-05)
 `std::map<key: str, val: i32>` is required, and `std::map<str, i32>` is refused. Claude proposed it; the owner chose it:
 "that rule". (Owner, 2026-11-05)
 
+**D26. No default build mode.** You always say which mode you're building in, as in `cyborg build --mode FinalShit`. This
+replaces "the default" in D14's `FinalSafe` row. UB stays possible in `FinalPerf`, `FinalShit` and `FinalSmall`; in
+`FinalSafe`, cheap checks such as overflow, bounds and division by zero stay as traps. Claude asked whether UB stays with
+`FinalSafe` as the safe default; the owner chose: "yes, but there's no default build mode". (Owner, 2026-11-05)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude
