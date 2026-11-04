@@ -198,6 +198,11 @@ is grouping in maths, `($a + $b) x 2`. An opening `<` has no space after it, a c
 comparison has a space on each side, so `$a<$b` is refused. Claude first suggested `( )` for declaring, then `[ ]` after
 reading the rule; the owner chose: "that rule". (Owner, 2026-11-05)
 
+**D24. A collection's types go in `< >`.** `std::list<i32>[len.max: inf]` and `std::array<i32>[len: 8]` replace the dot
+spellings in D8 and D13. A map's types get labels, such as `std::map<key: str, val: i32>`. The label names are Claude's
+placeholder. Claude proposed `< >`; the owner chose it and added the labels: "`<>`, and btw `std::map<str, i32>`. That
+shit will very much get labels, of course". (Owner, 2026-11-05)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude
@@ -213,7 +218,7 @@ reading the rule; the owner chose: "that rule". (Owner, 2026-11-05)
   in the compiler; Precog's layers 1 and 2 in the core and layer 3 as a limb; contracts in base; the linter as an official
   limb.
 - **A conflict with that chat.** No undefined behaviour there, against `FinalPerf` and `FinalShit` in D14.
-- **`std::list.i32` or `std::list<i32>`.** D23 puts a type in `< >`, and the sketch still uses the dot. Not chosen yet.
+- **When `< >` needs labels.** D24 labels a map's types and leaves `std::list<i32>` bare. The general rule is not chosen yet.
 - **More on `＠`.** Whether the mark goes only at the path's start; whether anything besides `std` has both parts; how a
   third-party kit or limb is spelled; and whether it's the fullwidth `＠`, as written so far, or a plain `@`.
 - **Placeholders.** The repository's name and visibility, the license and the file extension are not chosen.

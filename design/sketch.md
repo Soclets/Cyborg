@@ -3,7 +3,7 @@
 The owner's sketch of Cyborg, likely not final. This is a placeholder, not a specification.
 
 ```
-fn total [$xs: std::list.i32[len.max: inf]] -> i32:
+fn total [$xs: std::list<i32>[len.max: inf]] -> i32:
     let mut $sum: i32 = 0;
     for $x in $xs:
         change $sum = $sum + $x;
@@ -12,7 +12,7 @@ fn total [$xs: std::list.i32[len.max: inf]] -> i32:
 end fn total
 
 fn.main [] -> void:
-    let mut $xs: std::list.i32[len.max: inf] = empty;
+    let mut $xs: std::list<i32>[len.max: inf] = empty;
     $xs.%append(val: 4);
     $xs.%append(val: 6);
     $xs.%append(val: 5);
