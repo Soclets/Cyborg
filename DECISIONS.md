@@ -51,10 +51,17 @@ test: "maybe we'll go `as` for the conversion anyways". (Owner, 2026-11-04)
 borrow, and anything that consumes its value is a plain function. Claude asked whether to drop methods and use
 `append(Lend.mut $xs, val: 4)`; the owner chose both: "yea. Because, CyborgPL was genuinely too long". (Owner, 2026-11-04)
 
+**D9. `if $s: status.failed:` tests one case.** Cyborg has both `match`, which must cover every case, and this test,
+which reads as "if `$s` is the failed kind, do this". Inside the block the compiler treats `$s` as that case (flow
+typing), so `$s.code` is safe there and a compile error outside. Adding a case to a union later forces every `match` to
+handle it, while this test keeps compiling and skips it. The owner read `if $n: bool:` as a type test; Claude proposed
+applying it to union cases; the owner chose it: "Ah, yes, yes". How unions are declared is not settled here.
+(Owner, 2026-11-04)
+
 ## Open
 
-- **`if $s: status.ok:` as a one-case test.** The owner read `if $n: bool:` as "if var n is bool, do". Inside the block
-  the compiler would treat the value as that case (flow typing, not a narrowing). Not chosen yet.
+- **Whether the test in D9 works on a plain variable.** Claude suggested refusing it, since `if $n: bool:` on a value
+  whose type is already known is always true or always false. Not chosen yet.
 - **How much of Radium's narrowing rule applies.** A bare name as the default, spelled-out defaults refused, and no
   aliases, which matters for `i32` against `int.signed.32_bit`. Not chosen yet.
 - **Radium's open ownership questions, inherited with D2.** Lending through a stored `Lend.mut`; how a `must_Give` duty
