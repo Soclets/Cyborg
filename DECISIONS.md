@@ -133,6 +133,24 @@ running share one layout. A message says only what is certain: with exactly one 
 shows it as code; with more than one, there are no suggestions. The `FinalShit` curse is exempt. The `.cy` extension in
 the example is a placeholder. Claude proposed taking it whole; the owner chose it: "yup". (Owner, 2026-11-04)
 
+**D17. Another line in the curse.** This replaces the text in D15. The owner asked for the extra line "somewhere", and
+Claude placed it after `fix:`. The spelling is the owner's:
+
+```
+$ cyborg build --mode FinalShit
+
+warning: you chose FinalShit
+what:  every contract is now a fucking promise nobody checked
+why:   you asked for more UB than C, you absolute legend
+fix:   use FinalSafe, or pray
+your shit better not be commited
+
+Compiling... ☠️
+Done. Good fucking luck.
+```
+
+(Owner, 2026-11-04)
+
 ## Open
 
 - **Whether the test in D9 works on a plain variable.** Claude suggested refusing it, since `if $n: bool:` on a value
