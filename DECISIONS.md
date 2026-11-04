@@ -30,4 +30,8 @@ chose: "no change". (Owner, 2026-11-04)
 the dot). This rules out `change $xs = $xs.append(val: 4)` with a silently given receiver, and Claude's proposal that
 `change` stand in for `Lend.mut`. The owner: "No implicit Ownership". (Owner, 2026-11-04)
 
+**D4. `%` marks an unsaid ownership.** A `%` on a method's name says the receiver's ownership is unsaid here and is
+found in the signature: `$xs.%append(val: 4)`. The compiler still checks it, and a search for `%` finds every unsaid
+hand-off. The owner's idea. (Owner, 2026-11-04)
+
 ## Open
