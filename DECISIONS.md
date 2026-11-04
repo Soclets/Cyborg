@@ -186,6 +186,12 @@ this; the owner chose it: "we could just go b". (Owner, 2026-11-05)
 settled here. The owner: "How about eventually a tool that forces comments? And other stuff like Clippy for our lang".
 (Owner, 2026-11-05)
 
+**D22. `＠` marks the limb part, and only that.** Bare `std::` reaches the kit part of `std`, a library, and `＠std::` reaches
+the limb part, a compiler extension: `＠std::inline.asm`. `＠` goes only on things a limb provides, so `＠std::println` is
+refused, and a search for `＠` finds every compiler extension in the code. It is separate from the `%` in D4. The owner's
+idea, told to Radium's design session: "`std::` bare means the kit part only (lib), with `＠` it means the limb part too";
+Claude asked whether "too" meant both parts; the owner chose: "limb only". (Owner, 2026-11-05)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude
@@ -197,4 +203,11 @@ settled here. The owner: "How about eventually a tool that forces comments? And 
   ends in the function that receives it; a `must_Give` value in a field or returned; a parameter whose type is a stored
   borrow; a `union.tagged` case holding a borrow; going through items that are structs, unions or arrays.
 - **Errors, left open by D16.** Colour, how many errors per run and their order, and any machine-readable form.
+- **From the owner's chat with Radium's design session, not logged yet.** The kit part written in Cyborg and the limb part
+  in the compiler; Precog's layers 1 and 2 in the core and layer 3 as a limb; contracts in base; the linter as an official
+  limb.
+- **Conflicts with that chat.** No undefined behaviour there, against `FinalPerf` and `FinalShit` in D14; and
+  `fn.main [] -> void:` there, against `fn.main() -> void:` in the sketch here.
+- **More on `＠`.** Whether the mark goes only at the path's start; whether anything besides `std` has both parts; how a
+  third-party kit or limb is spelled; and whether it's the fullwidth `＠`, as written so far, or a plain `@`.
 - **Placeholders.** The repository's name and visibility, the license and the file extension are not chosen.
