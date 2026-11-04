@@ -38,4 +38,7 @@ hand-off. The owner's idea. (Owner, 2026-11-04)
 only `Lend` and `Lend.mut`, so after a `%` the value is always still alive. Giving away is spelled out:
 `close(Give $f)`. Claude proposed it; the owner chose it: "your recom". (Owner, 2026-11-04)
 
+**D6. Implementation waits for Lyftar.** Lyftar is the owner's in-house LLVM toolchain. Cyborg stays in design until
+Lyftar is ready. (Owner, 2026-11-04)
+
 ## Open
