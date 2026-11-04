@@ -93,6 +93,22 @@ runtime unless Precog proves them; and linter strictness, such as whether `mut` 
 the build mode. Claude pointed out that with no checks, a failed check in `FinalPerf` becomes UB; the owner accepts that:
 "you test your shit throughly first". What Precog and contracts are in Cyborg is not settled here. (Owner, 2026-11-04)
 
+**D15. The curse in `FinalShit`.** Building in `FinalShit` prints this, from the owner:
+
+```
+$ cyborg build --mode FinalShit
+
+warning: you chose FinalShit
+what:  every contract is now a fucking promise nobody checked
+why:   you asked for more UB than C, you absolute legend
+fix:   use FinalSafe, or pray
+
+Compiling... ☠️
+Done. Good fucking luck.
+```
+
+(Owner, 2026-11-04)
+
 ## Open
 
 - **Whether the test in D9 works on a plain variable.** Claude suggested refusing it, since `if $n: bool:` on a value
@@ -105,5 +121,4 @@ the build mode. Claude pointed out that with no checks, a failed check in `Final
 - **Type bounds.** The owner suggested `i32[min: …, max: …]`. How a value gets into a bounded type is not chosen yet. Claude
   suggested `$n as i32[min: 0, max: 100]`, which crashes visibly; the owner pointed out a plain `=` could do the same
   check silently. An `if` test stays in every build mode, since it is the program's own logic.
-- **The curse in `FinalShit`.** Not described yet.
 - **Placeholders.** The repository's name and visibility, the license and the file extension are not chosen.
