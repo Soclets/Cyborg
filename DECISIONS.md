@@ -192,6 +192,12 @@ refused, and a search for `＠` finds every compiler extension in the code. It i
 idea, told to Radium's design session: "`std::` bare means the kit part only (lib), with `＠` it means the limb part too";
 Claude asked whether "too" meant both parts; the owner chose: "limb only". (Owner, 2026-11-05)
 
+**D23. Radium's bracket rule.** `( )` runs something, `[ ]` describes or holds values, and `< >` fills in a type or a
+source. So a function is declared with `fn total [$xs: …] -> i32:` and called with `total(Lend $xs)`. The one exception
+is grouping in maths, `($a + $b) x 2`. An opening `<` has no space after it, a closing `>` has none before it, and a
+comparison has a space on each side, so `$a<$b` is refused. Claude first suggested `( )` for declaring, then `[ ]` after
+reading the rule; the owner chose: "that rule". (Owner, 2026-11-05)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude
@@ -206,8 +212,8 @@ Claude asked whether "too" meant both parts; the owner chose: "limb only". (Owne
 - **From the owner's chat with Radium's design session, not logged yet.** The kit part written in Cyborg and the limb part
   in the compiler; Precog's layers 1 and 2 in the core and layer 3 as a limb; contracts in base; the linter as an official
   limb.
-- **Conflicts with that chat.** No undefined behaviour there, against `FinalPerf` and `FinalShit` in D14; and
-  `fn.main [] -> void:` there, against `fn.main() -> void:` in the sketch here.
+- **A conflict with that chat.** No undefined behaviour there, against `FinalPerf` and `FinalShit` in D14.
+- **`std::list.i32` or `std::list<i32>`.** D23 puts a type in `< >`, and the sketch still uses the dot. Not chosen yet.
 - **More on `＠`.** Whether the mark goes only at the path's start; whether anything besides `std` has both parts; how a
   third-party kit or limb is spelled; and whether it's the fullwidth `＠`, as written so far, or a plain `@`.
 - **Placeholders.** The repository's name and visibility, the license and the file extension are not chosen.
