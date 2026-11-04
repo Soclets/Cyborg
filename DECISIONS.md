@@ -41,10 +41,13 @@ only `Lend` and `Lend.mut`, so after a `%` the value is always still alive. Givi
 **D6. Implementation waits for Lyftar.** Lyftar is the owner's in-house LLVM toolchain. Cyborg stays in design until
 Lyftar is ready. (Owner, 2026-11-04)
 
+**D7. `as` converts.** `$t as str` builds a new value of another type, which can allocate memory or fail. `:` no longer
+converts. Claude first suggested `as`, then dropped the push; the owner chose it after reading `if $n: bool:` as a type
+test: "maybe we'll go `as` for the conversion anyways". (Owner, 2026-11-04)
+
 ## Open
 
-- **Conversion.** `$t: str` converts, but `:` also annotates types, names arguments and opens blocks. Claude suggested
-  `$t as str`. The sketch keeps `: str` as a placeholder.
+- **`if $n: bool:` as a type test.** The owner read it as "if var n is bool, do". Not chosen yet.
 - **Radium's open ownership questions, inherited with D2.** Lending through a stored `Lend.mut`; how a `must_Give` duty
   ends in the function that receives it; a `must_Give` value in a field or returned; a parameter whose type is a stored
   borrow; a `union.tagged` case holding a borrow; going through items that are structs, unions or arrays.
