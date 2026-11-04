@@ -229,6 +229,10 @@ their budgets, proof levels, and Radium's "prove everything or refuse" mode as a
 the owner overruled Radium's design session on: "contracts go in base". The rest it proposed, and the owner chose it:
 "yes". (Owner, 2026-11-05, relayed)
 
+**D30. The linter is an official limb.** The tool in D21 ships with the compiler and is configured in the project file.
+Definite mistakes stay compiler errors. Radium's design session proposed it; the owner chose it: "yes". (Owner,
+2026-11-05, relayed)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude
