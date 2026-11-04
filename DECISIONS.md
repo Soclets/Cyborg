@@ -26,4 +26,8 @@ with `Give` exactly once, or the program does not compile. Stored borrows are ty
 (`$xs.len`, `for $x in $xs`) or for a fresh value that has no holder yet. Claude asked which words to change; the owner
 chose: "no change". (Owner, 2026-11-04)
 
+**D3. No implicit ownership.** Every hand-off shows on the page, including one to a method's receiver (the thing before
+the dot). This rules out `change $xs = $xs.append(val: 4)` with a silently given receiver, and Claude's proposal that
+`change` stand in for `Lend.mut`. The owner: "No implicit Ownership". (Owner, 2026-11-04)
+
 ## Open
