@@ -233,6 +233,10 @@ the owner overruled Radium's design session on: "contracts go in base". The rest
 Definite mistakes stay compiler errors. Radium's design session proposed it; the owner chose it: "yes". (Owner,
 2026-11-05, relayed)
 
+**D31. C and C++.** CyborgPL's reach: C headers read directly, C and C++ layouts, calls through C's conventions, and no
+deep C++. Cyborg adds generated `.h` and `.hpp` files for C++ calling in, and walls at the boundary. Radium's design
+session proposed it; the owner chose it: "yes". (Owner, 2026-11-05, relayed)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude
