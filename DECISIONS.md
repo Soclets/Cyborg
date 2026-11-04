@@ -223,6 +223,12 @@ comes from the std kit & limb itself", later lowercase. Radium's design session 
 "yea", which it says may have answered its whole explanation. "And like Radium-style stuff could be a limb". (Owner,
 2026-11-05, relayed)
 
+**D29. Precog and contracts.** Precog's layers 1 and 2, known values and ranges, are in the core. Layer 3, Z3 and CVC5, is
+a limb. That limb adds invariants, `assert` hints, ghost code, lemmas, proofs that loops end and that stack and heap fit
+their budgets, proof levels, and Radium's "prove everything or refuse" mode as an option. Contracts are in the base, which
+the owner overruled Radium's design session on: "contracts go in base". The rest it proposed, and the owner chose it:
+"yes". (Owner, 2026-11-05, relayed)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude
