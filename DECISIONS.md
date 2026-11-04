@@ -217,6 +217,12 @@ owner's chat with Radium's design session: "Not literally merging, more like mer
 And maybe tune down big changes, that's what made CyborgPL insane to maintain. It's gonna be a general sys lang, and it's
 long because there's no assumptions anymore." (Owner, 2026-11-05, relayed)
 
+**D28. `std`'s two parts.** The kit part is written in Cyborg and built by the compiler, and the limb part lives in the
+compiler, so it's in Rust, with its names and signatures visible in Cyborg. `inline.asm` comes from `std`: "`inline.ASM`
+comes from the std kit & limb itself", later lowercase. Radium's design session proposed the split and the owner replied
+"yea", which it says may have answered its whole explanation. "And like Radium-style stuff could be a limb". (Owner,
+2026-11-05, relayed)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude
