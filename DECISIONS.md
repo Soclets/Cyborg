@@ -34,4 +34,8 @@ the dot). This rules out `change $xs = $xs.append(val: 4)` with a silently given
 found in the signature: `$xs.%append(val: 4)`. The compiler still checks it, and a search for `%` finds every unsaid
 hand-off. The owner's idea. (Owner, 2026-11-04)
 
+**D5. What `%` may hide.** `%` goes only on a method call, never on an argument, so `total(%$xs)` is refused. It hides
+only `Lend` and `Lend.mut`, so after a `%` the value is always still alive. Giving away is spelled out:
+`close(Give $f)`. Claude proposed it; the owner chose it: "your recom". (Owner, 2026-11-04)
+
 ## Open
