@@ -151,6 +151,10 @@ Done. Good fucking luck.
 
 (Owner, 2026-11-04)
 
+**D18. The curse's extra line varies.** The line from D17 is spelled `your shit better not be committed`, correcting D17,
+and it is one of several variations. The other lines are not chosen yet. The owner: "the correct one, and that line
+should have some variations". (Owner, 2026-11-04)
+
 ## Open
 
 - **Whether the test in D9 works on a plain variable.** Claude suggested refusing it, since `if $n: bool:` on a value
@@ -164,4 +168,5 @@ Done. Good fucking luck.
   suggested `$n as i32[min: 0, max: 100]`, which crashes visibly; the owner pointed out a plain `=` could do the same
   check silently. An `if` test stays in every build mode, since it is the program's own logic.
 - **Errors, left open by D16.** Colour, how many errors per run and their order, and any machine-readable form.
+- **The variations in D18.** Which lines, and how one gets picked.
 - **Placeholders.** The repository's name and visibility, the license and the file extension are not chosen.
