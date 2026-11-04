@@ -241,6 +241,12 @@ session proposed it; the owner chose it: "yes". (Owner, 2026-11-05, relayed)
 what D14 said about benchmarks, now that D26 has removed the default. Claude proposed keeping it; the owner chose: "yes".
 (Owner, 2026-11-05)
 
+**D33. `union.tagged` says it.** A tagged union is declared `union.tagged status:` and closed with
+`end union.tagged status`, and there is no bare `union`, because "union" means opposite things to a C programmer and a
+Rust one. Its cases are narrowings, such as `status.failed`, and a case's values go in `[ ]`, such as `failed[code: i32]`.
+This settles the declaration D9 left open. Claude proposed a bare `union` meaning tagged; the owner chose otherwise:
+"accuracy really matters for this one. Why don't just say it?" (Owner, 2026-11-05)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude
@@ -257,4 +263,5 @@ what D14 said about benchmarks, now that D26 has removed the default. Claude pro
   "yes" covered it. Not chosen yet.
 - **More on `＠`.** Whether the mark goes only at the path's start; whether anything besides `std` has both parts; how a
   third-party kit or limb is spelled; and whether it's the fullwidth `＠`, as written so far, or a plain `@`.
+- **C's untagged union.** D31 needs it, for C's layouts. Claude suggested putting it behind `＠`. Its spelling is not chosen yet.
 - **Placeholders.** The repository's name and visibility, the license and the file extension are not chosen.
