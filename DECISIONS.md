@@ -237,6 +237,10 @@ Definite mistakes stay compiler errors. Radium's design session proposed it; the
 deep C++. Cyborg adds generated `.h` and `.hpp` files for C++ calling in, and walls at the boundary. Radium's design
 session proposed it; the owner chose it: "yes". (Owner, 2026-11-05, relayed)
 
+**D32. Published benchmarks use `FinalSafe`.** A published Cyborg benchmark is built in `FinalSafe` and says so. This keeps
+what D14 said about benchmarks, now that D26 has removed the default. Claude proposed keeping it; the owner chose: "yes".
+(Owner, 2026-11-05)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude
@@ -251,7 +255,6 @@ session proposed it; the owner chose it: "yes". (Owner, 2026-11-05, relayed)
 - **Float names.** The owner said "Types will probably look like `f32` or `float32`". Not chosen yet.
 - **Wrapping.** Radium's design session proposed that integers wrap only where that's written, and isn't sure the owner's
   "yes" covered it. Not chosen yet.
-- **Benchmarks.** D14 had benchmarks use `FinalSafe`, as the default, and D26 removes the default. Not chosen yet.
 - **More on `＠`.** Whether the mark goes only at the path's start; whether anything besides `std` has both parts; how a
   third-party kit or limb is spelled; and whether it's the fullwidth `＠`, as written so far, or a plain `@`.
 - **Placeholders.** The repository's name and visibility, the license and the file extension are not chosen.
