@@ -11,6 +11,7 @@
 | [1.7](#17-bare-names) | Bare names | The obvious default, or nothing |
 | [1.8](#18-brackets) | `( )`, `[ ]`, `< >` | Runs, describes, fills in |
 | [1.9](#19-labels-) | `:` in brackets | Names a value, and can be narrowed |
+| [1.10](#110-clashing-names-my) | `my.` | A name of yours that clashes |
 
 ## 1.1 Source files
 
@@ -126,3 +127,11 @@ std::list<i32>[len.min: 1, len.max: 8]
 ```
 
 **From:** D13, D57.
+
+## 1.10 Clashing names: `my.`
+
+**Rule:** a name you define that clashes with something else is written with `my.`.
+
+What counts as a clash, and where `my.` goes, aren't decided ([12.5](12-not-decided.md#125-functions)).
+
+**From:** D74.

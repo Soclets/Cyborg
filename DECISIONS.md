@@ -505,6 +505,11 @@ and the decision it came from. `10-build-modes.md` holds the one table of what's
 means `NotDesignedYet`. Inside each file, a reader has to be able to find something without reading all of it. Claude proposed the
 layout; the owner chose: "yea, and inside those should also be easy to find without reading the entire thing". (Owner, 2026-11-05)
 
+**D74. `my.` for a name that clashes.** A name you define that clashes with something else is written with `my.`, as in Radium. The
+owner: "if you want a thing that clashes, you write it with `my.`". Claude reads that as a clashing name without `my.` being
+refused; the owner hasn't confirmed that. What counts as a clash, and whether `my.` goes on the definition, the uses or both, are not
+settled here. (Owner, 2026-11-05)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude
