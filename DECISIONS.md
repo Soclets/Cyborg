@@ -357,12 +357,28 @@ to always pick an encoding; the owner chose: "look at `std::prinln`. It's not `s
 `std::println.stdout` are refused, with the fix shown. In a collection you write yourself, it's allowed, since your default
 might change. This is Radium's split. Claude proposed it; the owner chose: "yea". (Owner, 2026-11-05)
 
+**D52. `fails` goes in the body.** A function lists its failures as the first thing in its body, and raises one with `fail`:
+
+```
+fn half [$n: i32] -> i32:
+    fails [odd, negative[value: i32]];
+    if $n mod 2 != 0:
+        fail odd;
+    end if
+    return $n div.trunc 2;
+end fn half
+```
+
+This replaces `or fail[…]` on the return type in D47; the rest of D47 stands, so the list can mix named sets and one-offs.
+The owner asked "Maybe in the body instead?"; Claude offered declaring it first in the body or not at all; the owner chose:
+"A". (Owner, 2026-11-05)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude
   suggested refusing `if $n: bool:` on a value already known to be one, since it's always true or always false. Not
   chosen yet.
-- **Raising a failure.** D47 left the statement open. Claude's guess is `fail empty;`.
+- **Where contracts go.** Whether `requires` and `ensures` also go first in the body, with `fails` (D52), and their spelling.
 - **Radium's open ownership questions, inherited with D2.** Lending through a stored `Lend.mut`; how a `must_Give` duty
   ends in the function that receives it; a `must_Give` value in a field or returned; a parameter whose type is a stored
   borrow; a `union.tagged` case holding a borrow; going through items that are structs, unions or arrays.
