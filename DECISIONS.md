@@ -395,6 +395,10 @@ The spelling, including `result`, is Claude's. Claude proposed it; the owner cho
 `f32.decimal`; the owner chose: "yea, but decimal is likely just gonna be `d32`, because `f32.decimal` looks cursed". Whether
 `d32` is in the base, or marked as a limb or a kit, is not settled here. (Owner, 2026-11-05)
 
+**D55. `d32` is a limb.** Decimal floats are provided by the compiler and marked `@`, not base and not a kit. Whether the limb
+is `std` or its own is not settled here. Claude proposed `@std::d32`; the owner chose: "a limb, but I don't know about it
+being in `std`". (Owner, 2026-11-05)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude
