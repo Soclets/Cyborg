@@ -16,6 +16,8 @@ Each works in its own clone, on `main` with no branch, and runs `git pull --reba
 ## Rules
 
 1. **Language.** Rust only, and LLVM only through Lyftar. No C++ here: what LLVM needs goes in Lyftar. (D60, D61)
+   Tools are Rust too, in a `tools/` crate. The exceptions are one-line commands in config and scratch work that is never
+   committed. (D69)
 2. **Where.** Only design claude edits `DECISIONS.md` and `IMPLEMENTATION.md`.
 3. **The oracle stays apart.** compiler claude reads the oracle's tests, never `oracle/src`. If the compiler copied the
    oracle, their bugs would agree.
