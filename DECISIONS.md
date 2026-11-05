@@ -287,6 +287,19 @@ what still separate it from `FinalShit`. Claude suggested keeping assuming to `F
 "`FinalPerf` isn't comedic, it assumes you have tested it throughly already. But it shouldn't be comedic". (Owner,
 2026-11-05)
 
+**D42. When a plain `+` overflows.**
+
+| Mode | What happens |
+|---|---|
+| `Working`, `FinalSafe` | Trap |
+| `FinalPerf` | Wraps |
+| `FinalShit` | UB, because it assumes nothing bad can happen |
+| `FinalSmall` | Whatever's smaller |
+
+`FinalPerf` assumes the promises you wrote (D41), but a plain `+` isn't one. A wrapping operator, spelled `plus.wrap` as a
+placeholder, wraps in every mode. Claude proposed UB in `FinalPerf`; the owner asked "Shouldn't FinalPerf wrap instead of
+UB?", and Claude agreed and proposed this table; the owner chose it: "yes". (Owner, 2026-11-05)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude
@@ -299,8 +312,7 @@ what still separate it from `FinalShit`. Claude suggested keeping assuming to `F
   borrow; a `union.tagged` case holding a borrow; going through items that are structs, unions or arrays.
 - **Errors, left open by D16.** Colour, how many errors per run and their order, and any machine-readable form.
 - **Float names.** The owner said "Types will probably look like `f32` or `float32`". Not chosen yet.
-- **Wrapping.** Radium's design session proposed that integers wrap only where that's written, and isn't sure the owner's
-  "yes" covered it. Not chosen yet.
+- **Operators.** Which have symbols and which are words. The sketch has `+` and `at_least`. In progress.
 - **More on `@`.** Whether the mark goes only at the path's start; whether other limbs have a kit part like `std`; and how a
   third-party kit or limb is spelled.
 - **The keyword `shield`.** Radium's working word, not settled there either.
