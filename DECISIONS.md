@@ -447,6 +447,11 @@ design, and this session can stop it at the 8:30 PM limit. Claude proposed the o
 another session. So I will have time to talk to you about design, and you could stop anything when it goes past 8 something".
 (Owner, 2026-11-05)
 
+**D63. The rules hook.** Implementation rules live in a short `IMPLEMENTATION.md`, and a `SessionStart` hook in
+`.claude/settings.json` prints it into a session at startup and after compaction, also trying `resume` and `clear`, which TAKL
+didn't test. It delivers text and enforces nothing. From TAKL's `decision.house.rules_hook`; the owner called it the "hooker".
+Claude proposed taking it; the owner chose: "yea". It isn't installed yet. (Owner, 2026-11-05)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude
