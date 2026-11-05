@@ -274,6 +274,13 @@ Containment: raw pointers and unchecked borrows can't leave a shield, as a compi
 which goes full UB. Claude proposed the walls and keeping containment even in `FinalShit`; the owner chose: "yea. But
 `FinalShit` is comedic, so it would just go full UB". (Owner, 2026-11-05)
 
+**D40. `FinalShit` assumes nothing bad can happen.** It drops every compile-time safety rule, such as ownership, borrows,
+`must_Give`, containment, what must live in a shield and bounds on literals, so a program can build only in `FinalShit`.
+The compiler still refuses what it can't compile: bad syntax, unknown names and types that don't fit. Claude proposed
+dropping the rules; the owner put it: "Oh, it assumes nothing bad can happen". Claude reads that as the optimizer also
+treating contracts and bounds as facts, which is what would make it "more UB than C" (D14); the owner hasn't confirmed
+that reading. (Owner, 2026-11-05)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude
@@ -291,6 +298,5 @@ which goes full UB. Claude proposed the walls and keeping containment even in `F
 - **More on `@`.** Whether the mark goes only at the path's start; whether other limbs have a kit part like `std`; and how a
   third-party kit or limb is spelled.
 - **The keyword `shield`.** Radium's working word, not settled there either.
-- **How far `FinalShit` goes.** D39 drops containment there. Whether it drops other compile-time safety rules, such as
-  ownership, is not chosen yet.
+- **Whether `FinalPerf` treats contracts and bounds as facts too.** Not chosen yet.
 - **Placeholders.** The repository's name and visibility, the license and the file extension are not chosen.
