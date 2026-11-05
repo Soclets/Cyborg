@@ -281,6 +281,12 @@ dropping the rules; the owner put it: "Oh, it assumes nothing bad can happen". C
 treating contracts and bounds as facts, which is what would make it "more UB than C" (D14); the owner hasn't confirmed
 that reading. (Owner, 2026-11-05)
 
+**D41. `FinalPerf` assumes too, seriously.** `FinalPerf` treats contracts and bounds as facts for the optimizer, because it
+assumes you've tested thoroughly. It isn't comedic: it keeps every compile-time safety rule and has no curse, which are
+what still separate it from `FinalShit`. Claude suggested keeping assuming to `FinalShit`; the owner chose otherwise:
+"`FinalPerf` isn't comedic, it assumes you have tested it throughly already. But it shouldn't be comedic". (Owner,
+2026-11-05)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude
@@ -298,5 +304,4 @@ that reading. (Owner, 2026-11-05)
 - **More on `@`.** Whether the mark goes only at the path's start; whether other limbs have a kit part like `std`; and how a
   third-party kit or limb is spelled.
 - **The keyword `shield`.** Radium's working word, not settled there either.
-- **Whether `FinalPerf` treats contracts and bounds as facts too.** Not chosen yet.
 - **Placeholders.** The repository's name and visibility, the license and the file extension are not chosen.
