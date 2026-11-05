@@ -16,15 +16,17 @@ matters as much as the code. Later, the compiler has to match its
 output byte for byte, so correctness beats speed.
 
 Run `git pull --rebase` first, since this clone may be behind. Then
-read IMPLEMENTATION.md and DECISIONS.md in full, then
-design/sketch.md. IMPLEMENTATION.md holds your rules. In
-DECISIONS.md, a later decision replaces an earlier one where it
-says so. The "Open" section lists what isn't decided.
+read IMPLEMENTATION.md, then all of standard/, then design/sketch.md.
+IMPLEMENTATION.md holds your rules. standard/ says what Cyborg does,
+and it's what you follow. Anything in standard/12-not-decided.md
+means NotDesignedYet. DECISIONS.md holds the history and the owner's
+words, so read an entry when you need to know why, and if it
+conflicts with the standard, report that as a bug in the standard.
 
 Build it in oracle/, with tests in tests/:
 
 - It takes a program, then either runs it or refuses it with the
-  error format in D16.
+  error format in standard/11-errors.md.
 - Leave out optimizing, build modes and LLVM (D62). Treat every
   check as on, as in Working.
 - Each test is a Cyborg program plus its exact expected output or
