@@ -265,6 +265,10 @@ written in D22 and D35, which Claude copied from Radium without asking. Claude p
 gone in `FinalPerf` and `FinalShit`, and are gone in `FinalSmall` if that makes it smaller. This differs from Radium,
 where they stay in every mode. Claude proposed it; the owner chose: "yea". (Owner, 2026-11-05)
 
+**D38. What must live in a shield.** `@std::inline.asm`, raw pointers, `@csup` C calls and `@csup::union.untagged`. Using a
+limb doesn't need a shield by itself: `@` says it's a compiler extension, and a shield says it's dangerous. Claude
+proposed it; the owner chose: "yea". (Owner, 2026-11-05)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude
@@ -281,6 +285,5 @@ where they stay in every mode. Claude proposed it; the owner chose: "yea". (Owne
   "yes" covered it. Not chosen yet.
 - **More on `@`.** Whether the mark goes only at the path's start; whether other limbs have a kit part like `std`; and how a
   third-party kit or limb is spelled.
-- **Shields, left open by D34.** What must live in one; how the walls work when the code outside isn't proven; and the
-  keyword itself.
+- **Shields, left open by D34.** How the walls work when the code outside isn't proven, and the keyword itself.
 - **Placeholders.** The repository's name and visibility, the license and the file extension are not chosen.
