@@ -467,6 +467,11 @@ owner asked "Is it pedantic?" and noted Rust is less strict than SPARK; Claude p
 count is not settled here. Claude suggested leaving Verus out for now; the owner chose: "the important parts, yk? And I could let
 Lyftar use Verus". Whether Lyftar does is for Lyftar's design session. (Owner, 2026-11-05)
 
+**D67. What Verus proves.** The checks where a compiler bug would silently make users' code unsafe: ownership (`Give`, `Lend`,
+`must_Give`), bounds (the checks in D20 and the test in D9), failure coverage (`match`, `otherwise`, `fails`), shield containment
+(D38, D39), and the `@` and `%` rules (D5, D22). Parsing, error messages and generating LLVM IR aren't on the list; the oracle
+comparison covers those. Claude proposed it; the owner chose: "yeah". (Owner, 2026-11-05)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude
@@ -481,5 +486,4 @@ Lyftar use Verus". Whether Lyftar does is for Lyftar's design session. (Owner, 2
   third-party kit or limb is spelled.
 - **The keyword `shield`.** Radium's working word, not settled there either.
 - **`d32`'s limb.** D55 left it open. The owner: "Could just be a money limb, we don't need to design now". Deferred.
-- **Which parts get Verus.** See D66. Not chosen yet.
 - **Placeholders.** The repository's name and visibility, the license and the file extension are not chosen.
