@@ -373,12 +373,30 @@ This replaces `or fail[…]` on the return type in D47; the rest of D47 stands, 
 The owner asked "Maybe in the body instead?"; Claude offered declaring it first in the body or not at all; the owner chose:
 "A". (Owner, 2026-11-05)
 
+**D53. Contracts go first in the body.** In a fixed order: `requires`, `ensures`, `fails`, then the code. So the top of a
+function's body says what it promises, and the signature stays short:
+
+```
+fn half [$n: i32] -> i32:
+    requires $n at_least 0;
+    ensures result at_least 0;
+    fails [odd];
+
+    if $n mod 2 != 0:
+        fail odd;
+    end if
+    return $n div.trunc 2;
+end fn half
+```
+
+The spelling, including `result`, is Claude's. Claude proposed it; the owner chose: "yea". (Owner, 2026-11-05)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude
   suggested refusing `if $n: bool:` on a value already known to be one, since it's always true or always false. Not
   chosen yet.
-- **Where contracts go.** Whether `requires` and `ensures` also go first in the body, with `fails` (D52), and their spelling.
+- **Function types.** Since `-> i32` no longer shows failures (D52), a function's type needs some way to include them.
 - **Radium's open ownership questions, inherited with D2.** Lending through a stored `Lend.mut`; how a `must_Give` duty
   ends in the function that receives it; a `must_Give` value in a field or returned; a parameter whose type is a stored
   borrow; a `union.tagged` case holding a borrow; going through items that are structs, unions or arrays.
