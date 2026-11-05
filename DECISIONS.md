@@ -322,6 +322,22 @@ the compiler requires the mark on one that can jump and refuses it on one that c
 Radium's, shown here without objection. The `*` comes from CyborgPL; Claude proposed it; the owner chose it: "yes".
 (Owner, 2026-11-05)
 
+**D47. Failures.** A function that can fail says so on its return type, `-> file or fail[file_failed, bad_syntax]`, mixing
+named sets with one-off failures. A named set is a collection, and a failure can carry data in `[ ]`:
+
+```
+narrowings.failure file_failed:
+    file_failed.not_found;
+    file_failed.denied;
+    file_failed.disk_full[free: i32];
+end narrowings.failure file_failed
+```
+
+`?` is a compile error if the function doesn't list what it passes up. Two sets sharing a failure's name need the full
+`file_failed.denied` in the list. `or fail[…]` comes from CyborgPL. The owner proposed reusable failures and asked "Should
+it have a collection for that?"; Claude proposed `narrowings.fail`; the owner chose: "yea, but `narrowings.failure`". The
+statement that raises a failure is not settled here. (Owner, 2026-11-05)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude
@@ -335,7 +351,6 @@ Radium's, shown here without objection. The `*` comes from CyborgPL; Claude prop
 - **Errors, left open by D16.** Colour, how many errors per run and their order, and any machine-readable form.
 - **Float names.** The owner said "Types will probably look like `f32` or `float32`". Not chosen yet.
 - **Operators, after D45.** The words for everything else, such as divide.
-- **What a failure is.** Where it's declared, and whether it carries data. Not chosen yet.
 - **More on `@`.** Whether the mark goes only at the path's start; whether other limbs have a kit part like `std`; and how a
   third-party kit or limb is spelled.
 - **The keyword `shield`.** Radium's working word, not settled there either.
