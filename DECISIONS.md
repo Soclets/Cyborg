@@ -472,6 +472,12 @@ Lyftar use Verus". Whether Lyftar does is for Lyftar's design session. (Owner, 2
 (D38, D39), and the `@` and `%` rules (D5, D22). Parsing, error messages and generating LLVM IR aren't on the list; the oracle
 comparison covers those. Claude proposed it; the owner chose: "yeah". (Owner, 2026-11-05)
 
+**D68. check claude, later.** A fourth session, in `check/`, attacks the compiler as a separate author: it generates random valid
+programs, shrinks failures, and compares the oracle and the compiler as black boxes. It reads neither's source, reports findings
+without sending fixes, and starts once the compiler exists, though its generator can start earlier. oracle claude stays a separate
+session, because a generator written by the oracle's author would share its misreadings. From CyborgPL's check claude, which
+warned about syntax churn and untracked coverage. Claude proposed it; the owner chose: "yea". (Owner, 2026-11-05)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude
@@ -486,4 +492,5 @@ comparison covers those. Claude proposed it; the owner chose: "yeah". (Owner, 20
   third-party kit or limb is spelled.
 - **The keyword `shield`.** Radium's working word, not settled there either.
 - **`d32`'s limb.** D55 left it open. The owner: "Could just be a money limb, we don't need to design now". Deferred.
+- **Scripting languages in the repository.** The owner asked whether to allow any besides Rust. Not chosen yet.
 - **Placeholders.** The repository's name and visibility, the license and the file extension are not chosen.
