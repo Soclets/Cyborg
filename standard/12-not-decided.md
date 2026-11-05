@@ -70,7 +70,6 @@ These are places where decisions leave a real gap or pull against each other.
 - When a call needs labels ([12.1](#121-problems-found-writing-this)).
 - Comments. Examples in the decisions use `//`, but it was never chosen.
 - Naming rules, like capitals.
-- What counts as a clash for `my.`, whether it goes on the definition, the uses or both, and whether a clash without it is refused.
 
 ## 12.6 Failures
 

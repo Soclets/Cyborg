@@ -11,7 +11,7 @@
 | [1.7](#17-bare-names) | Bare names | The obvious default, or nothing |
 | [1.8](#18-brackets) | `( )`, `[ ]`, `< >` | Runs, describes, fills in |
 | [1.9](#19-labels-) | `:` in brackets | Names a value, and can be narrowed |
-| [1.10](#110-clashing-names-my) | `my.` | A name of yours that clashes |
+| [1.10](#110-clashing-names-my) | `my::` | A name of yours that clashes |
 
 ## 1.1 Source files
 
@@ -128,10 +128,25 @@ std::list<i32>[len.min: 1, len.max: 8]
 
 **From:** D13, D57.
 
-## 1.10 Clashing names: `my.`
+## 1.10 Clashing names: `my::`
 
-**Rule:** a name you define that clashes with something else is written with `my.`.
+**Rule:** your own names are bare, and any name is allowed. A name clashes when it's the same as a keyword, a word operator or a base type. The definition stays bare, and every use is written with `my::`.
 
-What counts as a clash, and where `my.` goes, aren't decided ([12.5](12-not-decided.md#125-functions)).
+```
+fn x [$a: i32, $b: i32] -> i32:
+    …
+end fn x
 
-**From:** D74.
+let $area: i32 = $width x $height;
+let $mine: i32 = my::x($width, $height);
+```
+
+`std::` things don't clash, because they have a path, and variables don't, because they have `$`.
+
+If Cyborg later adds a built-in with the same name, old code gets a compile error saying to write `my::`, never a silent change of meaning.
+
+`my` is a reserved kit prefix. `@my` isn't reserved.
+
+**Refused:** a bare `x(…)` when `x` is built in, with `fix: my::x(…)`.
+
+**From:** D75.

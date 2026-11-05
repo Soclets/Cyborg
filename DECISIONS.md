@@ -510,6 +510,16 @@ owner: "if you want a thing that clashes, you write it with `my.`". Claude reads
 refused; the owner hasn't confirmed that. What counts as a clash, and whether `my.` goes on the definition, the uses or both, are not
 settled here. (Owner, 2026-11-05)
 
+**D75. `my::` for a name that clashes.** This replaces `my.` in D74. Your own names are bare, and any name is allowed, even `x` or `if`.
+A name clashes when it's the same as something built into the language: a keyword, a word operator or a base type. `std::` things
+don't clash, because they have a path, and variables don't, because they have `$`. The mark goes on uses, not the definition:
+`fn x […]` is called with `my::x(…)`. `$a x $b` is always multiply, and a bare `x(…)` is refused with the fix shown. If Cyborg later
+adds a built-in with the same name, old code gets a compile error saying to write `my::`, never a silent change of meaning. `my` is a
+reserved kit prefix, and `@my` isn't reserved. From Radium's D43, with Claude proposing the rules. The owner proposed the spelling:
+"should it be `my::`, and `my` is a reserved kit prefix (ironic for the thing to unreserve), `@my` isn't reserved". Claude suggested
+reserving `@my` too, for looking like `my::`; the owner asked "So, what's the problem?", and Claude agreed there's no real one.
+(Owner, 2026-11-05)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude
