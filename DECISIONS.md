@@ -441,6 +441,12 @@ the language, if slow builds hurt. Claude proposed it; the owner chose: "yes". (
 gets added to Lyftar, including custom passes' support. The owner asked whether C++ would be needed here for custom LLVM passes;
 Claude proposed the rule; the owner chose: "yea". (Owner, 2026-11-05)
 
+**D62. A small oracle, the one exception to D6.** Cyborg gets an oracle in Rust, which needs no LLVM: only what's needed to run
+and refuse real example programs, with no optimizing and no build modes. It's made in its own session, so this one stays on
+design, and this session can stop it at the 8:30 PM limit. Claude proposed the oracle; the owner chose: "yea, but maybe made by
+another session. So I will have time to talk to you about design, and you could stop anything when it goes past 8 something".
+(Owner, 2026-11-05)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude
