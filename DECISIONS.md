@@ -490,6 +490,10 @@ ask for it. The owner: "mfs recommending a less mature, unsafe, same speed alter
 same speed needed a fucking download. And a mf put important stuff in scratchpad, and it was fucking gone. And by mfs, I mean
 Claudes." (Owner, 2026-11-05)
 
+**D71. A standard.** Cyborg has a written standard, like C's ISO one, and its behaviour is documented. Its form, and how it relates
+to `DECISIONS.md`, the oracle and the compiler, are not settled here. The owner: "Cyborg would have a standard (like C's ISO), and
+its behaviour would be documented." (Owner, 2026-11-05)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude
@@ -504,4 +508,5 @@ Claudes." (Owner, 2026-11-05)
   third-party kit or limb is spelled.
 - **The keyword `shield`.** Radium's working word, not settled there either.
 - **`d32`'s limb.** D55 left it open. The owner: "Could just be a money limb, we don't need to design now". Deferred.
+- **The standard.** Who writes it, when it starts, and what wins when it disagrees with `DECISIONS.md`, the oracle or the compiler.
 - **Placeholders.** The repository's name and visibility, the license and the file extension are not chosen.
