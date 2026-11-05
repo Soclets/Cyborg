@@ -499,6 +499,12 @@ Cyborg does now, in one place, and it's what the oracle, the compiler and check 
 the standard. design claude owns it. It has to be easy to find what is where. Claude proposed the order; the owner chose: "yea. The
 standard should be easy to find what is where, and stuff." (Owner, 2026-11-05)
 
+**D73. The standard's layout.** A `standard/` folder of numbered files, from `1-programs.md` to `12-not-decided.md`, with a `README.md`
+that maps each word to its section. Sections are numbered so they can be cited. Each gives the rule, an example, what gets refused
+and the decision it came from. `10-build-modes.md` holds the one table of what's UB in which mode, and anything in `12-not-decided.md`
+means `NotDesignedYet`. Inside each file, a reader has to be able to find something without reading all of it. Claude proposed the
+layout; the owner chose: "yea, and inside those should also be easy to find without reading the entire thing". (Owner, 2026-11-05)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude
@@ -513,5 +519,5 @@ standard should be easy to find what is where, and stuff." (Owner, 2026-11-05)
   third-party kit or limb is spelled.
 - **The keyword `shield`.** Radium's working word, not settled there either.
 - **`d32`'s limb.** D55 left it open. The owner: "Could just be a money limb, we don't need to design now". Deferred.
-- **The standard's layout, and when it starts.** Not chosen yet.
+- **When the standard gets written.** Not chosen yet.
 - **Placeholders.** The repository's name and visibility, the license and the file extension are not chosen.
