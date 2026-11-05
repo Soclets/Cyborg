@@ -483,6 +483,13 @@ the same lints. There are two exceptions: one-line commands in config, like the 
 never committed. CyborgPL had 59 scripts by the end. The owner asked whether to allow scripting languages; Claude proposed this;
 the owner chose: "yea". (Owner, 2026-11-05)
 
+**D70. Scratchpad and downloads.** Scratch space is for what can be lost: anything needed later goes in the repository and gets
+committed. And needing a download is not a cost: a dependency or tool is chosen on maturity, safety, maintenance and speed, so a
+less mature, less safe option never wins because the better one has to be installed. If an install needs the owner's approval,
+ask for it. The owner: "mfs recommending a less mature, unsafe, same speed alternative just because the mature, safer, maintained,
+same speed needed a fucking download. And a mf put important stuff in scratchpad, and it was fucking gone. And by mfs, I mean
+Claudes." (Owner, 2026-11-05)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude

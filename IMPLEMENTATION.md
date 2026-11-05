@@ -45,6 +45,9 @@ Each works in its own clone, on `main` with no branch, and runs `git pull --reba
 12. **Stop at 8:30 PM.** Every session stops then, and suggests the owner stops too.
 13. **Verus.** The compiler's checks for ownership, bounds, failure coverage, shield containment, and the `@` and `%` rules are
     proven with Verus. The oracle stays plain. (D66, D67)
+14. **Scratchpad.** Scratch space is for what can be lost. Anything needed later goes in the repository and gets committed. (D70)
+15. **Downloads are free.** A dependency or tool is chosen on maturity, safety, maintenance and speed. A less mature or less safe
+    option never wins because the better one needs installing. If an install needs the owner's approval, ask for it. (D70)
 
 ## Tracing
 
