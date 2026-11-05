@@ -269,6 +269,11 @@ where they stay in every mode. Claude proposed it; the owner chose: "yea". (Owne
 limb doesn't need a shield by itself: `@` says it's a compiler extension, and a shield says it's dangerous. Claude
 proposed it; the owner chose: "yea". (Owner, 2026-11-05)
 
+**D39. A shield's other walls.** Entry: `requires` is checked at runtime unless Precog proves it, following the build mode.
+Containment: raw pointers and unchecked borrows can't leave a shield, as a compile error, in every mode except `FinalShit`,
+which goes full UB. Claude proposed the walls and keeping containment even in `FinalShit`; the owner chose: "yea. But
+`FinalShit` is comedic, so it would just go full UB". (Owner, 2026-11-05)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude
@@ -285,5 +290,7 @@ proposed it; the owner chose: "yea". (Owner, 2026-11-05)
   "yes" covered it. Not chosen yet.
 - **More on `@`.** Whether the mark goes only at the path's start; whether other limbs have a kit part like `std`; and how a
   third-party kit or limb is spelled.
-- **Shields, left open by D34.** How the walls work when the code outside isn't proven, and the keyword itself.
+- **The keyword `shield`.** Radium's working word, not settled there either.
+- **How far `FinalShit` goes.** D39 drops containment there. Whether it drops other compile-time safety rules, such as
+  ownership, is not chosen yet.
 - **Placeholders.** The repository's name and visibility, the license and the file extension are not chosen.
