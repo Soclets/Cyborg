@@ -543,6 +543,9 @@ published benchmarks use `FinalSafe`, and the build mode D77 gave purpose and no
 that part is Claude's addition. Claude asked which mode the ceil uses; the owner chose: "Actually, it's those benchmarks per build
 mode." (Owner, 2026-11-05)
 
+**D79. The repository is public.** `Soclets/Cyborg` is public, with its full history. The license and the repository's final name are still
+not chosen. The owner: "Bro, pub the GH repo now". (Owner, 2026-11-05)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude
@@ -559,4 +562,4 @@ mode." (Owner, 2026-11-05)
 - **`d32`'s limb.** D55 left it open. The owner: "Could just be a money limb, we don't need to design now". Deferred.
 - **Everything in `standard/12-not-decided.md`.** Written with the standard, so that's the full list, including the problems found
   writing it. This section may be behind it.
-- **Placeholders.** The repository's name and visibility, the license and the file extension are not chosen.
+- **Placeholders.** The repository's name, the license and the file extension are not chosen.

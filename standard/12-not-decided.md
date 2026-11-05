@@ -125,4 +125,4 @@ These have a working name, but aren't chosen:
 - `key` and `val` in `std::map`.
 - `plus.wrap`.
 - `result`.
-- The repository's name and visibility, and the license.
+- The repository's name, and the license.
