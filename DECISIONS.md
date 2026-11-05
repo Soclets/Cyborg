@@ -300,6 +300,11 @@ what still separate it from `FinalShit`. Claude suggested keeping assuming to `F
 placeholder, wraps in every mode. Claude proposed UB in `FinalPerf`; the owner asked "Shouldn't FinalPerf wrap instead of
 UB?", and Claude agreed and proposed this table; the owner chose it: "yes". (Owner, 2026-11-05)
 
+**D43. The operators with symbols.** `+`, `-`, `x`, `!=`, `=`, `==`, `?` and `??`. Multiply is `x`, as in `$a x $b`. Claude
+proposed `*` and `/`; the owner chose: "My taste is: `+`, `-`, `x`, `!=`, `=`, `==`, `?`, `??`". Claude reads anything not
+listed, such as divide and `<`, as a word; the owner hasn't confirmed that. What `?` and `??` do is not settled here.
+(Owner, 2026-11-05)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude
@@ -312,7 +317,8 @@ UB?", and Claude agreed and proposed this table; the owner chose it: "yes". (Own
   borrow; a `union.tagged` case holding a borrow; going through items that are structs, unions or arrays.
 - **Errors, left open by D16.** Colour, how many errors per run and their order, and any machine-readable form.
 - **Float names.** The owner said "Types will probably look like `f32` or `float32`". Not chosen yet.
-- **Operators.** Which have symbols and which are words. The sketch has `+` and `at_least`. In progress.
+- **Operators, after D43.** What `?` and `??` do, and the words for everything else. If `<` isn't a comparison, D23's spacing
+  rule for `< >` has less to do.
 - **More on `@`.** Whether the mark goes only at the path's start; whether other limbs have a kit part like `std`; and how a
   third-party kit or limb is spelled.
 - **The keyword `shield`.** Radium's working word, not settled there either.
