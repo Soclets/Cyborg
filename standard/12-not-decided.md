@@ -85,7 +85,6 @@ These are places where decisions leave a real gap or pull against each other.
 - Whether `FinalSmall` treats contracts as facts.
 - What `FinalShit` drops beyond D40's list ([12.1](#121-problems-found-writing-this)).
 - How you choose optimization in `Working`.
-- Which build mode the ceil benchmark uses (D77).
 
 ## 12.8 Ownership
 

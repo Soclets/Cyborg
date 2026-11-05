@@ -538,6 +538,11 @@ possibly go, with anything allowed. Other languages' versions follow the same ru
 proposed the kinds: "those benchmarks, but strictly for their purpose, and those benchmarks normally to see how the lang does normally",
 then "And another one that is the ceil"; Claude proposed the rules. The ceil's build mode is not settled here. (Owner, 2026-11-05)
 
+**D78. Benchmarks per build mode.** Every benchmark runs in every build mode, in each of its three kinds. This replaces D32's rule that
+published benchmarks use `FinalSafe`, and the build mode D77 gave purpose and normal. Any number quoted says its kind and its mode;
+that part is Claude's addition. Claude asked which mode the ceil uses; the owner chose: "Actually, it's those benchmarks per build
+mode." (Owner, 2026-11-05)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude

@@ -10,7 +10,7 @@
 | [10.6](#106-assuming) | Assuming | `FinalPerf` and `FinalShit` treat promises as facts |
 | [10.7](#107-finalshit) | `FinalShit` | Drops the compile-time safety rules |
 | [10.8](#108-the-curse) | The curse | What `FinalShit` prints |
-| [10.9](#109-benchmarks) | Benchmarks | Purpose, normal and ceil |
+| [10.9](#109-benchmarks) | Benchmarks | Three kinds, in every mode |
 
 ## 10.1 The modes
 
@@ -137,14 +137,14 @@ Even Grok wouldn't fucking joke about this
 
 ## 10.9 Benchmarks
 
-**Rule:** there are three kinds, and each says which it is.
+**Rule:** every benchmark runs in every build mode, in each of three kinds. Any number quoted says its kind and its mode.
 
-| Kind | What it's for | How it's written | Build mode |
-|---|---|---|---|
-| Purpose | Isolates one thing, and the result says what | As hard as it can, for that one thing | `FinalSafe`, and says so |
-| Normal | How Cyborg does in everyday code | No `@std::inline.asm`, shields or hand-tuning | `FinalSafe`, and says so |
-| Ceil | How fast Cyborg can possibly go | Anything allowed | Not decided ([12.7](12-not-decided.md#127-build-modes)) |
+| Kind | What it's for | How it's written |
+|---|---|---|
+| Purpose | Isolates one thing, and the result says what | As hard as it can, for that one thing |
+| Normal | How Cyborg does in everyday code | No `@std::inline.asm`, shields or hand-tuning |
+| Ceil | How fast Cyborg can possibly go | Anything allowed |
 
 Other languages' versions follow the same rules.
 
-**From:** D14, D32, D77.
+**From:** D32, D77, D78.
