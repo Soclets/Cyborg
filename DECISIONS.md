@@ -425,6 +425,14 @@ Fields have no `$`. Building one uses `[ ]`, with `=` setting a field, and readi
 `$a: i32 := read();` is refused. It takes the maths meaning of "is defined as". The owner: "was thinking of letting `:=` means
 const"; Claude proposed the compile-time rule; the owner chose it: "yea". (Owner, 2026-11-05)
 
+**D59. `~` marks an inexact literal.** A float literal the type can't hold exactly must say so: `let $b: f64 = ~0.1;`. An exact
+one has no mark: `let $a: f64 = 0.5;`, and `0.1` needs none in `d32`. Leaving it off is refused, with the fix shown, and writing
+it on an exact literal is refused too. A negative is `~-0.1`. So a long constant can be pasted as `~3.14159265358979323846`,
+and there is no limit on digits. `~` covers literals only, not arithmetic, and it joins the symbols in D43. Claude proposed
+refusing more than 17 digits for `f64`; the owner proposed this: "you have to write something like `~0.1` when inexact? And no
+`~` when exact"; Claude agreed; the owner chose it: "yea". Refusing `~` on an exact literal is Claude's addition. (Owner,
+2026-11-05)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude
@@ -439,5 +447,4 @@ const"; Claude proposed the compile-time rule; the owner chose it: "yea". (Owner
   third-party kit or limb is spelled.
 - **The keyword `shield`.** Radium's working word, not settled there either.
 - **`d32`'s limb.** D55 left it open. The owner: "Could just be a money limb, we don't need to design now". Deferred.
-- **Float literals with too many digits.** Claude suggested a warning; the owner asked "only a warning?". Not chosen yet.
 - **Placeholders.** The repository's name and visibility, the license and the file extension are not chosen.
