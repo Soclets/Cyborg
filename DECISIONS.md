@@ -532,6 +532,12 @@ fn half [$n: i32] -> i32:
 `=>` joins the symbols in D43, and `fails` keeps its plain `fails [odd];`. `result` is still a placeholder. The owner proposed "`precond =>`,
 `postcond =>`?"; Claude suggested dropping the arrow; the owner chose: "🥹 pwease". (Owner, 2026-11-05)
 
+**D77. Three kinds of benchmark.** Purpose: isolates one thing, and its result says what it measures, so nobody quotes it as a verdict on
+Cyborg. Normal: written the way a normal person would, with no `@std::inline.asm`, shields or hand-tuning. Ceil: how fast Cyborg can
+possibly go, with anything allowed. Other languages' versions follow the same rules. Purpose and normal use `FinalSafe` (D32). The owner
+proposed the kinds: "those benchmarks, but strictly for their purpose, and those benchmarks normally to see how the lang does normally",
+then "And another one that is the ceil"; Claude proposed the rules. The ceil's build mode is not settled here. (Owner, 2026-11-05)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude
