@@ -353,12 +353,16 @@ and `shr`. Claude proposed them; the owner objected only to the bare `div` (D48)
 to always pick an encoding; the owner chose: "look at `std::prinln`. It's not `std::println.shortest.stdout`". (Owner,
 2026-11-05)
 
+**D51. Spelled-out defaults.** A default the language or `std` fixes can't be written out, so `str.utf8` and
+`std::println.stdout` are refused, with the fix shown. In a collection you write yourself, it's allowed, since your default
+might change. This is Radium's split. Claude proposed it; the owner chose: "yea". (Owner, 2026-11-05)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude
   suggested refusing `if $n: bool:` on a value already known to be one, since it's always true or always false. Not
   chosen yet.
-- **Spelled-out defaults.** Whether `str.utf8` is refused or allowed, now that D50 makes it the default.
+- **Raising a failure.** D47 left the statement open. Claude's guess is `fail empty;`.
 - **Radium's open ownership questions, inherited with D2.** Lending through a stored `Lend.mut`; how a `must_Give` duty
   ends in the function that receives it; a `must_Give` value in a field or returned; a parameter whose type is a stored
   borrow; a `union.tagged` case holding a borrow; going through items that are structs, unions or arrays.
