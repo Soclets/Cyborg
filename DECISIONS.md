@@ -412,4 +412,5 @@ being in `std`". (Owner, 2026-11-05)
 - **More on `@`.** Whether the mark goes only at the path's start; whether other limbs have a kit part like `std`; and how a
   third-party kit or limb is spelled.
 - **The keyword `shield`.** Radium's working word, not settled there either.
+- **`d32`'s limb.** D55 left it open. The owner: "Could just be a money limb, we don't need to design now". Deferred.
 - **Placeholders.** The repository's name and visibility, the license and the file extension are not chosen.
