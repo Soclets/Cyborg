@@ -433,6 +433,10 @@ refusing more than 17 digits for `f64`; the owner proposed this: "you have to wr
 `~` when exact"; Claude agreed; the owner chose it: "yea". Refusing `~` on an exact literal is Claude's addition. (Owner,
 2026-11-05)
 
+**D60. Rust host, LLVM backend.** The compiler is written in Rust, with no plan to self-host, though the `std` kit part is in
+Cyborg (D28). The only backend is LLVM, through Lyftar. A Cranelift backend for `Working` could be added later without changing
+the language, if slow builds hurt. Claude proposed it; the owner chose: "yes". (Owner, 2026-11-05)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude
