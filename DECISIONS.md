@@ -463,6 +463,10 @@ warns on `clippy::pedantic`. This enforces rule 6 of `IMPLEMENTATION.md`, though
 owner asked "Is it pedantic?" and noted Rust is less strict than SPARK; Claude proposed this; the owner chose: "yea". (Owner,
 2026-11-05)
 
+**D66. Verus on the important parts.** The compiler's important parts are proven with Verus. The oracle stays plain. Which parts
+count is not settled here. Claude suggested leaving Verus out for now; the owner chose: "the important parts, yk? And I could let
+Lyftar use Verus". Whether Lyftar does is for Lyftar's design session. (Owner, 2026-11-05)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude
@@ -477,5 +481,5 @@ owner asked "Is it pedantic?" and noted Rust is less strict than SPARK; Claude p
   third-party kit or limb is spelled.
 - **The keyword `shield`.** Radium's working word, not settled there either.
 - **`d32`'s limb.** D55 left it open. The owner: "Could just be a money limb, we don't need to design now". Deferred.
-- **Verus.** The owner asked about it. Claude suggested not using it yet. Not chosen yet.
+- **Which parts get Verus.** See D66. Not chosen yet.
 - **Placeholders.** The repository's name and visibility, the license and the file extension are not chosen.

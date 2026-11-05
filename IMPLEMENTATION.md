@@ -36,6 +36,7 @@ Each works in its own clone, on `main` with no branch, and runs `git pull --reba
     full and itself, and again after every compaction. Messaging another session isn't prompting, and isn't written like
     prompting: write it like one colleague talking to another.
 12. **Stop at 8:30 PM.** Every session stops then, and suggests the owner stops too.
+13. **Verus.** The compiler's important parts are proven with Verus. The oracle stays plain. (D66)
 
 ## Tracing
 
