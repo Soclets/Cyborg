@@ -315,6 +315,13 @@ as a block, for handling a failure in more than one line. Handler collections ca
 Claude proposed symbols only; the owner chose: "symbols only, and `otherwise:` could be a block, and btw you could use
 handler collections". (Owner, 2026-11-05)
 
+**D46. Handlers, and `*` for the ones that can jump.** A handler narrowing is a named set of `otherwise` arms, used at a call
+as if written there: `otherwise word_failed.use_placeholder;`. The arms must cover every failure still possible at that
+call. A handler that can `return`, `break` or `continue` is marked `*` where it's used, `otherwise word_failed.*bail;`, and
+the compiler requires the mark on one that can jump and refuses it on one that can't. The spelling `narrowings.handler` is
+Radium's, shown here without objection. The `*` comes from CyborgPL; Claude proposed it; the owner chose it: "yes".
+(Owner, 2026-11-05)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude
@@ -327,8 +334,8 @@ handler collections". (Owner, 2026-11-05)
   borrow; a `union.tagged` case holding a borrow; going through items that are structs, unions or arrays.
 - **Errors, left open by D16.** Colour, how many errors per run and their order, and any machine-readable form.
 - **Float names.** The owner said "Types will probably look like `f32` or `float32`". Not chosen yet.
-- **Operators, after D45.** The words for everything else, such as divide. The `otherwise:` block's spelling, and how handler
-  collections work with it.
+- **Operators, after D45.** The words for everything else, such as divide.
+- **What a failure is.** Where it's declared, and whether it carries data. Not chosen yet.
 - **More on `@`.** Whether the mark goes only at the path's start; whether other limbs have a kit part like `std`; and how a
   third-party kit or limb is spelled.
 - **The keyword `shield`.** Radium's working word, not settled there either.
