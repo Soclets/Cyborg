@@ -310,6 +310,11 @@ this failed, use this instead. `<` and `>` join the symbols in D43, with D23's s
 `otherwise`. `<`, `>` is also my taste". Whether the words `try` and `otherwise` also exist is not settled here.
 (Owner, 2026-11-05)
 
+**D45. Symbols only, and an `otherwise:` block.** `?` and `??` have no word forms, so there is no `try`. `otherwise:` exists
+as a block, for handling a failure in more than one line. Handler collections can be used here, and how is not settled.
+Claude proposed symbols only; the owner chose: "symbols only, and `otherwise:` could be a block, and btw you could use
+handler collections". (Owner, 2026-11-05)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude
@@ -322,7 +327,8 @@ this failed, use this instead. `<` and `>` join the symbols in D43, with D23's s
   borrow; a `union.tagged` case holding a borrow; going through items that are structs, unions or arrays.
 - **Errors, left open by D16.** Colour, how many errors per run and their order, and any machine-readable form.
 - **Float names.** The owner said "Types will probably look like `f32` or `float32`". Not chosen yet.
-- **Operators, after D44.** Whether `try` and `otherwise` exist as words too, and the words for everything else, such as divide.
+- **Operators, after D45.** The words for everything else, such as divide. The `otherwise:` block's spelling, and how handler
+  collections work with it.
 - **More on `@`.** Whether the mark goes only at the path's start; whether other limbs have a kit part like `std`; and how a
   third-party kit or limb is spelled.
 - **The keyword `shield`.** Radium's working word, not settled there either.
