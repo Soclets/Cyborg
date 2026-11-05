@@ -437,6 +437,10 @@ refusing more than 17 digits for `f64`; the owner proposed this: "you have to wr
 Cyborg (D28). The only backend is LLVM, through Lyftar. A Cranelift backend for `Working` could be added later without changing
 the language, if slow builds hurt. Claude proposed it; the owner chose: "yes". (Owner, 2026-11-05)
 
+**D61. No C++ in this repository.** The first implementation rule: if Cyborg needs something from LLVM that Lyftar can't do, it
+gets added to Lyftar, including custom passes' support. The owner asked whether C++ would be needed here for custom LLVM passes;
+Claude proposed the rule; the owner chose: "yea". (Owner, 2026-11-05)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude
