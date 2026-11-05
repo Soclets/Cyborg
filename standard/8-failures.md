@@ -13,7 +13,7 @@
 
 ## 8.1 `fails`
 
-**Rule:** a function that can fail lists its failures in its body, after `requires` and `ensures` ([5.4](5-functions.md#54-the-top-of-the-body)). The list can mix named sets and one-off failures, and a failure can carry data in `[ ]`.
+**Rule:** a function that can fail lists its failures in its body, after `precond` and `postcond` ([5.4](5-functions.md#54-the-top-of-the-body)). The list can mix named sets and one-off failures, and a failure can carry data in `[ ]`.
 
 ```
 fn load [$path: str] -> config:

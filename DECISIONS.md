@@ -520,6 +520,18 @@ reserved kit prefix, and `@my` isn't reserved. From Radium's D43, with Claude pr
 reserving `@my` too, for looking like `my::`; the owner asked "So, what's the problem?", and Claude agreed there's no real one.
 (Owner, 2026-11-05)
 
+**D76. `precond =>` and `postcond =>`.** These replace the placeholders `requires` and `ensures` in D53, with the same order and place:
+
+```
+fn half [$n: i32] -> i32:
+    precond => $n at_least 0;
+    postcond => result at_least 0;
+    fails [odd];
+```
+
+`=>` joins the symbols in D43, and `fails` keeps its plain `fails [odd];`. `result` is still a placeholder. The owner proposed "`precond =>`,
+`postcond =>`?"; Claude suggested dropping the arrow; the owner chose: "🥹 pwease". (Owner, 2026-11-05)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude
