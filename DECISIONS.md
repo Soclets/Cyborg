@@ -399,6 +399,13 @@ The spelling, including `result`, is Claude's. Claude proposed it; the owner cho
 is `std` or its own is not settled here. Claude proposed `@std::d32`; the owner chose: "a limb, but I don't know about it
 being in `std`". (Owner, 2026-11-05)
 
+**D56. Bare `@` is a compiler builtin.** With `::`, as in `@csup::union.untagged`, `@` is a limb. Without it, as in
+`@size_of<i32>()`, it's a builtin, always available. The test for a builtin: it looks like a function call, and it can't be
+written as a Cyborg function. So `let`, `+` and `as` aren't builtins, and neither is `std::println`, and `@let` can't happen.
+The owner asked whether bare `@` should mean what Zig's does, and warned "it might become `@let`"; Claude proposed the test,
+then suggested dropping bare `@`; the owner answered: "`::` already fucking says it's a limb when there's `@` infront". Claude
+reads that as keeping both. There is no `@import`: kits are reached by their path. (Owner, 2026-11-05)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude
