@@ -494,6 +494,11 @@ Claudes." (Owner, 2026-11-05)
 to `DECISIONS.md`, the oracle and the compiler, are not settled here. The owner: "Cyborg would have a standard (like C's ISO), and
 its behaviour would be documented." (Owner, 2026-11-05)
 
+**D72. Decisions, then the standard, then code.** `DECISIONS.md` is the history, with why and the owner's words. The standard says what
+Cyborg does now, in one place, and it's what the oracle, the compiler and check claude follow. If the two conflict, that's a bug in
+the standard. design claude owns it. It has to be easy to find what is where. Claude proposed the order; the owner chose: "yea. The
+standard should be easy to find what is where, and stuff." (Owner, 2026-11-05)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude
@@ -508,5 +513,5 @@ its behaviour would be documented." (Owner, 2026-11-05)
   third-party kit or limb is spelled.
 - **The keyword `shield`.** Radium's working word, not settled there either.
 - **`d32`'s limb.** D55 left it open. The owner: "Could just be a money limb, we don't need to design now". Deferred.
-- **The standard.** Who writes it, when it starts, and what wins when it disagrees with `DECISIONS.md`, the oracle or the compiler.
+- **The standard's layout, and when it starts.** Not chosen yet.
 - **Placeholders.** The repository's name and visibility, the license and the file extension are not chosen.

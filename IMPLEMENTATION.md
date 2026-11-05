@@ -6,7 +6,7 @@ rule changes, `DECISIONS.md` gets a new entry and this file is updated to match.
 
 ## Sessions
 
-- **design claude**: the decisions, `DECISIONS.md` and `IMPLEMENTATION.md`.
+- **design claude**: the decisions, `DECISIONS.md`, `IMPLEMENTATION.md` and the standard.
 - **oracle claude**: the oracle, in `oracle/`, and the tests, in `tests/`.
 - **compiler claude**: the compiler, in `compiler/`, once Lyftar is ready.
 - **check claude**: attacks the compiler, in `check/`, once the compiler exists. Its generator can start earlier.
@@ -18,11 +18,11 @@ Each works in its own clone, on `main` with no branch, and runs `git pull --reba
 1. **Language.** Rust only, and LLVM only through Lyftar. No C++ here: what LLVM needs goes in Lyftar. (D60, D61)
    Tools are Rust too, in a `tools/` crate. The exceptions are one-line commands in config and scratch work that is never
    committed. (D69)
-2. **Where.** Only design claude edits `DECISIONS.md` and `IMPLEMENTATION.md`.
+2. **Where.** Only design claude edits `DECISIONS.md`, `IMPLEMENTATION.md` and the standard.
 3. **The oracle stays apart.** compiler claude reads the oracle's tests, never `oracle/src`. If the compiler copied the
    oracle, their bugs would agree.
    check claude reads neither's source: it runs both as black boxes, and reports findings without sending fixes. A difference
-   is a bug in one of them, and `DECISIONS.md` decides which. If that's silent, it's a question for the owner. Its generator
+   is a bug in one of them, and the standard decides which, or `DECISIONS.md` until it exists. If that's silent, it's a question for the owner. Its generator
    builds programs from a syntax tree with one printer, and tracks what it doesn't generate, since all passing doesn't mean
    covered. (D68)
 4. **No design in code.** Nothing undecided is guessed. It gives a `NotDesignedYet` error, and the question goes to the owner
