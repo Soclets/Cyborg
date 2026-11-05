@@ -519,5 +519,6 @@ layout; the owner chose: "yea, and inside those should also be easy to find with
   third-party kit or limb is spelled.
 - **The keyword `shield`.** Radium's working word, not settled there either.
 - **`d32`'s limb.** D55 left it open. The owner: "Could just be a money limb, we don't need to design now". Deferred.
-- **When the standard gets written.** Not chosen yet.
+- **Everything in `standard/12-not-decided.md`.** Written with the standard, so that's the full list, including the problems found
+  writing it. This section may be behind it.
 - **Placeholders.** The repository's name and visibility, the license and the file extension are not chosen.
