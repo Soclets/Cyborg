@@ -391,6 +391,10 @@ end fn half
 
 The spelling, including `result`, is Claude's. Claude proposed it; the owner chose: "yea". (Owner, 2026-11-05)
 
+**D54. `f32`, and likely `d32`.** A 32-bit binary float is `f32`. A decimal float is likely `d32`. Claude suggested
+`f32.decimal`; the owner chose: "yea, but decimal is likely just gonna be `d32`, because `f32.decimal` looks cursed". Whether
+`d32` is in the base, or marked as a limb or a kit, is not settled here. (Owner, 2026-11-05)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude
@@ -401,7 +405,6 @@ The spelling, including `result`, is Claude's. Claude proposed it; the owner cho
   ends in the function that receives it; a `must_Give` value in a field or returned; a parameter whose type is a stored
   borrow; a `union.tagged` case holding a borrow; going through items that are structs, unions or arrays.
 - **Errors, left open by D16.** Colour, how many errors per run and their order, and any machine-readable form.
-- **Float names.** The owner said "Types will probably look like `f32` or `float32`". Not chosen yet.
 - **More on `@`.** Whether the mark goes only at the path's start; whether other limbs have a kit part like `std`; and how a
   third-party kit or limb is spelled.
 - **The keyword `shield`.** Radium's working word, not settled there either.
