@@ -458,6 +458,11 @@ by yourself (AI) don't count as prompting, and don't write it like prompting eit
 learnt that from reimplementing Lua in SPARK". Rule 12 is Claude's addition, from the owner's bedtime rule. Claude proposed them;
 the owner chose: "All of those". (Owner, 2026-11-05)
 
+**D65. Lints.** Every crate here forbids `unsafe_code`, denies `clippy::unwrap_used`, `clippy::expect_used` and `clippy::panic`, and
+warns on `clippy::pedantic`. This enforces rule 6 of `IMPLEMENTATION.md`, though an array index out of bounds can still panic. The
+owner asked "Is it pedantic?" and noted Rust is less strict than SPARK; Claude proposed this; the owner chose: "yea". (Owner,
+2026-11-05)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude
@@ -472,6 +477,5 @@ the owner chose: "All of those". (Owner, 2026-11-05)
   third-party kit or limb is spelled.
 - **The keyword `shield`.** Radium's working word, not settled there either.
 - **`d32`'s limb.** D55 left it open. The owner: "Could just be a money limb, we don't need to design now". Deferred.
-- **Clippy's strictness.** Whether rule 7 means `clippy::pedantic`, and whether rule 6 is enforced with lints. The owner asked "Is it
-  pedantic?". Not chosen yet.
+- **Verus.** The owner asked about it. Claude suggested not using it yet. Not chosen yet.
 - **Placeholders.** The repository's name and visibility, the license and the file extension are not chosen.

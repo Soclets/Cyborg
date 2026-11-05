@@ -23,7 +23,9 @@ Each works in its own clone, on `main` with no branch, and runs `git pull --reba
 5. **Tests.** Output matches the oracle byte for byte. Nothing is pushed while a test fails.
 6. **A bad program never crashes the compiler.** No `unwrap`, `expect` or panic on a path real programs take. If the compiler
    itself fails, it says so and how to report it.
-7. **Style.** `rustfmt`, `clippy`, and comments that say why.
+7. **Style.** `rustfmt`, `clippy`, and comments that say why. Every crate has these lints (D65):
+   `#![forbid(unsafe_code)]`, `#![deny(clippy::unwrap_used, clippy::expect_used, clippy::panic)]` and
+   `#![warn(clippy::pedantic)]`.
 8. **Commits.** `kind.folder.narrowing: sentence (owner: "their words"; D1)`. Kinds: `decision`, `design`, `feature`, `fix`,
    `test`, `house`. Each commit ends with its session's trailer, such as
    `Co-Authored-By: oracle claude <noreply@anthropic.com>`.
