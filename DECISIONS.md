@@ -406,6 +406,21 @@ The owner asked whether bare `@` should mean what Zig's does, and warned "it mig
 then suggested dropping bare `@`; the owner answered: "`::` already fucking says it's a limb when there's `@` infront". Claude
 reads that as keeping both. There is no `@import`: kits are reached by their path. (Owner, 2026-11-05)
 
+**D57. Structs.**
+
+```
+struct reading:
+    celsius: i32;
+    time: i64;
+end struct reading
+
+let $r: reading = reading[celsius = 21, time = 3600];
+std::println($r.celsius as str);
+```
+
+Fields have no `$`. Building one uses `[ ]`, with `=` setting a field, and reading a field is a plain `.`. A linear type is
+`struct.must_Give open_file:`. Claude proposed it; the owner chose: "Yes". (Owner, 2026-11-05)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude
