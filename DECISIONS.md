@@ -452,6 +452,12 @@ another session. So I will have time to talk to you about design, and you could 
 didn't test. It delivers text and enforces nothing. From TAKL's `decision.house.rules_hook`; the owner called it the "hooker".
 Claude proposed taking it; the owner chose: "yea". It isn't installed yet. (Owner, 2026-11-05)
 
+**D64. The implementation rules.** `IMPLEMENTATION.md` holds them, adapted from TAKL's: three sessions, with oracle claude building
+the oracle rather than design claude; twelve rules; tracing and naming. Rule 11 is the owner's change: "messaging other sessions
+by yourself (AI) don't count as prompting, and don't write it like prompting either". Rule 10 is from the owner's experience: "I
+learnt that from reimplementing Lua in SPARK". Rule 12 is Claude's addition, from the owner's bedtime rule. Claude proposed them;
+the owner chose: "All of those". (Owner, 2026-11-05)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude
@@ -466,4 +472,6 @@ Claude proposed taking it; the owner chose: "yea". It isn't installed yet. (Owne
   third-party kit or limb is spelled.
 - **The keyword `shield`.** Radium's working word, not settled there either.
 - **`d32`'s limb.** D55 left it open. The owner: "Could just be a money limb, we don't need to design now". Deferred.
+- **Clippy's strictness.** Whether rule 7 means `clippy::pedantic`, and whether rule 6 is enforced with lints. The owner asked "Is it
+  pedantic?". Not chosen yet.
 - **Placeholders.** The repository's name and visibility, the license and the file extension are not chosen.

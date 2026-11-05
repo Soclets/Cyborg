@@ -1,0 +1,56 @@
+# Cyborg — Implementation rules
+
+The rules for the code that implements Cyborg: the oracle and the compiler. `DECISIONS.md` records each decision with the
+owner's words; this file collects the rules. A hook prints it into every session at startup and after compaction. When a
+rule changes, `DECISIONS.md` gets a new entry and this file is updated to match.
+
+## Sessions
+
+- **design claude**: the decisions, `DECISIONS.md` and `IMPLEMENTATION.md`.
+- **oracle claude**: the oracle, in `oracle/`, and the tests, in `tests/`.
+- **compiler claude**: the compiler, in `compiler/`, once Lyftar is ready.
+
+Each works in its own clone, on `main` with no branch, and runs `git pull --rebase` before pushing.
+
+## Rules
+
+1. **Language.** Rust only, and LLVM only through Lyftar. No C++ here: what LLVM needs goes in Lyftar. (D60, D61)
+2. **Where.** Only design claude edits `DECISIONS.md` and `IMPLEMENTATION.md`.
+3. **The oracle stays apart.** compiler claude reads the oracle's tests, never `oracle/src`. If the compiler copied the
+   oracle, their bugs would agree.
+4. **No design in code.** Nothing undecided is guessed. It gives a `NotDesignedYet` error, and the question goes to the owner
+   through design claude.
+5. **Tests.** Output matches the oracle byte for byte. Nothing is pushed while a test fails.
+6. **A bad program never crashes the compiler.** No `unwrap`, `expect` or panic on a path real programs take. If the compiler
+   itself fails, it says so and how to report it.
+7. **Style.** `rustfmt`, `clippy`, and comments that say why.
+8. **Commits.** `kind.folder.narrowing: sentence (owner: "their words"; D1)`. Kinds: `decision`, `design`, `feature`, `fix`,
+   `test`, `house`. Each commit ends with its session's trailer, such as
+   `Co-Authored-By: oracle claude <noreply@anthropic.com>`.
+9. **Cores.** No limit.
+10. **Optimizations from the start.** The compiler is built with its optimizations as it goes, never as a plain version sped up
+    later. The oracle stays plain. The owner learnt this reimplementing Lua in SPARK.
+11. **Prompting.** Before prompting a subagent or a new session, a session reads the current prompting guide for that AI, in
+    full and itself, and again after every compaction. Messaging another session isn't prompting, and isn't written like
+    prompting: write it like one colleague talking to another.
+12. **Stop at 8:30 PM.** Every session stops then, and suggests the owner stops too.
+
+## Tracing
+
+Code that carries out a decision says so with a comment, in the oracle and the compiler alike:
+
+```rust
+// trace: D13
+```
+
+A check fails on a tag that names no decision, and lists the decisions nothing traces yet.
+
+## Naming
+
+The code uses Cyborg's own words, so the code, the decisions and the error messages all say the same thing.
+
+- **Full words.** `expression`, not `expr`.
+- **One name per concept.**
+- **Cyborg's words over textbook words.** `narrowing`, `shield`, `limb`.
+- **Rust's casing**, which `clippy` enforces.
+- **Tests are named after their decision.**
