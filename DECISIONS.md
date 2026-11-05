@@ -348,19 +348,22 @@ does in each mode are not settled here. (Owner, 2026-11-05)
 and `shr`. Claude proposed them; the owner objected only to the bare `div` (D48) and raised nothing against the rest. (Owner,
 2026-11-05)
 
+**D50. A bare name is the obvious default.** A bare `str` means UTF-8, and `std::println` isn't written
+`std::println.shortest.stdout`. Where no default is obvious there is no bare name, as with `div` (D48). Claude asked whether
+to always pick an encoding; the owner chose: "look at `std::prinln`. It's not `std::println.shortest.stdout`". (Owner,
+2026-11-05)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude
   suggested refusing `if $n: bool:` on a value already known to be one, since it's always true or always false. Not
   chosen yet.
-- **How much of Radium's narrowing rule applies.** A bare name as the default, and spelled-out defaults refused. Not
-  chosen yet.
+- **Spelled-out defaults.** Whether `str.utf8` is refused or allowed, now that D50 makes it the default.
 - **Radium's open ownership questions, inherited with D2.** Lending through a stored `Lend.mut`; how a `must_Give` duty
   ends in the function that receives it; a `must_Give` value in a field or returned; a parameter whose type is a stored
   borrow; a `union.tagged` case holding a borrow; going through items that are structs, unions or arrays.
 - **Errors, left open by D16.** Colour, how many errors per run and their order, and any machine-readable form.
 - **Float names.** The owner said "Types will probably look like `f32` or `float32`". Not chosen yet.
-- **Bare `str`.** Whether a bare `str` means UTF-8 or you must pick, as with `div` (D48). The sketch uses a bare `str`.
 - **More on `@`.** Whether the mark goes only at the path's start; whether other limbs have a kit part like `std`; and how a
   third-party kit or limb is spelled.
 - **The keyword `shield`.** Radium's working word, not settled there either.
