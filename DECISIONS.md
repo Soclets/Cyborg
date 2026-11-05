@@ -305,6 +305,11 @@ proposed `*` and `/`; the owner chose: "My taste is: `+`, `-`, `x`, `!=`, `=`, `
 listed, such as divide and `<`, as a word; the owner hasn't confirmed that. What `?` and `??` do is not settled here.
 (Owner, 2026-11-05)
 
+**D44. `?`, `??`, `<` and `>`.** `?` means `try`: if this failed, hand the failure to the caller. `??` means `otherwise`: if
+this failed, use this instead. `<` and `>` join the symbols in D43, with D23's spacing. The owner: "`?` = `try`, `??` =
+`otherwise`. `<`, `>` is also my taste". Whether the words `try` and `otherwise` also exist is not settled here.
+(Owner, 2026-11-05)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude
@@ -317,8 +322,7 @@ listed, such as divide and `<`, as a word; the owner hasn't confirmed that. What
   borrow; a `union.tagged` case holding a borrow; going through items that are structs, unions or arrays.
 - **Errors, left open by D16.** Colour, how many errors per run and their order, and any machine-readable form.
 - **Float names.** The owner said "Types will probably look like `f32` or `float32`". Not chosen yet.
-- **Operators, after D43.** What `?` and `??` do, and the words for everything else. If `<` isn't a comparison, D23's spacing
-  rule for `< >` has less to do.
+- **Operators, after D44.** Whether `try` and `otherwise` exist as words too, and the words for everything else, such as divide.
 - **More on `@`.** Whether the mark goes only at the path's start; whether other limbs have a kit part like `std`; and how a
   third-party kit or limb is spelled.
 - **The keyword `shield`.** Radium's working word, not settled there either.
