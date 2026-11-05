@@ -338,6 +338,16 @@ end narrowings.failure file_failed
 it have a collection for that?"; Claude proposed `narrowings.fail`; the owner chose: "yea, but `narrowings.failure`". The
 statement that raises a failure is not settled here. (Owner, 2026-11-05)
 
+**D48. No bare `div`, and lots of options.** Division has no single right answer for integers, so there is no bare `div`: you
+pick one, such as `div.trunc`, `div.floor` or `div.exact`. More generally, Cyborg offers many options through narrowings,
+such as `str.utf16`. Claude proposed a truncating bare `div`; the owner chose: "just let them fucking pick, then. My ass.
+Cyborg should have a lot of options, fucking `str.uft16` and shit". The full list of `div` narrowings and what `div.exact`
+does in each mode are not settled here. (Owner, 2026-11-05)
+
+**D49. The word operators.** `mod`, `at_least`, `at_most`, `and`, `or`, `not`, `bit_and`, `bit_or`, `bit_xor`, `bit_not`, `shl`
+and `shr`. Claude proposed them; the owner objected only to the bare `div` (D48) and raised nothing against the rest. (Owner,
+2026-11-05)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude
@@ -350,7 +360,7 @@ statement that raises a failure is not settled here. (Owner, 2026-11-05)
   borrow; a `union.tagged` case holding a borrow; going through items that are structs, unions or arrays.
 - **Errors, left open by D16.** Colour, how many errors per run and their order, and any machine-readable form.
 - **Float names.** The owner said "Types will probably look like `f32` or `float32`". Not chosen yet.
-- **Operators, after D45.** The words for everything else, such as divide.
+- **Bare `str`.** Whether a bare `str` means UTF-8 or you must pick, as with `div` (D48). The sketch uses a bare `str`.
 - **More on `@`.** Whether the mark goes only at the path's start; whether other limbs have a kit part like `std`; and how a
   third-party kit or limb is spelled.
 - **The keyword `shield`.** Radium's working word, not settled there either.
