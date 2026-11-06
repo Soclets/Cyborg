@@ -655,6 +655,8 @@ lending it with `Lend.mut`, which is Claude's reading. Claude proposed it over r
 **D105. `FinalSafe` keeps every contract, unless you mark it.** A narrowing on `requires` or `ensures` says a contract is checked in `Working` only. A shield's exit stays checked in `FinalSafe` anyway (D37), and Precog can still drop what it proves. The word isn't chosen; Claude's `.expensive` is a
 placeholder. Claude proposed it; the owner chose: "yes. But I think it should be another word". (Owner, 2026-11-06)
 
+**D106. `.only_in_working`.** `requires.only_in_working is_sorted(Lend $xs);`, and `ensures.only_in_working` likewise. This settles the word D105 left open. Claude suggested `.slow`; the owner proposed: "`requires.only_in_working`?", and Claude agreed, since it says exactly what it does. (Owner, 2026-11-06)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude

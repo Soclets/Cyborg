@@ -121,6 +121,5 @@ These have a working name, but aren't chosen:
 - The command `cyborg build`.
 - `key` and `val` in `std::map`.
 - `plus.wrap`.
-- `.expensive` on a contract.
 - `result`.
 - The repository's name, and the license.

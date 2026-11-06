@@ -48,13 +48,13 @@ cyborg build --mode FinalSafe
 | Other contracts | Kept | Kept, unless marked | Gone | Gone | If smaller |
 | `if $n: T:` on a plain value | Kept | Kept | Kept | Kept | Kept |
 
-A check in `Working` is kept no matter the cost. A narrowing on `requires` or `ensures` marks a contract as checked in `Working` only. The word is a placeholder ([12.11](12-not-decided.md#1211-placeholders)):
+A check in `Working` is kept no matter the cost. `.only_in_working` on `requires` or `ensures` marks a contract as checked in `Working` only:
 
 ```
-requires.expensive is_sorted(Lend $xs);
+requires.only_in_working is_sorted(Lend $xs);
 ```
 
-**From:** D14, D20, D26, D37, D39, D105.
+**From:** D14, D20, D26, D37, D39, D105, D106.
 
 ## 10.4 What happens when something goes wrong
 
