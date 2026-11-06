@@ -1,0 +1,9 @@
+refused: d124_must_give_on_the_right_of_and.cy:12:9, line 12 column 9
+12 |     let $f: open_file = open_file[fd = 3];
+   |         ^^
+ what: `$f` isn't given away on every path
+ why:  a `must_Give` value is handed off with `Give` exactly once (D2)
+ because: d124_must_give_on_the_right_of_and.cy:13:18, line 13 column 18
+13 |     if 2 < 1 and close(Give $f):
+   |                  ^^^^^^^^^^^^^^
+     `$f` was given away here, on only one path

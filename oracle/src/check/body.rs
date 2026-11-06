@@ -236,7 +236,7 @@ impl Checker<'_> {
 
     /// A name that's already taken here: shadowing isn't in the standard, so it isn't guessed.
     fn refuse_second_declaration(&self, name: &crate::ast::Name) -> Outcome<()> {
-        if self.find_variable(&name.text).is_some() {
+        if self.find_variable(&name.text).is_some() || self.globals.contains_key(&name.text) {
             return Err(Report::not_designed(
                 name.span,
                 format!(
@@ -444,11 +444,23 @@ impl Checker<'_> {
         self.context.state = joined;
     }
 
-    /// Runs `check` on a copy of the state, and returns what it did and the state it left.
-    fn on_a_branch<T>(
+    /// Checks something that runs on some paths and not others, so that what it does to ownership
+    /// only counts as maybe having happened.
+    pub(super) fn on_one_path_only<T>(
         &mut self,
-        check: impl FnOnce(&mut Self) -> Outcome<(T, bool)>,
-    ) -> Outcome<(T, bool, Vec<VariableState>)> {
+        check: impl FnOnce(&mut Self) -> Outcome<T>,
+    ) -> Outcome<T> {
+        let before = self.context.state.clone();
+        let (value, (), branch) = self.on_a_branch(|this| Ok((check(this)?, ())))?;
+        self.join_states(&[before, branch]);
+        Ok(value)
+    }
+
+    /// Runs `check` on a copy of the state, and returns what it did and the state it left.
+    fn on_a_branch<T, U>(
+        &mut self,
+        check: impl FnOnce(&mut Self) -> Outcome<(T, U)>,
+    ) -> Outcome<(T, U, Vec<VariableState>)> {
         let saved = self.context.state.clone();
         let (value, terminated) = check(self)?;
         let branch = std::mem::replace(&mut self.context.state, saved);

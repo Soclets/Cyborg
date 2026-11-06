@@ -1578,7 +1578,7 @@ impl Checker<'_> {
             ));
         }
         let value_type = raw.value_type.clone();
-        let node = self.check_into(fallback, &value_type)?;
+        let node = self.on_one_path_only(|this| this.check_into(fallback, &value_type))?;
         Ok((
             Node {
                 span,
@@ -2019,8 +2019,13 @@ impl Checker<'_> {
         span: Span,
     ) -> Outcome<(Node, Type)> {
         let left_node = self.check_condition(left)?;
-        let right_node = self.check_condition(right)?;
         // trace: D124
+        let right_node = if matches!(operator, BinaryOperator::And | BinaryOperator::Or) {
+            // The right side only runs if it's needed, so what it gives away is only maybe gone.
+            self.on_one_path_only(|this| this.check_condition(right))?
+        } else {
+            self.check_condition(right)?
+        };
         let (left_node, right_node) = (Box::new(left_node), Box::new(right_node));
         let kind = match operator {
             BinaryOperator::And => NodeKind::And(left_node, right_node),
@@ -2045,7 +2050,9 @@ impl Checker<'_> {
         for (operator, right) in rest {
             let (left_checked, right_checked) = if let Some(left_type) = &previous {
                 let hint = number_hint(Some(left_type));
-                let right_checked = self.check_expression(right, hint.as_ref())?;
+                // trace: D124
+                let right_checked =
+                    self.on_one_path_only(|this| this.check_expression(right, hint.as_ref()))?;
                 ((None, left_type.clone()), right_checked)
             } else {
                 let ((left_node, left_type), right_checked) =

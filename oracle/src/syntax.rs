@@ -1811,6 +1811,13 @@ impl Parser {
     fn parse_shield_statement(&mut self) -> Outcome<Statement> {
         let start = self.span();
         let (name, reason) = self.parse_shield_header()?;
+        if self.at_word("requires") || self.at_word("ensures") {
+            return Err(Report::not_designed(
+                self.span(),
+                "how a shield's own entry and exit are written",
+                "12.9",
+            ));
+        }
         let body = self.parse_block()?;
         let end = self.expect_closer(&["shield", &name.text])?;
         Ok(Statement {
