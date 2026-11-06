@@ -106,8 +106,8 @@ Using a limb doesn't need a shield by itself: `@` says it's a compiler extension
 
 | Wall | What it does | How it's enforced |
 |---|---|---|
-| Entry | The caller meets `precond` | At runtime unless Precog proves it, following the build mode |
-| Exit | `postcond` holds | [10.3](10-build-modes.md#103-what-gets-checked) |
+| Entry | The caller meets `requires` | At runtime unless Precog proves it, following the build mode |
+| Exit | `ensures` holds | [10.3](10-build-modes.md#103-what-gets-checked) |
 | Containment | Raw pointers and unchecked borrows can't leave | A compile error, except in `FinalShit` |
 
 **From:** D37, D39.

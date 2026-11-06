@@ -564,6 +564,11 @@ in my style". (Owner, 2026-11-06)
 compile time, so `const $a: i32 = read();` is refused. The owner: "Change `:=` to `const`, I shouldn't have chose that (i myself misread it)".
 (Owner, 2026-11-06)
 
+**D84. `requires` and `ensures`, again.** This replaces `precond =>` and `postcond =>` in D76, going back to D53's spelling, with no `=>`, which leaves the
+symbols. `requires $n at_least 0;` and `ensures result at_least 0;` come first in the body, in that order, then `fails`. `result` is still a placeholder.
+The owner: "I think we should change `precond` and `postcond` back. I have to think when I read them". Dropping the arrow with them is Claude's reading of
+"back". (Owner, 2026-11-06)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude

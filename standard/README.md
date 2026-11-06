@@ -41,7 +41,6 @@ What Cyborg does now, in one place. The oracle, the compiler and check claude fo
 | `< >` | [1.8](1-programs.md#18-brackets) | | `mod` | [3.4](3-operators.md#34-remainder-mod) |
 | `=` (set) | [2.1](2-values-and-types.md#21-let), [7.2](7-structs-and-unions.md#72-building-a-struct) | | `must_Give` | [6.9](6-ownership.md#69-must_give) |
 | `==`, `!=` | [3.5](3-operators.md#35-comparison) | | narrowings | [1.6](1-programs.md#16-narrowings-) |
-| `=>` | [5.4](5-functions.md#54-the-top-of-the-body) | | | |
 | `?` | [8.4](8-failures.md#84--pass-it-up) | | `narrowings.failure` | [8.3](8-failures.md#83-named-sets-narrowingsfailure) |
 | `??` | [8.5](8-failures.md#85--use-this-instead) | | `narrowings.handler` | [8.7](8-failures.md#87-handler-narrowings) |
 | `@` (builtin) | [5.7](5-functions.md#57-builtins-) | | `not`, `and`, `or` | [3.6](3-operators.md#36-logic) |
@@ -49,7 +48,7 @@ What Cyborg does now, in one place. The oracle, the compiler and check claude fo
 | `[ ]`, `( )` | [1.8](1-programs.md#18-brackets) | | `plus.wrap` | [3.8](3-operators.md#38-wrapping-pluswrap) |
 | `~` | [2.7](2-values-and-types.md#27-inexact-literals-) | | Precog | [9.10](9-limbs-and-shields.md#910-precog) |
 | `@csup` | [9.5](9-limbs-and-shields.md#95-c-support-csup) | | `refused:` | [11.2](11-errors.md#112-kinds) |
-| `@std` | [9.3](9-limbs-and-shields.md#93-stds-two-parts) | | `precond`, `postcond` | [5.4](5-functions.md#54-the-top-of-the-body), [5.5](5-functions.md#55-contracts) |
+| `@std` | [9.3](9-limbs-and-shields.md#93-stds-two-parts) | | `requires`, `ensures` | [5.4](5-functions.md#54-the-top-of-the-body), [5.5](5-functions.md#55-contracts) |
 | `as` | [2.14](2-values-and-types.md#214-conversion-as) | | `return` | [5.3](5-functions.md#53-return) |
 | `at_least`, `at_most` | [3.5](3-operators.md#35-comparison) | | `shield` | [9.7](9-limbs-and-shields.md#97-shields) |
 | `because:` | [11.6](11-errors.md#116-because) | | `shl`, `shr` | [3.7](3-operators.md#37-bits-and-shifts) |

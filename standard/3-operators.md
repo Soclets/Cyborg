@@ -25,13 +25,12 @@
 | Set a value | `=` | [2.1](2-values-and-types.md#21-let), [7.2](7-structs-and-unions.md#72-building-a-struct) |
 | Convert | `as` | [2.14](2-values-and-types.md#214-conversion-as) |
 | Inexact literal | `~` | [2.7](2-values-and-types.md#27-inexact-literals-) |
-| Contract line | `=>` | [5.4](5-functions.md#54-the-top-of-the-body) |
 | Pass a failure up | `?` | [8.4](8-failures.md#84--pass-it-up) |
 | Use this instead | `??` | [8.5](8-failures.md#85--use-this-instead) |
 
 Operator precedence isn't decided ([12.3](12-not-decided.md#123-operators-and-conversion)).
 
-**From:** D43, D44, D49, D58, D59, D76.
+**From:** D43, D44, D49, D59.
 
 ## 3.2 Arithmetic: `+`, `-`, `x`
 

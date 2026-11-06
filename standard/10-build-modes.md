@@ -43,8 +43,8 @@ cyborg build --mode FinalSafe
 | Check | `Working` | `FinalSafe` | `FinalPerf` | `FinalShit` | `FinalSmall` |
 |---|---|---|---|---|---|
 | Overflow, bounds, division by zero | Kept | Kept, as traps | Gone | Gone | If smaller |
-| A shield's exit (`postcond`) | Kept | Kept, even if expensive | Gone | Gone | Gone if smaller |
-| A shield's entry (`precond`) | Kept | Follows the mode | Gone | Gone | If smaller |
+| A shield's exit (`ensures`) | Kept | Kept, even if expensive | Gone | Gone | Gone if smaller |
+| A shield's entry (`requires`) | Kept | Follows the mode | Gone | Gone | If smaller |
 | Other contracts | Kept | Not decided if expensive | Gone | Gone | If smaller |
 | `if $n: T:` on a plain value | Kept | Kept | Kept | Kept | Kept |
 

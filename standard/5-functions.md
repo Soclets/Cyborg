@@ -5,8 +5,8 @@
 | [5.1](#51-declaring) | `fn name [ ] -> T:` | `[ ]` describes the parameters |
 | [5.2](#52-calling) | `name( )` | `( )` runs it |
 | [5.3](#53-return) | `return` | |
-| [5.4](#54-the-top-of-the-body) | `precond`, `postcond`, `fails` | In that order, first in the body |
-| [5.5](#55-contracts) | `precond`, `postcond` | When they're checked |
+| [5.4](#54-the-top-of-the-body) | `requires`, `ensures`, `fails` | In that order, first in the body |
+| [5.5](#55-contracts) | `requires`, `ensures` | When they're checked |
 | [5.6](#56-methods-) | `.%` | A function on a receiver |
 | [5.7](#57-builtins-) | `@size_of` | Bare `@` |
 
@@ -41,12 +41,12 @@ use_score($n);
 
 ## 5.4 The top of the body
 
-**Rule:** `precond`, `postcond` and `fails` go first in the body, in that order, then the code. So the top of a body says what the function promises.
+**Rule:** `requires`, `ensures` and `fails` go first in the body, in that order, then the code. So the top of a body says what the function promises.
 
 ```
 fn half [$n: i32] -> i32:
-    precond => $n at_least 0;
-    postcond => result at_least 0;
+    requires $n at_least 0;
+    ensures result at_least 0;
     fails [odd];
 
     if $n mod 2 != 0:
@@ -58,13 +58,13 @@ end fn half
 
 `result` is a placeholder.
 
-**From:** D52, D53, D76.
+**From:** D52, D53, D84.
 
 ## 5.5 Contracts
 
-**Rule:** `precond` and `postcond` are in the base language. They're checked at runtime unless Precog proves them, following the build mode ([10.3](10-build-modes.md#103-what-gets-checked)).
+**Rule:** `requires` and `ensures` are in the base language. They're checked at runtime unless Precog proves them, following the build mode ([10.3](10-build-modes.md#103-what-gets-checked)).
 
-**From:** D14, D29, D39, D53, D76.
+**From:** D14, D29, D39, D53, D84.
 
 ## 5.6 Methods: `.%`
 
