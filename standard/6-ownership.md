@@ -147,7 +147,7 @@ Lend.mut from $r reading
 ```
 $xs.len
 for $x in $xs:
-reading[celsius = 21, time = 3600 seconds]
+reading[celsius = 21, time = 3600 std::time.seconds]
 ```
 
 **From:** D2.

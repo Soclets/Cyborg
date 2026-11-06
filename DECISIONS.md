@@ -673,6 +673,9 @@ are levels 3 and 4 from a list the owner's friend sent. Their spelling, and how 
 **D111. Unit maths works where you say.** Multiplying or dividing two units only works where a `together` line declares it, and the line names the result: `together meters / seconds = meters_per_second;`. The compiler then works out the unit in the maths, as D110 wanted. `meters x dollars` is refused unless declared. Claude
 suggested letting all unit maths compile, with `together` only naming results; the owner chose the other way: "The `return void` vibe". The line's spelling is a placeholder, and naming the result is Claude's reading of that vibe. (Owner, 2026-11-06)
 
+**D112. A unit always says its family.** `let $a: i32.time.seconds = 3600 time.seconds;`, the same way a handler is `word_failed.use_placeholder` and never bare. From a kit, it's `3600 std::time.seconds`, and `use` can shorten that. This replaces the short `3600 seconds` in D99's example, though the unit still goes behind the number.
+`items`, as in `len: 4096 items`, is base language and stays bare, which is Claude's reading of "the base is bare". Claude suggested the short name; the owner chose otherwise: "look at handlers, you don't say `flow_back` bare, you say `cum_failed.flow_back`. And yes, that is an official example in CyborgPL". (Owner, 2026-11-06)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude

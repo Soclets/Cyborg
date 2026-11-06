@@ -56,7 +56,7 @@ end if
 **Rule:** variables, parameters and constants start with `$`. Struct fields don't.
 
 ```
-let $r: reading = reading[celsius = 21, time = 3600 seconds];
+let $r: reading = reading[celsius = 21, time = 3600 std::time.seconds];
 std::println($r.celsius as str);
 ```
 

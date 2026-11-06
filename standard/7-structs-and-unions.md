@@ -17,7 +17,7 @@
 ```
 struct reading:
     celsius: i32;
-    time: i64.seconds;
+    time: i64.std::time.seconds;
 end struct reading
 ```
 
@@ -28,7 +28,7 @@ end struct reading
 **Rule:** building one uses `[ ]`, because it holds values and runs nothing. `=` sets a field.
 
 ```
-let $r: reading = reading[celsius = 21, time = 3600 seconds];
+let $r: reading = reading[celsius = 21, time = 3600 std::time.seconds];
 ```
 
 **From:** D23, D57.

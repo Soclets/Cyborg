@@ -17,7 +17,7 @@
 | [2.13](#213-labels-in--) | Labels in `< >` | One bare, more labeled |
 | [2.14](#214-conversion-as) | `as` | Builds a new value |
 | [2.15](#215-void-and-bool) | `void`, `bool` | |
-| [2.16](#216-units) | `3600 seconds` | A number says its unit |
+| [2.16](#216-units) | `3600 time.seconds` | A number says its unit |
 
 ## 2.1 `let`
 
@@ -200,22 +200,25 @@ A failed `as` is a failure, so it crashes unless handled ([8.9](8-failures.md#89
 
 ## 2.16 Units
 
-**Rule:** a number says its unit, behind it where possible. Where the unit can't go behind, it goes in front. The compiler checks units: a unit is part of the type, carried by a narrowing. The same units can add and compare.
+**Rule:** a number says its unit, behind it where possible. Where the unit can't go behind, it goes in front. A unit always says its family, or its path from a kit, and `items` is base language, so it stays bare. The compiler checks units: a unit is part of the type, carried by a narrowing. The same units can add and compare.
 
 ```
-let $a: i32.seconds = 3600 seconds;
-let $b: i32.seconds = 5 seconds;
-let $c: i32.seconds = $a + $b;
+let $a: i32.time.seconds = 3600 time.seconds;
+let $b: i32.time.seconds = 5 time.seconds;
+let $c: i32.time.seconds = $a + $b;
+
+use std::time.seconds as seconds;
+let $d: i32.seconds = 3600 seconds;
 ```
 
-A unit is required only where the type asks for one. A plain `i32` means just a number. The language and `std` ask for units on things that have them, like lengths, sizes and durations, and your own code opts in with a type like `i32.seconds`.
+A unit is required only where the type asks for one. A plain `i32` means just a number. The language and `std` ask for units on things that have them, like lengths, sizes and durations, and your own code opts in with a type like `i32.time.seconds`.
 
 ```
 std::array<u8>[len: 4096 items]
 let $x: i32 = 3600;
 ```
 
-**Refused:** mixing units, as in `$a + 5 bytes`, a missing unit, as in `let $b: i32.seconds = 3600;`, and unit maths with no `together` line.
+**Refused:** mixing units, as in `$a + 5 storage.bytes`, a missing unit, as in `let $b: i32.time.seconds = 3600;`, a bare `3600 seconds` with no `use`, and unit maths with no `together` line.
 
 You define units in a collection. Every unit says what it is: `: base`, or `=` with a conversion, which can point at a unit in any family. Two units convert if they trace back to the same base, and otherwise they don't.
 
@@ -236,9 +239,9 @@ A family is only a group of related names that a generic can ask for. A unit fro
 Multiplying or dividing two units only works where a `together` line declares it, and the line names the result. The spelling is a placeholder.
 
 ```
-together meters / seconds = meters_per_second;
+together length.meters / time.seconds = speed.meters_per_second;
 ```
 
-A conversion can be an offset, not only a multiple. A moment is kept apart from a length of time. How these are spelled, how a conversion is written, and how short a unit's name can be aren't decided ([12.2](12-not-decided.md#122-types)).
+A conversion can be an offset, not only a multiple. A moment is kept apart from a length of time. How these are spelled, and how a conversion is written, aren't decided ([12.2](12-not-decided.md#122-types)).
 
-**From:** D99, D100, D101, D108, D109, D110, D111.
+**From:** D99, D100, D101, D108, D109, D110, D111, D112.
