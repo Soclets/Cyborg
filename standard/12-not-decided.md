@@ -22,7 +22,6 @@ These are places where decisions leave a real gap or pull against each other.
 
 | Problem | Decisions |
 |---|---|
-| **Labels and parameters.** The sketch calls `append(val: 4)` with a label and `total(Lend $xs)` without one. Nothing says when a label is required, or how it relates to a parameter's name. | D13, D23 |
 
 ## 12.2 Types
 
@@ -63,7 +62,6 @@ These are places where decisions leave a real gap or pull against each other.
 - Whether a `fn.pure` may allocate or fail.
 - The inline compile-time language (D88 to D91): its syntax.
 - Whether every `void` function says `return void;`.
-- When a call needs labels ([12.1](#121-problems-found-writing-this)).
 - Comments. Examples in the decisions use `//`, but it was never chosen.
 - Naming rules, like capitals.
 

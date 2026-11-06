@@ -35,7 +35,20 @@ let $t: i32 = total(Lend $xs);
 use_score($n);
 ```
 
-**From:** D2, D20, D23.
+A parameter can have a label, separate from its own name, and then every call writes it. A parameter with no label is called without one. So each function has one way to call it. The declaration's spelling is a placeholder.
+
+```
+fn append [val $item: i32] -> void:
+    …
+end fn append
+
+append(val: 4);
+append(val: Give $r);
+```
+
+**Refused:** leaving off a declared label, and writing a label that wasn't declared.
+
+**From:** D2, D20, D23, D113.
 
 ## 5.3 `return`
 

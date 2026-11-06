@@ -676,6 +676,9 @@ suggested letting all unit maths compile, with `together` only naming results; t
 **D112. A unit always says its family.** `let $a: i32.time.seconds = 3600 time.seconds;`, the same way a handler is `word_failed.use_placeholder` and never bare. From a kit, it's `3600 std::time.seconds`, and `use` can shorten that. This replaces the short `3600 seconds` in D99's example, though the unit still goes behind the number.
 `items`, as in `len: 4096 items`, is base language and stays bare, which is Claude's reading of "the base is bare". Claude suggested the short name; the owner chose otherwise: "look at handlers, you don't say `flow_back` bare, you say `cum_failed.flow_back`. And yes, that is an official example in CyborgPL". (Owner, 2026-11-06)
 
+**D113. A declared label must be written.** A function's parameter can have a label, and then every call writes it. A label is separate from the parameter's own name, so `fn append [val $item: i32]` is called `append(val: 4)`, and a parameter with no label is called without one, as in `total(Lend $xs)`. So each function has one way to call it. An
+ownership word goes after the label: `append(val: Give $r)`. The declaration's spelling is a placeholder. The owner: "You don't have to name the args, you have to name the label". Claude reads that as the function's writer deciding which parameters have labels. (Owner, 2026-11-06)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude
