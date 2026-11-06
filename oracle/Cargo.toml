@@ -1,0 +1,9 @@
+[package]
+name = "oracle"
+version = "0.1.0"
+edition = "2021"
+description = "Runs and refuses Cyborg programs by following the design directly."
+publish = false
+
+[dependencies]
+unicode-segmentation = "1.13.3"

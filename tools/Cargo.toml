@@ -1,0 +1,10 @@
+[package]
+name = "tools"
+version = "0.1.0"
+edition = "2021"
+description = "Repository tools for Cyborg (D69)."
+publish = false
+
+[[bin]]
+name = "trace"
+path = "src/trace.rs"
