@@ -3,6 +3,8 @@
 The owner's sketch of Cyborg, likely not final. This is a placeholder, not a specification.
 
 ```
+import std;
+
 fn total [$xs: std::list<i32>[len.max: inf]] -> i32:
     let mut $sum: i32 = 0;
     for $x in $xs:

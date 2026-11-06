@@ -603,6 +603,9 @@ seconds_in(1);`. It can call normal functions marked `fn.pure.baked`, and only t
 All compile-time code gets D89's guarantees, including the step limit. The owner asked "Why not let the inline lang do it?" about Claude's suggestion of two separate tools; Claude agreed and proposed this;
 the owner chose: "yea". (Owner, 2026-11-06)
 
+**D92. `import std;`.** Importing is a plain keyword, with `import @csup;` for a limb. A thing is still reached by its path, as in `std::println`. It goes at the top of the file, so a file's dependencies can be read
+without running anything. Claude proposed it; the owner chose: "yea". (Owner, 2026-11-06)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude
