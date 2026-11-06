@@ -27,7 +27,7 @@ These are places where decisions leave a real gap or pull against each other.
 ## 12.2 Types
 
 - The full list of integer and float types.
-- Units (D99 to D110): how a worked-out unit is spelled, what "go together" still means, offsets, moments, how a conversion is written, what a lossy conversion does, whether a literal and a type can use the short name (`3600 seconds`, `i32.seconds`), and the full list of units `std` has.
+- Units (D99 to D111): the spelling of `together`, offsets, moments, how a conversion is written, what a lossy conversion does, whether a literal and a type can use the short name (`3600 seconds`, `i32.seconds`), and the full list of units `std` has.
 - Dividing floats: `div` has no bare form for integers, and nothing says what floats use.
 - Raw pointers' spelling, though D38 puts them in shields.
 - Function types: `-> i32` no longer shows failures, so a function's type needs some way to include them.

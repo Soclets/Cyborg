@@ -77,3 +77,4 @@ What Cyborg does now, in one place. The oracle, the compiler and check claude fo
 | `?? void` | [8.9](8-failures.md#89-crash-by-default) | | | |
 | units | [2.16](2-values-and-types.md#216-units) | | | |
 | `all` | [2.11](2-values-and-types.md#211-arrays) | | | |
+| `together` | [2.16](2-values-and-types.md#216-units) | | `narrowings.unit` | [2.16](2-values-and-types.md#216-units) |

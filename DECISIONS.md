@@ -670,6 +670,9 @@ the owner chose: "yea". (Owner, 2026-11-06)
 **D110. Unit maths, offsets, and points.** Cyborg goes further with units: the compiler works out new units from maths, like `meters` over `seconds`; conversions can be offsets, not only multiplying, as with Celsius and Kelvin; and a moment is kept apart from a length of time, so `3 PM + 2 hours` makes sense and `3 PM + 3 PM` doesn't. These
 are levels 3 and 4 from a list the owner's friend sent. Their spelling, and how they fit with D108's "which could go together", are not settled here. The owner: "The ones we don't have yet, I think 3 & 4 are pretty useful". (Owner, 2026-11-06)
 
+**D111. Unit maths works where you say.** Multiplying or dividing two units only works where a `together` line declares it, and the line names the result: `together meters / seconds = meters_per_second;`. The compiler then works out the unit in the maths, as D110 wanted. `meters x dollars` is refused unless declared. Claude
+suggested letting all unit maths compile, with `together` only naming results; the owner chose the other way: "The `return void` vibe". The line's spelling is a placeholder, and naming the result is Claude's reading of that vibe. (Owner, 2026-11-06)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude

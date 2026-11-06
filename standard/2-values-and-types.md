@@ -215,7 +215,7 @@ std::array<u8>[len: 4096 items]
 let $x: i32 = 3600;
 ```
 
-**Refused:** mixing units, as in `$a + 5 bytes`, and a missing unit, as in `let $b: i32.seconds = 3600;`.
+**Refused:** mixing units, as in `$a + 5 bytes`, a missing unit, as in `let $b: i32.seconds = 3600;`, and unit maths with no `together` line.
 
 You define units in a collection. Every unit says what it is: `: base`, or `=` with a conversion, which can point at a unit in any family. Two units convert if they trace back to the same base, and otherwise they don't.
 
@@ -233,6 +233,12 @@ A family is only a group of related names that a generic can ask for. A unit fro
 
 **Refused:** a unit that says neither `base` nor `=`, a loop of `=` lines, and converting between units with different bases.
 
-The compiler works out new units from maths. A conversion can be an offset, not only a multiple. A moment is kept apart from a length of time. How these are spelled, how a conversion is written, and how short a unit's name can be aren't decided ([12.2](12-not-decided.md#122-types)).
+Multiplying or dividing two units only works where a `together` line declares it, and the line names the result. The spelling is a placeholder.
 
-**From:** D99, D100, D101, D108, D109, D110.
+```
+together meters / seconds = meters_per_second;
+```
+
+A conversion can be an offset, not only a multiple. A moment is kept apart from a length of time. How these are spelled, how a conversion is written, and how short a unit's name can be aren't decided ([12.2](12-not-decided.md#122-types)).
+
+**From:** D99, D100, D101, D108, D109, D110, D111.
