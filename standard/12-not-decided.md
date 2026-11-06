@@ -27,7 +27,7 @@ These are places where decisions leave a real gap or pull against each other.
 ## 12.2 Types
 
 - The full list of integer and float types.
-- Units (D99 to D101, D108): how a unit is defined, how units go together, how conversions and narrowings are spelled, what a lossy conversion does, and the full list of units `std` has.
+- Units (D99 to D101, D108, D109): how units go together, how a conversion is written, what a lossy conversion does, whether a literal and a type can use the short name (`3600 seconds`, `i32.seconds`), and the full list of units `std` has.
 - Raw pointers' spelling, though D38 puts them in shields.
 - Function types: `-> i32` no longer shows failures, so a function's type needs some way to include them.
 - How a type's writer defines label narrowings like `len.max`.

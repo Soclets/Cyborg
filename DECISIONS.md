@@ -663,6 +663,10 @@ not a crash, since it assumes nothing ever fails, and `?` and `otherwise:` may g
 **D108. You can define units, and they do more.** You can make your own units, say which ones go together, define conversions, and give them narrowings. A unit from a kit is written with its path, `name::unit`. This goes past D100's "starting small". Their spelling is not settled here. Claude proposed a one-line `unit pixels;`
 with no conversions; the owner chose: "what about more? Like saying which could go together, conversions, and narrowings for them too. And of course, a unit from a kit uses `name::unit`". (Owner, 2026-11-06)
 
+**D109. How a unit is defined.** Units live in a collection, `narrowings.unit`. Every unit says what it is, either `: base` or `=` with a conversion, and a bare line is refused. `=` can point at a unit in any family, including one from a kit. Two units convert if they trace back to the same base, and otherwise they don't,
+so incompatibility is written down rather than left out. A family is only a group of related names that a generic can ask for. Loops and units with no base are refused. The owner: "I mean, we do say `return void`, etc", then "What if you want incompat but not base, and compat with another collection?"; Claude proposed this;
+the owner chose: "yea". (Owner, 2026-11-06)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude

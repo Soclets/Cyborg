@@ -217,6 +217,22 @@ let $x: i32 = 3600;
 
 **Refused:** mixing units, as in `$a + 5 bytes`, and a missing unit, as in `let $b: i32.seconds = 3600;`.
 
-You can define your own units, say which go together, define conversions, and give them narrowings. A unit from a kit is written with its path, `name::unit`. Their spelling isn't decided ([12.2](12-not-decided.md#122-types)).
+You define units in a collection. Every unit says what it is: `: base`, or `=` with a conversion, which can point at a unit in any family. Two units convert if they trace back to the same base, and otherwise they don't.
 
-**From:** D99, D100, D101, D108.
+```
+narrowings.unit money:
+    money.cents: base;
+    money.dollars = 100 money.cents;
+
+    money.euro_cents: base;
+    money.euros = 100 money.euro_cents;
+end narrowings.unit money
+```
+
+A family is only a group of related names that a generic can ask for. A unit from a kit is written with its path, `name::unit`.
+
+**Refused:** a unit that says neither `base` nor `=`, a loop of `=` lines, and converting between units with different bases.
+
+How units go together, how a conversion is written, and how short a unit's name can be aren't decided ([12.2](12-not-decided.md#122-types)).
+
+**From:** D99, D100, D101, D108, D109.
