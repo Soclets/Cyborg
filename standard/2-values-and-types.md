@@ -17,6 +17,7 @@
 | [2.13](#213-labels-in--) | Labels in `< >` | One bare, more labeled |
 | [2.14](#214-conversion-as) | `as` | Builds a new value |
 | [2.15](#215-void-and-bool) | `void`, `bool` | |
+| [2.16](#216-units) | `3600 seconds` | A number says its unit |
 
 ## 2.1 `let`
 
@@ -180,3 +181,15 @@ A failed `as` is a failure, so it crashes unless handled ([8.9](8-failures.md#89
 **Rule:** a function that returns nothing returns `void`. A `bool` is always copied, and takes no ownership word.
 
 **From:** D2, D11.
+
+## 2.16 Units
+
+**Rule:** a number says its unit, behind it where possible. Where the unit can't go behind, it goes in front.
+
+```
+3600 seconds
+```
+
+Which numbers need one, and whether the compiler checks them, aren't decided ([12.2](12-not-decided.md#122-types)). Examples elsewhere in this standard don't show units yet.
+
+**From:** D99.

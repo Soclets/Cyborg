@@ -633,6 +633,9 @@ chose: "yea". (Owner, 2026-11-06)
 **D98. A full print, like Zig's.** Besides the short `std::println`, `std` has a way to do the whole thing by hand, as Zig's long stdout version does: choosing the stream, the buffer and when to flush, with failures handled. Its spelling is not settled
 here. The owner: "We should have a way to do Zig's full print". (Owner, 2026-11-06)
 
+**D99. A number says its unit, behind it where possible.** `3600 seconds`. Where the unit can't go behind, it goes in front. Claude proposed units inside names, like `time_in_seconds`; the owner chose: "I meant unit behind where possible, if not just do unit in front.
+`3600 seconds`". Whether units are checked by the compiler, which numbers need one, and how the examples in the standard change are not settled here. (Owner, 2026-11-06)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude
