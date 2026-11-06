@@ -11,7 +11,7 @@ use crate::ast::{
     Describe, FailureEntry, Fill, Function, FunctionKind, Item, ParameterWord, Path, Program,
     ShieldContent, Statement, StatementKind, TypeExpression, TypeKind, UnitMeaning,
 };
-use crate::ir::{self, Code, Node};
+use crate::ir::{Code, Node};
 use crate::report::{Kind, Outcome, Report, ReportExtra, Span};
 use crate::syntax::is_clashing;
 use crate::types::{FloatKind, IntegerKind, Sources, Type};
@@ -740,7 +740,7 @@ impl Checker<'_> {
                     return Err(Report::refused(
                         parameter.word_span,
                         format!("`{parameter_type}` is always copied, and takes no word"),
-                        "integers and `bool` are always copied, and take no word (D2)",
+                        "plain numbers and `bool` are always copied, and take no word (D2, D123)",
                     ));
                 }
                 // trace: D86
@@ -885,43 +885,84 @@ impl Checker<'_> {
         Ok(())
     }
 
-    /// trace: D83
+    /// Constants can read each other in any order, so one is checked once those it reads are.
+    /// trace: D83, D120
     fn check_globals(&mut self, items: &[&Item]) -> Outcome<()> {
-        for item in items {
-            let Item::Constant(Statement {
-                kind:
-                    StatementKind::Constant {
-                        name,
-                        written_type,
-                        value,
-                    },
-                ..
-            }) = item
-            else {
-                continue;
-            };
-            let value_type = self.resolve_type(written_type)?;
-            self.context = FunctionContext::outside_any_function();
-            let node = self.check_constant_value(value, &value_type)?;
-            if self.globals.contains_key(&name.text) {
-                return Err(Report::not_designed(
-                    name.span,
-                    format!("declaring `${}` twice", name.text),
-                    "",
+        let mut pending: Vec<&Statement> = items
+            .iter()
+            .filter_map(|item| match item {
+                Item::Constant(statement) => Some(statement),
+                _ => None,
+            })
+            .collect();
+        let names: Vec<String> = pending
+            .iter()
+            .filter_map(|statement| match &statement.kind {
+                StatementKind::Constant { name, .. } => Some(name.text.clone()),
+                _ => None,
+            })
+            .collect();
+        while !pending.is_empty() {
+            let before = pending.len();
+            let mut later = Vec::new();
+            for statement in pending {
+                let StatementKind::Constant { value, .. } = &statement.kind else {
+                    continue;
+                };
+                let mut reads = Vec::new();
+                body::collect_variables(value, &mut reads);
+                let waiting = reads.iter().any(|(name, _)| {
+                    names.contains(name) && !self.globals.contains_key(name)
+                });
+                if waiting {
+                    later.push(statement);
+                } else {
+                    self.check_global(statement)?;
+                }
+            }
+            if later.len() == before {
+                let span = later.first().map_or(Span::new(0, 0), |statement| statement.span);
+                return Err(Report::refused(
+                    span,
+                    "these constants read each other in a loop",
+                    "a `const`'s value must be fully known at compile time (D83)",
                 ));
             }
-            let index = self.global_nodes.len();
-            self.global_nodes.push(node.clone());
-            self.compile_time.push(node.clone());
-            self.globals.insert(
-                name.text.clone(),
-                GlobalInfo {
-                    index,
-                    value_type,
-                    node,
-                },
-            );
+            pending = later;
         }
+        Ok(())
+    }
+
+    fn check_global(&mut self, statement: &Statement) -> Outcome<()> {
+        let StatementKind::Constant {
+            name,
+            written_type,
+            value,
+        } = &statement.kind
+        else {
+            return Ok(());
+        };
+        let value_type = self.resolve_type(written_type)?;
+        self.context = FunctionContext::outside_any_function();
+        let node = self.check_constant_value(value, &value_type)?;
+        if self.globals.contains_key(&name.text) {
+            return Err(Report::not_designed(
+                name.span,
+                format!("declaring `${}` twice", name.text),
+                "",
+            ));
+        }
+        let index = self.global_nodes.len();
+        self.global_nodes.push(node.clone());
+        self.compile_time.push(node.clone());
+        self.globals.insert(
+            name.text.clone(),
+            GlobalInfo {
+                index,
+                value_type,
+                node,
+            },
+        );
         Ok(())
     }
 
@@ -1066,6 +1107,12 @@ impl Checker<'_> {
             "str" => {
                 return match narrowing {
                     None => Ok(Type::Str),
+                    // trace: D122
+                    Some("with_unit") => Err(Report::not_designed(
+                        path.span,
+                        "how a unit prints with `as str.with_unit`",
+                        "12.3",
+                    )),
                     // trace: D51
                     Some("utf8") => Err(Report::refused(
                         path.span,
@@ -1468,5 +1515,3 @@ fn looks_like_number_type(word: &str) -> bool {
         && characters.all(|character| character.is_ascii_digit())
 }
 
-/// Shared by the two sides of a function's compile-time work.
-pub type CompiledFunction = ir::Function;

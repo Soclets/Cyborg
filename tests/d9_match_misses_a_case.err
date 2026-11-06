@@ -1,0 +1,5 @@
+refused: d9_match_misses_a_case.cy:10:5, line 10 column 5
+10 |     match $s:
+   |     ^^^^^^^^^
+ what: this `match` misses `status.failed` and `status.lost`
+ why:  `match` must cover every case (D9)

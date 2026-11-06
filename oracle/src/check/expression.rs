@@ -1,11 +1,10 @@
 //! Expressions: what each form means, its type, and the checks hidden inside it.
 
-use super::body::{find_failure, walk};
 use super::hand::HandedOff;
 use super::{Checker, Failure, Origin, ParameterInfo, Signature, WHY_TYPES};
 use crate::ast::{
     Argument, BinaryOperator, CompareOperator, Expression, ExpressionKind, FieldValue,
-    FunctionKind, Handling, Narrowing, ParameterWord,
+    FunctionKind, Handling, ParameterWord,
 };
 use crate::ir::{self, Arithmetic, Node, NodeKind, Number};
 use crate::report::{Outcome, Report, ReportExtra, Span};
@@ -58,35 +57,6 @@ fn number_hint(value_type: Option<&Type>) -> Option<Type> {
         }),
         _ => None,
     }
-}
-
-/// Whether `and`, `or` or a chain stopping early could be seen, by a print or a trap on the right.
-fn could_show_stopping_early(expression: &Expression) -> bool {
-    let mut could = false;
-    walk(expression, &mut |part| {
-        could = could
-            || matches!(
-                part.kind,
-                ExpressionKind::Call { .. }
-                    | ExpressionKind::Method { .. }
-                    | ExpressionKind::Builtin(_)
-                    | ExpressionKind::Binary {
-                        operator: BinaryOperator::Add
-                            | BinaryOperator::Subtract
-                            | BinaryOperator::Multiply
-                            | BinaryOperator::Divide(_)
-                            | BinaryOperator::Remainder(_)
-                            | BinaryOperator::ShiftLeft
-                            | BinaryOperator::ShiftRight,
-                        ..
-                    }
-                    | ExpressionKind::As { .. }
-                    | ExpressionKind::Try(_)
-                    | ExpressionKind::Fallback { .. }
-                    | ExpressionKind::Otherwise { .. }
-            );
-    });
-    could
 }
 
 /// Whether `text` in decimal is exactly what `value` holds. (D59)
@@ -236,6 +206,7 @@ impl Checker<'_> {
             | ExpressionKind::Group(number)
             | ExpressionKind::All(number)
             | ExpressionKind::Not(number)
+            | ExpressionKind::Negate(number)
             | ExpressionKind::BitNot(number)
             | ExpressionKind::Bake(number) => self.refuse_if_not_constant(number),
             ExpressionKind::Items(items) => items
@@ -398,6 +369,7 @@ impl Checker<'_> {
                 left,
                 right,
             } => self.check_binary(*operator, left, right, span, expected),
+            ExpressionKind::Negate(inner) => self.check_negate(inner, span, expected),
             ExpressionKind::Not(inner) => {
                 let node = self.check_condition(inner)?;
                 Ok((simple(NodeKind::Not(Box::new(node))), Type::Bool))
@@ -1454,16 +1426,9 @@ impl Checker<'_> {
                 "12.5",
             ));
         }
+        // trace: D122
         let converts = target_type == Type::Str
-            && (found == Type::Length
-                || matches!(
-                    found,
-                    Type::Integer {
-                        kind: IntegerKind::I32,
-                        unit: None,
-                        ..
-                    }
-                ));
+            && (found == Type::Length || matches!(found, Type::Integer { .. }));
         if !converts {
             return Err(Report::not_designed(
                 span,
@@ -1712,6 +1677,42 @@ impl Checker<'_> {
         ))
     }
 
+    /// trace: D116
+    fn check_negate(
+        &mut self,
+        inner: &Expression,
+        span: Span,
+        expected: Option<&Type>,
+    ) -> Outcome<(Node, Type)> {
+        let hint = number_hint(expected);
+        let (node, found) = self.check_expression(inner, hint.as_ref())?;
+        let (number, result) = match found {
+            Type::Integer { kind, unit, .. } => (
+                Number::Integer(kind),
+                Type::Integer {
+                    kind,
+                    bound: None,
+                    unit,
+                },
+            ),
+            Type::Float { kind, unit } => (Number::Float(kind), Type::Float { kind, unit }),
+            other => {
+                return Err(Report::refused(
+                    inner.span,
+                    format!("unary `-` negates a number, and this is `{other}`"),
+                    "unary `-` negates (D116)",
+                ));
+            }
+        };
+        Ok((
+            Node {
+                span,
+                kind: NodeKind::Negate(number, Box::new(node)),
+            },
+            result,
+        ))
+    }
+
     /// Reads two operands, so a literal takes its type from the other side.
     fn check_operands(
         &mut self,
@@ -1740,7 +1741,13 @@ impl Checker<'_> {
         span: Span,
         expected: Option<&Type>,
     ) -> Outcome<(Node, Type)> {
-        if matches!(operator, BinaryOperator::And | BinaryOperator::Or) {
+        if matches!(
+            operator,
+            BinaryOperator::And
+                | BinaryOperator::Or
+                | BinaryOperator::AndBoth
+                | BinaryOperator::OrBoth
+        ) {
             return self.check_logic(operator, left, right, span);
         }
         let ((left_node, left_type), (right_node, right_type)) =
@@ -1764,7 +1771,10 @@ impl Checker<'_> {
             BinaryOperator::BitXor => Arithmetic::BitXor,
             BinaryOperator::ShiftLeft => Arithmetic::ShiftLeft,
             BinaryOperator::ShiftRight => Arithmetic::ShiftRight,
-            BinaryOperator::And | BinaryOperator::Or => Arithmetic::Add,
+            BinaryOperator::And
+            | BinaryOperator::Or
+            | BinaryOperator::AndBoth
+            | BinaryOperator::OrBoth => Arithmetic::Add,
         };
         let (number, result) =
             self.arithmetic_type(arithmetic, &left_type, &right_type, right, span)?;
@@ -1979,18 +1989,14 @@ impl Checker<'_> {
         span: Span,
     ) -> Outcome<(Node, Type)> {
         let left_node = self.check_condition(left)?;
-        if could_show_stopping_early(right) {
-            return Err(Report::not_designed(
-                right.span,
-                "whether `and` and `or` stop early, which this right side could show",
-                "",
-            ));
-        }
         let right_node = self.check_condition(right)?;
-        let kind = if operator == BinaryOperator::And {
-            NodeKind::And(Box::new(left_node), Box::new(right_node))
-        } else {
-            NodeKind::Or(Box::new(left_node), Box::new(right_node))
+        // trace: D124
+        let (left_node, right_node) = (Box::new(left_node), Box::new(right_node));
+        let kind = match operator {
+            BinaryOperator::And => NodeKind::And(left_node, right_node),
+            BinaryOperator::Or => NodeKind::Or(left_node, right_node),
+            BinaryOperator::AndBoth => NodeKind::AndBoth(left_node, right_node),
+            _ => NodeKind::OrBoth(left_node, right_node),
         };
         Ok((Node { span, kind }, Type::Bool))
     }
@@ -2006,14 +2012,7 @@ impl Checker<'_> {
         let mut previous: Option<Type> = None;
         let mut first_node = None;
         let mut left = first;
-        for (index, (operator, right)) in rest.iter().enumerate() {
-            if index > 0 && could_show_stopping_early(right) {
-                return Err(Report::not_designed(
-                    right.span,
-                    "whether a comparison chain stops early, which this could show",
-                    "",
-                ));
-            }
+        for (operator, right) in rest {
             let (left_checked, right_checked) = if let Some(left_type) = &previous {
                 let hint = number_hint(Some(left_type));
                 let right_checked = self.check_expression(right, hint.as_ref())?;
@@ -2177,7 +2176,3 @@ fn statements_jump(statements: &[crate::ast::Statement]) -> bool {
     })
 }
 
-#[allow(dead_code)] // Keeps `find_failure` and `Narrowing` near where arms use them.
-fn _unused(failures: &[Failure]) -> (Option<&Failure>, Narrowing) {
-    (find_failure(failures, ""), Narrowing::Trunc)
-}

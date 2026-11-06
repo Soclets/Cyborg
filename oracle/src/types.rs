@@ -115,9 +115,13 @@ impl Type {
         unit: None,
     };
 
-    /// These are always copied, and take no ownership word. (D2)
+    /// These are always copied, and take no ownership word.
+    /// trace: D2, D123
     pub fn is_always_copied(&self) -> bool {
-        matches!(self, Type::Integer { .. } | Type::Bool | Type::Length)
+        matches!(
+            self,
+            Type::Integer { .. } | Type::Float { .. } | Type::Bool | Type::Length
+        )
     }
 }
 

@@ -1,0 +1,5 @@
+NotDesignedYet: d2_must_give_returned.cy:6:15, line 6 column 15
+ 6 | fn open [] -> open_file:
+   |               ^^^^^^^^^
+ what: a `must_Give` value returned
+ why:  not decided yet (standard 12.8)

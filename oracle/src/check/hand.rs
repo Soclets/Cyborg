@@ -284,15 +284,15 @@ impl Checker<'_> {
         // trace: D104
         if let Some(ended) = state.and_then(|state| state.trust_ended) {
             return Err(Report::refused(
-                self.use_span(name.span),
+                base.span.to(name.span),
                 format!("`{shown}` may not be `{union_name}.{case_name}` any more"),
-                "a test's trust ends at a `change` (D104)",
+                "a test's trust ends at a `change`, and at a `Lend.mut` too (D104)",
             )
             .because(ended, format!("`{shown}` changed here")));
         }
         // trace: D9
         Err(Report::refused(
-            name.span,
+            base.span.to(name.span),
             format!("`{shown}` isn't known to be `{union_name}.{case_name}` here"),
             "inside `if $s: status.failed:` the compiler trusts it, and outside that's a compile error (D9)",
         ))
@@ -482,7 +482,7 @@ impl Checker<'_> {
         Report::refused(
             expression.span,
             format!("`{value_type}` is always copied, and takes no word"),
-            "integers and `bool` are always copied, and take no word (D2)",
+            "plain numbers and `bool` are always copied, and take no word (D2, D123)",
         )
         .fix(shown)
     }

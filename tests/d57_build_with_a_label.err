@@ -1,0 +1,5 @@
+refused: d57_build_with_a_label.cy:8:38, line 8 column 38
+ 8 |     let $r: reading = reading[celsius: 21];
+   |                                      ^
+ fix:  `=`
+ why:  building one uses `[ ]`, with `=` setting a field (D57)

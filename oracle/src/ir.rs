@@ -66,6 +66,9 @@ pub enum NodeKind {
     BitNot(IntegerKind, Box<Node>),
     And(Box<Node>, Box<Node>),
     Or(Box<Node>, Box<Node>),
+    AndBoth(Box<Node>, Box<Node>),
+    OrBoth(Box<Node>, Box<Node>),
+    Negate(Number, Box<Node>),
     Not(Box<Node>),
     Compare {
         first: Box<Node>,

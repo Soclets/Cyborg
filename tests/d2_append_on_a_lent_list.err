@@ -1,0 +1,5 @@
+refused: d2_append_on_a_lent_list.cy:5:5, line 5 column 5
+ 5 |     $xs.std::%append(val: 1);
+   |     ^^^
+ what: `$xs` can't change, so it can't be lent with `Lend.mut`
+ why:  `let` declares a variable that can't change, and `let mut` one that can (D3)

@@ -1,0 +1,5 @@
+NotDesignedYet: d2_must_give_in_a_field.cy:7:8, line 7 column 8
+ 7 |     f: open_file;
+   |        ^^^^^^^^^
+ what: a `must_Give` value in a field
+ why:  not decided yet (standard 12.8)

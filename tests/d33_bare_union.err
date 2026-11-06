@@ -1,0 +1,5 @@
+refused: d33_bare_union.cy:2:1, line 2 column 1
+ 2 | union status:
+   | ^^^^^
+ fix:  `union.tagged`
+ why:  "union" means opposite things to a C programmer and a Rust one, so it says which (D33)

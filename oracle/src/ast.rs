@@ -337,6 +337,8 @@ pub enum BinaryOperator {
     Remainder(Narrowing),
     And,
     Or,
+    AndBoth,
+    OrBoth,
     BitAnd,
     BitOr,
     BitXor,
@@ -440,6 +442,7 @@ pub enum ExpressionKind {
         right: Box<Expression>,
     },
     Not(Box<Expression>),
+    Negate(Box<Expression>),
     BitNot(Box<Expression>),
     Compare {
         first: Box<Expression>,

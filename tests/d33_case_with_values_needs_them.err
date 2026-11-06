@@ -1,0 +1,5 @@
+refused: d33_case_with_values_needs_them.cy:8:22, line 8 column 22
+ 8 |     let $s: status = status.failed;
+   |                      ^^^^^^^^^^^^^
+ what: `status.failed` has values, which go in `[ ]`
+ why:  a case's values go in `[ ]` (D33)

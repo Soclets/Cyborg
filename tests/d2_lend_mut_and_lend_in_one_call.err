@@ -1,0 +1,9 @@
+refused: d2_lend_mut_and_lend_in_one_call.cy:12:23, line 12 column 23
+12 |     both(Lend.mut $b, Lend $b);
+   |                       ^^^^^^^
+ what: `$b` is already handed off with `Lend.mut` in this call
+ why:  `Lend.mut` means nothing else uses it meanwhile, and `Give` means it's gone (D2)
+ because: d2_lend_mut_and_lend_in_one_call.cy:12:10, line 12 column 10
+12 |     both(Lend.mut $b, Lend $b);
+   |          ^^^^^^^^^^^
+     that's here

@@ -1,0 +1,5 @@
+refused: d3_return_with_no_word.cy:7:12, line 7 column 12
+ 7 |     return $b;
+   |            ^^
+ what: `$b` is `box`, so this needs `Give` or `Copy`
+ why:  every hand-off shows on the page, including one into a name, a `return` or a field (D3)

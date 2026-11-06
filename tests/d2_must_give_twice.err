@@ -1,0 +1,9 @@
+refused: d2_must_give_twice.cy:14:5, line 14 column 5
+14 |     close(Give $f);
+   |     ^^^^^^^^^^^^^^
+ what: `$f` was already given away
+ why:  a given value is dead afterwards (D2)
+ because: d2_must_give_twice.cy:13:5, line 13 column 5
+13 |     close(Give $f);
+   |     ^^^^^^^^^^^^^^
+     `$f` was given away here

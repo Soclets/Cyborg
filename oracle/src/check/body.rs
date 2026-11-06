@@ -1345,6 +1345,7 @@ pub(super) fn walk(expression: &Expression, visit: &mut dyn FnMut(&Expression)) 
     match &expression.kind {
         ExpressionKind::All(inner)
         | ExpressionKind::Not(inner)
+        | ExpressionKind::Negate(inner)
         | ExpressionKind::BitNot(inner)
         | ExpressionKind::Try(inner)
         | ExpressionKind::Bake(inner)

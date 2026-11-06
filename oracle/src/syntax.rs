@@ -597,17 +597,18 @@ impl Parser {
         if !self.eat_word("end") {
             return Err(self.expected(&format!("`{wanted}`")));
         }
+        let pieces_start = self.position;
         let mut last = start;
         for word in words {
-            let path_start = self.position;
             let found = self.parse_closer_piece();
             if found.as_deref() != Some(*word) {
-                self.position = path_start;
-                let span = self.closer_span(start);
+                self.position = pieces_start;
+                let span = self.closer_span(start, words.len());
+                // trace: D121
                 return Err(Report::refused(
                     span,
                     format!("this block closes with `{wanted}`"),
-                    "the closer repeats what it closes, including the name (D33)",
+                    "the closer repeats all of what it closes, including its narrowings and name (D33, D121)",
                 )
                 .fix(wanted));
             }
@@ -616,14 +617,14 @@ impl Parser {
         Ok(start.to(last))
     }
 
-    fn closer_span(&mut self, start: Span) -> Span {
+    /// The span of what was written where a closer's words belong.
+    fn closer_span(&mut self, start: Span, pieces: usize) -> Span {
         let mut end = start;
-        while let Lexeme::Word(_) = self.peek().lexeme {
-            end = self.advance().span;
-            if !self.at_symbol(".") {
+        for _ in 0..pieces {
+            if self.parse_closer_piece().is_none() {
                 break;
             }
-            self.advance();
+            end = self.previous_span();
         }
         start.to(end)
     }
@@ -830,19 +831,9 @@ impl Parser {
         match kind {
             FunctionKind::Main => self.expect_closer(&["fn.main"]),
             FunctionKind::Plain => self.expect_closer(&["fn", name]),
-            FunctionKind::Pure | FunctionKind::PureBaked => {
-                // 5.9 and 5.11 show `end fn area`, while 1.3 says a closer repeats what it closes.
-                // The design session has been asked which, so the other spelling isn't guessed.
-                if self.at_word("end") && self.word_at(1, "fn") && self.symbol_at(2, ".") {
-                    let start = self.span();
-                    return Err(Report::not_designed(
-                        start.to(self.peek_at(1).span),
-                        "closing a pure function with its narrowing",
-                        "",
-                    ));
-                }
-                self.expect_closer(&["fn", name])
-            }
+            // trace: D121
+            FunctionKind::Pure => self.expect_closer(&["fn.pure", name]),
+            FunctionKind::PureBaked => self.expect_closer(&["fn.pure.baked", name]),
         }
     }
 
@@ -1509,7 +1500,7 @@ impl Parser {
         while !self.at_word("end") && !self.at_word("case") {
             if matches!(self.peek().lexeme, Lexeme::End) {
                 return Err(Report::refused(
-                    self.span(),
+                    self.previous_span(),
                     "the file ended inside a block",
                     BLOCK_WHY,
                 ));
@@ -1830,20 +1821,49 @@ impl Parser {
 
     fn parse_or(&mut self) -> Outcome<Expression> {
         let mut left = self.parse_and()?;
-        while self.eat_word("or") {
+        while self.at_word("or") {
+            let operator = if self.logic_narrowing("or")? {
+                BinaryOperator::OrBoth
+            } else {
+                BinaryOperator::Or
+            };
             let right = self.parse_and()?;
-            left = Self::binary(BinaryOperator::Or, left, right)?;
+            left = Self::binary(operator, left, right)?;
         }
         Ok(left)
     }
 
     fn parse_and(&mut self) -> Outcome<Expression> {
         let mut left = self.parse_compare()?;
-        while self.eat_word("and") {
+        while self.at_word("and") {
+            let operator = if self.logic_narrowing("and")? {
+                BinaryOperator::AndBoth
+            } else {
+                BinaryOperator::And
+            };
             let right = self.parse_compare()?;
-            left = Self::binary(BinaryOperator::And, left, right)?;
+            left = Self::binary(operator, left, right)?;
         }
         Ok(left)
+    }
+
+    /// Reads `and` or `or`, and says whether it was narrowed to run both sides. (D124)
+    fn logic_narrowing(&mut self, word: &str) -> Outcome<bool> {
+        let start = self.advance().span;
+        if !self.at_symbol(".") {
+            return Ok(false);
+        }
+        self.advance();
+        let narrowing = self.expect_name("a narrowing")?;
+        if narrowing.text == "both" {
+            // trace: D124
+            return Ok(true);
+        }
+        Err(Report::not_designed(
+            start.to(narrowing.span),
+            format!("`{word}.{}`", narrowing.text),
+            "",
+        ))
     }
 
     fn compare_operator_here(&mut self) -> Outcome<Option<CompareOperator>> {
@@ -2048,17 +2068,21 @@ impl Parser {
                 span: start.to(inner.span),
                 kind: ExpressionKind::BitNot(Box::new(inner)),
             }
-        } else if self.at_symbol("-") {
-            // 12.3 says unary minus isn't decided, while D97 needs `-7` to work. Only the literal
-            // form is taken, and the design session has been told.
-            if !matches!(
+        } else if self.at_symbol("-")
+            && !(matches!(
                 self.peek_at(1).lexeme,
                 Lexeme::Integer(_) | Lexeme::Float(_)
-            ) || self.peek().space_after
-            {
-                return Err(Report::not_designed(start, "unary minus", "12.3"));
+            ) && !self.peek().space_after)
+        {
+            // trace: D116
+            self.advance();
+            let inner = self.parse_unary()?;
+            Self::refuse_bit_mix(&inner)?;
+            Self::refuse_as_on_the_right(&inner)?;
+            Expression {
+                span: start.to(inner.span),
+                kind: ExpressionKind::Negate(Box::new(inner)),
             }
-            self.parse_as_level()?
         } else {
             self.parse_as_level()?
         };
@@ -2280,7 +2304,7 @@ impl Parser {
     /// A unit behind a number, unless what follows is an operator. (D99)
     fn parse_unit_after_number(&mut self) -> Outcome<Option<Path>> {
         let is_operator = match &self.peek().lexeme {
-            Lexeme::Word(word) => OPERATOR_WORDS.contains(&word.as_str()),
+            Lexeme::Word(word) => OPERATOR_WORDS.contains(&word.as_str()) || is_clashing(word),
             _ => true,
         };
         if is_operator {

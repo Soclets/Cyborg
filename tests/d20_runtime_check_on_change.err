@@ -1,0 +1,6 @@
+check failed: d20_runtime_check_on_change.cy:7:17, line 7 column 17
+ 7 |     change $b = $b + 1;
+   |                 ^^^^^^
+ what: this doesn't fit `i32[min: 0, max: 100]`
+ why:  a plain `=`, `change` or argument checks a bound when the compiler can't see it fits (D20)
+ when: it is 101

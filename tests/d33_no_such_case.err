@@ -1,0 +1,5 @@
+refused: d33_no_such_case.cy:7:22, line 7 column 22
+ 7 |     let $s: status = status.lost;
+   |                      ^^^^^^^^^^^
+ what: `status` has no case `lost`
+ why:  a union's cases are narrowings (D33)

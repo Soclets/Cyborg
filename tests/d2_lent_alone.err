@@ -1,0 +1,5 @@
+refused: d2_lent_alone.cy:6:11, line 6 column 11
+ 6 | fn f [$b: Lent box] -> i32:
+   |           ^^^^
+ what: `Lent` alone is written bare
+ why:  a bare parameter is lent, so writing `Lent` alone is refused (D2)

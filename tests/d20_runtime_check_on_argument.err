@@ -1,0 +1,6 @@
+check failed: d20_runtime_check_on_argument.cy:8:15, line 8 column 15
+ 8 |     use_score($n);
+   |               ^^
+ what: `$n` doesn't fit `i32[min: 0, max: 100]`
+ why:  a plain `=`, `change` or argument checks a bound when the compiler can't see it fits (D20)
+ when: `$n` is -1

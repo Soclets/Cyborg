@@ -531,19 +531,39 @@ impl<'c> Runner<'c> {
                 }
                 self.evaluate(right, frame)
             }
+            NodeKind::AndBoth(left, right) => {
+                let left = self.evaluate(left, frame)?;
+                let right = self.evaluate(right, frame)?;
+                Ok(Value::Bool(
+                    left == Value::Bool(true) && right == Value::Bool(true),
+                ))
+            }
+            NodeKind::OrBoth(left, right) => {
+                let left = self.evaluate(left, frame)?;
+                let right = self.evaluate(right, frame)?;
+                Ok(Value::Bool(
+                    left == Value::Bool(true) || right == Value::Bool(true),
+                ))
+            }
+            NodeKind::Negate(number, value) => {
+                let value = self.evaluate(value, frame)?;
+                negate(*number, &value, span).map_err(Stop::Report)
+            }
             NodeKind::Not(value) => {
                 let value = self.evaluate(value, frame)?;
                 Ok(Value::Bool(value != Value::Bool(true)))
             }
             NodeKind::Compare { first, rest } => {
                 let mut left = self.evaluate(first, frame)?;
-                let mut result = true;
                 for (operator, right) in rest {
+                    // trace: D124
                     let right = self.evaluate(right, frame)?;
-                    result = result && compare(*operator, &left, &right, span)?;
+                    if !compare(*operator, &left, &right, span)? {
+                        return Ok(Value::Bool(false));
+                    }
                     left = right;
                 }
-                Ok(Value::Bool(result))
+                Ok(Value::Bool(true))
             }
             NodeKind::Call {
                 function,
@@ -697,6 +717,31 @@ impl<'c> Runner<'c> {
         }
         items.push(item);
         Ok(Value::Void)
+    }
+}
+
+/// trace: D116
+fn negate(number: Number, value: &Value, span: Span) -> Outcome<Value> {
+    match (number, value) {
+        (Number::Integer(kind), Value::Integer(value)) => {
+            if kind.fits(-value) {
+                Ok(Value::Integer(-value))
+            } else {
+                Err(Report::not_designed(
+                    span,
+                    "what happens when unary `-` overflows",
+                    "12.3",
+                )
+                .when(format!("`-{value}` in `{}`", kind.word())))
+            }
+        }
+        (_, Value::F32(value)) => Ok(Value::F32(-value)),
+        (_, Value::F64(value)) => Ok(Value::F64(-value)),
+        _ => Err(Report::check_failed(
+            span,
+            "the oracle got lost: `-` on something else",
+            "this is a bug in the oracle, not in your program (rule 6)",
+        )),
     }
 }
 

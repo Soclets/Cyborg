@@ -1,0 +1,5 @@
+refused: d11_no_main.cy:1:1, line 1 column 1
+ 1 | // trace: D11
+   | ^
+ what: this program has no `fn.main`
+ why:  a program starts at `fn.main` (D11)
