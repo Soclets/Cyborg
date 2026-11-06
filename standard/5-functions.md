@@ -113,9 +113,11 @@ let $x: i32 = largest(3, 5);
 
 `?T` and `ordered` are placeholders. How much of this is spelled isn't decided ([12.5](12-not-decided.md#125-functions)).
 
-**Refused:** a body that uses `?T` in a way its bound doesn't allow.
+A type fits a bound only if it declares that it does, as in `reading is ordered`, which is a placeholder spelling.
 
-**From:** D23, D85.
+**Refused:** a body that uses `?T` in a way its bound doesn't allow, and a type that hasn't declared the bound.
+
+**From:** D23, D85, D87.
 
 ## 5.9 Pure functions
 

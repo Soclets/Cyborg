@@ -580,6 +580,10 @@ outside the function, `Lent.mut`, calling a function that isn't pure, shields an
 what a correct program does. Whether a pure function may allocate or fail is not settled here. Claude proposed it; the owner chose: "yes, I want a pure fn". (Owner,
 2026-11-06)
 
+**D87. A type declares its bounds.** A type fits a bound only if it says so, even if it can already do what the bound needs. So a type can't fit by accident. The spelling
+`reading is ordered` is a placeholder. How a bound is defined, and whether you can declare one for a type from someone else's kit, are not settled here. Claude suggested
+automatic; the owner chose: "declared". (Owner, 2026-11-06)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude
