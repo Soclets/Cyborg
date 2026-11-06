@@ -138,6 +138,15 @@ Whether one may allocate or fail isn't decided ([12.5](12-not-decided.md#125-fun
 
 ## 5.10 The inline compile-time language
 
-**Rule:** Cyborg's equivalent of C++ templates is a separate compile-time language, written inline in Cyborg code, more powerful than templates and safe. [5.8](#58-generics) says what its generics must do. The rest isn't designed ([12.5](12-not-decided.md#125-functions)).
+**Rule:** Cyborg's equivalent of C++ templates is a separate compile-time language, written inline in Cyborg code, more powerful than templates and safe. [5.8](#58-generics) says what its generics must do.
 
-**From:** D85, D88.
+Safe means that if compile-time code passes the compiler, every program it can generate is valid Cyborg, with all of Cyborg's rules:
+
+- It's checked at the definition, not at a use.
+- Generated code follows ownership, `%`, shields and everything else.
+- It always finishes, such as through a step limit that gives `refused:`.
+- Errors point at real code, with `because:` leading back to the compile-time code.
+
+The rest isn't designed ([12.5](12-not-decided.md#125-functions)).
+
+**From:** D85, D88, D89.

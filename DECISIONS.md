@@ -589,6 +589,11 @@ This goes further than D85, which stands for what generics must do. Claude sugge
 equivalent, a separate language written inline, but more powerful and safe". Its syntax, what it can do, what "safe" requires, and how it relates to baking are not settled here. (Owner,
 2026-11-06)
 
+**D89. What "safe" means for the inline language.** If compile-time code passes the compiler, every program it can generate is valid Cyborg, with all of Cyborg's rules. So it's checked at the
+definition, generated code follows ownership, `%`, shields and everything else, it always finishes, such as through a step limit that gives `refused:`, and errors point at real code, with
+`because:` leading back to the compile-time code. Claude proposed this strong version and a weaker one that checks at the use; the owner chose: "yea". Claude reads that as the strong version.
+(Owner, 2026-11-06)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude
