@@ -10,6 +10,7 @@
 | [8.6](#86-otherwise) | `otherwise:` | Handle it in a block |
 | [8.7](#87-handler-narrowings) | `narrowings.handler` | Reusable arms |
 | [8.8](#88--handlers-that-jump) | `.*` | This handler can jump |
+| [8.9](#89-failures-must-be-handled) | `?? void` | Nothing fails silently |
 
 ## 8.1 `fails`
 
@@ -127,3 +128,22 @@ let $w: str = first_word(Lend $text) otherwise word_failed.*bail;
 **Refused:** leaving `*` off a handler that can jump, and putting it on one that can't.
 
 **From:** D46.
+
+## 8.9 Failures must be handled
+
+**Rule:** a call to anything that can fail must be handled, including `std::println`.
+
+```
+std::println("hi")?;
+std::println("hi") ?? void;
+std::println("hi") otherwise:
+    case print_failed:
+        return void;
+end otherwise
+```
+
+`?? void` ignores a failure on purpose, and a search for it finds every ignored failure. `print_failed` is a placeholder.
+
+**Refused:** `std::println("hi");`, and any other call whose failure isn't handled.
+
+**From:** D95.

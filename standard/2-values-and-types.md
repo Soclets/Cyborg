@@ -168,7 +168,7 @@ The label names are a placeholder.
 **Rule:** `as` builds a new value of another type, which can allocate memory or fail. `:` doesn't convert.
 
 ```
-std::println($t as str);
+std::println($t as str) ?? void;
 ```
 
 How a failed `as` behaves isn't decided ([12.3](12-not-decided.md#123-operators-and-conversion)).

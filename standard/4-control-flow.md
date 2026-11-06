@@ -15,7 +15,7 @@
 
 ```
 if $t at_least 10:
-    std::println("big total: ", $t as str);
+    std::println("big total: ", $t as str) ?? void;
 end if
 ```
 
@@ -29,7 +29,7 @@ It works on a union's case, and on a bound for a plain integer.
 
 ```
 if $s: status.failed:
-    std::println("failed: ", $s.code as str);
+    std::println("failed: ", $s.code as str) ?? void;
 end if
 
 if $n: i32[min: 0, max: 100]:
@@ -50,9 +50,9 @@ The test is the program's own logic, so on a plain integer it stays in every bui
 ```
 match $s:
     case status.ok:
-        std::println("worked");
+        std::println("worked") ?? void;
     case status.failed:
-        std::println("failed");
+        std::println("failed") ?? void;
 end match
 ```
 

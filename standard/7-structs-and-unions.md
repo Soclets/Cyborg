@@ -38,7 +38,7 @@ let $r: reading = reading[celsius = 21, time = 3600];
 **Rule:** a field read is a plain `.`, and no code runs.
 
 ```
-std::println($r.celsius as str);
+std::println($r.celsius as str) ?? void;
 ```
 
 **From:** D8, D57.

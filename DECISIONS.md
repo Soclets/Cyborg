@@ -618,6 +618,10 @@ The narrowing `std::print.useful` and `extern.c` are the owner's examples. Wheth
 **D94. You can't `use` a limb.** A limb is always written with its full mark and path, so D22's promise holds: a search for `@` finds every use of a compiler extension. This replaces the second example in D93, so
 `use @csup::extern.c as ext;` is refused. Claude suggested short names that keep their `@`; the owner chose: "Or just make it so that, you can't `use` a limb". (Owner, 2026-11-06)
 
+**D95. Printing can fail, and failures can't be ignored silently.** `std::println` is a normal function that can fail. A call to anything that can fail must be handled: `?` hands it to the caller, `?? void` ignores it on
+purpose, and `otherwise:` handles it. So `std::println("hi");` is refused, and hello world says `std::println("Hello, world!") ?? void;`. The failure's name `print_failed` is a placeholder. The owner asked "If print can fail,
+why not `?` at the end?"; Claude suggested a bare `println` that ignores failure, with a `.checked` narrowing; the owner asked "don't we usually like marks?"; Claude proposed `?? void`; the owner chose: "yea". (Owner, 2026-11-06)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude
