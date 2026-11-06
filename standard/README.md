@@ -35,7 +35,7 @@ What Cyborg does now, in one place. The oracle, the compiler and check claude fo
 | `:` (label) | [1.9](1-programs.md#19-labels-) | | `let mut` | [2.2](2-values-and-types.md#22-let-mut-and-change) |
 | `:` (the test) | [4.2](4-control-flow.md#42-the-test-if-n-t) | | linter | [9.11](9-limbs-and-shields.md#911-the-linter) |
 | `::` | [1.5](1-programs.md#15-paths-) | | `main` | [1.2](1-programs.md#12-main) |
-| `:=` | [2.3](2-values-and-types.md#23-constants-) | | `match` | [4.3](4-control-flow.md#43-match) |
+| `const` | [2.3](2-values-and-types.md#23-constants-const) | | `match` | [4.3](4-control-flow.md#43-match) |
 | `;` | [1.3](1-programs.md#13-blocks-and-statements) | | methods | [5.6](5-functions.md#56-methods-) |
 | `<`, `>` | [3.5](3-operators.md#35-comparison) | | `min`, `max` | [2.5](2-values-and-types.md#25-bounded-integers) |
 | `< >` | [1.8](1-programs.md#18-brackets) | | `mod` | [3.4](3-operators.md#34-remainder-mod) |

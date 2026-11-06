@@ -4,7 +4,7 @@
 |---|---|---|
 | [2.1](#21-let) | `let` | A variable that can't change |
 | [2.2](#22-let-mut-and-change) | `let mut`, `change` | A variable that can |
-| [2.3](#23-constants-) | `:=` | Known at compile time |
+| [2.3](#23-constants-const) | `const` | Known at compile time |
 | [2.4](#24-integers) | `i32`, `i64` | One spelling, no chain |
 | [2.5](#25-bounded-integers) | `i32[min: , max: ]` | A range the compiler holds you to |
 | [2.6](#26-floats) | `f32`, `f64` | Binary floats |
@@ -41,18 +41,18 @@ change $sum = $sum + $x;
 
 **From:** D3, the sketch.
 
-## 2.3 Constants: `:=`
+## 2.3 Constants: `const`
 
-**Rule:** `:=` declares a constant, with no `let`. Its value must be fully known at compile time.
+**Rule:** `const` declares a constant, with no `let`. Its value must be fully known at compile time.
 
 ```
-$b: i32 := 60 x 60;
-$pi: f64 := ~3.14159265358979323846;
+const $b: i32 = 60 x 60;
+const $pi: f64 = ~3.14159265358979323846;
 ```
 
-**Refused:** `$a: i32 := read();`.
+**Refused:** `const $a: i32 = read();`.
 
-**From:** D58, D59.
+**From:** D58, D59, D83.
 
 ## 2.4 Integers
 

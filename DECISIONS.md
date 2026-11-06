@@ -560,6 +560,10 @@ Cyborg also has something like Rust's `use`, in the owner's own style, which isn
 here. Claude proposed importing `std`; the owner chose: "yea. And should it be something like `@import`? Btw, we'll also have Rust's `use`, but
 in my style". (Owner, 2026-11-06)
 
+**D83. `const`, not `:=`.** A constant is `const $b: i32 = 60 x 60;`, replacing `:=` in D58, which is gone. Its value must still be fully known at
+compile time, so `const $a: i32 = read();` is refused. The owner: "Change `:=` to `const`, I shouldn't have chose that (i myself misread it)".
+(Owner, 2026-11-06)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude

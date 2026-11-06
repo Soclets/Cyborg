@@ -23,7 +23,6 @@
 | Logic | `and`, `or`, `not` | [3.6](#36-logic) |
 | Bits | `bit_and`, `bit_or`, `bit_xor`, `bit_not`, `shl`, `shr` | [3.7](#37-bits-and-shifts) |
 | Set a value | `=` | [2.1](2-values-and-types.md#21-let), [7.2](7-structs-and-unions.md#72-building-a-struct) |
-| Define a constant | `:=` | [2.3](2-values-and-types.md#23-constants-) |
 | Convert | `as` | [2.14](2-values-and-types.md#214-conversion-as) |
 | Inexact literal | `~` | [2.7](2-values-and-types.md#27-inexact-literals-) |
 | Contract line | `=>` | [5.4](5-functions.md#54-the-top-of-the-body) |
