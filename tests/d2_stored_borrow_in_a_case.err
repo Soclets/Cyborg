@@ -1,0 +1,5 @@
+NotDesignedYet: d2_stored_borrow_in_a_case.cy:8:13, line 8 column 13
+ 8 |     some[r: Lend from program reading]
+   |             ^^^^^^^^^^^^^^^^^^^^^^^^^
+ what: a `union.tagged` case holding a borrow
+ why:  not decided yet (standard 12.8)

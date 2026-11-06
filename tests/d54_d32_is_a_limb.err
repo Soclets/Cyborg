@@ -1,0 +1,5 @@
+NotDesignedYet: d54_d32_is_a_limb.cy:3:13, line 3 column 13
+ 3 |     let $a: d32 = 0.1;
+   |             ^^^
+ what: which limb `d32` comes from
+ why:  not decided yet (standard 12.9)

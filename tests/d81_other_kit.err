@@ -1,0 +1,5 @@
+NotDesignedYet: d81_other_kit.cy:3:8, line 3 column 8
+ 3 | import json;
+   |        ^^^^
+ what: how the kit `json` is found
+ why:  not decided yet (standard 12.9)

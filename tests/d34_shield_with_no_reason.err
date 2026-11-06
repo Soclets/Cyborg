@@ -1,0 +1,5 @@
+refused: d34_shield_with_no_reason.cy:3:12, line 3 column 12
+ 3 |     shield sensor:
+   |            ^^^^^^
+ what: the shield `sensor` has no reason
+ why:  a shield is a named block with a written reason (D34)

@@ -1,0 +1,5 @@
+refused: d38_limb_outside_a_shield.cy:5:5, line 5 column 5
+ 5 |     @csup::call();
+   |     ^^^^^^^^^^^
+ what: `@csup::call` must be inside a shield
+ why:  a shield is the only place dangerous code may live (D34, D38)

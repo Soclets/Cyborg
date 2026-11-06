@@ -1,0 +1,5 @@
+refused: d16_columns_bytes_and_graphemes.cy:13:52, line 13 column 44
+13 |     let $s: str = "é🇹🇭"; let $n: i32 = read($b);
+   |                                            ^^
+ fix:  `Lend $b`
+ why:  every hand-off shows on the page (D3)

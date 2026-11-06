@@ -82,7 +82,7 @@ impl Checker<'_> {
             .any(|scope| scope.values().any(|found| *found == slot))
     }
 
-    fn refuse_invalidated(&self, slot: usize) -> Outcome<()> {
+    fn refuse_invalidated(&self, slot: usize, span: Span) -> Outcome<()> {
         let Some(variable) = self.context.variables.get(slot) else {
             return Ok(());
         };
@@ -93,11 +93,11 @@ impl Checker<'_> {
             .and_then(|state| state.invalidated)
         {
             return Err(Report::refused(
-                self.use_span(variable.declared),
+                span,
                 format!("`${}` can't be used after what it borrows was used", variable.name),
                 "a stored `Lend.mut` means nothing else uses it meanwhile, and a `Lend` means it can't change (D2)",
             )
-            .because(used, "that happened here"));
+            .because(used, "what it borrows was used here"));
         }
         Ok(())
     }
@@ -155,7 +155,7 @@ impl Checker<'_> {
                 }
             }
             self.require_alive(slot, span)?;
-            self.refuse_invalidated(slot)?;
+            self.refuse_invalidated(slot, span)?;
             self.note_use(name, UseKind::Read, span);
             let value_type = match &variable.variable_type {
                 Type::Borrow { inner, .. } => (**inner).clone(),

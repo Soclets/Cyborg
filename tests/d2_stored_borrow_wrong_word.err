@@ -1,0 +1,5 @@
+refused: d2_stored_borrow_wrong_word.cy:8:36, line 8 column 36
+ 8 |     let $b: Lend from $a reading = Copy $a;
+   |                                    ^^^^^^^
+ what: this borrow is made with `Lend`
+ why:  the call and the parameter both say it, and they must match (D2)

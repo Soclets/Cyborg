@@ -1,0 +1,5 @@
+NotDesignedYet: d48_other_div_narrowing.cy:4:21, line 4 column 21
+ 4 |     let $a: i32 = 7 div.ceil 2;
+   |                     ^^^^^^^^
+ what: `div.ceil`
+ why:  not decided yet (standard 12.3)

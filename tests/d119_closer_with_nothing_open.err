@@ -1,0 +1,5 @@
+refused: d119_closer_with_nothing_open.cy:2:1, line 2 column 1
+ 2 | end comment one
+   | ^^^^^^^^^^^^^^^
+ what: there's no open comment block for `end comment one` to close
+ why:  a closer names the block it closes (D119)

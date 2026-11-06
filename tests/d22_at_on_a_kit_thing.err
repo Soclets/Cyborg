@@ -1,0 +1,5 @@
+refused: d22_at_on_a_kit_thing.cy:5:5, line 5 column 5
+ 5 |     @std::println("hi");
+   |     ^^^^^^^^^^^^^
+ fix:  `std::println`
+ why:  `@` goes only on things a limb provides (D22)

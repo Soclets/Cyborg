@@ -1,0 +1,5 @@
+refused: d38_untagged_union_outside_a_shield.cy:2:1, line 2 column 1
+ 2 | union.untagged number:
+   | ^^^^^^^^^^^^^^
+ what: C's untagged union is `@csup::union.untagged`, inside a shield
+ why:  C support is the limb `@csup`, and that union must be inside a shield (D35, D38)

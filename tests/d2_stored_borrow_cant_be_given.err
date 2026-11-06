@@ -1,0 +1,5 @@
+refused: d2_stored_borrow_cant_be_given.cy:13:14, line 13 column 14
+13 |     eat(Give $b);
+   |              ^^
+ what: `$b` is only lent here, so it can't be given away
+ why:  `Lend` is temporary access, and the caller keeps it (D2)

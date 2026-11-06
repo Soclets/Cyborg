@@ -1168,6 +1168,23 @@ impl Checker<'_> {
                 "",
             ));
         }
+        // trace: D10
+        if text == "int.signed.32_bit" {
+            return Err(Report::refused(
+                path.span,
+                "`int.signed.32_bit` doesn't exist",
+                "a 32-bit signed integer is `i32`, with one spelling and no alias (D10)",
+            )
+            .fix("i32"));
+        }
+        // trace: D55
+        if head == "d32" {
+            return Err(Report::not_designed(
+                path.span,
+                "which limb `d32` comes from",
+                "12.9",
+            ));
+        }
         if looks_like_number_type(head) {
             return Err(Report::not_designed(
                 path.span,

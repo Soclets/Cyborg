@@ -247,11 +247,13 @@ impl Checker<'_> {
                 return Err(report);
             }
         };
-        let scope_check = if terminated {
-            Ok(())
-        } else {
-            self.check_innermost_scope_end(end_span)
-        };
+        let scope_check = self.check_borrows_at_scope_end().and_then(|()| {
+            if terminated {
+                Ok(())
+            } else {
+                self.check_innermost_scope_end(end_span)
+            }
+        });
         self.context.scopes.pop();
         scope_check?;
         Ok((code, terminated))
@@ -266,6 +268,31 @@ impl Checker<'_> {
             terminated = terminated || ends;
         }
         Ok((code, terminated))
+    }
+
+    /// A stored borrow whose source got used, and which was never read again, is only wrong if a
+    /// borrow lasts to the end of its scope, and that isn't decided. (D2)
+    fn check_borrows_at_scope_end(&self) -> Outcome<()> {
+        let Some(scope) = self.context.scopes.last() else {
+            return Ok(());
+        };
+        let mut slots: Vec<usize> = scope.values().copied().collect();
+        slots.sort_unstable();
+        for slot in slots {
+            let used_at = self
+                .context
+                .state
+                .get(slot)
+                .and_then(|state| state.invalidated);
+            if let Some(used_at) = used_at {
+                return Err(Report::not_designed(
+                    used_at,
+                    "whether a stored borrow ends at its last use or at the end of its scope",
+                    "",
+                ));
+            }
+        }
+        Ok(())
     }
 
     /// trace: D2
@@ -637,7 +664,7 @@ impl Checker<'_> {
             declared: name.span,
             must_give: false,
             constant: None,
-            borrows: vec![place.root_name.clone()],
+            borrows: names.clone(),
         });
         let Some(source) = place.place else {
             return Err(Report::not_designed(
@@ -712,7 +739,11 @@ impl Checker<'_> {
                 ));
             }
         }
-        let node = self.check_into(value, &variable.variable_type)?;
+        let target_type = match &variable.variable_type {
+            Type::Borrow { inner, .. } => (**inner).clone(),
+            other => other.clone(),
+        };
+        let node = self.check_into(value, &target_type)?;
         // trace: D104
         if let Some(state) = self.context.state.get_mut(slot) {
             if state.trust.is_some() {

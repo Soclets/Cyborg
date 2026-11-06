@@ -1,0 +1,5 @@
+refused: d75_bare_x_call.cy:7:19, line 7 column 19
+ 7 |     let $a: i32 = x(1, 2);
+   |                   ^^^^^^^
+ fix:  `my::x(1, 2)`
+ why:  a name of yours that clashes is written with `my::` (D75)

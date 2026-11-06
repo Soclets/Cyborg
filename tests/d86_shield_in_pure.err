@@ -1,0 +1,5 @@
+refused: d86_shield_in_pure.cy:3:12, line 3 column 12
+ 3 |     shield sensor:
+   |            ^^^^^^
+ what: a pure function can't hold a shield
+ why:  a pure function refuses shields and C calls (D86)

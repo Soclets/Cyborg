@@ -1,0 +1,5 @@
+refused: d116_as_after_a_division.cy:5:30, line 5 column 30
+ 5 |     std::println(7 div.trunc 2 as str);
+   |                              ^^^^^^^^
+ what: this `as` is mixed with other operators, so it needs `( )`
+ why:  `as` works on a single value, and where maths gives no order you group with `( )` (D116)

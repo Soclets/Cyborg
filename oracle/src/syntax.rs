@@ -307,7 +307,18 @@ fn lex(source: &str) -> Outcome<Vec<Token>> {
             position = name_start + name.len();
             Lexeme::Variable(name)
         } else if character.is_ascii_digit() {
-            lex_number(source, &mut position)?
+            // `int.signed.32_bit` starts a piece of a path with a digit, and it's no number there.
+            let after_dot = matches!(
+                tokens.last().map(|token| &token.lexeme),
+                Some(Lexeme::Symbol("."))
+            );
+            if after_dot {
+                let word: String = rest.chars().take_while(|c| is_word_part(*c)).collect();
+                position += word.len();
+                Lexeme::Word(word)
+            } else {
+                lex_number(source, &mut position)?
+            }
         } else if is_word_start(character) {
             let word: String = rest.chars().take_while(|c| is_word_part(*c)).collect();
             position += word.len();
@@ -615,6 +626,26 @@ impl Parser {
             last = self.previous_span();
         }
         Ok(start.to(last))
+    }
+
+    /// `end @csup::union.untagged number`, which has a mark and a `::` in it.
+    fn expect_limb_closer(&mut self, path: &str, name: &str) -> Outcome<()> {
+        let wanted = format!("end {path} {name}");
+        let start = self.span();
+        if !self.eat_word("end") {
+            return Err(self.expected(&format!("`{wanted}`")));
+        }
+        let closer = self.parse_path()?;
+        let closer_name = self.expect_name("the name it closes")?;
+        if closer.text != path || closer_name.text != name {
+            return Err(Report::refused(
+                start.to(closer_name.span),
+                format!("this block closes with `{wanted}`"),
+                "the closer repeats all of what it closes, including its narrowings and name (D33, D121)",
+            )
+            .fix(wanted));
+        }
+        Ok(())
     }
 
     /// The span of what was written where a closer's words belong.
@@ -927,7 +958,7 @@ impl Parser {
     }
 
     fn parse_labels(&mut self) -> Outcome<LabelLine> {
-        self.advance(); // `labels`
+        let label_start = self.advance().span; // `labels`
         let mut any_order = false;
         if self.at_symbol(".") {
             self.advance();
@@ -937,7 +968,7 @@ impl Parser {
                 // trace: D114
                 "in_order" => {
                     return Err(Report::refused(
-                        narrowing.span,
+                        label_start.to(narrowing.span),
                         "keeping labels in order is the default",
                         "a default the language fixes can't be written out (D51, D114)",
                     )
@@ -1330,8 +1361,7 @@ impl Parser {
                     self.expect_symbol(":")?;
                     self.parse_type()?;
                 }
-                let closer = path.text.clone();
-                self.expect_closer(&[&closer, &union_name.text])?;
+                self.expect_limb_closer(&path.text, &union_name.text)?;
                 items.push(ShieldContent::UntaggedUnion {
                     path,
                     name: union_name,
@@ -1732,6 +1762,7 @@ impl Parser {
             self.advance();
             Self::refuse_bit_mix(&value)?;
             let fallback = self.parse_or()?;
+            Self::refuse_as_on_the_right(&fallback)?;
             Self::refuse_bit_mix(&fallback)?;
             return Ok(Expression {
                 span: value.span.to(fallback.span),
@@ -1828,6 +1859,7 @@ impl Parser {
                 BinaryOperator::Or
             };
             let right = self.parse_and()?;
+            Self::refuse_as_on_the_right(&right)?;
             left = Self::binary(operator, left, right)?;
         }
         Ok(left)
@@ -1842,6 +1874,7 @@ impl Parser {
                 BinaryOperator::And
             };
             let right = self.parse_compare()?;
+            Self::refuse_as_on_the_right(&right)?;
             left = Self::binary(operator, left, right)?;
         }
         Ok(left)
@@ -1920,6 +1953,7 @@ impl Parser {
         // trace: D117
         while let Some(operator) = self.compare_operator_here()? {
             let value = self.parse_additive()?;
+            Self::refuse_as_on_the_right(&value)?;
             Self::refuse_bit_mix(&value)?;
             end = value.span;
             rest.push((operator, value));
@@ -1995,7 +2029,10 @@ impl Parser {
             return Err(Report::refused(
                 start,
                 format!("there's no bare `{word}`, so pick a narrowing"),
-                format!("`{word}` has no single right answer, so you pick one (D48, D97)"),
+                format!(
+                    "`{word}` has no single right answer, so you pick one ({})",
+                    if word == "div" { "D48" } else { "D97" }
+                ),
             ));
         }
         self.advance();

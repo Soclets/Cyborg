@@ -1,0 +1,5 @@
+refused: d82_std_not_imported.cy:3:5, line 3 column 5
+ 3 |     std::println("hi");
+   |     ^^^^^^^^^^^^
+ fix:  `import std;`
+ why:  everything gets imported, including `std` (D82)

@@ -1,0 +1,5 @@
+refused: d10_i32_alias_chain.cy:3:13, line 3 column 13
+ 3 |     let $a: int.signed.32_bit = 1;
+   |             ^^^^^^^^^^^^^^^^^
+ fix:  `i32`
+ why:  a 32-bit signed integer is `i32`, with one spelling and no alias (D10)

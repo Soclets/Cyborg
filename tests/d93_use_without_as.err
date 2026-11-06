@@ -1,0 +1,5 @@
+refused: d93_use_without_as.cy:4:5, line 4 column 5
+ 4 | use std::println;
+   |     ^^^^^^^^^^^^
+ what: `use` always writes `as`
+ why:  `use` gives a path a shorter name, and `as` is always written (D93)

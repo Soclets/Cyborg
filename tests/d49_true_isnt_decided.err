@@ -1,0 +1,5 @@
+NotDesignedYet: d49_true_isnt_decided.cy:3:20, line 3 column 20
+ 3 |     let $a: bool = true;
+   |                    ^^^^
+ what: `true`
+ why:  not decided yet (standard 12.2)

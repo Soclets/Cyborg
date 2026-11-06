@@ -1,0 +1,5 @@
+NotDesignedYet: d38_limb_inside_a_shield.cy:8:9, line 8 column 9
+ 8 |         @csup::call();
+   |         ^^^^^^^^^^^
+ what: using `@csup::call` from the oracle, which has no C or assembly in it
+ why:  not decided yet (standard 12.9)

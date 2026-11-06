@@ -1,0 +1,6 @@
+NotDesignedYet: d116_unary_minus_overflow.cy:4:19, line 4 column 19
+ 4 |     let $y: i32 = -$x;
+   |                   ^^^
+ what: what happens when unary `-` overflows
+ why:  not decided yet (standard 12.3)
+ when: negating `-2147483648` in `i32`

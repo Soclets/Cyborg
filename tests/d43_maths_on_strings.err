@@ -1,0 +1,5 @@
+refused: d43_maths_on_strings.cy:3:19, line 3 column 19
+ 3 |     let $a: str = "a" + "b";
+   |                   ^^^^^^^^^
+ what: maths needs numbers, and this has `str` and `str`
+ why:  `:` doesn't convert, and `as` builds a new value of another type (D7)

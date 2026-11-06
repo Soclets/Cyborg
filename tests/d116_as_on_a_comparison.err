@@ -1,0 +1,5 @@
+refused: d116_as_on_a_comparison.cy:3:23, line 3 column 23
+ 3 |     let $a: str = 1 < 2 as str;
+   |                       ^^^^^^^^
+ what: this `as` is mixed with other operators, so it needs `( )`
+ why:  `as` works on a single value, and where maths gives no order you group with `( )` (D116)

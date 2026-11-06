@@ -1,0 +1,5 @@
+NotDesignedYet: d49_comparing_strings.cy:4:8, line 4 column 8
+ 4 |     if $a == "a":
+   |        ^^^^^^^^^
+ what: comparing `str` values
+ why:  not decided yet, and the standard doesn't say

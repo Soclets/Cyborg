@@ -1,0 +1,5 @@
+// trace: D116
+fn.main [] -> void:
+    let $a: str = 1 < 2 as str;
+    return void;
+end fn.main

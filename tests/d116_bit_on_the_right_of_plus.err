@@ -1,0 +1,5 @@
+refused: d116_bit_on_the_right_of_plus.cy:4:23, line 4 column 23
+ 4 |     let $b: i32 = 1 + $a shl 2;
+   |                       ^^^^^^^^
+ what: this needs `( )` around it, since maths gives bit operators no order
+ why:  where maths gives no order, you group with `( )` (D116)

@@ -1,0 +1,5 @@
+refused: d119_line_comment_needs_a_space.cy:1:1, line 1 column 1
+ 1 | //no space here
+   | ^^^^^^^^^^^^^^^
+ fix:  `// no space here`
+ why:  `//` needs a space after it, and `///` is its own form (D119)

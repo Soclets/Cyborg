@@ -1,0 +1,5 @@
+NotDesignedYet: d10_other_integer_widths.cy:3:13, line 3 column 13
+ 3 |     let $a: i16 = 1;
+   |             ^^^
+ what: the type `i16`, since the full list isn't chosen
+ why:  not decided yet (standard 12.2)

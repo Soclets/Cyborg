@@ -1,0 +1,5 @@
+NotDesignedYet: d2_lend_from_program.cy:8:41, line 8 column 41
+ 8 |     let $b: Lend from program reading = Lend $r;
+   |                                         ^^^^^^^
+ what: what can be lent `from program`
+ why:  not decided yet (standard 12.8)

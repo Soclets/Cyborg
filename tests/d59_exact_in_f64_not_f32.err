@@ -1,0 +1,5 @@
+refused: d59_exact_in_f64_not_f32.cy:5:19, line 5 column 19
+ 5 |     let $b: f32 = 16777217.0;
+   |                   ^^^^^^^^^^
+ fix:  `~16777217.0`
+ why:  f32 can't hold 16777217.0 exactly (D59)

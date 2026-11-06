@@ -1,0 +1,5 @@
+refused: d82_limb_not_imported.cy:5:9, line 5 column 9
+ 5 |         @csup::call();
+   |         ^^^^^^^^^^^
+ fix:  `import @csup;`
+ why:  everything gets imported, including limbs (D82)

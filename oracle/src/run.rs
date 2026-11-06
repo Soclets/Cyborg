@@ -740,7 +740,7 @@ fn negate(number: Number, value: &Value, span: Span) -> Outcome<Value> {
                     "what happens when unary `-` overflows",
                     "12.3",
                 )
-                .when(format!("`-{value}` in `{}`", kind.word())))
+                .when(format!("negating `{value}` in `{}`", kind.word())))
             }
         }
         (_, Value::F32(value)) => Ok(Value::F32(-value)),

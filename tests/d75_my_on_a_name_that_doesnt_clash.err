@@ -1,0 +1,5 @@
+NotDesignedYet: d75_my_on_a_name_that_doesnt_clash.cy:7:19, line 7 column 19
+ 7 |     let $a: i32 = my::total();
+   |                   ^^^^^^^^^
+ what: `my::` on `total`, which doesn't clash
+ why:  not decided yet, and the standard doesn't say
