@@ -551,6 +551,10 @@ not chosen. The owner: "Bro, pub the GH repo now". (Owner, 2026-11-05)
 a manifest with no imports; the owner chose otherwise: "imports in file are new thing for me. So, it seems good to try out". The
 spelling, what needs importing, and what a manifest still does are not settled here. (Owner, 2026-11-06)
 
+**D81. Import plus manifest.** A file's import says what it uses. A manifest lists what's installed and which version, and versions live only
+there. A program using only `std` needs no manifest, so hello world can stay a single file. Claude proposed it; the owner chose: "yea".
+(Owner, 2026-11-06)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude

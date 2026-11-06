@@ -100,8 +100,8 @@ These are inherited from Radium with D2:
 ## 12.9 Limbs and projects
 
 - Modules, and how files see each other.
-- Imports (D80): the spelling, what needs importing, whether `std` does, and what a manifest still does.
-- The project file, and how it lists kits and limbs. D30 and D35 rely on it.
+- Imports (D80, D81): the spelling, what needs importing, and whether `std` does.
+- The manifest's format and name. D30, D35 and D81 rely on it.
 - Whether the mark goes only at the path's start.
 - Whether other limbs have a kit part like `std`.
 - How a third-party kit or limb is spelled.
