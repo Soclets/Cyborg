@@ -73,7 +73,6 @@ Waiting on the owner, most needed first. Each is `NotDesignedYet` unless it says
 
 ## 12.5 Functions
 
-- How a method is declared, and how its receiver appears in the signature.
 - Generics (D85, D87): the spelling, including `?T` and declaring a bound, how a bound is defined, whether you can declare one for a type from someone else's kit, and how specialization and value parameters are written.
 - Whether a `fn.pure` may allocate or fail.
 - The inline compile-time language (D88 to D91): its syntax.

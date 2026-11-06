@@ -721,6 +721,9 @@ removes it from D46's list. `decreases` belongs to the Precog limb. The owner as
 **D129. `finish` ends a `must_Give` duty.** `finish $f;` says the duty stops here. Only the kit or file that declared the type can write it, or anyone could end the duty without doing the work, and it's refused until any `must_Give` fields inside have been given away. This settles what Radium left open in D2. Whether a C function's `Given` parameter ends
 the duty too is not settled here. Oracle claude said it blocked the most; Radium's session had no ruling, and leaned toward taking the struct apart; Claude proposed this; the owner chose: "yea". (Owner, 2026-11-06)
 
+**D130. Declaring a method.** A method is a normal function with its type in the name: `fn reading.%warm_up [$r: Lent.mut reading, $by: i32] -> void:`, closed with `end fn reading.%warm_up`, and called `$r.%warm_up(by: 2);`. The first parameter is the receiver, and says how it's held, which is where `%` looks up what's unsaid. A bare one is read-only, and
+`Given` is refused there, since methods only borrow (D8). Claude proposed it; the owner chose: "yea". (Owner, 2026-11-06)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude

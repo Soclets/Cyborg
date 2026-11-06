@@ -116,9 +116,21 @@ $x.@csup::%name();
 
 **Refused:** `$xs.%append(val: 4);`, with `fix: $xs.std::%append(val: 4);`.
 
-How a method is declared isn't decided ([12.5](12-not-decided.md#125-functions)).
+A method is declared as a normal function with its type in the name. The first parameter is the receiver, and says how it's held, which is where `%` looks up what's unsaid.
 
-**From:** D4, D5, D8, D115.
+```
+fn reading.%warm_up [$r: Lent.mut reading, $by: i32] -> void:
+    labels [$by as by];
+    change $r.celsius = $r.celsius + $by;
+    return void;
+end fn reading.%warm_up
+
+$r.%warm_up(by: 2);
+```
+
+A receiver that's `Given` is refused, because methods only borrow.
+
+**From:** D4, D5, D8, D115, D130.
 
 ## 5.7 Builtins: `@`
 
