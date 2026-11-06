@@ -1,0 +1,5 @@
+refused: d127_true_clashes.cy:7:19, line 7 column 19
+ 7 |     let $a: i32 = true();
+   |                   ^^^^^^
+ fix:  `my::true()`
+ why:  a name of yours that clashes is written with `my::` (D75)

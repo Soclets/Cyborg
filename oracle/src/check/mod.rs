@@ -871,14 +871,21 @@ impl Checker<'_> {
                         "only labelled parameters can have defaults (D114)",
                     ));
                 }
-                if !matches!(
-                    value.kind,
-                    crate::ast::ExpressionKind::Integer { .. }
-                        | crate::ast::ExpressionKind::Float { .. }
-                        | crate::ast::ExpressionKind::Text(_)
-                        | crate::ast::ExpressionKind::Empty
-                        | crate::ast::ExpressionKind::WithUnit { .. }
-                ) {
+                let is_bool_literal = matches!(
+                    &value.kind,
+                    crate::ast::ExpressionKind::Path(path)
+                        if path.text == "true" || path.text == "false"
+                );
+                if !is_bool_literal
+                    && !matches!(
+                        value.kind,
+                        crate::ast::ExpressionKind::Integer { .. }
+                            | crate::ast::ExpressionKind::Float { .. }
+                            | crate::ast::ExpressionKind::Text(_)
+                            | crate::ast::ExpressionKind::Empty
+                            | crate::ast::ExpressionKind::WithUnit { .. }
+                    )
+                {
                     return Err(Report::not_designed(
                         value.span,
                         "a default that isn't a literal, and when it's worked out",

@@ -46,6 +46,8 @@ const CLASHING_WORDS: &[&str] = &[
     "empty",
     "all",
     "inf",
+    "true",
+    "false",
     "bake",
     "narrowings",
     "together",

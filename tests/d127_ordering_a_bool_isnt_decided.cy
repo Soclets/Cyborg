@@ -1,5 +1,5 @@
-// trace: D49
+// trace: D127
 fn.main [] -> void:
-    let $a: bool = true;
+    let $a: bool = true > false;
     return void;
 end fn.main

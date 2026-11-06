@@ -1,0 +1,5 @@
+NotDesignedYet: d127_bool_as_str_isnt_decided.cy:4:19, line 4 column 19
+ 4 |     let $s: str = true as str;
+   |                   ^^^^^^^^^^^
+ what: converting `bool` to `str` with `as`
+ why:  not decided yet (standard 12.3)

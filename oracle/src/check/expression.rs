@@ -717,8 +717,15 @@ impl Checker<'_> {
     /// `status.ok`, `result` and such.
     fn check_path_value(&mut self, path: &crate::ast::Path, span: Span) -> Outcome<(Node, Type)> {
         let text = self.canonical(&path.text);
+        // trace: D127
         if text == "true" || text == "false" {
-            return Err(Report::not_designed(span, format!("`{text}`"), "12.2"));
+            return Ok((
+                Node {
+                    span,
+                    kind: NodeKind::Constant(Value::Bool(text == "true")),
+                },
+                Type::Bool,
+            ));
         }
         if text == "result" {
             if self.context.in_ensures {
@@ -1433,6 +1440,10 @@ impl Checker<'_> {
                 | ExpressionKind::Integer { .. }
                 | ExpressionKind::Float { .. }
                 | ExpressionKind::Text(_)
+                | ExpressionKind::Path(_)
+                | ExpressionKind::Build { .. }
+                | ExpressionKind::Empty
+                | ExpressionKind::Bake(_)
                 | ExpressionKind::Group(_)
                 | ExpressionKind::Call { .. }
                 | ExpressionKind::Method { .. }
