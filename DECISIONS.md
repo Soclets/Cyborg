@@ -718,6 +718,9 @@ run both". (Owner, 2026-11-06)
 counts down; `from:` is required, the order is fixed, and a range that can never reach its end is refused. `for`'s own value can't change inside. `break;` stops the innermost loop, and a loop can be named, as in `for rows $row in $grid:` closed with `end for rows`, so `break rows;` stops it and everything inside it. There is no `continue`, which
 removes it from D46's list. `decreases` belongs to the Precog limb. The owner asked "what's the difference?", then to ask Radium and TAKL's sessions; Claude proposed taking Radium's; the owner chose: "yea". (Owner, 2026-11-06)
 
+**D129. `finish` ends a `must_Give` duty.** `finish $f;` says the duty stops here. Only the kit or file that declared the type can write it, or anyone could end the duty without doing the work, and it's refused until any `must_Give` fields inside have been given away. This settles what Radium left open in D2. Whether a C function's `Given` parameter ends
+the duty too is not settled here. Oracle claude said it blocked the most; Radium's session had no ruling, and leaned toward taking the struct apart; Claude proposed this; the owner chose: "yea". (Owner, 2026-11-06)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude

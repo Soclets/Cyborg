@@ -10,7 +10,7 @@
 | [6.6](#66-plain-numbers-and-bool) | Plain numbers, `bool` | Always copied, no word |
 | [6.7](#67-no-implicit-ownership) | No implicit ownership | Every hand-off shows |
 | [6.8](#68--unsaid-ownership) | `%` | Unsaid ownership on a method |
-| [6.9](#69-must_give) | `must_Give` | Handed off exactly once |
+| [6.9](#69-must_give) | `must_Give`, `finish` | Handed off exactly once |
 | [6.10](#610-stored-borrows) | `Lend from` | A borrow as a type |
 | [6.11](#611-no-word-needed) | No word needed | Reading in place, fresh values |
 
@@ -129,9 +129,19 @@ struct.must_Give open_file:
 end struct.must_Give open_file
 ```
 
-**Refused:** forgetting it, or giving it twice, as a compile error.
+Giving it to a function passes the duty along. `finish` ends it, and only the kit or file that declared the type can write that.
 
-**From:** D2, D57.
+```
+fn close [$f: Given open_file] -> void:
+    …
+    finish $f;
+    return void;
+end fn close
+```
+
+**Refused:** forgetting it, giving it twice, `finish` outside the kit or file that declared the type, and `finish` while a `must_Give` field inside hasn't been given away.
+
+**From:** D2, D57, D129.
 
 ## 6.10 Stored borrows
 

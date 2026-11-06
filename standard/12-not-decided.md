@@ -24,7 +24,6 @@ These are places where decisions leave a real gap or pull against each other. No
 
 Waiting on the owner, most needed first. Each is `NotDesignedYet` unless it says otherwise.
 
-- **How a `must_Give` duty ends** in the function that receives it. No complete `must_Give` program runs until this is settled.
 - **Precedence fixes.** `not` below comparisons, so `not $a < 3` means `not ($a < 3)`. `??` level with `?`, so `$a + read() ?? 0` means `$a + (read() ?? 0)`, and what `??`, `?` and `otherwise` catch on more than one call. `as` and `plus.wrap` have no level; the oracle treats `as` as tight, and `plus.wrap` as level with `+`.
 - **`*` on handlers.** Whether `fail` and `?` count as jumps. Today they don't.
 - **Stored borrows.** Whether one ends at its last use or its scope.
@@ -98,7 +97,7 @@ Waiting on the owner, most needed first. Each is `NotDesignedYet` unless it says
 These are inherited from Radium with D2:
 
 - Lending through a stored `Lend.mut`.
-- How a `must_Give` duty ends in the function that receives it.
+- Whether a C function's `Given` parameter ends a `must_Give` duty.
 - A `must_Give` value in a field or returned.
 - A parameter whose type is a stored borrow.
 - A `union.tagged` case holding a borrow.
