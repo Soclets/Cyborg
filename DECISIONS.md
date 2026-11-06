@@ -652,6 +652,9 @@ very much look like unfinished work"; Claude proposed this; the owner chose: "ye
 **D104. A test's trust ends at a `change`.** Inside `if $s: status.failed:`, changing `$s` is allowed, and the compiler stops trusting that `$s` is that kind from there on. Anything after it that needs that trust is refused, with `because:` pointing at the `change`. The same goes for
 lending it with `Lend.mut`, which is Claude's reading. Claude proposed it over refusing the `change`; the owner chose: "yea". (Owner, 2026-11-06)
 
+**D105. `FinalSafe` keeps every contract, unless you mark it.** A narrowing on `requires` or `ensures` says a contract is checked in `Working` only. A shield's exit stays checked in `FinalSafe` anyway (D37), and Precog can still drop what it proves. The word isn't chosen; Claude's `.expensive` is a
+placeholder. Claude proposed it; the owner chose: "yes. But I think it should be another word". (Owner, 2026-11-06)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude

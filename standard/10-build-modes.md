@@ -45,12 +45,16 @@ cyborg build --mode FinalSafe
 | Overflow, bounds, division by zero | Kept | Kept, as traps | Gone | Gone | If smaller |
 | A shield's exit (`ensures`) | Kept | Kept, even if expensive | Gone | Gone | Gone if smaller |
 | A shield's entry (`requires`) | Kept | Follows the mode | Gone | Gone | If smaller |
-| Other contracts | Kept | Not decided if expensive | Gone | Gone | If smaller |
+| Other contracts | Kept | Kept, unless marked | Gone | Gone | If smaller |
 | `if $n: T:` on a plain value | Kept | Kept | Kept | Kept | Kept |
 
-A check in `Working` is kept no matter the cost. Whether `FinalSafe` keeps an expensive contract outside a shield's exit isn't decided ([12.7](12-not-decided.md#127-build-modes)).
+A check in `Working` is kept no matter the cost. A narrowing on `requires` or `ensures` marks a contract as checked in `Working` only. The word is a placeholder ([12.11](12-not-decided.md#1211-placeholders)):
 
-**From:** D14, D20, D26, D37, D39.
+```
+requires.expensive is_sorted(Lend $xs);
+```
+
+**From:** D14, D20, D26, D37, D39, D105.
 
 ## 10.4 What happens when something goes wrong
 
