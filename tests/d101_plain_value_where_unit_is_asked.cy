@@ -1,7 +1,7 @@
 // trace: D101, D100
-narrowings.unit time:
+fam.unit time:
     time.seconds: base;
-end narrowings.unit time
+end fam.unit time
 
 fn.main [] -> void:
     let $x: i32 = 3600;

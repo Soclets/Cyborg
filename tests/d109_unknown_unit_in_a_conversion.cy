@@ -1,7 +1,7 @@
 // trace: D109
-narrowings.unit money:
+fam.unit money:
     money.dollars = 100 money.cents;
-end narrowings.unit money
+end fam.unit money
 
 fn.main [] -> void:
     return void;

@@ -1,0 +1,5 @@
+refused: d134_comparing_new_with_its_data.cy:5:12, line 5 column 12
+ 5 |     return $a == $b;
+   |            ^^^^^^^^
+ what: this is `i64`, where `user_id` is needed
+ why:  a `type.new` is a different type, so it doesn't mix with another, or with what it's made from (D134)

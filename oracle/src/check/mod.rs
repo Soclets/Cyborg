@@ -9,7 +9,7 @@ use std::collections::{HashMap, HashSet};
 
 use crate::ast::{
     Describe, FailureEntry, Fill, Function, FunctionKind, Item, ParameterWord, Path, Program,
-    ShieldContent, Statement, StatementKind, TypeExpression, TypeKind, UnitMeaning,
+    ShieldContent, Statement, StatementKind, TypeExpression, TypeKind, TypeName, UnitMeaning,
 };
 use crate::ir::{Code, Node};
 use crate::report::{Kind, Outcome, Report, ReportExtra, Span};
@@ -189,6 +189,8 @@ pub struct Checker<'a> {
     units: HashMap<String, UnitInfo>,
     together: Vec<TogetherInfo>,
     signatures: HashMap<String, Signature>,
+    /// What `type.alias` and `type.new` names stand for.
+    named: HashMap<String, Type>,
     globals: HashMap<String, GlobalInfo>,
     global_nodes: Vec<Node>,
     compile_time: Vec<Node>,
@@ -216,6 +218,7 @@ pub fn check(source: &str, program: &Program) -> Outcome<Code> {
         units: HashMap::new(),
         together: Vec::new(),
         signatures: HashMap::new(),
+        named: HashMap::new(),
         globals: HashMap::new(),
         global_nodes: Vec::new(),
         compile_time: Vec::new(),
@@ -247,6 +250,7 @@ impl Checker<'_> {
         self.check_shields(program)?;
         self.declare_type_names(&items)?;
         self.declare_units(&items)?;
+        self.declare_named_types(&items)?;
         self.declare_type_contents(&items)?;
         self.declare_failures(&items)?;
         self.declare_handlers(&items);
@@ -961,6 +965,15 @@ impl Checker<'_> {
         let Some((type_name, _)) = function.name.text.split_once(".%") else {
             return Ok(());
         };
+        if let Some(found) = self.named.get(type_name) {
+            if !matches!(found, Type::New { .. }) {
+                return Err(Report::not_designed(
+                    function.name.span,
+                    format!("a method on `{type_name}`, which is another name for `{found}`"),
+                    "",
+                ));
+            }
+        }
         let Some(declared) = self.resolve_user_type(type_name) else {
             if is_clashing(type_name) || looks_like_number_type(type_name) {
                 return Err(Report::not_designed(
@@ -1133,6 +1146,7 @@ impl Checker<'_> {
         match value_type {
             Type::Struct(name) => self.structs.get(name).is_some_and(|info| info.must_give),
             Type::List { item, .. } | Type::Array { item, .. } => self.is_must_give(item),
+            Type::New { underlying, .. } => self.is_must_give(underlying),
             _ => false,
         }
     }
@@ -1179,7 +1193,140 @@ impl Checker<'_> {
         ))
     }
 
+    /// Names from `type.alias` and `type.new`, resolved once what they name is, in any order.
+    /// trace: D134, D120
+    fn declare_named_types(&mut self, items: &[&Item]) -> Outcome<()> {
+        let mut pending: Vec<&TypeName> = Vec::new();
+        let mut family_kinds: HashMap<String, bool> = HashMap::new();
+        for item in items {
+            match item {
+                Item::TypeName(name) => pending.push(name),
+                Item::TypeFamily(members) => {
+                    for member in members {
+                        if let Some(family) = &member.family {
+                            let kind = family_kinds.entry(family.clone()).or_insert(member.new);
+                            if *kind != member.new {
+                                return Err(Report::refused(
+                                    member.name.span,
+                                    format!("`{family}` is already declared with the other kind"),
+                                    "a family doesn't mix `type.alias` and `type.new` (D134)",
+                                ));
+                            }
+                        }
+                        pending.push(member);
+                    }
+                }
+                _ => {}
+            }
+        }
+        let names: Vec<String> = pending.iter().map(|name| name.name.text.clone()).collect();
+        for (index, declared) in pending.iter().enumerate() {
+            let text = &declared.name.text;
+            if self.structs.contains_key(text)
+                || self.unions.contains_key(text)
+                || names.iter().take(index).any(|name| name == text)
+            {
+                return Err(Report::not_designed(
+                    declared.name.span,
+                    format!("declaring `{text}` twice"),
+                    "",
+                ));
+            }
+        }
+        while !pending.is_empty() {
+            let before = pending.len();
+            let mut later = Vec::new();
+            for declared in pending {
+                let mut reads = Vec::new();
+                self.collect_type_names(&declared.written_type, &mut reads);
+                let waiting = reads
+                    .iter()
+                    .any(|read| names.contains(read) && !self.named.contains_key(read));
+                if waiting {
+                    later.push(declared);
+                } else {
+                    self.declare_named_type(declared)?;
+                }
+            }
+            if later.len() == before {
+                let first = later.first().copied();
+                return Err(match first {
+                    Some(TypeName {
+                        new: true, name, ..
+                    }) => Report::not_designed(
+                        name.span,
+                        format!("a `type.new` that holds itself, as `{}` does", name.text),
+                        "",
+                    ),
+                    Some(TypeName { name, .. }) => Report::refused(
+                        name.span,
+                        format!("`{}` leads back to itself", name.text),
+                        "`type.alias` gives a type another name, so it has to end at a type (D134)",
+                    ),
+                    None => Report::refused(Span::new(0, 0), "these types lead back", "(D134)"),
+                });
+            }
+            pending = later;
+        }
+        Ok(())
+    }
+
+    fn declare_named_type(&mut self, declared: &TypeName) -> Outcome<()> {
+        let target = self.resolve_type(&declared.written_type)?;
+        if matches!(target, Type::Borrow { .. }) {
+            return Err(Report::not_designed(
+                declared.written_type.span,
+                "another name for a stored borrow",
+                "",
+            ));
+        }
+        let text = declared.name.text.clone();
+        let named = if declared.new {
+            Type::New {
+                name: text.clone(),
+                underlying: Box::new(target),
+            }
+        } else {
+            target
+        };
+        self.named.insert(text, named);
+        Ok(())
+    }
+
+    fn collect_type_names(&self, written: &TypeExpression, out: &mut Vec<String>) {
+        match &written.kind {
+            TypeKind::Named { path, fill, .. } => {
+                out.push(self.canonical(&path.text));
+                for entry in fill {
+                    self.collect_type_names(&entry.written_type, out);
+                }
+            }
+            TypeKind::StoredBorrow { inner, .. } => self.collect_type_names(inner, out),
+        }
+    }
+
+    /// Follows `type.alias` to the struct or union behind a name, in `name` or `name.case`,
+    /// because an alias is fully interchangeable. (D134)
+    pub(super) fn through_aliases(&self, text: &str) -> String {
+        let declared = |found: Option<&Type>| match found {
+            Some(Type::Struct(name) | Type::Union(name)) => Some(name.clone()),
+            _ => None,
+        };
+        if let Some(name) = declared(self.named.get(text)) {
+            return name;
+        }
+        if let Some((head, tail)) = text.rsplit_once('.') {
+            if let Some(name) = declared(self.named.get(head)) {
+                return format!("{name}.{tail}");
+            }
+        }
+        text.to_string()
+    }
+
     fn resolve_user_type(&self, name: &str) -> Option<Type> {
+        if let Some(found) = self.named.get(name) {
+            return Some(found.clone());
+        }
         if self.structs.contains_key(name) {
             Some(Type::Struct(name.to_string()))
         } else if self.unions.contains_key(name) {
@@ -1242,6 +1389,46 @@ impl Checker<'_> {
         if let Some(rest) = text.strip_prefix("std::") {
             self.require_std(path.span)?;
             return self.resolve_std_type(rest, written, path, fill, describe);
+        }
+        // trace: D134
+        if !is_clashing(&text) {
+            if let Some(found) = self.named.get(&text) {
+                if !fill.is_empty() || !describe.is_empty() {
+                    return Err(Report::not_designed(
+                        written.span,
+                        format!("filling in or describing `{text}`"),
+                        "12.5",
+                    ));
+                }
+                return Ok(found.clone());
+            }
+            if let Some((head, _)) = text.split_once('.') {
+                if !is_clashing(head) && self.named.contains_key(head) {
+                    return Err(Report::not_designed(
+                        path.span,
+                        format!("a narrowing on `{head}`, a name from `type`"),
+                        "",
+                    ));
+                }
+            }
+            // Sorted, so which one a message names can't depend on how a map is laid out.
+            let mut family_members: Vec<&String> = self
+                .named
+                .keys()
+                .filter(|name| name.rsplit('.').next() == Some(text.as_str()) && name.contains('.'))
+                .collect();
+            family_members.sort();
+            if !family_members.is_empty() && self.resolve_user_type(&text).is_none() {
+                let report = Report::refused(
+                    path.span,
+                    format!("`{text}` is in a family, so it's used with it"),
+                    "a family's types are always used with the family (D134)",
+                );
+                return Err(match family_members.as_slice() {
+                    [only] => report.fix((*only).clone()),
+                    _ => report,
+                });
+            }
         }
         let (head, narrowing) = match text.split_once('.') {
             Some((head, narrowing)) => (head, Some(narrowing)),
@@ -1656,6 +1843,14 @@ impl Checker<'_> {
     }
 
     fn mismatch(span: Span, expected: &Type, found: &Type) -> Box<Report> {
+        // trace: D134
+        if matches!(expected, Type::New { .. }) || matches!(found, Type::New { .. }) {
+            return Report::refused(
+                span,
+                format!("this is `{found}`, where `{expected}` is needed"),
+                "a `type.new` is a different type, so it doesn't mix with another, or with what it's made from (D134)",
+            );
+        }
         // trace: D100
         if let (
             Type::Integer {

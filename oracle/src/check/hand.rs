@@ -198,6 +198,13 @@ impl Checker<'_> {
             Type::Map { .. } => {
                 return Err(Report::not_designed(span, "getting an item from a map", ""));
             }
+            Type::New { .. } => {
+                return Err(Report::not_designed(
+                    span,
+                    "getting an item from a `type.new`, and how a value gets out of one",
+                    "12.1",
+                ));
+            }
             other => {
                 return Err(Report::refused(
                     span,
@@ -351,6 +358,11 @@ impl Checker<'_> {
                     })
             }
             Type::Union(union_name) => self.find_union_field(base, union_name, name),
+            Type::New { .. } => Err(Report::not_designed(
+                name.span,
+                "a field of a `type.new`, and how a value gets out of one",
+                "12.1",
+            )),
             other => Err(Report::refused(
                 name.span,
                 format!("`{other}` has no field `{}`", name.text),

@@ -1,0 +1,5 @@
+refused: d134_no_bare_type.cy:2:1, line 2 column 1
+ 2 | type score = i32;
+   | ^^^^
+ what: there's no bare `type`, so pick `type.alias` or `type.new`
+ why:  `type.alias` is another name and `type.new` a different type, and no default is obvious (D134)

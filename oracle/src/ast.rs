@@ -47,6 +47,17 @@ pub enum Item {
     Together(Together),
     Constant(Statement),
     Shield(ShieldItem),
+    TypeName(TypeName),
+    TypeFamily(Vec<TypeName>),
+}
+
+/// `type.alias score = i32;`, or `type.new user_id = i64;` when `new` is true.
+#[derive(Clone, Debug)]
+pub struct TypeName {
+    pub new: bool,
+    pub family: Option<String>,
+    pub name: Path,
+    pub written_type: TypeExpression,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]

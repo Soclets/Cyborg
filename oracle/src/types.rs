@@ -98,6 +98,11 @@ pub enum Type {
         sources: Sources,
         inner: Box<Type>,
     },
+    /// `type.new`: the same data as `underlying`, and a different type. (D134)
+    New {
+        name: String,
+        underlying: Box<Type>,
+    },
 }
 
 impl Type {
@@ -112,10 +117,11 @@ impl Type {
     /// These are always copied, and take no ownership word.
     /// trace: D2, D123
     pub fn is_always_copied(&self) -> bool {
-        matches!(
-            self,
-            Type::Integer { .. } | Type::Float { .. } | Type::Bool | Type::Length
-        )
+        match self {
+            Type::Integer { .. } | Type::Float { .. } | Type::Bool | Type::Length => true,
+            Type::New { underlying, .. } => underlying.is_always_copied(),
+            _ => false,
+        }
     }
 }
 
@@ -147,7 +153,9 @@ impl fmt::Display for Type {
                 Ok(())
             }
             Type::Length => write!(formatter, "a length in items"),
-            Type::Struct(name) | Type::Union(name) => write!(formatter, "{name}"),
+            Type::Struct(name) | Type::Union(name) | Type::New { name, .. } => {
+                write!(formatter, "{name}")
+            }
             Type::List { item, min, max } => {
                 write!(formatter, "std::list<{item}>[")?;
                 if let Some(min) = min {

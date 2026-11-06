@@ -1,8 +1,8 @@
 // trace: D109
-narrowings.unit money:
+fam.unit money:
     money.cents: base;
     money.cents: base;
-end narrowings.unit money
+end fam.unit money
 
 fn.main [] -> void:
     return void;

@@ -313,6 +313,27 @@ impl Checker<'_> {
     ) -> Outcome<(Node, Type)> {
         let span = expression.span;
         let simple = |kind: NodeKind| Node { span, kind };
+        // trace: D134
+        if matches!(expected, Some(Type::New { .. }))
+            && matches!(
+                expression.kind,
+                ExpressionKind::Integer { .. }
+                    | ExpressionKind::Float { .. }
+                    | ExpressionKind::WithUnit { .. }
+                    | ExpressionKind::Text(_)
+                    | ExpressionKind::Empty
+                    | ExpressionKind::Items(_)
+                    | ExpressionKind::All(_)
+                    | ExpressionKind::Path(_)
+                    | ExpressionKind::Build { .. }
+            )
+        {
+            return Err(Report::not_designed(
+                span,
+                "how a value gets into a `type.new`",
+                "12.1",
+            ));
+        }
         match &expression.kind {
             ExpressionKind::Integer { .. } => {
                 Self::check_integer_literal(expression, expected, None)
@@ -750,7 +771,7 @@ impl Checker<'_> {
 
     /// `status.ok`, `result` and such.
     fn check_path_value(&mut self, path: &crate::ast::Path, span: Span) -> Outcome<(Node, Type)> {
-        let text = self.canonical(&path.text);
+        let text = self.through_aliases(&self.canonical(&path.text));
         // trace: D127
         if text == "true" || text == "false" {
             return Ok((
@@ -888,6 +909,15 @@ impl Checker<'_> {
         span: Span,
     ) -> Outcome<(Node, Type)> {
         let text = self.canonical(&path.text);
+        // trace: D134
+        if matches!(self.named.get(&text), Some(Type::New { .. })) {
+            return Err(Report::not_designed(
+                span,
+                "how a value gets into a `type.new`",
+                "12.1",
+            ));
+        }
+        let text = self.through_aliases(&text);
         let bare = if let Some(mine) = text.strip_prefix("my::") {
             mine.to_string()
         } else {
@@ -1344,9 +1374,11 @@ impl Checker<'_> {
             (Some(node), found)
         };
         let own_method = match &receiver_type {
-            Type::Struct(type_name) | Type::Union(type_name) => {
-                Some(format!("{type_name}.%{}", name.text))
-            }
+            Type::Struct(type_name)
+            | Type::Union(type_name)
+            | Type::New {
+                name: type_name, ..
+            } => Some(format!("{type_name}.%{}", name.text)),
             _ => None,
         };
         // trace: D8
@@ -2101,6 +2133,17 @@ impl Checker<'_> {
                     },
                 ))
             }
+            // trace: D134
+            (Type::New { .. }, _) | (_, Type::New { .. }) => {
+                if left == right || is_number_literal(right_expression) {
+                    return Err(Report::not_designed(
+                        span,
+                        "maths on a `type.new`, and how a value gets in and out of one",
+                        "12.1",
+                    ));
+                }
+                Err(Self::mismatch(span, left, right))
+            }
             _ => Err(Report::refused(
                 span,
                 format!("maths needs numbers, and this has `{left}` and `{right}`"),
@@ -2362,6 +2405,17 @@ impl Checker<'_> {
                     ))
                 }
             }
+            // trace: D134
+            (Type::New { .. }, _) | (_, Type::New { .. })
+                if left != right
+                    && !is_number_literal(left_expression)
+                    && !is_number_literal(right_expression) =>
+            {
+                Err(Self::mismatch(span, left, right))
+            }
+            (Type::New { .. }, _) | (_, Type::New { .. }) if left != right => Err(
+                Report::not_designed(span, "how a value gets into a `type.new`", "12.1"),
+            ),
             (left_type, right_type) if left_type == right_type => Err(Report::not_designed(
                 span,
                 format!("comparing `{left_type}` values"),

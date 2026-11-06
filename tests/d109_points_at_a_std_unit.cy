@@ -1,9 +1,9 @@
 // trace: D109, D112
 import std;
 
-narrowings.unit time:
+fam.unit time:
     time.minutes = 60 std::time.seconds;
-end narrowings.unit time
+end fam.unit time
 
 fn.main [] -> void:
     let $m: i32.time.minutes = 2 time.minutes;

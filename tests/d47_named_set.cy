@@ -1,10 +1,10 @@
 // trace: D47
 import std;
 
-narrowings.failure file_failed:
+fam.failure file_failed:
     file_failed.not_found;
     file_failed.denied;
-end narrowings.failure file_failed
+end fam.failure file_failed
 
 fn load [$which: i32] -> i32:
     fails [file_failed, bad_syntax];

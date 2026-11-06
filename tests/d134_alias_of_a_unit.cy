@@ -1,0 +1,15 @@
+// trace: D134, D100
+import std;
+
+fam.unit time:
+    time.seconds: base;
+end fam.unit time
+
+type.alias secs = i32.time.seconds;
+
+fn.main [] -> void:
+    let $a: secs = 3 time.seconds;
+    let $b: i32.time.seconds = $a + 1 time.seconds;
+    std::println($b as str);
+    return void;
+end fn.main

@@ -1,0 +1,5 @@
+refused: d134_family_mixes_kinds_in_it.cy:4:5, line 4 column 5
+ 4 |     type.alias ids.other = i64;
+   |     ^^^^
+ what: a family of types states its kind once
+ why:  a family doesn't mix `type.alias` and `type.new` (D134)

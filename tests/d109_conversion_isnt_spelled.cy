@@ -1,8 +1,8 @@
 // trace: D109, D108
-narrowings.unit money:
+fam.unit money:
     money.cents: base;
     money.dollars = 100 money.cents;
-end narrowings.unit money
+end fam.unit money
 
 fn.main [] -> void:
     let $d: i32.money.dollars = 2 money.dollars;

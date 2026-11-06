@@ -6,7 +6,7 @@ use crate::ast::{
     Function, FunctionKind, HandWord, Handler, HandlerSet, Handling, IfLink, IfTest, Import, Item,
     LabelLine, Name, Narrowing, Parameter, ParameterWord, Path, Program, RangeEnd, RangeExpression,
     ShieldContent, ShieldItem, Statement, StatementKind, StructDeclaration, Together,
-    TogetherOperator, TypeExpression, TypeKind, UnionCase, UnionDeclaration, UnitMeaning,
+    TogetherOperator, TypeExpression, TypeKind, TypeName, UnionCase, UnionDeclaration, UnitMeaning,
     UnitMember, UnitSet, Use,
 };
 use crate::report::{Outcome, Report, ReportExtra, Span};
@@ -56,7 +56,8 @@ const CLASHING_WORDS: &[&str] = &[
     "break",
     "range",
     "bake",
-    "narrowings",
+    "fam",
+    "type",
     "together",
     "comment",
     "x",
@@ -823,8 +824,25 @@ impl Parser {
         if self.at_word("union") {
             return Ok(Item::Union(self.parse_union()?));
         }
-        if self.at_word("narrowings") {
-            return self.parse_narrowings();
+        if self.at_word("fam") {
+            return self.parse_family();
+        }
+        if self.at_word("type") {
+            return self.parse_type_name();
+        }
+        // trace: D135
+        if self.at_word("narrowings") && self.symbol_at(1, ".") {
+            let start = self.span();
+            let sort = match &self.peek_at(2).lexeme {
+                Lexeme::Word(word) => word.clone(),
+                _ => String::new(),
+            };
+            return Err(Report::refused(
+                start.to(self.peek_at(2).span),
+                "a declared group of related names is a family",
+                "`fam.` replaces `narrowings.`, and narrowing now only means the dot (D135)",
+            )
+            .fix(format!("fam.{sort}")));
         }
         if self.at_word("together") {
             return Ok(Item::Together(self.parse_together()?));
@@ -867,7 +885,7 @@ impl Parser {
                 "12.9",
             ));
         }
-        Err(self.expected("`fn`, `struct`, `union.tagged`, `narrowings`, `const` or `shield`"))
+        Err(self.expected("`fn`, `struct`, `union.tagged`, `type`, `fam`, `const` or `shield`"))
     }
 
     fn parse_function(&mut self) -> Outcome<Function> {
@@ -958,6 +976,13 @@ impl Parser {
         }
         self.advance();
         let narrowing = self.expect_name("a method's `%`")?;
+        if self.at_symbol(".") {
+            return Err(Report::not_designed(
+                name.span.to(narrowing.span),
+                "a method on a type from a family",
+                "",
+            ));
+        }
         Err(Report::refused(
             name.span.to(narrowing.span),
             "a method's name has its `%`",
@@ -1309,23 +1334,110 @@ impl Parser {
         Ok(UnionDeclaration { name, cases })
     }
 
-    fn parse_narrowings(&mut self) -> Outcome<Item> {
-        let start = self.advance().span; // `narrowings`
+    /// A family: a declared group of related names. (D135)
+    /// trace: D135
+    fn parse_family(&mut self) -> Outcome<Item> {
+        let start = self.advance().span; // `fam`
         if !self.at_symbol(".") {
-            return Err(self.expected("`.failure`, `.handler` or `.unit`"));
+            return Err(self.expected("`.failure`, `.handler`, `.unit` or `.type`"));
         }
         self.advance();
-        let sort = self.expect_name("`failure`, `handler` or `unit`")?;
+        let sort = self.expect_name("`failure`, `handler`, `unit` or `type`")?;
         match sort.text.as_str() {
             "failure" => self.parse_failure_set(),
             "handler" => self.parse_handler_set(),
             "unit" => self.parse_unit_set(),
+            "type" => {
+                let new = self.parse_type_kind(start)?;
+                self.parse_type_family(new)
+            }
             other => Err(Report::not_designed(
                 start.to(sort.span),
-                format!("`narrowings.{other}`"),
+                format!("`fam.{other}`"),
                 "",
             )),
         }
+    }
+
+    /// `.alias` or `.new` after `type`, saying whether this makes a different type. (D134)
+    fn parse_type_kind(&mut self, start: Span) -> Outcome<bool> {
+        if !self.at_symbol(".") {
+            return Err(Report::refused(
+                start.to(self.previous_span()),
+                "there's no bare `type`, so pick `type.alias` or `type.new`",
+                "`type.alias` is another name and `type.new` a different type, and no default is obvious (D134)",
+            ));
+        }
+        self.advance();
+        let kind = self.expect_name("`alias` or `new`")?;
+        match kind.text.as_str() {
+            "alias" => Ok(false),
+            "new" => Ok(true),
+            other => Err(Report::not_designed(
+                start.to(kind.span),
+                format!("`type.{other}`"),
+                "",
+            )),
+        }
+    }
+
+    /// trace: D134
+    fn parse_type_name(&mut self) -> Outcome<Item> {
+        let start = self.advance().span; // `type`
+        let new = self.parse_type_kind(start)?;
+        let name = self.parse_path()?;
+        self.expect_symbol("=")?;
+        let written_type = self.parse_type()?;
+        self.expect_semicolon()?;
+        Ok(Item::TypeName(TypeName {
+            new,
+            family: None,
+            name,
+            written_type,
+        }))
+    }
+
+    /// `fam.type.new ids:` with lines like `ids.user = i64;`, always used with the family.
+    /// trace: D134
+    fn parse_type_family(&mut self, new: bool) -> Outcome<Item> {
+        let family = self.expect_name("the family's name")?;
+        self.expect_symbol(":")?;
+        let kind = if new {
+            "fam.type.new"
+        } else {
+            "fam.type.alias"
+        };
+        let mut members = Vec::new();
+        while !self.at_word("end") {
+            if self.at_word("type") {
+                return Err(Report::refused(
+                    self.span(),
+                    "a family of types states its kind once",
+                    "a family doesn't mix `type.alias` and `type.new` (D134)",
+                ));
+            }
+            let name = self.parse_path()?;
+            let prefix = format!("{}.", family.text);
+            if !name.text.starts_with(&prefix) {
+                return Err(Report::refused(
+                    name.span,
+                    format!("this type is in the family `{}`", family.text),
+                    "a family's types are always used with the family (D134)",
+                )
+                .fix(format!("{prefix}{}", name.text)));
+            }
+            self.expect_symbol("=")?;
+            let written_type = self.parse_type()?;
+            self.expect_semicolon()?;
+            members.push(TypeName {
+                new,
+                family: Some(family.text.clone()),
+                name,
+                written_type,
+            });
+        }
+        self.expect_closer(&[kind, &family.text])?;
+        Ok(Item::TypeFamily(members))
     }
 
     fn parse_failure_set(&mut self) -> Outcome<Item> {
@@ -1336,7 +1448,7 @@ impl Parser {
             members.push(self.parse_failure_entry()?);
             self.expect_semicolon()?;
         }
-        self.expect_closer(&["narrowings.failure", &name.text])?;
+        self.expect_closer(&["fam.failure", &name.text])?;
         Ok(Item::FailureSet(FailureSet { name, members }))
     }
 
@@ -1365,7 +1477,7 @@ impl Parser {
             }
             handlers.push(Handler { name: member, arms });
         }
-        self.expect_closer(&["narrowings.handler", &name.text])?;
+        self.expect_closer(&["fam.handler", &name.text])?;
         Ok(Item::HandlerSet(HandlerSet { name, handlers }))
     }
 
@@ -1405,7 +1517,7 @@ impl Parser {
             self.expect_semicolon()?;
             members.push(UnitMember { path, meaning });
         }
-        self.expect_closer(&["narrowings.unit", &family.text])?;
+        self.expect_closer(&["fam.unit", &family.text])?;
         Ok(Item::UnitSet(UnitSet { family, members }))
     }
 
@@ -1689,6 +1801,13 @@ impl Parser {
                 "while" => return self.parse_while(),
                 "forever" => return self.parse_forever(),
                 "break" => return self.parse_break(),
+                "type" | "fam" if self.symbol_at(1, ".") => {
+                    return Err(Report::not_designed(
+                        start,
+                        format!("`{word}` inside a function"),
+                        "",
+                    ));
+                }
                 // trace: D129
                 "finish" if !self.symbol_at(1, "(") => {
                     self.advance();

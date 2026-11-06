@@ -1,0 +1,5 @@
+NotDesignedYet: d134_going_through_a_new_type.cy:7:15, line 7 column 15
+ 7 |     for $x in $r:
+   |               ^^
+ what: going through a `type.new`, and how a value gets out of one
+ why:  not decided yet (standard 12.1)

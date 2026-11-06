@@ -2,7 +2,7 @@
 // trace: D126, D46
 import std;
 
-narrowings.handler say_failed:
+fam.handler say_failed:
     say_failed.maybe:
         case print_failed:
             if 1 < 2:
@@ -11,7 +11,7 @@ narrowings.handler say_failed:
                 return void;
             end if
     end say_failed.maybe
-end narrowings.handler say_failed
+end fam.handler say_failed
 
 fn.main [] -> void:
     std::println("hi") otherwise say_failed.maybe;

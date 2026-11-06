@@ -1,0 +1,5 @@
+refused: d135_closer_says_fam.cy:4:1, line 4 column 1
+ 4 | end narrowings.unit money
+   | ^^^^^^^^^^^^^^^^^^^^^^^^^
+ fix:  `end fam.unit money`
+ why:  the closer repeats all of what it closes, including its narrowings and name (D33, D121)

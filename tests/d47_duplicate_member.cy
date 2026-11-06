@@ -1,8 +1,8 @@
 // trace: D47
-narrowings.failure file_failed:
+fam.failure file_failed:
     file_failed.denied;
     file_failed.denied;
-end narrowings.failure file_failed
+end fam.failure file_failed
 
 fn.main [] -> void:
     return void;

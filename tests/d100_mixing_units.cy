@@ -1,11 +1,11 @@
 // trace: D100
-narrowings.unit time:
+fam.unit time:
     time.seconds: base;
-end narrowings.unit time
+end fam.unit time
 
-narrowings.unit storage:
+fam.unit storage:
     storage.bytes: base;
-end narrowings.unit storage
+end fam.unit storage
 
 fn.main [] -> void:
     let $a: i32.time.seconds = 1 time.seconds;

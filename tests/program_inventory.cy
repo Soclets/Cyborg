@@ -2,9 +2,9 @@
 // trace: D2, D9, D13, D20, D45, D57, D115, D120
 import std;
 
-narrowings.unit stock:
+fam.unit stock:
     stock.pieces: base;
-end narrowings.unit stock
+end fam.unit stock
 
 union.tagged level:
     plenty

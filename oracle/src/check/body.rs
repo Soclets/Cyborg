@@ -1151,7 +1151,7 @@ impl Checker<'_> {
         if !fill.is_empty() || !describe.is_empty() {
             return None;
         }
-        let text = self.canonical(&path.text);
+        let text = self.through_aliases(&self.canonical(&path.text));
         let text = text.strip_prefix("my::").unwrap_or(&text);
         let (union_name, case_name) = text.split_once('.')?;
         self.unions
@@ -1197,7 +1197,7 @@ impl Checker<'_> {
         let mut branches = Vec::new();
         let mut all_end = !arms.is_empty();
         for arm in arms {
-            let text = self.canonical(&arm.pattern.text);
+            let text = self.through_aliases(&self.canonical(&arm.pattern.text));
             let text = text.strip_prefix("my::").unwrap_or(&text).to_string();
             let Some((pattern_union, case_name)) = text.split_once('.') else {
                 if cases.contains(&text) {
@@ -1409,6 +1409,13 @@ impl Checker<'_> {
                     collection.span,
                     "going through a map",
                     "",
+                ));
+            }
+            Type::New { .. } => {
+                return Err(Report::not_designed(
+                    collection.span,
+                    "going through a `type.new`, and how a value gets out of one",
+                    "12.1",
                 ));
             }
             other => {

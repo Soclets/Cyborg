@@ -1,13 +1,13 @@
 // trace: D47
 import std;
 
-narrowings.failure file_failed:
+fam.failure file_failed:
     file_failed.denied;
-end narrowings.failure file_failed
+end fam.failure file_failed
 
-narrowings.failure net_failed:
+fam.failure net_failed:
     net_failed.denied;
-end narrowings.failure net_failed
+end fam.failure net_failed
 
 fn load [] -> i32:
     fails [file_failed.denied, net_failed.denied];

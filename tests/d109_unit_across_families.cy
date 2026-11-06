@@ -2,14 +2,14 @@
 // trace: D109
 import std;
 
-narrowings.unit money:
+fam.unit money:
     money.cents: base;
     money.euro_cents: base;
-end narrowings.unit money
+end fam.unit money
 
-narrowings.unit cash:
+fam.unit cash:
     cash.dollars = 100 money.cents;
-end narrowings.unit cash
+end fam.unit cash
 
 fn.main [] -> void:
     let $a: i32.cash.dollars = 2 cash.dollars;

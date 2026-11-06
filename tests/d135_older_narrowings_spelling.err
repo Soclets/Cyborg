@@ -1,0 +1,5 @@
+refused: d135_older_narrowings_spelling.cy:2:1, line 2 column 1
+ 2 | narrowings.unit money:
+   | ^^^^^^^^^^^^^^^
+ fix:  `fam.unit`
+ why:  `fam.` replaces `narrowings.`, and narrowing now only means the dot (D135)

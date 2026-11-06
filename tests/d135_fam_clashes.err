@@ -1,0 +1,5 @@
+refused: d135_fam_clashes.cy:7:19, line 7 column 19
+ 7 |     let $a: i32 = fam();
+   |                   ^^^^^
+ fix:  `my::fam()`
+ why:  a name of yours that clashes is written with `my::` (D75)

@@ -1,7 +1,7 @@
 // trace: D112
-narrowings.unit time:
+fam.unit time:
     time.seconds: base;
-end narrowings.unit time
+end fam.unit time
 
 fn.main [] -> void:
     let $a: i32.time.seconds = 3600 seconds;

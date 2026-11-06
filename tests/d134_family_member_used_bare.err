@@ -1,0 +1,5 @@
+refused: d134_family_member_used_bare.cy:7:13, line 7 column 13
+ 7 |     let $a: small = 1;
+   |             ^^^^^
+ fix:  `sizes.small`
+ why:  a family's types are always used with the family (D134)

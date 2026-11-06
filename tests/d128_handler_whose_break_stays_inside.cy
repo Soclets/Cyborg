@@ -2,14 +2,14 @@
 // trace: D128, D46
 import std;
 
-narrowings.handler say_failed:
+fam.handler say_failed:
     say_failed.tries:
         case print_failed:
             for $i in range[from: 1, to: 2]:
                 break;
             end for
     end say_failed.tries
-end narrowings.handler say_failed
+end fam.handler say_failed
 
 fn.main [] -> void:
     std::println("hi") otherwise say_failed.tries;

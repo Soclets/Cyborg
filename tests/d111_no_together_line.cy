@@ -1,11 +1,11 @@
 // trace: D111
-narrowings.unit length:
+fam.unit length:
     length.meters: base;
-end narrowings.unit length
+end fam.unit length
 
-narrowings.unit money:
+fam.unit money:
     money.dollars: base;
-end narrowings.unit money
+end fam.unit money
 
 fn.main [] -> void:
     let $d: i32.length.meters = 100 length.meters;

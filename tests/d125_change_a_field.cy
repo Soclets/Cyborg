@@ -1,9 +1,9 @@
 // trace: D125
 import std;
 
-narrowings.unit time:
+fam.unit time:
     time.seconds: base;
-end narrowings.unit time
+end fam.unit time
 
 struct inner:
     n: i32;

@@ -1,17 +1,17 @@
 // trace: D111
 import std;
 
-narrowings.unit length:
+fam.unit length:
     length.meters: base;
-end narrowings.unit length
+end fam.unit length
 
-narrowings.unit time:
+fam.unit time:
     time.seconds: base;
-end narrowings.unit time
+end fam.unit time
 
-narrowings.unit speed:
+fam.unit speed:
     speed.meters_per_second: base;
-end narrowings.unit speed
+end fam.unit speed
 
 together length.meters / time.seconds = speed.meters_per_second;
 

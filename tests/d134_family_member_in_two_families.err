@@ -1,0 +1,5 @@
+refused: d134_family_member_in_two_families.cy:12:13, line 12 column 13
+12 |     let $a: small = 1;
+   |             ^^^^^
+ what: `small` is in a family, so it's used with it
+ why:  a family's types are always used with the family (D134)

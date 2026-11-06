@@ -3,12 +3,12 @@
 // trace: D46, D52
 import std;
 
-narrowings.handler say_failed:
+fam.handler say_failed:
     say_failed.up:
         case print_failed:
             fail lost;
     end say_failed.up
-end narrowings.handler say_failed
+end fam.handler say_failed
 
 fn say [] -> void:
     fails [lost];

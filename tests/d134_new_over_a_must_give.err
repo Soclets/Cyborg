@@ -1,0 +1,9 @@
+refused: d134_new_over_a_must_give.cy:9:5, line 9 column 5
+ 9 |     return void;
+   |     ^^^^^^^^^^^^
+ what: this leaves with `$l` never given away or finished
+ why:  a `must_Give` value is handed off with `Give` exactly once, or `finish` ends it (D2, D129)
+ because: d134_new_over_a_must_give.cy:8:7, line 8 column 7
+ 8 | fn f [$l: Given log_file] -> void:
+   |       ^^
+     `$l` was given to this function here

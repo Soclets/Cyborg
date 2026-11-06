@@ -1,0 +1,5 @@
+NotDesignedYet: d134_new_type_from_a_struct.cy:9:23, line 9 column 23
+ 9 |     let $w: wrapped = wrapped[celsius = 1];
+   |                       ^^^^^^^^^^^^^^^^^^^^
+ what: how a value gets into a `type.new`
+ why:  not decided yet (standard 12.1)
