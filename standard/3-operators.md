@@ -10,7 +10,7 @@
 | [3.6](#36-logic) | `and`, `or`, `not` | |
 | [3.7](#37-bits-and-shifts) | `bit_and`, `bit_or`, `bit_xor`, `bit_not`, `shl`, `shr` | |
 | [3.8](#38-wrapping-pluswrap) | `plus.wrap` | Wraps in every mode |
-| [3.9](#39-grouping) | `( )` | The one exception to [1.8](1-programs.md#18-brackets) |
+| [3.9](#39-grouping-and-precedence) | `( )`, precedence | Follows maths |
 
 ## 3.1 Every operator
 
@@ -28,7 +28,7 @@
 | Pass a failure up | `?` | [8.4](8-failures.md#84--pass-it-up) |
 | Use this instead | `??` | [8.5](8-failures.md#85--use-this-instead) |
 
-Operator precedence isn't decided ([12.3](12-not-decided.md#123-operators-and-conversion)).
+Precedence is in [3.9](#39-grouping-and-precedence).
 
 **From:** D43, D44, D49, D59.
 
@@ -112,12 +112,28 @@ $a plus.wrap $b
 
 **From:** D42.
 
-## 3.9 Grouping
+## 3.9 Grouping and precedence
 
-**Rule:** `( )` groups in maths, and it's the one case where `( )` doesn't run something.
+**Rule:** precedence follows maths, and `( )` groups, which is the one case where `( )` doesn't run something. Tightest first:
+
+| Level | Operators |
+|---|---|
+| 1 | `.`, `.%`, `::`, calls, `?` |
+| 2 | `not`, unary `-` |
+| 3 | `x`, `div…`, `mod…`, left to right |
+| 4 | `+`, `-` |
+| 5 | `==`, `!=`, `<`, `>`, `at_least`, `at_most` |
+| 6 | `and`, `or` |
+| 7 | `??` |
 
 ```
+$a + $b x 2
 ($a + $b) x 2
+($a + $b) as str
 ```
 
-**From:** D23.
+**Refused:** where maths gives no order, so bit operators and shifts mixed with anything, as in `$a shl 2 + 1`, and `as` on anything but a single value, as in `$a + $b as str`.
+
+Whether `and` binds tighter than `or`, and whether `$a < $b < $c` is allowed, aren't decided ([12.3](12-not-decided.md#123-operators-and-conversion)).
+
+**From:** D23, D116.

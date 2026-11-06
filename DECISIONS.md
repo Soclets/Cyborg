@@ -686,6 +686,9 @@ proposed taking it whole; the owner chose: "yea". (Owner, 2026-11-06)
 **D115. A method from a kit says its path.** `$xs.std::%append(val: 4);`. Bare means base, or your own, so `$xs.%append` would wrongly look like one of those. This applies the rule that everything else follows: base and your own are bare, a kit has its path, and a limb has `@`. Your own method stays `$p.%area()`, and a limb's is `$x.@csup::%name()`. The `%` still sits on
 the method's name. Claude suggested a bare method for a type's own kit, because the type already says where it comes from; the owner asked "Wouldn't it be `.std::%append`?", then "doesn't bare mean the base's?", and Claude agreed. (Owner, 2026-11-06)
 
+**D116. Precedence follows maths, and `( )` groups.** Tightest first: `.`, `.%`, `::`, calls and `?`; then `not` and unary `-`; then `x`, `div…` and `mod…`, left to right; then `+` and `-`; then comparisons; then `and` and `or`; then `??`. Where maths gives no order, you group with `( )`, D23's one exception: bit operators and shifts mixed with anything, and `as`
+on anything but a single value. Claude proposed the table and refusals; the owner chose: "Follow maths, group with `()` (exception of bracket rule)". Whether `and` binds tighter than `or`, and whether `$a < $b < $c` is allowed, are not settled here. (Owner, 2026-11-06)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude
