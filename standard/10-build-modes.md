@@ -66,12 +66,12 @@ requires.only_in_working is_sorted(Lend $xs);
 | A value is out of bounds | Crash | Trap | UB | UB | UB allowed |
 | Division by zero | Trap | Trap | UB | UB | UB allowed |
 | A contract is false | Crash | See [10.3](#103-what-gets-checked) | UB | UB | UB allowed |
-| A failure nothing handles | Crash | Crash | Crash | Not decided | Crash |
+| A failure nothing handles | Crash | Crash | Crash | UB | Crash |
 | A compile-time safety rule is broken | Refused | Refused | Refused | UB | Refused |
 
 The `FinalPerf` entries follow from D14 having no checks there; the owner's answer was "you test your shit throughly first".
 
-**From:** D14, D20, D26, D40, D41, D42, D96.
+**From:** D14, D20, D26, D40, D41, D42, D96, D107.
 
 ## 10.5 Overflow
 
@@ -100,11 +100,11 @@ In both modes, the compiler can delete that `if`.
 
 ## 10.7 `FinalShit`
 
-**Rule:** `FinalShit` assumes nothing bad can happen. It drops every compile-time safety rule: ownership, borrows, `must_Give`, containment, what must live in a shield, and bounds on literals. So a program can build only in `FinalShit`.
+**Rule:** `FinalShit` assumes nothing bad can happen, and keeps only what it needs to generate code: syntax, known names and types that fit. So a program can build only in `FinalShit`.
 
-The compiler still refuses what it can't compile: bad syntax, unknown names and types that don't fit.
+Everything else that exists to stop you doing something dumb is gone: ownership words, borrows, `must_Give`, `%`, `~`, `*`, units, containment, what must live in a shield, bounds on literals, and covering every case in a `match`, where a missed case is UB. It assumes nothing ever fails, so an unhandled failure is UB, not a crash, and `?` and `otherwise:` may get deleted.
 
-**From:** D39, D40.
+**From:** D39, D40, D107.
 
 ## 10.8 The curse
 

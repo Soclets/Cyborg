@@ -657,6 +657,9 @@ placeholder. Claude proposed it; the owner chose: "yes. But I think it should be
 
 **D106. `.only_in_working`.** `requires.only_in_working is_sorted(Lend $xs);`, and `ensures.only_in_working` likewise. This settles the word D105 left open. Claude suggested `.slow`; the owner proposed: "`requires.only_in_working`?", and Claude agreed, since it says exactly what it does. (Owner, 2026-11-06)
 
+**D107. `FinalShit` keeps only what it needs to generate code.** Syntax, known names and types that fit. Everything else that exists to stop you doing something dumb is gone: ownership words, `%`, `~`, `*`, units, and covering every case in a `match`, where a missed case is UB. An unhandled failure is UB,
+not a crash, since it assumes nothing ever fails, and `?` and `otherwise:` may get deleted too. This settles what D40's "such as" and D96 left open. Claude proposed it; the owner chose: "yea". (Owner, 2026-11-06)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude

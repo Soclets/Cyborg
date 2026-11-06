@@ -22,7 +22,6 @@ These are places where decisions leave a real gap or pull against each other.
 
 | Problem | Decisions |
 |---|---|
-| **What `FinalShit` drops.** Does it also drop `%`, a missing `~`, or mismatched `Give` and `Lend`? D40's list says "such as". | D5, D40, D59 |
 | **Labels and parameters.** The sketch calls `append(val: 4)` with a label and `total(Lend $xs)` without one. Nothing says when a label is required, or how it relates to a parameter's name. | D13, D23 |
 
 ## 12.2 Types
@@ -78,9 +77,7 @@ These are places where decisions leave a real gap or pull against each other.
 ## 12.7 Build modes
 
 - Whether `FinalSmall` treats contracts as facts.
-- What `FinalShit` drops beyond D40's list ([12.1](#121-problems-found-writing-this)).
 - How you choose optimization in `Working`.
-- Whether an unhandled failure still crashes in `FinalShit`, which assumes nothing bad can happen.
 - What the failure is called when a list is full, or at `len.min` when removing.
 
 ## 12.8 Ownership
