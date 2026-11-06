@@ -77,5 +77,5 @@ What Cyborg does now, in one place. The oracle, the compiler and check claude fo
 | `?? void` | [8.9](8-failures.md#89-crash-by-default) | | `labels`, `defaults` | [5.4](5-functions.md#54-the-top-of-the-body) |
 | units | [2.16](2-values-and-types.md#216-units) | | | |
 | `all` | [2.11](2-values-and-types.md#211-arrays) | | | |
-| precedence | [3.9](3-operators.md#39-grouping-and-precedence) | | | |
+| precedence | [3.9](3-operators.md#39-grouping-and-precedence) | | `//`, `///` | [1.12](1-programs.md#112-comments) |
 | `together` | [2.16](2-values-and-types.md#216-units) | | `narrowings.unit` | [2.16](2-values-and-types.md#216-units) |

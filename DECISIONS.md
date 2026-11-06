@@ -691,6 +691,8 @@ on anything but a single value. Claude proposed the table and refusals; the owne
 
 **D117. `and` over `or`, and comparison chains.** Following maths, `and` binds tighter than `or`, so `$a and $b or $c` means `($a and $b) or $c`. `1 < $x < 5` means `1 < $x and $x < 5`, with `$x` evaluated once. The linter limb can ask for parentheses. Claude proposed it; the owner chose: "yea, and the linter would be real". (Owner, 2026-11-06)
 
+**D118. `//` and `///`.** `//` is a line comment, a note for whoever reads the code. `///` is a doc comment, attached to what's below it, which tools can show and build documentation from. Block comments are not settled here. Claude proposed both; the owner chose: "Both". (Owner, 2026-11-06)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude

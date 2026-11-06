@@ -58,7 +58,7 @@ These are places where decisions leave a real gap or pull against each other. No
 - Whether a `fn.pure` may allocate or fail.
 - The inline compile-time language (D88 to D91): its syntax.
 - Whether every `void` function says `return void;`.
-- Comments. Examples in the decisions use `//`, but it was never chosen.
+- Block comments.
 - Naming rules, like capitals.
 
 ## 12.6 Failures

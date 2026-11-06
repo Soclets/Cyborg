@@ -8,6 +8,7 @@
 | [1.4](#14-names-and-) | `$` | Variables have it, fields don't |
 | [1.5](#15-paths-) | `::` | How you reach a kit or limb |
 | [1.11](#111-short-names-use) | `use … as …;` | A shorter name for a path |
+| [1.12](#112-comments) | `//`, `///` | Notes and documentation |
 | [1.6](#16-narrowings-) | `.` | Makes the thing before it more specific |
 | [1.7](#17-bare-names) | Bare names | The obvious default, or nothing |
 | [1.8](#18-brackets) | `( )`, `[ ]`, `< >` | Runs, describes, fills in |
@@ -168,3 +169,19 @@ use std::print.useful as printu;
 **Refused:** `use @csup::extern.c as ext;`. A limb is always written with its full mark and path.
 
 **From:** D93, D94.
+
+## 1.12 Comments
+
+**Rule:** `//` is a line comment, a note for whoever reads the code. `///` is a doc comment, attached to what's below it, which tools can show and build documentation from.
+
+```
+/// Adds up every item in the list.
+fn total [$xs: std::list<i32>[len.max: inf items]] -> i32:
+    // a note for whoever reads this
+    …
+end fn total
+```
+
+Block comments aren't decided ([12.5](12-not-decided.md#125-functions)).
+
+**From:** D118.
