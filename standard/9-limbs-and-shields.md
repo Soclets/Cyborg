@@ -32,9 +32,9 @@ Bare `@`, with no `::`, is a compiler builtin instead ([5.7](5-functions.md#57-b
 
 **Rule:** `@` with `::` marks something a limb provides, and only that. A search for `@` finds every compiler extension and builtin. It's a plain `@`, not the fullwidth one Radium uses.
 
-**Refused:** `@std::println`, because `println` is in the kit part.
+**Refused:** `@std::println`, because `println` is in the kit part, and giving a limb a short name with `use`.
 
-**From:** D22, D36, D56.
+**From:** D22, D36, D56, D94.
 
 ## 9.3 `std`'s two parts
 

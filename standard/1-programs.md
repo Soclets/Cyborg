@@ -163,9 +163,8 @@ If Cyborg later adds a built-in with the same name, old code gets a compile erro
 
 ```
 use std::print.useful as printu;
-use @csup::extern.c as ext;
 ```
 
-Whether a limb's short name keeps its `@` isn't decided ([12.9](12-not-decided.md#129-limbs-and-projects)).
+**Refused:** `use @csup::extern.c as ext;`. A limb is always written with its full mark and path.
 
-**From:** D93.
+**From:** D93, D94.

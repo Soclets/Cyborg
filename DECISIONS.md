@@ -615,6 +615,9 @@ use @csup::extern.c as ext;
 
 The narrowing `std::print.useful` and `extern.c` are the owner's examples. Whether a limb's short name keeps its `@` is not settled here. The owner: "Like that". (Owner, 2026-11-06)
 
+**D94. You can't `use` a limb.** A limb is always written with its full mark and path, so D22's promise holds: a search for `@` finds every use of a compiler extension. This replaces the second example in D93, so
+`use @csup::extern.c as ext;` is refused. Claude suggested short names that keep their `@`; the owner chose: "Or just make it so that, you can't `use` a limb". (Owner, 2026-11-06)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude
