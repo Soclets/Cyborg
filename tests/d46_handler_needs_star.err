@@ -2,4 +2,4 @@ refused: d46_handler_needs_star.cy:12:34, line 12 column 34
 12 |     std::println("hi") otherwise say_failed.bail;
    |                                  ^^^^^^^^^^^^^^^
  fix:  `say_failed.*bail`
- why:  a handler that can `return`, `break` or `continue` is marked `*` where it's used (D46)
+ why:  a handler that can `return` or `break` is marked `*` where it's used (D46, D128)

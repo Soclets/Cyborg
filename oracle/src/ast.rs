@@ -299,7 +299,7 @@ pub enum StatementKind {
 #[derive(Clone, Debug)]
 pub enum ForSource {
     Collection(Expression),
-    Range(RangeExpression),
+    Range(Box<RangeExpression>),
 }
 
 #[derive(Clone, Debug)]

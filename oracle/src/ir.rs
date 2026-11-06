@@ -110,6 +110,15 @@ pub enum NodeKind {
     Void,
 }
 
+/// A range's numbers, each worked out once, before the loop starts.
+#[derive(Clone, Debug)]
+pub struct RangeCode {
+    pub from: Node,
+    pub end: Node,
+    pub included: bool,
+    pub step: Option<Node>,
+}
+
 #[derive(Clone, Debug)]
 pub struct Instruction {
     pub span: Span,
@@ -148,10 +157,7 @@ pub enum InstructionKind {
     ForRange {
         loop_id: usize,
         slot: usize,
-        from: Node,
-        end: Node,
-        included: bool,
-        step: Option<Node>,
+        range: Box<RangeCode>,
         body: Vec<Instruction>,
     },
     While {

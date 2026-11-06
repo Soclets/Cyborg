@@ -1859,7 +1859,7 @@ impl Parser {
             return Err(self.expected("`in`"));
         }
         let source = if self.at_word("range") && self.symbol_at(1, "[") {
-            ForSource::Range(self.parse_range()?)
+            ForSource::Range(Box::new(self.parse_range()?))
         } else {
             ForSource::Collection(self.parse_expression()?)
         };

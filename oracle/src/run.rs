@@ -8,7 +8,7 @@ use std::rc::Rc;
 use crate::ast::{CompareOperator, Narrowing};
 use crate::ir::{
     Argument, Arithmetic, Code, Contract, Function, Instruction, InstructionKind, Node, NodeKind,
-    Number, Place, Test,
+    Number, Place, RangeCode, Test,
 };
 use crate::report::{Kind, Outcome, Report, ReportExtra, Span};
 use crate::types::{FloatKind, IntegerKind, Value};
@@ -418,21 +418,9 @@ impl<'c> Runner<'c> {
             InstructionKind::ForRange {
                 loop_id,
                 slot,
-                from,
-                end,
-                included,
-                step,
+                range,
                 body,
-            } => self.run_range(
-                *loop_id,
-                *slot,
-                from,
-                end,
-                *included,
-                step.as_ref(),
-                body,
-                frame,
-            ),
+            } => self.run_range(*loop_id, *slot, range, body, frame),
             InstructionKind::While {
                 loop_id,
                 condition,
@@ -495,51 +483,45 @@ impl<'c> Runner<'c> {
     }
 
     /// trace: D128
-    #[allow(clippy::too_many_arguments)] // A range has this many parts.
     fn run_range(
         &mut self,
         loop_id: usize,
         slot: usize,
-        from: &Node,
-        end: &Node,
-        included: bool,
-        step: Option<&Node>,
+        range: &RangeCode,
         body: &[Instruction],
         frame: &mut Frame,
     ) -> Result<(), Stop> {
-        let number = |value: Value, node: &Node| match value {
-            Value::Integer(number) => Ok(number),
-            _ => Err(oracle_bug(node.span, "a range of something else")),
-        };
-        let start = self.evaluate(from, frame)?;
-        let mut current = number(start, from)?;
-        let stop = self.evaluate(end, frame)?;
-        let stop = number(stop, end)?;
+        let RangeCode {
+            from,
+            end,
+            included,
+            step,
+        } = range;
+        let included = *included;
+        let mut current = self.range_number(from, frame)?;
+        let last = self.range_number(end, frame)?;
         let by = match step {
-            Some(node) => {
-                let value = self.evaluate(node, frame)?;
-                number(value, node)?
-            }
+            Some(node) => self.range_number(node, frame)?,
             None => 1,
         };
         // The checker refuses this when it can see the numbers. When only running shows them,
         // nothing says whether it runs zero times or stops the program.
-        if by == 0 || (by > 0 && current > stop) || (by < 0 && current < stop) {
+        if by == 0 || (by > 0 && current > last) || (by < 0 && current < last) {
             return Err(Stop::Report(
                 Report::not_designed(
                     from.span.to(end.span),
                     "a range that turns out while running never to reach its end",
                     "",
                 )
-                .when(format!("from {current}, ending at {stop}, by {by}")),
+                .when(format!("from {current}, ending at {last}, by {by}")),
             ));
         }
         loop {
             let inside = match (by > 0, included) {
-                (true, true) => current <= stop,
-                (true, false) => current < stop,
-                (false, true) => current >= stop,
-                (false, false) => current > stop,
+                (true, true) => current <= last,
+                (true, false) => current < last,
+                (false, true) => current >= last,
+                (false, false) => current > last,
             };
             if !inside {
                 return Ok(());
@@ -554,6 +536,13 @@ impl<'c> Runner<'c> {
                 return Ok(());
             }
             current += by;
+        }
+    }
+
+    fn range_number(&mut self, node: &Node, frame: &mut Frame) -> Result<i128, Stop> {
+        match self.evaluate(node, frame)? {
+            Value::Integer(number) => Ok(number),
+            _ => Err(oracle_bug(node.span, "a range of something else")),
         }
     }
 

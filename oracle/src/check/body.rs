@@ -1266,10 +1266,12 @@ impl Checker<'_> {
             (Some((from, end, included, step)), _) => InstructionKind::ForRange {
                 loop_id,
                 slot,
-                from,
-                end,
-                included,
-                step,
+                range: Box::new(ir::RangeCode {
+                    from,
+                    end,
+                    included,
+                    step,
+                }),
                 body: code,
             },
             (None, Some(collection)) => InstructionKind::For {
