@@ -37,7 +37,7 @@ Build it in oracle/, with tests in tests/:
 - Each test is a Cyborg program plus its exact expected output or
   error. Name it after its decision, and add `// trace: D13` style
   comments as the rules describe.
-- Use .cy as the file extension for now. It's a placeholder.
+- The file extension is .cy.
 
 Start with the sketch: make design/sketch.md's program run and print
 its real output. Then add the decisions that real programs use most:

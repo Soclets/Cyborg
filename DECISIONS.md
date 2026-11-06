@@ -740,6 +740,8 @@ mean a lot, even in our context only", then "yea". (Owner, 2026-11-06)
 **D136. The pitch.** "Immature, uncertified, clear and C-family flavoured SPARK". Claude suggested "Nothing goes unsaid.", then questioned "C-family", since Cyborg has `end if` and no braces; the owner answered: "I mean, most people consider a lot of symbols and brackets as C family". Cyborg isn't proven by default the way SPARK is, and "uncertified" covers that. Keeping the owner's wording as
 it stands is Claude's reading of that answer. (Owner, 2026-11-06)
 
+**D137. The extension is `.cy`.** This settles D16's placeholder. GitHub's Linguist files `.cy` under Cycript, and Cyborg has no Linguist entry, so `.gitattributes` says `*.cy linguist-detectable=false`, as CyborgPL's did. Claude read a joke about Cycript as wanting a new extension; the owner: "Bro, `.cy` is it. What I meant is look at linguist". (Owner, 2026-11-06)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude
@@ -756,4 +758,4 @@ it stands is Claude's reading of that answer. (Owner, 2026-11-06)
 - **`d32`'s limb.** D55 left it open. The owner: "Could just be a money limb, we don't need to design now". Deferred.
 - **Everything in `standard/12-not-decided.md`.** Written with the standard, so that's the full list, including the problems found
   writing it. This section may be behind it.
-- **Placeholders.** The repository's name, the license and the file extension are not chosen.
+- **Placeholders.** The repository's name and the license are not chosen.

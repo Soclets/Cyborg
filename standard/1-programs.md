@@ -2,7 +2,7 @@
 
 | Section | What | In short |
 |---|---|---|
-| [1.1](#11-source-files) | Source files | `.cy`, a placeholder |
+| [1.1](#11-source-files) | Source files | `.cy` |
 | [1.2](#12-main) | `fn.main` | Where a program starts |
 | [1.3](#13-blocks-and-statements) | `:`, `;`, `end` | How code is laid out |
 | [1.4](#14-names-and-) | `$` | Variables have it, fields don't |
@@ -17,9 +17,9 @@
 
 ## 1.1 Source files
 
-**Rule:** a source file ends in `.cy`. This is a placeholder until the extension is chosen.
+**Rule:** a source file ends in `.cy`.
 
-**From:** D16.
+**From:** D16, D137.
 
 ## 1.2 `main`
 
