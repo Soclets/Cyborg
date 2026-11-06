@@ -1,0 +1,5 @@
+refused: d126_trust_isnt_in_the_else.cy:13:23, line 13 column 23
+13 |         let $n: i32 = $s.code;
+   |                       ^^^^^^^
+ what: `$s` isn't known to be `status.failed` here
+ why:  inside `if $s: status.failed:` the compiler trusts it, and outside that's a compile error (D9)

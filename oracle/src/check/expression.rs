@@ -2204,10 +2204,13 @@ fn statements_jump(statements: &[crate::ast::Statement]) -> bool {
     use crate::ast::StatementKind;
     statements.iter().any(|statement| match &statement.kind {
         StatementKind::Return(_) => true,
-        StatementKind::If { body, .. }
-        | StatementKind::Test { body, .. }
-        | StatementKind::For { body, .. }
-        | StatementKind::Shield { body, .. } => statements_jump(body),
+        StatementKind::If { links, last } => {
+            links.iter().any(|link| statements_jump(&link.body))
+                || last.as_ref().is_some_and(|block| statements_jump(block))
+        }
+        StatementKind::For { body, .. } | StatementKind::Shield { body, .. } => {
+            statements_jump(body)
+        }
         StatementKind::Match { arms, .. } => arms.iter().any(|arm| statements_jump(&arm.body)),
         _ => false,
     })

@@ -1,0 +1,9 @@
+refused: d126_second_else.cy:7:5, line 7 column 5
+ 7 |     else:
+   |     ^^^^
+ what: nothing follows `else:` but `end if`
+ why:  `else if` and `else:` continue an `if`, and one `end if` closes the chain (D126)
+ because: d126_second_else.cy:5:5, line 5 column 5
+ 5 |     else:
+   |     ^^^^
+     the `else:` is here

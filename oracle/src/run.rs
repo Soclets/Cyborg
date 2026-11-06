@@ -8,7 +8,7 @@ use std::rc::Rc;
 use crate::ast::{CompareOperator, Narrowing};
 use crate::ir::{
     Argument, Arithmetic, Code, Contract, Function, Instruction, InstructionKind, Node, NodeKind,
-    Number, Place,
+    Number, Place, Test,
 };
 use crate::report::{Kind, Outcome, Report, ReportExtra, Span};
 use crate::types::{FloatKind, IntegerKind, Value};
@@ -367,38 +367,14 @@ impl<'c> Runner<'c> {
                 *target = value;
                 Ok(())
             }
-            InstructionKind::If { condition, body } => {
-                if self.evaluate(condition, frame)? == Value::Bool(true) {
-                    self.run_block(body, frame)?;
-                }
-                Ok(())
-            }
-            InstructionKind::TestRange {
-                subject,
-                low,
-                high,
-                body,
-            } => {
-                // trace: D20
-                if let Value::Integer(value) = self.evaluate(subject, frame)? {
-                    if *low <= value && value <= *high {
-                        self.run_block(body, frame)?;
+            // trace: D126
+            InstructionKind::If { links, otherwise } => {
+                for (test, body) in links {
+                    if self.test_holds(test, frame, span)? {
+                        return self.run_block(body, frame);
                     }
                 }
-                Ok(())
-            }
-            InstructionKind::TestCase {
-                subject,
-                case,
-                body,
-            } => {
-                // trace: D9
-                if let Value::Case(found, _) = self.evaluate(subject, frame)? {
-                    if found == *case {
-                        self.run_block(body, frame)?;
-                    }
-                }
-                Ok(())
+                self.run_block(otherwise, frame)
             }
             InstructionKind::Match { subject, arms } => {
                 let Value::Case(found, _) = self.evaluate(subject, frame)? else {
@@ -452,6 +428,22 @@ impl<'c> Runner<'c> {
                 Ok(())
             }
             InstructionKind::Block(body) => self.run_block(body, frame),
+        }
+    }
+
+    fn test_holds(&mut self, test: &Test, frame: &mut Frame, span: Span) -> Result<bool, Stop> {
+        match test {
+            Test::Condition(condition) => Ok(self.evaluate(condition, frame)? == Value::Bool(true)),
+            // trace: D20
+            Test::Range { subject, low, high } => match self.evaluate(subject, frame)? {
+                Value::Integer(value) => Ok(*low <= value && value <= *high),
+                _ => Err(oracle_bug(span, "the test for a bound on something else")),
+            },
+            // trace: D9
+            Test::Case { subject, case } => match self.evaluate(subject, frame)? {
+                Value::Case(found, _) => Ok(found == *case),
+                _ => Err(oracle_bug(span, "the test for a case on something else")),
+            },
         }
     }
 

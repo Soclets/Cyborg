@@ -1,0 +1,5 @@
+refused: d126_handler_jumps_from_an_else.cy:17:34, line 17 column 34
+17 |     std::println("hi") otherwise say_failed.maybe;
+   |                                  ^^^^^^^^^^^^^^^^
+ fix:  `say_failed.*maybe`
+ why:  a handler that can `return`, `break` or `continue` is marked `*` where it's used (D46)

@@ -1,0 +1,5 @@
+refused: d126_else_inside_for.cy:10:9, line 10 column 9
+10 |         else:
+   |         ^^^^
+ what: `else` continues an `if`, and there's none open here
+ why:  `else if` and `else:` continue an `if`, and one `end if` closes the chain (D126)

@@ -255,14 +255,10 @@ pub enum StatementKind {
         target: Expression,
         value: Expression,
     },
+    /// An `if`, any `else if`s, and maybe an `else:`, closed by one `end if`.
     If {
-        condition: Expression,
-        body: Vec<Statement>,
-    },
-    Test {
-        subject: Expression,
-        written_type: TypeExpression,
-        body: Vec<Statement>,
+        links: Vec<IfLink>,
+        last: Option<Vec<Statement>>,
     },
     Match {
         subject: Expression,
@@ -283,6 +279,21 @@ pub enum StatementKind {
         name: Name,
         reason: Option<String>,
         body: Vec<Statement>,
+    },
+}
+
+#[derive(Clone, Debug)]
+pub struct IfLink {
+    pub test: IfTest,
+    pub body: Vec<Statement>,
+}
+
+#[derive(Clone, Debug)]
+pub enum IfTest {
+    Condition(Expression),
+    Type {
+        subject: Expression,
+        written_type: TypeExpression,
     },
 }
 

@@ -5,8 +5,8 @@ use std::collections::HashMap;
 use super::hand::UseKind;
 use super::{Checker, Failure, FunctionContext, Origin, Variable, VariableState, ITEM_LIMIT};
 use crate::ast::{
-    Arm, Contract, Expression, ExpressionKind, Function, FunctionKind, ParameterWord, Statement,
-    StatementKind, TypeExpression, TypeKind,
+    Arm, Contract, Expression, ExpressionKind, Function, FunctionKind, IfLink, IfTest,
+    ParameterWord, Statement, StatementKind, TypeExpression, TypeKind,
 };
 use crate::ir::{self, Instruction, InstructionKind, Node, NodeKind, Place};
 use crate::report::{Outcome, Report, ReportExtra, Span};
@@ -502,20 +502,11 @@ impl Checker<'_> {
                 value,
             } => self.check_local_constant(name, written_type, value)?,
             StatementKind::Change { target, value } => self.check_change(target, value, span)?,
-            StatementKind::If { condition, body } => {
-                let condition = self.check_condition(condition)?;
-                let before = self.context.state.clone();
-                let (body, ends, branch) = self.on_a_branch(|this| this.check_block(body))?;
-                if !ends {
-                    self.join_states(&[before, branch]);
-                }
-                InstructionKind::If { condition, body }
+            StatementKind::If { links, last } => {
+                let (kind, ends) = self.check_if(links, last.as_ref())?;
+                terminated = ends;
+                kind
             }
-            StatementKind::Test {
-                subject,
-                written_type,
-                body,
-            } => self.check_test(subject, written_type, body)?,
             StatementKind::Match { subject, arms } => {
                 let (kind, ends) = self.check_match(subject, arms, span)?;
                 terminated = ends;
@@ -857,14 +848,81 @@ impl Checker<'_> {
         Ok(InstructionKind::Set { place, value: node })
     }
 
-    /// `if $s: status.failed:` and `if $n: i32[min: 0, max: 100]:`. (D9, D20)
-    #[allow(clippy::too_many_lines)] // Unions and integers each have their own rules here.
+    /// `if`, each `else if`, and `else:`. Each test runs only if those before it were false, each
+    /// block starts from what its own test left, and what comes after joins every way out. (D126)
+    /// trace: D126
+    fn check_if(
+        &mut self,
+        links: &[IfLink],
+        last: Option<&Vec<Statement>>,
+    ) -> Outcome<(InstructionKind, bool)> {
+        let mut exits: Vec<Vec<VariableState>> = Vec::new();
+        let mut code = Vec::new();
+        let mut tested_slots = Vec::new();
+        for link in links {
+            let (test, trust) = match &link.test {
+                IfTest::Condition(condition) => {
+                    (ir::Test::Condition(self.check_condition(condition)?), None)
+                }
+                IfTest::Type {
+                    subject,
+                    written_type,
+                } => self.check_test(subject, written_type)?,
+            };
+            let (body, ends, branch) = self.on_a_branch(|this| {
+                if let Some((slot, case)) = trust {
+                    if let Some(state) = this.context.state.get_mut(slot) {
+                        state.trust = Some(case);
+                        state.trust_ended = None;
+                    }
+                }
+                this.check_block(&link.body)
+            })?;
+            if let Some((slot, _)) = trust {
+                tested_slots.push(slot);
+            }
+            if !ends {
+                exits.push(branch);
+            }
+            code.push((test, body));
+        }
+        let otherwise = if let Some(block) = last {
+            let (body, ends, branch) = self.on_a_branch(|this| this.check_block(block))?;
+            if !ends {
+                exits.push(branch);
+            }
+            body
+        } else {
+            exits.push(self.context.state.clone());
+            Vec::new()
+        };
+        let all_end = exits.is_empty();
+        if !all_end {
+            self.join_states(&exits);
+        }
+        // The trust ends with its block, so a read after this is the plain "outside" error. (D9)
+        for slot in tested_slots {
+            if let Some(state) = self.context.state.get_mut(slot) {
+                state.trust = None;
+                state.trust_ended = None;
+            }
+        }
+        Ok((
+            InstructionKind::If {
+                links: code,
+                otherwise,
+            },
+            all_end,
+        ))
+    }
+
+    /// `$s: status.failed` and `$n: i32[min: 0, max: 100]`, without their blocks. It also says what
+    /// the block may trust, as a variable's slot and a case. (D9, D20)
     fn check_test(
         &mut self,
         subject: &Expression,
         written_type: &TypeExpression,
-        body: &[Statement],
-    ) -> Outcome<InstructionKind> {
+    ) -> Outcome<(ir::Test, Option<(usize, usize)>)> {
         let ExpressionKind::Variable(name) = &subject.kind else {
             return Err(Report::not_designed(
                 subject.span,
@@ -873,9 +931,7 @@ impl Checker<'_> {
             ));
         };
         let (node, subject_type) = self.check_expression(subject, None)?;
-        let slot = self.find_variable(name).ok_or_else(|| {
-            Report::refused(subject.span, format!("`${name}` isn't declared"), "(D2)")
-        })?;
+        let slot = self.find_variable(name);
         // trace: D9
         if let Some((union_name, case_name)) = self.split_case_path(written_type) {
             let Type::Union(subject_union) = &subject_type else {
@@ -899,39 +955,23 @@ impl Checker<'_> {
                     "a union's cases are narrowings (D33)",
                 )
             })?;
-            if self
-                .context
-                .state
-                .get(slot)
-                .is_some_and(|state| state.trust.is_some())
-            {
+            let already_trusted = slot
+                .and_then(|slot| self.context.state.get(slot))
+                .is_some_and(|state| state.trust.is_some());
+            if already_trusted {
                 return Err(Report::not_designed(
                     written_type.span,
                     "the test on a value already known to be that type",
                     "12.2",
                 ));
             }
-            let before = self.context.state.clone();
-            let (code, ends, branch) = self.on_a_branch(|this| {
-                if let Some(state) = this.context.state.get_mut(slot) {
-                    state.trust = Some(case);
-                    state.trust_ended = None;
-                }
-                this.check_block(body)
-            })?;
-            if !ends {
-                self.join_states(&[before, branch]);
-            }
-            // The trust ends at `end if`, so a read after it is the plain "outside the block" error.
-            if let Some(state) = self.context.state.get_mut(slot) {
-                state.trust = None;
-                state.trust_ended = None;
-            }
-            return Ok(InstructionKind::TestCase {
-                subject: node,
-                case,
-                body: code,
-            });
+            return Ok((
+                ir::Test::Case {
+                    subject: node,
+                    case,
+                },
+                slot.map(|slot| (slot, case)),
+            ));
         }
         let test_type = self.resolve_type(written_type)?;
         // trace: D20
@@ -949,17 +989,14 @@ impl Checker<'_> {
         ) = (&subject_type, &test_type)
         {
             if kind == test_kind && unit == test_unit {
-                let before = self.context.state.clone();
-                let (code, ends, branch) = self.on_a_branch(|this| this.check_block(body))?;
-                if !ends {
-                    self.join_states(&[before, branch]);
-                }
-                return Ok(InstructionKind::TestRange {
-                    subject: node,
-                    low: *low,
-                    high: *high,
-                    body: code,
-                });
+                return Ok((
+                    ir::Test::Range {
+                        subject: node,
+                        low: *low,
+                        high: *high,
+                    },
+                    None,
+                ));
             }
         }
         Err(Report::not_designed(

@@ -132,19 +132,8 @@ pub enum InstructionKind {
         value: Node,
     },
     If {
-        condition: Node,
-        body: Vec<Instruction>,
-    },
-    TestRange {
-        subject: Node,
-        low: i128,
-        high: i128,
-        body: Vec<Instruction>,
-    },
-    TestCase {
-        subject: Node,
-        case: usize,
-        body: Vec<Instruction>,
+        links: Vec<(Test, Vec<Instruction>)>,
+        otherwise: Vec<Instruction>,
     },
     Match {
         subject: Node,
@@ -163,6 +152,21 @@ pub enum InstructionKind {
     },
     Evaluate(Node),
     Block(Vec<Instruction>),
+}
+
+/// What decides whether one block of an `if` runs.
+#[derive(Clone, Debug)]
+pub enum Test {
+    Condition(Node),
+    Range {
+        subject: Node,
+        low: i128,
+        high: i128,
+    },
+    Case {
+        subject: Node,
+        case: usize,
+    },
 }
 
 #[derive(Clone, Debug)]

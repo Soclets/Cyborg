@@ -3,8 +3,8 @@
 use crate::ast::{
     Argument, Arm, BinaryOperator, BorrowSources, CompareOperator, Contract, Describe, Expression,
     ExpressionKind, FailureEntry, FailureSet, FieldDeclaration, FieldValue, Fill, Function,
-    FunctionKind, HandWord, Handler, HandlerSet, Handling, Import, Item, LabelLine, Name,
-    Narrowing, Parameter, ParameterWord, Path, Program, ShieldContent, ShieldItem, Statement,
+    FunctionKind, HandWord, Handler, HandlerSet, Handling, IfLink, IfTest, Import, Item, LabelLine,
+    Name, Narrowing, Parameter, ParameterWord, Path, Program, ShieldContent, ShieldItem, Statement,
     StatementKind, StructDeclaration, Together, TogetherOperator, TypeExpression, TypeKind,
     UnionCase, UnionDeclaration, UnitMeaning, UnitMember, UnitSet, Use,
 };
@@ -630,6 +630,14 @@ impl Parser {
     fn expect_closer(&mut self, words: &[&str]) -> Outcome<Span> {
         let wanted = format!("end {}", words.join(" "));
         let start = self.span();
+        // trace: D126
+        if self.at_word("else") {
+            return Err(Report::refused(
+                start,
+                "`else` continues an `if`, and there's none open here",
+                "`else if` and `else:` continue an `if`, and one `end if` closes the chain (D126)",
+            ));
+        }
         if !self.eat_word("end") {
             return Err(self.expected(&format!("`{wanted}`")));
         }
@@ -1588,7 +1596,7 @@ impl Parser {
     fn parse_block(&mut self) -> Outcome<Vec<Statement>> {
         self.enter()?;
         let mut statements = Vec::new();
-        while !self.at_word("end") && !self.at_word("case") {
+        while !self.at_word("end") && !self.at_word("case") && !self.at_word("else") {
             if matches!(self.peek().lexeme, Lexeme::End) {
                 return Err(Report::refused(
                     self.previous_span(),
@@ -1656,7 +1664,7 @@ impl Parser {
                         kind: StatementKind::Fail { path, data },
                     });
                 }
-                "else" | "while" | "loop" | "break" | "continue" => {
+                "while" | "loop" | "break" | "continue" => {
                     return Err(Report::not_designed(start, format!("`{word}`"), "12.4"));
                 }
                 // trace: D84
@@ -1731,34 +1739,61 @@ impl Parser {
         })
     }
 
+    /// trace: D126
     fn parse_if(&mut self) -> Outcome<Statement> {
         let start = self.advance().span; // `if`
+        let mut links = Vec::new();
+        let mut last = None;
+        loop {
+            let test = self.parse_if_test()?;
+            let body = self.parse_block()?;
+            links.push(IfLink { test, body });
+            if !self.at_word("else") {
+                break;
+            }
+            let else_span = self.advance().span;
+            if self.eat_word("if") {
+                continue;
+            }
+            if !self.at_symbol(":") {
+                return Err(self.expected("`if` or `:` after `else`"));
+            }
+            self.advance();
+            last = Some(self.parse_block()?);
+            if self.at_word("else") {
+                return Err(Report::refused(
+                    self.span(),
+                    "nothing follows `else:` but `end if`",
+                    "`else if` and `else:` continue an `if`, and one `end if` closes the chain (D126)",
+                )
+                .because(else_span, "the `else:` is here"));
+            }
+            break;
+        }
+        let end = self.expect_closer(&["if"])?;
+        Ok(Statement {
+            span: start.to(end),
+            kind: StatementKind::If { links, last },
+        })
+    }
+
+    /// What follows `if` or `else if`, up to and including the `:` that opens its block.
+    fn parse_if_test(&mut self) -> Outcome<IfTest> {
         let condition = self.parse_expression()?;
         let colon = self.position;
         self.expect_symbol(":")?;
         // `if $s: status.failed:` reads a type then a second `:`. Anything else is a plain block.
         if let Ok(written_type) = self.parse_type() {
             if self.eat_symbol(":") {
-                let body = self.parse_block()?;
-                let end = self.expect_closer(&["if"])?;
-                return Ok(Statement {
-                    span: start.to(end),
-                    kind: StatementKind::Test {
-                        subject: condition,
-                        written_type,
-                        body,
-                    },
+                return Ok(IfTest::Type {
+                    subject: condition,
+                    written_type,
                 });
             }
         }
         self.position = colon;
         self.expect_symbol(":")?;
-        let body = self.parse_block()?;
-        let end = self.expect_closer(&["if"])?;
-        Ok(Statement {
-            span: start.to(end),
-            kind: StatementKind::If { condition, body },
-        })
+        Ok(IfTest::Condition(condition))
     }
 
     fn parse_arms(&mut self) -> Outcome<Vec<Arm>> {
