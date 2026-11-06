@@ -1,0 +1,9 @@
+refused: d128_must_give_inside_a_break.cy:9:9, line 9 column 9
+ 9 |         break;
+   |         ^^^^^^
+ what: this leaves with `$f` never given away
+ why:  a `must_Give` value is handed off with `Give` exactly once (D2)
+ because: d128_must_give_inside_a_break.cy:8:13, line 8 column 13
+ 8 |         let $f: open_file = open_file[fd = 3];
+   |             ^^
+     `$f` was made here

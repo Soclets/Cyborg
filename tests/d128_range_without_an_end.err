@@ -1,0 +1,5 @@
+refused: d128_range_without_an_end.cy:4:15, line 4 column 15
+ 4 |     for $i in range[from: 1]:
+   |               ^^^^^^^^^^^^^^
+ what: this range has no end, so it can never reach one
+ why:  a range that can never reach its end is refused, and an endless loop is `forever` (D128)

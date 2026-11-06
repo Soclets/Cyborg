@@ -1,0 +1,5 @@
+NotDesignedYet: d128_same_name_nested.cy:4:13, line 4 column 13
+ 4 |         for rows $j in range[from: 1, to: 2]:
+   |             ^^^^
+ what: naming a loop `rows` inside another with that name
+ why:  not decided yet, and the standard doesn't say

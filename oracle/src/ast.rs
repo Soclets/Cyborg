@@ -265,9 +265,22 @@ pub enum StatementKind {
         arms: Vec<Arm>,
     },
     For {
+        loop_name: Option<Name>,
         name: Name,
-        collection: Expression,
+        source: ForSource,
         body: Vec<Statement>,
+    },
+    While {
+        loop_name: Option<Name>,
+        condition: Expression,
+        body: Vec<Statement>,
+    },
+    Forever {
+        loop_name: Option<Name>,
+        body: Vec<Statement>,
+    },
+    Break {
+        name: Option<Path>,
     },
     Return(Expression),
     Fail {
@@ -280,6 +293,28 @@ pub enum StatementKind {
         reason: Option<String>,
         body: Vec<Statement>,
     },
+}
+
+/// What a `for` goes through.
+#[derive(Clone, Debug)]
+pub enum ForSource {
+    Collection(Expression),
+    Range(RangeExpression),
+}
+
+#[derive(Clone, Debug)]
+pub struct RangeExpression {
+    pub span: Span,
+    pub from: Expression,
+    pub end: RangeEnd,
+    pub step: Option<Expression>,
+}
+
+#[derive(Clone, Debug)]
+pub struct RangeEnd {
+    pub value: Expression,
+    /// `to:` includes the end, and `before:` stops before it.
+    pub included: bool,
 }
 
 #[derive(Clone, Debug)]

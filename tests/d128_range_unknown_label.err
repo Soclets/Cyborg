@@ -1,0 +1,5 @@
+refused: d128_range_unknown_label.cy:3:30, line 3 column 30
+ 3 |     for $i in range[from: 1, until: 5]:
+   |                              ^^^^^
+ what: a range has no `until:`
+ why:  `from:` is required, `to:` or `before:` says where it ends, and `step_by:` comes after them, in that order (D128)

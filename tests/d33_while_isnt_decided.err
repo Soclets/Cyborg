@@ -1,5 +1,0 @@
-NotDesignedYet: d33_while_isnt_decided.cy:3:5, line 3 column 5
- 3 |     while 1 < 2:
-   |     ^^^^^
- what: `while`
- why:  not decided yet (standard 12.4)

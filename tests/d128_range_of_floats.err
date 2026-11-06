@@ -1,0 +1,5 @@
+NotDesignedYet: d128_range_of_floats.cy:4:27, line 4 column 27
+ 4 |     for $i in range[from: $a, to: 1.5]:
+   |                           ^^
+ what: a range of floats
+ why:  not decided yet, and the standard doesn't say

@@ -2,16 +2,22 @@
 
 use std::collections::HashMap;
 
+use super::expression::literal_integer;
 use super::hand::UseKind;
-use super::{Checker, Failure, FunctionContext, Origin, Variable, VariableState, ITEM_LIMIT};
+use super::{
+    Checker, Failure, FunctionContext, LoopInfo, Origin, Variable, VariableState, ITEM_LIMIT,
+};
 use crate::ast::{
-    Arm, Contract, Expression, ExpressionKind, Function, FunctionKind, IfLink, IfTest,
-    ParameterWord, Statement, StatementKind, TypeExpression, TypeKind,
+    Arm, Contract, Expression, ExpressionKind, ForSource, Function, FunctionKind, IfLink, IfTest,
+    ParameterWord, RangeExpression, Statement, StatementKind, TypeExpression, TypeKind,
 };
 use crate::ir::{self, Instruction, InstructionKind, Node, NodeKind, Place};
 use crate::report::{Outcome, Report, ReportExtra, Span};
 use crate::syntax::is_clashing;
 use crate::types::{Sources, Type, Value};
+
+/// A range's `from:`, its end, whether the end is included, and its `step_by:`.
+type RangeNodes = (Node, Node, bool, Option<Node>);
 
 /// A block's code, and whether it can't run past its end.
 type CheckedBlock = Outcome<(Vec<Instruction>, bool)>;
@@ -513,10 +519,23 @@ impl Checker<'_> {
                 kind
             }
             StatementKind::For {
+                loop_name,
                 name,
-                collection,
+                source,
                 body,
-            } => self.check_for(name, collection, body)?,
+            } => self.check_for(loop_name.as_ref(), name, source, body)?,
+            StatementKind::While {
+                condition, body, ..
+            } => self.check_while(condition, body)?,
+            StatementKind::Forever { body, .. } => {
+                let (kind, ends) = self.check_forever(body)?;
+                terminated = ends;
+                kind
+            }
+            StatementKind::Break { name } => {
+                terminated = true;
+                self.check_break(name.as_ref(), span)?
+            }
             StatementKind::Return(value) => {
                 terminated = true;
                 self.check_return(value, span)?
@@ -1148,14 +1167,125 @@ impl Checker<'_> {
         ))
     }
 
-    /// trace: D2
+    /// Opens a loop for `break` to find. A name is taken while a loop around it has it, which
+    /// has no stated answer, like declaring a variable again.
+    fn enter_loop(&mut self, name: Option<&crate::ast::Name>) -> Outcome<usize> {
+        if let Some(name) = name {
+            if self
+                .context
+                .loops
+                .iter()
+                .any(|outer| outer.name.as_deref() == Some(name.text.as_str()))
+            {
+                return Err(Report::not_designed(
+                    name.span,
+                    format!(
+                        "naming a loop `{}` inside another with that name",
+                        name.text
+                    ),
+                    "",
+                ));
+            }
+        }
+        let id = self.context.next_loop_id;
+        self.context.next_loop_id += 1;
+        self.context.loops.push(LoopInfo {
+            id,
+            name: name.map(|name| name.text.clone()),
+            scope_depth: self.context.scopes.len(),
+            break_states: Vec::new(),
+        });
+        Ok(id)
+    }
+
+    /// Closes a loop, and says what its `break`s left.
+    fn leave_loop(&mut self) -> Vec<Vec<VariableState>> {
+        self.context
+            .loops
+            .pop()
+            .map(|finished| finished.break_states)
+            .unwrap_or_default()
+    }
+
+    /// A test's trust ends with its block, even when a `break` is how the block was left. (D9)
+    fn restore_trust(&mut self, before: &[VariableState]) {
+        for (state, old) in self.context.state.iter_mut().zip(before) {
+            if old.trust.is_none() {
+                state.trust = None;
+                state.trust_ended = old.trust_ended;
+            }
+        }
+    }
+
+    /// trace: D128
     fn check_for(
         &mut self,
+        loop_name: Option<&crate::ast::Name>,
         name: &crate::ast::Name,
-        collection: &Expression,
+        source: &ForSource,
         body: &[Statement],
     ) -> Outcome<InstructionKind> {
         self.refuse_second_declaration(name)?;
+        let before = self.context.state.clone();
+        let (range, collection, item_type, read) = match source {
+            ForSource::Collection(collection) => {
+                let (node, item_type, read) = self.check_for_collection(collection)?;
+                (None, Some(node), item_type, read)
+            }
+            ForSource::Range(range) => {
+                let (nodes, item_type) = self.check_range(range)?;
+                (Some(nodes), None, item_type, (String::new(), Vec::new()))
+            }
+        };
+        let loop_id = self.enter_loop(loop_name)?;
+        self.context.scopes.push(HashMap::new());
+        let slot = self.declare_variable(Variable {
+            name: name.text.clone(),
+            held_type: item_type,
+            mutable: false,
+            origin: Origin::ForItem,
+            declared: name.span,
+            must_give: false,
+            constant: None,
+            borrows: Vec::new(),
+            borrowed_path: Vec::new(),
+        });
+        // Nothing may lend `$xs` out mutably while `for` is reading it. (D2)
+        self.context.being_read.push(read);
+        let result = self.check_loop_body(&mut |this| this.check_block(body));
+        self.context.being_read.pop();
+        self.context.scopes.pop();
+        let code = result?;
+        let mut exits = self.leave_loop();
+        if !exits.is_empty() {
+            exits.push(self.context.state.clone());
+            self.join_states(&exits);
+        }
+        self.restore_trust(&before);
+        Ok(match (range, collection) {
+            (Some((from, end, included, step)), _) => InstructionKind::ForRange {
+                loop_id,
+                slot,
+                from,
+                end,
+                included,
+                step,
+                body: code,
+            },
+            (None, Some(collection)) => InstructionKind::For {
+                loop_id,
+                slot,
+                collection,
+                body: code,
+            },
+            (None, None) => InstructionKind::Block(code),
+        })
+    }
+
+    fn check_for_collection(
+        &mut self,
+        collection: &Expression,
+    ) -> Outcome<(Node, Type, (String, Vec<usize>))> {
         let (node, collection_type) = self.check_expression(collection, None)?;
         let item_type = match &collection_type {
             Type::List { item, .. } | Type::Array { item, .. } => (**item).clone(),
@@ -1169,8 +1299,8 @@ impl Checker<'_> {
             other => {
                 return Err(Report::refused(
                     collection.span,
-                    format!("`for` goes through a collection, and this is `{other}`"),
-                    "`for` goes through a collection, reading it in place (D2)",
+                    format!("`for` goes through a collection or range, and this is `{other}`"),
+                    "`for` goes through a collection or range, reading it in place (D2, D128)",
                 ));
             }
         };
@@ -1193,28 +1323,201 @@ impl Checker<'_> {
                 .map(|place| place.path)
                 .unwrap_or_default()
         };
-        self.context.scopes.push(HashMap::new());
-        let slot = self.declare_variable(Variable {
-            name: name.text.clone(),
-            held_type: item_type,
-            mutable: false,
-            origin: Origin::ForItem,
-            declared: name.span,
-            must_give: false,
-            constant: None,
-            borrows: Vec::new(),
-            borrowed_path: Vec::new(),
-        });
-        // Nothing may lend `$xs` out mutably while `for` is reading it. (D2)
-        self.context.being_read.push((root, read_path));
-        let result = self.check_loop_body(&mut |this| this.check_block(body));
-        self.context.being_read.pop();
-        self.context.scopes.pop();
-        Ok(InstructionKind::For {
-            slot,
-            collection: node,
-            body: result?,
+        Ok((node, item_type, (root, read_path)))
+    }
+
+    /// A range's numbers all have one type, and one that can never reach its end is refused.
+    /// trace: D128
+    fn check_range(&mut self, range: &RangeExpression) -> Outcome<(RangeNodes, Type)> {
+        let (from, end) = (&range.from, &range.end.value);
+        let ((from_node, from_type), (end_node, end_type)) = self.check_two_numbers(from, end)?;
+        let kind = Self::range_number(&from_type, from.span)?;
+        let end_kind = Self::range_number(&end_type, end.span)?;
+        if kind != end_kind {
+            return Err(Report::refused(
+                range.span,
+                format!("this range mixes `{from_type}` and `{end_type}`"),
+                super::WHY_TYPES,
+            ));
+        }
+        let step_node = match &range.step {
+            Some(step) => Some(self.check_range_step(step, kind)?),
+            None => None,
+        };
+        let step_value = match &range.step {
+            Some(step) => literal_integer(step),
+            None => Some(1),
+        };
+        if let (Some(start), Some(stop), Some(by)) =
+            (literal_integer(from), literal_integer(end), step_value)
+        {
+            if by == 0 || (by > 0 && start > stop) || (by < 0 && start < stop) {
+                return Err(Report::refused(
+                    range.span,
+                    "this range can never reach its end",
+                    "a range that can never reach its end is refused, and a negative `step_by:` counts down (D128)",
+                ));
+            }
+        }
+        Ok((
+            (from_node, end_node, range.end.included, step_node),
+            Type::plain_integer(kind),
+        ))
+    }
+
+    fn range_number(found: &Type, span: Span) -> Outcome<crate::types::IntegerKind> {
+        match found {
+            Type::Integer {
+                kind, unit: None, ..
+            } => Ok(*kind),
+            Type::Integer { .. } => Err(Report::not_designed(
+                span,
+                "a range of numbers with a unit",
+                "",
+            )),
+            Type::Float { .. } => Err(Report::not_designed(span, "a range of floats", "")),
+            Type::Length => Err(Report::not_designed(
+                span,
+                "a length in a range, since its type isn't stated",
+                "",
+            )),
+            other => Err(Report::refused(
+                span,
+                format!("a range is a sequence of numbers, and this is `{other}`"),
+                "a range is a sequence of numbers (D128)",
+            )),
+        }
+    }
+
+    fn check_range_step(
+        &mut self,
+        step: &Expression,
+        kind: crate::types::IntegerKind,
+    ) -> Outcome<Node> {
+        if let Some(value) = literal_integer(step) {
+            // A count down over a `u8` needs a step its own type can't hold.
+            if !kind.fits(value) {
+                return Err(Report::not_designed(
+                    step.span,
+                    format!("a `step_by:` of {value} on a range of `{}`", kind.word()),
+                    "",
+                ));
+            }
+            return Ok(Node {
+                span: step.span,
+                kind: NodeKind::Constant(Value::Integer(value)),
+            });
+        }
+        let hint = Type::plain_integer(kind);
+        let (node, found) = self.check_expression(step, Some(&hint))?;
+        let found_kind = Self::range_number(&found, step.span)?;
+        if found_kind != kind {
+            return Err(Self::mismatch(step.span, &hint, &found));
+        }
+        Ok(node)
+    }
+
+    /// trace: D128
+    fn check_while(
+        &mut self,
+        condition: &Expression,
+        body: &[Statement],
+    ) -> Outcome<InstructionKind> {
+        let before = self.context.state.clone();
+        let loop_id = self.enter_loop(None)?;
+        let condition_node = self.check_condition(condition)?;
+        let mut exits = vec![self.context.state.clone()];
+        let (code, ends, after_once) = self.on_a_branch(|this| this.check_block(body))?;
+        if !ends {
+            // The second time round, the condition and the body see what the first time did.
+            let current = self.context.state.clone();
+            self.join_states(&[current, after_once]);
+            self.check_condition(condition)?;
+            exits.push(self.context.state.clone());
+            self.on_a_branch(|this| this.check_block(body))?;
+        }
+        exits.extend(self.leave_loop());
+        self.join_states(&exits);
+        self.restore_trust(&before);
+        Ok(InstructionKind::While {
+            loop_id,
+            condition: condition_node,
+            body: code,
         })
+    }
+
+    /// A `forever` only finishes through a `break`, so with none, nothing runs past it.
+    /// trace: D128
+    fn check_forever(&mut self, body: &[Statement]) -> Outcome<(InstructionKind, bool)> {
+        let before = self.context.state.clone();
+        let loop_id = self.enter_loop(None)?;
+        let code = self.check_loop_body(&mut |this| this.check_block(body))?;
+        let breaks = self.leave_loop();
+        let ends = breaks.is_empty();
+        if !ends {
+            self.join_states(&breaks);
+        }
+        self.restore_trust(&before);
+        Ok((
+            InstructionKind::Forever {
+                loop_id,
+                body: code,
+            },
+            ends,
+        ))
+    }
+
+    /// trace: D128
+    fn check_break(
+        &mut self,
+        name: Option<&crate::ast::Path>,
+        span: Span,
+    ) -> Outcome<InstructionKind> {
+        let wanted = match name {
+            Some(path) => Some(loop_name_as_used(path)?),
+            None => None,
+        };
+        let target = match &wanted {
+            Some(wanted) => self
+                .context
+                .loops
+                .iter()
+                .rposition(|outer| outer.name.as_deref() == Some(wanted.as_str())),
+            None => self.context.loops.len().checked_sub(1),
+        };
+        let Some(target) = target else {
+            return Err(match &wanted {
+                Some(wanted) => Report::refused(
+                    span,
+                    format!("there's no loop called `{wanted}` around this"),
+                    "`break` with a loop's name stops it and every loop inside it (D128)",
+                ),
+                None => Report::refused(
+                    span,
+                    "there's no loop around this for `break` to stop",
+                    "`break;` stops the innermost loop (D128)",
+                ),
+            });
+        };
+        let depth = self
+            .context
+            .loops
+            .get(target)
+            .map_or(0, |found| found.scope_depth);
+        // A `must_Give` declared inside what's being left goes away here.
+        for scope in self.context.scopes.iter().skip(depth) {
+            let mut slots: Vec<usize> = scope.values().copied().collect();
+            slots.sort_unstable();
+            for slot in slots {
+                self.check_duty_ended(slot, Some(span))?;
+            }
+        }
+        let state = self.context.state.clone();
+        let Some(found) = self.context.loops.get_mut(target) else {
+            return Err(Report::refused(span, "this loop isn't open", "(D128)"));
+        };
+        found.break_states.push(state);
+        Ok(InstructionKind::Break(found.id))
     }
 
     fn check_return(&mut self, value: &Expression, span: Span) -> Outcome<InstructionKind> {
@@ -1468,6 +1771,30 @@ impl Checker<'_> {
         }
         Ok(())
     }
+}
+
+/// A loop's name that clashes is written with `my::` wherever it's used. (D75)
+fn loop_name_as_used(path: &crate::ast::Path) -> Outcome<String> {
+    if let Some(mine) = path.text.strip_prefix("my::") {
+        if !is_clashing(mine) {
+            return Err(Report::not_designed(
+                path.span,
+                format!("`my::` on `{mine}`, which doesn't clash"),
+                "",
+            ));
+        }
+        return Ok(mine.to_string());
+    }
+    // trace: D75
+    if is_clashing(&path.text) {
+        return Err(Report::refused(
+            path.span,
+            format!("`{}` is built in", path.text),
+            "a name of yours that clashes is written with `my::` (D75)",
+        )
+        .fix(format!("my::{}", path.text)));
+    }
+    Ok(path.text.clone())
 }
 
 /// A failure's name that clashes is written with `my::` wherever it's used. (D75)

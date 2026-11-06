@@ -117,6 +117,17 @@ struct Variable {
     borrowed_path: Vec<usize>,
 }
 
+/// One loop around the code being checked.
+#[derive(Clone, Debug)]
+struct LoopInfo {
+    id: usize,
+    name: Option<String>,
+    /// How many scopes were open outside it, so a `break` knows which it leaves.
+    scope_depth: usize,
+    /// What ownership knew at each `break` that stops this loop.
+    break_states: Vec<Vec<VariableState>>,
+}
+
 /// Facts about the function being checked.
 struct FunctionContext {
     kind: FunctionKind,
@@ -133,6 +144,9 @@ struct FunctionContext {
     in_shield: usize,
     call_span: Option<Span>,
     ensures_variables: Vec<(String, Span)>,
+    /// The loops around the code being checked, innermost last.
+    loops: Vec<LoopInfo>,
+    next_loop_id: usize,
     /// Variables a `for` is reading in place right now.
     being_read: Vec<(String, Vec<usize>)>,
 }
@@ -154,6 +168,8 @@ impl FunctionContext {
             in_shield: 0,
             call_span: None,
             ensures_variables: Vec::new(),
+            loops: Vec::new(),
+            next_loop_id: 0,
             being_read: Vec::new(),
         }
     }

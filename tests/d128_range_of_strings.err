@@ -1,0 +1,5 @@
+refused: d128_range_of_strings.cy:3:27, line 3 column 27
+ 3 |     for $i in range[from: "a", to: "b"]:
+   |                           ^^^
+ what: a range is a sequence of numbers, and this is `str`
+ why:  a range is a sequence of numbers (D128)

@@ -1,0 +1,5 @@
+refused: d128_unnamed_loop_closer_has_no_name.cy:5:5, line 5 column 5
+ 5 |     end for rows
+   |     ^^^^^^^^^^^^
+ fix:  `end for`
+ why:  the closer repeats what it closes, including the name (D33, D128)

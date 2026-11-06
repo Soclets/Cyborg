@@ -1,7 +1,7 @@
-// trace: D33
+// trace: D128
 fn.main [] -> void:
-    while 1 < 2:
+    for $i in range[from: 1, until: 5]:
         return void;
-    end while
+    end for
     return void;
 end fn.main

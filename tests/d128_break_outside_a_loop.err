@@ -1,0 +1,5 @@
+refused: d128_break_outside_a_loop.cy:3:5, line 3 column 5
+ 3 |     break;
+   |     ^^^^^^
+ what: there's no loop around this for `break` to stop
+ why:  `break;` stops the innermost loop (D128)

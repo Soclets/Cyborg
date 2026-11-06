@@ -1,0 +1,5 @@
+refused: d128_while_needs_a_bool.cy:3:11, line 3 column 11
+ 3 |     while 1:
+   |           ^
+ what: this is `i32`, where a `bool` is needed
+ why:  `:` doesn't convert, and `as` builds a new value of another type (D7)

@@ -1,0 +1,5 @@
+refused: d128_handler_with_break_needs_star.cy:13:38, line 13 column 38
+13 |         std::println("hi") otherwise say_failed.stop;
+   |                                      ^^^^^^^^^^^^^^^
+ fix:  `say_failed.*stop`
+ why:  a handler that can `return` or `break` is marked `*` where it's used (D46, D128)

@@ -1,0 +1,5 @@
+refused: d128_loop_name_that_clashes.cy:4:15, line 4 column 15
+ 4 |         break x;
+   |               ^
+ fix:  `my::x`
+ why:  a name of yours that clashes is written with `my::` (D75)

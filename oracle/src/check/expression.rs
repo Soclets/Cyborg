@@ -46,7 +46,7 @@ pub(super) fn literal_integer(expression: &Expression) -> Option<i128> {
     }
 }
 
-fn is_number_literal(expression: &Expression) -> bool {
+pub(super) fn is_number_literal(expression: &Expression) -> bool {
     match &expression.kind {
         ExpressionKind::Integer { .. } | ExpressionKind::Float { .. } => true,
         ExpressionKind::WithUnit { number, .. } | ExpressionKind::Group(number) => {
@@ -1658,12 +1658,12 @@ impl Checker<'_> {
                 "a handler narrowing is a named set of `otherwise` arms (D46)",
             ));
         };
-        let can_jump = arms.iter().any(|arm| statements_jump(&arm.body));
+        let can_jump = arms.iter().any(|arm| statements_jump(&arm.body, &[]));
         if can_jump && !jumps {
             return Err(Report::refused(
                 span,
                 "this handler can jump, so it's marked `*` here",
-                "a handler that can `return`, `break` or `continue` is marked `*` where it's used (D46)",
+                "a handler that can `return` or `break` is marked `*` where it's used (D46, D128)",
             )
             .fix(format!("{family}.*{name}")));
         }
@@ -1751,6 +1751,15 @@ impl Checker<'_> {
             },
             result,
         ))
+    }
+
+    /// Two numbers with one type, where a literal takes its type from the other.
+    pub(super) fn check_two_numbers(
+        &mut self,
+        left: &Expression,
+        right: &Expression,
+    ) -> Outcome<((Node, Type), (Node, Type))> {
+        self.check_operands(left, right, None)
     }
 
     /// Reads two operands, so a literal takes its type from the other side.
@@ -2210,19 +2219,39 @@ impl Checker<'_> {
     }
 }
 
-/// Whether a handler's arm can `return`, which is what the `*` marks. (D46)
-fn statements_jump(statements: &[crate::ast::Statement]) -> bool {
+/// Whether a handler's arm can `return` or `break` out of itself, which is what the `*` marks.
+/// A `break` of a loop inside the arm stays inside it. (D46, D128)
+fn statements_jump(statements: &[crate::ast::Statement], loops: &[Option<&str>]) -> bool {
     use crate::ast::StatementKind;
+    let in_a_loop = |body: &[crate::ast::Statement], name: Option<&crate::ast::Name>| {
+        let mut around = loops.to_vec();
+        around.push(name.map(|name| name.text.as_str()));
+        statements_jump(body, &around)
+    };
     statements.iter().any(|statement| match &statement.kind {
         StatementKind::Return(_) => true,
+        StatementKind::Break { name: None } => loops.is_empty(),
+        StatementKind::Break { name: Some(path) } => {
+            let wanted = path.text.strip_prefix("my::").unwrap_or(&path.text);
+            !loops.contains(&Some(wanted))
+        }
         StatementKind::If { links, last } => {
-            links.iter().any(|link| statements_jump(&link.body))
-                || last.as_ref().is_some_and(|block| statements_jump(block))
+            links.iter().any(|link| statements_jump(&link.body, loops))
+                || last
+                    .as_ref()
+                    .is_some_and(|block| statements_jump(block, loops))
         }
-        StatementKind::For { body, .. } | StatementKind::Shield { body, .. } => {
-            statements_jump(body)
+        StatementKind::Shield { body, .. } => statements_jump(body, loops),
+        StatementKind::For {
+            loop_name, body, ..
         }
-        StatementKind::Match { arms, .. } => arms.iter().any(|arm| statements_jump(&arm.body)),
+        | StatementKind::While {
+            loop_name, body, ..
+        }
+        | StatementKind::Forever { loop_name, body } => in_a_loop(body, loop_name.as_ref()),
+        StatementKind::Match { arms, .. } => {
+            arms.iter().any(|arm| statements_jump(&arm.body, loops))
+        }
         _ => false,
     })
 }

@@ -140,10 +140,30 @@ pub enum InstructionKind {
         arms: Vec<(usize, Vec<Instruction>)>,
     },
     For {
+        loop_id: usize,
         slot: usize,
         collection: Node,
         body: Vec<Instruction>,
     },
+    ForRange {
+        loop_id: usize,
+        slot: usize,
+        from: Node,
+        end: Node,
+        included: bool,
+        step: Option<Node>,
+        body: Vec<Instruction>,
+    },
+    While {
+        loop_id: usize,
+        condition: Node,
+        body: Vec<Instruction>,
+    },
+    Forever {
+        loop_id: usize,
+        body: Vec<Instruction>,
+    },
+    Break(usize),
     Return(Node),
     Fail {
         name: String,

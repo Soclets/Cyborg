@@ -1,0 +1,5 @@
+refused: d128_forever_with_a_break_can_end.cy:6:1, line 6 column 1
+ 6 | end fn f
+   | ^^^^^^^^
+ what: `f` can reach its end without a `return`
+ why:  `return` hands back a value (D11)

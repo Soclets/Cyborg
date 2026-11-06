@@ -1,0 +1,5 @@
+refused: d128_range_step_before_the_end.cy:3:42, line 3 column 42
+ 3 |     for $i in range[from: 1, step_by: 2, to: 5]:
+   |                                          ^^
+ what: `to:` is out of order here
+ why:  `from:` is required, `to:` or `before:` says where it ends, and `step_by:` comes after them, in that order (D128)

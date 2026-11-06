@@ -1,0 +1,5 @@
+refused: d128_range_counts_the_wrong_way.cy:3:15, line 3 column 15
+ 3 |     for $i in range[from: 1, to: 5, step_by: -1]:
+   |               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ what: this range can never reach its end
+ why:  a range that can never reach its end is refused, and a negative `step_by:` counts down (D128)

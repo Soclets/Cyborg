@@ -2,11 +2,12 @@
 
 use crate::ast::{
     Argument, Arm, BinaryOperator, BorrowSources, CompareOperator, Contract, Describe, Expression,
-    ExpressionKind, FailureEntry, FailureSet, FieldDeclaration, FieldValue, Fill, Function,
-    FunctionKind, HandWord, Handler, HandlerSet, Handling, IfLink, IfTest, Import, Item, LabelLine,
-    Name, Narrowing, Parameter, ParameterWord, Path, Program, ShieldContent, ShieldItem, Statement,
-    StatementKind, StructDeclaration, Together, TogetherOperator, TypeExpression, TypeKind,
-    UnionCase, UnionDeclaration, UnitMeaning, UnitMember, UnitSet, Use,
+    ExpressionKind, FailureEntry, FailureSet, FieldDeclaration, FieldValue, Fill, ForSource,
+    Function, FunctionKind, HandWord, Handler, HandlerSet, Handling, IfLink, IfTest, Import, Item,
+    LabelLine, Name, Narrowing, Parameter, ParameterWord, Path, Program, RangeEnd, RangeExpression,
+    ShieldContent, ShieldItem, Statement, StatementKind, StructDeclaration, Together,
+    TogetherOperator, TypeExpression, TypeKind, UnionCase, UnionDeclaration, UnitMeaning,
+    UnitMember, UnitSet, Use,
 };
 use crate::report::{Outcome, Report, ReportExtra, Span};
 
@@ -48,6 +49,11 @@ const CLASHING_WORDS: &[&str] = &[
     "inf",
     "true",
     "false",
+    "else",
+    "while",
+    "forever",
+    "break",
+    "range",
     "bake",
     "narrowings",
     "together",
@@ -1642,6 +1648,26 @@ impl Parser {
                 "if" => return self.parse_if(),
                 "match" => return self.parse_match(),
                 "for" => return self.parse_for(),
+                "while" => return self.parse_while(),
+                "forever" => return self.parse_forever(),
+                "break" => return self.parse_break(),
+                // trace: D128
+                "continue" if self.symbol_at(1, ";") => {
+                    return Err(Report::refused(
+                        start,
+                        "there is no `continue`, so wrap the work in an `if`",
+                        "each loop says how it ends, and there is no `continue` (D128)",
+                    ));
+                }
+                // trace: D128
+                "loop" if self.symbol_at(1, ":") => {
+                    return Err(Report::refused(
+                        start,
+                        "a loop with no end says so",
+                        "`forever` has no end unless you `break`, so one word finds every endless loop (D128)",
+                    )
+                    .fix("forever"));
+                }
                 "shield" => return self.parse_shield_statement(),
                 "return" => {
                     self.advance();
@@ -1665,9 +1691,6 @@ impl Parser {
                         span: start.to(end),
                         kind: StatementKind::Fail { path, data },
                     });
-                }
-                "while" | "loop" | "break" | "continue" => {
-                    return Err(Report::not_designed(start, format!("`{word}`"), "12.4"));
                 }
                 // trace: D84
                 "precond" | "postcond" if self.symbol_at(1, "=>") => {
@@ -1822,26 +1845,215 @@ impl Parser {
         })
     }
 
+    /// `for rows $row in $grid:`. The name is only for `break`. (D128)
+    /// trace: D128
     fn parse_for(&mut self) -> Outcome<Statement> {
         let start = self.advance().span; // `for`
+        let loop_name = if matches!(self.peek().lexeme, Lexeme::Word(_)) {
+            Some(self.expect_name("the loop's name")?)
+        } else {
+            None
+        };
         let name = self.expect_variable("the item's name, starting with `$`")?;
         if !self.eat_word("in") {
             return Err(self.expected("`in`"));
         }
-        if self.at_word("range") {
-            return Err(Report::not_designed(self.span(), "ranges", "12.4"));
-        }
-        let collection = self.parse_expression()?;
+        let source = if self.at_word("range") && self.symbol_at(1, "[") {
+            ForSource::Range(self.parse_range()?)
+        } else {
+            ForSource::Collection(self.parse_expression()?)
+        };
         self.expect_symbol(":")?;
         let body = self.parse_block()?;
-        let end = self.expect_closer(&["for"])?;
+        let end = self.expect_loop_closer("for", loop_name.as_ref())?;
         Ok(Statement {
             span: start.to(end),
             kind: StatementKind::For {
+                loop_name,
                 name,
-                collection,
+                source,
                 body,
             },
+        })
+    }
+
+    /// `range[from: 1, to: 5, step_by: 2]`, with its labels in that order. (D128)
+    /// trace: D128
+    fn parse_range(&mut self) -> Outcome<RangeExpression> {
+        const WHY: &str = "`from:` is required, `to:` or `before:` says where it ends, and `step_by:` comes after them, in that order (D128)";
+        let start = self.advance().span; // `range`
+        self.advance(); // `[`
+        let mut from = None;
+        let mut end = None;
+        let mut step = None;
+        let mut reached = 0;
+        while !self.at_symbol("]") {
+            let label = self.expect_name("`from:`, `to:`, `before:` or `step_by:`")?;
+            let order = match label.text.as_str() {
+                "from" => 1,
+                "to" | "before" => 2,
+                "step_by" => 3,
+                other => {
+                    return Err(Report::refused(
+                        label.span,
+                        format!("a range has no `{other}:`"),
+                        WHY,
+                    ));
+                }
+            };
+            if order <= reached {
+                return Err(Report::refused(
+                    label.span,
+                    format!("`{}:` is out of order here", label.text),
+                    WHY,
+                ));
+            }
+            reached = order;
+            if self.at_symbol("=") {
+                return Err(Report::refused(
+                    self.span(),
+                    "a range's values are named with `:`",
+                    "a label names a value inside brackets (D13)",
+                )
+                .fix(":"));
+            }
+            self.expect_symbol(":")?;
+            let value = self.parse_expression()?;
+            match label.text.as_str() {
+                "from" => from = Some(value),
+                "step_by" => step = Some(value),
+                _ => {
+                    end = Some(RangeEnd {
+                        value,
+                        included: label.text == "to",
+                    });
+                }
+            }
+            if !self.eat_symbol(",") {
+                break;
+            }
+        }
+        let close = self.expect_symbol("]")?;
+        let span = start.to(close);
+        let Some(from) = from else {
+            return Err(Report::refused(span, "a range needs `from:`", WHY));
+        };
+        let Some(end) = end else {
+            return Err(Report::refused(
+                span,
+                "this range has no end, so it can never reach one",
+                "a range that can never reach its end is refused, and an endless loop is `forever` (D128)",
+            ));
+        };
+        Ok(RangeExpression {
+            span,
+            from,
+            end,
+            step,
+        })
+    }
+
+    /// A word that names a `while` or `forever`, which 4.8 implies but doesn't show.
+    fn refuse_named_loop_for_now(&mut self, keyword: &str) -> Outcome<()> {
+        let Lexeme::Word(word) = &self.peek().lexeme else {
+            return Ok(());
+        };
+        if is_clashing(word) {
+            return Ok(());
+        }
+        let is_named = match keyword {
+            "forever" => self.symbol_at(1, ":"),
+            _ => matches!(
+                self.peek_at(1).lexeme,
+                Lexeme::Variable(_)
+                    | Lexeme::Integer(_)
+                    | Lexeme::Float(_)
+                    | Lexeme::Text(_)
+                    | Lexeme::Word(_)
+            ),
+        };
+        if is_named {
+            return Err(Report::not_designed(
+                self.span(),
+                format!("how `{keyword}` is named, which 4.8 only shows on `for`"),
+                "",
+            ));
+        }
+        Ok(())
+    }
+
+    /// trace: D128
+    fn parse_while(&mut self) -> Outcome<Statement> {
+        let start = self.advance().span; // `while`
+        self.refuse_named_loop_for_now("while")?;
+        let condition = match self.parse_if_test()? {
+            IfTest::Condition(condition) => condition,
+            IfTest::Type { written_type, .. } => {
+                return Err(Report::not_designed(
+                    written_type.span,
+                    "the test in a `while`",
+                    "12.4",
+                ));
+            }
+        };
+        let body = self.parse_block()?;
+        let end = self.expect_loop_closer("while", None)?;
+        Ok(Statement {
+            span: start.to(end),
+            kind: StatementKind::While {
+                loop_name: None,
+                condition,
+                body,
+            },
+        })
+    }
+
+    /// trace: D128
+    fn parse_forever(&mut self) -> Outcome<Statement> {
+        let start = self.advance().span; // `forever`
+        self.refuse_named_loop_for_now("forever")?;
+        self.expect_symbol(":")?;
+        let body = self.parse_block()?;
+        let end = self.expect_loop_closer("forever", None)?;
+        Ok(Statement {
+            span: start.to(end),
+            kind: StatementKind::Forever {
+                loop_name: None,
+                body,
+            },
+        })
+    }
+
+    /// `end for rows` on a named loop and `end for` on one without a name. (D33, D128)
+    fn expect_loop_closer(&mut self, keyword: &str, name: Option<&Name>) -> Outcome<Span> {
+        if let Some(name) = name {
+            return self.expect_closer(&[keyword, &name.text]);
+        }
+        let end = self.expect_closer(&[keyword])?;
+        if matches!(self.peek().lexeme, Lexeme::Word(_)) && !self.peek().starts_a_line {
+            return Err(Report::refused(
+                end.to(self.span()),
+                format!("this `{keyword}` has no name for its closer to repeat"),
+                "the closer repeats what it closes, including the name (D33, D128)",
+            )
+            .fix(format!("end {keyword}")));
+        }
+        Ok(end)
+    }
+
+    /// `break;` and `break rows;`.
+    /// trace: D128
+    fn parse_break(&mut self) -> Outcome<Statement> {
+        let start = self.advance().span; // `break`
+        let name = if self.at_symbol(";") {
+            None
+        } else {
+            Some(self.parse_path()?)
+        };
+        let end = self.expect_semicolon()?;
+        Ok(Statement {
+            span: start.to(end),
+            kind: StatementKind::Break { name },
         })
     }
 
@@ -2699,6 +2911,13 @@ impl Parser {
                 return self.parse_hand(HandWord::Lend, start);
             }
             _ => {}
+        }
+        if word == "range" && self.symbol_at(1, "[") {
+            return Err(Report::not_designed(
+                start,
+                "a range anywhere but straight after `in`",
+                "",
+            ));
         }
         // trace: D75
         if self.symbol_at(1, "(") && word != "my" && is_clashing(word) {

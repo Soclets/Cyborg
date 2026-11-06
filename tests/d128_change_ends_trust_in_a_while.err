@@ -1,0 +1,9 @@
+refused: d128_change_ends_trust_in_a_while.cy:12:27, line 12 column 27
+12 |             let $a: i32 = $s.code;
+   |                           ^^^^^^^
+ what: `$s` may not be `status.failed` any more
+ why:  a test's trust ends at a `change`, and at a `Lend.mut` too (D104)
+ because: d128_change_ends_trust_in_a_while.cy:13:13, line 13 column 13
+13 |             change $s = status.ok;
+   |             ^^^^^^^^^^^^^^^^^^^^^^
+     `$s` changed here

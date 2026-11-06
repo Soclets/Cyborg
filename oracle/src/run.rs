@@ -34,6 +34,7 @@ struct Raised {
 enum Stop {
     Raised(Raised),
     Return(Value, Span),
+    Break(usize),
     Report(Box<Report>),
 }
 
@@ -142,6 +143,13 @@ pub fn check_compile_time(code: &Code) -> Outcome<()> {
                     "a `const`'s value must be fully known at compile time (D83, D91)",
                 ));
             }
+            Err(Stop::Break(_)) => {
+                return Err(Report::refused(
+                    node.span,
+                    "this `break` jumps out of compile-time code",
+                    "a `const`'s value must be fully known at compile time (D83, D91)",
+                ));
+            }
             Err(Stop::Return(_, span)) => {
                 return Err(Report::refused(
                     span,
@@ -186,7 +194,7 @@ pub fn run(code: &Code) -> Outcome<()> {
             format!("{}, and nothing handled it", raised.shown),
             "a failure nothing handles stops the program (D96)",
         )),
-        Err(Stop::Return(..)) => Ok(()),
+        Err(Stop::Return(..) | Stop::Break(_)) => Ok(()),
     }
 }
 
@@ -388,6 +396,7 @@ impl<'c> Runner<'c> {
                 Err(oracle_bug(span, "a `match` missed a case the checker saw"))
             }
             InstructionKind::For {
+                loop_id,
                 slot,
                 collection,
                 body,
@@ -400,10 +409,47 @@ impl<'c> Runner<'c> {
                 };
                 for item in items {
                     Self::set_slot(frame, *slot, Binding::fresh(item), span)?;
-                    self.run_block(body, frame)?;
+                    if self.run_loop_body(*loop_id, body, frame, span)? {
+                        break;
+                    }
                 }
                 Ok(())
             }
+            InstructionKind::ForRange {
+                loop_id,
+                slot,
+                from,
+                end,
+                included,
+                step,
+                body,
+            } => self.run_range(
+                *loop_id,
+                *slot,
+                from,
+                end,
+                *included,
+                step.as_ref(),
+                body,
+                frame,
+            ),
+            InstructionKind::While {
+                loop_id,
+                condition,
+                body,
+            } => {
+                while self.evaluate(condition, frame)? == Value::Bool(true) {
+                    if self.run_loop_body(*loop_id, body, frame, span)? {
+                        break;
+                    }
+                }
+                Ok(())
+            }
+            InstructionKind::Forever { loop_id, body } => {
+                while !self.run_loop_body(*loop_id, body, frame, span)? {}
+                Ok(())
+            }
+            InstructionKind::Break(loop_id) => Err(Stop::Break(*loop_id)),
             InstructionKind::Return(value) => {
                 let value = self.evaluate(value, frame)?;
                 Err(Stop::Return(value, span))
@@ -428,6 +474,86 @@ impl<'c> Runner<'c> {
                 Ok(())
             }
             InstructionKind::Block(body) => self.run_block(body, frame),
+        }
+    }
+
+    /// Runs one time round a loop, and says whether a `break` stopped it. Each time counts as a
+    /// step, so an empty `forever` in compile-time code still reaches the limit.
+    fn run_loop_body(
+        &mut self,
+        loop_id: usize,
+        body: &[Instruction],
+        frame: &mut Frame,
+        span: Span,
+    ) -> Result<bool, Stop> {
+        self.step(span)?;
+        match self.run_block(body, frame) {
+            Ok(()) => Ok(false),
+            Err(Stop::Break(target)) if target == loop_id => Ok(true),
+            Err(other) => Err(other),
+        }
+    }
+
+    /// trace: D128
+    #[allow(clippy::too_many_arguments)] // A range has this many parts.
+    fn run_range(
+        &mut self,
+        loop_id: usize,
+        slot: usize,
+        from: &Node,
+        end: &Node,
+        included: bool,
+        step: Option<&Node>,
+        body: &[Instruction],
+        frame: &mut Frame,
+    ) -> Result<(), Stop> {
+        let number = |value: Value, node: &Node| match value {
+            Value::Integer(number) => Ok(number),
+            _ => Err(oracle_bug(node.span, "a range of something else")),
+        };
+        let start = self.evaluate(from, frame)?;
+        let mut current = number(start, from)?;
+        let stop = self.evaluate(end, frame)?;
+        let stop = number(stop, end)?;
+        let by = match step {
+            Some(node) => {
+                let value = self.evaluate(node, frame)?;
+                number(value, node)?
+            }
+            None => 1,
+        };
+        // The checker refuses this when it can see the numbers. When only running shows them,
+        // nothing says whether it runs zero times or stops the program.
+        if by == 0 || (by > 0 && current > stop) || (by < 0 && current < stop) {
+            return Err(Stop::Report(
+                Report::not_designed(
+                    from.span.to(end.span),
+                    "a range that turns out while running never to reach its end",
+                    "",
+                )
+                .when(format!("from {current}, ending at {stop}, by {by}")),
+            ));
+        }
+        loop {
+            let inside = match (by > 0, included) {
+                (true, true) => current <= stop,
+                (true, false) => current < stop,
+                (false, true) => current >= stop,
+                (false, false) => current > stop,
+            };
+            if !inside {
+                return Ok(());
+            }
+            Self::set_slot(
+                frame,
+                slot,
+                Binding::fresh(Value::Integer(current)),
+                from.span,
+            )?;
+            if self.run_loop_body(loop_id, body, frame, from.span)? {
+                return Ok(());
+            }
+            current += by;
         }
     }
 
