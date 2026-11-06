@@ -7,7 +7,7 @@
 | [6.3](#63-copy) | `Copy` | A separate copy |
 | [6.4](#64-lend-and-bare-parameters) | `Lend`, bare | Read-only borrow |
 | [6.5](#65-lendmut-and-lentmut) | `Lend.mut`, `Lent.mut` | Borrow that may change it |
-| [6.6](#66-integers-and-bool) | Integers, `bool` | Always copied, no word |
+| [6.6](#66-plain-numbers-and-bool) | Plain numbers, `bool` | Always copied, no word |
 | [6.7](#67-no-implicit-ownership) | No implicit ownership | Every hand-off shows |
 | [6.8](#68--unsaid-ownership) | `%` | Unsaid ownership on a method |
 | [6.9](#69-must_give) | `must_Give` | Handed off exactly once |
@@ -49,7 +49,7 @@ close(Give $f);
 
 **Rule:** `Copy` hands over a separate copy, to a `Given` parameter. There is no parameter word for `Copy`.
 
-**Refused:** `Copy` on an integer or `bool` ([6.6](#66-integers-and-bool)).
+**Refused:** `Copy` on an integer or `bool` ([6.6](#66-plain-numbers-and-bool)).
 
 **From:** D2.
 
@@ -83,13 +83,13 @@ add_row(Lend.mut $t);
 
 **From:** D2.
 
-## 6.6 Integers and `bool`
+## 6.6 Plain numbers and `bool`
 
-**Rule:** they're always copied, and take no word.
+**Rule:** they're always copied, and take no word. That covers `i32`, `f64`, bounded integers, numbers with units and `d32`.
 
 **Refused:** any ownership word on them.
 
-**From:** D2.
+**From:** D2, D123.
 
 ## 6.7 No implicit ownership
 

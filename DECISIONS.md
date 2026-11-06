@@ -702,6 +702,9 @@ owner's design; nesting and names are new. The owner asked "Name the comment blo
 
 **D122. A number prints bare.** `$xs.len as str` gives `3`, with no unit. A narrowing asks for the unit, spelled `as str.with_unit` as a placeholder. How the unit then prints, such as `3600 time.seconds`, is not settled here. Oracle claude asked; Claude proposed it; the owner chose: "Print bare, and a narrowing?". (Owner, 2026-11-06)
 
+**D123. Every plain number takes no ownership word.** Plain numbers and `bool` are always copied, covering `i32`, `f64`, bounded integers, numbers with units and `d32`. This widens D2, which came from Radium before it had floats and only named integers and `bool`. On a number, a word can't tell you anything you could be wrong about. Oracle claude asked;
+the owner asked "Does saying the word really add any safety?"; Claude proposed this; the owner chose: "yea". (Owner, 2026-11-06)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude
