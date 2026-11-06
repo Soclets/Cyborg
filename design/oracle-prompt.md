@@ -9,11 +9,16 @@ general systems language in design by its owner, Tankun.
 
 The oracle is a small Rust program that runs and refuses Cyborg
 programs by following the design directly. It exists to test the
-design before the real compiler can exist, since the compiler is
-waiting on an LLVM toolchain that isn't built yet. Contradictions
-are much cheaper to find now, so what you discover about the design
-matters as much as the code. Later, the compiler has to match its
-output byte for byte, so correctness beats speed.
+design before the real compiler gets built. Contradictions are much
+cheaper to find now, so what you discover about the design matters
+as much as the code. Later, the compiler has to match its output
+byte for byte, so correctness beats speed.
+
+The design isn't finished, and it's still changing quickly. Control
+flow beyond `if` and `for`, operator precedence, comments, `true` and
+`false`, and declaring methods are all undecided right now, so expect
+to hit NotDesignedYet early, and pull often. Keep the syntax handling
+in one place, so a spelling change stays small.
 
 Run `git pull --rebase` first, since this clone may be behind. Then
 read IMPLEMENTATION.md, then all of standard/, then design/sketch.md.
@@ -37,7 +42,8 @@ Build it in oracle/, with tests in tests/:
 Start with the sketch: make design/sketch.md's program run and print
 its real output. Then add the decisions that real programs use most:
 ownership words and their errors, %, structs, union.tagged, match,
-the if test, bounds, failures, then the rest. Work in small commits.
+the if test, bounds, failures, units, then the rest. Work in small
+commits.
 
 The design belongs to the owner, so you don't make design choices.
 When something is undecided, give a NotDesignedYet error and move on
