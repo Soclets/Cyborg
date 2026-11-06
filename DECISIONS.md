@@ -555,6 +555,11 @@ spelling, what needs importing, and what a manifest still does are not settled h
 there. A program using only `std` needs no manifest, so hello world can stay a single file. Claude proposed it; the owner chose: "yea".
 (Owner, 2026-11-06)
 
+**D82. Everything is imported, and `use` exists.** `std` gets imported like everything else, and so do limbs. Builtins and `my::` need no import.
+Cyborg also has something like Rust's `use`, in the owner's own style, which isn't described yet. The spelling of importing is not settled
+here. Claude proposed importing `std`; the owner chose: "yea. And should it be something like `@import`? Btw, we'll also have Rust's `use`, but
+in my style". (Owner, 2026-11-06)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude

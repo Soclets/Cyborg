@@ -61,13 +61,13 @@ std::println($r.celsius as str);
 
 ## 1.5 Paths: `::`
 
-**Rule:** `::` reaches into a kit or limb by its path. A file imports what it uses, and a manifest lists what's installed and which version. A program using only `std` needs no manifest. The spelling isn't decided ([12.9](12-not-decided.md#129-limbs-and-projects)). There is no `@import`.
+**Rule:** `::` reaches into a kit or limb by its path. A file imports what it uses, and a manifest lists what's installed and which version. Everything gets imported, including `std` and limbs, but not builtins or `my::`. A program using only `std` needs no manifest. The spelling isn't decided ([12.9](12-not-decided.md#129-limbs-and-projects)). There is no `@import`.
 
 ```
 std::println("hi");
 ```
 
-**From:** D22, D56, D80, D81.
+**From:** D22, D56, D80, D81, D82.
 
 ## 1.6 Narrowings: `.`
 
