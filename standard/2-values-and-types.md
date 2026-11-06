@@ -50,9 +50,11 @@ const $b: i32 = 60 x 60;
 const $pi: f64 = ~3.14159265358979323846;
 ```
 
+It can call `fn.pure.baked` functions ([5.11](5-functions.md#511-baking)).
+
 **Refused:** `const $a: i32 = read();`.
 
-**From:** D58, D59, D83.
+**From:** D58, D59, D83, D91.
 
 ## 2.4 Integers
 

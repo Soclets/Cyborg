@@ -67,8 +67,7 @@ These are places where decisions leave a real gap or pull against each other.
 - How a method is declared, and how its receiver appears in the signature.
 - Generics (D85, D87): the spelling, including `?T` and declaring a bound, how a bound is defined, whether you can declare one for a type from someone else's kit, and how specialization and value parameters are written.
 - Whether a `fn.pure` may allocate or fail.
-- Baking. Claude proposed `fn.pure.baked` with `const`.
-- The inline compile-time language (D88, D89, D90): its syntax, and how it relates to baking.
+- The inline compile-time language (D88 to D91): its syntax.
 - Whether every `void` function says `return void;`.
 - When a call needs labels ([12.1](#121-problems-found-writing-this)).
 - Comments. Examples in the decisions use `//`, but it was never chosen.

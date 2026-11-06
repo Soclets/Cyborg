@@ -12,6 +12,7 @@
 | [5.8](#58-generics) | `<?T: ordered>` | C++ templates, but safer |
 | [5.9](#59-pure-functions) | `fn.pure` | Same input, same output, nothing else changes |
 | [5.10](#510-the-inline-compile-time-language) | Inline language | Templates, but more powerful and safe |
+| [5.11](#511-baking) | `bake`, `fn.pure.baked`, `const` | Compile-time values |
 
 ## 5.1 Declaring
 
@@ -154,3 +155,21 @@ Its syntax isn't designed ([12.5](12-not-decided.md#125-functions)).
 **Refused:** generating arbitrary code from text.
 
 **From:** D85, D88, D89, D90.
+
+## 5.11 Baking
+
+**Rule:** all compile-time work belongs to the inline language ([5.10](#510-the-inline-compile-time-language)). A `const`'s value is inline-language code, and `bake` is the shortest piece of it. It can call normal functions marked `fn.pure.baked`, and only those, and they also run normally.
+
+```
+fn.pure.baked seconds_in [$days: i32] -> i32:
+    return $days x 86_400;
+end fn seconds_in
+
+const $week: i32 = seconds_in(7);
+let $day: i32 = bake seconds_in(1);
+let $n: i32 = seconds_in($d);
+```
+
+**Refused:** baking a function that isn't `fn.pure.baked`, and a compile-time step limit being reached. An edit that stops a function being baked is refused on that function.
+
+**From:** D86, D89, D91.

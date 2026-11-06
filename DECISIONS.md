@@ -598,6 +598,11 @@ definition, generated code follows ownership, `%`, shields and everything else, 
 Generating a struct's fields and generating functions are goals, if the checking in D89 works out. Generating arbitrary code from text is out, because D89 can't hold for it. Claude proposed it; the
 owner chose: "yea". (Owner, 2026-11-06)
 
+**D91. The inline language does all compile-time work.** Types, structure and values. A `const`'s value is inline-language code, and `bake` is the shortest piece of it, as in `let $day: i32 = bake
+seconds_in(1);`. It can call normal functions marked `fn.pure.baked`, and only those, so nothing gets written twice, and those functions also run normally. Breaking one gives an error on that function.
+All compile-time code gets D89's guarantees, including the step limit. The owner asked "Why not let the inline lang do it?" about Claude's suggestion of two separate tools; Claude agreed and proposed this;
+the owner chose: "yea". (Owner, 2026-11-06)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude
