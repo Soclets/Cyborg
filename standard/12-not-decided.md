@@ -30,6 +30,8 @@ Waiting on the owner, most needed first. Each is `NotDesignedYet` unless it says
 - **Fields.** Whether `for` over `$b.items` uses all of `$b`; `change` on another field during a borrow; `Lend.mut` on two different fields in one call; `change $s.code` inside its test, and whether trust survives; `Give $r.name`. The oracle allows `change` through a stored `Lend.mut`, which is its reading.
 - **`$xs.len`'s type.** Its width, and whether it fits `i32.items`.
 - **Trust in `else:`.** With two cases, whether `else:` knows `$s` is the other one, and whether trust carries on after a block that always leaves. Both are refused today.
+- **Ranges.** A range only known while running that can't reach its end, like `range[from: $start, to: 1]`, or `step_by: $s` being 0: zero rounds, or a crash? How to name `while` and `forever`, like `forever rows:`. A `step_by` that jumps past the end runs 1, 3, 5 today, and `range[from: 2, before: 2]` runs zero times, which are readings. A step's type on a `u8`. Ranges of floats, units and lengths. A range anywhere but after `in`. A nested loop reusing an outer one's name.
+- **Handlers and loops.** Today a handler only needs `*` if its `break` leaves the arm, and `while true:` still needs a `return` after it, because only `forever` promises not to finish. Both are readings.
 - **Dead variables.** Whether `eat(Give $s); change $s = "b";` is allowed. It's refused today.
 - **Names.** Declaring a name already in scope, or hiding an outer one.
 - **`ensures` on a `fail` path.** Checked only on `return` today, which is a guess.
