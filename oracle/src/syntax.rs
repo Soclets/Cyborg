@@ -709,6 +709,17 @@ impl Parser {
         self.advance();
         let mut text = first;
         while self.at_symbol(".") {
+            if self.symbol_at(1, "%") {
+                let Lexeme::Word(next) = self.peek_at(2).lexeme.clone() else {
+                    break;
+                };
+                self.advance();
+                self.advance();
+                self.advance();
+                text.push_str(".%");
+                text.push_str(&next);
+                continue;
+            }
             let Lexeme::Word(next) = self.peek_at(1).lexeme.clone() else {
                 break;
             };
@@ -887,7 +898,7 @@ impl Parser {
                 span: start.to(self.previous_span()),
             }
         } else {
-            self.expect_name("the function's name")?
+            self.parse_function_name()?
         };
         if self.at_symbol("<") {
             return Err(Report::not_designed(
@@ -927,6 +938,32 @@ impl Parser {
         function.body = self.parse_block()?;
         function.end_span = self.parse_function_closer(kind, &function.name.text)?;
         Ok(function)
+    }
+
+    /// A plain name, or a method's type and name, as in `reading.%warm_up`. (D130)
+    fn parse_function_name(&mut self) -> Outcome<Name> {
+        let name = self.expect_name("the function's name")?;
+        if !self.at_symbol(".") {
+            return Ok(name);
+        }
+        // trace: D130
+        if self.symbol_at(1, "%") {
+            self.advance();
+            self.advance();
+            let method = self.expect_name("the method's name")?;
+            return Ok(Name {
+                text: format!("{}.%{}", name.text, method.text),
+                span: name.span.to(method.span),
+            });
+        }
+        self.advance();
+        let narrowing = self.expect_name("a method's `%`")?;
+        Err(Report::refused(
+            name.span.to(narrowing.span),
+            "a method's name has its `%`",
+            "a method is declared with its type in the name, as in `reading.%warm_up` (D130)",
+        )
+        .fix(format!("{}.%{}", name.text, narrowing.text)))
     }
 
     fn parse_function_closer(&mut self, kind: FunctionKind, name: &str) -> Outcome<Span> {

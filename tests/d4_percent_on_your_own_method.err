@@ -1,5 +1,5 @@
-NotDesignedYet: d4_percent_on_your_own_method.cy:9:5, line 9 column 5
+refused: d4_percent_on_your_own_method.cy:9:9, line 9 column 9
  9 |     $p.%area();
-   |     ^^^^^^^^^^
- what: how a method is declared, and so what `.%` finds
- why:  not decided yet (standard 12.5)
+   |         ^^^^
+ what: `point` has no method `area`
+ why:  a method is declared with its type in the name (D130)

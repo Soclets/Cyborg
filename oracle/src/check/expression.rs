@@ -5,7 +5,7 @@ use super::hand::HandedOff;
 use super::{Checker, Failure, Origin, ParameterInfo, Signature, WHY_TYPES};
 use crate::ast::{
     Argument, BinaryOperator, CompareOperator, Expression, ExpressionKind, FieldValue,
-    FunctionKind, Handling, ParameterWord,
+    FunctionKind, HandWord, Handling, ParameterWord,
 };
 use crate::ir::{self, Arithmetic, Node, NodeKind, Number};
 use crate::report::{Outcome, Report, ReportExtra, Span};
@@ -274,6 +274,16 @@ impl Checker<'_> {
                     .try_for_each(|argument| self.refuse_if_not_constant(&argument.value))
             }
             ExpressionKind::Hand { value: inner, .. } => self.refuse_if_not_constant(inner),
+            ExpressionKind::Method {
+                receiver,
+                arguments,
+                ..
+            } => {
+                self.refuse_if_not_constant(receiver)?;
+                arguments
+                    .iter()
+                    .try_for_each(|argument| self.refuse_if_not_constant(&argument.value))
+            }
             _ => Err(Report::refused(
                 value.span,
                 "this isn't known at compile time",
@@ -1293,6 +1303,28 @@ impl Checker<'_> {
             let path = format!("{limb}::{}", name.text);
             self.refuse_limb_outside_shield(&path, name.span)?;
         }
+        // `reading.%warm_up(…)` names the method in full, and D130 only shows `$r.%warm_up(…)`.
+        if let ExpressionKind::Path(path) = &receiver.kind {
+            if self.resolve_user_type(&path.text).is_some() {
+                return Err(Report::not_designed(
+                    span,
+                    "calling a method by its full name, as a plain function",
+                    "",
+                ));
+            }
+        }
+        let (fresh, receiver_type) = if root_variable(receiver).is_some() {
+            (None, self.check_held(receiver)?.value_type)
+        } else {
+            let (node, found) = self.check_expression(receiver, None)?;
+            (Some(node), found)
+        };
+        let own_method = match &receiver_type {
+            Type::Struct(type_name) | Type::Union(type_name) => {
+                Some(format!("{type_name}.%{}", name.text))
+            }
+            _ => None,
+        };
         // trace: D8
         if !percent {
             let report = Report::refused(
@@ -1300,7 +1332,14 @@ impl Checker<'_> {
                 "a `.` never runs code, and a `.%` always does",
                 "a `.` never runs code, and a `.%` always does (D8)",
             );
-            return Err(if name.text == "append" {
+            let is_own = own_method
+                .as_ref()
+                .is_some_and(|method| kit.is_none() && self.signatures.contains_key(method));
+            return Err(if is_own {
+                let mut fixed = report.fix(format!("{receiver_text}.%{}{after_name}", name.text));
+                fixed.span = span;
+                fixed
+            } else if name.text == "append" {
                 let mut fixed = report.fix(correct);
                 fixed.span = span;
                 fixed
@@ -1308,13 +1347,17 @@ impl Checker<'_> {
                 report
             });
         }
-        let is_std_list_method = {
-            let held = self.check_held(receiver);
-            match held {
-                Ok(held) => matches!(held.value_type, Type::List { .. }),
-                Err(report) => return Err(report),
-            }
-        };
+        let is_std_list_method = matches!(receiver_type, Type::List { .. });
+        if let (None, Some(method)) = (kit, &own_method) {
+            let Some(signature) = self.signatures.get(method).cloned() else {
+                return Err(Report::refused(
+                    name.span,
+                    format!("`{receiver_type}` has no method `{}`", name.text),
+                    "a method is declared with its type in the name (D130)",
+                ));
+            };
+            return self.check_own_method(receiver, fresh, &signature, arguments, span);
+        }
         match kit {
             None => {
                 // trace: D115
@@ -1328,8 +1371,8 @@ impl Checker<'_> {
                 }
                 return Err(Report::not_designed(
                     span,
-                    "how a method is declared, and so what `.%` finds",
-                    "12.5",
+                    format!("a method of your own on `{receiver_type}`"),
+                    "",
                 ));
             }
             Some("std") => {}
@@ -1422,6 +1465,93 @@ impl Checker<'_> {
             value_type: Type::Void,
             failures: Vec::new(),
             unnamed: Some(("what the failure is called when a list is full", "12.7")),
+        })
+    }
+
+    /// `$r.%warm_up(by: 2)`: the signature's first parameter says what `%` leaves unsaid.
+    /// trace: D4, D5, D130
+    fn check_own_method(
+        &mut self,
+        receiver: &Expression,
+        fresh: Option<Node>,
+        signature: &Signature,
+        arguments: &[Argument],
+        span: Span,
+    ) -> Outcome<RawCall> {
+        self.refuse_impure_call(signature, span)?;
+        // trace: D91
+        if self.context.in_constant > 0 && signature.kind != FunctionKind::PureBaked {
+            return Err(Report::refused(
+                span,
+                format!("`{}` isn't `fn.pure.baked`", signature.name),
+                "a `const`'s value must be fully known at compile time (D83, D91)",
+            ));
+        }
+        let Some((held_as, rest)) = signature.parameters.split_first() else {
+            return Err(Report::refused(
+                span,
+                "this method has no receiver",
+                "(D130)",
+            ));
+        };
+        let mut handed = Vec::new();
+        let mut code = Vec::new();
+        let receiver_argument = match (fresh, held_as.word) {
+            (Some(node), ParameterWord::Bare) => ir::Argument::Value(node),
+            (Some(_), _) => {
+                return Err(Report::not_designed(
+                    receiver.span,
+                    "lending a fresh value with `Lend.mut`",
+                    "",
+                ));
+            }
+            (None, word) => {
+                let hand = if word == ParameterWord::LentMut {
+                    HandWord::LendMut
+                } else {
+                    HandWord::Lend
+                };
+                let held = self.check_lent_place(receiver, hand)?;
+                handed.push(HandedOff {
+                    root: held.root_name.clone(),
+                    path: held
+                        .place
+                        .as_ref()
+                        .map(|place| place.path.clone())
+                        .unwrap_or_default(),
+                    word: hand,
+                    span: receiver.span,
+                });
+                match held.place {
+                    Some(place) => ir::Argument::Alias(place),
+                    None => ir::Argument::Value(held.node),
+                }
+            }
+        };
+        code.push((0, receiver_argument));
+        let bound =
+            self.bind_arguments(rest, signature.any_order, arguments, span, &signature.name)?;
+        let mut written: Vec<&Expression> = Vec::new();
+        for (parameter_index, value) in &bound {
+            let Some(parameter) = rest.get(*parameter_index) else {
+                continue;
+            };
+            let argument = self.check_argument(value, parameter, &mut handed)?;
+            written.push(value);
+            code.push((*parameter_index + 1, argument));
+        }
+        Self::check_handed_together(&handed, &Self::reads_in_place(&written))?;
+        Ok(RawCall {
+            node: Node {
+                span,
+                kind: NodeKind::Call {
+                    function: signature.index,
+                    arguments: code,
+                },
+            },
+            value_type: signature.return_type.clone(),
+            failures: signature.failures.clone(),
+            unnamed: None,
         })
     }
 
@@ -1685,22 +1815,28 @@ impl Checker<'_> {
         span: Span,
         expected: Option<&Type>,
     ) -> Outcome<(Node, Type)> {
-        let ExpressionKind::Call { path, .. } = &inner.kind else {
-            return Err(Report::not_designed(
-                inner.span,
-                "`bake` on anything but a call",
-                "12.5",
-            ));
-        };
-        let is_baked = self
-            .signature_of(&path.text)
-            .is_some_and(|signature| signature.kind == FunctionKind::PureBaked);
-        if !is_baked {
-            return Err(Report::refused(
-                inner.span,
-                format!("`{}` isn't `fn.pure.baked`", path.text),
-                "`bake` can call normal functions marked `fn.pure.baked`, and only those (D91)",
-            ));
+        match &inner.kind {
+            ExpressionKind::Call { path, .. } => {
+                let is_baked = self
+                    .signature_of(&path.text)
+                    .is_some_and(|signature| signature.kind == FunctionKind::PureBaked);
+                if !is_baked {
+                    return Err(Report::refused(
+                        inner.span,
+                        format!("`{}` isn't `fn.pure.baked`", path.text),
+                        "`bake` can call normal functions marked `fn.pure.baked`, and only those (D91)",
+                    ));
+                }
+            }
+            // `check_own_method` sees the receiver's type, so it refuses one that isn't baked.
+            ExpressionKind::Method { .. } => {}
+            _ => {
+                return Err(Report::not_designed(
+                    inner.span,
+                    "`bake` on anything but a call",
+                    "12.5",
+                ));
+            }
         }
         self.refuse_if_not_constant(inner)?;
         self.context.in_constant += 1;

@@ -1,0 +1,5 @@
+refused: d130_label_left_off.cy:14:28, line 14 column 28
+14 |     let $n: i32 = $b.%plus(1);
+   |                            ^
+ fix:  `by: 1`
+ why:  a declared label must be written, and a parameter with no label is called without one (D113, D114)

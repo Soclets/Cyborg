@@ -1,0 +1,5 @@
+refused: d130_impure_method_in_a_contract.cy:11:14, line 11 column 14
+11 |     requires $b.%positive();
+   |              ^^^^^^^^^^^^^^
+ what: `box.%positive` isn't pure, so a contract can't call it
+ why:  contracts can only call pure functions (D86)

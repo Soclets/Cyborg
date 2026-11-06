@@ -1,0 +1,5 @@
+refused: d130_lent_mut_on_a_let.cy:14:5, line 14 column 5
+14 |     $b.%bump();
+   |     ^^
+ what: `$b` can't change, so it can't be lent with `Lend.mut`
+ why:  `let` declares a variable that can't change, and `let mut` one that can (D3)

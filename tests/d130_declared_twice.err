@@ -1,0 +1,5 @@
+NotDesignedYet: d130_declared_twice.cy:10:4, line 10 column 4
+10 | fn box.%f [$b: box] -> i32:
+   |    ^^^^^^
+ what: declaring `box.%f` twice
+ why:  not decided yet, and the standard doesn't say

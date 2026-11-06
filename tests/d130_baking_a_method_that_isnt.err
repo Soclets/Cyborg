@@ -1,0 +1,5 @@
+refused: d130_baking_a_method_that_isnt.cy:11:17, line 11 column 17
+11 | const $c: i32 = $b.%twice();
+   |                 ^^^^^^^^^^^
+ what: `box.%twice` isn't `fn.pure.baked`
+ why:  a `const`'s value must be fully known at compile time (D83, D91)

@@ -1,0 +1,5 @@
+NotDesignedYet: d130_std_method_on_your_type.cy:10:14, line 10 column 14
+10 |     $b.std::%read();
+   |              ^^^^
+ what: the method `std::%read`, since `std`'s full contents aren't chosen
+ why:  not decided yet, and the standard doesn't say

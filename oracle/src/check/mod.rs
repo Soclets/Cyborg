@@ -912,6 +912,7 @@ impl Checker<'_> {
                 }
                 info.default = Some(value.clone());
             }
+            self.check_method_declaration(function, &parameters)?;
             let return_type = self.resolve_type(&function.return_type)?;
             if matches!(return_type, Type::Borrow { .. }) {
                 return Err(Report::not_designed(
@@ -946,6 +947,61 @@ impl Checker<'_> {
                     failures,
                 },
             );
+        }
+        Ok(())
+    }
+
+    /// A method's first parameter is its receiver, which is its type and only borrows.
+    /// trace: D130, D8
+    fn check_method_declaration(
+        &self,
+        function: &Function,
+        parameters: &[ParameterInfo],
+    ) -> Outcome<()> {
+        let Some((type_name, _)) = function.name.text.split_once(".%") else {
+            return Ok(());
+        };
+        let Some(declared) = self.resolve_user_type(type_name) else {
+            if is_clashing(type_name) || looks_like_number_type(type_name) {
+                return Err(Report::not_designed(
+                    function.name.span,
+                    format!("a method on `{type_name}`, which isn't your own type"),
+                    "",
+                ));
+            }
+            return Err(Report::refused(
+                function.name.span,
+                format!("the type `{type_name}` isn't known"),
+                "a method is declared with its type in the name (D130)",
+            ));
+        };
+        let Some((receiver, written)) = parameters.first().zip(function.parameters.first()) else {
+            return Err(Report::refused(
+                function.name.span,
+                format!("`{}` has no receiver", function.name.text),
+                "a method's first parameter is its receiver (D130)",
+            ));
+        };
+        if receiver.parameter_type != declared {
+            return Err(Report::refused(
+                written.written_type.span,
+                format!("this method is on `{type_name}`, so its receiver is one"),
+                "a method's first parameter is its receiver (D130)",
+            ));
+        }
+        if receiver.word == ParameterWord::Given {
+            return Err(Report::refused(
+                written.word_span,
+                "a method's receiver can't be `Given`",
+                "methods only borrow, and anything that consumes its value is a plain function (D8, D130)",
+            ));
+        }
+        if receiver.label.is_some() || receiver.default.is_some() {
+            return Err(Report::refused(
+                written.name.span,
+                "a method's receiver is written before `.%`, so it has no label or default",
+                "a method's first parameter is its receiver (D130)",
+            ));
         }
         Ok(())
     }

@@ -1,5 +1,5 @@
-// How a method is declared isn't decided.
-// trace: D8
+// `%` looks up the method on the receiver's type, and this one has none.
+// trace: D8, D130
 struct point:
     x: i32;
 end struct point
