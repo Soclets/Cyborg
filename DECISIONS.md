@@ -649,6 +649,9 @@ above 0 can't use it. Claude proposed `[1, 2, 3]` and `= zeroed`; the owner aske
 **D103. `empty` means nothing in here, for strings too.** `let $s: str = empty;`. `""` and `[]` are refused, with `fix: empty`, because `""` could look like unfinished work. `empty` is refused where it can't be true. The owner: "we literally have to say `return void`, and `""` could
 very much look like unfinished work"; Claude proposed this; the owner chose: "yea". (Owner, 2026-11-06)
 
+**D104. A test's trust ends at a `change`.** Inside `if $s: status.failed:`, changing `$s` is allowed, and the compiler stops trusting that `$s` is that kind from there on. Anything after it that needs that trust is refused, with `because:` pointing at the `change`. The same goes for
+lending it with `Lend.mut`, which is Claude's reading. Claude proposed it over refusing the `change`; the owner chose: "yea". (Owner, 2026-11-06)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude

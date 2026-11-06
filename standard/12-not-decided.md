@@ -22,7 +22,6 @@ These are places where decisions leave a real gap or pull against each other.
 
 | Problem | Decisions |
 |---|---|
-| **The test and `change`.** Inside `if $s: status.failed:`, what if `$s` is `let mut` and gets changed? The compiler's trust would be wrong. | D9 |
 | **Expensive contracts in `FinalSafe`.** D14 says contracts are checked, and `FinalSafe` keeps only cheap checks. Only a shield's exit is settled. | D14, D37, D39 |
 | **What `FinalShit` drops.** Does it also drop `%`, a missing `~`, or mismatched `Give` and `Lend`? D40's list says "such as". | D5, D40, D59 |
 | **Labels and parameters.** The sketch calls `append(val: 4)` with a label and `total(Lend $xs)` without one. Nothing says when a label is required, or how it relates to a parameter's name. | D13, D23 |
@@ -57,7 +56,6 @@ These are places where decisions leave a real gap or pull against each other.
 - `while`, `loop`, `break` and `continue`.
 - Ranges. Claude proposed `range.inclusive` and `range.exclusive`, with no bare `range`.
 - Where the test in [4.2](4-control-flow.md#42-the-test-if-n-t) is allowed besides `if`.
-- What the test does on a `let mut` value ([12.1](#121-problems-found-writing-this)).
 
 ## 12.5 Functions
 

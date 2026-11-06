@@ -39,9 +39,20 @@ end if
 
 Outside the block, `$s.code` is a compile error.
 
+Changing `$s` inside the block is allowed, and the compiler's trust ends there:
+
+```
+if $s: status.failed:
+    std::println($s.code as str);
+    change $s = status.ok;
+end if
+```
+
+**Refused:** reading `$s.code` after that `change`, with `because:` pointing at it.
+
 The test is the program's own logic, so on a plain integer it stays in every build mode. Adding a case to a union later doesn't break this test: it keeps compiling and skips the new case.
 
-**From:** D9, D20, D33.
+**From:** D9, D20, D33, D104.
 
 ## 4.3 `match`
 
