@@ -7,6 +7,7 @@
 | [1.3](#13-blocks-and-statements) | `:`, `;`, `end` | How code is laid out |
 | [1.4](#14-names-and-) | `$` | Variables have it, fields don't |
 | [1.5](#15-paths-) | `::` | How you reach a kit or limb |
+| [1.11](#111-short-names-use) | `use … as …;` | A shorter name for a path |
 | [1.6](#16-narrowings-) | `.` | Makes the thing before it more specific |
 | [1.7](#17-bare-names) | Bare names | The obvious default, or nothing |
 | [1.8](#18-brackets) | `( )`, `[ ]`, `< >` | Runs, describes, fills in |
@@ -155,3 +156,16 @@ If Cyborg later adds a built-in with the same name, old code gets a compile erro
 **Refused:** a bare `x(…)` when `x` is built in, with `fix: my::x(…)`.
 
 **From:** D75.
+
+## 1.11 Short names: `use`
+
+**Rule:** `use` gives a path a shorter name for that file, and `as` is always written.
+
+```
+use std::print.useful as printu;
+use @csup::extern.c as ext;
+```
+
+Whether a limb's short name keeps its `@` isn't decided ([12.9](12-not-decided.md#129-limbs-and-projects)).
+
+**From:** D93.

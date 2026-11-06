@@ -606,6 +606,15 @@ the owner chose: "yea". (Owner, 2026-11-06)
 **D92. `import std;`.** Importing is a plain keyword, with `import @csup;` for a limb. A thing is still reached by its path, as in `std::println`. It goes at the top of the file, so a file's dependencies can be read
 without running anything. Claude proposed it; the owner chose: "yea". (Owner, 2026-11-06)
 
+**D93. `use … as …;`.** `use` gives a path a shorter name for that file, and `as` is always written:
+
+```
+use std::print.useful as printu;
+use @csup::extern.c as ext;
+```
+
+The narrowing `std::print.useful` and `extern.c` are the owner's examples. Whether a limb's short name keeps its `@` is not settled here. The owner: "Like that". (Owner, 2026-11-06)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude

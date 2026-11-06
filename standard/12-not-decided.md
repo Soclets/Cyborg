@@ -102,7 +102,7 @@ These are inherited from Radium with D2:
 ## 12.9 Limbs and projects
 
 - Modules, and how files see each other.
-- `use`, in the owner's style (D82).
+- Whether a limb's short name from `use` keeps its `@`, since D22 promises a search for `@` finds every compiler extension.
 - The manifest's format and name. D30, D35 and D81 rely on it.
 - Whether the mark goes only at the path's start.
 - Whether other limbs have a kit part like `std`.

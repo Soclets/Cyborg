@@ -59,6 +59,7 @@ What Cyborg does now, in one place. The oracle, the compiler and check claude fo
 | `change` | [2.2](2-values-and-types.md#22-let-mut-and-change) | | `struct` | [7.1](7-structs-and-unions.md#71-declaring-a-struct) |
 | `check failed:` | [11.2](11-errors.md#112-kinds) | | `union.tagged` | [7.5](7-structs-and-unions.md#75-tagged-unions) |
 | `Copy` | [6.3](6-ownership.md#63-copy) | | `union.untagged` | [9.6](9-limbs-and-shields.md#96-cs-union) |
+| `use` | [1.11](1-programs.md#111-short-names-use) | | | |
 | curse | [10.8](10-build-modes.md#108-the-curse) | | UB | [10.4](10-build-modes.md#104-what-happens-when-something-goes-wrong) |
 | `d32` | [2.8](2-values-and-types.md#28-decimal-floats) | | `unproven:` | [11.2](11-errors.md#112-kinds) |
 | `div` | [3.3](3-operators.md#33-division-div) | | `void` | [2.15](2-values-and-types.md#215-void-and-bool) |
