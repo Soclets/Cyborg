@@ -700,6 +700,8 @@ owner's design; nesting and names are new. The owner asked "Name the comment blo
 
 **D121. A closer repeats all of it.** `fn.pure.baked seconds_in` closes with `end fn.pure.baked seconds_in`, like `end fn.main` and `end union.tagged status`. This corrects the examples in D86 and D91, which Claude copied from Radium. Oracle claude found the conflict; Claude proposed following the rule; the owner chose: "yea". (Owner, 2026-11-06)
 
+**D122. A number prints bare.** `$xs.len as str` gives `3`, with no unit. A narrowing asks for the unit, spelled `as str.with_unit` as a placeholder. How the unit then prints, such as `3600 time.seconds`, is not settled here. Oracle claude asked; Claude proposed it; the owner chose: "Print bare, and a narrowing?". (Owner, 2026-11-06)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude

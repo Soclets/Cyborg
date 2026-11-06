@@ -42,6 +42,7 @@ These are places where decisions leave a real gap or pull against each other. No
 - The full list of `div` narrowings, and what `div.exact` does in each mode.
 - Shifting by too much.
 - What can convert to what with `as`.
+- How a unit prints with `as str.with_unit`.
 
 ## 12.4 Control flow
 

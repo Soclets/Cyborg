@@ -190,7 +190,9 @@ std::println($t as str);
 
 A failed `as` is a failure, so it crashes unless handled ([8.9](8-failures.md#89-crash-by-default)). What can convert to what isn't decided ([12.3](12-not-decided.md#123-operators-and-conversion)).
 
-**From:** D7, D96.
+A number converts bare, with no unit, so `$xs.len as str` gives `3`. A narrowing asks for the unit: `as str.with_unit`, a placeholder.
+
+**From:** D7, D96, D122.
 
 ## 2.15 `void` and `bool`
 
