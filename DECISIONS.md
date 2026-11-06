@@ -712,6 +712,8 @@ run both". (Owner, 2026-11-06)
 
 **D126. `else` and `else if`.** `else if $n > 0:` and `else:` continue an `if`, with one `end if` closing the whole chain. The type test works in `else if` too. Oracle claude said it was missed most; the owner asked "Where's else if?"; Claude proposed this; the owner chose: "yea". (Owner, 2026-11-06)
 
+**D127. `true` and `false`.** A `bool` is `true` or `false`. Claude proposed it; the owner chose: "yea". (Owner, 2026-11-06)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude

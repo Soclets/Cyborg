@@ -196,9 +196,9 @@ A number converts bare, with no unit, so `$xs.len as str` gives `3`. A narrowing
 
 ## 2.15 `void` and `bool`
 
-**Rule:** a function that returns nothing returns `void`. A `bool` is always copied, and takes no ownership word.
+**Rule:** a function that returns nothing returns `void`. A `bool` is `true` or `false`, is always copied, and takes no ownership word.
 
-**From:** D2, D11.
+**From:** D2, D11, D127.
 
 ## 2.16 Units
 

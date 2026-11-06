@@ -54,7 +54,6 @@ Waiting on the owner, most needed first. Each is `NotDesignedYet` unless it says
 - Indexing, and what a bad index does.
 - `str` narrowings other than `str.utf16`, and how string literals work.
 - The full print (D98): how `std` spells the stream, the buffer and flushing.
-- `true` and `false`.
 - The test on a value already known to be that type, like `if $n: bool:` on a `bool`. Claude suggested refusing it.
 
 ## 12.3 Operators and conversion
