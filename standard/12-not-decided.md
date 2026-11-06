@@ -36,7 +36,10 @@ Waiting on the owner, most needed first. Each is `NotDesignedYet` unless it says
 - **Methods.** On a type you didn't declare, like `fn i32.%double`, or a list. Calling one by its full name, `box.%read(Lend $b)`. `$b.%add(by: $b.n)`, reading the receiver in an argument while it's lent with `Lend.mut`, which people will write a lot, and Rust calls two-phase borrows. `Lent.mut` on a fresh value.
 - **`??` and `otherwise`.** `read() ?? -$x` is refused and asks for `( )`, and `read() ?? 1 as str` is refused too, so should a `??` count as a single value? `otherwise` has no level in 3.9, so `$a + read() otherwise:` isn't decided.
 - **Positions.** `$a[pos: 0]` and `$a[pos: 9]` on an array of 3 are `check failed:` today, but D20 refuses a literal that can't fit a bound, so maybe they should be refused too. Two items lent at once, like a swap, and changing one item while a `for` goes through another. `Give $a[pos: 1]`, and taking something out of a list. `$a[pos: $a.len]`, which waits on `.len`'s type, the gap the oracle feels most. `change $xs[pos: 1] = grow(Lend.mut $xs);`. Handing something off inside a position.
-- **`type.new`.** How you get a value into and out of one, such as `as`.
+- **`type.new`.** How a value gets in and out, like `as`, which blocks every program using one, and whether maths and `==` work between two of the same one.
+- **Type names, readings.** `type.alias int.signed.32_bit = i32;` works, with dots in the name. An alias works everywhere its target does, including cases. A `type.new` over a number takes no word, over a struct needs one, and over a `must_Give` carries the duty.
+- **Type names, smaller.** A method on an alias or a family's type. A narrowing or bounds on a name. `type.…` inside a function. A `type.new` holding itself through a list. An alias named like a struct. Declaring a name twice.
+- **`fam.fn`.** D135 includes `fn` collections, but no spelling's shown.
 - **Dead variables.** Whether `eat(Give $s); change $s = "b";` is allowed. It's refused today.
 - **Names.** Declaring a name already in scope, or hiding an outer one.
 - **`ensures` on a `fail` path.** Checked only on `return` today, which is a guess.
