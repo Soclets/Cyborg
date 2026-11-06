@@ -233,6 +233,6 @@ A family is only a group of related names that a generic can ask for. A unit fro
 
 **Refused:** a unit that says neither `base` nor `=`, a loop of `=` lines, and converting between units with different bases.
 
-How units go together, how a conversion is written, and how short a unit's name can be aren't decided ([12.2](12-not-decided.md#122-types)).
+The compiler works out new units from maths. A conversion can be an offset, not only a multiple. A moment is kept apart from a length of time. How these are spelled, how a conversion is written, and how short a unit's name can be aren't decided ([12.2](12-not-decided.md#122-types)).
 
-**From:** D99, D100, D101, D108, D109.
+**From:** D99, D100, D101, D108, D109, D110.

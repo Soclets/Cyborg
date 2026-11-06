@@ -667,6 +667,9 @@ with no conversions; the owner chose: "what about more? Like saying which could 
 so incompatibility is written down rather than left out. A family is only a group of related names that a generic can ask for. Loops and units with no base are refused. The owner: "I mean, we do say `return void`, etc", then "What if you want incompat but not base, and compat with another collection?"; Claude proposed this;
 the owner chose: "yea". (Owner, 2026-11-06)
 
+**D110. Unit maths, offsets, and points.** Cyborg goes further with units: the compiler works out new units from maths, like `meters` over `seconds`; conversions can be offsets, not only multiplying, as with Celsius and Kelvin; and a moment is kept apart from a length of time, so `3 PM + 2 hours` makes sense and `3 PM + 3 PM` doesn't. These
+are levels 3 and 4 from a list the owner's friend sent. Their spelling, and how they fit with D108's "which could go together", are not settled here. The owner: "The ones we don't have yet, I think 3 & 4 are pretty useful". (Owner, 2026-11-06)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude
