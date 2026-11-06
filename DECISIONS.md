@@ -646,6 +646,9 @@ reading of D99. (Owner, 2026-11-06)
 **D102. A collection's first value.** `[1, 2, 3]` gives a list or array its items, with the count checked against the type. `= all 0` fills an array with one value, and works with other values too, as in `= all 255`. `= empty` stays for an empty list, and a list with `len.min`
 above 0 can't use it. Claude proposed `[1, 2, 3]` and `= zeroed`; the owner asked "What about `all 0`? That seems more explanatory", and raised nothing against `[1, 2, 3]`. An uninitialized array, like Zig's `= undefined`, is not settled here. (Owner, 2026-11-06)
 
+**D103. `empty` means nothing in here, for strings too.** `let $s: str = empty;`. `""` and `[]` are refused, with `fix: empty`, because `""` could look like unfinished work. `empty` is refused where it can't be true. The owner: "we literally have to say `return void`, and `""` could
+very much look like unfinished work"; Claude proposed this; the owner chose: "yea". (Owner, 2026-11-06)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude

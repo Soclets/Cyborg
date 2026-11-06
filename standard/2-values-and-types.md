@@ -114,9 +114,16 @@ let $b: f64 = ~0.1;
 
 **Rule:** a bare `str` means UTF-8. Other encodings are narrowings, such as `str.utf16`.
 
-**Refused:** `str.utf8`, because it's the default ([1.7](1-programs.md#17-bare-names)).
+An empty string is `empty`.
 
-**From:** D48, D50, D51.
+```
+let $a: str = "hi";
+let $b: str = empty;
+```
+
+**Refused:** `str.utf8`, because it's the default ([1.7](1-programs.md#17-bare-names)), and `""`, with `fix: empty`, because it could look like unfinished work.
+
+**From:** D48, D50, D51, D103.
 
 ## 2.10 Lists
 
@@ -134,9 +141,9 @@ std::list<i32>[len.min: 1 items, len.max: 8 items]
 let $b: std::list<i32>[len.min: 1 items, len.max: 8 items] = [4, 6];
 ```
 
-**Refused:** `std::list<i32>` with no `len.max`, a list with a bare `len`, in favour of `array`, `= empty` on a list with `len.min` above 0, and too few or too many items.
+**Refused:** `std::list<i32>` with no `len.max`, a list with a bare `len`, in favour of `array`, `= empty` on a list with `len.min` above 0, `[]`, with `fix: empty`, and too few or too many items.
 
-**From:** D11, D12, D13, D24, D102.
+**From:** D11, D12, D13, D24, D102, D103.
 
 ## 2.11 Arrays
 
