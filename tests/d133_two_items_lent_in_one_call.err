@@ -1,0 +1,5 @@
+NotDesignedYet: d133_two_items_lent_in_one_call.cy:11:37, line 11 column 37
+11 |     swap_them(Lend.mut $xs[pos: 1], Lend.mut $xs[pos: 2]);
+   |                                     ^^^^^^^^^^^^^^^^^^^^
+ what: `Lend.mut` and `Lend.mut` on parts of `$xs` in one call
+ why:  not decided yet, and the standard doesn't say

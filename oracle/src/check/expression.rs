@@ -129,7 +129,9 @@ impl Checker<'_> {
                 }
                 let shown = matches!(
                     expression.kind,
-                    ExpressionKind::Variable(_) | ExpressionKind::Field { .. }
+                    ExpressionKind::Variable(_)
+                        | ExpressionKind::Field { .. }
+                        | ExpressionKind::Item { .. }
                 )
                 .then(|| self.text_of(expression.span).to_string());
                 // trace: D20
@@ -252,6 +254,10 @@ impl Checker<'_> {
                 }
             }
             ExpressionKind::Field { base, .. } => self.refuse_if_not_constant(base),
+            ExpressionKind::Item { base, position, .. } => {
+                self.refuse_if_not_constant(base)?;
+                self.refuse_if_not_constant(position)
+            }
             ExpressionKind::Call { path, arguments } => {
                 let signature = self.signature_of(&path.text);
                 let Some(signature) = signature else {
@@ -347,6 +353,24 @@ impl Checker<'_> {
             ExpressionKind::Variable(_) => {
                 let held = self.check_held(expression)?;
                 Ok((held.node, held.value_type))
+            }
+            ExpressionKind::Item {
+                base,
+                position,
+                counts_from_zero,
+            } => {
+                if root_variable(base).is_some() {
+                    let held = self.check_held(expression)?;
+                    return Ok((held.node, held.value_type));
+                }
+                // An item of a fresh value, such as `make()[pos: 1]`, has no variable to walk from.
+                let (node, base_type) = self.check_expression(base, None)?;
+                let (value_type, position) =
+                    self.check_position(base, &base_type, position, *counts_from_zero, span)?;
+                Ok((
+                    simple(NodeKind::Item(Box::new(node), Box::new(position))),
+                    value_type,
+                ))
             }
             ExpressionKind::Field { base, name } if root_variable(base).is_none() => {
                 // A field of a fresh value, such as `make().n`, has no variable to walk from.
@@ -1423,7 +1447,7 @@ impl Checker<'_> {
         let bound = self.bind_arguments(&parameters, false, arguments, span, "append")?;
         let mut handed = vec![HandedOff {
             root: held.root_name.clone(),
-            path: place.path.clone(),
+            path: place.keys(),
             word: crate::ast::HandWord::LendMut,
             span: receiver.span,
         }];
@@ -1514,11 +1538,7 @@ impl Checker<'_> {
                 let held = self.check_lent_place(receiver, hand)?;
                 handed.push(HandedOff {
                     root: held.root_name.clone(),
-                    path: held
-                        .place
-                        .as_ref()
-                        .map(|place| place.path.clone())
-                        .unwrap_or_default(),
+                    path: held.place.as_ref().map(ir::Place::keys).unwrap_or_default(),
                     word: hand,
                     span: receiver.span,
                 });
@@ -1567,6 +1587,7 @@ impl Checker<'_> {
             value.kind,
             ExpressionKind::Variable(_)
                 | ExpressionKind::Field { .. }
+                | ExpressionKind::Item { .. }
                 | ExpressionKind::Integer { .. }
                 | ExpressionKind::Float { .. }
                 | ExpressionKind::Text(_)

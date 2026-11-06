@@ -513,4 +513,9 @@ pub enum ExpressionKind {
     },
     Bake(Box<Expression>),
     Group(Box<Expression>),
+    Item {
+        base: Box<Expression>,
+        position: Box<Expression>,
+        counts_from_zero: bool,
+    },
 }

@@ -3,7 +3,7 @@
 use super::body::{root_variable, walk};
 use super::{Checker, Origin, ParameterInfo};
 use crate::ast::{Expression, ExpressionKind, HandWord, ParameterWord};
-use crate::ir::{self, Node, NodeKind, Place};
+use crate::ir::{self, Node, NodeKind, Place, Step};
 use crate::report::{Outcome, Report, ReportExtra, Span};
 use crate::types::Type;
 
@@ -123,7 +123,7 @@ impl Checker<'_> {
                 let (index, value_type) = self.find_field(base, &held.value_type, name)?;
                 let mut place = held.place;
                 if let Some(place) = &mut place {
-                    place.path.push(index);
+                    place.path.push(Step::Field(index));
                 }
                 let node = match &place {
                     Some(place) => Node {
@@ -142,12 +142,125 @@ impl Checker<'_> {
                     root_name: held.root_name,
                 })
             }
+            ExpressionKind::Item {
+                base,
+                position,
+                counts_from_zero,
+            } => {
+                let held = self.check_held(base)?;
+                let (value_type, position) = self.check_position(
+                    base,
+                    &held.value_type,
+                    position,
+                    *counts_from_zero,
+                    expression.span,
+                )?;
+                let mut place = held.place;
+                let node = if let Some(place) = &mut place {
+                    place.path.push(Step::Item(Box::new(position)));
+                    Node {
+                        span: expression.span,
+                        kind: NodeKind::Read(place.clone()),
+                    }
+                } else {
+                    Node {
+                        span: expression.span,
+                        kind: NodeKind::Item(Box::new(held.node), Box::new(position)),
+                    }
+                };
+                Ok(Held {
+                    node,
+                    place,
+                    value_type,
+                    root_name: held.root_name,
+                })
+            }
             _ => Err(Report::refused(
                 expression.span,
                 "an ownership word goes on a variable or a field, and a fresh value takes no word",
                 "a fresh value that has no holder yet takes no word (D2)",
             )),
         }
+    }
+
+    /// What `[pos: …]` gets from a collection, and its position, which is a plain number.
+    /// trace: D133
+    pub(super) fn check_position(
+        &mut self,
+        base: &Expression,
+        base_type: &Type,
+        position: &Expression,
+        counts_from_zero: bool,
+        span: Span,
+    ) -> Outcome<(Type, ir::Position)> {
+        let item_type = match base_type {
+            Type::List { item, .. } | Type::Array { item, .. } => (**item).clone(),
+            Type::Map { .. } => {
+                return Err(Report::not_designed(span, "getting an item from a map", ""));
+            }
+            other => {
+                return Err(Report::refused(
+                    span,
+                    format!("`pos:` and `offset:` work on lists and arrays, and this is `{other}`"),
+                    "both work on lists and arrays (D133)",
+                ));
+            }
+        };
+        let mut gives_away = false;
+        walk(position, &mut |part| {
+            gives_away = gives_away
+                || matches!(
+                    part.kind,
+                    ExpressionKind::Hand {
+                        word: HandWord::Give | HandWord::LendMut,
+                        ..
+                    }
+                );
+        });
+        if gives_away {
+            return Err(Report::not_designed(
+                position.span,
+                "handing something off inside a position",
+                "",
+            ));
+        }
+        let (value, position_type) = self.check_expression(
+            position,
+            Some(&Type::plain_integer(crate::types::IntegerKind::I32)),
+        )?;
+        match position_type {
+            Type::Integer { unit: None, .. } => {}
+            Type::Integer { .. } => {
+                return Err(Report::not_designed(
+                    position.span,
+                    "whether `pos:` takes a unit",
+                    "12.2",
+                ));
+            }
+            Type::Length => {
+                return Err(Report::not_designed(
+                    position.span,
+                    "a length as a position, since its type isn't stated",
+                    "",
+                ));
+            }
+            other => {
+                return Err(Report::refused(
+                    position.span,
+                    format!("a position is a whole number, and this is `{other}`"),
+                    "`pos:` counts from 1, and `offset:` counts from 0 (D133)",
+                ));
+            }
+        }
+        Ok((
+            item_type,
+            ir::Position {
+                value,
+                counts_from_zero,
+                shown: self.text_of(base.span).to_string(),
+                span,
+            },
+        ))
     }
 
     fn check_held_variable(&mut self, name: &str, span: Span) -> Outcome<Held> {
@@ -313,6 +426,13 @@ impl Checker<'_> {
     /// `Give $x`: the value moves, and `$x` is dead afterwards on any path. (D2)
     fn check_give(&mut self, value: &Expression, hand_span: Span) -> Outcome<Held> {
         if !matches!(value.kind, ExpressionKind::Variable(_)) {
+            if matches!(value.kind, ExpressionKind::Item { .. }) {
+                return Err(Report::not_designed(
+                    value.span,
+                    "giving away one item of a collection",
+                    "",
+                ));
+            }
             if matches!(value.kind, ExpressionKind::Field { .. }) {
                 return Err(Report::not_designed(
                     value.span,
@@ -375,7 +495,7 @@ impl Checker<'_> {
             if root != name {
                 continue;
             }
-            if path.starts_with(read_path) || read_path.starts_with(path) {
+            if ir::paths_overlap(path, read_path) {
                 return Err(Report::refused(
                     span,
                     format!("a `for` is reading `${name}` in place here"),
@@ -384,7 +504,7 @@ impl Checker<'_> {
             }
             return Err(Report::not_designed(
                 span,
-                format!("changing one field of `${name}` while a `for` reads another"),
+                format!("changing one part of `${name}` while a `for` reads another"),
                 "",
             ));
         }
@@ -408,13 +528,12 @@ impl Checker<'_> {
                     variable.origin == Origin::StoredBorrow
                         && self.is_in_scope(slot)
                         && variable.borrows.iter().any(|borrowed| borrowed == name)
-                        && !path.starts_with(&variable.borrowed_path)
-                        && !variable.borrowed_path.starts_with(path)
+                        && !ir::paths_overlap(path, &variable.borrowed_path)
                 });
         if holds_another_field {
             return Err(Report::not_designed(
                 span,
-                format!("changing one field of `${name}` while a stored borrow holds another"),
+                format!("changing one part of `${name}` while a stored borrow holds another"),
                 "",
             ));
         }
@@ -477,11 +596,7 @@ impl Checker<'_> {
                 "12.8",
             ));
         }
-        let path = held
-            .place
-            .as_ref()
-            .map(|place| place.path.clone())
-            .unwrap_or_default();
+        let path = held.place.as_ref().map(ir::Place::keys).unwrap_or_default();
         self.refuse_while_read(&variable.name, &path, value.span)?;
         self.refuse_disjoint_borrow(&variable.name, &path, value.span)?;
         self.note_use(&variable.name, UseKind::Write, value.span);
@@ -524,7 +639,9 @@ impl Checker<'_> {
         if root_variable(value).is_some()
             && matches!(
                 value.kind,
-                ExpressionKind::Variable(_) | ExpressionKind::Field { .. }
+                ExpressionKind::Variable(_)
+                    | ExpressionKind::Field { .. }
+                    | ExpressionKind::Item { .. }
             )
         {
             let (node, found) = self.check_expression(value, Some(target))?;
@@ -613,11 +730,7 @@ impl Checker<'_> {
             Self::check_held_type(value.span, target, &held.value_type)?;
             handed.push(HandedOff {
                 root: held.root_name.clone(),
-                path: held
-                    .place
-                    .as_ref()
-                    .map(|place| place.path.clone())
-                    .unwrap_or_default(),
+                path: held.place.as_ref().map(ir::Place::keys).unwrap_or_default(),
                 word: *word,
                 span: value.span,
             });
@@ -628,7 +741,9 @@ impl Checker<'_> {
         }
         if matches!(
             value.kind,
-            ExpressionKind::Variable(_) | ExpressionKind::Field { .. }
+            ExpressionKind::Variable(_)
+                | ExpressionKind::Field { .. }
+                | ExpressionKind::Item { .. }
         ) && root_variable(value).is_some()
         {
             // trace: D3
@@ -697,8 +812,7 @@ impl Checker<'_> {
                     continue;
                 }
                 let pair = (first.word, second.word);
-                let overlaps =
-                    first.path.starts_with(&second.path) || second.path.starts_with(&first.path);
+                let overlaps = ir::paths_overlap(&first.path, &second.path);
                 let definite = matches!(
                     pair,
                     (HandWord::Give, _)

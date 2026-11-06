@@ -8,8 +8,8 @@ use super::{
     Checker, Failure, FunctionContext, LoopInfo, Origin, Variable, VariableState, ITEM_LIMIT,
 };
 use crate::ast::{
-    Arm, Contract, Expression, ExpressionKind, ForSource, Function, FunctionKind, IfLink, IfTest,
-    ParameterWord, RangeExpression, Statement, StatementKind, TypeExpression, TypeKind,
+    Arm, Contract, Expression, ExpressionKind, ForSource, Function, FunctionKind, HandWord, IfLink,
+    IfTest, ParameterWord, RangeExpression, Statement, StatementKind, TypeExpression, TypeKind,
 };
 use crate::ir::{self, Instruction, InstructionKind, Node, NodeKind, Place};
 use crate::report::{Outcome, Report, ReportExtra, Span};
@@ -408,7 +408,10 @@ impl Checker<'_> {
     fn check_finish(&mut self, target: &Expression, span: Span) -> Outcome<InstructionKind> {
         const WHY: &str = "`finish` ends a `must_Give` duty (D129)";
         let ExpressionKind::Variable(name) = &target.kind else {
-            if matches!(target.kind, ExpressionKind::Field { .. }) {
+            if matches!(
+                target.kind,
+                ExpressionKind::Field { .. } | ExpressionKind::Item { .. }
+            ) {
                 return Err(Report::not_designed(
                     target.span,
                     "`finish` on a field, since a `must_Give` value in a field isn't decided",
@@ -792,7 +795,7 @@ impl Checker<'_> {
             must_give: false,
             constant: None,
             borrows: names.clone(),
-            borrowed_path: source.path.clone(),
+            borrowed_path: source.keys(),
         });
         Ok(InstructionKind::LetAlias {
             slot,
@@ -807,7 +810,10 @@ impl Checker<'_> {
         span: Span,
     ) -> Outcome<InstructionKind> {
         let ExpressionKind::Variable(name) = &target.kind else {
-            if matches!(target.kind, ExpressionKind::Field { .. }) {
+            if matches!(
+                target.kind,
+                ExpressionKind::Field { .. } | ExpressionKind::Item { .. }
+            ) {
                 return self.check_change_field(target, value);
             }
             return Err(Report::refused(
@@ -918,15 +924,22 @@ impl Checker<'_> {
             .is_some_and(|variable| variable.mutable);
         if !can_change {
             let name = &held.root_name;
+            let part = if matches!(target.kind, ExpressionKind::Item { .. }) {
+                "item"
+            } else {
+                "field"
+            };
             return Err(Report::refused(
                 target.span,
-                format!("`${name}` can't change, so neither can its field"),
-                "a field can be changed if the whole variable is `let mut`, or the parameter `Lent.mut` (D125)",
+                format!("`${name}` can't change, so neither can its {part}"),
+                "a field or item can be changed if the whole variable is `let mut`, or the parameter `Lent.mut` (D125, D133)",
             ));
         }
         // A case's values aren't struct fields, and whether the test's trust survives isn't stated.
         let mut base = target;
-        while let ExpressionKind::Field { base: inner, .. } = &base.kind {
+        while let ExpressionKind::Field { base: inner, .. }
+        | ExpressionKind::Item { base: inner, .. } = &base.kind
+        {
             base = inner;
             if matches!(self.check_held(base)?.value_type, Type::Union(_)) {
                 return Err(Report::not_designed(
@@ -936,8 +949,32 @@ impl Checker<'_> {
                 ));
             }
         }
-        self.refuse_while_read(&held.root_name, &place.path, target.span)?;
-        self.refuse_disjoint_borrow(&held.root_name, &place.path, target.span)?;
+        // An item's place is worked out before the value, so the value can't be what moves it.
+        let mut value_lends_it = false;
+        walk(value, &mut |part| {
+            let lent = match &part.kind {
+                ExpressionKind::Hand {
+                    word: HandWord::Give | HandWord::LendMut,
+                    value: inner,
+                } => root_variable(inner),
+                ExpressionKind::Method { receiver, .. } => root_variable(receiver),
+                _ => None,
+            };
+            value_lends_it = value_lends_it || lent.as_deref() == Some(held.root_name.as_str());
+        });
+        if value_lends_it {
+            return Err(Report::not_designed(
+                value.span,
+                format!(
+                    "changing part of `${}` with a value that lends it out",
+                    held.root_name
+                ),
+                "",
+            ));
+        }
+        let keys = place.keys();
+        self.refuse_while_read(&held.root_name, &keys, target.span)?;
+        self.refuse_disjoint_borrow(&held.root_name, &keys, target.span)?;
         self.note_use(&held.root_name, UseKind::Write, target.span);
         let node = self.check_into(value, &held.value_type)?;
         Ok(InstructionKind::Set { place, value: node })
@@ -1398,7 +1435,7 @@ impl Checker<'_> {
         } else {
             self.check_held(collection)?
                 .place
-                .map(|place| place.path)
+                .map(|place| place.keys())
                 .unwrap_or_default()
         };
         Ok((node, item_type, (root, read_path)))
@@ -1926,7 +1963,9 @@ pub(super) fn find_failure<'f>(failures: &'f [Failure], name: &str) -> Option<&'
 pub(super) fn root_variable(expression: &Expression) -> Option<String> {
     match &expression.kind {
         ExpressionKind::Variable(name) => Some(name.clone()),
-        ExpressionKind::Field { base, .. } => root_variable(base),
+        ExpressionKind::Field { base, .. } | ExpressionKind::Item { base, .. } => {
+            root_variable(base)
+        }
         ExpressionKind::Group(inner) => root_variable(inner),
         _ => None,
     }
@@ -1971,6 +2010,10 @@ pub(super) fn walk(expression: &Expression, visit: &mut dyn FnMut(&Expression)) 
         }
         ExpressionKind::WithUnit { number, .. } => walk(number, visit),
         ExpressionKind::Field { base, .. } => walk(base, visit),
+        ExpressionKind::Item { base, position, .. } => {
+            walk(base, visit);
+            walk(position, visit);
+        }
         ExpressionKind::Build { fields, .. } => {
             for field in fields {
                 walk(&field.value, visit);

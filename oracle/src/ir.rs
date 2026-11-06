@@ -5,11 +5,52 @@ use crate::ast::{CompareOperator, Narrowing};
 use crate::report::Span;
 use crate::types::{FloatKind, IntegerKind, Value};
 
-/// A variable and the fields to walk from it.
+/// A variable and the fields and items to walk from it.
 #[derive(Clone, Debug)]
 pub struct Place {
     pub slot: usize,
-    pub path: Vec<usize>,
+    pub path: Vec<Step>,
+}
+
+#[derive(Clone, Debug)]
+pub enum Step {
+    Field(usize),
+    Item(Box<Position>),
+}
+
+/// `$xs[pos: 1]` or `$xs[offset: 0]`, worked out while running, since it can be any number.
+#[derive(Clone, Debug)]
+pub struct Position {
+    pub value: Node,
+    pub counts_from_zero: bool,
+    /// How `what:` says the collection, as in `$xs`.
+    pub shown: String,
+    pub span: Span,
+}
+
+/// Stands for an item in a path that's compared while checking, since which one isn't known.
+pub const ANY_ITEM: usize = usize::MAX;
+
+impl Place {
+    /// The path as the checker compares it, where every item looks alike.
+    pub fn keys(&self) -> Vec<usize> {
+        self.path
+            .iter()
+            .map(|step| match step {
+                Step::Field(index) => *index,
+                Step::Item(_) => ANY_ITEM,
+            })
+            .collect()
+    }
+}
+
+/// Whether two paths from one variable surely touch. Two different fields don't, and neither is
+/// sure for two items, since which ones they are may only be known while running.
+pub fn paths_overlap(first: &[usize], second: &[usize]) -> bool {
+    first
+        .iter()
+        .zip(second)
+        .all(|(one, other)| *one == *other && *one != ANY_ITEM)
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -53,6 +94,8 @@ pub enum NodeKind {
     Read(Place),
     Global(usize),
     Field(Box<Node>, usize),
+    /// An item of something with no variable to walk from, such as a constant or a call's result.
+    Item(Box<Node>, Box<Position>),
     Struct(Vec<(usize, Node)>),
     Case(usize, Vec<(usize, Node)>),
     Items(Vec<Node>),

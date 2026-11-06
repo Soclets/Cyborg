@@ -1,0 +1,5 @@
+refused: d133_item_of_a_string.cy:5:19, line 5 column 19
+ 5 |     let $n: i32 = $s[pos: 1];
+   |                   ^^^^^^^^^^
+ what: `pos:` and `offset:` work on lists and arrays, and this is `str`
+ why:  both work on lists and arrays (D133)

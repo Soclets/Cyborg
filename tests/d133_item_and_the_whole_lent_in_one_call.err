@@ -1,0 +1,9 @@
+refused: d133_item_and_the_whole_lent_in_one_call.cy:10:24, line 10 column 24
+10 |     both(Lend.mut $xs, Lend $xs[pos: 1]);
+   |                        ^^^^^^^^^^^^^^^^
+ what: `$xs` is already handed off with `Lend.mut` in this call
+ why:  `Lend.mut` means nothing else uses it meanwhile, and `Give` means it's gone (D2)
+ because: d133_item_and_the_whole_lent_in_one_call.cy:10:10, line 10 column 10
+10 |     both(Lend.mut $xs, Lend $xs[pos: 1]);
+   |          ^^^^^^^^^^^^
+     that's here

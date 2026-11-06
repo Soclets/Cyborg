@@ -1,0 +1,5 @@
+refused: d133_change_while_going_through.cy:7:16, line 7 column 16
+ 7 |         change $a[pos: 1] = $x;
+   |                ^^^^^^^^^^
+ what: a `for` is reading `$a` in place here
+ why:  `Lend.mut` means nothing else uses it meanwhile, and `for` is using it (D2)

@@ -1,0 +1,5 @@
+NotDesignedYet: d133_value_lends_what_is_being_changed.cy:11:26, line 11 column 26
+11 |     change $xs[pos: 1] = grow(Lend.mut $xs);
+   |                          ^^^^^^^^^^^^^^^^^^
+ what: changing part of `$xs` with a value that lends it out
+ why:  not decided yet, and the standard doesn't say

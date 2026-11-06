@@ -8,7 +8,7 @@ use std::rc::Rc;
 use crate::ast::{CompareOperator, Narrowing};
 use crate::ir::{
     Argument, Arithmetic, Code, Contract, Function, Instruction, InstructionKind, Node, NodeKind,
-    Number, Place, RangeCode, Test,
+    Number, Place, Position, RangeCode, Step, Test,
 };
 use crate::report::{Kind, Outcome, Report, ReportExtra, Span};
 use crate::types::{FloatKind, IntegerKind, Value};
@@ -58,22 +58,43 @@ impl Binding {
             path: Vec::new(),
         }
     }
+}
 
-    fn walked(&self, more: &[usize]) -> Self {
-        let mut path = self.path.clone();
-        path.extend_from_slice(more);
-        Self {
-            root: Rc::clone(&self.root),
-            path,
-        }
-    }
+/// Turns a position into an item's index, or stops the program: a bad position is a bounds check.
+/// trace: D26, D133
+fn item_index(number: i128, count: usize, position: &Position) -> Result<usize, Stop> {
+    let index = if position.counts_from_zero {
+        number
+    } else {
+        number - 1
+    };
+    usize::try_from(index)
+        .ok()
+        .filter(|index| *index < count)
+        .ok_or_else(|| {
+            let word = if position.counts_from_zero {
+                "offset"
+            } else {
+                "pos"
+            };
+            Stop::Report(
+                Report::check_failed(
+                    position.span,
+                    format!("`{word}: {number}` is outside `{}`", position.shown),
+                    "a bad position is a bounds check (D26, D133)",
+                )
+                .when(format!("it holds {count} items")),
+            )
+        })
 }
 
 fn walk<'v>(value: &'v Value, path: &[usize]) -> Option<&'v Value> {
     let mut current = value;
     for step in path {
         current = match current {
-            Value::Struct(fields) | Value::Case(_, fields) => fields.get(*step)?,
+            Value::Struct(fields) | Value::Case(_, fields) | Value::List(fields) => {
+                fields.get(*step)?
+            }
             _ => return None,
         };
     }
@@ -84,7 +105,9 @@ fn walk_mut<'v>(value: &'v mut Value, path: &[usize]) -> Option<&'v mut Value> {
     let mut current = value;
     for step in path {
         current = match current {
-            Value::Struct(fields) | Value::Case(_, fields) => fields.get_mut(*step)?,
+            Value::Struct(fields) | Value::Case(_, fields) | Value::List(fields) => {
+                fields.get_mut(*step)?
+            }
             _ => return None,
         };
     }
@@ -323,17 +346,47 @@ impl<'c> Runner<'c> {
         Ok(())
     }
 
-    fn binding_of(frame: &Frame, place: &Place, span: Span) -> Result<Binding, Stop> {
-        frame
+    /// Works out where a place is right now. An item's position runs here, and is checked here.
+    fn binding_of(
+        &mut self,
+        frame: &mut Frame,
+        place: &Place,
+        span: Span,
+    ) -> Result<Binding, Stop> {
+        let mut binding = frame
             .slots
             .get(place.slot)
             .and_then(Option::as_ref)
-            .map(|binding| binding.walked(&place.path))
-            .ok_or_else(|| oracle_bug(span, "a variable was read before it was set"))
+            .cloned()
+            .ok_or_else(|| oracle_bug(span, "a variable was read before it was set"))?;
+        for step in &place.path {
+            match step {
+                Step::Field(index) => binding.path.push(*index),
+                Step::Item(position) => {
+                    let number = self.position_number(position, frame)?;
+                    let count = {
+                        let root = binding.root.borrow();
+                        match walk(&root, &binding.path) {
+                            Some(Value::List(items)) => items.len(),
+                            _ => return Err(oracle_bug(span, "an item of something else")),
+                        }
+                    };
+                    binding.path.push(item_index(number, count, position)?);
+                }
+            }
+        }
+        Ok(binding)
     }
 
-    fn read(frame: &Frame, place: &Place, span: Span) -> Result<Value, Stop> {
-        let binding = Self::binding_of(frame, place, span)?;
+    fn position_number(&mut self, position: &Position, frame: &mut Frame) -> Result<i128, Stop> {
+        match self.evaluate(&position.value, frame)? {
+            Value::Integer(number) => Ok(number),
+            _ => Err(oracle_bug(position.span, "a position that isn't a number")),
+        }
+    }
+
+    fn read(&mut self, frame: &mut Frame, place: &Place, span: Span) -> Result<Value, Stop> {
+        let binding = self.binding_of(frame, place, span)?;
         let root = binding.root.borrow();
         walk(&root, &binding.path)
             .cloned()
@@ -362,12 +415,13 @@ impl<'c> Runner<'c> {
                 Self::set_slot(frame, *slot, Binding::fresh(value), span)
             }
             InstructionKind::LetAlias { slot, place } => {
-                let binding = Self::binding_of(frame, place, span)?;
+                let binding = self.binding_of(frame, place, span)?;
                 Self::set_slot(frame, *slot, binding, span)
             }
             InstructionKind::Set { place, value } => {
+                // Left to right as written, so an item's position runs before the value does.
+                let binding = self.binding_of(frame, place, span)?;
                 let value = self.evaluate(value, frame)?;
-                let binding = Self::binding_of(frame, place, span)?;
                 let mut root = binding.root.borrow_mut();
                 let Some(target) = walk_mut(&mut root, &binding.path) else {
                     return Err(oracle_bug(span, "a field wasn't where the checker said"));
@@ -592,7 +646,19 @@ impl<'c> Runner<'c> {
         match &node.kind {
             NodeKind::Constant(value) => Ok(value.clone()),
             NodeKind::Void => Ok(Value::Void),
-            NodeKind::Read(place) => Self::read(frame, place, span),
+            NodeKind::Read(place) => self.read(frame, place, span),
+            NodeKind::Item(base, position) => {
+                let value = self.evaluate(base, frame)?;
+                let number = self.position_number(position, frame)?;
+                let Value::List(items) = value else {
+                    return Err(oracle_bug(span, "an item of something else"));
+                };
+                let index = item_index(number, items.len(), position)?;
+                items
+                    .into_iter()
+                    .nth(index)
+                    .ok_or_else(|| oracle_bug(span, "an item wasn't where the check said"))
+            }
             NodeKind::Global(index) => self
                 .globals
                 .get(*index)
@@ -689,7 +755,7 @@ impl<'c> Runner<'c> {
                 for (parameter, argument) in arguments {
                     let binding = match argument {
                         Argument::Value(value) => Binding::fresh(self.evaluate(value, frame)?),
-                        Argument::Alias(place) => Self::binding_of(frame, place, span)?,
+                        Argument::Alias(place) => self.binding_of(frame, place, span)?,
                     };
                     bindings.push((*parameter, binding));
                 }
@@ -817,7 +883,7 @@ impl<'c> Runner<'c> {
         span: Span,
     ) -> Result<Value, Stop> {
         let item = self.evaluate(item, frame)?;
-        let binding = Self::binding_of(frame, receiver, span)?;
+        let binding = self.binding_of(frame, receiver, span)?;
         let mut root = binding.root.borrow_mut();
         let Some(Value::List(items)) = walk_mut(&mut root, &binding.path) else {
             return Err(oracle_bug(span, "`append` on something that isn't a list"));

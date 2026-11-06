@@ -1,0 +1,6 @@
+check failed: d133_negative_offset.cy:6:19, line 6 column 19
+ 6 |     let $n: i32 = $a[offset: -1];
+   |                   ^^^^^^^^^^^^^^
+ what: `offset: -1` is outside `$a`
+ why:  a bad position is a bounds check (D26, D133)
+ when: it holds 2 items

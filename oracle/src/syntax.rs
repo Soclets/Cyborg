@@ -2650,15 +2650,50 @@ impl Parser {
             } else if self.at_symbol("?") {
                 value = self.parse_question_marks(value);
             } else if self.at_symbol("[") {
-                return Err(Report::not_designed(
-                    self.span(),
-                    "indexing, and what a bad index does",
-                    "12.2",
-                ));
+                value = self.parse_position(value)?;
             } else {
                 return Ok(value);
             }
         }
+    }
+
+    /// `$xs[pos: 1]` and `$xs[offset: 0]`. The word says which you mean. (D133)
+    /// trace: D133
+    fn parse_position(&mut self, base: Expression) -> Outcome<Expression> {
+        const WHY: &str = "`pos:` counts from 1, and `offset:` counts from 0, so the word says which you mean (D133)";
+        let open = self.advance().span; // `[`
+        let word = if let Lexeme::Word(word) = &self.peek().lexeme {
+            word.clone()
+        } else {
+            String::new()
+        };
+        if word != "pos" && word != "offset" {
+            return Err(Report::refused(
+                open,
+                "getting an item says `pos:` or `offset:`",
+                WHY,
+            ));
+        }
+        self.advance();
+        if self.at_symbol("=") {
+            return Err(Report::refused(
+                self.span(),
+                "`pos:` and `offset:` are labels",
+                "a label names a value inside brackets (D13)",
+            )
+            .fix(":"));
+        }
+        self.expect_symbol(":")?;
+        let position = self.parse_expression()?;
+        let close = self.expect_symbol("]")?;
+        Ok(Expression {
+            span: base.span.to(close),
+            kind: ExpressionKind::Item {
+                base: Box::new(base),
+                position: Box::new(position),
+                counts_from_zero: word == "offset",
+            },
+        })
     }
 
     fn parse_after_dot(&mut self, receiver: Expression) -> Outcome<Expression> {
