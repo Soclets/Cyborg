@@ -5,6 +5,7 @@ struct.must_Give open_file:
 end struct.must_Give open_file
 
 fn close [$f: Given open_file] -> bool:
+    finish $f;
     return 1 < 2;
 end fn close
 

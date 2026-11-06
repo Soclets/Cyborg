@@ -41,6 +41,18 @@ impl Checker<'_> {
             return Ok(());
         };
         if let Some(given) = self.context.state.get(slot).and_then(|state| state.given) {
+            if self
+                .context
+                .state
+                .get(slot)
+                .is_some_and(|state| state.finished)
+            {
+                return Err(Report::not_designed(
+                    self.use_span(span),
+                    format!("using `${}` after `finish`", variable.name),
+                    "",
+                ));
+            }
             return Err(Report::refused(
                 self.use_span(span),
                 format!("`${}` was already given away", variable.name),

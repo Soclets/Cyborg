@@ -1,0 +1,5 @@
+refused: d129_finish_a_lent_mut_value.cy:7:12, line 7 column 12
+ 7 |     finish $f;
+   |            ^^
+ what: `$f` is only lent here, so its duty isn't this code's to end
+ why:  `Lend` is temporary access, and the caller keeps it (D2, D129)

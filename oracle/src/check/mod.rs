@@ -86,6 +86,8 @@ struct VariableState {
     given_on_some_path: bool,
     trust: Option<usize>,
     trust_ended: Option<Span>,
+    /// `given` came from `finish`, so the duty is over, though nothing says the value is dead.
+    finished: bool,
     /// For a stored borrow: where what it borrows was used in a way that ends the borrow.
     invalidated: Option<Span>,
 }

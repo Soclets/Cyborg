@@ -1,10 +1,11 @@
-// `main` has done its part here, so all that's left is how `close` ends the duty.
+// Only one block runs, and each of them hands the duty on.
 // trace: D126, D2
 struct.must_Give open_file:
     fd: i32;
 end struct.must_Give open_file
 
 fn close [$f: Given open_file] -> void:
+    finish $f;
     return void;
 end fn close
 

@@ -282,6 +282,9 @@ pub enum StatementKind {
     Break {
         name: Option<Path>,
     },
+    Finish {
+        target: Expression,
+    },
     Return(Expression),
     Fail {
         path: Path,

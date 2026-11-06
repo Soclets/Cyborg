@@ -343,8 +343,9 @@ impl Checker<'_> {
         Ok(())
     }
 
-    /// A `must_Give` value has to have been given by the time its holder goes away. (D2)
-    fn check_duty_ended(&self, slot: usize, exit: Option<Span>) -> Outcome<()> {
+    /// A `must_Give` value has to have been given or finished by the time its holder goes away.
+    /// trace: D2, D129
+    pub(super) fn check_duty_ended(&self, slot: usize, exit: Option<Span>) -> Outcome<()> {
         let Some(variable) = self.context.variables.get(slot) else {
             return Ok(());
         };
@@ -360,45 +361,116 @@ impl Checker<'_> {
         if given.is_some() && !only_some_path {
             return Ok(());
         }
-        if variable.origin == Origin::GivenParameter && given.is_none() {
-            return Err(Report::not_designed(
-                variable.declared,
-                format!(
-                    "how the `must_Give` duty of `${}` ends in the function that receives it",
-                    variable.name
-                ),
-                "12.8",
-            ));
-        }
-        let why = "a `must_Give` value is handed off with `Give` exactly once (D2)";
+        let why = "a `must_Give` value is handed off with `Give` exactly once, or `finish` ends it (D2, D129)";
         if let Some(given_at) = given {
             return Err(Report::refused(
                 variable.declared,
-                format!("`${}` isn't given away on every path", variable.name),
+                format!(
+                    "`${}` isn't given away or finished on every path",
+                    variable.name
+                ),
                 why,
             )
             .because(
                 given_at,
-                format!("`${}` was given away here, on only one path", variable.name),
+                format!("`${}` went here, on only one path", variable.name),
             ));
         }
         let report = match exit {
             Some(exit_span) => Report::refused(
                 exit_span,
-                format!("this leaves with `${}` never given away", variable.name),
+                format!(
+                    "this leaves with `${}` never given away or finished",
+                    variable.name
+                ),
                 why,
             )
             .because(
                 variable.declared,
-                format!("`${}` was made here", variable.name),
+                if variable.origin == Origin::GivenParameter {
+                    format!("`${}` was given to this function here", variable.name)
+                } else {
+                    format!("`${}` was made here", variable.name)
+                },
             ),
             None => Report::refused(
                 variable.declared,
-                format!("`${}` is never given away", variable.name),
+                format!("`${}` is never given away or finished", variable.name),
                 why,
             ),
         };
         Err(report)
+    }
+
+    /// `finish $f;` ends a `must_Give` duty. Only the kit or file that declared the type can write
+    /// it, and with no modules yet, a program is one file, so the type is always its own.
+    /// trace: D129
+    fn check_finish(&mut self, target: &Expression, span: Span) -> Outcome<InstructionKind> {
+        const WHY: &str = "`finish` ends a `must_Give` duty (D129)";
+        let ExpressionKind::Variable(name) = &target.kind else {
+            if matches!(target.kind, ExpressionKind::Field { .. }) {
+                return Err(Report::not_designed(
+                    target.span,
+                    "`finish` on a field, since a `must_Give` value in a field isn't decided",
+                    "12.8",
+                ));
+            }
+            return Err(Report::refused(
+                target.span,
+                "`finish` goes on a variable that holds the duty",
+                WHY,
+            ));
+        };
+        let Some(slot) = self.find_variable(name) else {
+            return Err(Report::refused(
+                target.span,
+                format!("`${name}` isn't declared"),
+                WHY,
+            ));
+        };
+        let finished_at = self
+            .context
+            .state
+            .get(slot)
+            .filter(|state| state.finished)
+            .and_then(|state| state.given);
+        if let Some(finished_at) = finished_at {
+            return Err(Report::refused(
+                span,
+                format!("`${name}` was already finished"),
+                "a `must_Give` duty ends once (D2, D129)",
+            )
+            .because(finished_at, format!("`${name}` was finished here")));
+        }
+        self.require_alive(slot, span)?;
+        let Some(variable) = self.context.variables.get(slot).cloned() else {
+            return Ok(InstructionKind::Block(Vec::new()));
+        };
+        if !self.is_must_give(&variable.held_type) {
+            return Err(Report::refused(
+                target.span,
+                format!(
+                    "`${name}` is `{}`, which has no duty to end",
+                    variable.held_type
+                ),
+                WHY,
+            ));
+        }
+        if !matches!(variable.origin, Origin::Owned | Origin::GivenParameter) {
+            return Err(Report::refused(
+                target.span,
+                format!("`${name}` is only lent here, so its duty isn't this code's to end"),
+                "`Lend` is temporary access, and the caller keeps it (D2, D129)",
+            ));
+        }
+        self.refuse_while_read(name, &[], target.span)?;
+        self.note_use(name, UseKind::Write, target.span);
+        if let Some(state) = self.context.state.get_mut(slot) {
+            state.given = Some(span);
+            state.given_on_some_path = false;
+            state.finished = true;
+        }
+        Ok(InstructionKind::Block(Vec::new()))
     }
 
     /// Leaving the function early: every duty still open is forgotten on this path. (D2)
@@ -423,6 +495,7 @@ impl Checker<'_> {
             let mut trusts = Vec::new();
             let mut trust_ended = None;
             let mut invalidated = None;
+            let mut finished = false;
             let mut some_path = false;
             for branch in branches {
                 let Some(state) = branch.get(index) else {
@@ -435,12 +508,14 @@ impl Checker<'_> {
                 trusts.push(state.trust);
                 trust_ended = trust_ended.or(state.trust_ended);
                 invalidated = invalidated.or(state.invalidated);
+                finished = finished || state.finished;
                 some_path = some_path || state.given_on_some_path;
             }
             slot_state.given = given;
             slot_state.given_on_some_path =
                 some_path || (given_count > 0 && given_count < branch_count);
             slot_state.invalidated = invalidated;
+            slot_state.finished = finished;
             let first = trusts.first().copied().flatten();
             slot_state.trust = if trusts.iter().all(|trust| *trust == first) {
                 first
@@ -532,6 +607,7 @@ impl Checker<'_> {
                 terminated = ends;
                 kind
             }
+            StatementKind::Finish { target } => self.check_finish(target, span)?,
             StatementKind::Break { name } => {
                 terminated = true;
                 self.check_break(name.as_ref(), span)?

@@ -50,6 +50,7 @@ const CLASHING_WORDS: &[&str] = &[
     "true",
     "false",
     "else",
+    "finish",
     "while",
     "forever",
     "break",
@@ -1651,6 +1652,16 @@ impl Parser {
                 "while" => return self.parse_while(),
                 "forever" => return self.parse_forever(),
                 "break" => return self.parse_break(),
+                // trace: D129
+                "finish" if !self.symbol_at(1, "(") => {
+                    self.advance();
+                    let target = self.parse_postfix()?;
+                    let end = self.expect_semicolon()?;
+                    return Ok(Statement {
+                        span: start.to(end),
+                        kind: StatementKind::Finish { target },
+                    });
+                }
                 // trace: D128
                 "continue" if self.symbol_at(1, ";") => {
                     return Err(Report::refused(

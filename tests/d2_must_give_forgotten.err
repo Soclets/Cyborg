@@ -1,8 +1,8 @@
 refused: d2_must_give_forgotten.cy:8:5, line 8 column 5
  8 |     return void;
    |     ^^^^^^^^^^^^
- what: this leaves with `$f` never given away
- why:  a `must_Give` value is handed off with `Give` exactly once (D2)
+ what: this leaves with `$f` never given away or finished
+ why:  a `must_Give` value is handed off with `Give` exactly once, or `finish` ends it (D2, D129)
  because: d2_must_give_forgotten.cy:7:9, line 7 column 9
  7 |     let $f: open_file = open_file[fd = 3];
    |         ^^

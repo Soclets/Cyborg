@@ -1,0 +1,9 @@
+refused: d129_finish_in_a_loop.cy:9:9, line 9 column 9
+ 9 |         finish $f;
+   |         ^^^^^^^^^^
+ what: `$f` was already finished
+ why:  a `must_Give` duty ends once (D2, D129)
+ because: d129_finish_in_a_loop.cy:9:9, line 9 column 9
+ 9 |         finish $f;
+   |         ^^^^^^^^^^
+     `$f` was finished here

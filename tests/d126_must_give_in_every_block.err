@@ -1,5 +1,0 @@
-NotDesignedYet: d126_must_give_in_every_block.cy:7:11, line 7 column 11
- 7 | fn close [$f: Given open_file] -> void:
-   |           ^^
- what: how the `must_Give` duty of `$f` ends in the function that receives it
- why:  not decided yet (standard 12.8)

@@ -1,5 +1,0 @@
-NotDesignedYet: d124_must_give_on_both.cy:7:11, line 7 column 11
- 7 | fn close [$f: Given open_file] -> bool:
-   |           ^^
- what: how the `must_Give` duty of `$f` ends in the function that receives it
- why:  not decided yet (standard 12.8)

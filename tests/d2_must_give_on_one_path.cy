@@ -4,6 +4,7 @@ struct.must_Give open_file:
 end struct.must_Give open_file
 
 fn close [$f: Given open_file] -> void:
+    finish $f;
     return void;
 end fn close
 

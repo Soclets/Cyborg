@@ -5,6 +5,7 @@ struct.must_Give open_file:
 end struct.must_Give open_file
 
 fn close [$f: Given open_file] -> i32:
+    finish $f;
     return 3;
 end fn close
 

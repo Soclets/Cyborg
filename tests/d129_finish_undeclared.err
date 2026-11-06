@@ -1,0 +1,5 @@
+refused: d129_finish_undeclared.cy:3:12, line 3 column 12
+ 3 |     finish $f;
+   |            ^^
+ what: `$f` isn't declared
+ why:  `finish` ends a `must_Give` duty (D129)

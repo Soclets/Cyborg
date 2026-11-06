@@ -1,11 +1,11 @@
-// Every way out of this `forever` gave it away, so `main` has done its part, and what's
-// left is how `close` ends the duty.
+// Every way out of this `forever` gave it away.
 // trace: D128, D2
 struct.must_Give open_file:
     fd: i32;
 end struct.must_Give open_file
 
 fn close [$f: Given open_file] -> void:
+    finish $f;
     return void;
 end fn close
 
