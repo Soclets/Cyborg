@@ -10,6 +10,7 @@
 | [5.6](#56-methods-) | `.%` | A function on a receiver |
 | [5.7](#57-builtins-) | `@size_of` | Bare `@` |
 | [5.8](#58-generics) | `<?T: ordered>` | C++ templates, but safer |
+| [5.9](#59-pure-functions) | `fn.pure` | Same input, same output, nothing else changes |
 
 ## 5.1 Declaring
 
@@ -65,7 +66,9 @@ end fn half
 
 **Rule:** `requires` and `ensures` are in the base language. They're checked at runtime unless Precog proves them, following the build mode ([10.3](10-build-modes.md#103-what-gets-checked)).
 
-**From:** D14, D29, D39, D53, D84.
+Contracts can only call pure functions ([5.9](#59-pure-functions)), so turning checks off can't change what a correct program does.
+
+**From:** D14, D29, D39, D53, D84, D86.
 
 ## 5.6 Methods: `.%`
 
@@ -113,3 +116,19 @@ let $x: i32 = largest(3, 5);
 **Refused:** a body that uses `?T` in a way its bound doesn't allow.
 
 **From:** D23, D85.
+
+## 5.9 Pure functions
+
+**Rule:** a pure function always gives the same output for the same input, and changes nothing else.
+
+```
+fn.pure area [$w: i32, $h: i32] -> i32:
+    return $w x $h;
+end fn area
+```
+
+**Refused:** inside one, I/O, changing anything outside the function, `Lent.mut`, calling a function that isn't pure, shields and C calls.
+
+Whether one may allocate or fail isn't decided ([12.5](12-not-decided.md#125-functions)).
+
+**From:** D86.

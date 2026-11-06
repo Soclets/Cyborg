@@ -575,6 +575,11 @@ show up deep inside someone else's code. Unchecked bodies are out, and accidenta
 `<?T: ordered>` is Radium's, as a placeholder. Claude listed the features and proposed this; the owner chose: "Ah, we should have C++ Templates, but safer". Claude
 reads "safer" as the bounded version. (Owner, 2026-11-06)
 
+**D86. `fn.pure`.** A pure function always gives the same output for the same input, and changes nothing else. The compiler checks it, refusing I/O, changing anything
+outside the function, `Lent.mut`, calling a function that isn't pure, shields and C calls. Contracts can only call pure functions, so turning checks off can't change
+what a correct program does. Whether a pure function may allocate or fail is not settled here. Claude proposed it; the owner chose: "yes, I want a pure fn". (Owner,
+2026-11-06)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude

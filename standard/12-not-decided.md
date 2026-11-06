@@ -66,7 +66,8 @@ These are places where decisions leave a real gap or pull against each other.
 
 - How a method is declared, and how its receiver appears in the signature.
 - Generics (D85): the spelling, including `?T`, how a bound is defined, how a type satisfies one, and how specialization and value parameters are written.
-- `fn.pure`, and baking with `fn.pure.baked`. Claude proposed both, with contracts only calling pure functions.
+- Whether a `fn.pure` may allocate or fail.
+- Baking. Claude proposed `fn.pure.baked` with `const`.
 - Whether every `void` function says `return void;`.
 - When a call needs labels ([12.1](#121-problems-found-writing-this)).
 - Comments. Examples in the decisions use `//`, but it was never chosen.
