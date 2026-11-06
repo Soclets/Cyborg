@@ -41,7 +41,6 @@ These are places where decisions leave a real gap or pull against each other. No
 - The real spelling for wrapping, and the wrapping forms of `-` and `x`.
 - The full list of `div` narrowings, and what `div.exact` does in each mode.
 - Shifting by too much.
-- Unary minus.
 - What can convert to what with `as`.
 
 ## 12.4 Control flow
