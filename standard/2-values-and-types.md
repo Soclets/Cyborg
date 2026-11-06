@@ -217,6 +217,6 @@ let $x: i32 = 3600;
 
 **Refused:** mixing units, as in `$a + 5 bytes`, and a missing unit, as in `let $b: i32.seconds = 3600;`.
 
-Anything fancier, like `seconds x seconds`, isn't decided ([12.2](12-not-decided.md#122-types)).
+You can define your own units, say which go together, define conversions, and give them narrowings. A unit from a kit is written with its path, `name::unit`. Their spelling isn't decided ([12.2](12-not-decided.md#122-types)).
 
-**From:** D99, D100, D101.
+**From:** D99, D100, D101, D108.

@@ -660,6 +660,9 @@ placeholder. Claude proposed it; the owner chose: "yes. But I think it should be
 **D107. `FinalShit` keeps only what it needs to generate code.** Syntax, known names and types that fit. Everything else that exists to stop you doing something dumb is gone: ownership words, `%`, `~`, `*`, units, and covering every case in a `match`, where a missed case is UB. An unhandled failure is UB,
 not a crash, since it assumes nothing ever fails, and `?` and `otherwise:` may get deleted too. This settles what D40's "such as" and D96 left open. Claude proposed it; the owner chose: "yea". (Owner, 2026-11-06)
 
+**D108. You can define units, and they do more.** You can make your own units, say which ones go together, define conversions, and give them narrowings. A unit from a kit is written with its path, `name::unit`. This goes past D100's "starting small". Their spelling is not settled here. Claude proposed a one-line `unit pixels;`
+with no conversions; the owner chose: "what about more? Like saying which could go together, conversions, and narrowings for them too. And of course, a unit from a kit uses `name::unit`". (Owner, 2026-11-06)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude
