@@ -734,6 +734,9 @@ reading. Claude proposed both, from TAKL; the owner chose: "yea, Ra has `offset`
 **D134. Naming a type.** `type.alias score = i32;` is just another name, fully interchangeable. `type.new user_id = i64;` is the same data but a different type, so it doesn't mix with another `type.new`, or with `i64`. There's no bare `type`, since no default is obvious. A family of them is `narrowings.type.alias sizes:` or `narrowings.type.new ids:`, with lines like
 `ids.user = i64;`, always used with the family, and a family doesn't mix the two kinds. D10 still holds for the language itself, so `int.signed.32_bit` doesn't exist unless you write it. The owner: "We should have a `type i64 = int64` style narrowings", then "Yes, but I also mean collections too"; Claude proposed the spelling; the owner chose: "yes". (Owner, 2026-11-06)
 
+**D135. `fam.` for a family.** A declared group of related names is a family, written `fam.unit`, `fam.failure`, `fam.handler`, `fam.type.alias` and `fam.type.new`, replacing `narrowings.…` everywhere, including `fn` collections. "Narrowing" now only means the `.`. The owner: "should we just call them families, and syntax is `fam.`? Because like, narrowings could
+mean a lot, even in our context only", then "yea". (Owner, 2026-11-06)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude

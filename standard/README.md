@@ -41,8 +41,8 @@ What Cyborg does now, in one place. The oracle, the compiler and check claude fo
 | `< >` | [1.8](1-programs.md#18-brackets) | | `mod` | [3.4](3-operators.md#34-remainder-mod) |
 | `=` (set) | [2.1](2-values-and-types.md#21-let), [7.2](7-structs-and-unions.md#72-building-a-struct) | | `must_Give`, `finish` | [6.9](6-ownership.md#69-must_give) |
 | `==`, `!=` | [3.5](3-operators.md#35-comparison) | | narrowings | [1.6](1-programs.md#16-narrowings-) |
-| `?` | [8.4](8-failures.md#84--pass-it-up) | | `narrowings.failure` | [8.3](8-failures.md#83-named-sets-narrowingsfailure) |
-| `??` | [8.5](8-failures.md#85--use-this-instead) | | `narrowings.handler` | [8.7](8-failures.md#87-handler-narrowings) |
+| `?` | [8.4](8-failures.md#84--pass-it-up) | | `fam.failure` | [8.3](8-failures.md#83-named-sets-famfailure) |
+| `??` | [8.5](8-failures.md#85--use-this-instead) | | `fam.handler` | [8.7](8-failures.md#87-handler-narrowings) |
 | `@` (builtin) | [5.7](5-functions.md#57-builtins-) | | `not`, `and`, `or` | [3.6](3-operators.md#36-logic) |
 | `@` (limb) | [9.2](9-limbs-and-shields.md#92--a-limb) | | `otherwise` | [8.6](8-failures.md#86-otherwise) |
 | `[ ]`, `( )` | [1.8](1-programs.md#18-brackets) | | `plus.wrap` | [3.8](3-operators.md#38-wrapping-pluswrap) |
@@ -81,4 +81,4 @@ What Cyborg does now, in one place. The oracle, the compiler and check claude fo
 | `all` | [2.11](2-values-and-types.md#211-arrays) | | `pos:`, `offset:` | [2.17](2-values-and-types.md#217-getting-an-item) |
 | precedence | [3.9](3-operators.md#39-grouping-and-precedence) | | `//`, `///`, `comment` | [1.12](1-programs.md#112-comments) |
 | `type.alias`, `type.new` | [2.18](2-values-and-types.md#218-naming-a-type) | | | |
-| `together` | [2.16](2-values-and-types.md#216-units) | | `narrowings.unit` | [2.16](2-values-and-types.md#216-units) |
+| `together` | [2.16](2-values-and-types.md#216-units) | | `fam.unit` | [2.16](2-values-and-types.md#216-units) |

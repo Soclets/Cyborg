@@ -4,11 +4,11 @@
 |---|---|---|
 | [8.1](#81-fails) | `fails` | Lists what can fail, first in the body |
 | [8.2](#82-fail) | `fail` | Raises one |
-| [8.3](#83-named-sets-narrowingsfailure) | `narrowings.failure` | A reusable set |
+| [8.3](#83-named-sets-famfailure) | `fam.failure` | A reusable set |
 | [8.4](#84--pass-it-up) | `?` | Pass it to the caller |
 | [8.5](#85--use-this-instead) | `??` | Use this value instead |
 | [8.6](#86-otherwise) | `otherwise:` | Handle it in a block |
-| [8.7](#87-handler-narrowings) | `narrowings.handler` | Reusable arms |
+| [8.7](#87-handler-narrowings) | `fam.handler` | Reusable arms |
 | [8.8](#88--handlers-that-jump) | `.*` | This handler can jump |
 | [8.9](#89-crash-by-default) | No handler | A failure crashes, unless you opt in |
 
@@ -43,16 +43,16 @@ fail negative[value = $n];
 
 **From:** D52.
 
-## 8.3 Named sets: `narrowings.failure`
+## 8.3 Named sets: `fam.failure`
 
 **Rule:** a named set of failures is a collection.
 
 ```
-narrowings.failure file_failed:
+fam.failure file_failed:
     file_failed.not_found;
     file_failed.denied;
     file_failed.disk_full[free: i32];
-end narrowings.failure file_failed
+end fam.failure file_failed
 ```
 
 Two sets sharing a failure's name need the full name in a list: `file_failed.denied`.
@@ -100,17 +100,17 @@ An arm ending in a value, and how an arm reads a failure's data, are shown from 
 
 ## 8.7 Handler narrowings
 
-**Rule:** a handler narrowing is a named set of `otherwise` arms, used at a call as if written there. The spelling `narrowings.handler` is Radium's.
+**Rule:** a handler narrowing is a named set of `otherwise` arms, used at a call as if written there. The spelling `fam.handler` is Radium's.
 
 ```
-narrowings.handler word_failed:
+fam.handler word_failed:
     word_failed.use_placeholder:
         case too_long:
             "…";
         case no_words:
             "(none)";
     end word_failed.use_placeholder
-end narrowings.handler word_failed
+end fam.handler word_failed
 
 let $w: str = first_word(Lend $text) otherwise word_failed.use_placeholder;
 ```

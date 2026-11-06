@@ -204,7 +204,7 @@ A number converts bare, with no unit, so `$xs.len as str` gives `3`. A narrowing
 
 ## 2.16 Units
 
-These examples assume `time` and `storage` are declared with `narrowings.unit`, further down. Nothing is built in except `items`.
+These examples assume `time` and `storage` are declared with `fam.unit`, further down. Nothing is built in except `items`.
 
 **Rule:** a number says its unit, behind it where possible. Where the unit can't go behind, it goes in front. A unit always says its family, or its path from a kit, and `items` is base language, so it stays bare. The compiler checks units: a unit is part of the type, carried by a narrowing. The same units can add and compare.
 
@@ -229,13 +229,13 @@ let $x: i32 = 3600;
 You define units in a collection. Every unit says what it is: `: base`, or `=` with a conversion, which can point at a unit in any family. Two units convert if they trace back to the same base, and otherwise they don't.
 
 ```
-narrowings.unit money:
+fam.unit money:
     money.cents: base;
     money.dollars = 100 money.cents;
 
     money.euro_cents: base;
     money.euros = 100 money.euro_cents;
-end narrowings.unit money
+end fam.unit money
 ```
 
 A family is only a group of related names that a generic can ask for. A unit from a kit is written with its path, `name::unit`.
@@ -278,10 +278,10 @@ type.new user_id = i64;
 A family of them states its kind once, and they're always used with the family:
 
 ```
-narrowings.type.new ids:
+fam.type.new ids:
     ids.user = i64;
     ids.order = i64;
-end narrowings.type.new ids
+end fam.type.new ids
 
 let $u: ids.user = get_user();
 ```
