@@ -5,9 +5,13 @@
 | [4.1](#41-if) | `if`, `else if`, `else` | Runs a block when true |
 | [4.2](#42-the-test-if-n-t) | `if $n: T:` | Tests a type, and trusts it inside |
 | [4.3](#43-match) | `match` | Must cover every case |
-| [4.4](#44-for) | `for` | Goes through a collection |
+| [4.4](#44-for) | `for` | Ends by going through something |
+| [4.5](#45-ranges) | `range[from: , to: ]` | A sequence of numbers |
+| [4.6](#46-while) | `while` | Ends when a `bool` stops holding |
+| [4.7](#47-forever) | `forever` | Has no end, unless you `break` |
+| [4.8](#48-break) | `break` | Stops a loop |
 
-`while`, `loop`, `break`, `continue` and ranges aren't decided ([12.4](12-not-decided.md#124-control-flow)).
+Each loop says how it ends. There is no `continue`: wrap the work in an `if` instead.
 
 ## 4.1 `if`
 
@@ -85,7 +89,7 @@ end match
 
 ## 4.4 `for`
 
-**Rule:** `for` goes through a collection, reading it in place, so it needs no ownership word.
+**Rule:** `for` goes through a collection or range, reading it in place, so it needs no ownership word. Its own value can't change inside.
 
 ```
 for $x in $xs:
@@ -93,4 +97,61 @@ for $x in $xs:
 end for
 ```
 
-**From:** D2, the sketch.
+**From:** D2, D128, the sketch.
+
+## 4.5 Ranges
+
+**Rule:** a range is a sequence of numbers. `from:` is required, `to:` includes the end, `before:` stops before it, and `step_by:` comes after them, where a negative one counts down. The order is fixed.
+
+```
+for $i in range[from: 1, to: 5]:
+for $i in range[from: 1, before: 5]:
+for $i in range[from: 0, to: 10, step_by: 2]:
+for $i in range[from: 5, to: 1, step_by: -1]:
+```
+
+**Refused:** a range that can never reach its end, as in `range[from: 5, to: 1]`, and labels out of order.
+
+**From:** D128.
+
+## 4.6 `while`
+
+**Rule:** `while` runs as long as a `bool` holds.
+
+```
+while $n > 0:
+    change $n = $n - 1;
+end while
+```
+
+The Precog limb can ask for `decreases`, to prove it ends.
+
+**From:** D128.
+
+## 4.7 `forever`
+
+**Rule:** `forever` has no end, unless you `break`, so searching for it finds every endless loop.
+
+```
+forever:
+    …
+end forever
+```
+
+**From:** D128.
+
+## 4.8 `break`
+
+**Rule:** `break;` stops the innermost loop. A loop can be named, and `break` with that name stops it and every loop inside it.
+
+```
+for rows $row in $grid:
+    for $cell in $row:
+        if $cell == $target:
+            break rows;
+        end if
+    end for
+end for rows
+```
+
+**From:** D128.

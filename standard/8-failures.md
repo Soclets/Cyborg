@@ -119,7 +119,7 @@ let $w: str = first_word(Lend $text) otherwise word_failed.use_placeholder;
 
 ## 8.8 `*`: handlers that jump
 
-**Rule:** a handler that can `return`, `break` or `continue` is marked `*` where it's used, and not where it's declared.
+**Rule:** a handler that can `return` or `break` is marked `*` where it's used, and not where it's declared.
 
 ```
 let $w: str = first_word(Lend $text) otherwise word_failed.*bail;
@@ -127,7 +127,7 @@ let $w: str = first_word(Lend $text) otherwise word_failed.*bail;
 
 **Refused:** leaving `*` off a handler that can jump, and putting it on one that can't.
 
-**From:** D46.
+**From:** D46, D128.
 
 ## 8.9 Crash by default
 

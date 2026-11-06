@@ -714,6 +714,10 @@ run both". (Owner, 2026-11-06)
 
 **D127. `true` and `false`.** A `bool` is `true` or `false`. Claude proposed it; the owner chose: "yea". (Owner, 2026-11-06)
 
+**D128. Radium's loops.** Each loop says how it ends: `for` goes through something, `while` runs while a `bool` holds, and `forever` has no end unless you `break`, so one word finds every endless loop. A range is `range[from: 1, to: 5]`, where `to:` includes the end and `before:` stops before it, with `step_by:` after them, and a negative step
+counts down; `from:` is required, the order is fixed, and a range that can never reach its end is refused. `for`'s own value can't change inside. `break;` stops the innermost loop, and a loop can be named, as in `for rows $row in $grid:` closed with `end for rows`, so `break rows;` stops it and everything inside it. There is no `continue`, which
+removes it from D46's list. `decreases` belongs to the Precog limb. The owner asked "what's the difference?", then to ask Radium and TAKL's sessions; Claude proposed taking Radium's; the owner chose: "yea". (Owner, 2026-11-06)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude

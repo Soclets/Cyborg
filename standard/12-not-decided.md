@@ -68,8 +68,6 @@ Waiting on the owner, most needed first. Each is `NotDesignedYet` unless it says
 
 ## 12.4 Control flow
 
-- `while`, `loop`, `break` and `continue`.
-- Ranges. Claude proposed `range.inclusive` and `range.exclusive`, with no bare `range`.
 - Where the test in [4.2](4-control-flow.md#42-the-test-if-n-t) is allowed besides `if`.
 
 ## 12.5 Functions

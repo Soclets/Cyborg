@@ -70,6 +70,8 @@ What Cyborg does now, in one place. The oracle, the compiler and check claude fo
 | `fails` | [8.1](8-failures.md#81-fails) | | `FinalSmall` | [10.1](10-build-modes.md#101-the-modes) |
 | `fix:` | [11.5](11-errors.md#115-fixes) | | `x` | [3.2](3-operators.md#32-arithmetic----x) |
 | `fn` | [5.1](5-functions.md#51-declaring) | | `fn.pure` | [5.9](5-functions.md#59-pure-functions) |
+| `while`, `forever` | [4.6](4-control-flow.md#46-while), [4.7](4-control-flow.md#47-forever) | | `range` | [4.5](4-control-flow.md#45-ranges) |
+| `break` | [4.8](4-control-flow.md#48-break) | | | |
 | `for` | [4.4](4-control-flow.md#44-for) | | generics | [5.8](5-functions.md#58-generics) |
 | `Give`, `Given` | [6.2](6-ownership.md#62-give-and-given) | | `my::` | [1.10](1-programs.md#110-clashing-names-my) |
 | `i32`, `i64` | [2.4](2-values-and-types.md#24-integers) | | `import` | [1.5](1-programs.md#15-paths-) |
