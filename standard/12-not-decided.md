@@ -22,7 +22,7 @@ These are places where decisions leave a real gap or pull against each other.
 
 | Problem | Decisions |
 |---|---|
-| **`len.min` and `= empty`.** A list with `len.min: 1` can't be `= empty`, and there's no decided way to build one with items. | D11, D13 |
+| **`len.min` and `= empty`.** A list with `len.min: 1 items` can't be `= empty`, and there's no decided way to build one with items. | D11, D13 |
 | **The test and `change`.** Inside `if $s: status.failed:`, what if `$s` is `let mut` and gets changed? The compiler's trust would be wrong. | D9 |
 | **Expensive contracts in `FinalSafe`.** D14 says contracts are checked, and `FinalSafe` keeps only cheap checks. Only a shield's exit is settled. | D14, D37, D39 |
 | **What `FinalShit` drops.** Does it also drop `%`, a missing `~`, or mismatched `Give` and `Lend`? D40's list says "such as". | D5, D40, D59 |
@@ -31,7 +31,7 @@ These are places where decisions leave a real gap or pull against each other.
 ## 12.2 Types
 
 - The full list of integer and float types.
-- Units (D99, D100): which numbers need one, what "in front" looks like, multiplying and converting, and how a unit is defined.
+- Units (D99 to D101): multiplying and converting, how a unit is defined, and the full list of units `std` has.
 - Raw pointers' spelling, though D38 puts them in shields.
 - Function types: `-> i32` no longer shows failures, so a function's type needs some way to include them.
 - How a type's writer defines label narrowings like `len.max`.

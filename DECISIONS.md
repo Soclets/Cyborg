@@ -639,6 +639,10 @@ here. The owner: "We should have a way to do Zig's full print". (Owner, 2026-11-
 **D100. The compiler checks units.** A unit is part of the type, carried by a narrowing, as in `$a: i32.seconds`. Starting small: the same units can add and compare, mixing them is refused, and anything fancier, such as `seconds x seconds`, waits until a real program
 needs it. Claude proposed it; the owner chose: "Oh, that is a good fucking idea". (Owner, 2026-11-06)
 
+**D101. Which numbers need a unit.** Only where the type asks for one. A plain `i32` means just a number, and needs none. The language and `std` ask for units on things that have them, like lengths, sizes and durations, and your own code opts in with a type like
+`i32.seconds`, so `let $b: i32.seconds = 3600;` is refused. So `std::array<u8>[len: 4096 items]` and `len.max: inf items`. The linter limb can be stricter. Claude proposed it; the owner chose: "yea". Renaming `@size_of` to `@bytes_of`, with the unit in front, is Claude's
+reading of D99. (Owner, 2026-11-06)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude

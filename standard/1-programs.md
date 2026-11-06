@@ -40,7 +40,7 @@ end fn.main
 **Rule:** `;` ends a statement, `:` opens a block, and `end` closes it. The closer repeats what it closes, including the name.
 
 ```
-fn total [$xs: std::list<i32>[len.max: inf]] -> i32:
+fn total [$xs: std::list<i32>[len.max: inf items]] -> i32:
     …
 end fn total
 
@@ -56,7 +56,7 @@ end if
 **Rule:** variables, parameters and constants start with `$`. Struct fields don't.
 
 ```
-let $r: reading = reading[celsius = 21, time = 3600];
+let $r: reading = reading[celsius = 21, time = 3600 seconds];
 std::println($r.celsius as str);
 ```
 
@@ -126,10 +126,10 @@ An opening `<` has no space after it, a closing `>` has none before it, and a co
 
 ## 1.9 Labels: `:`
 
-**Rule:** a label names a value inside brackets, as in `val: 4` or `len: 8`. A label can be narrowed where a type's writer defines that, as in `len.max`. `=` sets a field instead ([7.2](7-structs-and-unions.md#72-building-a-struct)).
+**Rule:** a label names a value inside brackets, as in `val: 4` or `len: 8 items`. A label can be narrowed where a type's writer defines that, as in `len.max`. `=` sets a field instead ([7.2](7-structs-and-unions.md#72-building-a-struct)).
 
 ```
-std::list<i32>[len.min: 1, len.max: 8]
+std::list<i32>[len.min: 1 items, len.max: 8 items]
 ```
 
 **From:** D13, D57.

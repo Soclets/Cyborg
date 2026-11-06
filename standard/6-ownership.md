@@ -58,7 +58,7 @@ close(Give $f);
 **Rule:** a bare parameter is lent, read-only, and the call still writes `Lend`.
 
 ```
-fn total [$xs: std::list<i32>[len.max: inf]] -> i32:
+fn total [$xs: std::list<i32>[len.max: inf items]] -> i32:
     …
 end fn total
 
@@ -147,7 +147,7 @@ Lend.mut from $r reading
 ```
 $xs.len
 for $x in $xs:
-reading[celsius = 21, time = 3600]
+reading[celsius = 21, time = 3600 seconds]
 ```
 
 **From:** D2.

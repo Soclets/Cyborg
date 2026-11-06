@@ -8,7 +8,7 @@
 | [5.4](#54-the-top-of-the-body) | `requires`, `ensures`, `fails` | In that order, first in the body |
 | [5.5](#55-contracts) | `requires`, `ensures` | When they're checked |
 | [5.6](#56-methods-) | `.%` | A function on a receiver |
-| [5.7](#57-builtins-) | `@size_of` | Bare `@` |
+| [5.7](#57-builtins-) | `@bytes_of` | Bare `@` |
 | [5.8](#58-generics) | `<?T: ordered>` | C++ templates, but safer |
 | [5.9](#59-pure-functions) | `fn.pure` | Same input, same output, nothing else changes |
 | [5.10](#510-the-inline-compile-time-language) | Inline language | Templates, but more powerful and safe |
@@ -19,7 +19,7 @@
 **Rule:** a function is declared with `[ ]`, and its parameters are lent unless they say otherwise ([6.1](6-ownership.md#61-the-words)).
 
 ```
-fn total [$xs: std::list<i32>[len.max: inf]] -> i32:
+fn total [$xs: std::list<i32>[len.max: inf items]] -> i32:
     …
 end fn total
 ```
@@ -91,7 +91,7 @@ How a method is declared isn't decided ([12.5](12-not-decided.md#125-functions))
 **Rule:** a bare `@`, with no `::`, is a compiler builtin, and it's always available. A builtin looks like a function call, and can't be written as a Cyborg function.
 
 ```
-@size_of<i32>()
+@bytes_of<i32>()
 ```
 
 **Refused:** `@let`. `let`, `+` and `as` aren't calls, and `std::println` could be written in Cyborg.

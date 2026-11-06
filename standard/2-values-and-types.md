@@ -123,9 +123,9 @@ let $b: f64 = ~0.1;
 **Rule:** a list holds its element type in `< >`, and always writes its `len.max`, with `inf` for unbounded. It can also have a `len.min`. An empty list always writes `= empty`.
 
 ```
-let mut $xs: std::list<i32>[len.max: inf] = empty;
-let mut $ys: std::list<i32>[len.max: 8] = empty;
-std::list<i32>[len.min: 1, len.max: 8]
+let mut $xs: std::list<i32>[len.max: inf items] = empty;
+let mut $ys: std::list<i32>[len.max: 8 items] = empty;
+std::list<i32>[len.min: 1 items, len.max: 8 items]
 ```
 
 **Refused:** `std::list<i32>` with no `len.max`, and a list with a bare `len`, in favour of `array`.
@@ -137,7 +137,7 @@ std::list<i32>[len.min: 1, len.max: 8]
 **Rule:** an array has exactly `len` items.
 
 ```
-std::array<i32>[len: 8]
+std::array<i32>[len: 8 items]
 ```
 
 **Refused:** `len.always`, which doesn't exist.
@@ -192,8 +192,15 @@ let $b: i32.seconds = 5 seconds;
 let $c: i32.seconds = $a + $b;
 ```
 
-**Refused:** mixing units, as in `$a + 5 bytes`.
+A unit is required only where the type asks for one. A plain `i32` means just a number. The language and `std` ask for units on things that have them, like lengths, sizes and durations, and your own code opts in with a type like `i32.seconds`.
 
-Which numbers need one, and anything fancier, like `seconds x seconds`, aren't decided ([12.2](12-not-decided.md#122-types)). Examples elsewhere in this standard don't show units yet.
+```
+std::array<u8>[len: 4096 items]
+let $x: i32 = 3600;
+```
 
-**From:** D99, D100.
+**Refused:** mixing units, as in `$a + 5 bytes`, and a missing unit, as in `let $b: i32.seconds = 3600;`.
+
+Anything fancier, like `seconds x seconds`, isn't decided ([12.2](12-not-decided.md#122-types)).
+
+**From:** D99, D100, D101.
