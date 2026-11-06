@@ -45,6 +45,7 @@ const CLASHING_WORDS: &[&str] = &[
     "Lent",
     "empty",
     "all",
+    "inf",
     "bake",
     "narrowings",
     "together",
@@ -328,6 +329,14 @@ fn lex(source: &str) -> Outcome<Vec<Token>> {
         } else if let Some(symbol) = SYMBOLS.iter().find(|symbol| rest.starts_with(**symbol)) {
             position += symbol.len();
             Lexeme::Symbol(symbol)
+        } else if character == '＠' {
+            // trace: D36
+            return Err(Report::refused(
+                Span::new(position, position + character.len_utf8()),
+                "the limb mark is a plain `@`",
+                "the limb mark is a plain `@`, not the fullwidth one Radium uses (D36)",
+            )
+            .fix("@"));
         } else {
             return Err(Report::refused(
                 Span::new(position, position + character.len_utf8()),
@@ -1650,6 +1659,20 @@ impl Parser {
                 "else" | "while" | "loop" | "break" | "continue" => {
                     return Err(Report::not_designed(start, format!("`{word}`"), "12.4"));
                 }
+                // trace: D84
+                "precond" | "postcond" if self.symbol_at(1, "=>") => {
+                    let wanted = if word == "precond" {
+                        "requires"
+                    } else {
+                        "ensures"
+                    };
+                    return Err(Report::refused(
+                        start.to(self.peek_at(1).span),
+                        format!("`{word} =>` went back to `{wanted}`"),
+                        "contracts are `requires` and `ensures`, with no `=>` (D84)",
+                    )
+                    .fix(wanted));
+                }
                 "labels" | "defaults" | "requires" | "ensures" | "fails" => {
                     // trace: D114
                     return Err(Report::refused(
@@ -2552,21 +2575,21 @@ impl Parser {
     #[allow(clippy::too_many_lines)] // One arm per word, read top to bottom.
     fn parse_word_primary(&mut self, word: &str, start: Span) -> Outcome<Expression> {
         match word {
-            "empty" => {
+            "empty" if !self.symbol_at(1, "(") => {
                 self.advance();
                 return Ok(Expression {
                     span: start,
                     kind: ExpressionKind::Empty,
                 });
             }
-            "void" => {
+            "void" if !self.symbol_at(1, "(") => {
                 self.advance();
                 return Ok(Expression {
                     span: start,
                     kind: ExpressionKind::Void,
                 });
             }
-            "inf" => {
+            "inf" if !self.symbol_at(1, "(") => {
                 self.advance();
                 let number = Expression {
                     span: start,

@@ -516,8 +516,13 @@ impl Checker<'_> {
                     break None;
                 };
                 let target = self.canonical(&target);
-                if target == "std::time.seconds" {
-                    break Some(target);
+                // trace: D109
+                if target.starts_with("std::") {
+                    let resolved = self.resolve_unit(&Path {
+                        text: target,
+                        span: target_span,
+                    })?;
+                    break Some(resolved);
                 }
                 if !self.units.contains_key(&target) {
                     return Err(Report::refused(
@@ -1506,6 +1511,14 @@ impl Checker<'_> {
                     key: Box::new(key),
                     value: Box::new(value),
                 })
+            }
+            // trace: D24
+            other if other.starts_with("list.") || other.starts_with("array.") => {
+                Err(Report::refused(
+                    path.span,
+                    format!("`std::{other}` is the older spelling"),
+                    "a collection's types go in `< >` (D24)",
+                ))
             }
             other => Err(Report::not_designed(
                 path.span,

@@ -1,0 +1,5 @@
+NotDesignedYet: d98_full_print_isnt_spelled.cy:5:5, line 5 column 5
+ 5 |     std::print.buffered("hi");
+   |     ^^^^^^^^^^^^^^^^^^^
+ what: `std::print.buffered`, since `std`'s full contents aren't chosen
+ why:  not decided yet, and the standard doesn't say

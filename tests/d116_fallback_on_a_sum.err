@@ -1,0 +1,5 @@
+NotDesignedYet: d116_fallback_on_a_sum.cy:11:19, line 11 column 19
+11 |     let $b: i32 = $a + read() ?? 0;
+   |                   ^^^^^^^^^^^
+ what: what `?`, `??` or `otherwise` catches on more than one call
+ why:  not decided yet, and the standard doesn't say

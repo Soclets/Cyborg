@@ -1,0 +1,5 @@
+NotDesignedYet: d110_offset_conversion.cy:5:20, line 5 column 20
+ 5 |     heat.celsius = 1 heat.kelvin + 273;
+   |                    ^^^^^^^^^^^^^^^
+ what: how a conversion other than a multiple is written
+ why:  not decided yet (standard 12.2)

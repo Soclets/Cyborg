@@ -1,0 +1,5 @@
+NotDesignedYet: d109_conversion_isnt_spelled.cy:9:31, line 9 column 31
+ 9 |     let $c: i32.money.cents = $d as i32.money.cents;
+   |                               ^^^^^^^^^^^^^^^^^^^^^
+ what: converting `i32.money.dollars` to `i32.money.cents` with `as`
+ why:  not decided yet (standard 12.3)

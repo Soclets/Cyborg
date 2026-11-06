@@ -370,6 +370,16 @@ impl Checker<'_> {
     }
 
     fn check_copy(&mut self, value: &Expression) -> Outcome<Held> {
+        if matches!(
+            self.context.kind,
+            crate::ast::FunctionKind::Pure | crate::ast::FunctionKind::PureBaked
+        ) {
+            return Err(Report::not_designed(
+                value.span,
+                "whether a `fn.pure` may allocate, as `Copy` can",
+                "12.5",
+            ));
+        }
         let held = self.check_held(value)?;
         if self.is_must_give(&held.value_type) {
             return Err(Report::not_designed(

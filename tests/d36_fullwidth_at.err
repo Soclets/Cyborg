@@ -1,0 +1,5 @@
+refused: d36_fullwidth_at.cy:3:5, line 3 column 5
+ 3 |     ＠std::inline.asm();
+   |     ^
+ fix:  `@`
+ why:  the limb mark is a plain `@`, not the fullwidth one Radium uses (D36)
