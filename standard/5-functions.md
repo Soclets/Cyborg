@@ -24,7 +24,9 @@ fn total [$xs: std::list<i32>[len.max: inf items]] -> i32:
 end fn total
 ```
 
-**From:** D2, D23.
+Declarations work in any order, so a function can call one declared later in the file. The linter can enforce an order.
+
+**From:** D2, D23, D120.
 
 ## 5.2 Calling
 

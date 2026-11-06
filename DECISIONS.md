@@ -696,6 +696,8 @@ on anything but a single value. Claude proposed the table and refusals; the owne
 **D119. Named comment blocks.** A comment spanning lines is a block with a required name: `comment why_sorted:` to `end comment why_sorted`. Blocks nest, and a closer must name the block it closes. Both lines count only when alone on a line. `//` needs a space after it, and `///` is its own form. From Radium's D86 and D87, where `comment:` was the
 owner's design; nesting and names are new. The owner asked "Name the comment block?"; Claude proposed requiring it; the owner chose: "yea". (Owner, 2026-11-06)
 
+**D120. Declarations work in any order.** A function can call one declared later in the file, with no forward declarations. The linter limb can enforce an order for anyone who wants one. Oracle claude asked; Claude proposed it; the owner chose: "yea, and I mean, the linter could choose anyways". (Owner, 2026-11-06)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude
