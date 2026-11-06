@@ -728,6 +728,9 @@ the duty too is not settled here. Oracle claude said it blocked the most; Radium
 
 **D132. `??` sticks to its call.** `??` sits level with `?`, so `$a + read() ?? 0` means `$a + (read() ?? 0)`, correcting D116. Its right side is the next single value, so `read() ?? 1 + 2` means `(read() ?? 1) + 2`, which is Claude's reading. Oracle claude found it; Claude proposed the fix; the owner chose: "yea". (Owner, 2026-11-06)
 
+**D133. `pos:` and `offset:`.** `$xs[pos: 1]` is the first item, counting from 1, and `$xs[offset: 0]` is also the first item, counting from 0, so the word says which you mean. `change $xs[pos: 3] = 10;` changes one, and needs what D125 needs. A bad position is a bounds check, as in D26: a trap in `Working` and `FinalSafe`, and gone in `FinalPerf`, which is Claude's
+reading. Claude proposed both, from TAKL; the owner chose: "yea, Ra has `offset` too". (Owner, 2026-11-06)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude

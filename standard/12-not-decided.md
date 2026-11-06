@@ -53,7 +53,7 @@ Waiting on the owner, most needed first. Each is `NotDesignedYet` unless it says
 - Function types: `-> i32` no longer shows failures, so a function's type needs some way to include them.
 - How a type's writer defines label narrowings like `len.max`.
 - An uninitialized array, like Zig's `= undefined`. Claude suggested only inside a shield, if at all.
-- Indexing, and what a bad index does.
+- Whether a bad position can be handled, rather than trapping, and whether `pos:` takes a unit.
 - `str` narrowings other than `str.utf16`, and how string literals work.
 - The full print (D98): how `std` spells the stream, the buffer and flushing.
 - The test on a value already known to be that type, like `if $n: bool:` on a `bool`. Claude suggested refusing it.

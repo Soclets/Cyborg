@@ -18,6 +18,7 @@
 | [2.14](#214-conversion-as) | `as` | Builds a new value |
 | [2.15](#215-void-and-bool) | `void`, `bool` | |
 | [2.16](#216-units) | `3600 time.seconds` | A number says its unit |
+| [2.17](#217-getting-an-item) | `$xs[pos: 1]`, `$xs[offset: 0]` | Counting from 1, or from 0 |
 
 ## 2.1 `let`
 
@@ -249,3 +250,17 @@ together length.meters / time.seconds = speed.meters_per_second;
 A conversion can be an offset, not only a multiple. A moment is kept apart from a length of time. How these are spelled, and how a conversion is written, aren't decided ([12.2](12-not-decided.md#122-types)).
 
 **From:** D99, D100, D101, D108, D109, D110, D111, D112.
+
+## 2.17 Getting an item
+
+**Rule:** `pos:` counts from 1, and `offset:` counts from 0, so the word says which you mean. Both work on lists and arrays.
+
+```
+let $first: i32 = $xs[pos: 1];
+let $same: i32 = $xs[offset: 0];
+change $xs[pos: 3] = 10;
+```
+
+A bad position is a bounds check ([10.4](10-build-modes.md#104-what-happens-when-something-goes-wrong)). Changing an item needs what changing a field needs ([7.3](7-structs-and-unions.md#73-reading-a-field)).
+
+**From:** D26, D125, D133.
