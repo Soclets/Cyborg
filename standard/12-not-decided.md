@@ -37,7 +37,6 @@ These are places where decisions leave a real gap or pull against each other. No
 
 ## 12.3 Operators and conversion
 
-- Whether `and` binds tighter than `or`, and whether `$a < $b < $c` is allowed.
 - Whether `-` and `x` follow [10.4](10-build-modes.md#104-what-happens-when-something-goes-wrong)'s overflow row, which D42 states for `+`.
 - The real spelling for wrapping, and the wrapping forms of `-` and `x`.
 - The full list of `div` narrowings, and what `div.exact` does in each mode.

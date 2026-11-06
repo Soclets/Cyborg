@@ -689,6 +689,8 @@ the method's name. Claude suggested a bare method for a type's own kit, because 
 **D116. Precedence follows maths, and `( )` groups.** Tightest first: `.`, `.%`, `::`, calls and `?`; then `not` and unary `-`; then `x`, `div…` and `mod…`, left to right; then `+` and `-`; then comparisons; then `and` and `or`; then `??`. Where maths gives no order, you group with `( )`, D23's one exception: bit operators and shifts mixed with anything, and `as`
 on anything but a single value. Claude proposed the table and refusals; the owner chose: "Follow maths, group with `()` (exception of bracket rule)". Whether `and` binds tighter than `or`, and whether `$a < $b < $c` is allowed, are not settled here. (Owner, 2026-11-06)
 
+**D117. `and` over `or`, and comparison chains.** Following maths, `and` binds tighter than `or`, so `$a and $b or $c` means `($a and $b) or $c`. `1 < $x < 5` means `1 < $x and $x < 5`, with `$x` evaluated once. The linter limb can ask for parentheses. Claude proposed it; the owner chose: "yea, and the linter would be real". (Owner, 2026-11-06)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude

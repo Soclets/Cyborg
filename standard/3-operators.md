@@ -123,8 +123,9 @@ $a plus.wrap $b
 | 3 | `x`, `div…`, `mod…`, left to right |
 | 4 | `+`, `-` |
 | 5 | `==`, `!=`, `<`, `>`, `at_least`, `at_most` |
-| 6 | `and`, `or` |
-| 7 | `??` |
+| 6 | `and` |
+| 7 | `or` |
+| 8 | `??` |
 
 ```
 $a + $b x 2
@@ -134,6 +135,6 @@ $a + $b x 2
 
 **Refused:** where maths gives no order, so bit operators and shifts mixed with anything, as in `$a shl 2 + 1`, and `as` on anything but a single value, as in `$a + $b as str`.
 
-Whether `and` binds tighter than `or`, and whether `$a < $b < $c` is allowed, aren't decided ([12.3](12-not-decided.md#123-operators-and-conversion)).
+A comparison chain means all of it is true, and each value is evaluated once: `1 < $x < 5` means `1 < $x and $x < 5`. The linter can ask for parentheses.
 
-**From:** D23, D116.
+**From:** D23, D116, D117.
