@@ -38,9 +38,9 @@ let mut $sum: i32 = 0;
 change $sum = $sum + $x;
 ```
 
-`change` only reassigns. It doesn't stand in for `Lend.mut`.
+`change` only reassigns, a variable or one field of it ([7.3](7-structs-and-unions.md#73-reading-a-field)). It doesn't stand in for `Lend.mut`.
 
-**From:** D3, the sketch.
+**From:** D3, D125, the sketch.
 
 ## 2.3 Constants: `const`
 

@@ -41,7 +41,13 @@ let $r: reading = reading[celsius = 21, time = 3600 std::time.seconds];
 std::println($r.celsius as str);
 ```
 
-**From:** D8, D57.
+A field can be changed if the whole variable is `let mut`, or the parameter `Lent.mut`:
+
+```
+change $r.celsius = 22;
+```
+
+**From:** D8, D57, D125.
 
 ## 7.4 Linear structs
 

@@ -708,6 +708,8 @@ the owner asked "Does saying the word really add any safety?"; Claude proposed t
 **D124. `and` and `or` stop early.** The right side only runs if it's needed, so `$n != 0 and 10 div.trunc $n > 1` is safe. A comparison chain stops at its first false too. A narrowing runs both sides, spelled `and.both` and `or.both` as placeholders. Oracle claude asked; Claude proposed stopping early; the owner chose: "Stop early, and a narrowing to
 run both". (Owner, 2026-11-06)
 
+**D125. `change` works on a field.** `change $r.celsius = 22;`. The whole variable has to be `let mut`, or the parameter `Lent.mut`, and single fields aren't marked as changeable. Oracle claude asked; Claude proposed it; the owner chose: "yea". (Owner, 2026-11-06)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude
