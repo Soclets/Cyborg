@@ -724,6 +724,8 @@ the duty too is not settled here. Oracle claude said it blocked the most; Radium
 **D130. Declaring a method.** A method is a normal function with its type in the name: `fn reading.%warm_up [$r: Lent.mut reading, $by: i32] -> void:`, closed with `end fn reading.%warm_up`, and called `$r.%warm_up(by: 2);`. The first parameter is the receiver, and says how it's held, which is where `%` looks up what's unsaid. A bare one is read-only, and
 `Given` is refused there, since methods only borrow (D8). Claude proposed it; the owner chose: "yea". (Owner, 2026-11-06)
 
+**D131. `not` sits below comparisons.** `not $a < 3` means `not ($a < 3)`, which corrects D116. `not` now sits just above `and`, and unary `-` stays where it was. Oracle claude found it; Claude proposed the fix; the owner chose: "yea". (Owner, 2026-11-06)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude

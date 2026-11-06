@@ -123,13 +123,14 @@ $a plus.wrap $b
 | Level | Operators |
 |---|---|
 | 1 | `.`, `.%`, `::`, calls, `?` |
-| 2 | `not`, unary `-` |
+| 2 | Unary `-` |
 | 3 | `x`, `div…`, `mod…`, left to right |
 | 4 | `+`, `-` |
 | 5 | `==`, `!=`, `<`, `>`, `at_least`, `at_most` |
-| 6 | `and` |
-| 7 | `or` |
-| 8 | `??` |
+| 6 | `not` |
+| 7 | `and` |
+| 8 | `or` |
+| 9 | `??` |
 
 ```
 $a + $b x 2
@@ -141,4 +142,4 @@ $a + $b x 2
 
 Unary `-` negates, so `-$x` and `-7` are both allowed. A comparison chain means all of it is true, and each value is evaluated once: `1 < $x < 5` means `1 < $x and $x < 5`. It stops at its first false. The linter can ask for parentheses.
 
-**From:** D23, D116, D117, D124.
+**From:** D23, D116, D117, D124, D131.
