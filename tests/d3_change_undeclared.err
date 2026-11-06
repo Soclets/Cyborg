@@ -1,0 +1,5 @@
+refused: d3_change_undeclared.cy:3:12, line 3 column 12
+ 3 |     change $a = 2;
+   |            ^^
+ what: `$a` isn't declared
+ why:  `let` declares a variable (D2)

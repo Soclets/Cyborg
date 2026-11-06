@@ -1,0 +1,5 @@
+refused: d38_untagged_union_at_the_top.cy:4:1, line 4 column 1
+ 4 | @csup::union.untagged number:
+   | ^^^^^^^^^^^^^^^^^^^^^
+ what: `@csup::union.untagged` must be inside a shield
+ why:  a shield is the only place dangerous code may live (D34, D38)

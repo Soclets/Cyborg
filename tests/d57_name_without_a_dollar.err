@@ -1,0 +1,5 @@
+refused: d57_name_without_a_dollar.cy:3:19, line 3 column 19
+ 3 |     let $a: i32 = b;
+   |                   ^
+ what: `b` isn't known
+ why:  variables, parameters and constants start with `$` (D57, D58)

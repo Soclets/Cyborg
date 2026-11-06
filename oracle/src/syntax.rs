@@ -437,6 +437,13 @@ fn lex_number(source: &str, position: &mut usize) -> Outcome<Lexeme> {
 
 /// trace: D33
 pub fn parse(source: &str) -> Outcome<Program> {
+    if source.starts_with('\u{feff}') {
+        return Err(Report::not_designed(
+            Span::new(0, 3),
+            "a byte order mark at the start of a source file",
+            "",
+        ));
+    }
     let tokens = lex(source)?;
     let mut parser = Parser {
         tokens,
@@ -454,7 +461,7 @@ struct Parser {
 
 /// How deep brackets and blocks can nest here. Past this the oracle says so, instead of running
 /// out of stack and crashing, which rule 6 forbids.
-const DEPTH_LIMIT: usize = 200;
+const DEPTH_LIMIT: usize = 2000;
 
 const BLOCK_WHY: &str = "`;` ends a statement, `:` opens a block, and `end` closes it (D33)";
 
@@ -789,6 +796,31 @@ impl Parser {
                 "12.5",
             ));
         }
+        // trace: D56
+        if self.at_symbol("@") && self.word_at(1, "import") {
+            return Err(Report::refused(
+                self.span().to(self.peek_at(1).span),
+                "there is no `@import`",
+                "importing is a plain keyword (D56, D92)",
+            )
+            .fix("import"));
+        }
+        // trace: D38
+        if self.at_symbol("@") {
+            let path = self.parse_path()?;
+            if path.text == "@csup::union.untagged" {
+                return Err(Report::refused(
+                    path.span,
+                    "`@csup::union.untagged` must be inside a shield",
+                    "a shield is the only place dangerous code may live (D34, D38)",
+                ));
+            }
+            return Err(Report::not_designed(
+                path.span,
+                format!("`{}` at the top of a file", path.text),
+                "12.9",
+            ));
+        }
         Err(self.expected("`fn`, `struct`, `union.tagged`, `narrowings`, `const` or `shield`"))
     }
 
@@ -833,6 +865,14 @@ impl Parser {
         self.expect_symbol("->")?;
         let return_type = self.parse_type()?;
         let header_end = self.previous_span();
+        // trace: D52
+        if self.at_word("or") && self.word_at(1, "fail") {
+            return Err(Report::refused(
+                self.span(),
+                "`or fail[…]` is the older spelling",
+                "a function lists its failures in its body, with `fails` (D52)",
+            ));
+        }
         self.expect_symbol(":")?;
         let mut function = Function {
             kind,
@@ -886,6 +926,22 @@ impl Parser {
                     "`Lent` alone is written bare",
                     "a bare parameter is lent, so writing `Lent` alone is refused (D2)",
                 ));
+            } else if self.at_word("Copy") {
+                // trace: D2
+                return Err(Report::refused(
+                    word_span,
+                    "there's no parameter word for `Copy`",
+                    "`Copy` hands over a separate copy, to a `Given` parameter (D2)",
+                )
+                .fix("Given"));
+            } else if self.at_word("Give") {
+                // trace: D2
+                return Err(Report::refused(
+                    word_span,
+                    "`Give` is the call's word",
+                    "`Give` goes at the call, and `Given` on the parameter (D2)",
+                )
+                .fix("Given"));
             } else {
                 ParameterWord::Bare
             };
@@ -1839,7 +1895,9 @@ impl Parser {
 
     fn parse_or(&mut self) -> Outcome<Expression> {
         let mut left = self.parse_and()?;
+        let depth_before = self.depth;
         while self.at_word("or") {
+            self.enter()?;
             let operator = if self.logic_narrowing("or")? {
                 BinaryOperator::OrBoth
             } else {
@@ -1849,12 +1907,15 @@ impl Parser {
             Self::refuse_as_on_the_right(&right)?;
             left = Self::binary(operator, left, right)?;
         }
+        self.depth = depth_before;
         Ok(left)
     }
 
     fn parse_and(&mut self) -> Outcome<Expression> {
         let mut left = self.parse_compare()?;
+        let depth_before = self.depth;
         while self.at_word("and") {
+            self.enter()?;
             let operator = if self.logic_narrowing("and")? {
                 BinaryOperator::AndBoth
             } else {
@@ -1864,6 +1925,7 @@ impl Parser {
             Self::refuse_as_on_the_right(&right)?;
             left = Self::binary(operator, left, right)?;
         }
+        self.depth = depth_before;
         Ok(left)
     }
 
@@ -1960,7 +2022,9 @@ impl Parser {
 
     fn parse_additive(&mut self) -> Outcome<Expression> {
         let mut left = self.parse_multiplicative()?;
+        let depth_before = self.depth;
         loop {
+            self.enter()?;
             let operator = if self.at_symbol("+") {
                 self.advance();
                 BinaryOperator::Add
@@ -1993,6 +2057,7 @@ impl Parser {
             Self::refuse_as_on_the_right(&right)?;
             left = Self::binary(operator, left, right)?;
         }
+        self.depth = depth_before;
         Ok(left)
     }
 
@@ -2038,7 +2103,9 @@ impl Parser {
 
     fn parse_multiplicative(&mut self) -> Outcome<Expression> {
         let mut left = self.parse_unary()?;
+        let depth_before = self.depth;
         loop {
+            self.enter()?;
             let operator = if self.eat_word("x") {
                 BinaryOperator::Multiply
             } else if self.at_word("div") {
@@ -2071,10 +2138,18 @@ impl Parser {
             Self::refuse_as_on_the_right(&right)?;
             left = Self::binary(operator, left, right)?;
         }
+        self.depth = depth_before;
         Ok(left)
     }
 
     fn parse_unary(&mut self) -> Outcome<Expression> {
+        self.enter()?;
+        let result = self.parse_unary_inner();
+        self.leave();
+        result
+    }
+
+    fn parse_unary_inner(&mut self) -> Outcome<Expression> {
         let start = self.span();
         let value = if self.eat_word("not") {
             let inner = self.parse_unary()?;
@@ -2353,6 +2428,13 @@ impl Parser {
 
     #[allow(clippy::too_many_lines)] // One arm per form of value, read top to bottom.
     fn parse_primary(&mut self) -> Outcome<Expression> {
+        self.enter()?;
+        let result = self.parse_primary_inner();
+        self.leave();
+        result
+    }
+
+    fn parse_primary_inner(&mut self) -> Outcome<Expression> {
         let start = self.span();
         match self.peek().lexeme.clone() {
             Lexeme::Integer(_) | Lexeme::Float(_) | Lexeme::Symbol("-" | "~") => {
@@ -2495,6 +2577,23 @@ impl Parser {
                     span: start.to(value.span),
                     kind: ExpressionKind::Bake(Box::new(value)),
                 });
+            }
+            // trace: D2
+            "Given" | "Lent" => {
+                let wanted = if word == "Given" { "Give" } else { "Lend" };
+                let mut end = self.advance().span;
+                let mut wanted = wanted.to_string();
+                if word == "Lent" && self.at_symbol(".") && self.word_at(1, "mut") {
+                    self.advance();
+                    end = self.advance().span;
+                    wanted.push_str(".mut");
+                }
+                return Err(Report::refused(
+                    start.to(end),
+                    format!("`{word}` is the parameter's word"),
+                    "the call and the parameter each have their own word (D2)",
+                )
+                .fix(wanted));
             }
             "Give" => {
                 self.advance();

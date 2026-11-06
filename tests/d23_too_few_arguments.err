@@ -1,0 +1,5 @@
+refused: d23_too_few_arguments.cy:7:19, line 7 column 19
+ 7 |     let $a: i32 = f();
+   |                   ^^^
+ what: this call to `f` leaves off `$a`
+ why:  a declared label must be written, and a parameter with no label is called without one (D113, D114)

@@ -10,6 +10,7 @@ use crate::ast::{
 };
 use crate::ir::{self, Instruction, InstructionKind, Node, NodeKind, Place};
 use crate::report::{Outcome, Report, ReportExtra, Span};
+use crate::syntax::is_clashing;
 use crate::types::{Sources, Type, Value};
 
 /// A block's code, and whether it can't run past its end.
@@ -740,6 +741,14 @@ impl Checker<'_> {
                 ));
             }
         }
+        // trace: D3
+        if matches!(value.kind, ExpressionKind::Method { percent: false, .. }) {
+            return Err(Report::refused(
+                value.span,
+                "`change` doesn't stand in for an ownership word, and a `.` never runs code",
+                "every hand-off shows on the page, including one to a method's receiver (D3, D8)",
+            ));
+        }
         let target_type = match &variable.held_type {
             Type::Borrow { inner, .. } => (**inner).clone(),
             other => other.clone(),
@@ -1146,8 +1155,9 @@ impl Checker<'_> {
                 "a function that can fail lists its failures in its body (D52)",
             ));
         };
+        let used = failure_name_as_used(path)?;
         refuse_ambiguous_failure(&listed, path)?;
-        let failure = find_failure(&listed, &path.text).ok_or_else(|| {
+        let failure = find_failure(&listed, &used).ok_or_else(|| {
             Report::refused(
                 path.span,
                 format!("`{}` isn't in this function's `fails`", path.text),
@@ -1229,7 +1239,7 @@ impl Checker<'_> {
         if value_type != Type::Void {
             return Err(Report::not_designed(
                 value.span,
-                format!("dropping a `{value_type}` by not using it"),
+                format!("dropping a value of `{value_type}` by not using it"),
                 "",
             ));
         }
@@ -1262,8 +1272,9 @@ impl Checker<'_> {
         let before = self.context.state.clone();
         let mut branches = vec![before];
         for arm in arms {
+            let used = failure_name_as_used(&arm.pattern)?;
             refuse_ambiguous_failure(failures, &arm.pattern)?;
-            let Some(failure) = find_failure(failures, &arm.pattern.text) else {
+            let Some(failure) = find_failure(failures, &used) else {
                 if self.failure_sets.contains_key(&arm.pattern.text) {
                     return Err(Report::not_designed(
                         arm.pattern.span,
@@ -1324,6 +1335,30 @@ impl Checker<'_> {
         }
         Ok(())
     }
+}
+
+/// A failure's name that clashes is written with `my::` wherever it's used. (D75)
+fn failure_name_as_used(path: &crate::ast::Path) -> Outcome<String> {
+    if let Some(mine) = path.text.strip_prefix("my::") {
+        if !is_clashing(mine) {
+            return Err(Report::not_designed(
+                path.span,
+                format!("`my::` on `{mine}`, which doesn't clash"),
+                "",
+            ));
+        }
+        return Ok(mine.to_string());
+    }
+    // trace: D75
+    if is_clashing(&path.text) {
+        return Err(Report::refused(
+            path.span,
+            format!("`{}` is built in", path.text),
+            "a name of yours that clashes is written with `my::` (D75)",
+        )
+        .fix(format!("my::{}", path.text)));
+    }
+    Ok(path.text.clone())
 }
 
 /// A short name two failures share says neither of them. (D47)

@@ -1,0 +1,5 @@
+refused: d2_give_on_a_parameter.cy:2:11, line 2 column 11
+ 2 | fn f [$s: Give str] -> void:
+   |           ^^^^
+ fix:  `Given`
+ why:  `Give` goes at the call, and `Given` on the parameter (D2)

@@ -26,6 +26,13 @@ impl RawCall {
     }
 }
 
+fn expression_digits(expression: &Expression) -> &str {
+    match &expression.kind {
+        ExpressionKind::Integer { digits, .. } => digits,
+        _ => "",
+    }
+}
+
 /// The value of an integer literal, written with or without its sign.
 pub(super) fn literal_integer(expression: &Expression) -> Option<i128> {
     match &expression.kind {
@@ -359,6 +366,16 @@ impl Checker<'_> {
                 let raw = self.check_raw_call(expression)?;
                 Ok(Self::crash_if_it_fails(raw, span))
             }
+            // trace: D56
+            ExpressionKind::Builtin(path)
+                if is_clashing(path.text.trim_start_matches('@')) =>
+            {
+                Err(Report::refused(
+                    path.span,
+                    format!("`{}` can't happen", path.text),
+                    "a builtin looks like a function call and can't be written as a Cyborg function, so `let`, `+` and `as` aren't builtins (D56)",
+                ))
+            }
             ExpressionKind::Builtin(path) => Err(Report::not_designed(
                 path.span,
                 format!("the builtin `{}`", path.text),
@@ -441,7 +458,15 @@ impl Checker<'_> {
     ) -> Outcome<(Node, Type)> {
         let span = expression.span;
         let Some(value) = literal_integer(expression) else {
-            return Err(Report::refused(span, "this number can't be read", "(D10)"));
+            // trace: D20
+            return Err(Report::refused(
+                span,
+                format!(
+                    "`{}` doesn't fit any integer here",
+                    expression_digits(expression)
+                ),
+                "a literal that can't fit is a compile error (D20)",
+            ));
         };
         if matches!(expected, Some(Type::Float { .. })) {
             return Err(Report::not_designed(
@@ -1099,7 +1124,7 @@ impl Checker<'_> {
                 let Some((index, parameter)) = next else {
                     return Err(Report::refused(
                         argument.value.span,
-                        format!("`{function_name}` takes {} arguments", parameters.len()),
+                        format!("this is one argument too many for `{function_name}`"),
                         WHY,
                     ));
                 };

@@ -1,0 +1,5 @@
+refused: d23_unknown_function.cy:3:19, line 3 column 19
+ 3 |     let $a: i32 = nothing();
+   |                   ^^^^^^^
+ what: the function `nothing` isn't declared
+ why:  a function is declared with `fn` and `[ ]` (D23)

@@ -1,0 +1,5 @@
+refused: d54_no_f32_decimal.cy:3:13, line 3 column 13
+ 3 |     let $a: f32.decimal = 0.1;
+   |             ^^^^^^^^^^^
+ what: `f32.decimal` doesn't exist
+ why:  a narrowing means "this, made more specific", so a decimal float is `d32`, not `f32.decimal` (D54)

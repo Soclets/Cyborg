@@ -1136,6 +1136,14 @@ impl Checker<'_> {
                 };
             }
             "i32" | "i64" | "u8" | "f32" | "f64" => {
+                // trace: D54
+                if narrowing == Some("decimal") {
+                    return Err(Report::refused(
+                        path.span,
+                        format!("`{text}` doesn't exist"),
+                        "a narrowing means \"this, made more specific\", so a decimal float is `d32`, not `f32.decimal` (D54)",
+                    ));
+                }
                 let unit = match narrowing {
                     Some(unit_text) => Some(self.resolve_unit(&Path {
                         text: unit_text.to_string(),
@@ -1196,7 +1204,7 @@ impl Checker<'_> {
         Err(Report::refused(
             path.span,
             format!("the type `{text}` isn't known"),
-            WHY_TYPES,
+            "a type is built in, or declared with `struct` or `union.tagged` (D33, D57)",
         ))
     }
 

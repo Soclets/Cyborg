@@ -1,0 +1,5 @@
+refused: d23_argument_of_the_wrong_type.cy:7:21, line 7 column 21
+ 7 |     let $a: i32 = f("x");
+   |                     ^^^
+ what: this is `str`, where `i32` is needed
+ why:  `:` doesn't convert, and `as` builds a new value of another type (D7)

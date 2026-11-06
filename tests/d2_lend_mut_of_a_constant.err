@@ -1,0 +1,5 @@
+refused: d2_lend_mut_of_a_constant.cy:9:16, line 9 column 16
+ 9 |     f(Lend.mut $s);
+   |                ^^
+ what: a constant can't be lent with `Lend.mut`
+ why:  a constant's value is fixed at compile time (D83)

@@ -1,0 +1,5 @@
+refused: d2_copy_on_a_parameter.cy:2:11, line 2 column 11
+ 2 | fn f [$s: Copy str] -> void:
+   |           ^^^^
+ fix:  `Given`
+ why:  `Copy` hands over a separate copy, to a `Given` parameter (D2)

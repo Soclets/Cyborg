@@ -1,0 +1,5 @@
+refused: d12_array_says_its_len.cy:5:29, line 5 column 29
+ 5 |     let $a: std::array<i32>[len.max: 3 items] = [1];
+   |                             ^^^^^^^
+ what: an array has exactly `len` items
+ why:  bare `len` is exact, and `len.min` and `len.max` are a list's (D13)
