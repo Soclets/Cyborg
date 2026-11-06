@@ -636,6 +636,9 @@ here. The owner: "We should have a way to do Zig's full print". (Owner, 2026-11-
 **D99. A number says its unit, behind it where possible.** `3600 seconds`. Where the unit can't go behind, it goes in front. Claude proposed units inside names, like `time_in_seconds`; the owner chose: "I meant unit behind where possible, if not just do unit in front.
 `3600 seconds`". Whether units are checked by the compiler, which numbers need one, and how the examples in the standard change are not settled here. (Owner, 2026-11-06)
 
+**D100. The compiler checks units.** A unit is part of the type, carried by a narrowing, as in `$a: i32.seconds`. Starting small: the same units can add and compare, mixing them is refused, and anything fancier, such as `seconds x seconds`, waits until a real program
+needs it. Claude proposed it; the owner chose: "Oh, that is a good fucking idea". (Owner, 2026-11-06)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude

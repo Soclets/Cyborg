@@ -31,7 +31,7 @@ These are places where decisions leave a real gap or pull against each other.
 ## 12.2 Types
 
 - The full list of integer and float types.
-- Units (D99): which numbers need one, whether the compiler checks them, and what "in front" looks like.
+- Units (D99, D100): which numbers need one, what "in front" looks like, multiplying and converting, and how a unit is defined.
 - Raw pointers' spelling, though D38 puts them in shields.
 - Function types: `-> i32` no longer shows failures, so a function's type needs some way to include them.
 - How a type's writer defines label narrowings like `len.max`.

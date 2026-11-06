@@ -184,12 +184,16 @@ A failed `as` is a failure, so it crashes unless handled ([8.9](8-failures.md#89
 
 ## 2.16 Units
 
-**Rule:** a number says its unit, behind it where possible. Where the unit can't go behind, it goes in front.
+**Rule:** a number says its unit, behind it where possible. Where the unit can't go behind, it goes in front. The compiler checks units: a unit is part of the type, carried by a narrowing. The same units can add and compare.
 
 ```
-3600 seconds
+let $a: i32.seconds = 3600 seconds;
+let $b: i32.seconds = 5 seconds;
+let $c: i32.seconds = $a + $b;
 ```
 
-Which numbers need one, and whether the compiler checks them, aren't decided ([12.2](12-not-decided.md#122-types)). Examples elsewhere in this standard don't show units yet.
+**Refused:** mixing units, as in `$a + 5 bytes`.
 
-**From:** D99.
+Which numbers need one, and anything fancier, like `seconds x seconds`, aren't decided ([12.2](12-not-decided.md#122-types)). Examples elsewhere in this standard don't show units yet.
+
+**From:** D99, D100.
