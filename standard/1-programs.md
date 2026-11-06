@@ -8,7 +8,7 @@
 | [1.4](#14-names-and-) | `$` | Variables have it, fields don't |
 | [1.5](#15-paths-) | `::` | How you reach a kit or limb |
 | [1.11](#111-short-names-use) | `use … as …;` | A shorter name for a path |
-| [1.12](#112-comments) | `//`, `///` | Notes and documentation |
+| [1.12](#112-comments) | `//`, `///`, `comment` | Notes and documentation |
 | [1.6](#16-narrowings-) | `.` | Makes the thing before it more specific |
 | [1.7](#17-bare-names) | Bare names | The obvious default, or nothing |
 | [1.8](#18-brackets) | `( )`, `[ ]`, `< >` | Runs, describes, fills in |
@@ -182,6 +182,15 @@ fn total [$xs: std::list<i32>[len.max: inf items]] -> i32:
 end fn total
 ```
 
-Block comments aren't decided ([12.5](12-not-decided.md#125-functions)).
+A comment spanning lines is a block with a required name. Blocks nest, and a closer must name the block it closes. Both lines count only when alone on a line.
 
-**From:** D118.
+```
+comment why_sorted:
+    The list has to stay sorted because
+    find uses a binary search.
+end comment why_sorted
+```
+
+**Refused:** `//text` with no space, a block with no name, a closer naming the wrong block, and a block that never closes.
+
+**From:** D118, D119.

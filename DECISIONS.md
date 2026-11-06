@@ -693,6 +693,9 @@ on anything but a single value. Claude proposed the table and refusals; the owne
 
 **D118. `//` and `///`.** `//` is a line comment, a note for whoever reads the code. `///` is a doc comment, attached to what's below it, which tools can show and build documentation from. Block comments are not settled here. Claude proposed both; the owner chose: "Both". (Owner, 2026-11-06)
 
+**D119. Named comment blocks.** A comment spanning lines is a block with a required name: `comment why_sorted:` to `end comment why_sorted`. Blocks nest, and a closer must name the block it closes. Both lines count only when alone on a line. `//` needs a space after it, and `///` is its own form. From Radium's D86 and D87, where `comment:` was the
+owner's design; nesting and names are new. The owner asked "Name the comment block?"; Claude proposed requiring it; the owner chose: "yea". (Owner, 2026-11-06)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude
