@@ -37,6 +37,7 @@ These are places where decisions leave a real gap or pull against each other.
 - Array and list values, such as a literal list of items, and how an array gets its first value.
 - Indexing, and what a bad index does.
 - `str` narrowings other than `str.utf16`, and how string literals work.
+- The full print (D98): how `std` spells the stream, the buffer and flushing.
 - `true` and `false`.
 - The test on a value already known to be that type, like `if $n: bool:` on a `bool`. Claude suggested refusing it.
 

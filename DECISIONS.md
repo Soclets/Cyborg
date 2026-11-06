@@ -630,6 +630,9 @@ more strict". (Owner, 2026-11-06)
 **D97. No bare `mod`.** Like `div` (D48), a remainder has no single right answer for negative numbers, so you pick: `-7 mod.trunc 2` gives -1, and `-7 mod.floor 2` gives 1. This replaces the bare `mod` in D49. Claude proposed it; the owner
 chose: "yea". (Owner, 2026-11-06)
 
+**D98. A full print, like Zig's.** Besides the short `std::println`, `std` has a way to do the whole thing by hand, as Zig's long stdout version does: choosing the stream, the buffer and when to flush, with failures handled. Its spelling is not settled
+here. The owner: "We should have a way to do Zig's full print". (Owner, 2026-11-06)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude
