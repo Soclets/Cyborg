@@ -731,6 +731,9 @@ the duty too is not settled here. Oracle claude said it blocked the most; Radium
 **D133. `pos:` and `offset:`.** `$xs[pos: 1]` is the first item, counting from 1, and `$xs[offset: 0]` is also the first item, counting from 0, so the word says which you mean. `change $xs[pos: 3] = 10;` changes one, and needs what D125 needs. A bad position is a bounds check, as in D26: a trap in `Working` and `FinalSafe`, and gone in `FinalPerf`, which is Claude's
 reading. Claude proposed both, from TAKL; the owner chose: "yea, Ra has `offset` too". (Owner, 2026-11-06)
 
+**D134. Naming a type.** `type.alias score = i32;` is just another name, fully interchangeable. `type.new user_id = i64;` is the same data but a different type, so it doesn't mix with another `type.new`, or with `i64`. There's no bare `type`, since no default is obvious. A family of them is `narrowings.type.alias sizes:` or `narrowings.type.new ids:`, with lines like
+`ids.user = i64;`, always used with the family, and a family doesn't mix the two kinds. D10 still holds for the language itself, so `int.signed.32_bit` doesn't exist unless you write it. The owner: "We should have a `type i64 = int64` style narrowings", then "Yes, but I also mean collections too"; Claude proposed the spelling; the owner chose: "yes". (Owner, 2026-11-06)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude

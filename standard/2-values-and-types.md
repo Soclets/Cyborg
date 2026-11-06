@@ -19,6 +19,7 @@
 | [2.15](#215-void-and-bool) | `void`, `bool` | |
 | [2.16](#216-units) | `3600 time.seconds` | A number says its unit |
 | [2.17](#217-getting-an-item) | `$xs[pos: 1]`, `$xs[offset: 0]` | Counting from 1, or from 0 |
+| [2.18](#218-naming-a-type) | `type.alias`, `type.new` | Another name, or a different type |
 
 ## 2.1 `let`
 
@@ -264,3 +265,27 @@ change $xs[pos: 3] = 10;
 A bad position is a bounds check ([10.4](10-build-modes.md#104-what-happens-when-something-goes-wrong)). Changing an item needs what changing a field needs ([7.3](7-structs-and-unions.md#73-reading-a-field)).
 
 **From:** D26, D125, D133.
+
+## 2.18 Naming a type
+
+**Rule:** `type.alias` gives a type another name, fully interchangeable. `type.new` makes a different type from the same data, which doesn't mix with others. There's no bare `type`.
+
+```
+type.alias numbers = std::list<i32>[len.max: inf items];
+type.new user_id = i64;
+```
+
+A family of them states its kind once, and they're always used with the family:
+
+```
+narrowings.type.new ids:
+    ids.user = i64;
+    ids.order = i64;
+end narrowings.type.new ids
+
+let $u: ids.user = get_user();
+```
+
+**Refused:** a bare `type`, mixing `ids.user` and `ids.order`, and mixing the two kinds in one family.
+
+**From:** D134.
