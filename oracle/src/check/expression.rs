@@ -948,7 +948,7 @@ impl Checker<'_> {
             ExpressionKind::As { value, target } => self.check_as(value, target, span),
             _ => Err(Report::not_designed(
                 span,
-                "what `?`, `??` or `otherwise` catches on more than one call",
+                "what `?`, `??` or `otherwise` catches on anything but one call",
                 "",
             )),
         };

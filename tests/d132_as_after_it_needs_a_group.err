@@ -1,0 +1,5 @@
+refused: d132_as_after_it_needs_a_group.cy:9:19, line 9 column 19
+ 9 |     let $s: str = read() ?? 1 as str;
+   |                   ^^^^^^^^^^^
+ what: this `as` is on more than a single value, so it needs `( )`
+ why:  `as` works on a single value, and where maths gives no order you group with `( )` (D116)

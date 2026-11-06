@@ -2130,27 +2130,13 @@ impl Parser {
     /// trace: D116
     fn parse_expression(&mut self) -> Outcome<Expression> {
         self.enter()?;
-        let result = self.parse_fallback();
+        let result = self.parse_otherwise_level();
         self.leave();
         result
     }
 
-    fn parse_fallback(&mut self) -> Outcome<Expression> {
+    fn parse_otherwise_level(&mut self) -> Outcome<Expression> {
         let value = self.parse_or()?;
-        if self.at_symbol("??") {
-            self.advance();
-            Self::refuse_bit_mix(&value)?;
-            let fallback = self.parse_or()?;
-            Self::refuse_as_on_the_right(&fallback)?;
-            Self::refuse_bit_mix(&fallback)?;
-            return Ok(Expression {
-                span: value.span.to(fallback.span),
-                kind: ExpressionKind::Fallback {
-                    value: Box::new(value),
-                    fallback: Box::new(fallback),
-                },
-            });
-        }
         if self.at_word("otherwise") {
             let handling = self.parse_otherwise()?;
             let end = self.previous_span();
@@ -2247,8 +2233,27 @@ impl Parser {
         Ok(left)
     }
 
+    /// `not` sits below comparisons, so `not $a < 3` means `not ($a < 3)`. (D131)
+    /// trace: D131
+    fn parse_not(&mut self) -> Outcome<Expression> {
+        let start = self.span();
+        if !self.eat_word("not") {
+            return self.parse_compare();
+        }
+        self.enter()?;
+        let result = self.parse_not();
+        self.leave();
+        let inner = result?;
+        Self::refuse_bit_mix(&inner)?;
+        Self::refuse_as_on_the_right(&inner)?;
+        Ok(Expression {
+            span: start.to(inner.span),
+            kind: ExpressionKind::Not(Box::new(inner)),
+        })
+    }
+
     fn parse_and(&mut self) -> Outcome<Expression> {
-        let mut left = self.parse_compare()?;
+        let mut left = self.parse_not()?;
         let depth_before = self.depth;
         while self.at_word("and") {
             self.enter()?;
@@ -2257,7 +2262,7 @@ impl Parser {
             } else {
                 BinaryOperator::And
             };
-            let right = self.parse_compare()?;
+            let right = self.parse_not()?;
             Self::refuse_as_on_the_right(&right)?;
             left = Self::binary(operator, left, right)?;
         }
@@ -2487,15 +2492,15 @@ impl Parser {
 
     fn parse_unary_inner(&mut self) -> Outcome<Expression> {
         let start = self.span();
-        let value = if self.eat_word("not") {
-            let inner = self.parse_unary()?;
-            Self::refuse_bit_mix(&inner)?;
-            Self::refuse_as_on_the_right(&inner)?;
-            Expression {
-                span: start.to(inner.span),
-                kind: ExpressionKind::Not(Box::new(inner)),
-            }
-        } else if self.eat_word("bit_not") {
+        // trace: D131
+        if self.at_word("not") {
+            return Err(Report::refused(
+                start,
+                "`not` sits below comparisons and maths, so here it needs `( )`",
+                "`not` sits just above `and`, and `( )` groups (D116, D131)",
+            ));
+        }
+        let value = if self.eat_word("bit_not") {
             let inner = self.parse_unary()?;
             Self::refuse_bit_mix(&inner)?;
             Self::refuse_as_on_the_right(&inner)?;
@@ -2576,12 +2581,10 @@ impl Parser {
                     target,
                 },
             };
-            while self.at_symbol("?") {
-                let end = self.advance().span;
-                value = Expression {
-                    span: value.span.to(end),
-                    kind: ExpressionKind::Try(Box::new(value)),
-                };
+            value = self.parse_question_marks(value);
+            while self.at_symbol("??") {
+                value = self.parse_fallback_on(value)?;
+                value = self.parse_question_marks(value);
             }
         }
         Ok(value)
@@ -2592,17 +2595,60 @@ impl Parser {
         self.parse_postfix()
     }
 
+    /// A value and everything that sticks to it, including `??` and what it falls back on.
     fn parse_postfix(&mut self) -> Outcome<Expression> {
+        let mut value = self.parse_single_value()?;
+        while self.at_symbol("??") {
+            value = self.parse_fallback_on(value)?;
+            value = self.parse_question_marks(value);
+        }
+        Ok(value)
+    }
+
+    /// `??` sits level with `?`, and its right side is the next single value. (D132)
+    /// trace: D132
+    fn parse_fallback_on(&mut self, value: Expression) -> Outcome<Expression> {
+        self.advance(); // `??`
+        if self.at_symbol("-")
+            && !matches!(
+                self.peek_at(1).lexeme,
+                Lexeme::Integer(_) | Lexeme::Float(_)
+            )
+        {
+            return Err(Report::refused(
+                self.span(),
+                "`??`'s right side is one value, and unary `-` sits below it, so this needs `( )`",
+                "`??` sits level with `?`, and its right side is the next single value (D132)",
+            ));
+        }
+        let fallback = self.parse_single_value()?;
+        Ok(Expression {
+            span: value.span.to(fallback.span),
+            kind: ExpressionKind::Fallback {
+                value: Box::new(value),
+                fallback: Box::new(fallback),
+            },
+        })
+    }
+
+    fn parse_question_marks(&mut self, mut value: Expression) -> Expression {
+        while self.at_symbol("?") {
+            let end = self.advance().span;
+            value = Expression {
+                span: value.span.to(end),
+                kind: ExpressionKind::Try(Box::new(value)),
+            };
+        }
+        value
+    }
+
+    fn parse_single_value(&mut self) -> Outcome<Expression> {
         let mut value = self.parse_primary()?;
         loop {
             if self.at_symbol(".") {
                 value = self.parse_after_dot(value)?;
             } else if self.at_symbol("?") {
-                let end = self.advance().span;
-                value = Expression {
-                    span: value.span.to(end),
-                    kind: ExpressionKind::Try(Box::new(value)),
-                };
+                value = self.parse_question_marks(value);
             } else if self.at_symbol("[") {
                 return Err(Report::not_designed(
                     self.span(),

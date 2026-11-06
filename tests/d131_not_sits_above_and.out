@@ -1,0 +1,3 @@
+(not f) and t
+(not t) or t
+t and (not f)
