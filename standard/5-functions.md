@@ -147,6 +147,10 @@ Safe means that if compile-time code passes the compiler, every program it can g
 - It always finishes, such as through a step limit that gives `refused:`.
 - Errors point at real code, with `because:` leading back to the compile-time code.
 
-The rest isn't designed ([12.5](12-not-decided.md#125-functions)).
+It can pick a type by a condition, take any number of type parameters, and loop over a struct's fields, with each field's type fitting a bound. Generating a struct's fields and generating functions are goals, if the checking works out.
 
-**From:** D85, D88, D89.
+Its syntax isn't designed ([12.5](12-not-decided.md#125-functions)).
+
+**Refused:** generating arbitrary code from text.
+
+**From:** D85, D88, D89, D90.

@@ -594,6 +594,10 @@ definition, generated code follows ownership, `%`, shields and everything else, 
 `because:` leading back to the compile-time code. Claude proposed this strong version and a weaker one that checks at the use; the owner chose: "yea". Claude reads that as the strong version.
 (Owner, 2026-11-06)
 
+**D90. What the inline language can do.** It commits to picking a type by a condition, any number of type parameters, and looping over a struct's fields, with each field's type fitting a bound.
+Generating a struct's fields and generating functions are goals, if the checking in D89 works out. Generating arbitrary code from text is out, because D89 can't hold for it. Claude proposed it; the
+owner chose: "yea". (Owner, 2026-11-06)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude
