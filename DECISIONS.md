@@ -569,6 +569,12 @@ symbols. `requires $n at_least 0;` and `ensures result at_least 0;` come first i
 The owner: "I think we should change `precond` and `postcond` back. I have to think when I read them". Dropping the arrow with them is Claude's reading of
 "back". (Owner, 2026-11-06)
 
+**D85. C++ templates, but safer.** Cyborg has generics that make a copy per type, can take values as parameters, can be specialized for one type, and can be
+extended by outsiders through bounds. They're safer because a generic says what it needs through a bound, and is checked once at its definition, so errors don't
+show up deep inside someone else's code. Unchecked bodies are out, and accidental metaprogramming isn't needed, since baking would use normal code. The spelling
+`<?T: ordered>` is Radium's, as a placeholder. Claude listed the features and proposed this; the owner chose: "Ah, we should have C++ Templates, but safer". Claude
+reads "safer" as the bounded version. (Owner, 2026-11-06)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude

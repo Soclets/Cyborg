@@ -9,6 +9,7 @@
 | [5.5](#55-contracts) | `requires`, `ensures` | When they're checked |
 | [5.6](#56-methods-) | `.%` | A function on a receiver |
 | [5.7](#57-builtins-) | `@size_of` | Bare `@` |
+| [5.8](#58-generics) | `<?T: ordered>` | C++ templates, but safer |
 
 ## 5.1 Declaring
 
@@ -91,3 +92,24 @@ How a method is declared isn't decided ([12.5](12-not-decided.md#125-functions))
 **Refused:** `@let`. `let`, `+` and `as` aren't calls, and `std::println` could be written in Cyborg.
 
 **From:** D56.
+
+## 5.8 Generics
+
+**Rule:** a generic function or type makes a copy per type, which runs as fast as hand-written code. It says what it needs through a bound, and is checked once at its definition. It can take values as parameters, can be specialized for one type, and can be extended by outsiders through bounds.
+
+```
+fn largest <?T: ordered> [$a: ?T, $b: ?T] -> ?T:
+    if $a > $b:
+        return $a;
+    end if
+    return $b;
+end fn largest
+
+let $x: i32 = largest(3, 5);
+```
+
+`?T` and `ordered` are placeholders. How much of this is spelled isn't decided ([12.5](12-not-decided.md#125-functions)).
+
+**Refused:** a body that uses `?T` in a way its bound doesn't allow.
+
+**From:** D23, D85.

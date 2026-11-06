@@ -35,7 +35,6 @@ These are places where decisions leave a real gap or pull against each other.
 
 - The full list of integer and float types.
 - Raw pointers' spelling, though D38 puts them in shields.
-- Generics: `< >` exists, but nothing defines them.
 - Function types: `-> i32` no longer shows failures, so a function's type needs some way to include them.
 - How a type's writer defines label narrowings like `len.max`.
 - Array and list values, such as a literal list of items, and how an array gets its first value.
@@ -66,6 +65,8 @@ These are places where decisions leave a real gap or pull against each other.
 ## 12.5 Functions
 
 - How a method is declared, and how its receiver appears in the signature.
+- Generics (D85): the spelling, including `?T`, how a bound is defined, how a type satisfies one, and how specialization and value parameters are written.
+- `fn.pure`, and baking with `fn.pure.baked`. Claude proposed both, with contracts only calling pure functions.
 - Whether every `void` function says `return void;`.
 - When a call needs labels ([12.1](#121-problems-found-writing-this)).
 - Comments. Examples in the decisions use `//`, but it was never chosen.

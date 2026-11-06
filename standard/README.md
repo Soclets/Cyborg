@@ -69,7 +69,7 @@ What Cyborg does now, in one place. The oracle, the compiler and check claude fo
 | `fails` | [8.1](8-failures.md#81-fails) | | `FinalSmall` | [10.1](10-build-modes.md#101-the-modes) |
 | `fix:` | [11.5](11-errors.md#115-fixes) | | `x` | [3.2](3-operators.md#32-arithmetic----x) |
 | `fn` | [5.1](5-functions.md#51-declaring) | | | |
-| `for` | [4.4](4-control-flow.md#44-for) | | | |
+| `for` | [4.4](4-control-flow.md#44-for) | | generics | [5.8](5-functions.md#58-generics) |
 | `Give`, `Given` | [6.2](6-ownership.md#62-give-and-given) | | `my::` | [1.10](1-programs.md#110-clashing-names-my) |
 | `i32`, `i64` | [2.4](2-values-and-types.md#24-integers) | | | |
 | `if` | [4.1](4-control-flow.md#41-if) | | | |
