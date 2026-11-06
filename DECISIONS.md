@@ -705,6 +705,9 @@ owner's design; nesting and names are new. The owner asked "Name the comment blo
 **D123. Every plain number takes no ownership word.** Plain numbers and `bool` are always copied, covering `i32`, `f64`, bounded integers, numbers with units and `d32`. This widens D2, which came from Radium before it had floats and only named integers and `bool`. On a number, a word can't tell you anything you could be wrong about. Oracle claude asked;
 the owner asked "Does saying the word really add any safety?"; Claude proposed this; the owner chose: "yea". (Owner, 2026-11-06)
 
+**D124. `and` and `or` stop early.** The right side only runs if it's needed, so `$n != 0 and 10 div.trunc $n > 1` is safe. A comparison chain stops at its first false too. A narrowing runs both sides, spelled `and.both` and `or.both` as placeholders. Oracle claude asked; Claude proposed stopping early; the owner chose: "Stop early, and a narrowing to
+run both". (Owner, 2026-11-06)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude

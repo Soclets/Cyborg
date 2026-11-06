@@ -92,9 +92,13 @@ if $a < $b:
 
 ## 3.6 Logic
 
-**Rule:** `and`, `or` and `not` are words.
+**Rule:** `and`, `or` and `not` are words. `and` and `or` stop early, so the right side only runs if it's needed. A narrowing runs both sides, spelled `and.both` and `or.both` as placeholders.
 
-**From:** D49.
+```
+if $n != 0 and 10 div.trunc $n > 1:
+```
+
+**From:** D49, D124.
 
 ## 3.7 Bits and shifts
 
@@ -135,6 +139,6 @@ $a + $b x 2
 
 **Refused:** where maths gives no order, so bit operators and shifts mixed with anything, as in `$a shl 2 + 1`, and `as` on anything but a single value, as in `$a + $b as str`.
 
-Unary `-` negates, so `-$x` and `-7` are both allowed. A comparison chain means all of it is true, and each value is evaluated once: `1 < $x < 5` means `1 < $x and $x < 5`. The linter can ask for parentheses.
+Unary `-` negates, so `-$x` and `-7` are both allowed. A comparison chain means all of it is true, and each value is evaluated once: `1 < $x < 5` means `1 < $x and $x < 5`. It stops at its first false. The linter can ask for parentheses.
 
-**From:** D23, D116, D117.
+**From:** D23, D116, D117, D124.
