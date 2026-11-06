@@ -1,0 +1,5 @@
+NotDesignedYet: d93_short_name_clashes_with_yours.cy:4:21, line 4 column 21
+ 4 | use std::println as say;
+   |                     ^^^
+ what: `use … as say` when `say` is also declared in this file
+ why:  not decided yet, and the standard doesn't say

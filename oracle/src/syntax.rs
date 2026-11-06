@@ -124,6 +124,8 @@ struct Token {
     span: Span,
     space_before: bool,
     space_after: bool,
+    /// Whether a newline comes between this token and the one before it.
+    starts_a_line: bool,
 }
 
 /// Longest first, so `??` isn't read as two `?`.
@@ -341,11 +343,17 @@ fn lex(source: &str) -> Outcome<Vec<Token>> {
             .get(position..)
             .and_then(|after| after.chars().next())
             .is_none_or(char::is_whitespace);
+        let starts_a_line = tokens.last().is_none_or(|last: &Token| {
+            source
+                .get(last.span.end..start)
+                .is_some_and(|between| between.contains('\n'))
+        });
         tokens.push(Token {
             lexeme,
             span: Span::new(start, position),
             space_before,
             space_after,
+            starts_a_line,
         });
     }
     tokens.push(Token {
@@ -353,6 +361,7 @@ fn lex(source: &str) -> Outcome<Vec<Token>> {
         span: Span::new(source.len(), source.len()),
         space_before: true,
         space_after: true,
+        starts_a_line: true,
     });
     Ok(tokens)
 }
@@ -2403,6 +2412,9 @@ impl Parser {
 
     /// A unit behind a number, unless what follows is an operator. (D99)
     fn parse_unit_after_number(&mut self) -> Outcome<Option<Path>> {
+        if self.peek().starts_a_line {
+            return Ok(None);
+        }
         let is_operator = match &self.peek().lexeme {
             Lexeme::Word(word) => OPERATOR_WORDS.contains(&word.as_str()) || is_clashing(word),
             _ => true,
@@ -2725,4 +2737,5 @@ static END_TOKEN: Token = Token {
     span: Span { start: 0, end: 0 },
     space_before: true,
     space_after: true,
+    starts_a_line: true,
 };

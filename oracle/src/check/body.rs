@@ -84,6 +84,16 @@ impl Checker<'_> {
             collect_variables(&contract.condition, &mut self.context.ensures_variables);
         }
 
+        // trace: D114
+        for (parameter, value) in &function.defaults {
+            if let Some(info) = signature
+                .parameters
+                .iter()
+                .find(|info| info.name == parameter.text)
+            {
+                self.check_into(value, &info.parameter_type)?;
+            }
+        }
         let (body, terminated) = self.check_block(&function.body)?;
         Self::check_function_end(function, terminated, &signature.return_type)?;
         self.check_scope_end_at_function(function.end_span)?;
@@ -195,7 +205,9 @@ impl Checker<'_> {
             constant: None,
             borrows: Vec::new(),
         });
-        self.context.state.push(VariableState::default());
+        self.context
+            .state
+            .resize(self.context.variables.len(), VariableState::default());
         self.context.variables.len() - 1
     }
 
@@ -203,7 +215,11 @@ impl Checker<'_> {
         let slot = self.context.variables.len();
         let name = variable.name.clone();
         self.context.variables.push(variable);
-        self.context.state.push(VariableState::default());
+        // A finished branch hands back a shorter state than the variables it declared, so this
+        // fills the gap: a variable's state is always found by its slot.
+        self.context
+            .state
+            .resize(slot + 1, VariableState::default());
         if let Some(scope) = self.context.scopes.last_mut() {
             scope.insert(name, slot);
         }

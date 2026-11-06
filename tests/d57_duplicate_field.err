@@ -1,0 +1,5 @@
+refused: d57_duplicate_field.cy:4:5, line 4 column 5
+ 4 |     n: str;
+   |     ^
+ what: `box` has two fields called `n`
+ why:  a field read is a plain `.`, so a field's name says which (D57)

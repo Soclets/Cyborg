@@ -1,0 +1,5 @@
+refused: d47_duplicate_member.cy:4:5, line 4 column 5
+ 4 |     file_failed.denied;
+   |     ^^^^^^^^^^^^^^^^^^
+ what: `file_failed.denied` is in this set twice
+ why:  a named set is a list of failures, each with its own name (D47)

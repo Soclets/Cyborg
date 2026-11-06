@@ -1,0 +1,5 @@
+refused: d33_number_at_the_end_of_a_line.cy:8:19, line 8 column 19
+ 8 |     let $a: i32 = 1
+   |                   ^
+ what: expected `;` after this, but found `f`
+ why:  `;` ends a statement, `:` opens a block, and `end` closes it (D33)

@@ -232,6 +232,7 @@ impl Checker<'_> {
         self.declare_handlers(&items);
         let functions = Self::functions_of(&items);
         self.declare_signatures(&functions)?;
+        self.refuse_short_names_that_clash(program)?;
         self.check_globals(&items)?;
 
         let mut compiled = Vec::new();
@@ -320,6 +321,24 @@ impl Checker<'_> {
             // trace: D93
             self.aliases
                 .insert(declared.short.text.clone(), declared.path.text.clone());
+        }
+        Ok(())
+    }
+
+    /// A short name that's also a name of yours has no stated winner.
+    fn refuse_short_names_that_clash(&self, program: &Program) -> Outcome<()> {
+        for declared in &program.uses {
+            let name = &declared.short.text;
+            if self.signatures.contains_key(name)
+                || self.structs.contains_key(name)
+                || self.unions.contains_key(name)
+            {
+                return Err(Report::not_designed(
+                    declared.short.span,
+                    format!("`use … as {name}` when `{name}` is also declared in this file"),
+                    "",
+                ));
+            }
         }
         Ok(())
     }
@@ -425,6 +444,14 @@ impl Checker<'_> {
                     )
                     .fix(format!("{}{}", prefix, member.path.text)));
                 }
+                // trace: D109
+                if self.units.contains_key(&member.path.text) {
+                    return Err(Report::refused(
+                        member.path.span,
+                        format!("`{}` is declared twice", member.path.text),
+                        "every unit says what it is, once (D109)",
+                    ));
+                }
                 let (base, target) = match &member.meaning {
                     UnitMeaning::Base => (Some(member.path.text.clone()), None),
                     UnitMeaning::Conversion { unit } => {
@@ -521,8 +548,19 @@ impl Checker<'_> {
         for item in items {
             match item {
                 Item::Struct(declaration) => {
-                    let mut fields = Vec::new();
+                    let mut fields: Vec<(String, Type)> = Vec::new();
                     for field in &declaration.fields {
+                        // trace: D57
+                        if fields.iter().any(|(name, _)| *name == field.name.text) {
+                            return Err(Report::refused(
+                                field.name.span,
+                                format!(
+                                    "`{}` has two fields called `{}`",
+                                    declaration.name.text, field.name.text
+                                ),
+                                "a field read is a plain `.`, so a field's name says which (D57)",
+                            ));
+                        }
                         let field_type = self.resolve_type(&field.written_type)?;
                         self.refuse_undecided_content(&field_type, field.written_type.span)?;
                         fields.push((field.name.text.clone(), field_type));
@@ -532,8 +570,19 @@ impl Checker<'_> {
                     }
                 }
                 Item::Union(declaration) => {
-                    let mut cases = Vec::new();
+                    let mut cases: Vec<(String, Vec<(String, Type)>)> = Vec::new();
                     for case in &declaration.cases {
+                        // trace: D33
+                        if cases.iter().any(|(name, _)| *name == case.name.text) {
+                            return Err(Report::refused(
+                                case.name.span,
+                                format!(
+                                    "`{}` has two cases called `{}`",
+                                    declaration.name.text, case.name.text
+                                ),
+                                "a union's cases are narrowings, so a case's name says which (D33)",
+                            ));
+                        }
                         let mut fields = Vec::new();
                         for field in &case.fields {
                             let field_type = self.resolve_type(&field.written_type)?;
@@ -618,8 +667,16 @@ impl Checker<'_> {
             let Item::FailureSet(set) = item else {
                 continue;
             };
-            let mut members = Vec::new();
+            let mut members: Vec<Failure> = Vec::new();
             for member in &set.members {
+                // trace: D47
+                if members.iter().any(|other| other.full == member.path.text) {
+                    return Err(Report::refused(
+                        member.path.span,
+                        format!("`{}` is in this set twice", member.path.text),
+                        "a named set is a list of failures, each with its own name (D47)",
+                    ));
+                }
                 let prefix = format!("{}.", set.name.text);
                 let Some(short) = member.path.text.strip_prefix(&prefix) else {
                     return Err(Report::refused(

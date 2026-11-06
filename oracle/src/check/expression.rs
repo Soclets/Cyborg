@@ -1,5 +1,6 @@
 //! Expressions: what each form means, its type, and the checks hidden inside it.
 
+use super::body::root_variable;
 use super::hand::HandedOff;
 use super::{Checker, Failure, Origin, ParameterInfo, Signature, WHY_TYPES};
 use crate::ast::{
@@ -336,6 +337,12 @@ impl Checker<'_> {
             ExpressionKind::Variable(_) => {
                 let held = self.check_held(expression)?;
                 Ok((held.node, held.value_type))
+            }
+            ExpressionKind::Field { base, name } if root_variable(base).is_none() => {
+                // A field of a fresh value, such as `make().n`, has no variable to walk from.
+                let (node, base_type) = self.check_expression(base, None)?;
+                let (index, value_type) = self.find_field(base, &base_type, name)?;
+                Ok((simple(NodeKind::Field(Box::new(node), index)), value_type))
             }
             ExpressionKind::Field { base, name } => {
                 let held = self.check_held(base)?;
