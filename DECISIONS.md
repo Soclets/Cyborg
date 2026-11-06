@@ -546,6 +546,11 @@ mode." (Owner, 2026-11-05)
 **D79. The repository is public.** `Soclets/Cyborg` is public, with its full history. The license and the repository's final name are still
 not chosen. The owner: "Bro, pub the GH repo now". (Owner, 2026-11-05)
 
+**D80. Imports in the file.** Cyborg imports in the file, rather than only through a manifest, so a file says what it uses. This replaces
+"kits are reached by their path" with no import in D56, though a thing is still reached by its path once imported. Claude recommended
+a manifest with no imports; the owner chose otherwise: "imports in file are new thing for me. So, it seems good to try out". The
+spelling, what needs importing, and what a manifest still does are not settled here. (Owner, 2026-11-06)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude
