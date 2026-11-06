@@ -20,6 +20,28 @@
 
 These are places where decisions leave a real gap or pull against each other. None are open right now.
 
+### Queue from oracle claude
+
+Waiting on the owner, most needed first. Each is `NotDesignedYet` unless it says otherwise.
+
+- **How a `must_Give` duty ends** in the function that receives it. No complete `must_Give` program runs until this is settled.
+- **Precedence fixes.** `not` below comparisons, so `not $a < 3` means `not ($a < 3)`. `??` level with `?`, so `$a + read() ?? 0` means `$a + (read() ?? 0)`, and what `??`, `?` and `otherwise` catch on more than one call. `as` and `plus.wrap` have no level; the oracle treats `as` as tight, and `plus.wrap` as level with `+`.
+- **`*` on handlers.** Whether `fail` and `?` count as jumps. Today they don't.
+- **Stored borrows.** Whether one ends at its last use or its scope.
+- **Fields.** Whether `for` over `$b.items` uses all of `$b`; `change` on another field during a borrow; `Lend.mut` on two different fields in one call; `change $s.code` inside its test, and whether trust survives; `Give $r.name`. The oracle allows `change` through a stored `Lend.mut`, which is its reading.
+- **`$xs.len`'s type.** Its width, and whether it fits `i32.items`.
+- **Dead variables.** Whether `eat(Give $s); change $s = "b";` is allowed. It's refused today.
+- **Names.** Declaring a name already in scope, or hiding an outer one.
+- **`ensures` on a `fail` path.** Checked only on `return` today, which is a guess.
+- **Evaluation order.** Left to right today, which is a guess.
+- **Dropped values.** `read();` and `read() ?? void;` on a call that returns something.
+- **Handling what can't fail.** `?`, `??` and `otherwise` on a call that can't fail.
+- **A failed `as`.** What the failure is called.
+- **`Given` parameters.** They can't change without `let mut $ys: … = Give $xs;`. This follows the rules, and is only flagged.
+- **Smaller ones.** A bound with only `min` or only `max`; a bound on a number with a unit; `my::` on a name that doesn't clash; building fields out of order; two `case`s for one failure; `case file_failed:` covering a set; `match` on a non-union; a variable typed `status.failed`; `==` on `str` or structs; `<` on `bool`; `shr` on a negative; `shl` into the sign bit; the lowest `i32` divided by -1; how a float prints; `all` with something other than a plain number; `std::println()` with no pieces; a struct holding itself.
+- **The oracle's own limits**, so they don't get pinned by accident: 200 levels of nesting, 10,000 call depth, 10 million compile-time steps, 16 million items in `all`, exit code 0 or 1, and stopping at the first error. Running out of stack may want a row in [10.4](10-build-modes.md#104-what-happens-when-something-goes-wrong).
+- **The `NotDesignedYet:` layout**, as a first word in the D16 format.
+
 ## 12.2 Types
 
 - The full list of integer and float types.
