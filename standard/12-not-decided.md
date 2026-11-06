@@ -23,10 +23,8 @@ These are places where decisions leave a real gap or pull against each other.
 | Problem | Decisions |
 |---|---|
 | **`mod` has `div`'s problem.** `-7 mod 2` has no single right answer either, but `mod` is bare, and the examples use it. | D48, D49, D52 |
-| **Going past `len.max`.** What does `$xs.%append` do on a full `std::list<i32>[len.max: 8]`? Nothing says if it's a trap, a failure, or something else. The same goes for removing from a list at `len.min`. | D13, D20 |
 | **`len.min` and `= empty`.** A list with `len.min: 1` can't be `= empty`, and there's no decided way to build one with items. | D11, D13 |
 | **The test and `change`.** Inside `if $s: status.failed:`, what if `$s` is `let mut` and gets changed? The compiler's trust would be wrong. | D9 |
-| **A failed `as`.** D7 says `as` can fail, but not how: a crash, or a failure `?` can handle? | D7, D44 |
 | **Expensive contracts in `FinalSafe`.** D14 says contracts are checked, and `FinalSafe` keeps only cheap checks. Only a shield's exit is settled. | D14, D37, D39 |
 | **What `FinalShit` drops.** Does it also drop `%`, a missing `~`, or mismatched `Give` and `Lend`? D40's list says "such as". | D5, D40, D59 |
 | **Labels and parameters.** The sketch calls `append(val: 4)` with a label and `total(Lend $xs)` without one. Nothing says when a label is required, or how it relates to a parameter's name. | D13, D23 |
@@ -52,7 +50,7 @@ These are places where decisions leave a real gap or pull against each other.
 - The full list of `div` narrowings, and what `div.exact` does in each mode.
 - Shifting by too much.
 - Unary minus.
-- What can convert to what with `as`, and how a failed `as` behaves.
+- What can convert to what with `as`.
 
 ## 12.4 Control flow
 
@@ -87,6 +85,8 @@ These are places where decisions leave a real gap or pull against each other.
 - Whether `FinalSmall` treats contracts as facts.
 - What `FinalShit` drops beyond D40's list ([12.1](#121-problems-found-writing-this)).
 - How you choose optimization in `Working`.
+- Whether an unhandled failure still crashes in `FinalShit`, which assumes nothing bad can happen.
+- What the failure is called when a list is full, or at `len.min` when removing.
 
 ## 12.8 Ownership
 

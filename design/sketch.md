@@ -20,9 +20,9 @@ fn.main [] -> void:
     $xs.%append(val: 5);
 
     let $t: i32 = total(Lend $xs);
-    std::println("count: ", $xs.len as str) ?? void;
+    std::println("count: ", $xs.len as str);
     if $t at_least 10:
-        std::println("big total: ", $t as str) ?? void;
+        std::println("big total: ", $t as str);
     end if
     return void;
 end fn.main

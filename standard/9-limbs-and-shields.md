@@ -120,6 +120,6 @@ Using a limb doesn't need a shield by itself: `@` says it's a compiler extension
 
 ## 9.11 The linter
 
-**Rule:** the linter is an official limb like Rust's Clippy. It ships with the compiler, and is configured in the project file. It can force comments, and can show the hidden checks in [2.5](2-values-and-types.md#25-bounded-integers). Linter strictness is separate from the build mode. Definite mistakes stay compiler errors.
+**Rule:** the linter is an official limb like Rust's Clippy. It ships with the compiler, and is configured in the project file. It can force comments, and can show the hidden checks in [2.5](2-values-and-types.md#25-bounded-integers). Linter strictness is separate from the build mode. Definite mistakes stay compiler errors. It can require handling failures that otherwise crash by default ([8.9](8-failures.md#89-crash-by-default)).
 
-**From:** D14, D21, D30.
+**From:** D14, D21, D30, D96.

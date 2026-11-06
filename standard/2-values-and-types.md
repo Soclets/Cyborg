@@ -168,12 +168,12 @@ The label names are a placeholder.
 **Rule:** `as` builds a new value of another type, which can allocate memory or fail. `:` doesn't convert.
 
 ```
-std::println($t as str) ?? void;
+std::println($t as str);
 ```
 
-How a failed `as` behaves isn't decided ([12.3](12-not-decided.md#123-operators-and-conversion)).
+A failed `as` is a failure, so it crashes unless handled ([8.9](8-failures.md#89-crash-by-default)). What can convert to what isn't decided ([12.3](12-not-decided.md#123-operators-and-conversion)).
 
-**From:** D7.
+**From:** D7, D96.
 
 ## 2.15 `void` and `bool`
 

@@ -62,11 +62,12 @@ A check in `Working` is kept no matter the cost. Whether `FinalSafe` keeps an ex
 | A value is out of bounds | Crash | Trap | UB | UB | UB allowed |
 | Division by zero | Trap | Trap | UB | UB | UB allowed |
 | A contract is false | Crash | See [10.3](#103-what-gets-checked) | UB | UB | UB allowed |
+| A failure nothing handles | Crash | Crash | Crash | Not decided | Crash |
 | A compile-time safety rule is broken | Refused | Refused | Refused | UB | Refused |
 
 The `FinalPerf` entries follow from D14 having no checks there; the owner's answer was "you test your shit throughly first".
 
-**From:** D14, D20, D26, D40, D41, D42.
+**From:** D14, D20, D26, D40, D41, D42, D96.
 
 ## 10.5 Overflow
 

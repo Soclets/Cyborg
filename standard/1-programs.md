@@ -28,7 +28,7 @@
 import std;
 
 fn.main [] -> void:
-    std::println("hi") ?? void;
+    std::println("hi");
     return void;
 end fn.main
 ```
@@ -57,7 +57,7 @@ end if
 
 ```
 let $r: reading = reading[celsius = 21, time = 3600];
-std::println($r.celsius as str) ?? void;
+std::println($r.celsius as str);
 ```
 
 **From:** D57, D58, the sketch.
@@ -70,7 +70,7 @@ std::println($r.celsius as str) ?? void;
 import std;
 import @csup;
 
-std::println("hi") ?? void;
+std::println("hi");
 ```
 
 **From:** D22, D56, D80, D81, D82, D92.
@@ -98,7 +98,7 @@ A default the language or `std` fixes can't be written out. In a collection you 
 
 ```
 let $a: str = "hi";
-std::println("hi") ?? void;
+std::println("hi");
 7 div.trunc 2
 ```
 

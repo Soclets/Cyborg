@@ -622,6 +622,11 @@ The narrowing `std::print.useful` and `extern.c` are the owner's examples. Wheth
 purpose, and `otherwise:` handles it. So `std::println("hi");` is refused, and hello world says `std::println("Hello, world!") ?? void;`. The failure's name `print_failed` is a placeholder. The owner asked "If print can fail,
 why not `?` at the end?"; Claude suggested a bare `println` that ignores failure, with a `.checked` narrowing; the owner asked "don't we usually like marks?"; Claude proposed `?? void`; the owner chose: "yea". (Owner, 2026-11-06)
 
+**D96. A failure crashes by default, and handling is opt-in.** A call that fails with nothing handling it stops the program loudly. You opt in with `?`, `??` or `otherwise:`. This replaces the part of D95 that refused an unhandled call, so `std::println("hi");`
+is allowed, and crashes if printing fails. `?? void` still ignores a failure on purpose. A full list and running out of memory are failures like any other, and so is a failed `as`. The crash stays in every mode, since it's a real runtime event, as Claude
+proposed without objection; `FinalShit` isn't settled. The linter limb can be stricter, such as requiring handling. The owner: "in my other serious langs, we default to crash, and then opt-in handle", then "every failure, then the linter limb could make it
+more strict". (Owner, 2026-11-06)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude

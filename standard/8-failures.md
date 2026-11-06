@@ -10,7 +10,7 @@
 | [8.6](#86-otherwise) | `otherwise:` | Handle it in a block |
 | [8.7](#87-handler-narrowings) | `narrowings.handler` | Reusable arms |
 | [8.8](#88--handlers-that-jump) | `.*` | This handler can jump |
-| [8.9](#89-failures-must-be-handled) | `?? void` | Nothing fails silently |
+| [8.9](#89-crash-by-default) | No handler | A failure crashes, unless you opt in |
 
 ## 8.1 `fails`
 
@@ -129,21 +129,27 @@ let $w: str = first_word(Lend $text) otherwise word_failed.*bail;
 
 **From:** D46.
 
-## 8.9 Failures must be handled
+## 8.9 Crash by default
 
-**Rule:** a call to anything that can fail must be handled, including `std::println`.
+**Rule:** a call that fails with nothing handling it stops the program loudly. You opt in to handling it. This covers every failure, including printing, a full list, running out of memory and a failed `as`.
 
 ```
+// crashes if it fails
+std::println("hi");
+
+// hands it to the caller
 std::println("hi")?;
+
+// ignores it, on purpose
 std::println("hi") ?? void;
+
+// handles it
 std::println("hi") otherwise:
     case print_failed:
         return void;
 end otherwise
 ```
 
-`?? void` ignores a failure on purpose, and a search for it finds every ignored failure. `print_failed` is a placeholder.
+A search for `?? void` finds every ignored failure. The crash stays in every mode. The linter can be stricter, such as requiring handling ([9.11](9-limbs-and-shields.md#911-the-linter)). `print_failed` is a placeholder.
 
-**Refused:** `std::println("hi");`, and any other call whose failure isn't handled.
-
-**From:** D95.
+**From:** D95, D96.
