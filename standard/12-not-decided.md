@@ -18,10 +18,7 @@
 
 ## 12.1 Problems found writing this
 
-These are places where decisions leave a real gap or pull against each other.
-
-| Problem | Decisions |
-|---|---|
+These are places where decisions leave a real gap or pull against each other. None are open right now.
 
 ## 12.2 Types
 
