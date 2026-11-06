@@ -24,7 +24,7 @@ These are places where decisions leave a real gap or pull against each other. No
 
 Waiting on the owner, most needed first. Each is `NotDesignedYet` unless it says otherwise.
 
-- **Precedence fixes.** `??` level with `?`, so `$a + read() ?? 0` means `$a + (read() ?? 0)`, and what `??`, `?` and `otherwise` catch on more than one call. `as` and `plus.wrap` have no level; the oracle treats `as` as tight, and `plus.wrap` as level with `+`.
+- **Precedence fixes.** What `??`, `?` and `otherwise` catch on more than one call, like `(f() + g()) ?? 0`. `as` and `plus.wrap` have no level; the oracle treats `as` as tight, and `plus.wrap` as level with `+`.
 - **`*` on handlers.** Whether `fail` and `?` count as jumps. Today they don't.
 - **Stored borrows.** Whether one ends at its last use or its scope.
 - **Fields.** Whether `for` over `$b.items` uses all of `$b`; `change` on another field during a borrow; `Lend.mut` on two different fields in one call; `change $s.code` inside its test, and whether trust survives; `Give $r.name`. The oracle allows `change` through a stored `Lend.mut`, which is its reading.
