@@ -11,6 +11,7 @@
 | [5.7](#57-builtins-) | `@size_of` | Bare `@` |
 | [5.8](#58-generics) | `<?T: ordered>` | C++ templates, but safer |
 | [5.9](#59-pure-functions) | `fn.pure` | Same input, same output, nothing else changes |
+| [5.10](#510-the-inline-compile-time-language) | Inline language | Templates, but more powerful and safe |
 
 ## 5.1 Declaring
 
@@ -134,3 +135,9 @@ end fn area
 Whether one may allocate or fail isn't decided ([12.5](12-not-decided.md#125-functions)).
 
 **From:** D86.
+
+## 5.10 The inline compile-time language
+
+**Rule:** Cyborg's equivalent of C++ templates is a separate compile-time language, written inline in Cyborg code, more powerful than templates and safe. [5.8](#58-generics) says what its generics must do. The rest isn't designed ([12.5](12-not-decided.md#125-functions)).
+
+**From:** D85, D88.

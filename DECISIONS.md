@@ -584,6 +584,11 @@ what a correct program does. Whether a pure function may allocate or fail is not
 `reading is ordered` is a placeholder. How a bound is defined, and whether you can declare one for a type from someone else's kit, are not settled here. Claude suggested
 automatic; the owner chose: "declared". (Owner, 2026-11-06)
 
+**D88. A separate language, written inline.** Cyborg's equivalent of C++ templates is a separate compile-time language written inline in Cyborg code, more powerful than templates and safe.
+This goes further than D85, which stands for what generics must do. Claude suggested staying with bounded generics and baking, adding features when needed; the owner chose: "C++ Templates
+equivalent, a separate language written inline, but more powerful and safe". Its syntax, what it can do, what "safe" requires, and how it relates to baking are not settled here. (Owner,
+2026-11-06)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude
