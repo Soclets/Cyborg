@@ -2,12 +2,12 @@
 
 | Section | What | In short |
 |---|---|---|
-| [4.1](#41-if) | `if` | Runs a block when true |
+| [4.1](#41-if) | `if`, `else if`, `else` | Runs a block when true |
 | [4.2](#42-the-test-if-n-t) | `if $n: T:` | Tests a type, and trusts it inside |
 | [4.3](#43-match) | `match` | Must cover every case |
 | [4.4](#44-for) | `for` | Goes through a collection |
 
-`while`, `loop`, `break`, `continue`, `else` and ranges aren't decided ([12.4](12-not-decided.md#124-control-flow)).
+`while`, `loop`, `break`, `continue` and ranges aren't decided ([12.4](12-not-decided.md#124-control-flow)).
 
 ## 4.1 `if`
 
@@ -19,7 +19,19 @@ if $t at_least 10:
 end if
 ```
 
-**From:** the sketch.
+`else if` and `else:` continue it, and one `end if` closes the whole chain. The test in [4.2](#42-the-test-if-n-t) works in `else if` too.
+
+```
+if $n > 100:
+    std::println("huge");
+else if $n > 0:
+    std::println("big");
+else:
+    std::println("small");
+end if
+```
+
+**From:** D126, the sketch.
 
 ## 4.2 The test: `if $n: T:`
 
