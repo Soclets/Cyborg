@@ -698,6 +698,8 @@ owner's design; nesting and names are new. The owner asked "Name the comment blo
 
 **D120. Declarations work in any order.** A function can call one declared later in the file, with no forward declarations. The linter limb can enforce an order for anyone who wants one. Oracle claude asked; Claude proposed it; the owner chose: "yea, and I mean, the linter could choose anyways". (Owner, 2026-11-06)
 
+**D121. A closer repeats all of it.** `fn.pure.baked seconds_in` closes with `end fn.pure.baked seconds_in`, like `end fn.main` and `end union.tagged status`. This corrects the examples in D86 and D91, which Claude copied from Radium. Oracle claude found the conflict; Claude proposed following the rule; the owner chose: "yea". (Owner, 2026-11-06)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude

@@ -162,7 +162,7 @@ A type fits a bound only if it declares that it does, as in `reading is ordered`
 ```
 fn.pure area [$w: i32, $h: i32] -> i32:
     return $w x $h;
-end fn area
+end fn.pure area
 ```
 
 **Refused:** inside one, I/O, changing anything outside the function, `Lent.mut`, calling a function that isn't pure, shields and C calls.
@@ -197,7 +197,7 @@ Its syntax isn't designed ([12.5](12-not-decided.md#125-functions)).
 ```
 fn.pure.baked seconds_in [$days: i32] -> i32:
     return $days x 86_400;
-end fn seconds_in
+end fn.pure.baked seconds_in
 
 const $week: i32 = seconds_in(7);
 let $day: i32 = bake seconds_in(1);
