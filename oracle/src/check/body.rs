@@ -72,6 +72,7 @@ impl Checker<'_> {
                 must_give,
                 constant: None,
                 borrows: Vec::new(),
+                borrowed_path: Vec::new(),
             });
         }
 
@@ -204,6 +205,7 @@ impl Checker<'_> {
             must_give: false,
             constant: None,
             borrows: Vec::new(),
+            borrowed_path: Vec::new(),
         });
         self.context
             .state
@@ -588,6 +590,7 @@ impl Checker<'_> {
             must_give,
             constant: None,
             borrows: Vec::new(),
+            borrowed_path: Vec::new(),
         });
         Ok(InstructionKind::Let { slot, value: node })
     }
@@ -611,6 +614,7 @@ impl Checker<'_> {
             must_give: false,
             constant: Some(node.clone()),
             borrows: Vec::new(),
+            borrowed_path: Vec::new(),
         });
         Ok(InstructionKind::Let { slot, value: node })
     }
@@ -686,6 +690,13 @@ impl Checker<'_> {
         if place.value_type != **inner {
             return Err(Self::mismatch(value.span, inner, &place.value_type));
         }
+        let Some(source) = place.place else {
+            return Err(Report::not_designed(
+                value.span,
+                "a stored borrow of a constant",
+                "12.8",
+            ));
+        };
         let slot = self.declare_variable(Variable {
             name: name.text.clone(),
             held_type: held_type.clone(),
@@ -695,14 +706,8 @@ impl Checker<'_> {
             must_give: false,
             constant: None,
             borrows: names.clone(),
+            borrowed_path: source.path.clone(),
         });
-        let Some(source) = place.place else {
-            return Err(Report::not_designed(
-                value.span,
-                "a stored borrow of a constant",
-                "12.8",
-            ));
-        };
         Ok(InstructionKind::LetAlias {
             slot,
             place: source,
@@ -717,7 +722,7 @@ impl Checker<'_> {
     ) -> Outcome<InstructionKind> {
         let ExpressionKind::Variable(name) = &target.kind else {
             if matches!(target.kind, ExpressionKind::Field { .. }) {
-                return Err(Report::not_designed(target.span, "`change` on a field", ""));
+                return self.check_change_field(target, value);
             }
             return Err(Report::refused(
                 target.span,
@@ -752,7 +757,7 @@ impl Checker<'_> {
                 "`let` declares a variable that can't change, and `let mut` one that can (D3)",
             ));
         }
-        self.refuse_while_read(name, target.span)?;
+        self.refuse_while_read(name, &[], target.span)?;
         self.note_use(name, UseKind::Write, target.span);
         // trace: D2
         if variable.must_give {
@@ -796,6 +801,60 @@ impl Checker<'_> {
             },
             value: node,
         })
+    }
+
+    /// `change $r.celsius = 22;`: a field can change if the whole variable can. (D125)
+    /// trace: D125
+    fn check_change_field(
+        &mut self,
+        target: &Expression,
+        value: &Expression,
+    ) -> Outcome<InstructionKind> {
+        if root_variable(target).is_none() {
+            return Err(Report::refused(
+                target.span,
+                "`change` works on a variable, or a field of one",
+                "`change` reassigns a variable or one field of it (D3, D125)",
+            ));
+        }
+        let held = self.check_held(target)?;
+        let Some(place) = held.place else {
+            return Err(Report::refused(
+                target.span,
+                format!("`${}` is a constant, so it can't change", held.root_name),
+                "a constant's value is fixed at compile time (D83)",
+            ));
+        };
+        let can_change = self
+            .context
+            .variables
+            .get(place.slot)
+            .is_some_and(|variable| variable.mutable);
+        if !can_change {
+            let name = &held.root_name;
+            return Err(Report::refused(
+                target.span,
+                format!("`${name}` can't change, so neither can its field"),
+                "a field can be changed if the whole variable is `let mut`, or the parameter `Lent.mut` (D125)",
+            ));
+        }
+        // A case's values aren't struct fields, and whether the test's trust survives isn't stated.
+        let mut base = target;
+        while let ExpressionKind::Field { base: inner, .. } = &base.kind {
+            base = inner;
+            if matches!(self.check_held(base)?.value_type, Type::Union(_)) {
+                return Err(Report::not_designed(
+                    target.span,
+                    "`change` on a value inside a union's case, and whether the test's trust survives it",
+                    "",
+                ));
+            }
+        }
+        self.refuse_while_read(&held.root_name, &place.path, target.span)?;
+        self.refuse_disjoint_borrow(&held.root_name, &place.path, target.span)?;
+        self.note_use(&held.root_name, UseKind::Write, target.span);
+        let node = self.check_into(value, &held.value_type)?;
+        Ok(InstructionKind::Set { place, value: node })
     }
 
     /// `if $s: status.failed:` and `if $n: i32[min: 0, max: 100]:`. (D9, D20)
@@ -1089,6 +1148,14 @@ impl Checker<'_> {
             ));
         }
         let root = root_variable(collection).unwrap_or_default();
+        let read_path = if root.is_empty() {
+            Vec::new()
+        } else {
+            self.check_held(collection)?
+                .place
+                .map(|place| place.path)
+                .unwrap_or_default()
+        };
         self.context.scopes.push(HashMap::new());
         let slot = self.declare_variable(Variable {
             name: name.text.clone(),
@@ -1099,9 +1166,10 @@ impl Checker<'_> {
             must_give: false,
             constant: None,
             borrows: Vec::new(),
+            borrowed_path: Vec::new(),
         });
         // Nothing may lend `$xs` out mutably while `for` is reading it. (D2)
-        self.context.being_read.push(root);
+        self.context.being_read.push((root, read_path));
         let result = self.check_loop_body(&mut |this| this.check_block(body));
         self.context.being_read.pop();
         self.context.scopes.pop();

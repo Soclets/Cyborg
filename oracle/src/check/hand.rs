@@ -347,7 +347,7 @@ impl Checker<'_> {
                 ));
             }
         }
-        self.refuse_while_read(&name, value.span)?;
+        self.refuse_while_read(&name, &[], value.span)?;
         self.note_use(&name, UseKind::Write, value.span);
         let given_span = self.use_span(hand_span);
         if let Some(state) = self.context.state.get_mut(slot) {
@@ -358,12 +358,52 @@ impl Checker<'_> {
     }
 
     /// Nothing may change or take `$xs` while `for` is reading it in place. (D2)
-    pub(super) fn refuse_while_read(&self, name: &str, span: Span) -> Outcome<()> {
-        if self.context.being_read.iter().any(|read| read == name) {
-            return Err(Report::refused(
+    pub(super) fn refuse_while_read(&self, name: &str, path: &[usize], span: Span) -> Outcome<()> {
+        for (root, read_path) in &self.context.being_read {
+            if root != name {
+                continue;
+            }
+            if path.starts_with(read_path) || read_path.starts_with(path) {
+                return Err(Report::refused(
+                    span,
+                    format!("a `for` is reading `${name}` in place here"),
+                    "`Lend.mut` means nothing else uses it meanwhile, and `for` is using it (D2)",
+                ));
+            }
+            return Err(Report::not_designed(
                 span,
-                format!("a `for` is reading `${name}` in place here"),
-                "`Lend.mut` means nothing else uses it meanwhile, and `for` is using it (D2)",
+                format!("changing one field of `${name}` while a `for` reads another"),
+                "",
+            ));
+        }
+        Ok(())
+    }
+
+    /// Changing one field while a stored borrow holds another has no stated answer, so it isn't
+    /// counted as ending the borrow, and isn't allowed either.
+    pub(super) fn refuse_disjoint_borrow(
+        &self,
+        name: &str,
+        path: &[usize],
+        span: Span,
+    ) -> Outcome<()> {
+        let holds_another_field =
+            self.context
+                .variables
+                .iter()
+                .enumerate()
+                .any(|(slot, variable)| {
+                    variable.origin == Origin::StoredBorrow
+                        && self.is_in_scope(slot)
+                        && variable.borrows.iter().any(|borrowed| borrowed == name)
+                        && !path.starts_with(&variable.borrowed_path)
+                        && !variable.borrowed_path.starts_with(path)
+                });
+        if holds_another_field {
+            return Err(Report::not_designed(
+                span,
+                format!("changing one field of `${name}` while a stored borrow holds another"),
+                "",
             ));
         }
         Ok(())
@@ -425,7 +465,13 @@ impl Checker<'_> {
                 "12.8",
             ));
         }
-        self.refuse_while_read(&variable.name, value.span)?;
+        let path = held
+            .place
+            .as_ref()
+            .map(|place| place.path.clone())
+            .unwrap_or_default();
+        self.refuse_while_read(&variable.name, &path, value.span)?;
+        self.refuse_disjoint_borrow(&variable.name, &path, value.span)?;
         self.note_use(&variable.name, UseKind::Write, value.span);
         // trace: D104
         let ended_at = self.use_span(value.span);

@@ -1,0 +1,5 @@
+NotDesignedYet: d125_case_value_inside_the_test.cy:11:16, line 11 column 16
+11 |         change $s.code = 2;
+   |                ^^^^^^^
+ what: `change` on a value inside a union's case, and whether the test's trust survives it
+ why:  not decided yet, and the standard doesn't say

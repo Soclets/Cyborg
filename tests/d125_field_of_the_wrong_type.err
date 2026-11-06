@@ -1,0 +1,5 @@
+refused: d125_field_of_the_wrong_type.cy:8:19, line 8 column 19
+ 8 |     change $b.n = "two";
+   |                   ^^^^^
+ what: this is `str`, where `i32` is needed
+ why:  `:` doesn't convert, and `as` builds a new value of another type (D7)

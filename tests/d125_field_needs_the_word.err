@@ -1,0 +1,5 @@
+refused: d125_field_needs_the_word.cy:10:19, line 10 column 19
+10 |     change $b.s = $s;
+   |                   ^^
+ what: `$s` is `str`, so this needs `Give` or `Copy`
+ why:  every hand-off shows on the page, including one into a name, a `return` or a field (D3)

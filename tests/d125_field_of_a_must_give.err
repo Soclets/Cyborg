@@ -1,0 +1,9 @@
+refused: d125_field_of_a_must_give.cy:10:5, line 10 column 5
+10 |     return void;
+   |     ^^^^^^^^^^^^
+ what: this leaves with `$f` never given away
+ why:  a `must_Give` value is handed off with `Give` exactly once (D2)
+ because: d125_field_of_a_must_give.cy:8:13, line 8 column 13
+ 8 |     let mut $f: open_file = open_file[fd = 3];
+   |             ^^
+     `$f` was made here

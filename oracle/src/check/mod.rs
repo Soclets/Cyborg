@@ -113,6 +113,8 @@ struct Variable {
     constant: Option<Node>,
     /// For a stored borrow: the variables it borrows.
     borrows: Vec<String>,
+    /// For a stored borrow: which field of its source it holds, empty for the whole of it.
+    borrowed_path: Vec<usize>,
 }
 
 /// Facts about the function being checked.
@@ -132,7 +134,7 @@ struct FunctionContext {
     call_span: Option<Span>,
     ensures_variables: Vec<(String, Span)>,
     /// Variables a `for` is reading in place right now.
-    being_read: Vec<String>,
+    being_read: Vec<(String, Vec<usize>)>,
 }
 
 impl FunctionContext {

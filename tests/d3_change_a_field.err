@@ -1,5 +1,0 @@
-NotDesignedYet: d3_change_a_field.cy:9:12, line 9 column 12
- 9 |     change $b.n = 2;
-   |            ^^^^
- what: `change` on a field
- why:  not decided yet, and the standard doesn't say
