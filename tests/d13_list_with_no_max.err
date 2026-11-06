@@ -1,0 +1,5 @@
+refused: d13_list_with_no_max.cy:5:14, line 5 column 14
+ 5 |     let $xs: std::list<i32> = empty;
+   |              ^^^^^^^^^
+ what: a list always writes its `len.max`, with `inf` for unbounded
+ why:  nothing goes unsaid about being empty or unbounded (D11)

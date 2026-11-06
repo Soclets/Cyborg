@@ -1,0 +1,9 @@
+check failed: d52_fail_crashes_by_default.cy:15:18, line 15 column 18
+15 |     std::println(half(3) as str);
+   |                  ^^^^^^^
+ what: `odd` failed, and nothing handled it
+ why:  a failure nothing handles stops the program (D96)
+ because: d52_fail_crashes_by_default.cy:8:9, line 8 column 9
+ 8 |         fail odd;
+   |         ^^^^^^^^^
+     it was raised here

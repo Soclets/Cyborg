@@ -1,0 +1,5 @@
+refused: d101_missing_unit.cy:7:32, line 7 column 32
+ 7 |     let $b: i32.time.seconds = 3600;
+   |                                ^^^^
+ fix:  `3600 time.seconds`
+ why:  a unit is required where the type asks for one (D101)

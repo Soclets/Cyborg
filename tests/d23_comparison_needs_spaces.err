@@ -1,0 +1,5 @@
+refused: d23_comparison_needs_spaces.cy:5:22, line 5 column 22
+ 5 |     let $c: bool = $a<$b;
+   |                      ^
+ fix:  ` < `
+ why:  a comparison has a space on each side, so `$a<$b` is refused (D23)

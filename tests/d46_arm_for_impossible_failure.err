@@ -1,0 +1,5 @@
+refused: d46_arm_for_impossible_failure.cy:12:14, line 12 column 14
+12 |         case c:
+   |              ^
+ what: this call can't fail with `c`
+ why:  an arm handles a failure still possible at that call (D46)

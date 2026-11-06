@@ -1,0 +1,10 @@
+check failed: d29_requires_false.cy:5:14, line 5 column 14
+ 5 |     requires $n at_least 0;
+   |              ^^^^^^^^^^^^^
+ what: this `requires` is false
+ why:  contracts are checked at runtime, and a false one stops the program (D29)
+ when: `$n` is -4
+ because: d29_requires_false.cy:12:18, line 12 column 18
+12 |     std::println(half(-4) as str);
+   |                  ^^^^^^^^
+     called here

@@ -1,0 +1,5 @@
+refused: d47_two_sets_share_a_name.cy:11:25, line 11 column 25
+11 |     fails [file_failed, net_failed];
+   |                         ^^^^^^^^^^
+ what: two failures here are called `denied`
+ why:  two sets sharing a failure's name need the full name in a list (D47)

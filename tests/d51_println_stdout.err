@@ -1,0 +1,5 @@
+refused: d51_println_stdout.cy:5:5, line 5 column 5
+ 5 |     std::println.stdout("hi");
+   |     ^^^^^^^^^^^^^^^^^^^
+ fix:  `std::println`
+ why:  a default `std` fixes can't be written out (D51)

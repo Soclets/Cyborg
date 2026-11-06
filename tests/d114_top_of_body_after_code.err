@@ -1,0 +1,5 @@
+refused: d114_top_of_body_after_code.cy:4:5, line 4 column 5
+ 4 |     requires $n at_least 0;
+   |     ^^^^^^^^
+ what: `requires` goes first in the body
+ why:  the top of a body goes `labels`, `defaults`, `requires`, `ensures`, `fails`, then the code (D114)

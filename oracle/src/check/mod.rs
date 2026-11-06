@@ -663,9 +663,11 @@ impl Checker<'_> {
 
     fn resolve_failure_list(&self, entries: &[FailureEntry]) -> Outcome<Vec<Failure>> {
         let mut failures: Vec<Failure> = Vec::new();
+        let mut short_in_full: Vec<(String, bool)> = Vec::new();
         for entry in entries {
             let text = &entry.path.text;
             let mut found = Vec::new();
+            let written_in_full = text.contains('.');
             if let Some(members) = self.failure_sets.get(text) {
                 found.extend(members.iter().cloned());
             } else if let Some((set, short)) = text.split_once('.') {
@@ -697,10 +699,14 @@ impl Checker<'_> {
             }
             for failure in found {
                 // trace: D47
-                if failures
+                let clashes = failures
                     .iter()
-                    .any(|other| other.short == failure.short && other.full != failure.full)
-                {
+                    .any(|other| other.short == failure.short && other.full != failure.full);
+                let others_in_full = short_in_full
+                    .iter()
+                    .filter(|(short, _)| *short == failure.short)
+                    .all(|(_, in_full)| *in_full);
+                if clashes && !(written_in_full && others_in_full) {
                     return Err(Report::refused(
                         entry.path.span,
                         format!("two failures here are called `{}`", failure.short),
@@ -708,6 +714,7 @@ impl Checker<'_> {
                     ));
                 }
                 if !failures.iter().any(|other| other.full == failure.full) {
+                    short_in_full.push((failure.short.clone(), written_in_full));
                     failures.push(failure);
                 }
             }

@@ -1,0 +1,5 @@
+refused: d91_baked_calls_only_baked.cy:7:12, line 7 column 12
+ 7 |     return area($w);
+   |            ^^^^
+ what: `area` isn't `fn.pure.baked`, so a baked function can't call it
+ why:  baked code can call normal functions marked `fn.pure.baked`, and only those (D91)

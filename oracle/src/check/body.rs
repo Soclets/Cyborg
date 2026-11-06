@@ -668,6 +668,14 @@ impl Checker<'_> {
                 "`let mut` declares a variable that can change, and `change` reassigns it (D3)",
             ));
         };
+        // trace: D83
+        if self.find_variable(name).is_none() && self.globals.contains_key(name) {
+            return Err(Report::refused(
+                target.span,
+                format!("`${name}` is a constant, so it can't change"),
+                "a constant's value is fixed at compile time (D83)",
+            ));
+        }
         let slot = self.find_variable(name).ok_or_else(|| {
             Report::refused(
                 target.span,
@@ -1109,6 +1117,7 @@ impl Checker<'_> {
                 "a function that can fail lists its failures in its body (D52)",
             ));
         };
+        refuse_ambiguous_failure(&listed, path)?;
         let failure = find_failure(&listed, &path.text).ok_or_else(|| {
             Report::refused(
                 path.span,
@@ -1224,6 +1233,7 @@ impl Checker<'_> {
         let before = self.context.state.clone();
         let mut branches = vec![before];
         for arm in arms {
+            refuse_ambiguous_failure(failures, &arm.pattern)?;
             let Some(failure) = find_failure(failures, &arm.pattern.text) else {
                 if self.failure_sets.contains_key(&arm.pattern.text) {
                     return Err(Report::not_designed(
@@ -1246,20 +1256,6 @@ impl Checker<'_> {
                 ));
             }
             covered.push(failure.full.clone());
-            if let Some(last) = arm.body.last() {
-                if let StatementKind::Expression(value) = &last.kind {
-                    if !matches!(
-                        value.kind,
-                        ExpressionKind::Call { .. } | ExpressionKind::Method { .. }
-                    ) {
-                        return Err(Report::not_designed(
-                            value.span,
-                            "what an arm's last line means, such as a value on its own",
-                            "12.6",
-                        ));
-                    }
-                }
-            }
             let (body, ends, branch) = self.on_a_branch(|this| this.check_block(&arm.body))?;
             if !ends {
                 if !value_is_void {
@@ -1299,6 +1295,22 @@ impl Checker<'_> {
         }
         Ok(())
     }
+}
+
+/// A short name two failures share says neither of them. (D47)
+fn refuse_ambiguous_failure(failures: &[Failure], path: &crate::ast::Path) -> Outcome<()> {
+    let matching: Vec<&Failure> = failures
+        .iter()
+        .filter(|failure| failure.short == path.text || failure.full == path.text)
+        .collect();
+    if matching.len() > 1 {
+        return Err(Report::refused(
+            path.span,
+            format!("two failures here are called `{}`", path.text),
+            "two sets sharing a failure's name need the full name (D47)",
+        ));
+    }
+    Ok(())
 }
 
 /// A failure by the name a list or arm uses: its short name, or its full one.

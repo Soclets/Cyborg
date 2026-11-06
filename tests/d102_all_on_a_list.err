@@ -1,0 +1,5 @@
+refused: d102_all_on_a_list.cy:5:47, line 5 column 47
+ 5 |     let $d: std::list<u8>[len.max: 3 items] = all 0;
+   |                                               ^^^^^
+ what: `all` fills an array
+ why:  `= all 0` fills an array with one value (D102)

@@ -1,0 +1,9 @@
+check failed: d44_question_passes_it_up.cy:23:19, line 23 column 19
+23 |     let $b: i32 = outer(3);
+   |                   ^^^^^^^^
+ what: `odd` failed, and nothing handled it
+ why:  a failure nothing handles stops the program (D96)
+ because: d44_question_passes_it_up.cy:8:9, line 8 column 9
+ 8 |         fail odd;
+   |         ^^^^^^^^^
+     it was raised here

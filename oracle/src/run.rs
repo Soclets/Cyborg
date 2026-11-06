@@ -102,6 +102,15 @@ struct Runner<'c> {
     out: std::io::BufWriter<std::io::Stdout>,
 }
 
+/// trace: D89
+fn step_limit_report(span: Span) -> Box<Report> {
+    Report::refused(
+        span,
+        "compile-time work didn't finish within its step limit",
+        "compile-time code always finishes, through a step limit that refuses it (D89, D91)",
+    )
+}
+
 fn oracle_bug(span: Span, what: &str) -> Stop {
     Stop::Report(Report::check_failed(
         span,
@@ -208,6 +217,10 @@ impl<'c> Runner<'c> {
         self.depth += 1;
         if self.depth > CALL_DEPTH_LIMIT {
             self.depth -= 1;
+            if self.step_limit.is_some() {
+                // trace: D89
+                return Err(Stop::Report(step_limit_report(call_span)));
+            }
             return Err(Stop::Report(Report::not_designed(
                 call_span,
                 format!("calls deeper than the oracle's limit of {CALL_DEPTH_LIMIT}, and what running out of stack means"),
@@ -445,12 +458,7 @@ impl<'c> Runner<'c> {
         if let Some(limit) = self.step_limit {
             self.steps += 1;
             if self.steps > limit {
-                // trace: D89
-                return Err(Stop::Report(Report::refused(
-                    span,
-                    "compile-time work didn't finish within its step limit",
-                    "compile-time code always finishes, through a step limit that refuses it (D89, D91)",
-                )));
+                return Err(Stop::Report(step_limit_report(span)));
             }
         }
         Ok(())

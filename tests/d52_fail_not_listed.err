@@ -1,0 +1,5 @@
+refused: d52_fail_not_listed.cy:5:10, line 5 column 10
+ 5 |     fail negative;
+   |          ^^^^^^^^
+ what: `negative` isn't in this function's `fails`
+ why:  a function that can fail lists its failures in its body (D52)

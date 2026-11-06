@@ -1,0 +1,5 @@
+NotDesignedYet: d46_arm_ending_in_a_value.cy:12:13, line 12 column 13
+12 |             "…";
+   |             ^^^
+ what: what an arm's last line means, such as a value on its own
+ why:  not decided yet (standard 12.6)

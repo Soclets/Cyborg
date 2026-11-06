@@ -1,0 +1,5 @@
+refused: d23_opening_bracket_space.cy:5:23, line 5 column 23
+ 5 |     let $xs: std::list< i32>[len.max: inf items] = empty;
+   |                       ^
+ what: an opening `<` has no space after it
+ why:  an opening `<` has no space after it, and a closing `>` has none before it (D23)
