@@ -737,6 +737,9 @@ reading. Claude proposed both, from TAKL; the owner chose: "yea, Ra has `offset`
 **D135. `fam.` for a family.** A declared group of related names is a family, written `fam.unit`, `fam.failure`, `fam.handler`, `fam.type.alias` and `fam.type.new`, replacing `narrowings.…` everywhere, including `fn` collections. "Narrowing" now only means the `.`. The owner: "should we just call them families, and syntax is `fam.`? Because like, narrowings could
 mean a lot, even in our context only", then "yea". (Owner, 2026-11-06)
 
+**D136. The pitch.** "Immature, uncertified, clear and C-family flavoured SPARK". Claude suggested "Nothing goes unsaid.", then questioned "C-family", since Cyborg has `end if` and no braces; the owner answered: "I mean, most people consider a lot of symbols and brackets as C family". Cyborg isn't proven by default the way SPARK is, and "uncertified" covers that. Keeping the owner's wording as
+it stands is Claude's reading of that answer. (Owner, 2026-11-06)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude
