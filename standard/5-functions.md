@@ -53,7 +53,7 @@ fn half [$n: i32] -> i32:
     ensures result at_least 0;
     fails [odd];
 
-    if $n mod 2 != 0:
+    if $n mod.trunc 2 != 0:
         fail odd;
     end if
     return $n div.trunc 2;

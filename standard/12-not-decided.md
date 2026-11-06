@@ -22,7 +22,6 @@ These are places where decisions leave a real gap or pull against each other.
 
 | Problem | Decisions |
 |---|---|
-| **`mod` has `div`'s problem.** `-7 mod 2` has no single right answer either, but `mod` is bare, and the examples use it. | D48, D49, D52 |
 | **`len.min` and `= empty`.** A list with `len.min: 1` can't be `= empty`, and there's no decided way to build one with items. | D11, D13 |
 | **The test and `change`.** Inside `if $s: status.failed:`, what if `$s` is `let mut` and gets changed? The compiler's trust would be wrong. | D9 |
 | **Expensive contracts in `FinalSafe`.** D14 says contracts are checked, and `FinalSafe` keeps only cheap checks. Only a shield's exit is settled. | D14, D37, D39 |
@@ -44,7 +43,6 @@ These are places where decisions leave a real gap or pull against each other.
 ## 12.3 Operators and conversion
 
 - Operator precedence.
-- `mod` on negatives ([12.1](#121-problems-found-writing-this)).
 - Whether `-` and `x` follow [10.4](10-build-modes.md#104-what-happens-when-something-goes-wrong)'s overflow row, which D42 states for `+`.
 - The real spelling for wrapping, and the wrapping forms of `-` and `x`.
 - The full list of `div` narrowings, and what `div.exact` does in each mode.

@@ -5,7 +5,7 @@
 | [3.1](#31-every-operator) | All of them | One table |
 | [3.2](#32-arithmetic----x) | `+`, `-`, `x` | Overflow depends on the mode |
 | [3.3](#33-division-div) | `div.trunc`, `div.floor`, `div.exact` | No bare `div` |
-| [3.4](#34-remainder-mod) | `mod` | Remainder |
+| [3.4](#34-remainder-mod) | `mod.trunc`, `mod.floor` | No bare `mod` |
 | [3.5](#35-comparison) | `==`, `!=`, `<`, `>`, `at_least`, `at_most` | |
 | [3.6](#36-logic) | `and`, `or`, `not` | |
 | [3.7](#37-bits-and-shifts) | `bit_and`, `bit_or`, `bit_xor`, `bit_not`, `shl`, `shr` | |
@@ -18,7 +18,7 @@
 |---|---|---|
 | Arithmetic | `+`, `-`, `x` | [3.2](#32-arithmetic----x) |
 | Divide | `div.trunc`, `div.floor`, `div.exact` | [3.3](#33-division-div) |
-| Remainder | `mod` | [3.4](#34-remainder-mod) |
+| Remainder | `mod.trunc`, `mod.floor` | [3.4](#34-remainder-mod) |
 | Comparison | `==`, `!=`, `<`, `>`, `at_least`, `at_most` | [3.5](#35-comparison) |
 | Logic | `and`, `or`, `not` | [3.6](#36-logic) |
 | Bits | `bit_and`, `bit_or`, `bit_xor`, `bit_not`, `shl`, `shr` | [3.7](#37-bits-and-shifts) |
@@ -64,15 +64,18 @@ Those three are examples; the full list isn't decided. What `div.exact` does in 
 
 ## 3.4 Remainder: `mod`
 
-**Rule:** `mod` is the remainder.
+**Rule:** there's no bare `mod`, because a remainder has no single right answer for negative numbers. You pick a narrowing, and each one matches its division.
 
 ```
-$n mod 2
+-7 mod.trunc 2
+-7 mod.floor 2
 ```
 
-What it gives for negative numbers isn't decided ([12.3](12-not-decided.md#123-operators-and-conversion)).
+The first gives -1, and the second gives 1.
 
-**From:** D49.
+**Refused:** a bare `mod`.
+
+**From:** D49, D97.
 
 ## 3.5 Comparison
 

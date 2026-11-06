@@ -627,6 +627,9 @@ is allowed, and crashes if printing fails. `?? void` still ignores a failure on 
 proposed without objection; `FinalShit` isn't settled. The linter limb can be stricter, such as requiring handling. The owner: "in my other serious langs, we default to crash, and then opt-in handle", then "every failure, then the linter limb could make it
 more strict". (Owner, 2026-11-06)
 
+**D97. No bare `mod`.** Like `div` (D48), a remainder has no single right answer for negative numbers, so you pick: `-7 mod.trunc 2` gives -1, and `-7 mod.floor 2` gives 1. This replaces the bare `mod` in D49. Claude proposed it; the owner
+chose: "yea". (Owner, 2026-11-06)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude

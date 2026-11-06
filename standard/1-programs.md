@@ -102,9 +102,9 @@ std::println("hi");
 7 div.trunc 2
 ```
 
-**Refused:** `str.utf8`, `std::println.stdout`, and a bare `div`.
+**Refused:** `str.utf8`, `std::println.stdout`, and a bare `div` or `mod`.
 
-**From:** D48, D50, D51.
+**From:** D48, D50, D51, D97.
 
 ## 1.8 Brackets
 
