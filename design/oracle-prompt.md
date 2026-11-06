@@ -53,9 +53,10 @@ numbers and a small program showing it.
 
 Send those reports to the design session with SendMessage, to
 "Cyborg design discussion". Write like one colleague talking to
-another. If it can't be reached, tell Tankun. Don't edit DECISIONS.md
-or IMPLEMENTATION.md. A test that disagrees with the design is the
-thing to fix or report, so never weaken a test to get it passing.
+another. If it can't be reached, tell Tankun. Don't edit DECISIONS.md,
+IMPLEMENTATION.md or standard/. A test that disagrees with the design
+is the thing to fix or report, so never weaken a test to get it
+passing.
 
 Commit and push as you go, in the style in rule 8, with the trailer
 for oracle claude. Run `git pull --rebase` before pushing, and don't
