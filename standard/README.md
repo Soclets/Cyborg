@@ -76,3 +76,4 @@ What Cyborg does now, in one place. The oracle, the compiler and check claude fo
 | `if` | [4.1](4-control-flow.md#41-if) | | `bake`, `fn.pure.baked` | [5.11](5-functions.md#511-baking) |
 | `?? void` | [8.9](8-failures.md#89-crash-by-default) | | | |
 | units | [2.16](2-values-and-types.md#216-units) | | | |
+| `all` | [2.11](2-values-and-types.md#211-arrays) | | | |

@@ -128,21 +128,30 @@ let mut $ys: std::list<i32>[len.max: 8 items] = empty;
 std::list<i32>[len.min: 1 items, len.max: 8 items]
 ```
 
-**Refused:** `std::list<i32>` with no `len.max`, and a list with a bare `len`, in favour of `array`.
+`[ ]` gives it items, and the count is checked against the type:
 
-**From:** D11, D12, D13, D24.
+```
+let $b: std::list<i32>[len.min: 1 items, len.max: 8 items] = [4, 6];
+```
+
+**Refused:** `std::list<i32>` with no `len.max`, a list with a bare `len`, in favour of `array`, `= empty` on a list with `len.min` above 0, and too few or too many items.
+
+**From:** D11, D12, D13, D24, D102.
 
 ## 2.11 Arrays
 
 **Rule:** an array has exactly `len` items.
 
+`[ ]` gives it items, and `all` fills it with one value.
+
 ```
-std::array<i32>[len: 8 items]
+let $a: std::array<i32>[len: 3 items] = [1, 2, 3];
+let mut $d: std::array<u8>[len: 4096 items] = all 0;
 ```
 
-**Refused:** `len.always`, which doesn't exist.
+**Refused:** `len.always`, which doesn't exist, the wrong number of items, and `= empty`.
 
-**From:** D12, D13, D24.
+**From:** D12, D13, D24, D102.
 
 ## 2.12 Maps
 

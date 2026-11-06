@@ -22,7 +22,6 @@ These are places where decisions leave a real gap or pull against each other.
 
 | Problem | Decisions |
 |---|---|
-| **`len.min` and `= empty`.** A list with `len.min: 1 items` can't be `= empty`, and there's no decided way to build one with items. | D11, D13 |
 | **The test and `change`.** Inside `if $s: status.failed:`, what if `$s` is `let mut` and gets changed? The compiler's trust would be wrong. | D9 |
 | **Expensive contracts in `FinalSafe`.** D14 says contracts are checked, and `FinalSafe` keeps only cheap checks. Only a shield's exit is settled. | D14, D37, D39 |
 | **What `FinalShit` drops.** Does it also drop `%`, a missing `~`, or mismatched `Give` and `Lend`? D40's list says "such as". | D5, D40, D59 |
@@ -35,7 +34,7 @@ These are places where decisions leave a real gap or pull against each other.
 - Raw pointers' spelling, though D38 puts them in shields.
 - Function types: `-> i32` no longer shows failures, so a function's type needs some way to include them.
 - How a type's writer defines label narrowings like `len.max`.
-- Array and list values, such as a literal list of items, and how an array gets its first value.
+- An uninitialized array, like Zig's `= undefined`. Claude suggested only inside a shield, if at all.
 - Indexing, and what a bad index does.
 - `str` narrowings other than `str.utf16`, and how string literals work.
 - The full print (D98): how `std` spells the stream, the buffer and flushing.

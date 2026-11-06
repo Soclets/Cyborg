@@ -643,6 +643,9 @@ needs it. Claude proposed it; the owner chose: "Oh, that is a good fucking idea"
 `i32.seconds`, so `let $b: i32.seconds = 3600;` is refused. So `std::array<u8>[len: 4096 items]` and `len.max: inf items`. The linter limb can be stricter. Claude proposed it; the owner chose: "yea". Renaming `@size_of` to `@bytes_of`, with the unit in front, is Claude's
 reading of D99. (Owner, 2026-11-06)
 
+**D102. A collection's first value.** `[1, 2, 3]` gives a list or array its items, with the count checked against the type. `= all 0` fills an array with one value, and works with other values too, as in `= all 255`. `= empty` stays for an empty list, and a list with `len.min`
+above 0 can't use it. Claude proposed `[1, 2, 3]` and `= zeroed`; the owner asked "What about `all 0`? That seems more explanatory", and raised nothing against `[1, 2, 3]`. An uninitialized array, like Zig's `= undefined`, is not settled here. (Owner, 2026-11-06)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude
