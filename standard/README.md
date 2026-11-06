@@ -74,7 +74,7 @@ What Cyborg does now, in one place. The oracle, the compiler and check claude fo
 | `Give`, `Given` | [6.2](6-ownership.md#62-give-and-given) | | `my::` | [1.10](1-programs.md#110-clashing-names-my) |
 | `i32`, `i64` | [2.4](2-values-and-types.md#24-integers) | | `import` | [1.5](1-programs.md#15-paths-) |
 | `if` | [4.1](4-control-flow.md#41-if) | | `bake`, `fn.pure.baked` | [5.11](5-functions.md#511-baking) |
-| `?? void` | [8.9](8-failures.md#89-crash-by-default) | | | |
+| `?? void` | [8.9](8-failures.md#89-crash-by-default) | | `labels`, `defaults` | [5.4](5-functions.md#54-the-top-of-the-body) |
 | units | [2.16](2-values-and-types.md#216-units) | | | |
 | `all` | [2.11](2-values-and-types.md#211-arrays) | | | |
 | `together` | [2.16](2-values-and-types.md#216-units) | | `narrowings.unit` | [2.16](2-values-and-types.md#216-units) |

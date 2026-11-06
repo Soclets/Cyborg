@@ -679,6 +679,10 @@ suggested letting all unit maths compile, with `together` only naming results; t
 **D113. A declared label must be written.** A function's parameter can have a label, and then every call writes it. A label is separate from the parameter's own name, so `fn append [val $item: i32]` is called `append(val: 4)`, and a parameter with no label is called without one, as in `total(Lend $xs)`. So each function has one way to call it. An
 ownership word goes after the label: `append(val: Give $r)`. The declaration's spelling is a placeholder. The owner: "You don't have to name the args, you have to name the label". Claude reads that as the function's writer deciding which parameters have labels. (Owner, 2026-11-06)
 
+**D114. The `labels` line, from Radium.** A label is declared at the top of the body: `labels [$item as val];`, called as `append(val: 4)`. This replaces the spelling in D113. The top of a body is now `labels`, `defaults`, `requires`, `ensures`, `fails`, then the code, extending D53. `defaults [$limit = 40];` makes a labelled parameter optional, and
+only labelled parameters can have defaults. Labels keep their declared order, and `labels.any_order` lets a caller reorder them. In `std`, the first argument, the thing being worked on, stays bare, and every other argument gets a label, except lists where every item has the same role, like `print`'s pieces. Your own functions label as you like. Claude
+proposed taking it whole; the owner chose: "yea". (Owner, 2026-11-06)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude

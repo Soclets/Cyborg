@@ -5,7 +5,7 @@
 | [5.1](#51-declaring) | `fn name [ ] -> T:` | `[ ]` describes the parameters |
 | [5.2](#52-calling) | `name( )` | `( )` runs it |
 | [5.3](#53-return) | `return` | |
-| [5.4](#54-the-top-of-the-body) | `requires`, `ensures`, `fails` | In that order, first in the body |
+| [5.4](#54-the-top-of-the-body) | `labels`, `defaults`, `requires`, `ensures`, `fails` | In that order, first in the body |
 | [5.5](#55-contracts) | `requires`, `ensures` | When they're checked |
 | [5.6](#56-methods-) | `.%` | A function on a receiver |
 | [5.7](#57-builtins-) | `@bytes_of` | Bare `@` |
@@ -35,20 +35,19 @@ let $t: i32 = total(Lend $xs);
 use_score($n);
 ```
 
-A parameter can have a label, separate from its own name, and then every call writes it. A parameter with no label is called without one. So each function has one way to call it. The declaration's spelling is a placeholder.
+A parameter can have a label, declared at the top of the body ([5.4](#54-the-top-of-the-body)), and then every call writes it. A parameter with no label is called without one. Labels stay in their declared order, unless declared `labels.any_order`. A label with a default can be left off.
 
 ```
-fn append [val $item: i32] -> void:
-    …
-end fn append
-
-append(val: 4);
+first_word(Lend $text, limit: 20);
+first_word(Lend $text);
 append(val: Give $r);
 ```
 
-**Refused:** leaving off a declared label, and writing a label that wasn't declared.
+In `std`, the first argument, the thing being worked on, stays bare, and every other argument gets a label, except lists where every item has the same role, like `print`'s pieces.
 
-**From:** D2, D20, D23, D113.
+**Refused:** leaving off a label with no default, writing a label that wasn't declared, and `labels.in_order`, because it's the default.
+
+**From:** D2, D20, D23, D113, D114.
 
 ## 5.3 `return`
 
@@ -58,7 +57,20 @@ append(val: Give $r);
 
 ## 5.4 The top of the body
 
-**Rule:** `requires`, `ensures` and `fails` go first in the body, in that order, then the code. So the top of a body says what the function promises.
+**Rule:** `labels`, `defaults`, `requires`, `ensures` and `fails` go first in the body, in that order, then the code. So the top of a body says how to call it, and what it promises.
+
+```
+fn first_word [$text: str, $limit: i32] -> str:
+    labels [$limit as limit];
+    defaults [$limit = 40];
+    requires $limit at_least 1;
+    fails [too_long];
+
+    …
+end fn first_word
+```
+
+A fuller example of contracts:
 
 ```
 fn half [$n: i32] -> i32:
@@ -75,7 +87,7 @@ end fn half
 
 `result` is a placeholder.
 
-**From:** D52, D53, D84.
+**From:** D52, D53, D84, D114.
 
 ## 5.5 Contracts
 
