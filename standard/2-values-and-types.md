@@ -202,6 +202,8 @@ A number converts bare, with no unit, so `$xs.len as str` gives `3`. A narrowing
 
 ## 2.16 Units
 
+These examples assume `time` and `storage` are declared with `narrowings.unit`, further down. Nothing is built in except `items`.
+
 **Rule:** a number says its unit, behind it where possible. Where the unit can't go behind, it goes in front. A unit always says its family, or its path from a kit, and `items` is base language, so it stays bare. The compiler checks units: a unit is part of the type, carried by a narrowing. The same units can add and compare.
 
 ```

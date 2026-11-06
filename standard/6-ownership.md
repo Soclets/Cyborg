@@ -95,7 +95,13 @@ add_row(Lend.mut $t);
 
 **Rule:** every hand-off shows on the page, including one to a method's receiver, into a name, a `return` or a field.
 
-`change` doesn't stand in for an ownership word.
+`change` doesn't stand in for an ownership word. A value handed into a name, a `return` or a field takes `Give` or `Copy`. `Lend` needs a type that's a stored borrow ([6.10](#610-stored-borrows)).
+
+```
+let $k: str = Copy $s;
+return Give $t;
+name_tag[text = Give $s]
+```
 
 **Refused:** `change $xs = $xs.append(val: 4)`, and a whole struct or list passed or stored with no word.
 

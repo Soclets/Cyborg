@@ -39,7 +39,7 @@ end if
 
 Outside the block, `$s.code` is a compile error.
 
-Changing `$s` inside the block is allowed, and the compiler's trust ends there:
+Changing `$s` inside the block, or lending it with `Lend.mut`, is allowed, and the compiler's trust ends there:
 
 ```
 if $s: status.failed:

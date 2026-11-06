@@ -89,7 +89,7 @@ let $port: i32 = read_port() ?? 8080;
 let $w: str = first_word(Lend $text) otherwise:
     case too_long:
         "…";
-    case empty:
+    case no_words:
         "(none)";
 end otherwise
 ```
@@ -107,7 +107,7 @@ narrowings.handler word_failed:
     word_failed.use_placeholder:
         case too_long:
             "…";
-        case empty:
+        case no_words:
             "(none)";
     end word_failed.use_placeholder
 end narrowings.handler word_failed
