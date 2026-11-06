@@ -99,17 +99,24 @@ Contracts can only call pure functions ([5.9](#59-pure-functions)), so turning c
 
 ## 5.6 Methods: `.%`
 
-**Rule:** a method is a function attached to a type, called on a receiver with `.%`. A `.` never runs code, and a `.%` always does.
+**Rule:** a method is a function attached to a type, called on a receiver with `.%`. A `.` never runs code, and a `.%` always does. A method from a kit says its path, because bare means base or your own, and a limb's has `@`.
 
 ```
-$xs.%append(val: 4);
+$xs.std::%append(val: 4);
 ```
 
 Methods only borrow, because `%` can't hide `Give` ([6.8](6-ownership.md#68--unsaid-ownership)). Anything that consumes its value is a plain function: `close(Give $f)`.
 
+```
+$p.%area();
+$x.@csup::%name();
+```
+
+**Refused:** `$xs.%append(val: 4);`, with `fix: $xs.std::%append(val: 4);`.
+
 How a method is declared isn't decided ([12.5](12-not-decided.md#125-functions)).
 
-**From:** D4, D5, D8.
+**From:** D4, D5, D8, D115.
 
 ## 5.7 Builtins: `@`
 

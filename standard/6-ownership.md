@@ -106,12 +106,12 @@ add_row(Lend.mut $t);
 **Rule:** a `%` on a method's name says the receiver's ownership is unsaid here, and found in the signature. The compiler still checks it. It hides only `Lend` and `Lend.mut`, so after a `%` the value is always still alive. A search for `%` finds every unsaid hand-off.
 
 ```
-$xs.%append(val: 4);
+$xs.std::%append(val: 4);
 ```
 
 **Refused:** `total(%$xs)`, because `%` goes only on a method call. Hiding `Give`: write `close(Give $f)`.
 
-**From:** D4, D5.
+**From:** D4, D5, D115.
 
 ## 6.9 `must_Give`
 

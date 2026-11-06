@@ -683,6 +683,9 @@ ownership word goes after the label: `append(val: Give $r)`. The declaration's s
 only labelled parameters can have defaults. Labels keep their declared order, and `labels.any_order` lets a caller reorder them. In `std`, the first argument, the thing being worked on, stays bare, and every other argument gets a label, except lists where every item has the same role, like `print`'s pieces. Your own functions label as you like. Claude
 proposed taking it whole; the owner chose: "yea". (Owner, 2026-11-06)
 
+**D115. A method from a kit says its path.** `$xs.std::%append(val: 4);`. Bare means base, or your own, so `$xs.%append` would wrongly look like one of those. This applies the rule that everything else follows: base and your own are bare, a kit has its path, and a limb has `@`. Your own method stays `$p.%area()`, and a limb's is `$x.@csup::%name()`. The `%` still sits on
+the method's name. Claude suggested a bare method for a type's own kit, because the type already says where it comes from; the owner asked "Wouldn't it be `.std::%append`?", then "doesn't bare mean the base's?", and Claude agreed. (Owner, 2026-11-06)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude
