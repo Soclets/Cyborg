@@ -109,12 +109,6 @@ impl Type {
         }
     }
 
-    pub const I32: Type = Type::Integer {
-        kind: IntegerKind::I32,
-        bound: None,
-        unit: None,
-    };
-
     /// These are always copied, and take no ownership word.
     /// trace: D2, D123
     pub fn is_always_copied(&self) -> bool {

@@ -34,7 +34,6 @@ pub struct Import {
 pub struct Use {
     pub path: Path,
     pub short: Name,
-    pub span: Span,
 }
 
 #[derive(Clone, Debug)]
@@ -81,7 +80,6 @@ pub struct LabelLine {
 
 #[derive(Clone, Debug)]
 pub struct Contract {
-    pub only_in_working: bool,
     pub condition: Expression,
 }
 
@@ -153,7 +151,7 @@ pub struct HandlerSet {
 #[derive(Clone, Debug)]
 pub enum UnitMeaning {
     Base,
-    Conversion { factor: Expression, unit: Path },
+    Conversion { unit: Path },
     Unsaid,
 }
 
@@ -181,7 +179,6 @@ pub struct Together {
     pub operator: TogetherOperator,
     pub right: Path,
     pub result: Path,
-    pub span: Span,
 }
 
 #[derive(Clone, Debug)]
@@ -193,8 +190,8 @@ pub struct ShieldItem {
 
 #[derive(Clone, Debug)]
 pub enum ShieldContent {
-    UntaggedUnion { path: Path, name: Name },
-    Item(Item),
+    UntaggedUnion { path: Path },
+    Item(Box<Item>),
 }
 
 #[derive(Clone, Debug)]

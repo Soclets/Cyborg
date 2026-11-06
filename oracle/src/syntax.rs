@@ -739,7 +739,7 @@ impl Parser {
                 self.expect_semicolon()?;
                 program.imports.push(Import { limb, name });
             } else if self.at_word("use") {
-                let start = self.advance().span;
+                self.advance();
                 let path = self.parse_path()?;
                 if !self.eat_word("as") {
                     // trace: D93
@@ -750,12 +750,8 @@ impl Parser {
                     ));
                 }
                 let short = self.expect_name("the shorter name")?;
-                let end = self.expect_semicolon()?;
-                program.uses.push(Use {
-                    path,
-                    short,
-                    span: start.to(end),
-                });
+                self.expect_semicolon()?;
+                program.uses.push(Use { path, short });
             } else {
                 let item = self.parse_item()?;
                 program.items.push(item);
@@ -1021,14 +1017,12 @@ impl Parser {
 
     fn parse_contract(&mut self) -> Outcome<Contract> {
         self.advance(); // `requires` or `ensures`
-        let mut only_in_working = false;
         if self.at_symbol(".") {
             self.advance();
             let narrowing = self.expect_name("a narrowing of the contract")?;
-            if narrowing.text == "only_in_working" {
-                // trace: D106
-                only_in_working = true;
-            } else {
+            // The oracle treats every check as on, as in `Working`, so this changes nothing here.
+            // trace: D106
+            if narrowing.text != "only_in_working" {
                 return Err(Report::not_designed(
                     narrowing.span,
                     format!("the contract narrowing `{}`", narrowing.text),
@@ -1038,10 +1032,7 @@ impl Parser {
         }
         let condition = self.parse_expression()?;
         self.expect_semicolon()?;
-        Ok(Contract {
-            only_in_working,
-            condition,
-        })
+        Ok(Contract { condition })
     }
 
     fn parse_fails(&mut self) -> Outcome<Vec<FailureEntry>> {
@@ -1264,7 +1255,7 @@ impl Parser {
                 }
             } else if self.eat_symbol("=") {
                 let start = self.span();
-                let factor = self.parse_primary_number()?;
+                self.parse_primary_number()?;
                 let Some(unit) = self.parse_unit_after_number()? else {
                     return Err(Report::not_designed(
                         start.to(self.previous_span()),
@@ -1279,7 +1270,7 @@ impl Parser {
                         "12.2",
                     ));
                 }
-                UnitMeaning::Conversion { factor, unit }
+                UnitMeaning::Conversion { unit }
             } else {
                 UnitMeaning::Unsaid
             };
@@ -1291,7 +1282,7 @@ impl Parser {
     }
 
     fn parse_together(&mut self) -> Outcome<Together> {
-        let start = self.advance().span; // `together`
+        self.advance(); // `together`
         let left = self.parse_path()?;
         let operator = if self.eat_symbol("/") {
             TogetherOperator::Divide
@@ -1303,13 +1294,12 @@ impl Parser {
         let right = self.parse_path()?;
         self.expect_symbol("=")?;
         let result = self.parse_path()?;
-        let end = self.expect_semicolon()?;
+        self.expect_semicolon()?;
         Ok(Together {
             left,
             operator,
             right,
             result,
-            span: start.to(end),
         })
     }
 
@@ -1362,12 +1352,9 @@ impl Parser {
                     self.parse_type()?;
                 }
                 self.expect_limb_closer(&path.text, &union_name.text)?;
-                items.push(ShieldContent::UntaggedUnion {
-                    path,
-                    name: union_name,
-                });
+                items.push(ShieldContent::UntaggedUnion { path });
             } else {
-                items.push(ShieldContent::Item(self.parse_item()?));
+                items.push(ShieldContent::Item(Box::new(self.parse_item()?)));
             }
         }
         self.expect_closer(&["shield", &name.text])?;
@@ -2106,10 +2093,11 @@ impl Parser {
                 kind: ExpressionKind::BitNot(Box::new(inner)),
             }
         } else if self.at_symbol("-")
-            && !(matches!(
-                self.peek_at(1).lexeme,
-                Lexeme::Integer(_) | Lexeme::Float(_)
-            ) && !self.peek().space_after)
+            && (self.peek().space_after
+                || !matches!(
+                    self.peek_at(1).lexeme,
+                    Lexeme::Integer(_) | Lexeme::Float(_)
+                ))
         {
             // trace: D116
             self.advance();
@@ -2367,11 +2355,7 @@ impl Parser {
     fn parse_primary(&mut self) -> Outcome<Expression> {
         let start = self.span();
         match self.peek().lexeme.clone() {
-            Lexeme::Integer(_) | Lexeme::Float(_) => {
-                let number = self.parse_primary_number()?;
-                self.with_unit(number)
-            }
-            Lexeme::Symbol("-" | "~") => {
+            Lexeme::Integer(_) | Lexeme::Float(_) | Lexeme::Symbol("-" | "~") => {
                 let number = self.parse_primary_number()?;
                 self.with_unit(number)
             }

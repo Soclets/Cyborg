@@ -105,7 +105,7 @@ enum Origin {
 #[derive(Clone, Debug)]
 struct Variable {
     name: String,
-    variable_type: Type,
+    held_type: Type,
     mutable: bool,
     origin: Origin,
     declared: Span,
@@ -212,7 +212,7 @@ fn every_item(program: &Program) -> Vec<&Item> {
         if let Item::Shield(shield) = item {
             for content in &shield.items {
                 if let ShieldContent::Item(inner) = content {
-                    items.push(inner);
+                    items.push(inner.as_ref());
                 }
             }
         }
@@ -427,7 +427,7 @@ impl Checker<'_> {
                 }
                 let (base, target) = match &member.meaning {
                     UnitMeaning::Base => (Some(member.path.text.clone()), None),
-                    UnitMeaning::Conversion { unit, .. } => {
+                    UnitMeaning::Conversion { unit } => {
                         (None, Some((unit.text.clone(), unit.span)))
                     }
                     UnitMeaning::Unsaid => {
@@ -843,7 +843,7 @@ impl Checker<'_> {
                 None => Vec::new(),
             };
             if function.kind == FunctionKind::Main {
-                self.check_main_signature(function, &return_type, !failures.is_empty())?;
+                Self::check_main_signature(function, &return_type, !failures.is_empty())?;
             }
             self.signatures.insert(
                 function.name.text.clone(),
@@ -862,7 +862,6 @@ impl Checker<'_> {
     }
 
     fn check_main_signature(
-        &self,
         function: &Function,
         return_type: &Type,
         has_failures: bool,
@@ -918,9 +917,9 @@ impl Checker<'_> {
                 };
                 let mut reads = Vec::new();
                 body::collect_variables(value, &mut reads);
-                let waiting = reads.iter().any(|(name, _)| {
-                    names.contains(name) && !self.globals.contains_key(name)
-                });
+                let waiting = reads
+                    .iter()
+                    .any(|(name, _)| names.contains(name) && !self.globals.contains_key(name));
                 if waiting {
                     later.push(statement);
                 } else {
@@ -928,7 +927,9 @@ impl Checker<'_> {
                 }
             }
             if later.len() == before {
-                let span = later.first().map_or(Span::new(0, 0), |statement| statement.span);
+                let span = later
+                    .first()
+                    .map_or(Span::new(0, 0), |statement| statement.span);
                 return Err(Report::refused(
                     span,
                     "these constants read each other in a loop",
@@ -1142,7 +1143,7 @@ impl Checker<'_> {
                     })?),
                     None => None,
                 };
-                return self.resolve_number_type(head, unit, describe, written);
+                return Self::resolve_number_type(head, unit, describe, written);
             }
             _ => {}
         }
@@ -1200,7 +1201,6 @@ impl Checker<'_> {
     }
 
     fn resolve_number_type(
-        &self,
         head: &str,
         unit: Option<String>,
         describe: &[Describe],
@@ -1226,13 +1226,12 @@ impl Checker<'_> {
             "u8" => IntegerKind::U8,
             _ => IntegerKind::I32,
         };
-        let bound = self.resolve_bound(kind, unit.as_ref(), describe, written)?;
+        let bound = Self::resolve_bound(kind, unit.as_ref(), describe, written)?;
         Ok(Type::Integer { kind, bound, unit })
     }
 
     /// trace: D20
     fn resolve_bound(
-        &self,
         kind: IntegerKind,
         unit: Option<&String>,
         describe: &[Describe],
@@ -1538,4 +1537,3 @@ fn looks_like_number_type(word: &str) -> bool {
         && !characters.as_str().is_empty()
         && characters.all(|character| character.is_ascii_digit())
 }
-

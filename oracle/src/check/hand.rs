@@ -149,7 +149,7 @@ impl Checker<'_> {
                     return Ok(Held {
                         node: constant.clone(),
                         place: None,
-                        value_type: variable.variable_type,
+                        value_type: variable.held_type,
                         root_name: name.to_string(),
                     });
                 }
@@ -157,7 +157,7 @@ impl Checker<'_> {
             self.require_alive(slot, span)?;
             self.refuse_invalidated(slot, span)?;
             self.note_use(name, UseKind::Read, span);
-            let value_type = match &variable.variable_type {
+            let value_type = match &variable.held_type {
                 Type::Borrow { inner, .. } => (**inner).clone(),
                 other => other.clone(),
             };
@@ -450,7 +450,7 @@ impl Checker<'_> {
                     ));
                 }
             };
-            self.check_held_type(value.span, target, &held.value_type)?;
+            Self::check_held_type(value.span, target, &held.value_type)?;
             return Ok(held.node);
         }
         if root_variable(value).is_some()
@@ -488,7 +488,7 @@ impl Checker<'_> {
     }
 
     /// Whole values handed around must be the same type. Which list bounds fit which isn't stated.
-    pub(super) fn check_held_type(&self, span: Span, target: &Type, found: &Type) -> Outcome<()> {
+    pub(super) fn check_held_type(span: Span, target: &Type, found: &Type) -> Outcome<()> {
         if target == found {
             return Ok(());
         }
@@ -542,7 +542,7 @@ impl Checker<'_> {
                 HandWord::Copy => self.check_copy(inner)?,
                 HandWord::Lend | HandWord::LendMut => self.check_lent_place(inner, *word)?,
             };
-            self.check_held_type(value.span, target, &held.value_type)?;
+            Self::check_held_type(value.span, target, &held.value_type)?;
             handed.push(HandedOff {
                 root: held.root_name.clone(),
                 path: held

@@ -1,6 +1,7 @@
 //! Runs checked code, with every check on, as `Working` would. (D62)
 
 use std::cell::RefCell;
+use std::cmp::Ordering::{Equal, Greater, Less};
 use std::io::Write;
 use std::rc::Rc;
 
@@ -735,12 +736,10 @@ fn negate(number: Number, value: &Value, span: Span) -> Outcome<Value> {
             if kind.fits(-value) {
                 Ok(Value::Integer(-value))
             } else {
-                Err(Report::not_designed(
-                    span,
-                    "what happens when unary `-` overflows",
-                    "12.3",
+                Err(
+                    Report::not_designed(span, "what happens when unary `-` overflows", "12.3")
+                        .when(format!("negating `{value}` in `{}`", kind.word())),
                 )
-                .when(format!("negating `{value}` in `{}`", kind.word())))
             }
         }
         (_, Value::F32(value)) => Ok(Value::F32(-value)),
@@ -783,7 +782,6 @@ fn compare(
             ))
         }
     };
-    use std::cmp::Ordering::{Equal, Greater, Less};
     Ok(match operator {
         CompareOperator::Equal => ordering == Some(Equal),
         CompareOperator::NotEqual => ordering != Some(Equal),

@@ -170,7 +170,7 @@ impl Source {
         }
     }
 
-    fn write_place(&self, out: &mut String, place: &Place<'_>, width: usize) {
+    fn write_place(out: &mut String, place: &Place<'_>, width: usize) {
         use std::fmt::Write;
         let _ = writeln!(
             out,
@@ -231,7 +231,7 @@ impl Source {
         let width = largest.to_string().len().max(2);
         let mut out = String::new();
         let _ = writeln!(out, "{}: {}", report.kind.word(), self.heading(&main_place));
-        self.write_place(&mut out, &main_place, width);
+        Self::write_place(&mut out, &main_place, width);
         if let Some(fix) = &report.fix {
             let _ = writeln!(out, " fix:  `{fix}`");
         } else {
@@ -243,7 +243,7 @@ impl Source {
         }
         for (because, place) in report.because.iter().zip(&because_places) {
             let _ = writeln!(out, " because: {}", self.heading(place));
-            self.write_place(&mut out, place, width);
+            Self::write_place(&mut out, place, width);
             let _ = writeln!(out, "     {}", because.note);
         }
         out

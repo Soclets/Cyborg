@@ -174,9 +174,7 @@ pub struct Contract {
 
 #[derive(Clone, Debug)]
 pub struct Function {
-    pub name: String,
-    /// Each parameter's slot is its position, so `slot_count` starts past them.
-    pub parameter_count: usize,
+    /// Each parameter's slot is its position, so the other variables come after them.
     pub slot_count: usize,
     pub result_slot: usize,
     pub requires: Vec<Contract>,

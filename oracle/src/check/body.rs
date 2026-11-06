@@ -12,6 +12,9 @@ use crate::ir::{self, Instruction, InstructionKind, Node, NodeKind, Place};
 use crate::report::{Outcome, Report, ReportExtra, Span};
 use crate::types::{Sources, Type, Value};
 
+/// A block's code, and whether it can't run past its end.
+type CheckedBlock = Outcome<(Vec<Instruction>, bool)>;
+
 impl Checker<'_> {
     pub(super) fn check_function(&mut self, function: &Function) -> Outcome<ir::Function> {
         let signature = self
@@ -61,7 +64,7 @@ impl Checker<'_> {
                 info.word == ParameterWord::Given && self.is_must_give(&info.parameter_type);
             self.declare_variable(Variable {
                 name: info.name.clone(),
-                variable_type: info.parameter_type.clone(),
+                held_type: info.parameter_type.clone(),
                 mutable: info.word == ParameterWord::LentMut,
                 origin,
                 declared: parameter.name.span,
@@ -81,11 +84,9 @@ impl Checker<'_> {
         }
 
         let (body, terminated) = self.check_block(&function.body)?;
-        self.check_function_end(function, terminated, &signature.return_type)?;
+        Self::check_function_end(function, terminated, &signature.return_type)?;
         self.check_scope_end_at_function(function.end_span)?;
         Ok(ir::Function {
-            name: signature.name.clone(),
-            parameter_count: signature.parameters.len(),
             slot_count: self.context.variables.len(),
             result_slot,
             requires,
@@ -114,7 +115,7 @@ impl Checker<'_> {
                 if let Some(slot) = self.find_variable(&name) {
                     let is_simple = self.context.variables.get(slot).is_some_and(|variable| {
                         matches!(
-                            variable.variable_type,
+                            variable.held_type,
                             Type::Integer { .. } | Type::Bool | Type::Float { .. }
                         )
                     });
@@ -150,7 +151,6 @@ impl Checker<'_> {
     }
 
     fn check_function_end(
-        &self,
         function: &Function,
         terminated: bool,
         return_type: &Type,
@@ -186,7 +186,7 @@ impl Checker<'_> {
     fn new_hidden_slot(&mut self, value_type: &Type, span: Span) -> usize {
         self.context.variables.push(Variable {
             name: String::new(),
-            variable_type: value_type.clone(),
+            held_type: value_type.clone(),
             mutable: false,
             origin: Origin::Owned,
             declared: span,
@@ -388,7 +388,7 @@ impl Checker<'_> {
         Ok(())
     }
 
-    fn join_states(&mut self, branches: Vec<Vec<VariableState>>) {
+    fn join_states(&mut self, branches: &[Vec<VariableState>]) {
         let count = self.context.state.len();
         let mut joined: Vec<VariableState> = self.context.state.clone();
         let branch_count = branches.len();
@@ -399,7 +399,7 @@ impl Checker<'_> {
             let mut trust_ended = None;
             let mut invalidated = None;
             let mut some_path = false;
-            for branch in &branches {
+            for branch in branches {
                 let Some(state) = branch.get(index) else {
                     continue;
                 };
@@ -441,14 +441,15 @@ impl Checker<'_> {
     /// Going round a loop again: what the first time through did is still true the second time.
     fn check_loop_body(
         &mut self,
-        check: &mut dyn FnMut(&mut Self) -> Outcome<(Vec<Instruction>, bool)>,
+        check: &mut dyn FnMut(&mut Self) -> CheckedBlock,
     ) -> Outcome<Vec<Instruction>> {
         let before = self.context.state.clone();
         let (code, terminated, after_once) = self.on_a_branch(|this| check(this))?;
         if !terminated {
-            self.join_states(vec![before.clone(), after_once]);
+            self.join_states(&[before.clone(), after_once]);
             let (_, _, after_twice) = self.on_a_branch(|this| check(this))?;
-            self.join_states(vec![self.context.state.clone(), after_twice]);
+            let current = self.context.state.clone();
+            self.join_states(&[current, after_twice]);
         }
         Ok(code)
     }
@@ -475,7 +476,7 @@ impl Checker<'_> {
                 let before = self.context.state.clone();
                 let (body, ends, branch) = self.on_a_branch(|this| this.check_block(body))?;
                 if !ends {
-                    self.join_states(vec![before, branch]);
+                    self.join_states(&[before, branch]);
                 }
                 InstructionKind::If { condition, body }
             }
@@ -542,16 +543,16 @@ impl Checker<'_> {
         value: &Expression,
     ) -> Outcome<InstructionKind> {
         self.refuse_second_declaration(name)?;
-        let variable_type = self.resolve_type(written_type)?;
+        let held_type = self.resolve_type(written_type)?;
         if let TypeKind::StoredBorrow { .. } = &written_type.kind {
-            return self.check_stored_borrow(mutable, name, &variable_type, value);
+            return self.check_stored_borrow(mutable, name, &held_type, value);
         }
         // trace: D2
-        let must_give = self.is_must_give(&variable_type);
-        let node = self.check_into(value, &variable_type)?;
+        let must_give = self.is_must_give(&held_type);
+        let node = self.check_into(value, &held_type)?;
         let slot = self.declare_variable(Variable {
             name: name.text.clone(),
-            variable_type,
+            held_type,
             mutable,
             origin: Origin::Owned,
             declared: name.span,
@@ -569,12 +570,12 @@ impl Checker<'_> {
         value: &Expression,
     ) -> Outcome<InstructionKind> {
         self.refuse_second_declaration(name)?;
-        let variable_type = self.resolve_type(written_type)?;
-        let node = self.check_constant_value(value, &variable_type)?;
+        let held_type = self.resolve_type(written_type)?;
+        let node = self.check_constant_value(value, &held_type)?;
         self.compile_time.push(node.clone());
         let slot = self.declare_variable(Variable {
             name: name.text.clone(),
-            variable_type,
+            held_type,
             mutable: false,
             origin: Origin::Constant,
             declared: name.span,
@@ -590,14 +591,14 @@ impl Checker<'_> {
         &mut self,
         mutable: bool,
         name: &crate::ast::Name,
-        variable_type: &Type,
+        held_type: &Type,
         value: &Expression,
     ) -> Outcome<InstructionKind> {
         let Type::Borrow {
             mutable: borrow_mutable,
             sources,
             inner,
-        } = variable_type
+        } = held_type
         else {
             return Err(Report::refused(
                 name.span,
@@ -658,7 +659,7 @@ impl Checker<'_> {
         }
         let slot = self.declare_variable(Variable {
             name: name.text.clone(),
-            variable_type: variable_type.clone(),
+            held_type: held_type.clone(),
             mutable: *borrow_mutable,
             origin: Origin::StoredBorrow,
             declared: name.span,
@@ -739,7 +740,7 @@ impl Checker<'_> {
                 ));
             }
         }
-        let target_type = match &variable.variable_type {
+        let target_type = match &variable.held_type {
             Type::Borrow { inner, .. } => (**inner).clone(),
             other => other.clone(),
         };
@@ -823,7 +824,7 @@ impl Checker<'_> {
                 this.check_block(body)
             })?;
             if !ends {
-                self.join_states(vec![before, branch]);
+                self.join_states(&[before, branch]);
             }
             // The trust ends at `end if`, so a read after it is the plain "outside the block" error.
             if let Some(state) = self.context.state.get_mut(slot) {
@@ -855,7 +856,7 @@ impl Checker<'_> {
                 let before = self.context.state.clone();
                 let (code, ends, branch) = self.on_a_branch(|this| this.check_block(body))?;
                 if !ends {
-                    self.join_states(vec![before, branch]);
+                    self.join_states(&[before, branch]);
                 }
                 return Ok(InstructionKind::TestRange {
                     subject: node,
@@ -999,7 +1000,7 @@ impl Checker<'_> {
             ));
         }
         if !branches.is_empty() {
-            self.join_states(branches);
+            self.join_states(&branches);
         }
         if let Some(state) = slot.and_then(|slot| self.context.state.get_mut(slot)) {
             state.trust = None;
@@ -1050,14 +1051,11 @@ impl Checker<'_> {
                 "12.8",
             ));
         }
-        let root = match root_variable(collection) {
-            Some(root) => root,
-            None => String::new(),
-        };
+        let root = root_variable(collection).unwrap_or_default();
         self.context.scopes.push(HashMap::new());
         let slot = self.declare_variable(Variable {
             name: name.text.clone(),
-            variable_type: item_type,
+            held_type: item_type,
             mutable: false,
             origin: Origin::ForItem,
             declared: name.span,
@@ -1312,11 +1310,11 @@ impl Checker<'_> {
                 "the arms must cover every failure still possible at that call (D46)",
             ));
         }
-        self.join_states(branches);
+        self.join_states(&branches);
         Ok(code)
     }
 
-    pub(super) fn item_limit_check(&self, count: i128, span: Span) -> Outcome<()> {
+    pub(super) fn item_limit_check(count: i128, span: Span) -> Outcome<()> {
         if count > ITEM_LIMIT {
             return Err(Report::not_designed(
                 span,

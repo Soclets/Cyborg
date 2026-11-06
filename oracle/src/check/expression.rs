@@ -175,7 +175,7 @@ impl Checker<'_> {
                 "",
             ));
         }
-        self.check_held_type(expression.span, target, found)?;
+        Self::check_held_type(expression.span, target, found)?;
         Ok(node)
     }
 
@@ -291,9 +291,9 @@ impl Checker<'_> {
         let simple = |kind: NodeKind| Node { span, kind };
         match &expression.kind {
             ExpressionKind::Integer { .. } => {
-                self.check_integer_literal(expression, expected, None)
+                Self::check_integer_literal(expression, expected, None)
             }
-            ExpressionKind::Float { .. } => self.check_float_literal(expression, expected, None),
+            ExpressionKind::Float { .. } => Self::check_float_literal(expression, expected, None),
             ExpressionKind::WithUnit { number, unit } => {
                 if matches!(number.kind, ExpressionKind::Inf) {
                     return Err(Report::refused(
@@ -304,16 +304,16 @@ impl Checker<'_> {
                 }
                 let resolved = self.resolve_unit(unit)?;
                 if matches!(number.kind, ExpressionKind::Float { .. }) {
-                    self.check_float_literal(number, expected, Some(resolved))
+                    Self::check_float_literal(number, expected, Some(resolved))
                 } else {
-                    self.check_integer_literal(number, expected, Some(resolved))
+                    Self::check_integer_literal(number, expected, Some(resolved))
                 }
             }
             ExpressionKind::Text(text) => Ok((
                 simple(NodeKind::Constant(Value::Str(text.clone()))),
                 Type::Str,
             )),
-            ExpressionKind::Empty => self.check_empty(span, expected),
+            ExpressionKind::Empty => Self::check_empty(span, expected),
             ExpressionKind::Items(items) => self.check_items(items, span, expected),
             ExpressionKind::All(value) => self.check_all(value, span, expected),
             ExpressionKind::Inf => Err(Report::refused(
@@ -435,7 +435,6 @@ impl Checker<'_> {
     }
 
     fn check_integer_literal(
-        &mut self,
         expression: &Expression,
         expected: Option<&Type>,
         unit: Option<String>,
@@ -478,7 +477,6 @@ impl Checker<'_> {
 
     /// trace: D59
     fn check_float_literal(
-        &mut self,
         expression: &Expression,
         expected: Option<&Type>,
         unit: Option<String>,
@@ -557,7 +555,7 @@ impl Checker<'_> {
     }
 
     /// trace: D103
-    fn check_empty(&self, span: Span, expected: Option<&Type>) -> Outcome<(Node, Type)> {
+    fn check_empty(span: Span, expected: Option<&Type>) -> Outcome<(Node, Type)> {
         let node = |value: Value| Node {
             span,
             kind: NodeKind::Constant(value),
@@ -673,7 +671,7 @@ impl Checker<'_> {
                 "",
             ));
         }
-        self.item_limit_check(*len, span)?;
+        Self::item_limit_check(*len, span)?;
         let node = self.check_into(value, item)?;
         Ok((
             Node {
@@ -817,21 +815,20 @@ impl Checker<'_> {
         span: Span,
     ) -> Outcome<(Node, Type)> {
         let text = self.canonical(&path.text);
-        let bare = match text.strip_prefix("my::") {
-            Some(mine) => mine.to_string(),
-            None => {
-                // trace: D75
-                if is_clashing(&text) {
-                    let written = self.text_of(span).to_string();
-                    return Err(Report::refused(
-                        span,
-                        format!("`{text}` is built in"),
-                        "a name of yours that clashes is written with `my::` (D75)",
-                    )
-                    .fix(format!("my::{written}")));
-                }
-                text.clone()
+        let bare = if let Some(mine) = text.strip_prefix("my::") {
+            mine.to_string()
+        } else {
+            // trace: D75
+            if is_clashing(&text) {
+                let written = self.text_of(span).to_string();
+                return Err(Report::refused(
+                    span,
+                    format!("`{text}` is built in"),
+                    "a name of yours that clashes is written with `my::` (D75)",
+                )
+                .fix(format!("my::{written}")));
             }
+            text.clone()
         };
         if let Some(info) = self.structs.get(&bare).cloned() {
             let nodes = self.check_field_values(&info.fields, fields, &bare, span)?;
@@ -1760,7 +1757,12 @@ impl Checker<'_> {
             ));
         }
         let arithmetic = match operator {
-            BinaryOperator::Add => Arithmetic::Add,
+            // `and` and `or` left for `check_logic` above.
+            BinaryOperator::Add
+            | BinaryOperator::And
+            | BinaryOperator::Or
+            | BinaryOperator::AndBoth
+            | BinaryOperator::OrBoth => Arithmetic::Add,
             BinaryOperator::Subtract => Arithmetic::Subtract,
             BinaryOperator::Multiply => Arithmetic::Multiply,
             BinaryOperator::PlusWrap => Arithmetic::PlusWrap,
@@ -1771,10 +1773,6 @@ impl Checker<'_> {
             BinaryOperator::BitXor => Arithmetic::BitXor,
             BinaryOperator::ShiftLeft => Arithmetic::ShiftLeft,
             BinaryOperator::ShiftRight => Arithmetic::ShiftRight,
-            BinaryOperator::And
-            | BinaryOperator::Or
-            | BinaryOperator::AndBoth
-            | BinaryOperator::OrBoth => Arithmetic::Add,
         };
         let (number, result) =
             self.arithmetic_type(arithmetic, &left_type, &right_type, right, span)?;
@@ -2175,4 +2173,3 @@ fn statements_jump(statements: &[crate::ast::Statement]) -> bool {
         _ => false,
     })
 }
-
