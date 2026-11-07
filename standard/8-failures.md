@@ -23,7 +23,7 @@ fn load [$path: str] -> config:
 end fn load
 
 fn half [$n: i32] -> i32:
-    fails [odd, negative[value: i32]];
+    fails [odd, negative[val: i32]];
     …
 end fn half
 ```
@@ -38,7 +38,7 @@ end fn half
 
 ```
 fail odd;
-fail negative[value = $n];
+fail negative[val = $n];
 ```
 
 **From:** D52.
