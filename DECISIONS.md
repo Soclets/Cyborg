@@ -801,6 +801,8 @@ a placeholder for a version that isn't correctly rounded. A float prints as the 
 
 **D163. `f64.fast` is exempt from rule 5.** The oracle runs `f64.fast` plainly, in the order written. Its tests only check that the answer is close, not identical, and a crash caused only by merged or reordered maths isn't a bug: that's what writing `.fast` allows. Every other type still matches byte for byte. How close counts as close is not settled here. Oracle claude found the conflict; Claude proposed this; the owner chose: "yea". (Owner, 2026-11-07)
 
+**D164. Floats get a bare `div`.** `7.0 div 2.0` is `3.5`, since a float has no remainder to throw away, and it rounds to the nearest float like `+`, `-` and `x` do. Integers keep no bare `div` (D48), so `7 div 2` is still refused, with a fix naming `div.trunc` and `div.floor`. Dividing by `0.0` makes infinity, which is a failure on `f64` (D158). Whether integer narrowings like `div.trunc` work on floats, and what `mod` does on them, are not settled here. Oracle claude asked; Claude proposed it; the owner asked "why?" and then chose: "yea". (Owner, 2026-11-07)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude

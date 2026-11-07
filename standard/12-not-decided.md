@@ -68,7 +68,7 @@ Waiting on the owner, most needed first. Each is `NotDesignedYet` unless it says
 
 - The full list of integer and float types.
 - Units (D99 to D111): the spelling of `together`, offsets, moments, how a conversion is written, what a lossy conversion does, and the full list of units `std` has.
-- Dividing floats: `div` has no bare form for integers, and nothing says what floats use.
+- On floats: whether `div.trunc` and the other integer narrowings work, and what `mod` does.
 - How NaN compares on `f64.ieee`, and how to check a float's sign.
 - Raw pointers' spelling, though D38 puts them in shields.
 - Function types: `-> i32` no longer shows failures, so a function's type needs some way to include them.

@@ -4,7 +4,7 @@
 |---|---|---|
 | [3.1](#31-every-operator) | All of them | One table |
 | [3.2](#32-arithmetic----x) | `+`, `-`, `x` | Overflow depends on the mode |
-| [3.3](#33-division-div) | `div.trunc`, `div.floor`, `div.exact` | No bare `div` |
+| [3.3](#33-division-div) | `div.trunc`, `div.floor`, `div.exact`, `div` | No bare `div` on integers |
 | [3.4](#34-remainder-mod) | `mod.trunc`, `mod.floor` | No bare `mod` |
 | [3.5](#35-comparison) | `==`, `!=`, `<`, `>`, `at_least`, `at_most` | |
 | [3.6](#36-logic) | `and`, `or`, `not` | |
@@ -17,7 +17,7 @@
 | Kind | Spelling | Section |
 |---|---|---|
 | Arithmetic | `+`, `-`, `x` | [3.2](#32-arithmetic----x) |
-| Divide | `div.trunc`, `div.floor`, `div.exact` | [3.3](#33-division-div) |
+| Divide | `div.trunc`, `div.floor`, `div.exact`, and bare `div` on floats | [3.3](#33-division-div) |
 | Remainder | `mod.trunc`, `mod.floor` | [3.4](#34-remainder-mod) |
 | Comparison | `==`, `!=`, `<`, `>`, `at_least`, `at_most` | [3.5](#35-comparison) |
 | Logic | `and`, `or`, `not` | [3.6](#36-logic) |
@@ -48,7 +48,7 @@ When a plain `+` overflows, what happens depends on the build mode ([10.5](10-bu
 
 ## 3.3 Division: `div`
 
-**Rule:** there's no bare `div`, because division has no single right answer for integers. You pick a narrowing.
+**Rule:** an integer has no bare `div`, because integer division has no single right answer. You pick a narrowing. A float has a bare `div`, which rounds to the nearest float like `+`, `-` and `x`, so `7.0 div 2.0` is `3.5`.
 
 ```
 7 div.trunc 2
@@ -58,9 +58,9 @@ When a plain `+` overflows, what happens depends on the build mode ([10.5](10-bu
 
 Those three are examples; the full list isn't decided. What `div.exact` does in each mode isn't decided either. Division by zero traps in `FinalSafe`.
 
-**Refused:** a bare `div`.
+**Refused:** a bare `div` on integers.
 
-**From:** D26, D48.
+**From:** D26, D48, D164.
 
 ## 3.4 Remainder: `mod`
 
