@@ -319,4 +319,6 @@ let $m: i64 = $u as i64;
 
 **Refused:** a bare `type`, mixing `ids.user` and `ids.order`, mixing the two kinds in one family, and a value crossing with no `as`, as in `let $u: user_id = $n;`.
 
-**From:** D134, D141.
+A struct, list or string in a variable says what happens to it: `Give $r as wrapped`, or `Copy $r as wrapped`. A plain number or a fresh value needs no word.
+
+**From:** D134, D141, D149.

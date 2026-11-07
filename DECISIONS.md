@@ -769,6 +769,8 @@ bounds on the ranges is not settled here. (Owner, 2026-11-07)
 
 **D148. No bounds inside a range.** `if $start: i32[min: 100, max: 200]:` or a bounded `let` already do it, and D147 then skips the same checks. `$xs.len[min: 100]` would also look like getting an item (D133). The owner proposed bounds inside a range, then asked "Does `if` already work for that, though?"; Claude said it does; the owner chose: "yea". (Owner, 2026-11-07)
 
+**D149. `as` on a whole value says its ownership.** `Give $r as wrapped` leaves `$r` dead, and `Copy $r as wrapped` leaves it alive and pays for a copy, following D3. A plain number needs no word (D123), and neither does a fresh value. This covers structs, lists and strings in a variable. Oracle claude asked; Claude proposed it; the owner chose: "yea". (Owner, 2026-11-07)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude
