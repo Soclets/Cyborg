@@ -1,0 +1,8 @@
+// trace: D140, D7
+import std;
+
+fn.main [] -> void:
+    let $a: std::array<i32>[len: 1 items] = [1];
+    let $n: i32.items = $a.len;
+    return void;
+end fn.main

@@ -128,6 +128,8 @@ pub enum NodeKind {
         shown: String,
         item: Box<Node>,
         max: Option<i128>,
+        /// The most its `len.type` can count, which `inf` can run into. (D140)
+        count_limit: i128,
     },
     Length(Box<Node>),
     IntegerToStr(Box<Node>),

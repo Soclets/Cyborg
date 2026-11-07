@@ -1,5 +1,0 @@
-NotDesignedYet: d122_keeping_a_length.cy:7:19, line 7 column 19
- 7 |     let $n: i32 = $xs.len;
-   |                   ^^^^^^^
- what: keeping a length, since its type isn't stated
- why:  not decided yet, and the standard doesn't say

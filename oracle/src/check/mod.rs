@@ -1482,7 +1482,7 @@ impl Checker<'_> {
                     )),
                 };
             }
-            "i32" | "i64" | "u8" | "f32" | "f64" => {
+            "i32" | "i64" | "u8" | "u32" | "u64" | "f32" | "f64" => {
                 // trace: D54
                 if narrowing == Some("decimal") {
                     return Err(Report::refused(
@@ -1579,6 +1579,8 @@ impl Checker<'_> {
         let kind = match head {
             "i64" => IntegerKind::I64,
             "u8" => IntegerKind::U8,
+            "u32" => IntegerKind::U32,
+            "u64" => IntegerKind::U64,
             _ => IntegerKind::I32,
         };
         let bound = Self::resolve_bound(kind, unit.as_ref(), describe, written)?;
@@ -1681,7 +1683,13 @@ impl Checker<'_> {
                     ));
                 }
                 let (mut len, mut min, mut max) = (None, None, None);
+                // trace: D140
+                let mut len_type = IntegerKind::U64;
                 for entry in describe {
+                    if entry.label.text == "len.type" {
+                        len_type = Self::read_length_type(&entry.value)?;
+                        continue;
+                    }
                     let value = Self::read_item_count(&entry.value)?;
                     match entry.label.text.as_str() {
                         "len" => len = Some((value, entry)),
@@ -1739,10 +1747,12 @@ impl Checker<'_> {
                             ));
                         }
                     }
+                    Self::refuse_count_too_big(max_value, len_type, max_entry)?;
                     return Ok(Type::List {
                         item,
                         min: min_value,
                         max: max_value,
+                        len_type,
                     });
                 }
                 if let Some((_, entry)) = min.or(max) {
@@ -1766,7 +1776,12 @@ impl Checker<'_> {
                         "an array has exactly `len` items (D13)",
                     ));
                 };
-                Ok(Type::Array { item, len: value })
+                Self::refuse_count_too_big(Some(value), len_type, entry)?;
+                Ok(Type::Array {
+                    item,
+                    len: value,
+                    len_type,
+                })
             }
             // trace: D138
             "map" => Err(Report::refused(
@@ -1818,6 +1833,50 @@ impl Checker<'_> {
                 "12.2",
             )),
         }
+    }
+
+    /// `len.type: u32`, which says what `$xs.len` is and how the length is stored. (D140)
+    fn read_length_type(value: &crate::ast::Expression) -> Outcome<IntegerKind> {
+        let crate::ast::ExpressionKind::Path(path) = &value.kind else {
+            return Err(Report::refused(
+                value.span,
+                "`len.type` is an integer type",
+                "a list can choose its length's type with `len.type` (D140)",
+            ));
+        };
+        match path.text.as_str() {
+            "i32" => Ok(IntegerKind::I32),
+            "i64" => Ok(IntegerKind::I64),
+            "u8" => Ok(IntegerKind::U8),
+            "u32" => Ok(IntegerKind::U32),
+            "u64" => Ok(IntegerKind::U64),
+            "str" | "bool" | "void" | "f32" | "f64" => Err(Report::refused(
+                value.span,
+                format!("`{}` can't count a length", path.text),
+                "a list can choose its length's type with `len.type` (D140)",
+            )),
+            other => Err(Report::not_designed(
+                value.span,
+                format!("`len.type: {other}`"),
+                "12.2",
+            )),
+        }
+    }
+
+    /// trace: D140
+    fn refuse_count_too_big(
+        count: Option<i128>,
+        len_type: IntegerKind,
+        entry: &Describe,
+    ) -> Outcome<()> {
+        if count.is_some_and(|count| !len_type.fits(count)) {
+            return Err(Report::refused(
+                entry.value.span,
+                format!("`{}` can't count this many", len_type.word()),
+                "a length that doesn't fit its `len.type` is refused (D140)",
+            ));
+        }
+        Ok(())
     }
 
     /// `8 items` or `inf items`, where the unit is required. `None` is `inf`. (D101)

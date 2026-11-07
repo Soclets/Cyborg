@@ -783,7 +783,8 @@ impl<'c> Runner<'c> {
                 shown,
                 item,
                 max,
-            } => self.append(receiver, shown, item, *max, frame, span),
+                count_limit,
+            } => self.append(receiver, shown, item, *max, *count_limit, frame, span),
             NodeKind::Length(value) => {
                 let Value::List(items) = self.evaluate(value, frame)? else {
                     return Err(oracle_bug(span, "`.len` on something else"));
@@ -898,12 +899,14 @@ impl<'c> Runner<'c> {
     }
 
     /// trace: D96
+    #[allow(clippy::too_many_arguments)] // Appending has this many parts.
     fn append(
         &mut self,
         receiver: &Place,
         shown: &str,
         item: &Node,
         max: Option<i128>,
+        count_limit: i128,
         frame: &mut Frame,
         span: Span,
     ) -> Result<Value, Stop> {
@@ -922,6 +925,14 @@ impl<'c> Runner<'c> {
                 data: Vec::new(),
                 span,
             }));
+        }
+        // trace: D140
+        if count >= count_limit {
+            return Err(Stop::Report(Report::not_designed(
+                span,
+                format!("`{shown}` growing past what its `len.type` can count, with `inf` as its `len.max`"),
+                "",
+            )));
         }
         items.push(item);
         Ok(Value::Void)

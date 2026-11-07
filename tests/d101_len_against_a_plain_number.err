@@ -2,4 +2,4 @@ refused: d101_len_against_a_plain_number.cy:6:25, line 6 column 25
  6 |     if $xs.len at_least 3:
    |                         ^
  fix:  `3 items`
- why:  the language asks for units on things that have them, like lengths (D101)
+ why:  the compiler checks units, and a unit is required where the type asks for one (D100, D101)

@@ -7,6 +7,8 @@ pub enum IntegerKind {
     I32,
     I64,
     U8,
+    U32,
+    U64,
 }
 
 impl IntegerKind {
@@ -15,6 +17,8 @@ impl IntegerKind {
             IntegerKind::I32 => "i32",
             IntegerKind::I64 => "i64",
             IntegerKind::U8 => "u8",
+            IntegerKind::U32 => "u32",
+            IntegerKind::U64 => "u64",
         }
     }
 
@@ -23,6 +27,8 @@ impl IntegerKind {
             IntegerKind::I32 => (i128::from(i32::MIN), i128::from(i32::MAX)),
             IntegerKind::I64 => (i128::from(i64::MIN), i128::from(i64::MAX)),
             IntegerKind::U8 => (0, 255),
+            IntegerKind::U32 => (0, i128::from(u32::MAX)),
+            IntegerKind::U64 => (0, i128::from(u64::MAX)),
         }
     }
 
@@ -31,6 +37,8 @@ impl IntegerKind {
             IntegerKind::I32 => 32,
             IntegerKind::I64 => 64,
             IntegerKind::U8 => 8,
+            IntegerKind::U32 => 32,
+            IntegerKind::U64 => 64,
         }
     }
 
@@ -75,19 +83,19 @@ pub enum Type {
         kind: FloatKind,
         unit: Option<String>,
     },
-    /// What `$xs.len` gives. It counts `items`, and its width isn't stated, so it stays apart from
-    /// the integers until the design session says otherwise.
-    Length,
     Struct(String),
     Union(String),
     List {
         item: Box<Type>,
         min: Option<i128>,
         max: Option<i128>,
+        /// What `$xs.len` is, counting `items`, and how the list stores its length. (D140)
+        len_type: IntegerKind,
     },
     Array {
         item: Box<Type>,
         len: i128,
+        len_type: IntegerKind,
     },
     Map {
         ordered: bool,
@@ -124,7 +132,7 @@ impl Type {
     /// trace: D2, D123
     pub fn is_always_copied(&self) -> bool {
         match self {
-            Type::Integer { .. } | Type::Float { .. } | Type::Bool | Type::Length => true,
+            Type::Integer { .. } | Type::Float { .. } | Type::Bool => true,
             Type::New { underlying, .. } => underlying.is_always_copied(),
             _ => false,
         }
@@ -158,11 +166,16 @@ impl fmt::Display for Type {
                 }
                 Ok(())
             }
-            Type::Length => write!(formatter, "a length in items"),
+
             Type::Struct(name) | Type::Union(name) | Type::New { name, .. } => {
                 write!(formatter, "{name}")
             }
-            Type::List { item, min, max } => {
+            Type::List {
+                item,
+                min,
+                max,
+                len_type,
+            } => {
                 write!(formatter, "std::list<{item}>[")?;
                 if let Some(min) = min {
                     write!(formatter, "len.min: ")?;
@@ -174,10 +187,21 @@ impl fmt::Display for Type {
                     Some(max) => write_items_bound(formatter, *max)?,
                     None => write!(formatter, "inf items")?,
                 }
+                if *len_type != IntegerKind::U64 {
+                    write!(formatter, ", len.type: {}", len_type.word())?;
+                }
                 write!(formatter, "]")
             }
-            Type::Array { item, len } => {
-                write!(formatter, "std::array<{item}>[len: {len} items]")
+            Type::Array {
+                item,
+                len,
+                len_type,
+            } => {
+                write!(formatter, "std::array<{item}>[len: {len} items")?;
+                if *len_type != IntegerKind::U64 {
+                    write!(formatter, ", len.type: {}", len_type.word())?;
+                }
+                write!(formatter, "]")
             }
             Type::Map {
                 ordered,

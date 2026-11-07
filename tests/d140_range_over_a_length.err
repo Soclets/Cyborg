@@ -1,0 +1,5 @@
+NotDesignedYet: d140_range_over_a_length.cy:7:27, line 7 column 27
+ 7 |     for $i in range[from: 1 items, to: $a.len]:
+   |                           ^^^^^^^
+ what: a range of numbers with a unit
+ why:  not decided yet, and the standard doesn't say

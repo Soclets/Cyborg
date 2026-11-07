@@ -1,0 +1,6 @@
+check failed: d140_u64_overflow.cy:4:19, line 4 column 19
+ 4 |     let $b: u64 = $a + 1;
+   |                   ^^^^^^
+ what: this `+` overflows `u64`
+ why:  a plain `+` that overflows traps in `Working` (D42)
+ when: `18446744073709551615 + 1`

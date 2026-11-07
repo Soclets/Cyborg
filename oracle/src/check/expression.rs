@@ -178,13 +178,6 @@ impl Checker<'_> {
                 ));
             }
         }
-        if found == &Type::Length {
-            return Err(Report::not_designed(
-                expression.span,
-                "keeping a length, since its type isn't stated",
-                "",
-            ));
-        }
         Self::check_held_type(expression.span, target, found)?;
         Ok(node)
     }
@@ -404,7 +397,20 @@ impl Checker<'_> {
                 if matches!(held.value_type, Type::List { .. } | Type::Array { .. }) {
                     if name.text == "len" {
                         // trace: D2
-                        return Ok((simple(NodeKind::Length(Box::new(held.node))), Type::Length));
+                        // trace: D140
+                        let (Type::List { len_type, .. } | Type::Array { len_type, .. }) =
+                            held.value_type
+                        else {
+                            return Err(Report::refused(span, "this has no length", "(D140)"));
+                        };
+                        return Ok((
+                            simple(NodeKind::Length(Box::new(held.node))),
+                            Type::Integer {
+                                kind: len_type,
+                                bound: None,
+                                unit: Some("items".to_string()),
+                            },
+                        ));
                     }
                     return Err(Report::not_designed(
                         name.span,
@@ -682,7 +688,25 @@ impl Checker<'_> {
     ) -> Outcome<(Node, Type)> {
         let count = i128::try_from(items.len()).unwrap_or(i128::MAX);
         let (item_type, target) = match expected {
-            Some(target @ Type::List { item, min, max }) => {
+            Some(
+                target @ Type::List {
+                    item,
+                    min,
+                    max,
+                    len_type,
+                },
+            ) => {
+                // trace: D140
+                if !len_type.fits(count) {
+                    return Err(Report::not_designed(
+                        span,
+                        format!(
+                            "a list of `inf` with more items than its `{}` can count",
+                            len_type.word()
+                        ),
+                        "",
+                    ));
+                }
                 if min.is_some_and(|min| count < min) || max.is_some_and(|max| count > max) {
                     return Err(Report::refused(
                         span,
@@ -692,7 +716,7 @@ impl Checker<'_> {
                 }
                 ((**item).clone(), target.clone())
             }
-            Some(target @ Type::Array { item, len }) => {
+            Some(target @ Type::Array { item, len, .. }) => {
                 if count != *len {
                     return Err(Report::refused(
                         span,
@@ -744,7 +768,7 @@ impl Checker<'_> {
         span: Span,
         expected: Option<&Type>,
     ) -> Outcome<(Node, Type)> {
-        let Some(target @ Type::Array { item, len }) = expected else {
+        let Some(target @ Type::Array { item, len, .. }) = expected else {
             return Err(Report::refused(
                 span,
                 "`all` fills an array",
@@ -1460,8 +1484,15 @@ impl Checker<'_> {
         }
         // trace: D5
         let held = self.check_lent_place(receiver, crate::ast::HandWord::LendMut)?;
-        let (Some(place), Type::List { item, max, .. }) =
-            (held.place.clone(), held.value_type.clone())
+        let (
+            Some(place),
+            Type::List {
+                item,
+                max,
+                len_type,
+                ..
+            },
+        ) = (held.place.clone(), held.value_type.clone())
         else {
             return Err(Report::refused(
                 receiver.span,
@@ -1516,6 +1547,7 @@ impl Checker<'_> {
                     shown: receiver_text,
                     item: Box::new(item_node),
                     max,
+                    count_limit: len_type.range().1,
                 },
             },
             value_type: Type::Void,
@@ -1650,8 +1682,7 @@ impl Checker<'_> {
             ));
         }
         // trace: D122
-        let converts = target_type == Type::Str
-            && (found == Type::Length || matches!(found, Type::Integer { .. }));
+        let converts = target_type == Type::Str && matches!(found, Type::Integer { .. });
         if !converts {
             return Err(Report::not_designed(
                 span,
@@ -1989,13 +2020,6 @@ impl Checker<'_> {
         }
         let ((left_node, left_type), (right_node, right_type)) =
             self.check_operands(left, right, expected)?;
-        if left_type == Type::Length || right_type == Type::Length {
-            return Err(Report::not_designed(
-                span,
-                "maths on a length, since its type isn't stated",
-                "",
-            ));
-        }
         let arithmetic = match operator {
             // `and` and `or` left for `check_logic` above.
             BinaryOperator::Add
@@ -2313,38 +2337,7 @@ impl Checker<'_> {
         right_expression: &Expression,
     ) -> Outcome<()> {
         let span = left_expression.span.to(right_expression.span);
-        let is_items = |value_type: &Type| matches!(value_type, Type::Integer { unit: Some(unit), .. } if unit == "items");
         match (left, right) {
-            (Type::Length, Type::Length) => Ok(()),
-            (Type::Length, other) | (other, Type::Length) => {
-                if is_items(other) {
-                    return Ok(());
-                }
-                let literal = if *left == Type::Length {
-                    right_expression
-                } else {
-                    left_expression
-                };
-                // trace: D101
-                if matches!(other, Type::Integer { unit: None, .. })
-                    && literal_integer(literal).is_some()
-                {
-                    let shown = self.text_of(literal.span);
-                    return Err(Report::refused(
-                        literal.span,
-                        "a length is in `items`",
-                        "the language asks for units on things that have them, like lengths (D101)",
-                    )
-                    .fix(format!("{shown} items")));
-                }
-                Err(Report::not_designed(
-                    span,
-                    format!(
-                        "comparing a length with `{other}`, since a length's type isn't stated"
-                    ),
-                    "",
-                ))
-            }
             (
                 Type::Integer {
                     kind: left_kind,
@@ -2365,6 +2358,25 @@ impl Checker<'_> {
                     ));
                 }
                 if left_unit != right_unit {
+                    // trace: D101
+                    let plain_literal = match (left_unit, right_unit) {
+                        (Some(unit), None) if literal_integer(right_expression).is_some() => {
+                            Some((right_expression, unit))
+                        }
+                        (None, Some(unit)) if literal_integer(left_expression).is_some() => {
+                            Some((left_expression, unit))
+                        }
+                        _ => None,
+                    };
+                    if let Some((literal, unit)) = plain_literal {
+                        let shown = self.text_of(literal.span);
+                        return Err(Report::refused(
+                            literal.span,
+                            format!("this compares a plain number with `{unit}`"),
+                            "the compiler checks units, and a unit is required where the type asks for one (D100, D101)",
+                        )
+                        .fix(format!("{shown} {unit}")));
+                    }
                     // trace: D100
                     return Err(Report::refused(
                         span,

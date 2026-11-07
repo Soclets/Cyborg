@@ -244,13 +244,6 @@ impl Checker<'_> {
                     "12.2",
                 ));
             }
-            Type::Length => {
-                return Err(Report::not_designed(
-                    position.span,
-                    "a length as a position, since its type isn't stated",
-                    "",
-                ));
-            }
             other => {
                 return Err(Report::refused(
                     position.span,

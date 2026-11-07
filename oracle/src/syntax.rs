@@ -81,6 +81,8 @@ const CLASHING_WORDS: &[&str] = &[
     "i32",
     "i64",
     "u8",
+    "u32",
+    "u64",
     "f32",
     "f64",
 ];

@@ -1518,11 +1518,6 @@ impl Checker<'_> {
                 "",
             )),
             Type::Float { .. } => Err(Report::not_designed(span, "a range of floats", "")),
-            Type::Length => Err(Report::not_designed(
-                span,
-                "a length in a range, since its type isn't stated",
-                "",
-            )),
             other => Err(Report::refused(
                 span,
                 format!("a range is a sequence of numbers, and this is `{other}`"),
