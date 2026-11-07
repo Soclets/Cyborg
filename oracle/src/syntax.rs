@@ -1489,7 +1489,9 @@ impl Parser {
         self.expect_symbol(":")?;
         let mut members = Vec::new();
         while !self.at_word("end") {
-            members.push(self.parse_failure_entry()?);
+            let entry = self.parse_failure_entry()?;
+            Self::refuse_a_deep_family(&name, &entry.path)?;
+            members.push(entry);
             self.expect_semicolon()?;
         }
         self.expect_closer(&["fam.failure", &name.text])?;

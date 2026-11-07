@@ -1,0 +1,5 @@
+refused: d161_failure_family_one_level.cy:3:5, line 3 column 5
+ 3 |     file_failed.disk.full;
+   |     ^^^^^^^^^^^^^^^^^^^^^
+ what: `file_failed.disk.full` goes more than one level into `file_failed`
+ why:  a family is one level deep, so a family can't hold a family (D161)
