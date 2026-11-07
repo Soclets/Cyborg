@@ -123,9 +123,11 @@ for $i in range[from: 5, to: 1, step_by: -1]:
 
 A range also takes numbers in `items`, so `range[from: 1, to: $xs.len]` goes through every position.
 
-**Refused:** a range that can never reach its end, as in `range[from: 5, to: 1]`, and labels out of order.
+When the numbers are only known while running, a range that can't reach its end runs zero rounds, with no error, so an empty list just skips the loop. A step of 0 is a failure. The linter can flag a range that looks wrong.
 
-**From:** D128, D142.
+**Refused:** a literal range that can never reach its end, as in `range[from: 5, to: 1]`, and labels out of order.
+
+**From:** D128, D142, D145.
 
 ## 4.6 `while`
 

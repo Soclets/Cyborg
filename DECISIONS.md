@@ -759,6 +759,9 @@ a plain number; Claude proposed `as`; the owner asked "Why does `5` need to say 
 **D144. A label can carry a unit.** A label's narrowing can name a unit, so `$xs[offset.items: 8]` replaces D143's `offset: 8 items`, with no bare `offset:`. A plain number takes the label's unit, a value with the right unit is fine, and a value with another unit is refused, needing `as` if they convert. It works with your own units too: `labels [$x as at.screen.pixels];` is called `draw(at.screen.pixels: 5);`. The writer picks this or
 a unit behind the number when declaring a function, so each function has one way to call it. Claude proposed it, since `offset: 8 items` "reads weird"; the owner chose: "yea". (Owner, 2026-11-07)
 
+**D145. A range that can't reach its end runs zero rounds.** When its numbers are only known while running, as with `range[from: 1, to: $xs.len]` on an empty list, the body doesn't run and there's no error. A step of 0 is a failure, since it never ends. Literals that can't reach their end are still refused, as in D128. The cost is that a range written wrong by accident does nothing silently, and the linter limb can flag that. Oracle claude asked; Claude proposed it; the owner
+chose: "Yea. I mean, the linter limb could help". (Owner, 2026-11-07)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude
