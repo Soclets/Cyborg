@@ -773,6 +773,8 @@ bounds on the ranges is not settled here. (Owner, 2026-11-07)
 
 **D150. Checked `use`.** An unquoted name has to match the last word of its path, so a short name can't lie: `use std::time.seconds as seconds;` is fine, and `use std::time.seconds as minutes;` is refused. A quoted name is your own choice, and isn't checked: `use std::time.seconds as "secs";`, used afterwards as `3600 secs`. This covers every `use`, so D93's `use std::print.useful as printu;` becomes `as "printu"`. The quotes only appear on the `use` line, which is Claude's reading. The owner: "`seconds` without `""` matches the actual unit there"; Claude proposed extending it to every `use`; the owner chose: "yes". (Owner, 2026-11-07)
 
+**D151. A quoted name still has to be usable.** The quotes only skip the check against the path. `use std::println as "my say";` and `use std::println as "";` are refused, since nothing could call them, and so is a keyword like `as "fn"`, which is Claude's reading. Oracle claude asked; Claude proposed refusing them; the owner chose: "yea". (Owner, 2026-11-07)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude

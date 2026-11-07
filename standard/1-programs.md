@@ -170,9 +170,9 @@ let $a: i32.seconds = 3600 seconds;
 printu("hi");
 ```
 
-**Refused:** `use std::time.seconds as minutes;`, and `use @csup::extern.c as ext;`, because a limb is always written with its full mark and path.
+**Refused:** `use std::time.seconds as minutes;`, `use @csup::extern.c as ext;`, because a limb is always written with its full mark and path, and a quoted name nothing could use, like `"my say"`, `""` or `"fn"`.
 
-**From:** D93, D94, D150.
+**From:** D93, D94, D150, D151.
 
 ## 1.12 Comments
 
