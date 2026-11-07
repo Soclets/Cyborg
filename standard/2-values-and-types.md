@@ -116,9 +116,11 @@ std::println.stored($x);
 
 The first prints `0.1`, and the second prints every digit, with no limit: `0.1000000000000000055511151231257827021181583404541015625`.
 
+On `f64.ieee`, both print NaN and infinity as the words `NaN`, `inf` and `-inf`.
+
 `std::sin` and similar functions are correctly rounded, so they give the same bits on every machine. `std::sin.fast` is a placeholder for a version that isn't.
 
-**From:** D54, D59, D158, D159, D160, D161, D162, D163.
+**From:** D54, D59, D158, D159, D160, D161, D162, D163, D166.
 
 ## 2.7 Inexact literals: `~`
 
