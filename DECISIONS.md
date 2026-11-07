@@ -803,6 +803,8 @@ a placeholder for a version that isn't correctly rounded. A float prints as the 
 
 **D164. Floats get a bare `div`.** `7.0 div 2.0` is `3.5`, since a float has no remainder to throw away, and it rounds to the nearest float like `+`, `-` and `x` do. Integers keep no bare `div` (D48), so `7 div 2` is still refused, with a fix naming `div.trunc` and `div.floor`. Dividing by `0.0` makes infinity, which is a failure on `f64` (D158). Whether integer narrowings like `div.trunc` work on floats, and what `mod` does on them, are not settled here. Oracle claude asked; Claude proposed it; the owner asked "why?" and then chose: "yea". (Owner, 2026-11-07)
 
+**D165. Exponent literals say so.** A float literal can have an exponent, and the word goes in front of the value: `let $avogadro: f64 = exponent ~6.02214076e23;`. `exponent` is a placeholder name, and an `e` without it is refused, so a stray `e` can't quietly change a number. `~` still follows D59. It's still a plain `f64`, and it doesn't remember how it was written, so `$avogadro as str` prints plain digits however long, with no switch at any length. Printing with an exponent is left to format print, which the owner expects to exist and which isn't designed yet. Negative exponents and exponents on integers are not settled here. Claude proposed exponents and a 21-digit switch for printing, then dropping the word; the owner said "it isn't really an "exponent float", maybe it should be infront of the val?", then "the word does add `use`'s `""` level safety", and chose: "yea". (Owner, 2026-11-07)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude

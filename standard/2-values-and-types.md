@@ -129,9 +129,15 @@ let $a: f64 = 0.5;
 let $b: f64 = ~0.1;
 ```
 
-**Refused:** `let $b: f64 = 0.1;` and `let $a: f64 = ~0.5;`, each with the fix shown.
+A literal with an exponent says so in front of the value, with `exponent` as a placeholder name. It's still a plain float, and it doesn't remember how it was written, so it prints as plain digits, however long.
 
-**From:** D59.
+```
+let $avogadro: f64 = exponent ~6.02214076e23;
+```
+
+**Refused:** `let $b: f64 = 0.1;` and `let $a: f64 = ~0.5;`, each with the fix shown, and `~6.02214076e23` without `exponent`.
+
+**From:** D59, D165.
 
 ## 2.8 Decimal floats
 
