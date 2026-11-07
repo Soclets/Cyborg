@@ -1,0 +1,7 @@
+// trace: D142, D128
+fn.main [] -> void:
+    for $i in range[from: 5 items, to: 1 items]:
+        return void;
+    end for
+    return void;
+end fn.main

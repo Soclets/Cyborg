@@ -34,6 +34,67 @@ fn expression_digits(expression: &Expression) -> &str {
     }
 }
 
+/// Whether `as` is only crossing: the same data, with a `type.new` or a unit on or off. (D141)
+fn crosses(found: &Type, target: &Type) -> bool {
+    match (found, target) {
+        (Type::New { underlying, .. }, other) if **underlying == *other => true,
+        // A bounded value goes into a plain one with no check, and a `type.new` of one too. (D20)
+        (
+            Type::New { underlying, .. },
+            Type::Integer {
+                kind: to_kind,
+                bound: None,
+                unit: to_unit,
+            },
+        ) => matches!(
+            &**underlying,
+            Type::Integer { kind, unit, .. } if kind == to_kind && unit == to_unit
+        ),
+        (
+            Type::Integer {
+                kind,
+                unit,
+                bound: _,
+            },
+            Type::New { underlying, .. },
+        ) => {
+            **underlying
+                == Type::Integer {
+                    kind: *kind,
+                    bound: None,
+                    unit: unit.clone(),
+                }
+        }
+        (other, Type::New { underlying, .. }) => **underlying == *other,
+        (
+            Type::Integer {
+                kind, unit: from, ..
+            },
+            Type::Integer {
+                kind: to_kind,
+                unit: to,
+                bound: None,
+            },
+        ) => kind == to_kind && from.is_some() != to.is_some(),
+        (
+            Type::Float { kind, unit: from },
+            Type::Float {
+                kind: to_kind,
+                unit: to,
+            },
+        ) => kind == to_kind && from.is_some() != to.is_some(),
+        _ => false,
+    }
+}
+
+/// A number literal's value, with or without a unit behind it.
+pub(super) fn literal_number(expression: &Expression) -> Option<i128> {
+    match &expression.kind {
+        ExpressionKind::WithUnit { number, .. } => literal_integer(number),
+        _ => literal_integer(expression),
+    }
+}
+
 /// The value of an integer literal, written with or without its sign.
 pub(super) fn literal_integer(expression: &Expression) -> Option<i128> {
     match &expression.kind {
@@ -272,7 +333,9 @@ impl Checker<'_> {
                     .iter()
                     .try_for_each(|argument| self.refuse_if_not_constant(&argument.value))
             }
-            ExpressionKind::Hand { value: inner, .. } => self.refuse_if_not_constant(inner),
+            ExpressionKind::Hand { value: inner, .. } | ExpressionKind::As { value: inner, .. } => {
+                self.refuse_if_not_constant(inner)
+            }
             ExpressionKind::Method {
                 receiver,
                 arguments,
@@ -306,26 +369,29 @@ impl Checker<'_> {
     ) -> Outcome<(Node, Type)> {
         let span = expression.span;
         let simple = |kind: NodeKind| Node { span, kind };
-        // trace: D134
-        if matches!(expected, Some(Type::New { .. }))
-            && matches!(
-                expression.kind,
-                ExpressionKind::Integer { .. }
-                    | ExpressionKind::Float { .. }
-                    | ExpressionKind::WithUnit { .. }
-                    | ExpressionKind::Text(_)
-                    | ExpressionKind::Empty
-                    | ExpressionKind::Items(_)
-                    | ExpressionKind::All(_)
-                    | ExpressionKind::Path(_)
-                    | ExpressionKind::Build { .. }
-            )
-        {
-            return Err(Report::not_designed(
-                span,
-                "how a value gets into a `type.new`",
-                "12.1",
-            ));
+        // A literal takes its type from where it lands, and a `type.new` is one place. (D141)
+        // trace: D141
+        if let Some(target @ Type::New { underlying, .. }) = expected {
+            let is_bool = matches!(
+                &expression.kind,
+                ExpressionKind::Path(path) if path.text == "true" || path.text == "false"
+            );
+            if is_bool
+                || matches!(
+                    expression.kind,
+                    ExpressionKind::Integer { .. }
+                        | ExpressionKind::Float { .. }
+                        | ExpressionKind::WithUnit { .. }
+                        | ExpressionKind::Text(_)
+                        | ExpressionKind::Empty
+                        | ExpressionKind::Items(_)
+                        | ExpressionKind::All(_)
+                )
+            {
+                let (node, found) = self.check_expression(expression, Some(underlying))?;
+                let node = self.coerce(node, &found, underlying, expression)?;
+                return Ok((node, target.clone()));
+            }
         }
         match &expression.kind {
             ExpressionKind::Integer { .. } => {
@@ -937,7 +1003,7 @@ impl Checker<'_> {
         if matches!(self.named.get(&text), Some(Type::New { .. })) {
             return Err(Report::not_designed(
                 span,
-                "how a value gets into a `type.new`",
+                "building a `type.new` by its own name, rather than crossing with `as`",
                 "12.1",
             ));
         }
@@ -1309,6 +1375,7 @@ impl Checker<'_> {
             word: ParameterWord::Bare,
             parameter_type: Type::Str,
             default: None,
+            label_has_unit: false,
         };
         let mut handed: Vec<HandedOff> = Vec::new();
         let mut nodes = Vec::new();
@@ -1506,6 +1573,7 @@ impl Checker<'_> {
             word: ParameterWord::Given,
             parameter_type: (*item).clone(),
             default: None,
+            label_has_unit: false,
         }];
         let bound = self.bind_arguments(&parameters, false, arguments, span, "append")?;
         let mut handed = vec![HandedOff {
@@ -1673,7 +1741,36 @@ impl Checker<'_> {
             ));
         }
         let target_type = self.resolve_type(target)?;
-        let (node, found) = self.check_expression(value, None)?;
+        // A literal takes its type from where it lands, even here. (D141)
+        let (node, found) = if is_number_literal(value) {
+            self.check_expression(value, Some(&target_type))?
+        } else {
+            self.check_expression(value, None)?
+        };
+        // trace: D141
+        if crosses(&found, &target_type) {
+            if !found.is_always_copied() && root_variable(value).is_some() {
+                return Err(Report::not_designed(
+                    value.span,
+                    format!("crossing a whole `{found}` that lives in a variable, and what happens to the original"),
+                    "",
+                ));
+            }
+            return Ok(RawCall {
+                node,
+                value_type: target_type,
+                failures: Vec::new(),
+                unnamed: None,
+            });
+        }
+        // trace: D83
+        if self.context.in_constant > 0 {
+            return Err(Report::refused(
+                span,
+                "this `as` isn't known at compile time",
+                "a `const`'s value must be fully known at compile time (D83, D91)",
+            ));
+        }
         if self.is_pure() {
             return Err(Report::not_designed(
                 span,
@@ -2159,11 +2256,7 @@ impl Checker<'_> {
             // trace: D134
             (Type::New { .. }, _) | (_, Type::New { .. }) => {
                 if left == right || is_number_literal(right_expression) {
-                    return Err(Report::not_designed(
-                        span,
-                        "maths on a `type.new`, and how a value gets in and out of one",
-                        "12.1",
-                    ));
+                    return Err(Report::not_designed(span, "maths on a `type.new`", "12.1"));
                 }
                 Err(Self::mismatch(span, left, right))
             }
@@ -2425,7 +2518,7 @@ impl Checker<'_> {
                 Err(Self::mismatch(span, left, right))
             }
             (Type::New { .. }, _) | (_, Type::New { .. }) if left != right => Err(
-                Report::not_designed(span, "how a value gets into a `type.new`", "12.1"),
+                Report::not_designed(span, "comparing a `type.new` with a literal", "12.1"),
             ),
             (left_type, right_type) if left_type == right_type => Err(Report::not_designed(
                 span,

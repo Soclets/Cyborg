@@ -1,0 +1,5 @@
+refused: d141_literal_has_to_fit.cy:5:23, line 5 column 23
+ 5 |     let $u: user_id = "x";
+   |                       ^^^
+ what: this is `str`, where `i64` is needed
+ why:  `:` doesn't convert, and `as` builds a new value of another type (D7)

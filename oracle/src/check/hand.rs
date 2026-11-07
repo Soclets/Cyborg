@@ -201,7 +201,7 @@ impl Checker<'_> {
             Type::New { .. } => {
                 return Err(Report::not_designed(
                     span,
-                    "getting an item from a `type.new`, and how a value gets out of one",
+                    "getting an item from a `type.new`, rather than crossing with `as` first",
                     "12.1",
                 ));
             }
@@ -235,20 +235,26 @@ impl Checker<'_> {
             position,
             Some(&Type::plain_integer(crate::types::IntegerKind::I32)),
         )?;
-        match position_type {
+        match &position_type {
             Type::Integer { unit: None, .. } => {}
-            Type::Integer { .. } => {
-                return Err(Report::not_designed(
+            // trace: D142
+            Type::Integer {
+                unit: Some(unit), ..
+            } if unit == "items" => {}
+            Type::Integer {
+                unit: Some(unit), ..
+            } => {
+                return Err(Report::refused(
                     position.span,
-                    "whether `pos:` takes a unit",
-                    "12.2",
+                    format!("a position is plain or in `items`, and this is in `{unit}`"),
+                    "`pos:` and `offset.items:` take a plain number or one in `items` (D142, D144)",
                 ));
             }
             other => {
                 return Err(Report::refused(
                     position.span,
                     format!("a position is a whole number, and this is `{other}`"),
-                    "`pos:` counts from 1, and `offset:` counts from 0 (D133)",
+                    "`pos:` counts from 1, and `offset.items:` counts from 0 (D133, D144)",
                 ));
             }
         }
@@ -368,7 +374,7 @@ impl Checker<'_> {
                 }),
             Type::New { .. } => Err(Report::not_designed(
                 name.span,
-                "a field of a `type.new`, and how a value gets out of one",
+                "a field of a `type.new`, rather than crossing with `as` first",
                 "12.1",
             )),
             other => Err(Report::refused(
@@ -725,6 +731,9 @@ impl Checker<'_> {
         handed: &mut Vec<HandedOff>,
     ) -> Outcome<ir::Argument> {
         let target = &parameter.parameter_type;
+        if parameter.label_has_unit {
+            return self.check_argument_for_unit_label(value, parameter);
+        }
         if target.is_always_copied() {
             // trace: D2
             if let ExpressionKind::Hand { value: inner, .. } = &value.kind {
@@ -809,6 +818,62 @@ impl Checker<'_> {
         let (node, found) = self.check_expression(value, Some(target))?;
         Ok(ir::Argument::Value(
             self.coerce(node, &found, target, value)?,
+        ))
+    }
+
+    /// `at.screen.pixels: 5`: a plain number takes the label's unit, a value with the right unit is
+    /// fine, and a value with another is refused. (D144)
+    /// trace: D144
+    fn check_argument_for_unit_label(
+        &mut self,
+        value: &Expression,
+        parameter: &ParameterInfo,
+    ) -> Outcome<ir::Argument> {
+        let target = &parameter.parameter_type;
+        if let ExpressionKind::Hand { value: inner, .. } = &value.kind {
+            return Err(Self::word_on_a_copied_value(
+                value,
+                self.text_of(inner.span),
+                target,
+            ));
+        }
+        let (node, found) = self.check_expression(value, Some(target))?;
+        let with_unit = match (&found, target) {
+            (
+                Type::Integer {
+                    kind,
+                    bound,
+                    unit: None,
+                },
+                Type::Integer { unit, .. },
+            ) => Type::Integer {
+                kind: *kind,
+                bound: *bound,
+                unit: unit.clone(),
+            },
+            (Type::Float { kind, unit: None }, Type::Float { unit, .. }) => Type::Float {
+                kind: *kind,
+                unit: unit.clone(),
+            },
+            (other, _) => other.clone(),
+        };
+        let found_unit = match &with_unit {
+            Type::Integer { unit, .. } | Type::Float { unit, .. } => unit.clone(),
+            _ => None,
+        };
+        let target_unit = match target {
+            Type::Integer { unit, .. } | Type::Float { unit, .. } => unit.clone(),
+            _ => None,
+        };
+        if found_unit.is_some() && found_unit != target_unit {
+            return Err(Report::refused(
+                value.span,
+                format!("this is `{found}`, and the label asks for `{target}`"),
+                "a label's unit takes a plain number or that unit, and a value in another is refused (D144)",
+            ));
+        }
+        Ok(ir::Argument::Value(
+            self.coerce(node, &with_unit, target, value)?,
         ))
     }
 

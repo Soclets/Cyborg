@@ -20,7 +20,7 @@ fn.main [] -> void:
     show(Lend $a[pos: 1]);
     let $k: str = keep(Copy $a[pos: 2]);
     show(Lend $k);
-    replace(Lend.mut $a[offset: 0]);
+    replace(Lend.mut $a[offset.items: 0]);
     show(Lend $a[pos: 1]);
     let $c: str = Copy $a[pos: 2];
     show(Lend $c);

@@ -1,5 +1,5 @@
 NotDesignedYet: d134_field_of_a_new_type.cy:9:15, line 9 column 15
  9 |     return $w.celsius;
    |               ^^^^^^^
- what: a field of a `type.new`, and how a value gets out of one
+ what: a field of a `type.new`, rather than crossing with `as` first
  why:  not decided yet (standard 12.1)

@@ -1,0 +1,5 @@
+refused: d144_label_value_in_another_unit.cy:14:28, line 14 column 28
+14 |     draw(at.screen.pixels: 5 screen.points);
+   |                            ^^^^^^^^^^^^^^^
+ what: this is `i32.screen.points`, and the label asks for `i32.screen.pixels`
+ why:  a label's unit takes a plain number or that unit, and a value in another is refused (D144)

@@ -1,5 +1,0 @@
-NotDesignedYet: d133_position_with_a_unit.cy:7:27, line 7 column 27
- 7 |     let $n: i32 = $a[pos: 1 items];
-   |                           ^^^^^^^
- what: whether `pos:` takes a unit
- why:  not decided yet (standard 12.2)

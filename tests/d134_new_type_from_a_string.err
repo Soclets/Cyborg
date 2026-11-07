@@ -1,5 +1,0 @@
-NotDesignedYet: d134_new_type_from_a_string.cy:5:21, line 5 column 21
- 5 |     let $l: label = "x";
-   |                     ^^^
- what: how a value gets into a `type.new`
- why:  not decided yet (standard 12.1)

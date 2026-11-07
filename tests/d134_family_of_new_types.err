@@ -1,5 +1,0 @@
-NotDesignedYet: d134_family_of_new_types.cy:12:24, line 12 column 24
-12 |     let $u: ids.user = 1;
-   |                        ^
- what: how a value gets into a `type.new`
- why:  not decided yet (standard 12.1)

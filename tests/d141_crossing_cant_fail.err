@@ -1,0 +1,5 @@
+NotDesignedYet: d141_crossing_cant_fail.cy:7:23, line 7 column 23
+ 7 |     let $u: user_id = $n as user_id ?? 3;
+   |                       ^^^^^^^^^^^^^^^^^^
+ what: `??` on a call that can't fail
+ why:  not decided yet, and the standard doesn't say

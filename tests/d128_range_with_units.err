@@ -1,5 +1,5 @@
 NotDesignedYet: d128_range_with_units.cy:7:27, line 7 column 27
  7 |     for $i in range[from: 1 time.seconds, to: 5 time.seconds]:
    |                           ^^^^^^^^^^^^^^
- what: a range of numbers with a unit
+ what: a range of numbers with a unit other than `items`
  why:  not decided yet, and the standard doesn't say

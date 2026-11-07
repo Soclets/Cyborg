@@ -42,6 +42,8 @@ struct ParameterInfo {
     word: ParameterWord,
     parameter_type: Type,
     default: Option<crate::ast::Expression>,
+    /// The label says a unit, as in `at.screen.pixels`, so a plain number takes it. (D144)
+    label_has_unit: bool,
 }
 
 #[derive(Clone, Debug)]
@@ -867,6 +869,7 @@ impl Checker<'_> {
                     word: parameter.word,
                     parameter_type,
                     default: None,
+                    label_has_unit: false,
                 });
             }
             let mut any_order = false;
@@ -883,6 +886,28 @@ impl Checker<'_> {
                             "a label is declared for a parameter (D114)",
                         ));
                     };
+                    // trace: D144
+                    if let Some((_, unit_text)) = label.text.split_once('.') {
+                        let unit = self.resolve_unit(&Path {
+                            text: unit_text.to_string(),
+                            span: label.span,
+                        })?;
+                        let parameter_unit = match &info.parameter_type {
+                            Type::Integer { unit, .. } | Type::Float { unit, .. } => unit.as_ref(),
+                            _ => None,
+                        };
+                        if parameter_unit != Some(&unit) {
+                            return Err(Report::refused(
+                                label.span,
+                                format!(
+                                    "this label says `{unit}`, and `${}` is `{}`",
+                                    info.name, info.parameter_type
+                                ),
+                                "a label can carry the unit its parameter has (D144)",
+                            ));
+                        }
+                        info.label_has_unit = true;
+                    }
                     info.label = Some(label.text.clone());
                 }
             }

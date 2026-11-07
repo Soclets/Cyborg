@@ -2,7 +2,7 @@
 
 use std::collections::HashMap;
 
-use super::expression::literal_integer;
+use super::expression::{is_number_literal, literal_number};
 use super::hand::UseKind;
 use super::{
     ArmInfo, Checker, Failure, FunctionContext, LoopInfo, Origin, Variable, VariableState,
@@ -99,7 +99,7 @@ impl Checker<'_> {
                 .iter()
                 .find(|info| info.name == parameter.text)
             {
-                self.check_into(value, &info.parameter_type)?;
+                self.check_argument(value, info, &mut Vec::new())?;
             }
         }
         let (body, terminated) = self.check_block(&function.body)?;
@@ -1434,7 +1434,7 @@ impl Checker<'_> {
             Type::New { .. } => {
                 return Err(Report::not_designed(
                     collection.span,
-                    "going through a `type.new`, and how a value gets out of one",
+                    "going through a `type.new`, rather than crossing with `as` first",
                     "12.1",
                 ));
             }
@@ -1482,16 +1482,32 @@ impl Checker<'_> {
                 super::WHY_TYPES,
             ));
         }
+        // trace: D142
+        let (from_items, end_items) = (is_in_items(&from_type), is_in_items(&end_type));
+        let plain_variable = if from_items && !end_items && !is_number_literal(end) {
+            Some(end)
+        } else if end_items && !from_items && !is_number_literal(from) {
+            Some(from)
+        } else {
+            None
+        };
+        if let Some(plain) = plain_variable {
+            return Err(Report::not_designed(
+                plain.span,
+                "a range mixing a plain variable with a number in `items`",
+                "",
+            ));
+        }
         let step_node = match &range.step {
             Some(step) => Some(self.check_range_step(step, kind)?),
             None => None,
         };
         let step_value = match &range.step {
-            Some(step) => literal_integer(step),
+            Some(step) => literal_number(step),
             None => Some(1),
         };
         if let (Some(start), Some(stop), Some(by)) =
-            (literal_integer(from), literal_integer(end), step_value)
+            (literal_number(from), literal_number(end), step_value)
         {
             if by == 0 || (by > 0 && start > stop) || (by < 0 && start < stop) {
                 return Err(Report::refused(
@@ -1501,9 +1517,15 @@ impl Checker<'_> {
                 ));
             }
         }
+        // A literal takes its type from where it lands, so one in `items` makes them all so.
+        let unit = (from_items || end_items).then(|| "items".to_string());
         Ok((
             (from_node, end_node, range.end.included, step_node),
-            Type::plain_integer(kind),
+            Type::Integer {
+                kind,
+                bound: None,
+                unit,
+            },
         ))
     }
 
@@ -1512,9 +1534,15 @@ impl Checker<'_> {
             Type::Integer {
                 kind, unit: None, ..
             } => Ok(*kind),
+            // trace: D142
+            Type::Integer {
+                kind,
+                unit: Some(unit),
+                ..
+            } if unit == "items" => Ok(*kind),
             Type::Integer { .. } => Err(Report::not_designed(
                 span,
-                "a range of numbers with a unit",
+                "a range of numbers with a unit other than `items`",
                 "",
             )),
             Type::Float { .. } => Err(Report::not_designed(span, "a range of floats", "")),
@@ -1531,7 +1559,7 @@ impl Checker<'_> {
         step: &Expression,
         kind: crate::types::IntegerKind,
     ) -> Outcome<Node> {
-        if let Some(value) = literal_integer(step) {
+        if let Some(value) = literal_number(step) {
             // A count down over a `u8` needs a step its own type can't hold.
             if !kind.fits(value) {
                 return Err(Report::not_designed(
@@ -2046,6 +2074,10 @@ impl Checker<'_> {
         }
         Ok(())
     }
+}
+
+fn is_in_items(found: &Type) -> bool {
+    matches!(found, Type::Integer { unit: Some(unit), .. } if unit == "items")
 }
 
 /// A loop's name that clashes is written with `my::` wherever it's used. (D75)

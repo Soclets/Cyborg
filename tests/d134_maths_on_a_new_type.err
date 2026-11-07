@@ -1,5 +1,5 @@
 NotDesignedYet: d134_maths_on_a_new_type.cy:5:23, line 5 column 23
  5 |     let $v: user_id = $u + $u;
    |                       ^^^^^^^
- what: maths on a `type.new`, and how a value gets in and out of one
+ what: maths on a `type.new`
  why:  not decided yet (standard 12.1)

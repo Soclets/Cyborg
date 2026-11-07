@@ -77,7 +77,7 @@ fn item_index(number: i128, count: usize, position: &Position) -> Result<usize, 
         .filter(|index| *index < count)
         .ok_or_else(|| {
             let word = if position.counts_from_zero {
-                "offset"
+                "offset.items"
             } else {
                 "pos"
             };

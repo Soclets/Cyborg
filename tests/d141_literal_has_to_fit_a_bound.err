@@ -1,0 +1,5 @@
+refused: d141_literal_has_to_fit_a_bound.cy:5:23, line 5 column 23
+ 5 |     let $p: percent = 150;
+   |                       ^^^
+ what: `150` doesn't fit `i32[min: 0, max: 100]`
+ why:  a literal that can't fit is a compile error (D20)

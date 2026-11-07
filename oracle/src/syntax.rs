@@ -1142,7 +1142,12 @@ impl Parser {
             if !self.eat_word("as") {
                 return Err(self.expected("`as`"));
             }
-            let label = self.expect_name("the label")?;
+            // trace: D144
+            let label = self.parse_path()?;
+            let label = Name {
+                text: label.text,
+                span: label.span,
+            };
             entries.push((parameter, label));
             if !self.eat_symbol(",") {
                 break;
@@ -2814,7 +2819,7 @@ impl Parser {
     /// `$xs[pos: 1]` and `$xs[offset: 0]`. The word says which you mean. (D133)
     /// trace: D133
     fn parse_position(&mut self, base: Expression) -> Outcome<Expression> {
-        const WHY: &str = "`pos:` counts from 1, and `offset:` counts from 0, so the word says which you mean (D133)";
+        const WHY: &str = "`pos:` counts from 1, and `offset.items:` counts from 0, so the word says which you mean (D133, D144)";
         let open = self.advance().span; // `[`
         let word = if let Lexeme::Word(word) = &self.peek().lexeme {
             word.clone()
@@ -2824,19 +2829,62 @@ impl Parser {
         if word != "pos" && word != "offset" {
             return Err(Report::refused(
                 open,
-                "getting an item says `pos:` or `offset:`",
+                "getting an item says `pos:` or `offset.items:`",
                 WHY,
             ));
         }
-        self.advance();
+        let word_span = self.advance().span;
+        if self.at_symbol(".") {
+            let unit = self.parse_label_unit()?;
+            if word == "offset" && unit.text == "items" {
+                // trace: D144
+                return self.parse_position_value(base, true);
+            }
+            if word == "offset" {
+                return Err(Report::refused(
+                    word_span.to(unit.span),
+                    format!("an offset counts `items`, not `{}`", unit.text),
+                    "a label's unit takes a plain number or that unit, and a value in another is refused (D144)",
+                )
+                .fix("offset.items"));
+            }
+            return Err(Report::not_designed(
+                word_span.to(unit.span),
+                format!("`pos.{}:`", unit.text),
+                "",
+            ));
+        }
+        // trace: D144
+        if word == "offset" {
+            return Err(Report::refused(
+                word_span,
+                "an offset says its unit in the label",
+                "an offset could read as bytes, so there's no bare `offset:` (D143, D144)",
+            )
+            .fix("offset.items"));
+        }
         if self.at_symbol("=") {
             return Err(Report::refused(
                 self.span(),
-                "`pos:` and `offset:` are labels",
+                "`pos:` and `offset.items:` are labels",
                 "a label names a value inside brackets (D13)",
             )
             .fix(":"));
         }
+        self.parse_position_value(base, false)
+    }
+
+    /// What follows `.` in a label, as a unit's path.
+    fn parse_label_unit(&mut self) -> Outcome<Path> {
+        self.advance(); // `.`
+        self.parse_path()
+    }
+
+    fn parse_position_value(
+        &mut self,
+        base: Expression,
+        counts_from_zero: bool,
+    ) -> Outcome<Expression> {
         self.expect_symbol(":")?;
         let position = self.parse_expression()?;
         let close = self.expect_symbol("]")?;
@@ -2845,7 +2893,7 @@ impl Parser {
             kind: ExpressionKind::Item {
                 base: Box::new(base),
                 position: Box::new(position),
-                counts_from_zero: word == "offset",
+                counts_from_zero,
             },
         })
     }
@@ -2893,14 +2941,33 @@ impl Parser {
         })
     }
 
+    /// Whether a label comes next, which can have a unit in it, as in `at.screen.pixels: 5`.
+    fn label_is_ahead(&self) -> bool {
+        let mut offset = 0;
+        if !matches!(self.peek_at(offset).lexeme, Lexeme::Word(_)) {
+            return false;
+        }
+        offset += 1;
+        while self.symbol_at(offset, ".") || self.symbol_at(offset, "::") {
+            if !matches!(self.peek_at(offset + 1).lexeme, Lexeme::Word(_)) {
+                return false;
+            }
+            offset += 2;
+        }
+        self.symbol_at(offset, ":")
+    }
+
     fn parse_arguments(&mut self) -> Outcome<(Vec<Argument>, Span)> {
         self.expect_symbol("(")?;
         let mut arguments = Vec::new();
         while !self.at_symbol(")") {
-            let label = if matches!(self.peek().lexeme, Lexeme::Word(_)) && self.symbol_at(1, ":") {
-                let name = self.expect_name("a label")?;
-                self.advance();
-                Some(name)
+            let label = if self.label_is_ahead() {
+                let label = self.parse_path()?;
+                self.advance(); // `:`
+                Some(Name {
+                    text: label.text,
+                    span: label.span,
+                })
             } else {
                 None
             };

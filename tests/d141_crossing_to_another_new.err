@@ -1,0 +1,5 @@
+NotDesignedYet: d141_crossing_to_another_new.cy:7:24, line 7 column 24
+ 7 |     let $o: order_id = $u as order_id;
+   |                        ^^^^^^^^^^^^^^
+ what: converting `user_id` to `order_id` with `as`
+ why:  not decided yet (standard 12.3)

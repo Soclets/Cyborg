@@ -1,0 +1,5 @@
+NotDesignedYet: d141_crossing_into_a_bound.cy:7:23, line 7 column 23
+ 7 |     let $p: percent = $n as percent;
+   |                       ^^^^^^^^^^^^^
+ what: converting `i32` to `percent` with `as`
+ why:  not decided yet (standard 12.3)

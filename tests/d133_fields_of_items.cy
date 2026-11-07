@@ -18,7 +18,7 @@ fn.main [] -> void:
     let mut $b: bag = bag[boxes = [box[n = 1], box[n = 2]]];
     std::println($b.boxes[pos: 2].n as str);
     change $b.boxes[pos: 1].n = 5;
-    std::println($b.boxes[offset: 0].n as str);
+    std::println($b.boxes[offset.items: 0].n as str);
     $b.boxes[pos: 1].%bump();
     std::println($b.boxes[pos: 1].n as str);
     change $b.boxes[pos: 2] = box[n = 9];

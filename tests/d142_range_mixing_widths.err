@@ -1,0 +1,5 @@
+refused: d142_range_mixing_widths.cy:7:15, line 7 column 15
+ 7 |     for $i in range[from: $n, to: $xs.len]:
+   |               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ what: this range mixes `i32` and `u64.items`
+ why:  `:` doesn't convert, and `as` builds a new value of another type (D7)

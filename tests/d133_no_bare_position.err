@@ -1,5 +1,5 @@
 refused: d133_no_bare_position.cy:6:21, line 6 column 21
  6 |     let $n: i32 = $a[1];
    |                     ^
- what: getting an item says `pos:` or `offset:`
- why:  `pos:` counts from 1, and `offset:` counts from 0, so the word says which you mean (D133)
+ what: getting an item says `pos:` or `offset.items:`
+ why:  `pos:` counts from 1, and `offset.items:` counts from 0, so the word says which you mean (D133, D144)
