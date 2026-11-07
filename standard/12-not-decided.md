@@ -48,6 +48,7 @@ Waiting on the owner, most needed first. Each is `NotDesignedYet` unless it says
 - **Arms, readings.** An arm that can run off its end where a value's needed is refused. A bare value as an arm's last line is refused, with `fix: instead …`. `instead` on a call giving nothing back is refused. `*` on a handler with only `instead` is refused. What an arm gives away is only maybe gone afterwards. A failure's `$f` reads data only, and non-numbers need a word: `instead Copy $x.label;`.
 - **Lengths and units (the gap felt most).** `$a.len - 1 items` going below zero, since `-`'s overflow isn't stated, and `$a.len x 2`. An `inf` list outgrowing its `len.type`, like the 256th `append` with `len.type: u8`.
 - **`len.type`, readings.** It takes any integer in the list, including `i32`, and goes only on the collection. Lists differing only in `len.type` are different types.
+- **Bounds on a range.** The owner's idea of writing bounds on a range itself. Its meaning and spelling aren't settled.
 - **Dead variables.** Whether `eat(Give $s); change $s = "b";` is allowed. It's refused today.
 - **Names.** Declaring a name already in scope, or hiding an outer one.
 - **`ensures` on a `fail` path.** Checked only on `return` today, which is a guess.

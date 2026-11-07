@@ -764,6 +764,9 @@ chose: "Yea. I mean, the linter limb could help". (Owner, 2026-11-07)
 
 **D146. `step_by:` takes any integer.** A literal, or any signed or unsigned integer, and it doesn't have to match the range's type, so `range[from: $xs.len, to: 1, step_by: -1]` works, and `$i` keeps the range's type. Oracle claude asked; Claude proposed it; the owner asked "Should they choose?", and Claude said there's nothing to choose, since a step isn't stored; the owner chose: "yea". (Owner, 2026-11-07)
 
+**D147. A loop knows its range.** Inside a `for` over a range, the compiler knows the value is within that range, and skips any check it can already see will pass, as with `$xs[pos: $i]` in `range[from: 1, to: $xs.len]`. It needs no new syntax. If the loop could make that untrue, such as by removing an item, the check stays. The owner asked "What about bounds on loop ranges?"; Claude proposed this; the owner chose: "Ah, yeah". The owner's own idea of putting
+bounds on the ranges is not settled here. (Owner, 2026-11-07)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude

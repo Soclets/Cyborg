@@ -129,7 +129,9 @@ When the numbers are only known while running, a range that can't reach its end 
 
 **Refused:** a literal range that can never reach its end, as in `range[from: 5, to: 1]`, and labels out of order.
 
-**From:** D128, D142, D145, D146.
+Inside the loop, the compiler knows the value is within its range, and skips any check it can see will pass, such as `$xs[pos: $i]` when going up to `$xs.len`. If the loop could make that untrue, the check stays.
+
+**From:** D128, D142, D145, D146, D147.
 
 ## 4.6 `while`
 
