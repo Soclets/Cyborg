@@ -71,7 +71,7 @@ Waiting on the owner, most needed first. Each is `NotDesignedYet` unless it says
 - On floats: whether `div.trunc` and the other integer narrowings work, and what `mod` does.
 - Negative exponents, as in `exponent ~1.5e-3`, and exponents on integers.
 - Format print, including how a float asks to print with an exponent. D165 expects it to exist, and nothing else about it is decided.
-- How NaN compares on `f64.ieee`, and how to check a float's sign.
+- How to check a float's sign.
 - Raw pointers' spelling, though D38 puts them in shields.
 - Function types: `-> i32` no longer shows failures, so a function's type needs some way to include them.
 - How a type's writer defines label narrowings like `len.max`.
