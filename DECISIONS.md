@@ -775,6 +775,8 @@ bounds on the ranges is not settled here. (Owner, 2026-11-07)
 
 **D151. A quoted name still has to be usable.** The quotes only skip the check against the path. `use std::println as "my say";` and `use std::println as "";` are refused, since nothing could call them, and so is a keyword like `as "fn"`, which is Claude's reading. Oracle claude asked; Claude proposed refusing them; the owner chose: "yea". (Owner, 2026-11-07)
 
+**D152. What Cyborg is for.** A general systems language with a very safe syntax, on the safer side, at around top performance, where safety wins if performance drops a little, and with good C++ support. It won't seek a real certification. This sharpens D27. The owner: "what I wanted was just a hella safe syntax, a general sys lang that's on the safer side, on around the top perf (safety wins if perf drops a little, even though I know some AIs won't note the important nuance), and good C++ support (for obvious reasons), and I wouldn't go for a real cert". Whether D31's "no deep C++" still holds, and whether the pitch in D136 still fits, are not settled here. (Owner, 2026-11-07)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude
