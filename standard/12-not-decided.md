@@ -34,7 +34,7 @@ Waiting on the owner, most needed first. Each is `NotDesignedYet` unless it says
 - **`finish`.** Whether a value can be used after `finish`. `finish` on no duty, a lent value and a fresh value is refused today, and it's allowed on a local you made, which are readings. Its two other refusals can't be reached yet: one needs modules, and one needs a `must_Give` in a field.
 - **Methods.** On a type you didn't declare, like `fn i32.%double`, or a list. Calling one by its full name, `box.%read(Lend $b)`. `$b.%add(by: $b.n)`, reading the receiver in an argument while it's lent with `Lend.mut`, which people will write a lot, and Rust calls two-phase borrows. `Lent.mut` on a fresh value.
 - **`??` and `otherwise`.** `read() ?? -$x` is refused and asks for `( )`, and `read() ?? 1 as str` is refused too, so should a `??` count as a single value? `otherwise` has no level in 3.9, so `$a + read() otherwise:` isn't decided.
-- **Positions.** `$a[pos: 0]` and `$a[pos: 9]` on an array of 3 are `check failed:` today, but D20 refuses a literal that can't fit a bound, so maybe they should be refused too. Two items lent at once, like a swap, and changing one item while a `for` goes through another. `Give $a[pos: 1]`, and taking something out of a list. Whether `pos:` takes `$a.len`'s type, now that D140 has settled it. `change $xs[pos: 1] = grow(Lend.mut $xs);`. Handing something off inside a position.
+- **Positions.** `$a[pos: 0]` and `$a[pos: 9]` on an array of 3 are `check failed:` today, but D20 refuses a literal that can't fit a bound, so maybe they should be refused too. Two items lent at once, like a swap, and changing one item while a `for` goes through another. `Give $a[pos: 1]`, and taking something out of a list. `change $xs[pos: 1] = grow(Lend.mut $xs);`. Handing something off inside a position.
 - **`type.new`.** Whether maths and `==` work between two of the same one.
 - **Type names, readings.** `type.alias int.signed.32_bit = i32;` works, with dots in the name. An alias works everywhere its target does, including cases. A `type.new` over a number takes no word, over a struct needs one, and over a `must_Give` carries the duty.
 - **Type names, smaller.** A method on an alias or a family's type. A narrowing or bounds on a name. `type.…` inside a function. A `type.new` holding itself through a list. An alias named like a struct. Declaring a name twice.
@@ -42,7 +42,7 @@ Waiting on the owner, most needed first. Each is `NotDesignedYet` unless it says
 - **`Copy`'s depth.** Whether copying a struct holding a list copies the list too. Other languages disagree on this.
 - **Reading a case (D139).** Whether `case status.failed: … $s.code` with no name is still allowed. Whether `$f` is a read-only view, as it is today, or a copy. `if $s: status.failed $f:`. `instead` inside a loop inside its arm.
 - **Arms, readings.** An arm that can run off its end where a value's needed is refused. A bare value as an arm's last line is refused, with `fix: instead …`. `instead` on a call giving nothing back is refused. `*` on a handler with only `instead` is refused. What an arm gives away is only maybe gone afterwards. A failure's `$f` reads data only, and non-numbers need a word: `instead Copy $x.label;`.
-- **Lengths and units (the gap felt most).** `$a[pos: $a.len]` and `range[from: 1, to: $a.len]` don't work, because `pos:` and ranges take no unit. `$a.len - 1 items` going below zero, since `-`'s overflow isn't stated, and `$a.len x 2`. An `inf` list outgrowing its `len.type`, like the 256th `append` with `len.type: u8`.
+- **Lengths and units (the gap felt most).** `$a.len - 1 items` going below zero, since `-`'s overflow isn't stated, and `$a.len x 2`. An `inf` list outgrowing its `len.type`, like the 256th `append` with `len.type: u8`.
 - **`len.type`, readings.** It takes any integer in the list, including `i32`, and goes only on the collection. Lists differing only in `len.type` are different types.
 - **Dead variables.** Whether `eat(Give $s); change $s = "b";` is allowed. It's refused today.
 - **Names.** Declaring a name already in scope, or hiding an outer one.
@@ -65,7 +65,7 @@ Waiting on the owner, most needed first. Each is `NotDesignedYet` unless it says
 - Function types: `-> i32` no longer shows failures, so a function's type needs some way to include them.
 - How a type's writer defines label narrowings like `len.max`.
 - An uninitialized array, like Zig's `= undefined`. Claude suggested only inside a shield, if at all.
-- Whether a bad position can be handled, rather than trapping, and whether `pos:` takes a unit.
+- Whether a bad position can be handled, rather than trapping.
 - `str` narrowings other than `str.utf16`, and how string literals work.
 - The full print (D98): how `std` spells the stream, the buffer and flushing.
 - The test on a value already known to be that type, like `if $n: bool:` on a `bool`. Claude suggested refusing it.

@@ -752,6 +752,8 @@ suggested `u64.items` plus narrowings on each read; the owner asked "Why not uns
 **D141. `as` crosses, and literals don't need it.** A literal takes its type from where it lands: `let $u: user_id = 5;`, and `let $t: u64.items = 5 items;`. A value that already has a type crosses with `as`: `$n as user_id` and `$u as i64` for a `type.new`, and `$xs.len as u64` to take a unit off. This can't fail, as it's the same data. Oracle claude said `type.new` couldn't produce a value, and a length couldn't become
 a plain number; Claude proposed `as`; the owner asked "Why does `5` need to say `as`?", and Claude agreed; the owner chose: "yea". (Owner, 2026-11-07)
 
+**D142. Positions take a length.** `pos:` and `offset:` accept a number in `items` or a plain one, so `$xs[pos: $xs.len]` gets the last item, and `$xs[pos: 3]` still works. Ranges do the same: `range[from: 1, to: $xs.len]`. Claude proposed it; the owner answered: "Why not?", which Claude reads as a yes. (Owner, 2026-11-07)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude

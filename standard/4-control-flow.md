@@ -121,9 +121,11 @@ for $i in range[from: 0, to: 10, step_by: 2]:
 for $i in range[from: 5, to: 1, step_by: -1]:
 ```
 
+A range also takes numbers in `items`, so `range[from: 1, to: $xs.len]` goes through every position.
+
 **Refused:** a range that can never reach its end, as in `range[from: 5, to: 1]`, and labels out of order.
 
-**From:** D128.
+**From:** D128, D142.
 
 ## 4.6 `while`
 

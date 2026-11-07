@@ -272,7 +272,9 @@ change $xs[pos: 3] = 10;
 
 A bad position is a bounds check ([10.4](10-build-modes.md#104-what-happens-when-something-goes-wrong)). Changing an item needs what changing a field needs ([7.3](7-structs-and-unions.md#73-reading-a-field)).
 
-**From:** D26, D125, D133.
+A position takes a number in `items` or a plain one, so `$xs[pos: $xs.len]` gets the last item.
+
+**From:** D26, D125, D133, D142.
 
 ## 2.18 Naming a type
 
