@@ -1,5 +1,0 @@
-NotDesignedYet: d142_counting_down_a_length.cy:7:52, line 7 column 52
- 7 |     for $i in range[from: $xs.len, to: 1, step_by: -1]:
-   |                                                    ^^
- what: a `step_by:` of -1 on a range of `u64`
- why:  not decided yet, and the standard doesn't say

@@ -574,16 +574,20 @@ impl<'c> Runner<'c> {
             Some(node) => self.range_number(node, frame)?,
             None => 1,
         };
-        // The checker refuses this when it can see the numbers. When only running shows them,
-        // nothing says whether it runs zero times or stops the program.
-        if by == 0 || (by > 0 && current > last) || (by < 0 && current < last) {
+        // A compiler skips position checks the range already proves. The oracle stays plain and runs
+        // them, and they pass, so the two look the same from outside.
+        // trace: D147
+        // A range that can't reach its end runs zero rounds, which the loop below does on its own.
+        // A step of 0 would never finish, so that's a failure, and `for` has nothing to handle it.
+        // trace: D145
+        if by == 0 {
             return Err(Stop::Report(
-                Report::not_designed(
-                    from.span.to(end.span),
-                    "a range that turns out while running never to reach its end",
-                    "",
+                Report::check_failed(
+                    step.as_ref().map_or(from.span, |node| node.span),
+                    "`step_by:` is 0, and nothing handled it",
+                    "a step of 0 is a failure, since it never ends (D145, D96)",
                 )
-                .when(format!("from {current}, ending at {last}, by {by}")),
+                .when(format!("from {current}, ending at {last}")),
             ));
         }
         loop {

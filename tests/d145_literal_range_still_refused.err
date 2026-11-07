@@ -1,0 +1,5 @@
+refused: d145_literal_range_still_refused.cy:3:15, line 3 column 15
+ 3 |     for $i in range[from: 5, to: 1]:
+   |               ^^^^^^^^^^^^^^^^^^^^^
+ what: this range can never reach its end
+ why:  a range that can never reach its end is refused, and a negative `step_by:` counts down (D128)

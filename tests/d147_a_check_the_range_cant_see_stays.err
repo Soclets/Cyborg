@@ -1,0 +1,6 @@
+check failed: d147_a_check_the_range_cant_see_stays.cy:8:22, line 8 column 22
+ 8 |         std::println($xs[pos: $i] as str);
+   |                      ^^^^^^^^^^^^
+ what: `pos: 3` is outside `$xs`
+ why:  a bad position is a bounds check (D26, D133)
+ when: it holds 2 items

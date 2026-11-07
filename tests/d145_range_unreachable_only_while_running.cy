@@ -1,5 +1,5 @@
-// The check can't see these numbers, and nothing says what happens once they're known.
-// trace: D128
+// Only running shows these numbers, and a range that can't reach its end runs zero rounds.
+// trace: D145
 import std;
 
 fn.main [] -> void:

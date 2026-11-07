@@ -1,0 +1,5 @@
+NotDesignedYet: d146_float_step_isnt_decided.cy:5:46, line 5 column 46
+ 5 |     for $i in range[from: 1, to: 5, step_by: $by]:
+   |                                              ^^^
+ what: a range of floats
+ why:  not decided yet, and the standard doesn't say

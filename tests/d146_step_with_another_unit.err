@@ -1,0 +1,5 @@
+NotDesignedYet: d146_step_with_another_unit.cy:8:46, line 8 column 46
+ 8 |     for $i in range[from: 1, to: 5, step_by: $by]:
+   |                                              ^^^
+ what: a range of numbers with a unit other than `items`
+ why:  not decided yet, and the standard doesn't say

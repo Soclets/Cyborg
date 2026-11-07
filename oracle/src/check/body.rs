@@ -1499,17 +1499,23 @@ impl Checker<'_> {
             ));
         }
         let step_node = match &range.step {
-            Some(step) => Some(self.check_range_step(step, kind)?),
+            Some(step) => Some(self.check_range_step(step)?),
             None => None,
         };
         let step_value = match &range.step {
             Some(step) => literal_number(step),
             None => Some(1),
         };
-        if let (Some(start), Some(stop), Some(by)) =
-            (literal_number(from), literal_number(end), step_value)
+        // A written step of 0 can't reach any end, whatever the numbers turn out to be.
+        // trace: D128, D145
+        let never_ends = step_value == Some(0);
+        let wrong_way = matches!(
+            (literal_number(from), literal_number(end), step_value),
+            (Some(start), Some(stop), Some(by))
+                if (by > 0 && start > stop) || (by < 0 && start < stop)
+        );
         {
-            if by == 0 || (by > 0 && start > stop) || (by < 0 && start < stop) {
+            if never_ends || wrong_way {
                 return Err(Report::refused(
                     range.span,
                     "this range can never reach its end",
@@ -1554,31 +1560,26 @@ impl Checker<'_> {
         }
     }
 
-    fn check_range_step(
-        &mut self,
-        step: &Expression,
-        kind: crate::types::IntegerKind,
-    ) -> Outcome<Node> {
+    /// `step_by:` takes any integer, since a step isn't stored, and `$i` keeps the range's type.
+    /// trace: D146
+    fn check_range_step(&mut self, step: &Expression) -> Outcome<Node> {
         if let Some(value) = literal_number(step) {
-            // A count down over a `u8` needs a step its own type can't hold.
-            if !kind.fits(value) {
-                return Err(Report::not_designed(
-                    step.span,
-                    format!("a `step_by:` of {value} on a range of `{}`", kind.word()),
-                    "",
-                ));
+            if let ExpressionKind::WithUnit { unit, .. } = &step.kind {
+                if unit.text != "items" {
+                    return Err(Report::not_designed(
+                        unit.span,
+                        "a range of numbers with a unit other than `items`",
+                        "",
+                    ));
+                }
             }
             return Ok(Node {
                 span: step.span,
                 kind: NodeKind::Constant(Value::Integer(value)),
             });
         }
-        let hint = Type::plain_integer(kind);
-        let (node, found) = self.check_expression(step, Some(&hint))?;
-        let found_kind = Self::range_number(&found, step.span)?;
-        if found_kind != kind {
-            return Err(Self::mismatch(step.span, &hint, &found));
-        }
+        let (node, found) = self.check_expression(step, None)?;
+        Self::range_number(&found, step.span)?;
         Ok(node)
     }
 

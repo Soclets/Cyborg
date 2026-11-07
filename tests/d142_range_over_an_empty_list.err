@@ -1,6 +1,0 @@
-NotDesignedYet: d142_range_over_an_empty_list.cy:8:27, line 8 column 27
- 8 |     for $i in range[from: 1, to: $xs.len]:
-   |                           ^^^^^^^^^^^^^^
- what: a range that turns out while running never to reach its end
- why:  not decided yet, and the standard doesn't say
- when: from 1, ending at 0, by 1

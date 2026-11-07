@@ -1,0 +1,6 @@
+check failed: d145_step_of_zero_beats_zero_rounds.cy:6:51, line 6 column 51
+ 6 |     for $i in range[from: $start, to: 1, step_by: $by]:
+   |                                                   ^^^
+ what: `step_by:` is 0, and nothing handled it
+ why:  a step of 0 is a failure, since it never ends (D145, D96)
+ when: from 5, ending at 1
