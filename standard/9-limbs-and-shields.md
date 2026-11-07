@@ -6,7 +6,7 @@
 | [9.2](#92--a-limb) | `@name::` | A limb provides this |
 | [9.3](#93-stds-two-parts) | `std::`, `@std::` | The kit part and the limb part |
 | [9.4](#94-inline-assembly) | `@std::inline.asm` | In `std`'s limb part |
-| [9.5](#95-c-support-csup) | `@csup` | All of C and C++ |
+| [9.5](#95-c-support-csup) | `@csup` | C support |
 | [9.6](#96-cs-union) | `@csup::union.untagged` | Inside a shield |
 | [9.7](#97-shields) | `shield` | Dangerous code, with a reason |
 | [9.8](#98-what-must-live-in-a-shield) | What goes inside | The list |
@@ -50,9 +50,9 @@ Bare `@`, with no `::`, is a compiler builtin instead ([5.7](5-functions.md#57-b
 
 ## 9.5 C support: `@csup`
 
-**Rule:** the limb `@csup` holds all of it: C headers read directly, C and C++ layouts, calls through C's conventions, and generated `.h` and `.hpp` files for C++ calling in. There's no deep C++, and there are walls at the boundary. The base language has no C in it, and a project lists the limb when it needs it.
+**Rule:** the limb `@csup` holds C: headers read directly, C's layouts, calls through C's conventions, and generated `.h` files so C and C++ can call into Cyborg by name. There are walls at the boundary. There's no C++ support for now, and a `@cppsup` limb could come later. The base language has no C in it, and a project lists the limb when it needs it.
 
-**From:** D31, D35.
+**From:** D31, D35, D156.
 
 ## 9.6 C's union
 

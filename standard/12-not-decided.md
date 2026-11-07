@@ -48,7 +48,6 @@ Waiting on the owner, most needed first. Each is `NotDesignedYet` unless it says
 - **Lengths and units (the gap felt most).** `$a.len - 1 items` going below zero, since `-`'s overflow isn't stated, and `$a.len x 2`. An `inf` list outgrowing its `len.type`, like the 256th `append` with `len.type: u8`.
 - **`len.type`, readings.** It takes any integer in the list, including `i32`, and goes only on the collection. Lists differing only in `len.type` are different types.
 - **Steps and quoted names, readings.** A written `step_by: 0` is refused even when the other numbers are only known while running. A step of 0 is a `check failed:` with no name, can't be handled, and wins over zero rounds. A float or unit step is `NotDesignedYet`. After `as "secs"`, the type is `i32.secs` as well as the value `3600 secs`. `(Give $r) as wrapped` is refused, and `Give $h.inner as wrapped` is `NotDesignedYet`.
-- **How far C++ support goes.** D152 wants it good, and D31 says no deep C++.
 - **The pitch.** Whether D136's SPARK comparison still fits D152.
 - **Dead variables.** Whether `eat(Give $s); change $s = "b";` is allowed. It's refused today.
 - **Names.** Declaring a name already in scope, or hiding an outer one.
