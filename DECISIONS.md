@@ -787,6 +787,9 @@ bounds on the ranges is not settled here. (Owner, 2026-11-07)
 
 **D157. The pitch, again.** "General sys lang that loses a little perf for safety." This replaces D136, since Cyborg isn't about proving things the way SPARK is. The "a" matters: it admits a cost, and nothing's been measured yet. The owner proposed it without the "a", calling it a "GAIM trap", and Claude pointed out the difference; the owner chose: "with "a"". (Owner, 2026-11-07)
 
+**D158. Radium-style floats.** `f64[min: -40.0, max: 125.0]` has bounds, like integers. A float can't be NaN or infinity: making one is a failure, a runtime check in `FinalSafe`, dropped in `FinalPerf`, and C's floats are checked as they come in through a shield. A float gives the same bits on every machine by default. Narrowings opt out: `f64.ieee` allows NaN and infinity, and `f64.fast` allows merged and reordered maths, both placeholder names. Comes from Radium's
+D24 and D153, which were never built there. Claude proposed it; the owner chose: "you know I'm accepting all of that". Whether `f64.ieee` needs a shield, and whether floats get a bare `div`, are not settled here. (Owner, 2026-11-07)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude

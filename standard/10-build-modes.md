@@ -66,12 +66,13 @@ requires.only_in_working is_sorted(Lend $xs);
 | A value is out of bounds | Crash | Trap | UB | UB | UB allowed |
 | Division by zero | Trap | Trap | UB | UB | UB allowed |
 | A contract is false | Crash | See [10.3](#103-what-gets-checked) | UB | UB | UB allowed |
+| A float becomes NaN or infinity | Crash | Trap | UB | UB | UB allowed |
 | A failure nothing handles | Crash | Crash | Crash | UB | Crash |
 | A compile-time safety rule is broken | Refused | Refused | Refused | UB | Refused |
 
 The `FinalPerf` entries follow from D14 having no checks there; the owner's answer was "you test your shit throughly first".
 
-**From:** D14, D20, D26, D40, D41, D42, D96, D107.
+**From:** D14, D20, D26, D40, D41, D42, D96, D107, D158.
 
 ## 10.5 Overflow
 

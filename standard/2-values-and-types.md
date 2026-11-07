@@ -89,9 +89,15 @@ use_score($n);
 
 ## 2.6 Floats
 
-**Rule:** a 32-bit binary float is `f32`. `f64` also appears in the decisions.
+**Rule:** a 32-bit binary float is `f32`, and `f64` is 64-bit. A float can have bounds, like an integer. It can't be NaN or infinity: making one is a failure, a runtime check in `FinalSafe`. It gives the same bits on every machine.
 
-**From:** D54, D59.
+```
+let $t: f64[min: -40.0, max: 125.0] = 21.5;
+```
+
+Narrowings opt out, with placeholder names: `f64.ieee` allows NaN and infinity, and `f64.fast` allows merged and reordered maths.
+
+**From:** D54, D59, D158.
 
 ## 2.7 Inexact literals: `~`
 
