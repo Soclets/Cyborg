@@ -151,6 +151,10 @@ pub enum NodeKind {
         target: String,
         shown: Option<String>,
     },
+    /// `$x as str`, in a float's shortest text. (D161)
+    FloatToStr(Number, Box<Node>),
+    /// `std::println.stored($x)`, which prints what's actually in memory. (D161)
+    PrintlnStored(Box<Node>),
     /// `$reading as f64`, which fails on NaN or infinity. (D159)
     FloatFromIeee {
         value: Box<Node>,

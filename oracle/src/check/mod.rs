@@ -1707,13 +1707,6 @@ impl Checker<'_> {
                 ));
             }
             let value = expression::float_literal_value(&entry.value, &plain)?;
-            if value == 0.0 && value.is_sign_negative() {
-                return Err(Report::not_designed(
-                    entry.value.span,
-                    "`-0.0` as a bound, since how it compares with `0.0` isn't decided",
-                    "12.2",
-                ));
-            }
             *slot = Some(value);
         }
         match (low, high) {

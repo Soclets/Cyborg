@@ -96,8 +96,9 @@ impl FloatRules {
 pub struct FloatBound(u64);
 
 impl FloatBound {
+    /// `-0.0` and `0.0` are the same place to stop, so they make the same type. (D160)
     pub fn new(value: f64) -> FloatBound {
-        FloatBound(value.to_bits())
+        FloatBound(if value == 0.0 { 0.0_f64 } else { value }.to_bits())
     }
 
     pub fn value(self) -> f64 {
@@ -105,13 +106,36 @@ impl FloatBound {
     }
 }
 
-/// How a float writes itself in a message, which is as short as still reads back the same.
+/// A float's text, the shortest literal that means its value. It's written the way the language
+/// writes floats, so a whole number keeps its `.0` and there's no exponent.
+/// trace: D161
 #[allow(clippy::cast_possible_truncation)] // An `f32` was widened to get here, so this is exact.
 pub fn show_float(kind: FloatKind, value: f64) -> String {
-    match kind {
-        FloatKind::F32 => format!("{:?}", value as f32),
-        FloatKind::F64 => format!("{value:?}"),
+    let text = match kind {
+        FloatKind::F32 => format!("{}", value as f32),
+        FloatKind::F64 => format!("{value}"),
+    };
+    if text.contains('.') {
+        text
+    } else {
+        format!("{text}.0")
     }
+}
+
+/// Every digit a finite float actually holds, and how many significant digits that is.
+/// trace: D161
+pub fn stored_float(value: f64) -> (String, usize) {
+    // Writing out this many places shows a binary float's value in full.
+    let full = format!("{value:.1100}");
+    let trimmed = full.trim_end_matches('0');
+    let text = if trimmed.ends_with('.') {
+        format!("{trimmed}0")
+    } else {
+        trimmed.to_string()
+    };
+    let digits: String = trimmed.chars().filter(char::is_ascii_digit).collect();
+    let significant = digits.trim_start_matches('0').len();
+    (text, significant)
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -339,8 +363,8 @@ impl Value {
         match self {
             Value::Bool(value) => Some(value.to_string()),
             Value::Integer(value) => Some(value.to_string()),
-            Value::F32(value) => Some(value.to_string()),
-            Value::F64(value) => Some(value.to_string()),
+            Value::F32(value) => Some(show_float(FloatKind::F32, f64::from(*value))),
+            Value::F64(value) => Some(show_float(FloatKind::F64, *value)),
             _ => None,
         }
     }

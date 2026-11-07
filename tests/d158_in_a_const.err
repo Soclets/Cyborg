@@ -3,4 +3,4 @@ refused: d158_in_a_const.cy:3:22, line 3 column 22
    |                      ^^^^^^^^^^^
  what: this makes infinity
  why:  a float can't be NaN or infinity, and making one is a failure (D158)
- when: `1e38` and `10.0` in `f32`
+ when: `100000000000000000000000000000000000000.0` and `10.0` in `f32`

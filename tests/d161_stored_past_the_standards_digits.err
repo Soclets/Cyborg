@@ -1,0 +1,6 @@
+NotDesignedYet: d161_stored_past_the_standards_digits.cy:8:5, line 8 column 5
+ 8 |     std::println.stored($x);
+   |     ^^^^^^^^^^^^^^^^^^^^^^^
+ what: how many digits `std::println.stored` prints
+ why:  not decided yet (standard 12.2)
+ when: this float holds 55

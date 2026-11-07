@@ -1,0 +1,5 @@
+refused: d161_unit_family_one_level.cy:3:5, line 3 column 5
+ 3 |     time.clock.seconds: base;
+   |     ^^^^^^^^^^^^^^^^^^
+ what: `time.clock.seconds` goes more than one level into `time`
+ why:  a family is one level deep, so a family can't hold a family (D161)

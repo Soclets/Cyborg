@@ -11,7 +11,7 @@ use crate::ir::{
     Number, Place, Position, RangeCode, Step, Test,
 };
 use crate::report::{Kind, Outcome, Report, ReportExtra, Span};
-use crate::types::{show_float, FloatKind, FloatRules, IntegerKind, Value};
+use crate::types::{show_float, stored_float, FloatKind, FloatRules, IntegerKind, Value};
 
 /// How deep Cyborg calls can go here. Past this the oracle says so, instead of running out of
 /// stack and crashing, which rule 6 forbids. What running out of stack means isn't decided.
@@ -634,7 +634,7 @@ impl<'c> Runner<'c> {
                 let Some(number) = float_value(&value) else {
                     return Err(oracle_bug(span, "the test for a bound on something else"));
                 };
-                float_in_bound(number, *low, *high, span).map_err(Stop::Report)
+                Ok(float_in_bound(number, *low, *high))
             }
             // trace: D9
             Test::Case { subject, case } => match self.evaluate(subject, frame)? {
@@ -817,7 +817,7 @@ impl<'c> Runner<'c> {
                 let Some(number) = float_value(&value) else {
                     return Err(oracle_bug(span, "a bound on something else"));
                 };
-                if !float_in_bound(number, *low, *high, span).map_err(Stop::Report)? {
+                if !float_in_bound(number, *low, *high) {
                     let shown_number = match value {
                         Value::F32(_) => show_float(FloatKind::F32, number),
                         _ => show_float(FloatKind::F64, number),
@@ -861,6 +861,25 @@ impl<'c> Runner<'c> {
                     ),
                     "`as` out of `f64.ieee` is a real conversion, and it fails on NaN or infinity (D159)",
                 )))
+            }
+            // trace: D161
+            NodeKind::FloatToStr(number, value) => {
+                let value = self.evaluate(value, frame)?;
+                let (Some(held), Number::Float(kind, _)) = (float_value(&value), number) else {
+                    return Err(oracle_bug(span, "`as str` on something else"));
+                };
+                refuse_non_finite_text(held, span).map_err(Stop::Report)?;
+                Ok(Value::Str(show_float(*kind, held)))
+            }
+            // trace: D161
+            NodeKind::PrintlnStored(value) => {
+                let value = self.evaluate(value, frame)?;
+                let Some(held) = float_value(&value) else {
+                    return Err(oracle_bug(span, "`println.stored` on something else"));
+                };
+                let mut line = stored_text(held, span).map_err(Stop::Report)?;
+                line.push('\n');
+                self.write_line(&line, span)
             }
             NodeKind::IntegerToStr(value) => {
                 let Value::Integer(value) = self.evaluate(value, frame)? else {
@@ -955,6 +974,10 @@ impl<'c> Runner<'c> {
             line.push_str(&text);
         }
         line.push('\n');
+        self.write_line(&line, span)
+    }
+
+    fn write_line(&mut self, line: &str, span: Span) -> Result<Value, Stop> {
         if self.out.write_all(line.as_bytes()).is_err() || self.out.flush().is_err() {
             return Err(Stop::Raised(Raised {
                 name: "print_failed".to_string(),
@@ -1061,6 +1084,15 @@ fn compare(
             ))
         }
     };
+    // Only `f64.ieee` can hold NaN, and how it compares isn't decided.
+    // trace: D160
+    if ordering.is_none() {
+        return Err(Stop::Report(Report::not_designed(
+            span,
+            "how NaN compares",
+            "12.2",
+        )));
+    }
     Ok(match operator {
         CompareOperator::Equal => ordering == Some(Equal),
         CompareOperator::NotEqual => ordering != Some(Equal),
@@ -1079,21 +1111,43 @@ fn float_value(value: &Value) -> Option<f64> {
     }
 }
 
-/// Whether a float is inside its bound. How `-0.0` compares with `0.0` isn't decided, and it's the
-/// one case where the answer depends on that.
-/// trace: D158
-fn float_in_bound(value: f64, low: f64, high: f64, span: Span) -> Outcome<bool> {
-    let other_zero = |edge: f64| {
-        value == 0.0 && edge == 0.0 && value.is_sign_negative() != edge.is_sign_negative()
-    };
-    if other_zero(low) || other_zero(high) {
+/// Whether a float is inside its bound, where `-0.0` counts as `0.0`.
+/// trace: D160
+fn float_in_bound(value: f64, low: f64, high: f64) -> bool {
+    low <= value && value <= high
+}
+
+/// How NaN or infinity prints isn't decided, and everything else has a text.
+/// trace: D161
+fn refuse_non_finite_text(value: f64, span: Span) -> Outcome<()> {
+    if value.is_finite() {
+        return Ok(());
+    }
+    Err(Report::not_designed(
+        span,
+        format!("how {} prints", non_finite_name(value)),
+        "12.2",
+    ))
+}
+
+/// The most digits the standard's example of `std::println.stored` shows.
+const STORED_DIGITS_SHOWN: usize = 34;
+
+/// trace: D161
+fn stored_text(value: f64, span: Span) -> Outcome<String> {
+    refuse_non_finite_text(value, span)?;
+    let (text, significant) = stored_float(value);
+    // D161 says this prints what's in memory, and the standard's `0.1` stops at 34 digits of the
+    // 55 it holds. Up to 34 the two agree, and past that they don't.
+    if significant > STORED_DIGITS_SHOWN {
         return Err(Report::not_designed(
             span,
-            "whether `-0.0` is inside a bound that stops at `0.0`",
+            "how many digits `std::println.stored` prints",
             "12.2",
-        ));
+        )
+        .when(format!("this float holds {significant}")));
     }
-    Ok(low <= value && value <= high)
+    Ok(text)
 }
 
 fn arithmetic(

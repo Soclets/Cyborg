@@ -1,5 +1,0 @@
-NotDesignedYet: d158_negative_zero_while_running.cy:4:39, line 4 column 39
- 4 |     let $t: f64[min: 0.0, max: 1.0] = $z;
-   |                                       ^^
- what: whether `-0.0` is inside a bound that stops at `0.0`
- why:  not decided yet (standard 12.2)

@@ -290,13 +290,6 @@ impl Checker<'_> {
         };
         let (low, high) = (low.value(), high.value());
         if let Some(number) = node_float(&node) {
-            if number == 0.0 && number.is_sign_negative() && (low == 0.0 || high == 0.0) {
-                return Err(Report::not_designed(
-                    expression.span,
-                    "whether `-0.0` is inside a bound that stops at `0.0`",
-                    "12.2",
-                ));
-            }
             if number < low || number > high {
                 return Err(Report::refused(
                     expression.span,
@@ -306,9 +299,8 @@ impl Checker<'_> {
             }
             return Ok(node);
         }
-        // `total_cmp` puts `-0.0` below `0.0`, so a doubtful edge still gets checked while running.
         let inside = found_bound.is_some_and(|(found_low, found_high)| {
-            found_low.value().total_cmp(&low).is_ge() && found_high.value().total_cmp(&high).is_le()
+            found_low.value() >= low && found_high.value() <= high
         });
         if inside {
             return Ok(node);
@@ -1539,6 +1531,52 @@ impl Checker<'_> {
         Ok(bound)
     }
 
+    /// `std::println.stored($x)` shows what a float actually holds.
+    /// trace: D161
+    fn check_println_stored(
+        &mut self,
+        arguments: &[Argument],
+        span: Span,
+        path_span: Span,
+    ) -> Outcome<RawCall> {
+        if self.is_pure() || self.context.in_contract {
+            // trace: D86
+            return Err(Report::refused(
+                path_span,
+                "printing is I/O, which a pure function refuses",
+                "a pure function refuses I/O, and contracts can only call pure functions (D86)",
+            ));
+        }
+        let [Argument { label: None, value }] = arguments else {
+            return Err(Report::not_designed(
+                span,
+                "`std::println.stored` with anything but one float",
+                "",
+            ));
+        };
+        let (node, found) = self.check_expression(value, None)?;
+        let Type::Float { unit: None, .. } = found else {
+            return Err(Report::not_designed(
+                value.span,
+                format!("`std::println.stored` on `{found}`"),
+                "",
+            ));
+        };
+        Ok(RawCall {
+            node: Node {
+                span,
+                kind: NodeKind::PrintlnStored(Box::new(node)),
+            },
+            value_type: Type::Void,
+            failures: vec![Failure {
+                short: "print_failed".to_string(),
+                full: "print_failed".to_string(),
+                data: Vec::new(),
+            }],
+            unnamed: None,
+        })
+    }
+
     /// trace: D95
     fn check_std_call(
         &mut self,
@@ -1547,6 +1585,19 @@ impl Checker<'_> {
         span: Span,
         path_span: Span,
     ) -> Outcome<RawCall> {
+        if rest == "println.stored" {
+            return self.check_println_stored(arguments, span, path_span);
+        }
+        // `std` is flat, and any grouping would use `::`.
+        // trace: D161
+        if let Some(inside) = rest.strip_prefix("math.") {
+            return Err(Report::refused(
+                path_span,
+                format!("`std::{rest}` isn't how `std` is laid out"),
+                "`std` is flat, and any grouping would use `::`, not `.` (D161)",
+            )
+            .fix(format!("std::{inside}")));
+        }
         if rest.starts_with("println.") {
             // trace: D51
             return Err(Report::refused(
@@ -1994,7 +2045,10 @@ impl Checker<'_> {
         }
         let target_type = self.resolve_type(target)?;
         // A literal takes its type from where it lands, even here. (D141)
-        let (node, found) = if is_number_literal(value) {
+        // `as str` says nothing about which float a literal is, so that stays unsaid. (D161)
+        let float_to_text =
+            target_type == Type::Str && matches!(value.kind, ExpressionKind::Float { .. });
+        let (node, found) = if is_number_literal(value) && !float_to_text {
             self.check_expression(value, Some(&target_type))?
         } else if let ExpressionKind::Hand { word, value: inner } = &value.kind {
             self.check_word_on_as(value, *word, inner)?
@@ -2024,6 +2078,17 @@ impl Checker<'_> {
                 unnamed: None,
             });
         }
+        self.check_real_as(node, &found, target_type, span)
+    }
+
+    /// `as` when it isn't only crossing, so it builds a new value and can fail.
+    fn check_real_as(
+        &self,
+        node: Node,
+        found: &Type,
+        target_type: Type,
+        span: Span,
+    ) -> Outcome<RawCall> {
         // trace: D83
         if self.context.in_constant > 0 {
             return Err(Report::refused(
@@ -2033,7 +2098,7 @@ impl Checker<'_> {
             ));
         }
         // trace: D159
-        if leaves_ieee(&found, &target_type) {
+        if leaves_ieee(found, &target_type) {
             return Ok(RawCall {
                 node: Node {
                     span,
@@ -2055,6 +2120,18 @@ impl Checker<'_> {
             ));
         }
         // trace: D122
+        // trace: D161
+        if let (Type::Str, Type::Float { kind, rules, .. }) = (&target_type, found) {
+            return Ok(RawCall {
+                node: Node {
+                    span,
+                    kind: NodeKind::FloatToStr(Number::Float(*kind, *rules), Box::new(node)),
+                },
+                value_type: Type::Str,
+                failures: Vec::new(),
+                unnamed: Some(("what a failed `as` is called", "12.3")),
+            });
+        }
         let converts = target_type == Type::Str && matches!(found, Type::Integer { .. });
         if !converts {
             return Err(Report::not_designed(
@@ -2810,7 +2887,8 @@ impl Checker<'_> {
                         right,
                     ));
                 }
-                Err(Report::not_designed(span, "comparing floats", "12.2"))
+                // trace: D160
+                Ok(())
             }
             (Type::Bool, Type::Bool) => {
                 if matches!(operator, CompareOperator::Equal | CompareOperator::NotEqual) {

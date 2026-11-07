@@ -1,0 +1,5 @@
+NotDesignedYet: d161_infinity_as_str_is_open.cy:9:18, line 9 column 18
+ 9 |     std::println($x as str);
+   |                  ^^^^^^^^^
+ what: how infinity prints
+ why:  not decided yet (standard 12.2)

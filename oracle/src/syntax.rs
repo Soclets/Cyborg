@@ -1469,6 +1469,7 @@ impl Parser {
                 )
                 .fix(format!("{prefix}{}", name.text)));
             }
+            Self::refuse_a_deep_family(&family, &name)?;
             self.expect_symbol("=")?;
             let written_type = self.parse_type()?;
             self.expect_semicolon()?;
@@ -1524,12 +1525,30 @@ impl Parser {
         Ok(Item::HandlerSet(HandlerSet { name, handlers }))
     }
 
+    /// A family is one level deep, so a family can't hold a family.
+    /// trace: D161
+    fn refuse_a_deep_family(family: &Name, member: &Path) -> Outcome<()> {
+        let prefix = format!("{}.", family.text);
+        match member.text.strip_prefix(&prefix) {
+            Some(rest) if rest.contains('.') => Err(Report::refused(
+                member.span,
+                format!(
+                    "`{}` goes more than one level into `{}`",
+                    member.text, family.text
+                ),
+                "a family is one level deep, so a family can't hold a family (D161)",
+            )),
+            _ => Ok(()),
+        }
+    }
+
     fn parse_unit_set(&mut self) -> Outcome<Item> {
         let family = self.expect_name("the family's name")?;
         self.expect_symbol(":")?;
         let mut members = Vec::new();
         while !self.at_word("end") {
             let path = self.parse_path()?;
+            Self::refuse_a_deep_family(&family, &path)?;
             let meaning = if self.eat_symbol(":") {
                 if self.eat_word("base") {
                     UnitMeaning::Base

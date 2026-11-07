@@ -1,9 +1,0 @@
-// trace: D158, D7
-fn.main [] -> void:
-    let $a: f64 = 0.5;
-    let $b: f32 = 0.5;
-    if $a == $b:
-        return void;
-    end if
-    return void;
-end fn.main

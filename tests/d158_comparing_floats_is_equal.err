@@ -1,5 +1,0 @@
-NotDesignedYet: d158_comparing_floats_is_equal.cy:4:8, line 4 column 8
- 4 |     if $a == 0.5:
-   |        ^^^^^^^^^
- what: comparing floats
- why:  not decided yet (standard 12.2)

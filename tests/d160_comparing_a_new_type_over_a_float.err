@@ -1,0 +1,5 @@
+NotDesignedYet: d160_comparing_a_new_type_over_a_float.cy:7:8, line 7 column 8
+ 7 |     if $a == $b:
+   |        ^^^^^^^^
+ what: comparing `temperature` values
+ why:  not decided yet, and the standard doesn't say

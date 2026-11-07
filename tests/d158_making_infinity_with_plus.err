@@ -3,4 +3,4 @@ check failed: d158_making_infinity_with_plus.cy:4:21, line 4 column 21
    |                     ^^^^^^^^^^^
  what: this makes infinity
  why:  a float can't be NaN or infinity, and making one is a failure (D158)
- when: `3e38` and `3e38` in `f32`
+ when: `300000000000000000000000000000000000000.0` and `300000000000000000000000000000000000000.0` in `f32`

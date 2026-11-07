@@ -1,0 +1,5 @@
+NotDesignedYet: d161_grouping_would_use_colons.cy:6:19, line 6 column 19
+ 6 |     let $y: f64 = std::math::sin($x);
+   |                   ^^^^^^^^^^^^^^
+ what: `std::math::sin`, since `std`'s full contents aren't chosen
+ why:  not decided yet, and the standard doesn't say

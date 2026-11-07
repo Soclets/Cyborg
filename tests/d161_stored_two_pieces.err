@@ -1,0 +1,5 @@
+NotDesignedYet: d161_stored_two_pieces.cy:6:5, line 6 column 5
+ 6 |     std::println.stored($x, $x);
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ what: `std::println.stored` with anything but one float
+ why:  not decided yet, and the standard doesn't say

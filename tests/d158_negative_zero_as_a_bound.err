@@ -1,5 +1,0 @@
-NotDesignedYet: d158_negative_zero_as_a_bound.cy:3:22, line 3 column 22
- 3 |     let $t: f64[min: -0.0, max: 1.0] = 0.5;
-   |                      ^^^^
- what: `-0.0` as a bound, since how it compares with `0.0` isn't decided
- why:  not decided yet (standard 12.2)
