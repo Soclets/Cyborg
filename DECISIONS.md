@@ -790,6 +790,8 @@ bounds on the ranges is not settled here. (Owner, 2026-11-07)
 **D158. Radium-style floats.** `f64[min: -40.0, max: 125.0]` has bounds, like integers. A float can't be NaN or infinity: making one is a failure, a runtime check in `FinalSafe`, dropped in `FinalPerf`, and C's floats are checked as they come in through a shield. A float gives the same bits on every machine by default. Narrowings opt out: `f64.ieee` allows NaN and infinity, and `f64.fast` allows merged and reordered maths, both placeholder names. Comes from Radium's
 D24 and D153, which were never built there. Claude proposed it; the owner chose: "you know I'm accepting all of that". Whether `f64.ieee` needs a shield, and whether floats get a bare `div`, are not settled here. (Owner, 2026-11-07)
 
+**D159. `f64.ieee` needs no shield.** A NaN is a wrong number, not something that can corrupt memory, and the compiler knows how `f64.ieee` behaves. It's a different type, so it can't mix with `f64`, and `$reading as f64` is a real conversion that fails on NaN or infinity. The owner asked "Should `f64.ieee` be in a shield?"; Claude proposed not; the owner chose: "yea". (Owner, 2026-11-07)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude

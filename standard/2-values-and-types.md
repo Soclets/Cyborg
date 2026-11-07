@@ -95,9 +95,16 @@ use_score($n);
 let $t: f64[min: -40.0, max: 125.0] = 21.5;
 ```
 
-Narrowings opt out, with placeholder names: `f64.ieee` allows NaN and infinity, and `f64.fast` allows merged and reordered maths.
+Narrowings opt out, with placeholder names: `f64.ieee` allows NaN and infinity, and `f64.fast` allows merged and reordered maths. `f64.ieee` needs no shield, since it's a different type, and `as` is the wall:
 
-**From:** D54, D59, D158.
+```
+let $reading: f64.ieee = read_sensor();
+let $clean: f64 = $reading as f64;
+```
+
+**Refused:** `let $x: f64 = $reading;`.
+
+**From:** D54, D59, D158, D159.
 
 ## 2.7 Inexact literals: `~`
 
