@@ -767,6 +767,8 @@ chose: "Yea. I mean, the linter limb could help". (Owner, 2026-11-07)
 **D147. A loop knows its range.** Inside a `for` over a range, the compiler knows the value is within that range, and skips any check it can already see will pass, as with `$xs[pos: $i]` in `range[from: 1, to: $xs.len]`. It needs no new syntax. If the loop could make that untrue, such as by removing an item, the check stays. The owner asked "What about bounds on loop ranges?"; Claude proposed this; the owner chose: "Ah, yeah". The owner's own idea of putting
 bounds on the ranges is not settled here. (Owner, 2026-11-07)
 
+**D148. No bounds inside a range.** `if $start: i32[min: 100, max: 200]:` or a bounded `let` already do it, and D147 then skips the same checks. `$xs.len[min: 100]` would also look like getting an item (D133). The owner proposed bounds inside a range, then asked "Does `if` already work for that, though?"; Claude said it does; the owner chose: "yea". (Owner, 2026-11-07)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude
