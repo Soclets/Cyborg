@@ -40,6 +40,8 @@ Waiting on the owner, most needed first. Each is `NotDesignedYet` unless it says
 - **Type names, smaller.** A method on an alias or a family's type. A narrowing or bounds on a name. `type.…` inside a function. A `type.new` holding itself through a list. An alias named like a struct. Declaring a name twice.
 - **`fam.fn`.** D135 includes `fn` collections, but no spelling's shown.
 - **`Copy`'s depth.** Whether copying a struct holding a list copies the list too. Other languages disagree on this.
+- **Reading a case (D139).** Whether `case status.failed: … $s.code` with no name is still allowed. Whether `$f` is a read-only view, as it is today, or a copy. `if $s: status.failed $f:`. `instead` inside a loop inside its arm.
+- **Arms, readings.** An arm that can run off its end where a value's needed is refused. A bare value as an arm's last line is refused, with `fix: instead …`. `instead` on a call giving nothing back is refused. `*` on a handler with only `instead` is refused. What an arm gives away is only maybe gone afterwards. A failure's `$f` reads data only, and non-numbers need a word: `instead Copy $x.label;`.
 - **Dead variables.** Whether `eat(Give $s); change $s = "b";` is allowed. It's refused today.
 - **Names.** Declaring a name already in scope, or hiding an outer one.
 - **`ensures` on a `fail` path.** Checked only on `return` today, which is a guess.
