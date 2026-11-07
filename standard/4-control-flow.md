@@ -83,9 +83,20 @@ match $s:
 end match
 ```
 
+Naming a case lets its arm read its data:
+
+```
+match $s:
+    case status.failed $f:
+        std::println($f.code as str);
+    case status.ok:
+        std::println("worked");
+end match
+```
+
 **Refused:** a `match` that misses a case.
 
-**From:** D9, D33.
+**From:** D9, D33, D139.
 
 ## 4.4 `for`
 

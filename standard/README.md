@@ -44,7 +44,7 @@ What Cyborg does now, in one place. The oracle, the compiler and check claude fo
 | `?` | [8.4](8-failures.md#84--pass-it-up) | | `fam.failure` | [8.3](8-failures.md#83-named-sets-famfailure) |
 | `??` | [8.5](8-failures.md#85--use-this-instead) | | `fam.handler` | [8.7](8-failures.md#87-handler-narrowings) |
 | `@` (builtin) | [5.7](5-functions.md#57-builtins-) | | `not`, `and`, `or` | [3.6](3-operators.md#36-logic) |
-| `@` (limb) | [9.2](9-limbs-and-shields.md#92--a-limb) | | `otherwise` | [8.6](8-failures.md#86-otherwise) |
+| `@` (limb) | [9.2](9-limbs-and-shields.md#92--a-limb) | | `otherwise`, `instead` | [8.6](8-failures.md#86-otherwise) |
 | `[ ]`, `( )` | [1.8](1-programs.md#18-brackets) | | `plus.wrap` | [3.8](3-operators.md#38-wrapping-pluswrap) |
 | `~` | [2.7](2-values-and-types.md#27-inexact-literals-) | | Precog | [9.10](9-limbs-and-shields.md#910-precog) |
 | `@csup` | [9.5](9-limbs-and-shields.md#95-c-support-csup) | | `refused:` | [11.2](11-errors.md#112-kinds) |

@@ -7,7 +7,7 @@
 | [8.3](#83-named-sets-famfailure) | `fam.failure` | A reusable set |
 | [8.4](#84--pass-it-up) | `?` | Pass it to the caller |
 | [8.5](#85--use-this-instead) | `??` | Use this value instead |
-| [8.6](#86-otherwise) | `otherwise:` | Handle it in a block |
+| [8.6](#86-otherwise) | `otherwise:`, `instead` | Handle it in a block |
 | [8.7](#87-handler-narrowings) | `fam.handler` | Reusable arms |
 | [8.8](#88--handlers-that-jump) | `.*` | This handler can jump |
 | [8.9](#89-crash-by-default) | No handler | A failure crashes, unless you opt in |
@@ -88,15 +88,23 @@ let $port: i32 = read_port() ?? 8080;
 ```
 let $w: str = first_word(Lend $text) otherwise:
     case too_long:
-        "…";
+        instead "…";
     case no_words:
-        "(none)";
+        instead "(none)";
 end otherwise
 ```
 
-An arm ending in a value, and how an arm reads a failure's data, are shown from Radium and aren't decided ([12.6](12-not-decided.md#126-failures)).
+`instead` gives the value used in place of the failed call. An arm can also `return`, `break` or `fail`. Naming the failure in its `case` lets the arm read its data:
 
-**From:** D45, D46.
+```
+let $h: i32 = half($n) otherwise:
+    case negative $f:
+        std::println($f.val as str);
+        instead 0;
+end otherwise
+```
+
+**From:** D45, D46, D139.
 
 ## 8.7 Handler narrowings
 
@@ -106,9 +114,9 @@ An arm ending in a value, and how an arm reads a failure's data, are shown from 
 fam.handler word_failed:
     word_failed.use_placeholder:
         case too_long:
-            "…";
+            instead "…";
         case no_words:
-            "(none)";
+            instead "(none)";
     end word_failed.use_placeholder
 end fam.handler word_failed
 

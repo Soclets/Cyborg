@@ -744,6 +744,8 @@ it stands is Claude's reading of that answer. (Owner, 2026-11-06)
 
 **D138. `map` has narrowings.** `std::map.hash<key: str, val: i32>` and `std::map.ordered<key: str, val: i32>`, so you pick. There's no bare `std::map`, since no default is obvious, which is Claude's reading of D48's rule. The names are placeholders. This changes the examples in D24 and D25, though their labels stand. Claude listed `map` as a word with unstable meaning; the owner: "Sherlock, we're gonna fucking make a narrowing of `map`". (Owner, 2026-11-07)
 
+**D139. Reading a failure, and `instead`.** `case negative $f:` names the failure inside its arm, so `$f.val` reads its data, and `case status.failed $f:` does the same in a `match`. `instead 0;` is the value used in place of a failed call, replacing Radium's bare last line. An arm can also `return`, `break` or `fail`. The owner asked "What does `0;` mean?"; Claude agreed a bare value reads like a leftover, and proposed this; the owner chose: "`instead 0;`". (Owner, 2026-11-07)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude

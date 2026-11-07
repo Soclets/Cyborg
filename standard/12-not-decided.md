@@ -90,8 +90,6 @@ Waiting on the owner, most needed first. Each is `NotDesignedYet` unless it says
 
 ## 12.6 Failures
 
-- How an arm reads a failure's data.
-- What an arm's last line means, such as `"…";` used as the value.
 - Whether `??` can take a call, not just a value.
 - `?` in a function that lists no failures, and in `main`.
 - The list of a handler narrowing's arguments, if any.
