@@ -781,6 +781,8 @@ bounds on the ranges is not settled here. (Owner, 2026-11-07)
 
 **D154. You can't `use` a limb, again.** This replaces D153 and restores D94: `use @csup::extern.c as @c;` is refused. `@c` looks like a builtin (D56), or like a limb called `c`, so the short name misleads. Claude had read "They could just look at the `use`s, right?" as a yes when it wasn't one. The owner: "I mean, `@c` looks like a lie". (Owner, 2026-11-07)
 
+**D155. `use` on a limb works like a kit.** `use @csup::extern.c as c;`, or `as "ext";` for your own name, under D150's rules, with no `@` on the short name. This replaces D154 and D94. It changes D22's promise: a search for `@` now finds every file using a limb, through its `use` line, and not every line. Anything dangerous is still inside a shield (D38), and the linter limb can require the full path. The owner: "Or we could just allow it without the marks, like what we already allow for kits", and "What about the `""` too?"; Claude proposed one rule for every `use`; the owner chose: "yea". (Owner, 2026-11-07)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude

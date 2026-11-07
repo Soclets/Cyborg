@@ -30,11 +30,11 @@ Bare `@`, with no `::`, is a compiler builtin instead ([5.7](5-functions.md#57-b
 
 ## 9.2 `@`: a limb
 
-**Rule:** `@` with `::` marks something a limb provides, and only that. A search for `@` finds every compiler extension and builtin. It's a plain `@`, not the fullwidth one Radium uses.
+**Rule:** `@` with `::` marks something a limb provides, and only that. A search for `@` finds every file using a compiler extension, through its full path or its `use` line, and every builtin. The linter can require the full path. It's a plain `@`, not the fullwidth one Radium uses.
 
-**Refused:** `@std::println`, because `println` is in the kit part, and giving a limb a short name with `use`.
+**Refused:** `@std::println`, because `println` is in the kit part.
 
-**From:** D22, D36, D56, D154.
+**From:** D22, D36, D56, D155.
 
 ## 9.3 `std`'s two parts
 
