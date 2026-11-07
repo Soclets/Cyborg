@@ -807,6 +807,8 @@ a placeholder for a version that isn't correctly rounded. A float prints as the 
 
 **D166. How NaN and infinity print.** On `f64.ieee`, they print as the words `NaN`, `inf` and `-inf`, since they have no digits to show. `std::println.stored` prints the same words. Oracle claude found the gap; Claude proposed it; the owner chose: "yea". (Owner, 2026-11-07)
 
+**D167. IEEE 754 is the authority on `f64.ieee`.** The name is the promise, so IEEE 754 decides how it behaves: comparing, arithmetic, and NaN and infinity moving through the maths. So any comparison with NaN is false except `!=`, and `NaN == NaN` is false. Cyborg still decides what IEEE doesn't cover, such as syntax, printing (D166), `as` crossings (D159) and bounds. IEEE doesn't fix every bit of a NaN, so two machines can differ in bits only a raw look at the bytes would show. Claude proposed keeping IEEE's comparisons; the owner asked "It says IEEE, so IEEE here is the authority?", Claude proposed this rule, and the owner chose: "yes". (Owner, 2026-11-07)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude
