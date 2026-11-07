@@ -43,7 +43,8 @@ fn main() -> ExitCode {
         return ExitCode::from(2);
     };
     // trace: D137
-    if !path.ends_with(".cy") {
+    let extension = std::path::Path::new(&path).extension();
+    if extension.is_none_or(|found| found != "cy") {
         eprintln!("oracle: {path} isn't a source file, which ends in `.cy` (D137)");
         return ExitCode::from(2);
     }
