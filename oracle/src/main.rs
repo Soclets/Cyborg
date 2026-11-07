@@ -42,6 +42,11 @@ fn main() -> ExitCode {
         eprintln!("usage: oracle <program.cy>");
         return ExitCode::from(2);
     };
+    // trace: D137
+    if !path.ends_with(".cy") {
+        eprintln!("oracle: {path} isn't a source file, which ends in `.cy` (D137)");
+        return ExitCode::from(2);
+    }
     let text = match std::fs::read_to_string(&path) {
         Ok(text) => text,
         Err(error) => {

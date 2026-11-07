@@ -1,5 +1,5 @@
-refused: d25_map_without_labels.cy:5:22, line 5 column 22
- 5 |     let $m: std::map<str, i32> = empty;
-   |                      ^^^
+refused: d25_map_without_labels.cy:5:27, line 5 column 27
+ 5 |     let $m: std::map.hash<str, i32> = empty;
+   |                           ^^^
  what: a map's types get the labels `key` and `val`
  why:  one type can go bare, and more than one must have labels (D25)

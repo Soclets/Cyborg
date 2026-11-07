@@ -296,6 +296,7 @@ pub enum StatementKind {
     Finish {
         target: Expression,
     },
+    Instead(Expression),
     Return(Expression),
     Fail {
         path: Path,
@@ -346,10 +347,11 @@ pub enum IfTest {
     },
 }
 
-/// One `case` in a `match`, an `otherwise:` or a handler.
+/// One `case` in a `match`, an `otherwise:` or a handler. `binding` is the `$f` in `case odd $f:`.
 #[derive(Clone, Debug)]
 pub struct Arm {
     pub pattern: Path,
+    pub binding: Option<Name>,
     pub body: Vec<Statement>,
 }
 

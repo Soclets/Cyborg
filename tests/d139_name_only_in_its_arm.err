@@ -1,0 +1,5 @@
+refused: d139_name_only_in_its_arm.cy:13:21, line 13 column 21
+13 |             instead $x.val;
+   |                     ^^
+ what: `$x` isn't declared
+ why:  `let` and `const` declare a variable with its type and value (D57, D83)

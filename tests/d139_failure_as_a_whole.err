@@ -1,0 +1,5 @@
+refused: d139_failure_as_a_whole.cy:14:26, line 14 column 26
+14 |             std::println($x);
+   |                          ^^
+ what: `$x` names a failure, which is for reading its data
+ why:  `case negative $f:` names the failure, so `$f.val` reads its data (D139)

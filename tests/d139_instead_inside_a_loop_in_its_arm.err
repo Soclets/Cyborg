@@ -1,0 +1,5 @@
+NotDesignedYet: d139_instead_inside_a_loop_in_its_arm.cy:12:17, line 12 column 17
+12 |                 instead $i;
+   |                 ^^^^^^^^^^^
+ what: `instead` inside a loop inside its arm
+ why:  not decided yet, and the standard doesn't say

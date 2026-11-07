@@ -10,10 +10,10 @@ end union.tagged token
 
 fn describe [$t: Given token] -> str:
     match $t:
-        case token.number:
-            return $t.value as str;
-        case token.word:
-            return Copy $t.text;
+        case token.number $n:
+            return $n.value as str;
+        case token.word $w:
+            return Copy $w.text;
         case token.done:
             return "(done)";
     end match

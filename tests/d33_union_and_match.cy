@@ -10,8 +10,8 @@ fn show [$s: status] -> void:
     match $s:
         case status.ok:
             std::println("worked");
-        case status.failed:
-            std::println("failed: ", $s.code as str);
+        case status.failed $f:
+            std::println("failed: ", $f.code as str);
     end match
     return void;
 end fn show

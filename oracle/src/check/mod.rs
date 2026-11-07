@@ -86,6 +86,8 @@ struct VariableState {
     given_on_some_path: bool,
     trust: Option<usize>,
     trust_ended: Option<Span>,
+    /// In a `match` arm on this variable, where its data is read through the arm's name.
+    matched: bool,
     /// `given` came from `finish`, so the duty is over, though nothing says the value is dead.
     finished: bool,
     /// For a stored borrow: where what it borrows was used in a way that ends the borrow.
@@ -119,6 +121,16 @@ struct Variable {
     borrowed_path: Vec<usize>,
 }
 
+/// One failure arm around the code being checked, for `instead` to find.
+#[derive(Clone, Debug)]
+struct ArmInfo {
+    value_type: Type,
+    scope_depth: usize,
+    loop_depth: usize,
+    /// What ownership knew at each `instead` in this arm.
+    instead_states: Vec<Vec<VariableState>>,
+}
+
 /// One loop around the code being checked.
 #[derive(Clone, Debug)]
 struct LoopInfo {
@@ -146,6 +158,8 @@ struct FunctionContext {
     in_shield: usize,
     call_span: Option<Span>,
     ensures_variables: Vec<(String, Span)>,
+    /// The failure arms around the code being checked, innermost last.
+    arms: Vec<ArmInfo>,
     /// The loops around the code being checked, innermost last.
     loops: Vec<LoopInfo>,
     next_loop_id: usize,
@@ -170,6 +184,7 @@ impl FunctionContext {
             in_shield: 0,
             call_span: None,
             ensures_variables: Vec::new(),
+            arms: Vec::new(),
             loops: Vec::new(),
             next_loop_id: 0,
             being_read: Vec::new(),
@@ -1753,7 +1768,13 @@ impl Checker<'_> {
                 };
                 Ok(Type::Array { item, len: value })
             }
-            "map" => {
+            // trace: D138
+            "map" => Err(Report::refused(
+                path.span,
+                "there's no bare `std::map`, so pick `std::map.hash` or `std::map.ordered`",
+                "no default is obvious, so you pick (D48, D138)",
+            )),
+            "map.hash" | "map.ordered" => {
                 let mut key = None;
                 let mut value = None;
                 for entry in fill {
@@ -1778,6 +1799,7 @@ impl Checker<'_> {
                     ));
                 };
                 Ok(Type::Map {
+                    ordered: rest == "map.ordered",
                     key: Box::new(key),
                     value: Box::new(value),
                 })

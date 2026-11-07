@@ -90,6 +90,7 @@ pub enum Type {
         len: i128,
     },
     Map {
+        ordered: bool,
         key: Box<Type>,
         value: Box<Type>,
     },
@@ -97,6 +98,11 @@ pub enum Type {
         mutable: bool,
         sources: Sources,
         inner: Box<Type>,
+    },
+    /// What `case negative $f:` names: a failure, whose data its fields read. (D139)
+    Failure {
+        name: String,
+        fields: Vec<(String, Type)>,
     },
     /// `type.new`: the same data as `underlying`, and a different type. (D134)
     New {
@@ -173,9 +179,15 @@ impl fmt::Display for Type {
             Type::Array { item, len } => {
                 write!(formatter, "std::array<{item}>[len: {len} items]")
             }
-            Type::Map { key, value } => {
-                write!(formatter, "std::map<key: {key}, val: {value}>")
+            Type::Map {
+                ordered,
+                key,
+                value,
+            } => {
+                let narrowing = if *ordered { "ordered" } else { "hash" };
+                write!(formatter, "std::map.{narrowing}<key: {key}, val: {value}>")
             }
+            Type::Failure { name, .. } => write!(formatter, "the failure `{name}`"),
             Type::Borrow {
                 mutable,
                 sources,

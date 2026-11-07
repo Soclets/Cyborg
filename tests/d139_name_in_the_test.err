@@ -1,0 +1,5 @@
+NotDesignedYet: d139_name_in_the_test.cy:10:26, line 10 column 26
+10 |     if $s: status.failed $f:
+   |                          ^^
+ what: naming the case in a test, which D139 only shows on `case`
+ why:  not decided yet, and the standard doesn't say

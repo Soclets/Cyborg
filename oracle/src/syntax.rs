@@ -51,6 +51,7 @@ const CLASHING_WORDS: &[&str] = &[
     "false",
     "else",
     "finish",
+    "instead",
     "while",
     "forever",
     "break",
@@ -1808,6 +1809,16 @@ impl Parser {
                         "",
                     ));
                 }
+                // trace: D139
+                "instead" if !self.symbol_at(1, "(") => {
+                    self.advance();
+                    let value = self.parse_expression()?;
+                    let end = self.end_statement(&value)?;
+                    return Ok(Statement {
+                        span: start.to(end),
+                        kind: StatementKind::Instead(value),
+                    });
+                }
                 // trace: D129
                 "finish" if !self.symbol_at(1, "(") => {
                     self.advance();
@@ -1975,7 +1986,19 @@ impl Parser {
         let colon = self.position;
         self.expect_symbol(":")?;
         // `if $s: status.failed:` reads a type then a second `:`. Anything else is a plain block.
+        let could_name_a_case = !self.peek().starts_a_line
+            && !matches!(&self.peek().lexeme, Lexeme::Word(word) if is_clashing(word));
         if let Ok(written_type) = self.parse_type() {
+            if could_name_a_case
+                && matches!(self.peek().lexeme, Lexeme::Variable(_))
+                && self.symbol_at(1, ":")
+            {
+                return Err(Report::not_designed(
+                    self.span(),
+                    "naming the case in a test, which D139 only shows on `case`",
+                    "",
+                ));
+            }
             if self.eat_symbol(":") {
                 return Ok(IfTest::Type {
                     subject: condition,
@@ -1993,9 +2016,19 @@ impl Parser {
         while self.at_word("case") {
             self.advance();
             let pattern = self.parse_path()?;
+            // trace: D139
+            let binding = if matches!(self.peek().lexeme, Lexeme::Variable(_)) {
+                Some(self.expect_variable("the name for this case")?)
+            } else {
+                None
+            };
             self.expect_symbol(":")?;
             let body = self.parse_block()?;
-            arms.push(Arm { pattern, body });
+            arms.push(Arm {
+                pattern,
+                binding,
+                body,
+            });
         }
         Ok(arms)
     }

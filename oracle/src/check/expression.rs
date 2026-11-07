@@ -1803,7 +1803,6 @@ impl Checker<'_> {
                 "",
             ));
         }
-        let is_void = raw.value_type == Type::Void;
         let arms = match handling {
             Handling::Block(arms) => arms.clone(),
             Handling::Named {
@@ -1813,7 +1812,7 @@ impl Checker<'_> {
                 span: handler_span,
             } => self.find_handler(family, name, *jumps, *handler_span)?,
         };
-        let code = self.check_arms(&arms, &raw.failures, is_void, span)?;
+        let code = self.check_arms(&arms, &raw.failures, &raw.value_type, span)?;
         Ok((
             Node {
                 span,

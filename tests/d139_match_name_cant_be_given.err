@@ -1,0 +1,5 @@
+refused: d139_match_name_cant_be_given.cy:15:22, line 15 column 22
+15 |             eat(Give $f);
+   |                      ^^
+ what: `$f` is only lent here, so it can't be given away
+ why:  `Lend` is temporary access, and the caller keeps it (D2)

@@ -5,7 +5,8 @@ use std::collections::HashMap;
 use super::expression::literal_integer;
 use super::hand::UseKind;
 use super::{
-    Checker, Failure, FunctionContext, LoopInfo, Origin, Variable, VariableState, ITEM_LIMIT,
+    ArmInfo, Checker, Failure, FunctionContext, LoopInfo, Origin, Variable, VariableState,
+    ITEM_LIMIT,
 };
 use crate::ast::{
     Arm, Contract, Expression, ExpressionKind, ForSource, Function, FunctionKind, HandWord, IfLink,
@@ -499,6 +500,7 @@ impl Checker<'_> {
             let mut trust_ended = None;
             let mut invalidated = None;
             let mut finished = false;
+            let mut matched = false;
             let mut some_path = false;
             for branch in branches {
                 let Some(state) = branch.get(index) else {
@@ -512,6 +514,7 @@ impl Checker<'_> {
                 trust_ended = trust_ended.or(state.trust_ended);
                 invalidated = invalidated.or(state.invalidated);
                 finished = finished || state.finished;
+                matched = matched || state.matched;
                 some_path = some_path || state.given_on_some_path;
             }
             slot_state.given = given;
@@ -519,6 +522,7 @@ impl Checker<'_> {
                 some_path || (given_count > 0 && given_count < branch_count);
             slot_state.invalidated = invalidated;
             slot_state.finished = finished;
+            slot_state.matched = matched;
             let first = trusts.first().copied().flatten();
             slot_state.trust = if trusts.iter().all(|trust| *trust == first) {
                 first
@@ -611,6 +615,10 @@ impl Checker<'_> {
                 kind
             }
             StatementKind::Finish { target } => self.check_finish(target, span)?,
+            StatementKind::Instead(value) => {
+                terminated = true;
+                self.check_instead(value, span)?
+            }
             StatementKind::Break { name } => {
                 terminated = true;
                 self.check_break(name.as_ref(), span)?
@@ -1236,16 +1244,29 @@ impl Checker<'_> {
                 ));
             }
             covered.push(case);
-            let (body, ends, branch) = self.on_a_branch(|this| {
-                if let Some(slot) = slot {
-                    if let Some(state) = this.context.state.get_mut(slot) {
-                        state.trust = Some(case);
-                        state.trust_ended = None;
-                    }
+            let root = root_variable(subject);
+            let ((binding_slot, body), ends, branch) = self.on_a_branch(|this| {
+                if let Some(state) = slot.and_then(|slot| this.context.state.get_mut(slot)) {
+                    state.matched = true;
                 }
-                this.check_block(&arm.body)
+                this.context.scopes.push(HashMap::new());
+                let binding_slot = match &arm.binding {
+                    Some(name) => {
+                        Some(this.declare_case_name(name, &subject_type, case, root.as_deref())?)
+                    }
+                    None => None,
+                };
+                let (body, ends) = this.check_block(&arm.body)?;
+                let scope_check = this.check_borrows_at_scope_end();
+                this.context.scopes.pop();
+                scope_check?;
+                Ok(((binding_slot, body), ends))
             })?;
-            code.push((case, body));
+            code.push(ir::MatchArm {
+                case,
+                slot: binding_slot,
+                body,
+            });
             if !ends {
                 branches.push(branch);
                 all_end = false;
@@ -1268,8 +1289,7 @@ impl Checker<'_> {
             self.join_states(&branches);
         }
         if let Some(state) = slot.and_then(|slot| self.context.state.get_mut(slot)) {
-            state.trust = None;
-            state.trust_ended = None;
+            state.matched = false;
         }
         Ok((
             InstructionKind::Match {
@@ -1817,14 +1837,83 @@ impl Checker<'_> {
         Ok(node)
     }
 
-    /// trace: D46
+    /// `$f` in `case status.failed $f:`: the case's data, which it trusts all through its arm.
+    /// It's a read-only view of what's matched, so changing that ends it, like a stored borrow.
+    /// trace: D139
+    fn declare_case_name(
+        &mut self,
+        name: &crate::ast::Name,
+        subject_type: &Type,
+        case: usize,
+        root: Option<&str>,
+    ) -> Outcome<usize> {
+        self.refuse_second_declaration(name)?;
+        let slot = self.declare_variable(Variable {
+            name: name.text.clone(),
+            held_type: subject_type.clone(),
+            mutable: false,
+            origin: Origin::StoredBorrow,
+            declared: name.span,
+            must_give: false,
+            constant: None,
+            borrows: root.map(str::to_string).into_iter().collect(),
+            borrowed_path: Vec::new(),
+        });
+        if let Some(state) = self.context.state.get_mut(slot) {
+            state.trust = Some(case);
+        }
+        Ok(slot)
+    }
+
+    /// `instead 0;`: the value used in place of the failed call. (D139)
+    /// trace: D139
+    fn check_instead(&mut self, value: &Expression, span: Span) -> Outcome<InstructionKind> {
+        const WHY: &str = "`instead` gives the value used in place of a failed call (D139)";
+        let Some(arm) = self.context.arms.last().cloned() else {
+            return Err(Report::refused(
+                span,
+                "`instead` goes in a failure's `case`, and there's none around this",
+                WHY,
+            ));
+        };
+        if self.context.loops.len() != arm.loop_depth {
+            return Err(Report::not_designed(
+                span,
+                "`instead` inside a loop inside its arm",
+                "",
+            ));
+        }
+        if arm.value_type == Type::Void {
+            return Err(Report::refused(
+                span,
+                "this call gives back nothing, so there's nothing to use instead",
+                WHY,
+            ));
+        }
+        let node = self.check_into(value, &arm.value_type)?;
+        for scope in self.context.scopes.iter().skip(arm.scope_depth) {
+            let mut slots: Vec<usize> = scope.values().copied().collect();
+            slots.sort_unstable();
+            for slot in slots {
+                self.check_duty_ended(slot, Some(span))?;
+            }
+        }
+        let state = self.context.state.clone();
+        if let Some(found) = self.context.arms.last_mut() {
+            found.instead_states.push(state);
+        }
+        Ok(InstructionKind::Instead(node))
+    }
+
+    /// trace: D46, D139
+    #[allow(clippy::too_many_lines)] // Every rule an arm has, top to bottom.
     pub(super) fn check_arms(
         &mut self,
         arms: &[Arm],
         failures: &[Failure],
-        value_is_void: bool,
+        value_type: &Type,
         span: Span,
-    ) -> Outcome<Vec<(String, Vec<Instruction>)>> {
+    ) -> Outcome<Vec<ir::FailureArm>> {
         let mut code = Vec::new();
         let mut covered: Vec<String> = Vec::new();
         let before = self.context.state.clone();
@@ -1854,18 +1943,64 @@ impl Checker<'_> {
                 ));
             }
             covered.push(failure.full.clone());
-            let (body, ends, branch) = self.on_a_branch(|this| this.check_block(&arm.body))?;
+            // trace: D139
+            if *value_type != Type::Void {
+                if let Some(StatementKind::Expression(last)) =
+                    arm.body.last().map(|statement| &statement.kind)
+                {
+                    if !matches!(
+                        last.kind,
+                        ExpressionKind::Call { .. }
+                            | ExpressionKind::Method { .. }
+                            | ExpressionKind::Try(_)
+                            | ExpressionKind::Fallback { .. }
+                            | ExpressionKind::Otherwise { .. }
+                    ) {
+                        let shown = self.text_of(last.span);
+                        return Err(Report::refused(
+                            last.span,
+                            "a value on its own reads like a leftover",
+                            "`instead` gives the value used in place of a failed call (D139)",
+                        )
+                        .fix(format!("instead {shown}")));
+                    }
+                }
+            }
+            let failure = failure.clone();
+            self.context.arms.push(ArmInfo {
+                value_type: value_type.clone(),
+                scope_depth: self.context.scopes.len(),
+                loop_depth: self.context.loops.len(),
+                instead_states: Vec::new(),
+            });
+            let ((binding_slot, body), ends, branch) = self.on_a_branch(|this| {
+                this.context.scopes.push(HashMap::new());
+                let binding_slot = match &arm.binding {
+                    Some(name) => Some(this.declare_failure_name(name, &failure)?),
+                    None => None,
+                };
+                let (body, ends) = this.check_block(&arm.body)?;
+                this.context.scopes.pop();
+                Ok(((binding_slot, body), ends))
+            })?;
+            if let Some(finished) = self.context.arms.pop() {
+                branches.extend(finished.instead_states);
+            }
             if !ends {
-                if !value_is_void {
-                    return Err(Report::not_designed(
+                if *value_type != Type::Void {
+                    return Err(Report::refused(
                         arm.pattern.span,
-                        "what an arm that runs off its end gives back",
-                        "12.6",
+                        format!("this arm can run off its end, and `{value_type}` is needed here"),
+                        "an arm gives a value with `instead`, or can `return`, `break` or `fail` (D139)",
                     ));
                 }
                 branches.push(branch);
             }
-            code.push((failure.full.clone(), body));
+            code.push(ir::FailureArm {
+                failure: failure.full.clone(),
+                slot: binding_slot,
+                body,
+            });
         }
         let missing: Vec<String> = failures
             .iter()
@@ -1881,6 +2016,29 @@ impl Checker<'_> {
         }
         self.join_states(&branches);
         Ok(code)
+    }
+
+    /// `$f` in `case negative $f:`, whose fields are the failure's data. (D139)
+    fn declare_failure_name(
+        &mut self,
+        name: &crate::ast::Name,
+        failure: &Failure,
+    ) -> Outcome<usize> {
+        self.refuse_second_declaration(name)?;
+        Ok(self.declare_variable(Variable {
+            name: name.text.clone(),
+            held_type: Type::Failure {
+                name: failure.short.clone(),
+                fields: failure.data.clone(),
+            },
+            mutable: false,
+            origin: Origin::ForItem,
+            declared: name.span,
+            must_give: false,
+            constant: None,
+            borrows: Vec::new(),
+            borrowed_path: Vec::new(),
+        }))
     }
 
     pub(super) fn item_limit_check(count: i128, span: Span) -> Outcome<()> {

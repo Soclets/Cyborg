@@ -1,0 +1,5 @@
+refused: d139_star_on_instead_only.cy:16:42, line 16 column 42
+16 |     let $a: str = first_word() otherwise word_failed.*use_placeholder;
+   |                                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ fix:  `word_failed.use_placeholder`
+ why:  the compiler refuses `*` on a handler that can't jump (D46)

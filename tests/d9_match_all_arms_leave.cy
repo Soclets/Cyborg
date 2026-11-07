@@ -11,8 +11,8 @@ fn code_of [$s: status] -> i32:
     match $s:
         case status.ok:
             return 0;
-        case status.failed:
-            return $s.code;
+        case status.failed $f:
+            return $f.code;
     end match
 end fn code_of
 

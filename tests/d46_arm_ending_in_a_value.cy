@@ -1,5 +1,5 @@
-// An arm ending in a value is shown from Radium, and isn't decided.
-// trace: D45
+// `instead` replaced the bare last line, which read like a leftover.
+// trace: D139, D45
 fn first_word [] -> str:
     fails [too_long];
 

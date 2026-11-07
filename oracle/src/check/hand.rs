@@ -358,6 +358,21 @@ impl Checker<'_> {
                     })
             }
             Type::Union(union_name) => self.find_union_field(base, union_name, name),
+            // trace: D139
+            Type::Failure {
+                name: failure,
+                fields,
+            } => fields
+                .iter()
+                .position(|(field, _)| *field == name.text)
+                .and_then(|index| Some((index, fields.get(index)?.1.clone())))
+                .ok_or_else(|| {
+                    Report::refused(
+                        name.span,
+                        format!("`{failure}` carries no `{}`", name.text),
+                        "a failure can carry data in `[ ]`, and `case negative $f:` reads it (D47, D139)",
+                    )
+                }),
             Type::New { .. } => Err(Report::not_designed(
                 name.span,
                 "a field of a `type.new`, and how a value gets out of one",
@@ -418,6 +433,14 @@ impl Checker<'_> {
                 "a case's values go in `[ ]` (D33)",
             ));
         };
+        // D139 reads a case's data through the arm's name, and doesn't say whether this still can.
+        if state.is_some_and(|state| state.matched) {
+            return Err(Report::not_designed(
+                base.span.to(name.span),
+                format!("reading `{shown}.{}` in a `match` arm, rather than through a name for the case", name.text),
+                "",
+            ));
+        }
         // trace: D104
         if let Some(ended) = state.and_then(|state| state.trust_ended) {
             return Err(Report::refused(
@@ -763,6 +786,14 @@ impl Checker<'_> {
             let found = self.check_held(value)?.value_type;
             if found.is_always_copied() {
                 return Err(Self::mismatch(value.span, target, &found));
+            }
+            // trace: D139
+            if matches!(found, Type::Failure { .. }) {
+                return Err(Report::refused(
+                    value.span,
+                    format!("`{shown}` names a failure, which is for reading its data"),
+                    "`case negative $f:` names the failure, so `$f.val` reads its data (D139)",
+                ));
             }
             let report = Report::refused(
                 value.span,

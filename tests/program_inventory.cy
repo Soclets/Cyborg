@@ -46,8 +46,8 @@ fn report [$l: line] -> void:
     match $level:
         case level.plenty:
             std::println(Lend $l.name, ": plenty");
-        case level.low:
-            std::println(Lend $l.name, ": low, ", $level.left as str, " left");
+        case level.low $low:
+            std::println(Lend $l.name, ": low, ", $low.left as str, " left");
         case level.out:
             std::println(Lend $l.name, ": out");
     end match

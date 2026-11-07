@@ -1,0 +1,5 @@
+NotDesignedYet: d139_match_without_a_name.cy:12:27, line 12 column 27
+12 |             let $n: i32 = $s.code;
+   |                           ^^^^^^^
+ what: reading `$s.code` in a `match` arm, rather than through a name for the case
+ why:  not decided yet, and the standard doesn't say

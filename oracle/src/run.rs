@@ -27,6 +27,8 @@ struct Raised {
     /// How `what:` says it, as in "`odd` failed" or "`$xs` is full".
     shown: String,
     when: Option<String>,
+    /// What it carries, in the order declared, for `case negative $f:` to read.
+    data: Vec<Value>,
     span: Span,
 }
 
@@ -35,6 +37,8 @@ enum Stop {
     Raised(Raised),
     Return(Value, Span),
     Break(usize),
+    /// `instead 0;`, on its way to the call its arm belongs to.
+    Instead(Value),
     Report(Box<Report>),
 }
 
@@ -166,7 +170,7 @@ pub fn check_compile_time(code: &Code) -> Outcome<()> {
                     "a `const`'s value must be fully known at compile time (D83, D91)",
                 ));
             }
-            Err(Stop::Break(_)) => {
+            Err(Stop::Break(_) | Stop::Instead(_)) => {
                 return Err(Report::refused(
                     node.span,
                     "this `break` jumps out of compile-time code",
@@ -217,7 +221,7 @@ pub fn run(code: &Code) -> Outcome<()> {
             format!("{}, and nothing handled it", raised.shown),
             "a failure nothing handles stops the program (D96)",
         )),
-        Err(Stop::Return(..) | Stop::Break(_)) => Ok(()),
+        Err(Stop::Return(..) | Stop::Break(_) | Stop::Instead(_)) => Ok(()),
     }
 }
 
@@ -439,12 +443,17 @@ impl<'c> Runner<'c> {
                 self.run_block(otherwise, frame)
             }
             InstructionKind::Match { subject, arms } => {
-                let Value::Case(found, _) = self.evaluate(subject, frame)? else {
+                let Value::Case(found, fields) = self.evaluate(subject, frame)? else {
                     return Err(oracle_bug(span, "`match` on something that isn't a union"));
                 };
-                for (case, body) in arms {
-                    if *case == found {
-                        return self.run_block(body, frame);
+                for arm in arms {
+                    if arm.case == found {
+                        // trace: D139
+                        if let Some(slot) = arm.slot {
+                            let named = Binding::fresh(Value::Case(found, fields));
+                            Self::set_slot(frame, slot, named, span)?;
+                        }
+                        return self.run_block(&arm.body, frame);
                     }
                 }
                 Err(oracle_bug(span, "a `match` missed a case the checker saw"))
@@ -492,22 +501,29 @@ impl<'c> Runner<'c> {
                 Ok(())
             }
             InstructionKind::Break(loop_id) => Err(Stop::Break(*loop_id)),
+            InstructionKind::Instead(value) => {
+                let value = self.evaluate(value, frame)?;
+                Err(Stop::Instead(value))
+            }
             InstructionKind::Return(value) => {
                 let value = self.evaluate(value, frame)?;
                 Err(Stop::Return(value, span))
             }
             InstructionKind::Fail { name, shown, data } => {
                 let mut when = Vec::new();
+                let mut values = Vec::new();
                 for node in data {
                     let value = self.evaluate(node, frame)?;
                     if let Some(text) = value.shown() {
                         when.push(text);
                     }
+                    values.push(value);
                 }
                 Err(Stop::Raised(Raised {
                     name: name.clone(),
                     shown: format!("`{shown}` failed"),
                     when: (!when.is_empty()).then(|| format!("it carried {}", when.join(", "))),
+                    data: values,
                     span,
                 }))
             }
@@ -806,10 +822,18 @@ impl<'c> Runner<'c> {
             },
             NodeKind::Handle { value, arms } => match self.evaluate(value, frame) {
                 Err(Stop::Raised(raised)) => {
-                    for (name, body) in arms {
-                        if *name == raised.name {
-                            self.run_block(body, frame)?;
-                            return Ok(Value::Void);
+                    for arm in arms {
+                        if arm.failure == raised.name {
+                            // trace: D139
+                            if let Some(slot) = arm.slot {
+                                let named = Binding::fresh(Value::Struct(raised.data));
+                                Self::set_slot(frame, slot, named, span)?;
+                            }
+                            return match self.run_block(&arm.body, frame) {
+                                Ok(()) => Ok(Value::Void),
+                                Err(Stop::Instead(value)) => Ok(value),
+                                Err(other) => Err(other),
+                            };
                         }
                     }
                     Err(Stop::Raised(raised))
@@ -866,6 +890,7 @@ impl<'c> Runner<'c> {
                 name: "print_failed".to_string(),
                 shown: "`print_failed` failed".to_string(),
                 when: None,
+                data: Vec::new(),
                 span,
             }));
         }
@@ -894,6 +919,7 @@ impl<'c> Runner<'c> {
                 name: String::new(),
                 shown: format!("`{shown}` is full"),
                 when: Some(format!("it holds {count} items")),
+                data: Vec::new(),
                 span,
             }));
         }

@@ -1,0 +1,5 @@
+refused: d139_no_such_data.cy:11:24, line 11 column 24
+11 |             instead $o.val;
+   |                        ^^^
+ what: `odd` carries no `val`
+ why:  a failure can carry data in `[ ]`, and `case negative $f:` reads it (D47, D139)

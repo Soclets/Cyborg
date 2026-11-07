@@ -139,7 +139,7 @@ pub enum NodeKind {
     },
     Handle {
         value: Box<Node>,
-        arms: Vec<(String, Vec<Instruction>)>,
+        arms: Vec<FailureArm>,
     },
     /// A plain `=`, `change` or argument checks a bound the compiler can't see fits. (D20)
     Fit {
@@ -189,7 +189,7 @@ pub enum InstructionKind {
     },
     Match {
         subject: Node,
-        arms: Vec<(usize, Vec<Instruction>)>,
+        arms: Vec<MatchArm>,
     },
     For {
         loop_id: usize,
@@ -213,6 +213,7 @@ pub enum InstructionKind {
         body: Vec<Instruction>,
     },
     Break(usize),
+    Instead(Node),
     Return(Node),
     Fail {
         name: String,
@@ -221,6 +222,22 @@ pub enum InstructionKind {
     },
     Evaluate(Node),
     Block(Vec<Instruction>),
+}
+
+/// One `case` in a `match`. `slot` is where `case status.failed $f:` keeps its name.
+#[derive(Clone, Debug)]
+pub struct MatchArm {
+    pub case: usize,
+    pub slot: Option<usize>,
+    pub body: Vec<Instruction>,
+}
+
+/// One `case` in an `otherwise`. `slot` is where `case negative $f:` keeps its name.
+#[derive(Clone, Debug)]
+pub struct FailureArm {
+    pub failure: String,
+    pub slot: Option<usize>,
+    pub body: Vec<Instruction>,
 }
 
 /// What decides whether one block of an `if` runs.
