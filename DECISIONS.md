@@ -749,6 +749,9 @@ it stands is Claude's reading of that answer. (Owner, 2026-11-06)
 **D140. A list decides its length's type.** `$xs.len` is `u64.items` by default. A list can choose another with `len.type`, as in `std::list<i32>[len.max: inf items, len.type: u32]`, which also changes how the list stores its length, and then `$xs.len` is `u32.items`. A `len.max` that doesn't fit is refused. An array's `$a.len` follows the same rule, which is Claude's reading. Claude
 suggested `u64.items` plus narrowings on each read; the owner asked "Why not unsigned?", "Why not let them choose?", then "Ah, so decide on the `list`?", which Claude reads as this. (Owner, 2026-11-07)
 
+**D141. `as` crosses, and literals don't need it.** A literal takes its type from where it lands: `let $u: user_id = 5;`, and `let $t: u64.items = 5 items;`. A value that already has a type crosses with `as`: `$n as user_id` and `$u as i64` for a `type.new`, and `$xs.len as u64` to take a unit off. This can't fail, as it's the same data. Oracle claude said `type.new` couldn't produce a value, and a length couldn't become
+a plain number; Claude proposed `as`; the owner asked "Why does `5` need to say `as`?", and Claude agreed; the owner chose: "yea". (Owner, 2026-11-07)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude

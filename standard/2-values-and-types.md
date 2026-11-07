@@ -230,6 +230,8 @@ std::array<u8>[len: 4096 items]
 let $x: i32 = 3600;
 ```
 
+`as` takes a unit off a value, or puts one on: `$xs.len as u64`, `$n as u64.items`.
+
 **Refused:** mixing units, as in `$a + 5 storage.bytes`, a missing unit, as in `let $b: i32.time.seconds = 3600;`, a bare `3600 seconds` with no `use`, and unit maths with no `together` line.
 
 You define units in a collection. Every unit says what it is: `: base`, or `=` with a conversion, which can point at a unit in any family. Two units convert if they trace back to the same base, and otherwise they don't.
@@ -256,7 +258,7 @@ together length.meters / time.seconds = speed.meters_per_second;
 
 A conversion can be an offset, not only a multiple. A moment is kept apart from a length of time. How these are spelled, and how a conversion is written, aren't decided ([12.2](12-not-decided.md#122-types)).
 
-**From:** D99, D100, D101, D108, D109, D110, D111, D112.
+**From:** D99, D100, D101, D108, D109, D110, D111, D112, D141.
 
 ## 2.17 Getting an item
 
@@ -292,6 +294,14 @@ end fam.type.new ids
 let $u: ids.user = get_user();
 ```
 
-**Refused:** a bare `type`, mixing `ids.user` and `ids.order`, and mixing the two kinds in one family.
+A literal takes its type from where it lands. A value that already has a type crosses with `as`, which can't fail, since it's the same data.
 
-**From:** D134.
+```
+let $u: user_id = 5;
+let $v: user_id = $n as user_id;
+let $m: i64 = $u as i64;
+```
+
+**Refused:** a bare `type`, mixing `ids.user` and `ids.order`, mixing the two kinds in one family, and a value crossing with no `as`, as in `let $u: user_id = $n;`.
+
+**From:** D134, D141.
