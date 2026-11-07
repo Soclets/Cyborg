@@ -151,5 +151,6 @@ These have a working name, but aren't chosen:
 - The command `cyborg build`.
 - `key` and `val` in `std::map`.
 - `plus.wrap`.
+- `exponent` in front of a literal.
 - `result`.
 - The repository's name, and the license.
