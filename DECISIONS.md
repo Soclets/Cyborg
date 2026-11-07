@@ -771,6 +771,8 @@ bounds on the ranges is not settled here. (Owner, 2026-11-07)
 
 **D149. `as` on a whole value says its ownership.** `Give $r as wrapped` leaves `$r` dead, and `Copy $r as wrapped` leaves it alive and pays for a copy, following D3. A plain number needs no word (D123), and neither does a fresh value. This covers structs, lists and strings in a variable. Oracle claude asked; Claude proposed it; the owner chose: "yea". (Owner, 2026-11-07)
 
+**D150. Checked `use`.** An unquoted name has to match the last word of its path, so a short name can't lie: `use std::time.seconds as seconds;` is fine, and `use std::time.seconds as minutes;` is refused. A quoted name is your own choice, and isn't checked: `use std::time.seconds as "secs";`, used afterwards as `3600 secs`. This covers every `use`, so D93's `use std::print.useful as printu;` becomes `as "printu"`. The quotes only appear on the `use` line, which is Claude's reading. The owner: "`seconds` without `""` matches the actual unit there"; Claude proposed extending it to every `use`; the owner chose: "yes". (Owner, 2026-11-07)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude

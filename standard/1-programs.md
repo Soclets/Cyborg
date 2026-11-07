@@ -160,15 +160,19 @@ If Cyborg later adds a built-in with the same name, old code gets a compile erro
 
 ## 1.11 Short names: `use`
 
-**Rule:** `use` gives a path a shorter name for that file, and `as` is always written.
+**Rule:** `use` gives a path a shorter name for that file, and `as` is always written. An unquoted name has to match the last word of the path, so it can't lie. A quoted name is your own choice, and the quotes only appear on this line.
 
 ```
-use std::print.useful as printu;
+use std::time.seconds as seconds;
+use std::print.useful as "printu";
+
+let $a: i32.seconds = 3600 seconds;
+printu("hi");
 ```
 
-**Refused:** `use @csup::extern.c as ext;`. A limb is always written with its full mark and path.
+**Refused:** `use std::time.seconds as minutes;`, and `use @csup::extern.c as ext;`, because a limb is always written with its full mark and path.
 
-**From:** D93, D94.
+**From:** D93, D94, D150.
 
 ## 1.12 Comments
 
