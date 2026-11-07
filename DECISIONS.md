@@ -754,6 +754,8 @@ a plain number; Claude proposed `as`; the owner asked "Why does `5` need to say 
 
 **D142. Positions take a length.** `pos:` and `offset:` accept a number in `items` or a plain one, so `$xs[pos: $xs.len]` gets the last item, and `$xs[pos: 3]` still works. Ranges do the same: `range[from: 1, to: $xs.len]`. Claude proposed it; the owner answered: "Why not?", which Claude reads as a yes. (Owner, 2026-11-07)
 
+**D143. `offset:` says `items`, and `pos:` doesn't.** `$xs[offset: 8 items]` says its unit, because an offset could read as bytes, as with `len: 4096 items`. `$xs[pos: 3]` doesn't, and `$xs[pos: $xs.len]` still works, since nobody reads position 3 as a byte. This narrows D142 for `offset:`. The owner: "`len: 4096` kinda look like bytes to me", and "`pos: 3 items` reads weird"; Claude proposed the split. (Owner, 2026-11-07)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude

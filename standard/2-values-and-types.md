@@ -18,7 +18,7 @@
 | [2.14](#214-conversion-as) | `as` | Builds a new value |
 | [2.15](#215-void-and-bool) | `void`, `bool` | |
 | [2.16](#216-units) | `3600 time.seconds` | A number says its unit |
-| [2.17](#217-getting-an-item) | `$xs[pos: 1]`, `$xs[offset: 0]` | Counting from 1, or from 0 |
+| [2.17](#217-getting-an-item) | `$xs[pos: 1]`, `$xs[offset: 0 items]` | Counting from 1, or from 0 |
 | [2.18](#218-naming-a-type) | `type.alias`, `type.new` | Another name, or a different type |
 
 ## 2.1 `let`
@@ -266,15 +266,17 @@ A conversion can be an offset, not only a multiple. A moment is kept apart from 
 
 ```
 let $first: i32 = $xs[pos: 1];
-let $same: i32 = $xs[offset: 0];
+let $same: i32 = $xs[offset: 0 items];
 change $xs[pos: 3] = 10;
 ```
 
 A bad position is a bounds check ([10.4](10-build-modes.md#104-what-happens-when-something-goes-wrong)). Changing an item needs what changing a field needs ([7.3](7-structs-and-unions.md#73-reading-a-field)).
 
-A position takes a number in `items` or a plain one, so `$xs[pos: $xs.len]` gets the last item.
+`pos:` takes a plain number or one in `items`, so `$xs[pos: $xs.len]` gets the last item. `offset:` says its unit, because it could read as bytes.
 
-**From:** D26, D125, D133, D142.
+**Refused:** `$xs[offset: 8]`, with `fix: 8 items`.
+
+**From:** D26, D125, D133, D142, D143.
 
 ## 2.18 Naming a type
 
