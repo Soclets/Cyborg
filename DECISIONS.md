@@ -756,6 +756,9 @@ a plain number; Claude proposed `as`; the owner asked "Why does `5` need to say 
 
 **D143. `offset:` says `items`, and `pos:` doesn't.** `$xs[offset: 8 items]` says its unit, because an offset could read as bytes, as with `len: 4096 items`. `$xs[pos: 3]` doesn't, and `$xs[pos: $xs.len]` still works, since nobody reads position 3 as a byte. This narrows D142 for `offset:`. The owner: "`len: 4096` kinda look like bytes to me", and "`pos: 3 items` reads weird"; Claude proposed the split. (Owner, 2026-11-07)
 
+**D144. A label can carry a unit.** A label's narrowing can name a unit, so `$xs[offset.items: 8]` replaces D143's `offset: 8 items`, with no bare `offset:`. A plain number takes the label's unit, a value with the right unit is fine, and a value with another unit is refused, needing `as` if they convert. It works with your own units too: `labels [$x as at.screen.pixels];` is called `draw(at.screen.pixels: 5);`. The writer picks this or
+a unit behind the number when declaring a function, so each function has one way to call it. Claude proposed it, since `offset: 8 items` "reads weird"; the owner chose: "yea". (Owner, 2026-11-07)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude

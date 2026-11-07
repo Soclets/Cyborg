@@ -18,7 +18,7 @@
 | [2.14](#214-conversion-as) | `as` | Builds a new value |
 | [2.15](#215-void-and-bool) | `void`, `bool` | |
 | [2.16](#216-units) | `3600 time.seconds` | A number says its unit |
-| [2.17](#217-getting-an-item) | `$xs[pos: 1]`, `$xs[offset: 0 items]` | Counting from 1, or from 0 |
+| [2.17](#217-getting-an-item) | `$xs[pos: 1]`, `$xs[offset.items: 0]` | Counting from 1, or from 0 |
 | [2.18](#218-naming-a-type) | `type.alias`, `type.new` | Another name, or a different type |
 
 ## 2.1 `let`
@@ -232,6 +232,17 @@ let $x: i32 = 3600;
 
 `as` takes a unit off a value, or puts one on: `$xs.len as u64`, `$n as u64.items`.
 
+A label can carry the unit instead, when the writer declares it that way. A plain number takes the label's unit, and a value in another unit is refused.
+
+```
+fn draw [$x: i32.screen.pixels] -> void:
+    labels [$x as at.screen.pixels];
+    …
+end fn draw
+
+draw(at.screen.pixels: 5);
+```
+
 **Refused:** mixing units, as in `$a + 5 storage.bytes`, a missing unit, as in `let $b: i32.time.seconds = 3600;`, a bare `3600 seconds` with no `use`, and unit maths with no `together` line.
 
 You define units in a collection. Every unit says what it is: `: base`, or `=` with a conversion, which can point at a unit in any family. Two units convert if they trace back to the same base, and otherwise they don't.
@@ -258,7 +269,7 @@ together length.meters / time.seconds = speed.meters_per_second;
 
 A conversion can be an offset, not only a multiple. A moment is kept apart from a length of time. How these are spelled, and how a conversion is written, aren't decided ([12.2](12-not-decided.md#122-types)).
 
-**From:** D99, D100, D101, D108, D109, D110, D111, D112, D141.
+**From:** D99, D100, D101, D108, D109, D110, D111, D112, D141, D144.
 
 ## 2.17 Getting an item
 
@@ -266,17 +277,17 @@ A conversion can be an offset, not only a multiple. A moment is kept apart from 
 
 ```
 let $first: i32 = $xs[pos: 1];
-let $same: i32 = $xs[offset: 0 items];
+let $same: i32 = $xs[offset.items: 0];
 change $xs[pos: 3] = 10;
 ```
 
 A bad position is a bounds check ([10.4](10-build-modes.md#104-what-happens-when-something-goes-wrong)). Changing an item needs what changing a field needs ([7.3](7-structs-and-unions.md#73-reading-a-field)).
 
-`pos:` takes a plain number or one in `items`, so `$xs[pos: $xs.len]` gets the last item. `offset:` says its unit, because it could read as bytes.
+`pos:` and `offset.items:` take a plain number or one in `items`, so `$xs[pos: $xs.len]` gets the last item. `offset:` says its unit in the label, because it could read as bytes.
 
-**Refused:** `$xs[offset: 8]`, with `fix: 8 items`.
+**Refused:** a bare `offset:`, and a value in another unit.
 
-**From:** D26, D125, D133, D142, D143.
+**From:** D26, D125, D133, D142, D143, D144.
 
 ## 2.18 Naming a type
 
