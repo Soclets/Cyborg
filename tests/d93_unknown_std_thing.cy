@@ -2,7 +2,7 @@
 // trace: D93
 import std;
 
-use std::print.useful as printu;
+use std::print.useful as "printu";
 
 fn.main [] -> void:
     printu("hi");

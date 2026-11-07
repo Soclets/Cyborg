@@ -806,9 +806,20 @@ impl Parser {
                         "`use` gives a path a shorter name, and `as` is always written (D93)",
                     ));
                 }
-                let short = self.expect_name("the shorter name")?;
+                // trace: D150
+                let quoted = matches!(self.peek().lexeme, Lexeme::Text(_));
+                let short = if let Lexeme::Text(text) = self.peek().lexeme.clone() {
+                    let span = self.advance().span;
+                    Name { text, span }
+                } else {
+                    self.expect_name("the shorter name")?
+                };
                 self.expect_semicolon()?;
-                program.uses.push(Use { path, short });
+                program.uses.push(Use {
+                    path,
+                    short,
+                    quoted,
+                });
             } else {
                 let item = self.parse_item()?;
                 program.items.push(item);

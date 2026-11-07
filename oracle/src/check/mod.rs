@@ -359,6 +359,38 @@ impl Checker<'_> {
                     "a limb is always written with its full mark and path, so a search for `@` finds it (D94)",
                 ));
             }
+            // trace: D150
+            let last_word = declared
+                .path
+                .text
+                .rsplit(['.', ':'])
+                .next()
+                .unwrap_or_default();
+            if declared.quoted {
+                let is_a_name = !declared.short.text.is_empty()
+                    && declared
+                        .short
+                        .text
+                        .chars()
+                        .all(|c| c.is_alphanumeric() || c == '_')
+                    && !declared
+                        .short
+                        .text
+                        .starts_with(|c: char| c.is_ascii_digit());
+                if !is_a_name {
+                    return Err(Report::not_designed(
+                        declared.short.span,
+                        "a quoted name that couldn't be written as a name",
+                        "",
+                    ));
+                }
+            } else if declared.short.text != last_word {
+                return Err(Report::refused(
+                    declared.short.span,
+                    format!("`{}` doesn't match `{last_word}`, the end of this path", declared.short.text),
+                    "an unquoted name has to match the last word of its path, and a quoted one is your own choice (D150)",
+                ));
+            }
             // trace: D93
             self.aliases
                 .insert(declared.short.text.clone(), declared.path.text.clone());

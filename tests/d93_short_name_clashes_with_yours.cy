@@ -1,7 +1,7 @@
 // trace: D93
 import std;
 
-use std::println as say;
+use std::println as "say";
 
 fn say [] -> void:
     return void;

@@ -1,0 +1,5 @@
+refused: d150_quotes_only_on_the_use_line.cy:7:5, line 7 column 5
+ 7 |     "say"("hi");
+   |     ^^^^^
+ what: expected `;` after this, but found `(`
+ why:  `;` ends a statement, `:` opens a block, and `end` closes it (D33)

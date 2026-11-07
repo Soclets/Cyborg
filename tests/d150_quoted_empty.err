@@ -1,0 +1,5 @@
+NotDesignedYet: d150_quoted_empty.cy:4:21, line 4 column 21
+ 4 | use std::println as "";
+   |                     ^^
+ what: a quoted name that couldn't be written as a name
+ why:  not decided yet, and the standard doesn't say

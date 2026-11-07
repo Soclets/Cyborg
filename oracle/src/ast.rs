@@ -34,6 +34,8 @@ pub struct Import {
 pub struct Use {
     pub path: Path,
     pub short: Name,
+    /// Quoted names are your own choice, and unquoted ones match the path. (D150)
+    pub quoted: bool,
 }
 
 #[derive(Clone, Debug)]
