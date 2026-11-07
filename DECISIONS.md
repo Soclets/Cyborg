@@ -742,6 +742,8 @@ it stands is Claude's reading of that answer. (Owner, 2026-11-06)
 
 **D137. The extension is `.cy`.** This settles D16's placeholder. GitHub's Linguist files `.cy` under Cycript, and Cyborg has no Linguist entry, so `.gitattributes` says `*.cy linguist-detectable=false`, as CyborgPL's did. Claude read a joke about Cycript as wanting a new extension; the owner: "Bro, `.cy` is it. What I meant is look at linguist". (Owner, 2026-11-06)
 
+**D138. `map` has narrowings.** `std::map.hash<key: str, val: i32>` and `std::map.ordered<key: str, val: i32>`, so you pick. There's no bare `std::map`, since no default is obvious, which is Claude's reading of D48's rule. The names are placeholders. This changes the examples in D24 and D25, though their labels stand. Claude listed `map` as a word with unstable meaning; the owner: "Sherlock, we're gonna fucking make a narrowing of `map`". (Owner, 2026-11-07)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude

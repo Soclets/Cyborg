@@ -164,17 +164,17 @@ let mut $d: std::array<u8>[len: 4096 items] = all 0;
 
 ## 2.12 Maps
 
-**Rule:** a map's types get labels.
+**Rule:** you pick the kind of map, `std::map.hash` or `std::map.ordered`, and its types get labels. Those two names are placeholders.
 
 ```
-std::map<key: str, val: i32>
+std::map.hash<key: str, val: i32>
 ```
 
 The label names are a placeholder.
 
-**Refused:** `std::map<str, i32>`.
+**Refused:** `std::map.hash<str, i32>`, and a bare `std::map`.
 
-**From:** D24, D25.
+**From:** D24, D25, D138.
 
 ## 2.13 Labels in `< >`
 

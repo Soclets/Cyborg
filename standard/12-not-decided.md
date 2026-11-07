@@ -40,6 +40,7 @@ Waiting on the owner, most needed first. Each is `NotDesignedYet` unless it says
 - **Type names, readings.** `type.alias int.signed.32_bit = i32;` works, with dots in the name. An alias works everywhere its target does, including cases. A `type.new` over a number takes no word, over a struct needs one, and over a `must_Give` carries the duty.
 - **Type names, smaller.** A method on an alias or a family's type. A narrowing or bounds on a name. `type.…` inside a function. A `type.new` holding itself through a list. An alias named like a struct. Declaring a name twice.
 - **`fam.fn`.** D135 includes `fn` collections, but no spelling's shown.
+- **`Copy`'s depth.** Whether copying a struct holding a list copies the list too. Other languages disagree on this.
 - **Dead variables.** Whether `eat(Give $s); change $s = "b";` is allowed. It's refused today.
 - **Names.** Declaring a name already in scope, or hiding an outer one.
 - **`ensures` on a `fail` path.** Checked only on `return` today, which is a guess.
