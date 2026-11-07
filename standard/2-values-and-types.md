@@ -137,6 +137,12 @@ let mut $ys: std::list<i32>[len.max: 8 items] = empty;
 std::list<i32>[len.min: 1 items, len.max: 8 items]
 ```
 
+`$xs.len` is `u64.items`. A list can choose another type with `len.type`, which also changes how it stores its length:
+
+```
+std::list<i32>[len.max: inf items, len.type: u32]
+```
+
 `[ ]` gives it items, and the count is checked against the type:
 
 ```
@@ -145,7 +151,7 @@ let $b: std::list<i32>[len.min: 1 items, len.max: 8 items] = [4, 6];
 
 **Refused:** `std::list<i32>` with no `len.max`, a list with a bare `len`, in favour of `array`, `= empty` on a list with `len.min` above 0, `[]`, with `fix: empty`, and too few or too many items.
 
-**From:** D11, D12, D13, D24, D102, D103.
+**From:** D11, D12, D13, D24, D102, D103, D140.
 
 ## 2.11 Arrays
 

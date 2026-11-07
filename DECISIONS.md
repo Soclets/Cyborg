@@ -746,6 +746,9 @@ it stands is Claude's reading of that answer. (Owner, 2026-11-06)
 
 **D139. Reading a failure, and `instead`.** `case negative $f:` names the failure inside its arm, so `$f.val` reads its data, and `case status.failed $f:` does the same in a `match`. `instead 0;` is the value used in place of a failed call, replacing Radium's bare last line. An arm can also `return`, `break` or `fail`. The owner asked "What does `0;` mean?"; Claude agreed a bare value reads like a leftover, and proposed this; the owner chose: "`instead 0;`". (Owner, 2026-11-07)
 
+**D140. A list decides its length's type.** `$xs.len` is `u64.items` by default. A list can choose another with `len.type`, as in `std::list<i32>[len.max: inf items, len.type: u32]`, which also changes how the list stores its length, and then `$xs.len` is `u32.items`. A `len.max` that doesn't fit is refused. An array's `$a.len` follows the same rule, which is Claude's reading. Claude
+suggested `u64.items` plus narrowings on each read; the owner asked "Why not unsigned?", "Why not let them choose?", then "Ah, so decide on the `list`?", which Claude reads as this. (Owner, 2026-11-07)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude
