@@ -785,6 +785,8 @@ bounds on the ranges is not settled here. (Owner, 2026-11-07)
 
 **D156. C only, for now.** `@csup` holds C: headers read directly, C's layouts, calls through C's conventions, and generated `.h` files so C and C++ can call into Cyborg by name. There's no C++ support, and a `@cppsup` limb could be added later without changing the language. This corrects D31, which came from a wrong summary of CyborgPL, and "good C++ support" in D152. CyborgPL's design session confirmed it had only C. Claude proposed this; the owner asked "Or do we fuck C++?", and chose: "yea". (Owner, 2026-11-07)
 
+**D157. The pitch, again.** "General sys lang that loses a little perf for safety." This replaces D136, since Cyborg isn't about proving things the way SPARK is. The "a" matters: it admits a cost, and nothing's been measured yet. The owner proposed it without the "a", calling it a "GAIM trap", and Claude pointed out the difference; the owner chose: "with "a"". (Owner, 2026-11-07)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude
