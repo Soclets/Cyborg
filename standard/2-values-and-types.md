@@ -95,7 +95,7 @@ use_score($n);
 let $t: f64[min: -40.0, max: 125.0] = 21.5;
 ```
 
-Narrowings opt out, with placeholder names: `f64.ieee` allows NaN and infinity, and `f64.fast` allows merged and reordered maths. `f64.ieee` needs no shield, since it's a different type, and `as` is the wall:
+Narrowings opt out, with placeholder names: `f64.ieee` allows NaN and infinity, and `f64.fast` allows merged and reordered maths. Merged maths can change an answer slightly, or whether a program crashes, and that isn't a bug. `f64.ieee` needs no shield, since it's a different type, and `as` is the wall:
 
 ```
 let $reading: f64.ieee = read_sensor();
@@ -118,7 +118,7 @@ The first prints `0.1`, and the second prints every digit, with no limit: `0.100
 
 `std::sin` and similar functions are correctly rounded, so they give the same bits on every machine. `std::sin.fast` is a placeholder for a version that isn't.
 
-**From:** D54, D59, D158, D159, D160, D161, D162.
+**From:** D54, D59, D158, D159, D160, D161, D162, D163.
 
 ## 2.7 Inexact literals: `~`
 

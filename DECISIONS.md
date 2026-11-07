@@ -799,6 +799,8 @@ a placeholder for a version that isn't correctly rounded. A float prints as the 
 
 **D162. `std::println.stored` prints every digit.** There's no limit, so `~0.1` as an `f64` prints all 55 digits: `0.1000000000000000055511151231257827021181583404541015625`. A limit would stop showing what's stored. This corrects the example in the standard, which stopped at 34 digits by Claude's mistake. Oracle claude asked; the owner said "`std::println.stored` is honest", Claude asked whether that meant every digit, and the owner chose: "yea, no shit". (Owner, 2026-11-07)
 
+**D163. `f64.fast` is exempt from rule 5.** The oracle runs `f64.fast` plainly, in the order written. Its tests only check that the answer is close, not identical, and a crash caused only by merged or reordered maths isn't a bug: that's what writing `.fast` allows. Every other type still matches byte for byte. How close counts as close is not settled here. Oracle claude found the conflict; Claude proposed this; the owner chose: "yea". (Owner, 2026-11-07)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude
