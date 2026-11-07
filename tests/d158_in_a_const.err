@@ -1,0 +1,6 @@
+refused: d158_in_a_const.cy:3:22, line 3 column 22
+ 3 | const $bigger: f32 = $big x 10.0;
+   |                      ^^^^^^^^^^^
+ what: this makes infinity
+ why:  a float can't be NaN or infinity, and making one is a failure (D158)
+ when: `1e38` and `10.0` in `f32`

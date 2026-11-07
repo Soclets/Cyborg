@@ -9,7 +9,7 @@ fn.main [] -> void:
     let $g: f64 = -$f;
     std::println($y as str);
     std::println($z as str);
-    if $g == -0.5:
+    if $g: f64[min: -0.5, max: -0.5]:
         std::println("negated");
     end if
     return void;

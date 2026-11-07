@@ -1,0 +1,5 @@
+refused: d151_quoted_starts_with_a_digit.cy:4:21, line 4 column 21
+ 4 | use std::println as "2nd";
+   |                     ^^^^^
+ what: nothing could use `"2nd"` as a name
+ why:  the quotes only skip the check against the path, so a quoted name still has to be usable (D151)

@@ -1,0 +1,5 @@
+NotDesignedYet: d158_test_on_another_width.cy:4:12, line 4 column 12
+ 4 |     if $x: f64[min: 0.0, max: 1.0]:
+   |            ^^^^^^^^^^^^^^^^^^^^^^^
+ what: the test for `f64[min: 0.0, max: 1.0]` on `f32`
+ why:  not decided yet (standard 12.2)

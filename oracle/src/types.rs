@@ -61,6 +61,59 @@ impl FloatKind {
     }
 }
 
+/// What a float allows. `ieee` and `fast` are placeholder names. (D158)
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum FloatRules {
+    /// Never NaN or infinity, and the same bits on every machine.
+    Plain,
+    /// Allows NaN and infinity.
+    Ieee,
+    /// Allows merged and reordered maths. The oracle stays plain, and never does either.
+    Fast,
+}
+
+impl FloatRules {
+    /// The narrowing that asks for these rules. This is the one place that spells them.
+    pub fn from_narrowing(word: &str) -> Option<FloatRules> {
+        match word {
+            "ieee" => Some(FloatRules::Ieee),
+            "fast" => Some(FloatRules::Fast),
+            _ => None,
+        }
+    }
+
+    pub fn word(self) -> Option<&'static str> {
+        match self {
+            FloatRules::Plain => None,
+            FloatRules::Ieee => Some("ieee"),
+            FloatRules::Fast => Some("fast"),
+        }
+    }
+}
+
+/// A float bound, held as bits so a type can still be compared with `==`.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct FloatBound(u64);
+
+impl FloatBound {
+    pub fn new(value: f64) -> FloatBound {
+        FloatBound(value.to_bits())
+    }
+
+    pub fn value(self) -> f64 {
+        f64::from_bits(self.0)
+    }
+}
+
+/// How a float writes itself in a message, which is as short as still reads back the same.
+#[allow(clippy::cast_possible_truncation)] // An `f32` was widened to get here, so this is exact.
+pub fn show_float(kind: FloatKind, value: f64) -> String {
+    match kind {
+        FloatKind::F32 => format!("{:?}", value as f32),
+        FloatKind::F64 => format!("{value:?}"),
+    }
+}
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Sources {
     Program,
@@ -79,7 +132,9 @@ pub enum Type {
     },
     Float {
         kind: FloatKind,
+        bound: Option<(FloatBound, FloatBound)>,
         unit: Option<String>,
+        rules: FloatRules,
     },
     Struct(String),
     Union(String),
@@ -137,6 +192,31 @@ impl Type {
     }
 }
 
+fn write_float(
+    formatter: &mut fmt::Formatter<'_>,
+    kind: FloatKind,
+    bound: Option<(FloatBound, FloatBound)>,
+    unit: Option<&String>,
+    rules: FloatRules,
+) -> fmt::Result {
+    write!(formatter, "{}", kind.word())?;
+    if let Some(word) = rules.word() {
+        write!(formatter, ".{word}")?;
+    }
+    if let Some(unit) = unit {
+        write!(formatter, ".{unit}")?;
+    }
+    if let Some((low, high)) = bound {
+        write!(
+            formatter,
+            "[min: {}, max: {}]",
+            show_float(kind, low.value()),
+            show_float(kind, high.value())
+        )?;
+    }
+    Ok(())
+}
+
 fn write_items_bound(formatter: &mut fmt::Formatter<'_>, value: i128) -> fmt::Result {
     write!(formatter, "{value} items")
 }
@@ -157,13 +237,12 @@ impl fmt::Display for Type {
                 }
                 Ok(())
             }
-            Type::Float { kind, unit } => {
-                write!(formatter, "{}", kind.word())?;
-                if let Some(unit) = unit {
-                    write!(formatter, ".{unit}")?;
-                }
-                Ok(())
-            }
+            Type::Float {
+                kind,
+                bound,
+                unit,
+                rules,
+            } => write_float(formatter, *kind, *bound, unit.as_ref(), *rules),
 
             Type::Struct(name) | Type::Union(name) | Type::New { name, .. } => {
                 write!(formatter, "{name}")

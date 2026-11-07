@@ -851,9 +851,19 @@ impl Checker<'_> {
                 bound: *bound,
                 unit: unit.clone(),
             },
-            (Type::Float { kind, unit: None }, Type::Float { unit, .. }) => Type::Float {
+            (
+                Type::Float {
+                    kind,
+                    bound,
+                    unit: None,
+                    rules,
+                },
+                Type::Float { unit, .. },
+            ) => Type::Float {
                 kind: *kind,
+                bound: *bound,
                 unit: unit.clone(),
+                rules: *rules,
             },
             (other, _) => other.clone(),
         };

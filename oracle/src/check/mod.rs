@@ -14,7 +14,7 @@ use crate::ast::{
 use crate::ir::{Code, Node};
 use crate::report::{Kind, Outcome, Report, ReportExtra, Span};
 use crate::syntax::is_clashing;
-use crate::types::{FloatKind, IntegerKind, Sources, Type};
+use crate::types::{FloatBound, FloatKind, FloatRules, IntegerKind, Sources, Type};
 
 #[derive(Clone, Debug)]
 struct StructInfo {
@@ -351,13 +351,19 @@ impl Checker<'_> {
             }
         }
         for declared in &program.uses {
-            // trace: D94
-            if declared.path.text.starts_with('@') {
-                return Err(Report::refused(
-                    declared.path.span,
-                    "you can't `use` a limb",
-                    "a limb is always written with its full mark and path, so a search for `@` finds it (D94)",
-                ));
+            // A limb works the same way, and a file still has to import it.
+            // trace: D155, D82
+            if let Some(rest) = declared.path.text.strip_prefix('@') {
+                let limb = rest.split("::").next().unwrap_or(rest);
+                if limb == "csup" || limb == "std" {
+                    self.require_limb(limb, declared.path.span)?;
+                } else {
+                    return Err(Report::not_designed(
+                        declared.path.span,
+                        format!("how the limb `@{limb}` is found"),
+                        "12.9",
+                    ));
+                }
             }
             // trace: D150
             let last_word = declared
@@ -367,21 +373,12 @@ impl Checker<'_> {
                 .next()
                 .unwrap_or_default();
             if declared.quoted {
-                let is_a_name = !declared.short.text.is_empty()
-                    && declared
-                        .short
-                        .text
-                        .chars()
-                        .all(|c| c.is_alphanumeric() || c == '_')
-                    && !declared
-                        .short
-                        .text
-                        .starts_with(|c: char| c.is_ascii_digit());
-                if !is_a_name {
-                    return Err(Report::not_designed(
+                // trace: D151
+                if !crate::syntax::could_be_called(&declared.short.text) {
+                    return Err(Report::refused(
                         declared.short.span,
-                        "a quoted name that couldn't be written as a name",
-                        "",
+                        format!("nothing could use `\"{}\"` as a name", declared.short.text),
+                        "the quotes only skip the check against the path, so a quoted name still has to be usable (D151)",
                     ));
                 }
             } else if declared.short.text != last_word {
@@ -1548,6 +1545,22 @@ impl Checker<'_> {
                         "a narrowing means \"this, made more specific\", so a decimal float is `d32`, not `f32.decimal` (D54)",
                     ));
                 }
+                // trace: D158
+                if head.starts_with('f') {
+                    if let Some(word) = narrowing {
+                        let first = word.split('.').next().unwrap_or(word);
+                        if let Some(rules) = FloatRules::from_narrowing(first) {
+                            if first != word {
+                                return Err(Report::not_designed(
+                                    path.span,
+                                    format!("`{first}` together with another narrowing"),
+                                    "12.2",
+                                ));
+                            }
+                            return Self::resolve_float_type(head, None, rules, describe, written);
+                        }
+                    }
+                }
                 let unit = match narrowing {
                     Some(unit_text) => Some(self.resolve_unit(&Path {
                         text: unit_text.to_string(),
@@ -1612,6 +1625,116 @@ impl Checker<'_> {
         ))
     }
 
+    fn resolve_float_type(
+        head: &str,
+        unit: Option<String>,
+        rules: FloatRules,
+        describe: &[Describe],
+        written: &TypeExpression,
+    ) -> Outcome<Type> {
+        let kind = if head == "f32" {
+            FloatKind::F32
+        } else {
+            FloatKind::F64
+        };
+        let bound = Self::resolve_float_bound(kind, unit.as_ref(), rules, describe, written)?;
+        Ok(Type::Float {
+            kind,
+            bound,
+            unit,
+            rules,
+        })
+    }
+
+    /// `f64[min: -40.0, max: 125.0]`, whose numbers are ordinary float literals.
+    /// trace: D158, D59
+    fn resolve_float_bound(
+        kind: FloatKind,
+        unit: Option<&String>,
+        rules: FloatRules,
+        describe: &[Describe],
+        written: &TypeExpression,
+    ) -> Outcome<Option<(FloatBound, FloatBound)>> {
+        if describe.is_empty() {
+            return Ok(None);
+        }
+        if unit.is_some() {
+            return Err(Report::not_designed(
+                written.span,
+                "a bound on a number with a unit",
+                "",
+            ));
+        }
+        if let Some(word) = rules.word() {
+            return Err(Report::not_designed(
+                written.span,
+                format!("a bound on `{}.{word}`", kind.word()),
+                "12.2",
+            ));
+        }
+        let plain = Type::Float {
+            kind,
+            bound: None,
+            unit: None,
+            rules: FloatRules::Plain,
+        };
+        let mut low = None;
+        let mut high = None;
+        for entry in describe {
+            let slot = match entry.label.text.as_str() {
+                "min" => &mut low,
+                "max" => &mut high,
+                other => {
+                    return Err(Report::refused(
+                        entry.label.span,
+                        format!("a float has no `{other}`"),
+                        "`f64[min: -40.0, max: 125.0]` is still 64 bits, and holds only that range (D158)",
+                    ));
+                }
+            };
+            if matches!(entry.value.kind, crate::ast::ExpressionKind::Integer { .. }) {
+                return Err(Report::not_designed(
+                    entry.value.span,
+                    "an integer literal where a float is needed",
+                    "",
+                ));
+            }
+            if !matches!(entry.value.kind, crate::ast::ExpressionKind::Float { .. }) {
+                return Err(Report::not_designed(
+                    entry.value.span,
+                    "a bound that isn't a literal",
+                    "",
+                ));
+            }
+            let value = expression::float_literal_value(&entry.value, &plain)?;
+            if value == 0.0 && value.is_sign_negative() {
+                return Err(Report::not_designed(
+                    entry.value.span,
+                    "`-0.0` as a bound, since how it compares with `0.0` isn't decided",
+                    "12.2",
+                ));
+            }
+            *slot = Some(value);
+        }
+        match (low, high) {
+            (Some(low), Some(high)) => {
+                if low > high {
+                    return Err(Report::refused(
+                        written.span,
+                        "`min` is above `max`, so nothing fits",
+                        "a bounded float holds only its range (D158)",
+                    ));
+                }
+                Ok(Some((FloatBound::new(low), FloatBound::new(high))))
+            }
+            _ => Err(Report::not_designed(
+                written.span,
+                "a bound with only `min` or only `max`",
+                "",
+            )),
+        }
+    }
+
     fn resolve_number_type(
         head: &str,
         unit: Option<String>,
@@ -1619,19 +1742,7 @@ impl Checker<'_> {
         written: &TypeExpression,
     ) -> Outcome<Type> {
         if head == "f32" || head == "f64" {
-            if let Some(entry) = describe.first() {
-                return Err(Report::not_designed(
-                    entry.label.span,
-                    "a bound on a float",
-                    "",
-                ));
-            }
-            let kind = if head == "f32" {
-                FloatKind::F32
-            } else {
-                FloatKind::F64
-            };
-            return Ok(Type::Float { kind, unit });
+            return Self::resolve_float_type(head, unit, FloatRules::Plain, describe, written);
         }
         let kind = match head {
             "i64" => IntegerKind::I64,

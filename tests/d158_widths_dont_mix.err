@@ -1,0 +1,5 @@
+refused: d158_widths_dont_mix.cy:4:39, line 4 column 39
+ 4 |     let $y: f64[min: 0.0, max: 1.0] = $x;
+   |                                       ^^
+ what: this is `f32`, where `f64[min: 0.0, max: 1.0]` is needed
+ why:  `:` doesn't convert, and `as` builds a new value of another type (D7)

@@ -9,8 +9,10 @@ fn.main [] -> void:
     let $a: f64 = 0.5;
     let $b: f64 = $a;
     let $c: f64 = twice($a);
-    if $c == 1.0 and $b == 0.5:
-        std::println("copied");
+    if $c: f64[min: 1.0, max: 1.0]:
+        if $b: f64[min: 0.5, max: 0.5]:
+            std::println("copied");
+        end if
     end if
     return void;
 end fn.main

@@ -1,0 +1,5 @@
+NotDesignedYet: d158_comparing_in_a_contract.cy:3:14, line 3 column 14
+ 3 |     requires $x at_least 0.0;
+   |              ^^^^^^^^^^^^^^^
+ what: comparing floats
+ why:  not decided yet (standard 12.2)

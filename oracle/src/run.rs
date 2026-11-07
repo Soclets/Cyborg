@@ -11,7 +11,7 @@ use crate::ir::{
     Number, Place, Position, RangeCode, Step, Test,
 };
 use crate::report::{Kind, Outcome, Report, ReportExtra, Span};
-use crate::types::{FloatKind, IntegerKind, Value};
+use crate::types::{show_float, FloatKind, FloatRules, IntegerKind, Value};
 
 /// How deep Cyborg calls can go here. Past this the oracle says so, instead of running out of
 /// stack and crashing, which rule 6 forbids. What running out of stack means isn't decided.
@@ -628,6 +628,14 @@ impl<'c> Runner<'c> {
                 Value::Integer(value) => Ok(*low <= value && value <= *high),
                 _ => Err(oracle_bug(span, "the test for a bound on something else")),
             },
+            // trace: D158, D20
+            Test::FloatRange { subject, low, high } => {
+                let value = self.evaluate(subject, frame)?;
+                let Some(number) = float_value(&value) else {
+                    return Err(oracle_bug(span, "the test for a bound on something else"));
+                };
+                float_in_bound(number, *low, *high, span).map_err(Stop::Report)
+            }
             // trace: D9
             Test::Case { subject, case } => match self.evaluate(subject, frame)? {
                 Value::Case(found, _) => Ok(found == *case),
@@ -796,6 +804,63 @@ impl<'c> Runner<'c> {
                 Ok(Value::Integer(
                     i128::try_from(items.len()).unwrap_or(i128::MAX),
                 ))
+            }
+            // trace: D158, D20
+            NodeKind::FitFloat {
+                value,
+                low,
+                high,
+                target,
+                shown,
+            } => {
+                let value = self.evaluate(value, frame)?;
+                let Some(number) = float_value(&value) else {
+                    return Err(oracle_bug(span, "a bound on something else"));
+                };
+                if !float_in_bound(number, *low, *high, span).map_err(Stop::Report)? {
+                    let shown_number = match value {
+                        Value::F32(_) => show_float(FloatKind::F32, number),
+                        _ => show_float(FloatKind::F64, number),
+                    };
+                    let (what, when) = match shown {
+                        Some(name) => (
+                            format!("`{name}` doesn't fit `{target}`"),
+                            format!("`{name}` is {shown_number}"),
+                        ),
+                        None => (
+                            format!("this doesn't fit `{target}`"),
+                            format!("it is {shown_number}"),
+                        ),
+                    };
+                    return Err(Stop::Report(
+                        Report::check_failed(
+                            span,
+                            what,
+                            "a plain `=`, `change` or argument checks a bound when the compiler can't see it fits (D20, D158)",
+                        )
+                        .when(when),
+                    ));
+                }
+                Ok(value)
+            }
+            // `as` is the wall between `f64.ieee` and `f64`, and it's a real conversion.
+            // trace: D159
+            NodeKind::FloatFromIeee { value, target } => {
+                let value = self.evaluate(value, frame)?;
+                let Some(number) = float_value(&value) else {
+                    return Err(oracle_bug(span, "`as` on something that isn't a float"));
+                };
+                if number.is_finite() {
+                    return Ok(value);
+                }
+                Err(Stop::Report(Report::check_failed(
+                    span,
+                    format!(
+                        "this is {}, so it can't become `{target}`",
+                        non_finite_name(number)
+                    ),
+                    "`as` out of `f64.ieee` is a real conversion, and it fails on NaN or infinity (D159)",
+                )))
             }
             NodeKind::IntegerToStr(value) => {
                 let Value::Integer(value) = self.evaluate(value, frame)? else {
@@ -1006,6 +1071,31 @@ fn compare(
     })
 }
 
+fn float_value(value: &Value) -> Option<f64> {
+    match value {
+        Value::F32(number) => Some(f64::from(*number)),
+        Value::F64(number) => Some(*number),
+        _ => None,
+    }
+}
+
+/// Whether a float is inside its bound. How `-0.0` compares with `0.0` isn't decided, and it's the
+/// one case where the answer depends on that.
+/// trace: D158
+fn float_in_bound(value: f64, low: f64, high: f64, span: Span) -> Outcome<bool> {
+    let other_zero = |edge: f64| {
+        value == 0.0 && edge == 0.0 && value.is_sign_negative() != edge.is_sign_negative()
+    };
+    if other_zero(low) || other_zero(high) {
+        return Err(Report::not_designed(
+            span,
+            "whether `-0.0` is inside a bound that stops at `0.0`",
+            "12.2",
+        ));
+    }
+    Ok(low <= value && value <= high)
+}
+
 fn arithmetic(
     operator: Arithmetic,
     number: Number,
@@ -1024,7 +1114,7 @@ fn arithmetic(
             };
             integer_arithmetic(operator, kind, *left, *right, span).map(Value::Integer)
         }
-        Number::Float(FloatKind::F32) => {
+        Number::Float(FloatKind::F32, rules) => {
             let (Value::F32(left), Value::F32(right)) = (left, right) else {
                 return Err(Report::check_failed(
                     span,
@@ -1032,13 +1122,22 @@ fn arithmetic(
                     "this is a bug in the oracle, not in your program (rule 6)",
                 ));
             };
-            Ok(Value::F32(match operator {
+            let result = match operator {
                 Arithmetic::Add => left + right,
                 Arithmetic::Subtract => left - right,
                 _ => left * right,
-            }))
+            };
+            check_float_made(
+                FloatKind::F32,
+                rules,
+                f64::from(result),
+                f64::from(*left),
+                f64::from(*right),
+                span,
+            )?;
+            Ok(Value::F32(result))
         }
-        Number::Float(FloatKind::F64) => {
+        Number::Float(FloatKind::F64, rules) => {
             let (Value::F64(left), Value::F64(right)) = (left, right) else {
                 return Err(Report::check_failed(
                     span,
@@ -1046,12 +1145,48 @@ fn arithmetic(
                     "this is a bug in the oracle, not in your program (rule 6)",
                 ));
             };
-            Ok(Value::F64(match operator {
+            let result = match operator {
                 Arithmetic::Add => left + right,
                 Arithmetic::Subtract => left - right,
                 _ => left * right,
-            }))
+            };
+            check_float_made(FloatKind::F64, rules, result, *left, *right, span)?;
+            Ok(Value::F64(result))
         }
+    }
+}
+
+/// A float can't be NaN or infinity, so making one is a failure, and only `f64.ieee` opts out.
+/// trace: D158
+fn check_float_made(
+    kind: FloatKind,
+    rules: FloatRules,
+    result: f64,
+    left: f64,
+    right: f64,
+    span: Span,
+) -> Outcome<()> {
+    if result.is_finite() || rules == FloatRules::Ieee {
+        return Ok(());
+    }
+    Err(Report::check_failed(
+        span,
+        format!("this makes {}", non_finite_name(result)),
+        "a float can't be NaN or infinity, and making one is a failure (D158)",
+    )
+    .when(format!(
+        "`{}` and `{}` in `{}`",
+        show_float(kind, left),
+        show_float(kind, right),
+        kind.word()
+    )))
+}
+
+fn non_finite_name(value: f64) -> &'static str {
+    if value.is_nan() {
+        "NaN"
+    } else {
+        "infinity"
     }
 }
 

@@ -1,0 +1,5 @@
+NotDesignedYet: d158_bound_with_a_unit.cy:7:13, line 7 column 13
+ 7 |     let $t: f64.time.seconds[min: 0.0, max: 1.0] = 0.5 time.seconds;
+   |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ what: a bound on a number with a unit
+ why:  not decided yet, and the standard doesn't say

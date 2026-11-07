@@ -92,6 +92,15 @@ pub fn is_clashing(word: &str) -> bool {
     CLASHING_WORDS.contains(&word)
 }
 
+/// Whether a program could write this as a plain name, which is what a quoted `use` has to give.
+/// trace: D151
+pub fn could_be_called(text: &str) -> bool {
+    let mut characters = text.chars();
+    characters.next().is_some_and(is_word_start)
+        && characters.all(is_word_part)
+        && !is_clashing(text)
+}
+
 /// A word that can follow a value as an operator, so it can't be that value's unit.
 const OPERATOR_WORDS: &[&str] = &[
     "x",
@@ -480,6 +489,7 @@ pub fn parse(source: &str) -> Outcome<Program> {
         tokens,
         position: 0,
         depth: 0,
+        limb_short_names: Vec::new(),
     };
     parser.parse_program()
 }
@@ -488,6 +498,8 @@ struct Parser {
     tokens: Vec<Token>,
     position: usize,
     depth: usize,
+    /// Short names from `use` on a limb, with the path each stands for. (D155)
+    limb_short_names: Vec<(String, String)>,
 }
 
 /// How deep brackets and blocks can nest here. Past this the oracle says so, instead of running
@@ -806,6 +818,14 @@ impl Parser {
                         "`use` gives a path a shorter name, and `as` is always written (D93)",
                     ));
                 }
+                // trace: D155
+                if matches!(self.peek().lexeme, Lexeme::Symbol("@")) {
+                    return Err(Report::refused(
+                        self.peek().span,
+                        "the short name has no `@`",
+                        "`@` with no `::` is a compiler builtin, so `@c` looks like one (D155, D56)",
+                    ));
+                }
                 // trace: D150
                 let quoted = matches!(self.peek().lexeme, Lexeme::Text(_));
                 let short = if let Lexeme::Text(text) = self.peek().lexeme.clone() {
@@ -815,6 +835,10 @@ impl Parser {
                     self.expect_name("the shorter name")?
                 };
                 self.expect_semicolon()?;
+                if path.text.starts_with('@') {
+                    self.limb_short_names
+                        .push((short.text.clone(), path.text.clone()));
+                }
                 program.uses.push(Use {
                     path,
                     short,
@@ -1600,8 +1624,25 @@ impl Parser {
         let (name, reason) = self.parse_shield_header()?;
         let mut items = Vec::new();
         while !self.at_word("end") {
-            if self.at_symbol("@") {
-                let path = self.parse_path()?;
+            // A short name from `use` stands in for the limb's whole path, here as anywhere.
+            // trace: D155
+            let short_limb = match &self.peek().lexeme {
+                Lexeme::Word(word) => self
+                    .limb_short_names
+                    .iter()
+                    .find(|(short, _)| short == word)
+                    .cloned(),
+                _ => None,
+            };
+            if self.at_symbol("@") || short_limb.is_some() {
+                let written = self.parse_path()?;
+                let path = match &short_limb {
+                    Some((_, whole)) => Path {
+                        text: whole.clone(),
+                        span: written.span,
+                    },
+                    None => written.clone(),
+                };
                 let union_name = self.expect_name("the union's name")?;
                 self.expect_symbol(":")?;
                 // The fields are only read past: nothing can use them until C's layouts exist.
@@ -1610,7 +1651,7 @@ impl Parser {
                     self.expect_symbol(":")?;
                     self.parse_type()?;
                 }
-                self.expect_limb_closer(&path.text, &union_name.text)?;
+                self.expect_limb_closer(&written.text, &union_name.text)?;
                 items.push(ShieldContent::UntaggedUnion { path });
             } else {
                 items.push(ShieldContent::Item(Box::new(self.parse_item()?)));

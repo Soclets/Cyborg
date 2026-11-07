@@ -1,0 +1,5 @@
+check failed: d159_as_fails_on_nan.cy:8:23, line 8 column 23
+ 8 |     let $clean: f64 = $nan as f64;
+   |                       ^^^^^^^^^^^
+ what: this is NaN, so it can't become `f64`
+ why:  `as` out of `f64.ieee` is a real conversion, and it fails on NaN or infinity (D159)

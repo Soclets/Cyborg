@@ -1,0 +1,5 @@
+NotDesignedYet: d158_comparing_floats.cy:4:8, line 4 column 8
+ 4 |     if $a at_least 0.25:
+   |        ^^^^^^^^^^^^^^^^
+ what: comparing floats
+ why:  not decided yet (standard 12.2)

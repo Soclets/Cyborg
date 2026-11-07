@@ -1,0 +1,6 @@
+check failed: d158_making_infinity_with_minus.cy:4:22, line 4 column 22
+ 4 |     let $down: f32 = -$big - $big;
+   |                      ^^^^^^^^^^^^
+ what: this makes infinity
+ why:  a float can't be NaN or infinity, and making one is a failure (D158)
+ when: `-3e38` and `3e38` in `f32`

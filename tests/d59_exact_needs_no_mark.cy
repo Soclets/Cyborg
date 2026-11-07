@@ -11,8 +11,15 @@ fn.main [] -> void:
     let $e: f32 = ~0.1;
     let $f: f64 = -0.5;
     let $g: f64 = $a + 0.25;
-    if $g == 0.75 and $b != $c and $d x 2.0 == 0.5:
-        std::println("floats work");
+    let $h: f32 = $d x 2.0;
+    if $g: f64[min: 0.75, max: 0.75]:
+        if $b: f64[min: ~0.1, max: ~0.1]:
+            if $c: f64[min: ~-0.1, max: ~-0.1]:
+                if $h: f32[min: 0.5, max: 0.5]:
+                    std::println("floats work");
+                end if
+            end if
+        end if
     end if
     return void;
 end fn.main

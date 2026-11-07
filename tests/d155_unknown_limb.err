@@ -1,0 +1,5 @@
+NotDesignedYet: d155_unknown_limb.cy:2:5, line 2 column 5
+ 2 | use @other::thing as thing;
+   |     ^^^^^^^^^^^^^
+ what: how the limb `@other` is found
+ why:  not decided yet (standard 12.9)

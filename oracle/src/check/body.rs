@@ -15,7 +15,7 @@ use crate::ast::{
 use crate::ir::{self, Instruction, InstructionKind, Node, NodeKind, Place};
 use crate::report::{Outcome, Report, ReportExtra, Span};
 use crate::syntax::is_clashing;
-use crate::types::{Sources, Type, Value};
+use crate::types::{FloatRules, Sources, Type, Value};
 
 /// A range's `from:`, its end, whether the end is included, and its `step_by:`.
 type RangeNodes = (Node, Node, bool, Option<Node>);
@@ -1139,6 +1139,16 @@ impl Checker<'_> {
                 ));
             }
         }
+        if let Some((low, high)) = float_test_bound(&subject_type, &test_type) {
+            return Ok((
+                ir::Test::FloatRange {
+                    subject: node,
+                    low,
+                    high,
+                },
+                None,
+            ));
+        }
         Err(Report::not_designed(
             written_type.span,
             format!("the test for `{test_type}` on `{subject_type}`"),
@@ -2245,5 +2255,27 @@ pub(super) fn walk(expression: &Expression, visit: &mut dyn FnMut(&Expression)) 
             walk(fallback, visit);
         }
         _ => {}
+    }
+}
+
+/// The bound a test on a plain float checks, when the test's type is that float with a bound.
+/// trace: D158, D20
+fn float_test_bound(subject: &Type, test: &Type) -> Option<(f64, f64)> {
+    match (subject, test) {
+        (
+            Type::Float {
+                kind,
+                bound: None,
+                unit,
+                rules: FloatRules::Plain,
+            },
+            Type::Float {
+                kind: test_kind,
+                bound: Some((low, high)),
+                unit: test_unit,
+                rules: FloatRules::Plain,
+            },
+        ) if kind == test_kind && unit == test_unit => Some((low.value(), high.value())),
+        _ => None,
     }
 }

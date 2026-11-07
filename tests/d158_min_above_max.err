@@ -1,0 +1,5 @@
+refused: d158_min_above_max.cy:3:13, line 3 column 13
+ 3 |     let $t: f64[min: 2.0, max: 1.0] = 1.5;
+   |             ^^^^^^^^^^^^^^^^^^^^^^^
+ what: `min` is above `max`, so nothing fits
+ why:  a bounded float holds only its range (D158)

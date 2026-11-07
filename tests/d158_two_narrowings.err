@@ -1,0 +1,5 @@
+NotDesignedYet: d158_two_narrowings.cy:7:13, line 7 column 13
+ 7 |     let $a: f64.fast.time.seconds = 0.5 time.seconds;
+   |             ^^^^^^^^^^^^^^^^^^^^^
+ what: `fast` together with another narrowing
+ why:  not decided yet (standard 12.2)

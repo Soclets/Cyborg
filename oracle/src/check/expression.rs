@@ -10,7 +10,7 @@ use crate::ast::{
 use crate::ir::{self, Arithmetic, Node, NodeKind, Number};
 use crate::report::{Outcome, Report, ReportExtra, Span};
 use crate::syntax::is_clashing;
-use crate::types::{FloatKind, IntegerKind, Type, Value};
+use crate::types::{show_float, FloatKind, FloatRules, IntegerKind, Type, Value};
 
 /// A call before anything has said what happens if it fails.
 struct RawCall {
@@ -65,6 +65,34 @@ fn crosses(found: &Type, target: &Type) -> bool {
                     unit: unit.clone(),
                 }
         }
+        // trace: D158
+        (
+            Type::New { underlying, .. },
+            Type::Float {
+                kind: to_kind,
+                bound: None,
+                unit: to_unit,
+                rules: to_rules,
+            },
+        ) => matches!(
+            &**underlying,
+            Type::Float { kind, unit, rules, .. }
+                if kind == to_kind && unit == to_unit && rules == to_rules
+        ),
+        (
+            Type::Float {
+                kind, unit, rules, ..
+            },
+            Type::New { underlying, .. },
+        ) => {
+            **underlying
+                == Type::Float {
+                    kind: *kind,
+                    bound: None,
+                    unit: unit.clone(),
+                    rules: *rules,
+                }
+        }
         (other, Type::New { underlying, .. }) => **underlying == *other,
         (
             Type::Integer {
@@ -77,12 +105,19 @@ fn crosses(found: &Type, target: &Type) -> bool {
             },
         ) => kind == to_kind && from.is_some() != to.is_some(),
         (
-            Type::Float { kind, unit: from },
+            Type::Float {
+                kind,
+                unit: from,
+                rules,
+                ..
+            },
             Type::Float {
                 kind: to_kind,
                 unit: to,
+                rules: to_rules,
+                bound: None,
             },
-        ) => kind == to_kind && from.is_some() != to.is_some(),
+        ) => kind == to_kind && rules == to_rules && from.is_some() != to.is_some(),
         _ => false,
     }
 }
@@ -117,15 +152,77 @@ pub(super) fn is_number_literal(expression: &Expression) -> bool {
     }
 }
 
+/// Whether `as` is going from `f64.ieee` to its plain `f64`, which is the real conversion. (D159)
+fn leaves_ieee(found: &Type, target: &Type) -> bool {
+    matches!(
+        (found, target),
+        (
+            Type::Float { kind, unit, rules: FloatRules::Ieee, .. },
+            Type::Float { kind: to_kind, unit: to_unit, rules: FloatRules::Plain, bound: None },
+        ) if kind == to_kind && unit == to_unit
+    )
+}
+
+fn node_float(node: &Node) -> Option<f64> {
+    match node.kind {
+        NodeKind::Constant(Value::F32(value)) => Some(f64::from(value)),
+        NodeKind::Constant(Value::F64(value)) => Some(value),
+        _ => None,
+    }
+}
+
 fn number_hint(value_type: Option<&Type>) -> Option<Type> {
     match value_type {
         Some(Type::Integer { kind, .. }) => Some(Type::plain_integer(*kind)),
-        Some(Type::Float { kind, .. }) => Some(Type::Float {
+        Some(Type::Float { kind, rules, .. }) => Some(Type::Float {
             kind: *kind,
+            bound: None,
             unit: None,
+            rules: *rules,
         }),
         _ => None,
     }
+}
+
+/// The number a float literal holds, going through the same checks as any other float literal.
+pub(super) fn float_literal_value(expression: &Expression, target: &Type) -> Outcome<f64> {
+    let (node, _) = Checker::check_float_literal(expression, Some(target), None)?;
+    match node.kind {
+        NodeKind::Constant(Value::F32(value)) => Ok(f64::from(value)),
+        NodeKind::Constant(Value::F64(value)) => Ok(value),
+        _ => Err(Report::refused(
+            expression.span,
+            "this number can't be read",
+            "(D59)",
+        )),
+    }
+}
+
+/// `f64.ieee` and `f64` don't mix, and nothing yet says how `f64.fast` does.
+/// trace: D159
+pub(super) fn float_rules_clash(
+    span: Span,
+    what: String,
+    found: &Type,
+    target: &Type,
+) -> Box<Report> {
+    let fast = |value: &Type| {
+        matches!(
+            value,
+            Type::Float {
+                rules: FloatRules::Fast,
+                ..
+            }
+        )
+    };
+    if fast(found) || fast(target) {
+        return Report::not_designed(span, format!("how `{found}` and `{target}` mix"), "12.2");
+    }
+    Report::refused(
+        span,
+        what,
+        "`f64.ieee` is a different type from `f64`, and `as` is the wall between them (D159)",
+    )
 }
 
 /// Whether `text` in decimal is exactly what `value` holds. (D59)
@@ -143,6 +240,98 @@ fn decimal_is_exact(text: &str, value: f64) -> bool {
 }
 
 impl Checker<'_> {
+    /// Fits a float into a float of the same width, which is `coerce` for floats.
+    /// trace: D158, D159, D20
+    fn fit_float(
+        &self,
+        node: Node,
+        found: &Type,
+        target: &Type,
+        expression: &Expression,
+    ) -> Outcome<Node> {
+        let (
+            Type::Float {
+                kind,
+                bound: found_bound,
+                unit: found_unit,
+                rules,
+            },
+            Type::Float {
+                bound: target_bound,
+                unit: target_unit,
+                rules: target_rules,
+                ..
+            },
+        ) = (found, target)
+        else {
+            return Ok(node);
+        };
+        if rules != target_rules {
+            let clash = float_rules_clash(
+                expression.span,
+                format!("this is `{found}`, where `{target}` is needed"),
+                found,
+                target,
+            );
+            // Out of `f64.ieee` there's exactly one way to say it, which is the wall itself.
+            let fixable = *rules == FloatRules::Ieee
+                && *target_rules == FloatRules::Plain
+                && target_bound.is_none()
+                && found_unit == target_unit;
+            return Err(if fixable {
+                clash.fix(format!("{} as {target}", self.text_of(expression.span)))
+            } else {
+                clash
+            });
+        }
+        // A bounded value goes into a plain one with no check. (D20)
+        let Some((low, high)) = target_bound else {
+            return Ok(node);
+        };
+        let (low, high) = (low.value(), high.value());
+        if let Some(number) = node_float(&node) {
+            if number == 0.0 && number.is_sign_negative() && (low == 0.0 || high == 0.0) {
+                return Err(Report::not_designed(
+                    expression.span,
+                    "whether `-0.0` is inside a bound that stops at `0.0`",
+                    "12.2",
+                ));
+            }
+            if number < low || number > high {
+                return Err(Report::refused(
+                    expression.span,
+                    format!("`{}` doesn't fit `{target}`", show_float(*kind, number)),
+                    "a literal that can't fit is a compile error (D20, D158)",
+                ));
+            }
+            return Ok(node);
+        }
+        // `total_cmp` puts `-0.0` below `0.0`, so a doubtful edge still gets checked while running.
+        let inside = found_bound.is_some_and(|(found_low, found_high)| {
+            found_low.value().total_cmp(&low).is_ge() && found_high.value().total_cmp(&high).is_le()
+        });
+        if inside {
+            return Ok(node);
+        }
+        let shown = matches!(
+            expression.kind,
+            ExpressionKind::Variable(_)
+                | ExpressionKind::Field { .. }
+                | ExpressionKind::Item { .. }
+        )
+        .then(|| self.text_of(expression.span).to_string());
+        Ok(Node {
+            span: expression.span,
+            kind: NodeKind::FitFloat {
+                value: Box::new(node),
+                low,
+                high,
+                target: target.to_string(),
+                shown,
+            },
+        })
+    }
+
     /// Fits a value into its target, adding the runtime check a bound needs. (D20)
     pub(super) fn coerce(
         &self,
@@ -224,13 +413,20 @@ impl Checker<'_> {
             Type::Float {
                 kind,
                 unit: found_unit,
+                rules,
+                ..
             },
             Type::Float {
                 kind: target_kind,
                 unit: target_unit,
+                rules: target_rules,
+                ..
             },
         ) = (found, target)
         {
+            if kind == target_kind && (rules != target_rules || found_unit == target_unit) {
+                return self.fit_float(node, found, target, expression);
+            }
             if kind == target_kind && found_unit != target_unit {
                 return Err(Report::refused(
                     expression.span,
@@ -635,7 +831,7 @@ impl Checker<'_> {
     }
 
     /// trace: D59
-    fn check_float_literal(
+    pub(super) fn check_float_literal(
         expression: &Expression,
         expected: Option<&Type>,
         unit: Option<String>,
@@ -649,8 +845,8 @@ impl Checker<'_> {
         else {
             return Err(Report::refused(span, "this number can't be read", "(D59)"));
         };
-        let kind = match expected {
-            Some(Type::Float { kind, .. }) => *kind,
+        let (kind, rules) = match expected {
+            Some(Type::Float { kind, rules, .. }) => (*kind, *rules),
             None => {
                 return Err(Report::not_designed(
                     span,
@@ -680,9 +876,17 @@ impl Checker<'_> {
             }
         };
         if held.is_infinite() {
+            // trace: D158
+            if rules != FloatRules::Ieee {
+                return Err(Report::refused(
+                    span,
+                    format!("this literal is too large for `{}`", kind.word()),
+                    "a float can't be infinity, and a literal that can't fit is a compile error (D158, D20)",
+                ));
+            }
             return Err(Report::not_designed(
                 span,
-                format!("a literal too large for `{}`", kind.word()),
+                format!("a literal too large for `{}.ieee`", kind.word()),
                 "",
             ));
         }
@@ -709,7 +913,12 @@ impl Checker<'_> {
                 span,
                 kind: NodeKind::Constant(value),
             },
-            Type::Float { kind, unit },
+            Type::Float {
+                kind,
+                bound: None,
+                unit,
+                rules,
+            },
         ))
     }
 
@@ -1823,6 +2032,21 @@ impl Checker<'_> {
                 "a `const`'s value must be fully known at compile time (D83, D91)",
             ));
         }
+        // trace: D159
+        if leaves_ieee(&found, &target_type) {
+            return Ok(RawCall {
+                node: Node {
+                    span,
+                    kind: NodeKind::FloatFromIeee {
+                        value: Box::new(node),
+                        target: target_type.to_string(),
+                    },
+                },
+                value_type: target_type,
+                failures: Vec::new(),
+                unnamed: Some(("what a failed `as` is called", "12.3")),
+            });
+        }
         if self.is_pure() {
             return Err(Report::not_designed(
                 span,
@@ -2103,7 +2327,17 @@ impl Checker<'_> {
                     unit,
                 },
             ),
-            Type::Float { kind, unit } => (Number::Float(kind), Type::Float { kind, unit }),
+            Type::Float {
+                kind, unit, rules, ..
+            } => (
+                Number::Float(kind, rules),
+                Type::Float {
+                    kind,
+                    bound: None,
+                    unit,
+                    rules,
+                },
+            ),
             other => {
                 return Err(Report::refused(
                     inner.span,
@@ -2255,10 +2489,14 @@ impl Checker<'_> {
                 Type::Float {
                     kind: left_kind,
                     unit: left_unit,
+                    rules: left_rules,
+                    ..
                 },
                 Type::Float {
                     kind: right_kind,
                     unit: right_unit,
+                    rules: right_rules,
+                    ..
                 },
             ) => {
                 if left_kind != right_kind {
@@ -2266,6 +2504,15 @@ impl Checker<'_> {
                         span,
                         format!("this mixes `{left}` and `{right}`"),
                         WHY_TYPES,
+                    ));
+                }
+                // trace: D159
+                if left_rules != right_rules {
+                    return Err(float_rules_clash(
+                        span,
+                        format!("this mixes `{left}` and `{right}`"),
+                        left,
+                        right,
                     ));
                 }
                 match operator {
@@ -2298,10 +2545,12 @@ impl Checker<'_> {
                     span,
                 )?;
                 Ok((
-                    Number::Float(*left_kind),
+                    Number::Float(*left_kind, *left_rules),
                     Type::Float {
                         kind: *left_kind,
+                        bound: None,
                         unit,
+                        rules: *left_rules,
                     },
                 ))
             }
@@ -2535,10 +2784,14 @@ impl Checker<'_> {
                 Type::Float {
                     kind: left_kind,
                     unit: left_unit,
+                    rules: left_rules,
+                    ..
                 },
                 Type::Float {
                     kind: right_kind,
                     unit: right_unit,
+                    rules: right_rules,
+                    ..
                 },
             ) => {
                 if left_kind != right_kind || left_unit != right_unit {
@@ -2548,7 +2801,16 @@ impl Checker<'_> {
                         WHY_TYPES,
                     ));
                 }
-                Ok(())
+                // trace: D159
+                if left_rules != right_rules {
+                    return Err(float_rules_clash(
+                        span,
+                        format!("this compares `{left}` and `{right}`"),
+                        left,
+                        right,
+                    ));
+                }
+                Err(Report::not_designed(span, "comparing floats", "12.2"))
             }
             (Type::Bool, Type::Bool) => {
                 if matches!(operator, CompareOperator::Equal | CompareOperator::NotEqual) {

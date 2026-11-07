@@ -1,0 +1,5 @@
+refused: d158_literal_outside_the_bound.cy:3:43, line 3 column 43
+ 3 |     let $t: f64[min: -40.0, max: 125.0] = 125.5;
+   |                                           ^^^^^
+ what: `125.5` doesn't fit `f64[min: -40.0, max: 125.0]`
+ why:  a literal that can't fit is a compile error (D20, D158)

@@ -1,0 +1,5 @@
+NotDesignedYet: d158_as_into_a_bound.cy:4:39, line 4 column 39
+ 4 |     let $y: f64[min: 0.0, max: 1.0] = $x as f64[min: 0.0, max: 1.0];
+   |                                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ what: converting `f64` to `f64[min: 0.0, max: 1.0]` with `as`
+ why:  not decided yet (standard 12.3)

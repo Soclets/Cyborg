@@ -17,7 +17,8 @@ fn.main [] -> void:
     std::println(($n x 2) as str);
     let $f: f64 = 0.5;
     let $g: f64.time.seconds = $f as f64.time.seconds;
-    if $g == 0.5 time.seconds:
+    let $h: f64 = $g as f64;
+    if $h: f64[min: 0.5, max: 0.5]:
         std::println("float too");
     end if
     return void;

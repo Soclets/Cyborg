@@ -3,7 +3,7 @@
 
 use crate::ast::{CompareOperator, Narrowing};
 use crate::report::Span;
-use crate::types::{FloatKind, IntegerKind, Value};
+use crate::types::{FloatKind, FloatRules, IntegerKind, Value};
 
 /// A variable and the fields and items to walk from it.
 #[derive(Clone, Debug)]
@@ -71,7 +71,7 @@ pub enum Arithmetic {
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Number {
     Integer(IntegerKind),
-    Float(FloatKind),
+    Float(FloatKind, FloatRules),
 }
 
 #[derive(Clone, Debug)]
@@ -142,6 +142,19 @@ pub enum NodeKind {
     Handle {
         value: Box<Node>,
         arms: Vec<FailureArm>,
+    },
+    /// The same for a float. (D158)
+    FitFloat {
+        value: Box<Node>,
+        low: f64,
+        high: f64,
+        target: String,
+        shown: Option<String>,
+    },
+    /// `$reading as f64`, which fails on NaN or infinity. (D159)
+    FloatFromIeee {
+        value: Box<Node>,
+        target: String,
     },
     /// A plain `=`, `change` or argument checks a bound the compiler can't see fits. (D20)
     Fit {
@@ -250,6 +263,11 @@ pub enum Test {
         subject: Node,
         low: i128,
         high: i128,
+    },
+    FloatRange {
+        subject: Node,
+        low: f64,
+        high: f64,
     },
     Case {
         subject: Node,

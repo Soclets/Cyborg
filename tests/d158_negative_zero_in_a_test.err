@@ -1,0 +1,5 @@
+NotDesignedYet: d158_negative_zero_in_a_test.cy:4:5, line 4 column 5
+ 4 |     if $z: f64[min: 0.0, max: 1.0]:
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ what: whether `-0.0` is inside a bound that stops at `0.0`
+ why:  not decided yet (standard 12.2)

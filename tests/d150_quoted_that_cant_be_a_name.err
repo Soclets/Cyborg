@@ -1,5 +1,0 @@
-NotDesignedYet: d150_quoted_that_cant_be_a_name.cy:5:21, line 5 column 21
- 5 | use std::println as "my say";
-   |                     ^^^^^^^^
- what: a quoted name that couldn't be written as a name
- why:  not decided yet, and the standard doesn't say

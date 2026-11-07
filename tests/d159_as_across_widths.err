@@ -1,0 +1,5 @@
+NotDesignedYet: d159_as_across_widths.cy:4:23, line 4 column 23
+ 4 |     let $clean: f64 = $reading as f64;
+   |                       ^^^^^^^^^^^^^^^
+ what: converting `f32.ieee` to `f64` with `as`
+ why:  not decided yet (standard 12.3)

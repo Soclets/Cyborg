@@ -1,0 +1,5 @@
+refused: d158_f32_literal_outside_the_bound.cy:3:39, line 3 column 39
+ 3 |     let $y: f32[min: 0.0, max: 0.5] = 0.75;
+   |                                       ^^^^
+ what: `0.75` doesn't fit `f32[min: 0.0, max: 0.5]`
+ why:  a literal that can't fit is a compile error (D20, D158)

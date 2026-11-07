@@ -1,0 +1,5 @@
+refused: d158_comparing_mixed_widths_still_refused.cy:5:8, line 5 column 8
+ 5 |     if $a == $b:
+   |        ^^^^^^^^
+ what: this compares `f64` and `f32`
+ why:  `:` doesn't convert, and `as` builds a new value of another type (D7)

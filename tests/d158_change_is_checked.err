@@ -1,0 +1,6 @@
+check failed: d158_change_is_checked.cy:5:17, line 5 column 17
+ 5 |     change $t = $x;
+   |                 ^^
+ what: `$x` doesn't fit `f64[min: 0.0, max: 1.0]`
+ why:  a plain `=`, `change` or argument checks a bound when the compiler can't see it fits (D20, D158)
+ when: `$x` is 1.5

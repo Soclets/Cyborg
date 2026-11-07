@@ -1,0 +1,5 @@
+NotDesignedYet: d158_test_on_a_bounded_value.cy:5:12, line 5 column 12
+ 5 |     if $t: f64[min: 0.0, max: 25.0]:
+   |            ^^^^^^^^^^^^^^^^^^^^^^^^
+ what: the test for `f64[min: 0.0, max: 25.0]` on `f64[min: -40.0, max: 125.0]`
+ why:  not decided yet (standard 12.2)

@@ -1,0 +1,5 @@
+refused: d155_calling_through_a_limb_name.cy:7:5, line 7 column 5
+ 7 |     c("hi");
+   |     ^
+ what: `@csup::extern.c` must be inside a shield
+ why:  a shield is the only place dangerous code may live (D34, D38)

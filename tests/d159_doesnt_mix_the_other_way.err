@@ -1,0 +1,5 @@
+refused: d159_doesnt_mix_the_other_way.cy:4:30, line 4 column 30
+ 4 |     let $reading: f64.ieee = $x;
+   |                              ^^
+ what: this is `f64`, where `f64.ieee` is needed
+ why:  `f64.ieee` is a different type from `f64`, and `as` is the wall between them (D159)

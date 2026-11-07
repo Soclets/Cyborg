@@ -1,5 +1,0 @@
-refused: d150_limb_stays_refused.cy:2:5, line 2 column 5
- 2 | use @csup::extern.c as "ext";
-   |     ^^^^^^^^^^^^^^^
- what: you can't `use` a limb
- why:  a limb is always written with its full mark and path, so a search for `@` finds it (D94)
