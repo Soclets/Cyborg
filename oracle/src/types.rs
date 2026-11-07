@@ -68,7 +68,9 @@ pub enum FloatRules {
     Plain,
     /// Allows NaN and infinity.
     Ieee,
-    /// Allows merged and reordered maths. The oracle stays plain, and never does either.
+    /// Allows merged and reordered maths, which a compiler may do and the oracle never does. It
+    /// runs in the order written, and a compiler only has to come close.
+    /// trace: D163
     Fast,
 }
 
@@ -122,20 +124,17 @@ pub fn show_float(kind: FloatKind, value: f64) -> String {
     }
 }
 
-/// Every digit a finite float actually holds, and how many significant digits that is.
-/// trace: D161
-pub fn stored_float(value: f64) -> (String, usize) {
+/// Every digit a finite float actually holds, with no limit.
+/// trace: D161, D162
+pub fn stored_float(value: f64) -> String {
     // Writing out this many places shows a binary float's value in full.
     let full = format!("{value:.1100}");
     let trimmed = full.trim_end_matches('0');
-    let text = if trimmed.ends_with('.') {
+    if trimmed.ends_with('.') {
         format!("{trimmed}0")
     } else {
         trimmed.to_string()
-    };
-    let digits: String = trimmed.chars().filter(char::is_ascii_digit).collect();
-    let significant = digits.trim_start_matches('0').len();
-    (text, significant)
+    }
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]

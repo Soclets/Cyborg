@@ -1,4 +1,4 @@
-// trace: D54
+// trace: D164, D54
 fn.main [] -> void:
     let $a: f64 = 1.0;
     let $b: f64 = $a div.trunc 2.0;

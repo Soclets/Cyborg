@@ -1103,6 +1103,14 @@ fn compare(
     })
 }
 
+fn oracle_lost(span: Span, what: &str) -> Box<Report> {
+    Report::check_failed(
+        span,
+        format!("the oracle got lost: {what}"),
+        "this is a bug in the oracle, not in your program (rule 6)",
+    )
+}
+
 fn float_value(value: &Value) -> Option<f64> {
     match value {
         Value::F32(number) => Some(f64::from(*number)),
@@ -1130,24 +1138,10 @@ fn refuse_non_finite_text(value: f64, span: Span) -> Outcome<()> {
     ))
 }
 
-/// The most digits the standard's example of `std::println.stored` shows.
-const STORED_DIGITS_SHOWN: usize = 34;
-
-/// trace: D161
+/// trace: D161, D162
 fn stored_text(value: f64, span: Span) -> Outcome<String> {
     refuse_non_finite_text(value, span)?;
-    let (text, significant) = stored_float(value);
-    // D161 says this prints what's in memory, and the standard's `0.1` stops at 34 digits of the
-    // 55 it holds. Up to 34 the two agree, and past that they don't.
-    if significant > STORED_DIGITS_SHOWN {
-        return Err(Report::not_designed(
-            span,
-            "how many digits `std::println.stored` prints",
-            "12.2",
-        )
-        .when(format!("this float holds {significant}")));
-    }
-    Ok(text)
+    Ok(stored_float(value))
 }
 
 fn arithmetic(
@@ -1179,6 +1173,8 @@ fn arithmetic(
             let result = match operator {
                 Arithmetic::Add => left + right,
                 Arithmetic::Subtract => left - right,
+                // trace: D164
+                Arithmetic::Divide(_) => left / right,
                 _ => left * right,
             };
             check_float_made(
@@ -1202,6 +1198,8 @@ fn arithmetic(
             let result = match operator {
                 Arithmetic::Add => left + right,
                 Arithmetic::Subtract => left - right,
+                // trace: D164
+                Arithmetic::Divide(_) => left / right,
                 _ => left * right,
             };
             check_float_made(FloatKind::F64, rules, result, *left, *right, span)?;
@@ -1291,6 +1289,9 @@ fn integer_arithmetic(
         Arithmetic::Divide(narrowing) => {
             division_by_zero(right, span)?;
             let value = match narrowing {
+                Narrowing::Bare(_) => {
+                    return Err(oracle_lost(span, "a bare `div` on integers"));
+                }
                 Narrowing::Trunc => left / right,
                 Narrowing::Floor => {
                     left.div_euclid(right) - i128::from(right < 0 && left.rem_euclid(right) != 0)
@@ -1316,6 +1317,9 @@ fn integer_arithmetic(
         Arithmetic::Remainder(narrowing) => {
             division_by_zero(right, span)?;
             Ok(match narrowing {
+                Narrowing::Bare(_) => {
+                    return Err(oracle_lost(span, "a bare `mod`"));
+                }
                 Narrowing::Trunc | Narrowing::Exact => left % right,
                 // trace: D97
                 Narrowing::Floor => {

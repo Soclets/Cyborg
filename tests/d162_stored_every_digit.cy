@@ -1,5 +1,4 @@
-// D161 says this prints what's in memory, which is 55 digits, and the standard's example stops at 34.
-// trace: D161
+// trace: D162, D161
 import std;
 
 fn.main [] -> void:

@@ -1,5 +1,5 @@
-NotDesignedYet: d54_dividing_floats.cy:4:19, line 4 column 19
+NotDesignedYet: d164_div_trunc_on_floats.cy:4:19, line 4 column 19
  4 |     let $b: f64 = $a div.trunc 2.0;
    |                   ^^^^^^^^^^^^^^^^
- what: dividing floats
+ what: `div.trunc` on floats
  why:  not decided yet (standard 12.2)

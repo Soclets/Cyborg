@@ -409,6 +409,8 @@ pub enum BinaryOperator {
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Narrowing {
+    /// A bare `div`, which only floats have, and where the word was written. (D164)
+    Bare(Span),
     Trunc,
     Floor,
     Exact,
@@ -533,4 +535,16 @@ pub enum ExpressionKind {
         position: Box<Expression>,
         counts_from_zero: bool,
     },
+}
+
+impl Narrowing {
+    /// The narrowing as it's written after `div` or `mod`.
+    pub fn word(self) -> &'static str {
+        match self {
+            Narrowing::Bare(_) => "",
+            Narrowing::Trunc => "trunc",
+            Narrowing::Floor => "floor",
+            Narrowing::Exact => "exact",
+        }
+    }
 }

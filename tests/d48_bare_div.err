@@ -1,5 +1,5 @@
 refused: d48_bare_div.cy:3:21, line 3 column 21
  3 |     let $a: i32 = 7 div 2;
    |                     ^^^
- what: there's no bare `div`, so pick a narrowing
- why:  `div` has no single right answer, so you pick one (D48)
+ what: an integer has no bare `div`, so pick `div.trunc` or `div.floor`
+ why:  integer division has no single right answer, so you pick one (D48, D164)

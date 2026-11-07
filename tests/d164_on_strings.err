@@ -1,0 +1,5 @@
+refused: d164_on_strings.cy:4:19, line 4 column 19
+ 4 |     let $b: str = $a div $a;
+   |                   ^^^^^^^^^
+ what: maths needs numbers, and this has `str` and `str`
+ why:  `:` doesn't convert, and `as` builds a new value of another type (D7)

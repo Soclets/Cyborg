@@ -2649,15 +2649,17 @@ impl Parser {
 
     fn parse_narrowed_operator(&mut self, word: &str) -> Outcome<Narrowing> {
         let start = self.advance().span; // `div` or `mod`
+                                         // The types say whether a bare `div` is allowed, and those aren't known here.
+                                         // trace: D164
+        if word == "div" && !self.at_symbol(".") {
+            return Ok(Narrowing::Bare(start));
+        }
         if !self.at_symbol(".") {
-            // trace: D48, D97
+            // trace: D97
             return Err(Report::refused(
                 start,
                 format!("there's no bare `{word}`, so pick a narrowing"),
-                format!(
-                    "`{word}` has no single right answer, so you pick one ({})",
-                    if word == "div" { "D48" } else { "D97" }
-                ),
+                format!("`{word}` has no single right answer, so you pick one (D97)"),
             ));
         }
         self.advance();

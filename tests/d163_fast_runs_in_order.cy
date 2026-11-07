@@ -1,5 +1,5 @@
-// The oracle stays plain, so `f64.fast` runs just as written here.
-// trace: D158, D62
+// A compiler may merge this, so nothing here prints the answer: how close counts isn't decided.
+// trace: D163, D158
 import std;
 
 fn.main [] -> void:

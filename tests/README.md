@@ -17,3 +17,7 @@ Run them with `cargo test` in `oracle/`, and check the traces from the top of th
 ```
 cargo run --manifest-path tools/Cargo.toml
 ```
+
+`f64.fast` only has to come close, and may crash where the oracle doesn't (D163). So a compiler's output doesn't have to match
+the `d163_` tests that run, and any other test using `.fast` is a refusal, which still matches byte for byte. How close counts as
+close isn't decided, so no test prints a `.fast` answer yet.

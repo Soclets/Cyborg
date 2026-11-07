@@ -3,6 +3,7 @@
 use super::body::root_variable;
 use super::hand::HandedOff;
 use super::{Checker, Failure, Origin, ParameterInfo, Signature, WHY_TYPES};
+use crate::ast::Narrowing;
 use crate::ast::{
     Argument, BinaryOperator, CompareOperator, Expression, ExpressionKind, FieldValue,
     FunctionKind, HandWord, Handling, ParameterWord,
@@ -2544,6 +2545,14 @@ impl Checker<'_> {
                         WHY_TYPES,
                     ));
                 }
+                // trace: D48, D164
+                if let Arithmetic::Divide(Narrowing::Bare(word)) = operator {
+                    return Err(Report::refused(
+                        word,
+                        "an integer has no bare `div`, so pick `div.trunc` or `div.floor`",
+                        "integer division has no single right answer, so you pick one (D48, D164)",
+                    ));
+                }
                 let unit = self.unit_of_result(
                     operator,
                     left_unit.as_ref(),
@@ -2593,9 +2602,20 @@ impl Checker<'_> {
                     ));
                 }
                 match operator {
-                    Arithmetic::Add | Arithmetic::Subtract | Arithmetic::Multiply => {}
-                    Arithmetic::Divide(_) | Arithmetic::Remainder(_) => {
-                        return Err(Report::not_designed(span, "dividing floats", "12.2"));
+                    // trace: D164
+                    Arithmetic::Add
+                    | Arithmetic::Subtract
+                    | Arithmetic::Multiply
+                    | Arithmetic::Divide(Narrowing::Bare(_)) => {}
+                    Arithmetic::Divide(narrowing) => {
+                        return Err(Report::not_designed(
+                            span,
+                            format!("`div.{}` on floats", narrowing.word()),
+                            "12.2",
+                        ));
+                    }
+                    Arithmetic::Remainder(_) => {
+                        return Err(Report::not_designed(span, "`mod` on floats", "12.2"));
                     }
                     Arithmetic::PlusWrap => {
                         return Err(Report::refused(

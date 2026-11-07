@@ -1,0 +1,5 @@
+NotDesignedYet: d164_integer_literal_on_a_float.cy:4:26, line 4 column 26
+ 4 |     let $b: f64 = $a div 2;
+   |                          ^
+ what: an integer literal where a float is needed
+ why:  not decided yet, and the standard doesn't say
