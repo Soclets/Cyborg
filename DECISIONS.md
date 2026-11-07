@@ -794,6 +794,9 @@ D24 and D153, which were never built there. Claude proposed it; the owner chose:
 
 **D160. Comparing floats.** `-0.0 == 0.0` is true, and every other comparison follows: `-0.0 < 0.0` is false, and a bound stopping at `0.0` lets `-0.0` through. Comparing with `==` works on floats. Rare code that cares about the sign can check it directly. The linter limb can flag these cases, like comparing floats with `==`, or a range that runs zero rounds. How NaN compares on `f64.ieee` is not settled here. Oracle claude asked; Claude proposed it; the owner chose: "yea, and the linter would have a say on that too for both, and more if needed". (Owner, 2026-11-07)
 
+**D161. `std` is flat, floats print shortest, and families are one level.** `std::sin($x)`, not `std::math.sin($x)`, the same as `std::println`. If `std` ever groups things, that's `::`, as in `std::math::sin`, and not `.`. A family is one level deep, so a family can't hold a family; `std::time.seconds` is fine, since `std` is a kit. `std::sin` is backed by CORE-MATH inside a shield in `std`, which needs a narrow exception to rule 1: third-party C that `std` needs, in its own folder, with its original license, and no C of your own. Its license and code haven't been checked yet. `std::sin.fast` is
+a placeholder for a version that isn't correctly rounded. A float prints as the shortest text that means its value, so `~0.1` prints `0.1`, and `std::println.stored($x)` prints what's actually in memory. The owner proposed `println.stored`, and said of `math`: "which isn't my taste, I'm not fucking Zig... it might wanna be with `::`"; Claude proposed the rest; the owner chose: "yea". (Owner, 2026-11-07)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude

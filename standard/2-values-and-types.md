@@ -106,7 +106,19 @@ let $clean: f64 = $reading as f64;
 
 Comparing works as usual, and `-0.0 == 0.0` is true. The linter can flag comparing floats with `==`.
 
-**From:** D54, D59, D158, D159, D160.
+A float prints as the shortest text that means its value, and `std::println.stored` prints what's actually in memory:
+
+```
+let $x: f64 = ~0.1;
+std::println($x as str);
+std::println.stored($x);
+```
+
+The first prints `0.1`, and the second prints `0.1000000000000000055511151231257827`.
+
+`std::sin` and similar functions are correctly rounded, so they give the same bits on every machine. `std::sin.fast` is a placeholder for a version that isn't.
+
+**From:** D54, D59, D158, D159, D160, D161.
 
 ## 2.7 Inexact literals: `~`
 
