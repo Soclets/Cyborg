@@ -777,6 +777,8 @@ bounds on the ranges is not settled here. (Owner, 2026-11-07)
 
 **D152. What Cyborg is for.** A general systems language with a very safe syntax, on the safer side, at around top performance, where safety wins if performance drops a little, and with good C++ support. It won't seek a real certification. This sharpens D27. The owner: "what I wanted was just a hella safe syntax, a general sys lang that's on the safer side, on around the top perf (safety wins if perf drops a little, even though I know some AIs won't note the important nuance), and good C++ support (for obvious reasons), and I wouldn't go for a real cert". Whether D31's "no deep C++" still holds, and whether the pitch in D136 still fits, are not settled here. (Owner, 2026-11-07)
 
+**D153. You can `use` a limb, keeping its `@`.** `use @csup::extern.c as @c;` then `@c …`. This replaces D94. The short name has to keep the `@`, so a search for `@` still finds every use of a compiler extension, and D150's check applies, so your own name is quoted, as in `as "@ext"`. The path is one look away at the file's `use` lines. Claude proposed it; the owner answered: "They could just look at the `use`s, right?", which Claude reads as a yes. (Owner, 2026-11-07)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude
