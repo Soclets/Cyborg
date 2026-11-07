@@ -49,7 +49,7 @@ Waiting on the owner, most needed first. Each is `NotDesignedYet` unless it says
 - **`len.type`, readings.** It takes any integer in the list, including `i32`, and goes only on the collection. Lists differing only in `len.type` are different types.
 - **Steps and quoted names, readings.** A written `step_by: 0` is refused even when the other numbers are only known while running. A step of 0 is a `check failed:` with no name, can't be handled, and wins over zero rounds. A float or unit step is `NotDesignedYet`. After `as "secs"`, the type is `i32.secs` as well as the value `3600 secs`. `(Give $r) as wrapped` is refused, and `Give $h.inner as wrapped` is `NotDesignedYet`.
 - **`f64.fast` against rule 5 (a real conflict).** Merged maths can change whether a program crashes: `$big x 10.0 x 0.1` makes infinity in plain order, and doesn't if `10.0 x 0.1` is merged. So either `f64.fast` programs sit outside rule 5, or a compiler must crash whenever plain order would.
-- **Floats, what's stuck.** Comparing, which stops `$a < $b` and `requires $x at_least 0.0`, is mostly about `-0.0`. `$x as f64.ieee`, which can't fail. A bound on `f64.ieee`. `$reading as f64[min: 0.0, max: 2.0]`. How `f64.fast` mixes with `f64`. A literal too large for `f64.ieee`.
+- **Floats, what's stuck.** `$x as f64.ieee`, which can't fail. A bound on `f64.ieee`. `$reading as f64[min: 0.0, max: 2.0]`. How `f64.fast` mixes with `f64`. A literal too large for `f64.ieee`.
 - **Floats, readings.** NaN or infinity is a `check failed:` nothing can handle, and refused in a `const`. A failed `$reading as f64` is a `check failed:` too. Float bounds behave like integers, and D59 applies, so `f64[min: 0.1, …]` needs `~0.1`. `f32.ieee` and `f32.fast` work too. `f64.fast` can't be NaN or infinity either.
 - **`use`, readings.** D151 refuses every reserved word, including `"i32"`, plus `"2nd"` and `"$say"`. A limb still needs its `import`, and a short name still needs a shield where the limb would. `use @csup::union.untagged as untagged;` gives `untagged number:`, closed with `end untagged number`.
 - **Dead variables.** Whether `eat(Give $s); change $s = "b";` is allowed. It's refused today.
@@ -69,7 +69,7 @@ Waiting on the owner, most needed first. Each is `NotDesignedYet` unless it says
 - The full list of integer and float types.
 - Units (D99 to D111): the spelling of `together`, offsets, moments, how a conversion is written, what a lossy conversion does, and the full list of units `std` has.
 - Dividing floats: `div` has no bare form for integers, and nothing says what floats use.
-- How comparing floats works, including `0.0` and `-0.0`.
+- How NaN compares on `f64.ieee`, and how to check a float's sign.
 - Raw pointers' spelling, though D38 puts them in shields.
 - Function types: `-> i32` no longer shows failures, so a function's type needs some way to include them.
 - How a type's writer defines label narrowings like `len.max`.

@@ -792,6 +792,8 @@ D24 and D153, which were never built there. Claude proposed it; the owner chose:
 
 **D159. `f64.ieee` needs no shield.** A NaN is a wrong number, not something that can corrupt memory, and the compiler knows how `f64.ieee` behaves. It's a different type, so it can't mix with `f64`, and `$reading as f64` is a real conversion that fails on NaN or infinity. The owner asked "Should `f64.ieee` be in a shield?"; Claude proposed not; the owner chose: "yea". (Owner, 2026-11-07)
 
+**D160. Comparing floats.** `-0.0 == 0.0` is true, and every other comparison follows: `-0.0 < 0.0` is false, and a bound stopping at `0.0` lets `-0.0` through. Comparing with `==` works on floats. Rare code that cares about the sign can check it directly. The linter limb can flag these cases, like comparing floats with `==`, or a range that runs zero rounds. How NaN compares on `f64.ieee` is not settled here. Oracle claude asked; Claude proposed it; the owner chose: "yea, and the linter would have a say on that too for both, and more if needed". (Owner, 2026-11-07)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude

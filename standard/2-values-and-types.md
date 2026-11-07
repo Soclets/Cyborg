@@ -104,7 +104,9 @@ let $clean: f64 = $reading as f64;
 
 **Refused:** `let $x: f64 = $reading;`.
 
-**From:** D54, D59, D158, D159.
+Comparing works as usual, and `-0.0 == 0.0` is true. The linter can flag comparing floats with `==`.
+
+**From:** D54, D59, D158, D159, D160.
 
 ## 2.7 Inexact literals: `~`
 
