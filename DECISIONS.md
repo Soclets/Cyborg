@@ -779,6 +779,8 @@ bounds on the ranges is not settled here. (Owner, 2026-11-07)
 
 **D153. You can `use` a limb, keeping its `@`.** `use @csup::extern.c as @c;` then `@c …`. This replaces D94. The short name has to keep the `@`, so a search for `@` still finds every use of a compiler extension, and D150's check applies, so your own name is quoted, as in `as "@ext"`. The path is one look away at the file's `use` lines. Claude proposed it; the owner answered: "They could just look at the `use`s, right?", which Claude reads as a yes. (Owner, 2026-11-07)
 
+**D154. You can't `use` a limb, again.** This replaces D153 and restores D94: `use @csup::extern.c as @c;` is refused. `@c` looks like a builtin (D56), or like a limb called `c`, so the short name misleads. Claude had read "They could just look at the `use`s, right?" as a yes when it wasn't one. The owner: "I mean, `@c` looks like a lie". (Owner, 2026-11-07)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude
