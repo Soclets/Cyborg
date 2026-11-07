@@ -797,6 +797,8 @@ D24 and D153, which were never built there. Claude proposed it; the owner chose:
 **D161. `std` is flat, floats print shortest, and families are one level.** `std::sin($x)`, not `std::math.sin($x)`, the same as `std::println`. If `std` ever groups things, that's `::`, as in `std::math::sin`, and not `.`. A family is one level deep, so a family can't hold a family; `std::time.seconds` is fine, since `std` is a kit. `std::sin` is backed by CORE-MATH inside a shield in `std`, which needs a narrow exception to rule 1: third-party C that `std` needs, in its own folder, with its original license, and no C of your own. Its license and code haven't been checked yet. `std::sin.fast` is
 a placeholder for a version that isn't correctly rounded. A float prints as the shortest text that means its value, so `~0.1` prints `0.1`, and `std::println.stored($x)` prints what's actually in memory. The owner proposed `println.stored`, and said of `math`: "which isn't my taste, I'm not fucking Zig... it might wanna be with `::`"; Claude proposed the rest; the owner chose: "yea". (Owner, 2026-11-07)
 
+**D162. `std::println.stored` prints every digit.** There's no limit, so `~0.1` as an `f64` prints all 55 digits: `0.1000000000000000055511151231257827021181583404541015625`. A limit would stop showing what's stored. This corrects the example in the standard, which stopped at 34 digits by Claude's mistake. Oracle claude asked; the owner said "`std::println.stored` is honest", Claude asked whether that meant every digit, and the owner chose: "yea, no shit". (Owner, 2026-11-07)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude

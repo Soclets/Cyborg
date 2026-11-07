@@ -114,11 +114,11 @@ std::println($x as str);
 std::println.stored($x);
 ```
 
-The first prints `0.1`, and the second prints `0.1000000000000000055511151231257827`.
+The first prints `0.1`, and the second prints every digit, with no limit: `0.1000000000000000055511151231257827021181583404541015625`.
 
 `std::sin` and similar functions are correctly rounded, so they give the same bits on every machine. `std::sin.fast` is a placeholder for a version that isn't.
 
-**From:** D54, D59, D158, D159, D160, D161.
+**From:** D54, D59, D158, D159, D160, D161, D162.
 
 ## 2.7 Inexact literals: `~`
 
