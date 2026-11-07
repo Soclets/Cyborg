@@ -125,9 +125,11 @@ A range also takes numbers in `items`, so `range[from: 1, to: $xs.len]` goes thr
 
 When the numbers are only known while running, a range that can't reach its end runs zero rounds, with no error, so an empty list just skips the loop. A step of 0 is a failure. The linter can flag a range that looks wrong.
 
+`step_by:` takes a literal or any integer, and doesn't have to match the range's type, so `range[from: $xs.len, to: 1, step_by: -1]` counts down a length.
+
 **Refused:** a literal range that can never reach its end, as in `range[from: 5, to: 1]`, and labels out of order.
 
-**From:** D128, D142, D145.
+**From:** D128, D142, D145, D146.
 
 ## 4.6 `while`
 

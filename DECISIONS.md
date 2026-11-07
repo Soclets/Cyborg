@@ -762,6 +762,8 @@ a unit behind the number when declaring a function, so each function has one way
 **D145. A range that can't reach its end runs zero rounds.** When its numbers are only known while running, as with `range[from: 1, to: $xs.len]` on an empty list, the body doesn't run and there's no error. A step of 0 is a failure, since it never ends. Literals that can't reach their end are still refused, as in D128. The cost is that a range written wrong by accident does nothing silently, and the linter limb can flag that. Oracle claude asked; Claude proposed it; the owner
 chose: "Yea. I mean, the linter limb could help". (Owner, 2026-11-07)
 
+**D146. `step_by:` takes any integer.** A literal, or any signed or unsigned integer, and it doesn't have to match the range's type, so `range[from: $xs.len, to: 1, step_by: -1]` works, and `$i` keeps the range's type. Oracle claude asked; Claude proposed it; the owner asked "Should they choose?", and Claude said there's nothing to choose, since a step isn't stored; the owner chose: "yea". (Owner, 2026-11-07)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude
