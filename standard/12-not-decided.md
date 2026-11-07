@@ -42,6 +42,8 @@ Waiting on the owner, most needed first. Each is `NotDesignedYet` unless it says
 - **`Copy`'s depth.** Whether copying a struct holding a list copies the list too. Other languages disagree on this.
 - **Reading a case (D139).** Whether `case status.failed: … $s.code` with no name is still allowed. Whether `$f` is a read-only view, as it is today, or a copy. `if $s: status.failed $f:`. `instead` inside a loop inside its arm.
 - **Arms, readings.** An arm that can run off its end where a value's needed is refused. A bare value as an arm's last line is refused, with `fix: instead …`. `instead` on a call giving nothing back is refused. `*` on a handler with only `instead` is refused. What an arm gives away is only maybe gone afterwards. A failure's `$f` reads data only, and non-numbers need a word: `instead Copy $x.label;`.
+- **Lengths and units (the gap felt most).** `$a[pos: $a.len]` and `range[from: 1, to: $a.len]` don't work, because `pos:` and ranges take no unit. `let $n: u64 = $a.len;` is refused, so there's no way to take a unit off, and `as` between units isn't decided. `$a.len - 1 items` going below zero, since `-`'s overflow isn't stated, and `$a.len x 2`. An `inf` list outgrowing its `len.type`, like the 256th `append` with `len.type: u8`.
+- **`len.type`, readings.** It takes any integer in the list, including `i32`, and goes only on the collection. Lists differing only in `len.type` are different types.
 - **Dead variables.** Whether `eat(Give $s); change $s = "b";` is allowed. It's refused today.
 - **Names.** Declaring a name already in scope, or hiding an outer one.
 - **`ensures` on a `fail` path.** Checked only on `return` today, which is a guess.
