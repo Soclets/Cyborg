@@ -1707,6 +1707,48 @@ impl Checker<'_> {
         })
     }
 
+    /// `Give $r as wrapped` and `Copy $r as wrapped`. (D149)
+    /// trace: D149
+    fn check_word_on_as(
+        &mut self,
+        value: &Expression,
+        word: HandWord,
+        inner: &Expression,
+    ) -> Outcome<(Node, Type)> {
+        // The word is on a plain number, or on a fresh value, so nothing's left behind. (D123, D2)
+        if root_variable(inner).is_none() {
+            return Err(Report::refused(
+                value.span,
+                "a fresh value takes no word",
+                "a fresh value that has no holder yet takes no word (D2, D149)",
+            )
+            .fix(self.text_of(inner.span).to_string()));
+        }
+        let held_type = self.check_held(inner)?.value_type;
+        if held_type.is_always_copied() {
+            return Err(Self::word_on_a_copied_value(
+                value,
+                self.text_of(inner.span),
+                &held_type,
+            ));
+        }
+        let held = match word {
+            HandWord::Give => self.check_give(inner, value.span)?,
+            HandWord::Copy => self.check_copy(inner)?,
+            HandWord::Lend | HandWord::LendMut => {
+                return Err(Report::refused(
+                    value.span,
+                    format!(
+                        "`as` builds a new value, so `{}` doesn't fit here",
+                        word.word()
+                    ),
+                    "`as` on a whole value says `Give` or `Copy` (D3, D149)",
+                ));
+            }
+        };
+        Ok((held.node, held.value_type))
+    }
+
     /// trace: D7
     fn check_as(
         &mut self,
@@ -1733,6 +1775,7 @@ impl Checker<'_> {
                 | ExpressionKind::Try(_)
                 | ExpressionKind::WithUnit { .. }
                 | ExpressionKind::As { .. }
+                | ExpressionKind::Hand { .. }
         ) {
             return Err(Report::refused(
                 value.span,
@@ -1744,16 +1787,25 @@ impl Checker<'_> {
         // A literal takes its type from where it lands, even here. (D141)
         let (node, found) = if is_number_literal(value) {
             self.check_expression(value, Some(&target_type))?
+        } else if let ExpressionKind::Hand { word, value: inner } = &value.kind {
+            self.check_word_on_as(value, *word, inner)?
         } else {
             self.check_expression(value, None)?
         };
         // trace: D141
         if crosses(&found, &target_type) {
-            if !found.is_always_copied() && root_variable(value).is_some() {
-                return Err(Report::not_designed(
+            // trace: D149
+            if !matches!(value.kind, ExpressionKind::Hand { .. })
+                && !found.is_always_copied()
+                && root_variable(value).is_some()
+            {
+                return Err(Report::refused(
                     value.span,
-                    format!("crossing a whole `{found}` that lives in a variable, and what happens to the original"),
-                    "",
+                    format!(
+                        "`{}` is `{found}`, so this says `Give` or `Copy`",
+                        self.text_of(value.span)
+                    ),
+                    "`as` on a whole value says its ownership: `Give` leaves it dead, and `Copy` pays for a copy (D3, D149)",
                 ));
             }
             return Ok(RawCall {

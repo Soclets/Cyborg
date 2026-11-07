@@ -458,7 +458,7 @@ impl Checker<'_> {
     }
 
     /// `Give $x`: the value moves, and `$x` is dead afterwards on any path. (D2)
-    fn check_give(&mut self, value: &Expression, hand_span: Span) -> Outcome<Held> {
+    pub(super) fn check_give(&mut self, value: &Expression, hand_span: Span) -> Outcome<Held> {
         if !matches!(value.kind, ExpressionKind::Variable(_)) {
             if matches!(value.kind, ExpressionKind::Item { .. }) {
                 return Err(Report::not_designed(
@@ -574,7 +574,7 @@ impl Checker<'_> {
         Ok(())
     }
 
-    fn check_copy(&mut self, value: &Expression) -> Outcome<Held> {
+    pub(super) fn check_copy(&mut self, value: &Expression) -> Outcome<Held> {
         if matches!(
             self.context.kind,
             crate::ast::FunctionKind::Pure | crate::ast::FunctionKind::PureBaked
@@ -693,7 +693,7 @@ impl Checker<'_> {
         self.coerce(node, &found, target, value)
     }
 
-    fn word_on_a_copied_value(
+    pub(super) fn word_on_a_copied_value(
         expression: &Expression,
         shown: &str,
         value_type: &Type,

@@ -1,0 +1,5 @@
+refused: d149_give_what_you_borrowed.cy:9:28, line 9 column 28
+ 9 |     let $w: wrapped = Give $r as wrapped;
+   |                            ^^
+ what: `$r` is only lent here, so it can't be given away
+ why:  `Lend` is temporary access, and the caller keeps it (D2)

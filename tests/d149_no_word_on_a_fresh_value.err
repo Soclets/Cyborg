@@ -1,0 +1,5 @@
+refused: d149_no_word_on_a_fresh_value.cy:13:23, line 13 column 23
+13 |     let $w: wrapped = Give make() as wrapped;
+   |                       ^^^^^^^^^^^
+ fix:  `make()`
+ why:  a fresh value that has no holder yet takes no word (D2, D149)

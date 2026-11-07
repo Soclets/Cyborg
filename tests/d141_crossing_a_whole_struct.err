@@ -1,5 +1,0 @@
-NotDesignedYet: d141_crossing_a_whole_struct.cy:11:23, line 11 column 23
-11 |     let $w: wrapped = $r as wrapped;
-   |                       ^^
- what: crossing a whole `reading` that lives in a variable, and what happens to the original
- why:  not decided yet, and the standard doesn't say

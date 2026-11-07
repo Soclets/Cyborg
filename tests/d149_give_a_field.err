@@ -1,0 +1,5 @@
+NotDesignedYet: d149_give_a_field.cy:15:28, line 15 column 28
+15 |     let $w: wrapped = Give $h.inner as wrapped;
+   |                            ^^^^^^^^
+ what: giving away one field of a struct
+ why:  not decided yet, and the standard doesn't say
