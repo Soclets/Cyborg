@@ -34,11 +34,9 @@ impl IntegerKind {
 
     pub fn bits(self) -> u32 {
         match self {
-            IntegerKind::I32 => 32,
-            IntegerKind::I64 => 64,
             IntegerKind::U8 => 8,
-            IntegerKind::U32 => 32,
-            IntegerKind::U64 => 64,
+            IntegerKind::I32 | IntegerKind::U32 => 32,
+            IntegerKind::I64 | IntegerKind::U64 => 64,
         }
     }
 
