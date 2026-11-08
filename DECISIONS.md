@@ -819,6 +819,8 @@ a placeholder for a version that isn't correctly rounded. A float prints as the 
 
 **D172. Lending a part locks the whole.** `Lend $xs[pos: 1]` and `Lend $r.celsius` work, and the borrow names the whole value it came from, as in `-> Lend from $xs reading`, so all of `$xs` is locked while it's held. Adding to a list can move its items in memory, which would leave a borrow of one pointing at nothing. Borrowing two different fields at once could be allowed later without breaking anything, and isn't settled here. Radium's design claude raised it; Claude proposed it; the owner chose: "Yea". (Owner, 2026-11-08)
 
+**D173. Different fields are separate.** A borrow of one field locks only that field, so `adjust(Lend.mut $r.celsius, Lend.mut $r.time);` works, and so does `change $r.time` while `$r.celsius` is lent. Using all of `$r` still waits for every borrow of its fields, so `Give $r` or `Lend.mut $r` is refused while one is held. The borrow's type still names `$r`, as D172 says. Items in a list stay locked together, since a list can move them and `$xs[pos: $i]` and `$xs[pos: $j]` may be the same one. This narrows D172 for fields. Claude proposed it; the owner chose: "yea". (Owner, 2026-11-08)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude

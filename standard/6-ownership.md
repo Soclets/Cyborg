@@ -209,7 +209,7 @@ end fn build
 
 **Refused:** leaving a source out, a source no field uses, and the same `lasts_at_least` fact written twice.
 
-Lending an item or a field borrows the whole value it came from, so all of it is locked while the borrow is held:
+Lending an item locks the whole list, and its type names the list:
 
 ```
 fn first [$xs: std::list<reading>[len.min: 1 items]] -> Lend from $xs reading:
@@ -217,7 +217,15 @@ fn first [$xs: std::list<reading>[len.min: 1 items]] -> Lend from $xs reading:
 end fn first
 ```
 
-**From:** D2, D169, D170, D171, D172.
+Lending a field locks only that field, though its type still names the whole value. Different fields are separate:
+
+```
+adjust(Lend.mut $r.celsius, Lend.mut $r.time);
+```
+
+**Refused:** `Give $r` or `Lend.mut $r` while one of its fields is lent.
+
+**From:** D2, D169, D170, D171, D172, D173.
 
 ## 6.11 No word needed
 
