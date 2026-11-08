@@ -2,7 +2,7 @@
 
 | Section | What | In short |
 |---|---|---|
-| [9.1](#91-base-kits-and-limbs) | Base, kit, limb | Bare, a path, or `@` |
+| [9.1](#91-base-kits-and-limbs) | Base, kit, limb, package | Bare, a path, or `@` |
 | [9.2](#92--a-limb) | `@name::` | A limb provides this |
 | [9.3](#93-stds-two-parts) | `std::`, `@std::` | The kit part and the limb part |
 | [9.4](#94-inline-assembly) | `@std::inline.asm` | In `std`'s limb part |
@@ -25,8 +25,11 @@ Bare `@`, with no `::`, is a compiler builtin instead ([5.7](5-functions.md#57-b
 | Base | The language itself | Bare |
 | Kit | A library, written in Cyborg | Its path: `std::println` |
 | Limb | A compiler extension | `@` and its path: `@csup::union.untagged` |
+| Package | What you install: a kit, a limb, or both, with one name and one version | Its halves, as `std::` and `@std::` |
 
-**From:** D22, D28, D36, D56.
+The manifest lists packages. `std` is a package with both halves. The base and builtins aren't packages.
+
+**From:** D22, D28, D36, D56, D186.
 
 ## 9.2 `@`: a limb
 
