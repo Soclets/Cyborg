@@ -823,6 +823,8 @@ a placeholder for a version that isn't correctly rounded. A float prints as the 
 
 **D174. Lending through a stored borrow.** With `let $m: Lend.mut from $r reading = Lend.mut $r;`, `Lend.mut $m` passes it on, and `$m` can't be used until that borrow ends. `Lend $m` passes it on read-only, so `$m` can be read meanwhile but not changed. `Give $m` is refused, since it's only borrowed. A borrow taken through `$m` names `$r`, not `$m`, as in Radium's D142, so nothing holds a borrow of a borrow. Rust does this silently and calls it reborrowing; here it's written, following D3. Claude proposed it; the owner chose: "yea". (Owner, 2026-11-08)
 
+**D175. A parameter isn't typed as a stored borrow.** `fn show [$v: Lend from $r reading]` is refused, because a bare parameter already is a borrow: `fn show [$v: reading]` called with `Lend $view` does the same, and D174 makes that borrow name the original value. The fix says "a bare parameter is already lent, so write `$v: reading`". `Lend.mut from` on a parameter is refused the same way, with `Lent.mut` as the fix. A struct parameter holding a borrow stays as D171 has it. Claude proposed it; the owner chose: "yea". (Owner, 2026-11-08)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude

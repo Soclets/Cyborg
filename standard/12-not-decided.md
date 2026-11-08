@@ -119,7 +119,6 @@ These are inherited from Radium with D2:
 
 - Whether a C function's `Given` parameter ends a `must_Give` duty.
 - A `must_Give` value in a field or returned.
-- A parameter whose type is a stored borrow.
 - A `union.tagged` case holding a borrow.
 - Going through items that are structs, unions or arrays.
 

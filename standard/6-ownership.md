@@ -235,7 +235,11 @@ change $m.celsius = 30;
 
 While `Lend.mut $m` is held, `$m` can't be used. While `Lend $m` is held, `$m` can be read but not changed. `Give $m` is refused.
 
-**From:** D2, D169, D170, D171, D172, D173, D174.
+A parameter is never typed as a stored borrow, because a bare parameter already is one, and `Lent.mut` already is the changing one.
+
+**Refused:** `fn show [$v: Lend from $r reading]`, with `fix: $v: reading`, and `Lend.mut from` on a parameter, with `fix: Lent.mut`.
+
+**From:** D2, D169, D170, D171, D172, D173, D174, D175.
 
 ## 6.11 No word needed
 
