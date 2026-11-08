@@ -225,7 +225,17 @@ adjust(Lend.mut $r.celsius, Lend.mut $r.time);
 
 **Refused:** `Give $r` or `Lend.mut $r` while one of its fields is lent.
 
-**From:** D2, D169, D170, D171, D172, D173.
+A stored borrow can be lent on, and the new borrow names the original value:
+
+```
+let $m: Lend.mut from $r reading = Lend.mut $r;
+warm_up(Lend.mut $m);
+change $m.celsius = 30;
+```
+
+While `Lend.mut $m` is held, `$m` can't be used. While `Lend $m` is held, `$m` can be read but not changed. `Give $m` is refused.
+
+**From:** D2, D169, D170, D171, D172, D173, D174.
 
 ## 6.11 No word needed
 

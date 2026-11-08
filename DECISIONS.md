@@ -821,6 +821,8 @@ a placeholder for a version that isn't correctly rounded. A float prints as the 
 
 **D173. Different fields are separate.** A borrow of one field locks only that field, so `adjust(Lend.mut $r.celsius, Lend.mut $r.time);` works, and so does `change $r.time` while `$r.celsius` is lent. Using all of `$r` still waits for every borrow of its fields, so `Give $r` or `Lend.mut $r` is refused while one is held. The borrow's type still names `$r`, as D172 says. Items in a list stay locked together, since a list can move them and `$xs[pos: $i]` and `$xs[pos: $j]` may be the same one. This narrows D172 for fields. Claude proposed it; the owner chose: "yea". (Owner, 2026-11-08)
 
+**D174. Lending through a stored borrow.** With `let $m: Lend.mut from $r reading = Lend.mut $r;`, `Lend.mut $m` passes it on, and `$m` can't be used until that borrow ends. `Lend $m` passes it on read-only, so `$m` can be read meanwhile but not changed. `Give $m` is refused, since it's only borrowed. A borrow taken through `$m` names `$r`, not `$m`, as in Radium's D142, so nothing holds a borrow of a borrow. Rust does this silently and calls it reborrowing; here it's written, following D3. Claude proposed it; the owner chose: "yea". (Owner, 2026-11-08)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude

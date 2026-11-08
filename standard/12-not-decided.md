@@ -117,7 +117,6 @@ Waiting on the owner, most needed first. Each is `NotDesignedYet` unless it says
 
 These are inherited from Radium with D2:
 
-- Lending through a stored `Lend.mut`.
 - Whether a C function's `Given` parameter ends a `must_Give` duty.
 - A `must_Give` value in a field or returned.
 - A parameter whose type is a stored borrow.
