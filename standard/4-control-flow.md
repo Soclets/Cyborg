@@ -100,15 +100,27 @@ end match
 
 ## 4.4 `for`
 
-**Rule:** `for` goes through a collection or range, reading it in place, so it needs no ownership word. Its own value can't change inside.
+**Rule:** `for` goes through a collection or range. A collection takes `Lend`, `Lend.mut` or `Give`, and a range takes no word, since it's a fresh value. Its own value can't change inside.
 
 ```
-for $x in $xs:
+for $x in Lend $xs:
     change $sum = $sum + $x;
+end for
+
+for $r in Lend.mut $readings:
+    change $r.celsius = $r.celsius + 1;
+end for
+
+for $f in Give $files:
+    close(Give $f);
 end for
 ```
 
-**From:** D2, D128, the sketch.
+With `Lend`, the list is locked for the loop. With `Lend.mut`, each item can change through its name. With `Give`, each item is yours, and the list is gone after the loop.
+
+**Refused:** `for $x in $xs:`, with a fix asking which word you meant.
+
+**From:** D2, D128, D180, the sketch.
 
 ## 4.5 Ranges
 
@@ -164,8 +176,8 @@ end forever
 **Rule:** `break;` stops the innermost loop. A loop can be named, and `break` with that name stops it and every loop inside it.
 
 ```
-for rows $row in $grid:
-    for $cell in $row:
+for rows $row in Lend $grid:
+    for $cell in Lend $row:
         if $cell == $target:
             break rows;
         end if

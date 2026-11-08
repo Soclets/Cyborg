@@ -264,12 +264,11 @@ A parameter is never typed as a stored borrow, because a bare parameter already 
 
 ## 6.11 No word needed
 
-**Rule:** reading in place, and a fresh value that has no holder yet, take no word.
+**Rule:** reading in place, and a fresh value that has no holder yet, take no word. A loop isn't reading in place: it says its word ([4.4](4-control-flow.md#44-for)).
 
 ```
 $xs.len
-for $x in $xs:
 reading[celsius = 21, time = 3600 std::time.seconds]
 ```
 
-**From:** D2.
+**From:** D2, D180.

@@ -118,7 +118,6 @@ Waiting on the owner, most needed first. Each is `NotDesignedYet` unless it says
 These are inherited from Radium with D2:
 
 - Whether a C function's `Given` parameter ends a `must_Give` duty.
-- Going through items that are structs, unions or arrays.
 
 ## 12.9 Limbs and projects
 
