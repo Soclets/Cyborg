@@ -855,6 +855,8 @@ a placeholder for a version that isn't correctly rounded. A float prints as the 
 
 **D190. Cyborg's package manager is CyJet.** It shares only the name with CyborgPL's CyJet. It's Cyborg's own tool, not the same one. The manifest's format and name are not settled here. The owner said "Our PM is also CyJet, btw."; Claude asked whether it's the same tool; the owner chose: "Just name is same." (Owner, 2026-11-08)
 
+**D191. The manifest is `CyJet.zml`.** The Z is a nod to everyone putting a Z in front of their own version of something, like ZJIT and ZGC. It's not XML or any existing `.zml` format. The format inside it is not settled here. Claude found `.zml` used only by a few old, obscure formats; the owner asked "Does `.zml` exist yet?", said "It's a nod every fucking person putting Z Infront of a third party impl", and chose: "That name. Look at fucking ZJIT, ZGC, what the fucking Z is going on". (Owner, 2026-11-08)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude
