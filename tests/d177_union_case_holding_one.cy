@@ -1,0 +1,26 @@
+// D177 is about structs, so a union case holding one is still open.
+// trace: D177
+import std;
+
+struct.must_Give open_file:
+    fd: i32;
+end struct.must_Give open_file
+
+fn close [$f: Given open_file] -> void:
+    std::println("closing ", $f.fd as str);
+    finish $f;
+    return void;
+end fn close
+
+fn open [$fd: i32] -> open_file:
+    return open_file[fd = $fd];
+end fn open
+
+union.tagged maybe_file:
+    some[file: open_file]
+    none
+end union.tagged maybe_file
+
+fn.main [] -> void:
+    return void;
+end fn.main

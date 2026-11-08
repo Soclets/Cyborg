@@ -1,0 +1,5 @@
+refused: d180_give_forgets_an_item.cy:16:9, line 16 column 9
+16 |     for $f in Give $files:
+   |         ^^
+ what: `$f` is never given away or finished
+ why:  a `must_Give` value is handed off with `Give` exactly once, or `finish` ends it (D2, D129)

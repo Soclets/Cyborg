@@ -1,0 +1,5 @@
+refused: d177_return_what_was_lent.cy:19:17, line 19 column 17
+19 |     return Give $f;
+   |                 ^^
+ what: `$f` is only lent here, so it can't be given away
+ why:  `Lend` is temporary access, and the caller keeps it (D2)

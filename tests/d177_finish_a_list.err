@@ -1,0 +1,5 @@
+NotDesignedYet: d177_finish_a_list.cy:20:12, line 20 column 12
+20 |     finish $files;
+   |            ^^^^^^
+ what: `finish` on a collection of `must_Give` values
+ why:  not decided yet, and the standard doesn't say

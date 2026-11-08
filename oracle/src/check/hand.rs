@@ -287,6 +287,19 @@ impl Checker<'_> {
             }
             self.require_alive(slot, span)?;
             self.refuse_invalidated(slot, span)?;
+            // trace: D180
+            if self
+                .context
+                .being_changed
+                .iter()
+                .any(|changed| changed == name)
+            {
+                return Err(Report::refused(
+                    span,
+                    format!("a `for` is changing `${name}` through its items here"),
+                    "`Lend.mut` means nothing else uses it meanwhile, and the `for` is using it (D2, D180)",
+                ));
+            }
             self.note_use(name, UseKind::Read, span);
             let value_type = match &variable.held_type {
                 Type::Borrow { inner, .. } => (**inner).clone(),

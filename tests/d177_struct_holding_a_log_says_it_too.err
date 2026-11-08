@@ -1,0 +1,5 @@
+refused: d177_struct_holding_a_log_says_it_too.cy:23:14, line 23 column 14
+23 |     current: log;
+   |              ^^^
+ fix:  `struct.must_Give archive`
+ why:  a struct holding a `must_Give` value is `must_Give` itself, and nothing is implicit (D177, D3)

@@ -23,6 +23,22 @@ type RangeNodes = (Node, Node, bool, Option<Node>);
 /// A block's code, and whether it can't run past its end.
 type CheckedBlock = Outcome<(Vec<Instruction>, bool)>;
 
+/// What a `for` goes through: a value it reads, or a place whose items it changes. (D180)
+enum LoopCollection {
+    Value(Node),
+    Place(Place),
+}
+
+/// What a `for` does to its collection while it runs. (D180, D182)
+enum LoopSource {
+    /// Bare: reading in place, so nothing may change it.
+    Read(String, Vec<usize>),
+    /// `Lend.mut`: changing it through each item, so nothing else may use it.
+    Change(String),
+    /// `Give`: taking each item, so it's gone, and what's left is owed until the end.
+    Take { name: String, given: Span },
+}
+
 impl Checker<'_> {
     pub(super) fn check_function(&mut self, function: &Function) -> Outcome<ir::Function> {
         let signature = self
@@ -377,6 +393,24 @@ impl Checker<'_> {
                 format!("`${}` went here, on only one path", variable.name),
             ));
         }
+        // trace: D180
+        if variable.origin == Origin::LoopRest {
+            let mut report = Report::refused(
+                exit.unwrap_or(variable.declared),
+                format!(
+                    "this leaves before the `for` has handed out every item of `${}`",
+                    variable.name
+                ),
+                "a `must_Give` value is handed off with `Give` exactly once, so every item has to be (D2, D180)",
+            );
+            if exit.is_some() {
+                report = report.because(
+                    variable.declared,
+                    format!("`${}` was given to the `for` here", variable.name),
+                );
+            }
+            return Err(report);
+        }
         let report = match exit {
             Some(exit_span) => Report::refused(
                 exit_span,
@@ -467,6 +501,7 @@ impl Checker<'_> {
                 "`Lend` is temporary access, and the caller keeps it (D2, D129)",
             ));
         }
+        self.refuse_finish_with_duties_inside(name, &variable.held_type, target.span)?;
         self.refuse_while_read(name, &[], target.span)?;
         self.note_use(name, UseKind::Write, target.span);
         if let Some(state) = self.context.state.get_mut(slot) {
@@ -475,6 +510,43 @@ impl Checker<'_> {
             state.finished = true;
         }
         Ok(InstructionKind::Block(Vec::new()))
+    }
+
+    /// `finish` ends a value's own duty, and one inside it still has to be given away first.
+    /// trace: D129, D177
+    fn refuse_finish_with_duties_inside(
+        &self,
+        name: &str,
+        held_type: &Type,
+        span: Span,
+    ) -> Outcome<()> {
+        match held_type {
+            Type::Struct(struct_name) => {
+                let fields = self
+                    .structs
+                    .get(struct_name)
+                    .map(|info| info.fields.clone())
+                    .unwrap_or_default();
+                if let Some((field, _)) = fields
+                    .iter()
+                    .find(|(_, field_type)| self.is_must_give(field_type))
+                {
+                    // Giving one field away isn't decided yet, so it can't have happened.
+                    return Err(Report::refused(
+                        span,
+                        format!("`${name}.{field}` hasn't been given away, so `finish` waits for it"),
+                        "`finish` ends a value's own duty, after every `must_Give` value inside it is given away (D129, D177)",
+                    ));
+                }
+                Ok(())
+            }
+            Type::List { .. } | Type::Array { .. } => Err(Report::not_designed(
+                span,
+                "`finish` on a collection of `must_Give` values",
+                "",
+            )),
+            _ => Ok(()),
+        }
     }
 
     /// Leaving the function early: every duty still open is forgotten on this path. (D2)
@@ -1361,6 +1433,7 @@ impl Checker<'_> {
     }
 
     /// trace: D128
+    #[allow(clippy::too_many_lines)] // A range and the three ways through a collection.
     fn check_for(
         &mut self,
         loop_name: Option<&crate::ast::Name>,
@@ -1377,25 +1450,74 @@ impl Checker<'_> {
             }
             ForSource::Range(range) => {
                 let (nodes, item_type) = self.check_range(range)?;
-                (Some(nodes), None, item_type, (String::new(), Vec::new()))
+                (
+                    Some(nodes),
+                    None,
+                    item_type,
+                    LoopSource::Read(String::new(), Vec::new()),
+                )
             }
         };
         let loop_id = self.enter_loop(loop_name)?;
         self.context.scopes.push(HashMap::new());
+        // trace: D180, D182
+        let (mutable, origin, must_give) = match &read {
+            LoopSource::Read(..) => (false, Origin::ForItem, false),
+            LoopSource::Change(_) => (true, Origin::LentMutParameter, false),
+            LoopSource::Take { .. } => (false, Origin::Owned, self.is_must_give(&item_type)),
+        };
+        // While a `for` hands out `must_Give` items, the ones it hasn't reached are still a duty,
+        // so leaving early is caught the way a forgotten one is.
+        if let LoopSource::Take { name: list, given } = &read {
+            if must_give {
+                self.declare_hidden(Variable {
+                    name: list.clone(),
+                    held_type: item_type.clone(),
+                    mutable: false,
+                    origin: Origin::LoopRest,
+                    declared: *given,
+                    must_give: true,
+                    constant: None,
+                    borrows: Vec::new(),
+                    borrowed_path: Vec::new(),
+                });
+            }
+        }
         let slot = self.declare_variable(Variable {
             name: name.text.clone(),
             held_type: item_type,
-            mutable: false,
-            origin: Origin::ForItem,
+            mutable,
+            origin,
             declared: name.span,
-            must_give: false,
+            must_give,
             constant: None,
             borrows: Vec::new(),
             borrowed_path: Vec::new(),
         });
         // Nothing may lend `$xs` out mutably while `for` is reading it. (D2)
-        self.context.being_read.push(read);
-        let result = self.check_loop_body(&mut |this| this.check_block(body));
+        let reading = match &read {
+            LoopSource::Read(root, path) => (root.clone(), path.clone()),
+            _ => (String::new(), Vec::new()),
+        };
+        self.context.being_read.push(reading);
+        if let LoopSource::Change(root) = &read {
+            self.context.being_changed.push(root.clone());
+        }
+        let result = self.check_loop_body(&mut |this| {
+            // Each round has its own item, so what one round did to it doesn't carry over.
+            if let Some(state) = this.context.state.get_mut(slot) {
+                *state = super::VariableState::default();
+            }
+            let (code, terminated) = this.check_block(body)?;
+            // trace: D180
+            if must_give && !terminated {
+                this.check_duty_ended(slot, None)?;
+            }
+            Ok((code, terminated))
+        });
+        if matches!(read, LoopSource::Change(_)) {
+            self.context.being_changed.pop();
+        }
         self.context.being_read.pop();
         self.context.scopes.pop();
         let code = result?;
@@ -1417,55 +1539,130 @@ impl Checker<'_> {
                 }),
                 body: code,
             },
-            (None, Some(collection)) => InstructionKind::For {
+            (None, Some(LoopCollection::Value(collection))) => InstructionKind::For {
                 loop_id,
                 slot,
                 collection,
+                body: code,
+            },
+            (None, Some(LoopCollection::Place(place))) => InstructionKind::ForInPlace {
+                loop_id,
+                slot,
+                place,
                 body: code,
             },
             (None, None) => InstructionKind::Block(code),
         })
     }
 
+    /// A variable no program can name, such as what a loop still owes. (D180)
+    fn declare_hidden(&mut self, variable: Variable) -> usize {
+        let slot = self.context.variables.len();
+        let key = format!(" hidden {slot}");
+        self.context.variables.push(variable);
+        self.context
+            .state
+            .resize(slot + 1, VariableState::default());
+        if let Some(scope) = self.context.scopes.last_mut() {
+            scope.insert(key, slot);
+        }
+        slot
+    }
+
+    /// `for $r in $xs`, `Lend.mut $xs` or `Give $xs`, and what each does to `$xs`.
+    /// trace: D2, D180, D182
     fn check_for_collection(
+        &mut self,
+        collection: &Expression,
+    ) -> Outcome<(LoopCollection, Type, LoopSource)> {
+        let ExpressionKind::Hand { word, value } = &collection.kind else {
+            let (node, item_type, (root, path)) = self.check_for_read(collection)?;
+            return Ok((
+                LoopCollection::Value(node),
+                item_type,
+                LoopSource::Read(root, path),
+            ));
+        };
+        let shown = self.text_of(value.span).to_string();
+        match word {
+            HandWord::Lend => Err(Report::refused(
+                collection.span,
+                "a bare `for` already reads in place",
+                "`for $x in $xs:` reads each item, so `Lend` adds nothing (D182)",
+            )
+            .fix(shown)),
+            HandWord::Copy => Err(Report::not_designed(
+                collection.span,
+                "`Copy` on a loop's collection",
+                "",
+            )),
+            HandWord::LendMut | HandWord::Give => {
+                if !matches!(value.kind, ExpressionKind::Variable(_))
+                    && root_variable(value).is_some()
+                {
+                    return Err(Report::not_designed(
+                        value.span,
+                        format!("whether `for` over `{shown}` uses all of what holds it"),
+                        "12.1",
+                    ));
+                }
+                let held = if *word == HandWord::Give {
+                    self.check_give(value, collection.span)?
+                } else {
+                    self.check_lent_place(value, HandWord::LendMut)?
+                };
+                let item_type = Self::loop_item_type(&held.value_type, value.span)?;
+                if *word == HandWord::Give {
+                    return Ok((
+                        LoopCollection::Value(held.node),
+                        item_type,
+                        LoopSource::Take {
+                            name: held.root_name,
+                            given: collection.span,
+                        },
+                    ));
+                }
+                let Some(place) = held.place else {
+                    return Err(Report::refused(
+                        value.span,
+                        "a constant can't be lent with `Lend.mut`",
+                        "a constant's value is fixed at compile time (D83)",
+                    ));
+                };
+                Ok((
+                    LoopCollection::Place(place),
+                    item_type,
+                    LoopSource::Change(held.root_name),
+                ))
+            }
+        }
+    }
+
+    /// What a collection's items are, for `for`.
+    fn loop_item_type(collection_type: &Type, span: Span) -> Outcome<Type> {
+        match collection_type {
+            Type::List { item, .. } | Type::Array { item, .. } => Ok((**item).clone()),
+            Type::Map { .. } => Err(Report::not_designed(span, "going through a map", "")),
+            Type::New { .. } => Err(Report::not_designed(
+                span,
+                "going through a `type.new`, rather than crossing with `as` first",
+                "12.1",
+            )),
+            other => Err(Report::refused(
+                span,
+                format!("`for` goes through a collection or range, and this is `{other}`"),
+                "`for` goes through a collection or range, reading it in place (D2, D128)",
+            )),
+        }
+    }
+
+    fn check_for_read(
         &mut self,
         collection: &Expression,
     ) -> Outcome<(Node, Type, (String, Vec<usize>))> {
         let (node, collection_type) = self.check_expression(collection, None)?;
-        let item_type = match &collection_type {
-            Type::List { item, .. } | Type::Array { item, .. } => (**item).clone(),
-            Type::Map { .. } => {
-                return Err(Report::not_designed(
-                    collection.span,
-                    "going through a map",
-                    "",
-                ));
-            }
-            Type::New { .. } => {
-                return Err(Report::not_designed(
-                    collection.span,
-                    "going through a `type.new`, rather than crossing with `as` first",
-                    "12.1",
-                ));
-            }
-            other => {
-                return Err(Report::refused(
-                    collection.span,
-                    format!("`for` goes through a collection or range, and this is `{other}`"),
-                    "`for` goes through a collection or range, reading it in place (D2, D128)",
-                ));
-            }
-        };
-        if matches!(
-            item_type,
-            Type::Struct(_) | Type::Union(_) | Type::Array { .. }
-        ) {
-            return Err(Report::not_designed(
-                collection.span,
-                "going through items that are structs, unions or arrays",
-                "12.8",
-            ));
-        }
+        // Items of any type are read in place. (D180)
+        let item_type = Self::loop_item_type(&collection_type, collection.span)?;
         let root = root_variable(collection).unwrap_or_default();
         let read_path = if root.is_empty() {
             Vec::new()

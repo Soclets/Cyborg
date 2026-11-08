@@ -478,6 +478,37 @@ impl<'c> Runner<'c> {
                 }
                 Ok(())
             }
+            // Each round's name is the item itself, so a change goes into the list. (D180)
+            InstructionKind::ForInPlace {
+                loop_id,
+                slot,
+                place,
+                body,
+            } => {
+                let base = self.binding_of(frame, place, span)?;
+                let count = match walk(&base.root.borrow(), &base.path) {
+                    Some(Value::List(items)) => items.len(),
+                    _ => {
+                        return Err(oracle_bug(
+                            span,
+                            "`for` on something that isn't a collection",
+                        ))
+                    }
+                };
+                for index in 0..count {
+                    let mut path = base.path.clone();
+                    path.push(index);
+                    let item = Binding {
+                        root: Rc::clone(&base.root),
+                        path,
+                    };
+                    Self::set_slot(frame, *slot, item, span)?;
+                    if self.run_loop_body(*loop_id, body, frame, span)? {
+                        break;
+                    }
+                }
+                Ok(())
+            }
             InstructionKind::ForRange {
                 loop_id,
                 slot,

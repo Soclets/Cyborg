@@ -1,0 +1,5 @@
+refused: d180_lend_mut_twice_over_one_list.cy:7:28, line 7 column 28
+ 7 |         for $b in Lend.mut $xs:
+   |                            ^^^
+ what: a `for` is changing `$xs` through its items here
+ why:  `Lend.mut` means nothing else uses it meanwhile, and the `for` is using it (D2, D180)

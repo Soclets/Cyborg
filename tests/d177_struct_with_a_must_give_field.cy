@@ -1,6 +1,5 @@
-// D129 refuses `finish` while a `must_Give` field inside hasn't been given away, but such a
-// field is still undecided in 12.8, so this can't be reached yet.
-// trace: D129
+// A struct holding a `must_Give` field says so, and then it's fine.
+// trace: D177, D129
 struct.must_Give open_file:
     fd: i32;
 end struct.must_Give open_file

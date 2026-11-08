@@ -216,6 +216,13 @@ pub enum InstructionKind {
         collection: Node,
         body: Vec<Instruction>,
     },
+    /// `for $r in Lend.mut $xs`, where `$r` is each item in place. (D180)
+    ForInPlace {
+        loop_id: usize,
+        slot: usize,
+        place: Place,
+        body: Vec<Instruction>,
+    },
     ForRange {
         loop_id: usize,
         slot: usize,

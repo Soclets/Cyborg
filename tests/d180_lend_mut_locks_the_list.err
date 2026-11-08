@@ -1,0 +1,5 @@
+refused: d180_lend_mut_locks_the_list.cy:7:22, line 7 column 22
+ 7 |         std::println($xs.len as str);
+   |                      ^^^
+ what: a `for` is changing `$xs` through its items here
+ why:  `Lend.mut` means nothing else uses it meanwhile, and the `for` is using it (D2, D180)

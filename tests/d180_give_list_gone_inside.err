@@ -1,0 +1,9 @@
+refused: d180_give_list_gone_inside.cy:17:9, line 17 column 9
+17 |         std::println($files.len as str);
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ what: `$files` was already given away
+ why:  a given value is dead afterwards (D2)
+ because: d180_give_list_gone_inside.cy:16:15, line 16 column 15
+16 |     for $f in Give $files:
+   |               ^^^^^^^^^^^
+     `$files` was given away here

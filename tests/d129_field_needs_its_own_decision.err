@@ -1,5 +1,0 @@
-NotDesignedYet: d129_field_needs_its_own_decision.cy:9:8, line 9 column 8
- 9 |     a: open_file;
-   |        ^^^^^^^^^
- what: a `must_Give` value in a field
- why:  not decided yet (standard 12.8)

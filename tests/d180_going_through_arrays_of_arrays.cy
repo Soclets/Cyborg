@@ -1,4 +1,4 @@
-// trace: D128, D2
+// trace: D180, D128, D2
 import std;
 
 fn.main [] -> void:

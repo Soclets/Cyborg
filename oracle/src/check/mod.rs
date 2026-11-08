@@ -106,6 +106,8 @@ enum Origin {
     Constant,
     /// A stored borrow, with whether it can change what it borrows.
     StoredBorrow,
+    /// What a `for … in Give $xs` hasn't handed out yet, which is a duty while it runs. (D180)
+    LoopRest,
 }
 
 #[derive(Clone, Debug)]
@@ -167,6 +169,9 @@ struct FunctionContext {
     next_loop_id: usize,
     /// Variables a `for` is reading in place right now.
     being_read: Vec<(String, Vec<usize>)>,
+    /// Collections a `for … in Lend.mut` is changing through its items, so nothing else may use
+    /// them meanwhile. (D180)
+    being_changed: Vec<String>,
 }
 
 impl FunctionContext {
@@ -190,6 +195,7 @@ impl FunctionContext {
             loops: Vec::new(),
             next_loop_id: 0,
             being_read: Vec::new(),
+            being_changed: Vec::new(),
         }
     }
 }
@@ -667,7 +673,23 @@ impl Checker<'_> {
                             ));
                         }
                         let field_type = self.resolve_type(&field.written_type)?;
-                        self.refuse_undecided_content(&field_type, field.written_type.span)?;
+                        // A struct holding a `must_Give` value is one too, and says so.
+                        // trace: D177, D3
+                        if self.is_must_give(&field_type) {
+                            if !declaration.must_give {
+                                return Err(Report::refused(
+                                    field.written_type.span,
+                                    format!(
+                                        "`{}` is `{field_type}`, which is `must_Give`, so `{}` says so",
+                                        field.name.text, declaration.name.text
+                                    ),
+                                    "a struct holding a `must_Give` value is `must_Give` itself, and nothing is implicit (D177, D3)",
+                                )
+                                .fix(format!("struct.must_Give {}", declaration.name.text)));
+                            }
+                        } else {
+                            self.refuse_undecided_content(&field_type, field.written_type.span)?;
+                        }
                         fields.push((field.name.text.clone(), field_type));
                     }
                     if let Some(info) = self.structs.get_mut(&declaration.name.text) {
@@ -718,13 +740,12 @@ impl Checker<'_> {
         Ok(())
     }
 
-    /// A `must_Give` value in a field is on 12.8's list, and so is one in a collection, by the
-    /// same reasoning, since neither says how its duty would end.
+    /// A `must_Give` value in a union case, or a stored borrow in a field, isn't decided yet.
     fn refuse_undecided_content(&self, content: &Type, span: Span) -> Outcome<()> {
         if self.is_must_give(content) {
             return Err(Report::not_designed(
                 span,
-                "a `must_Give` value in a field",
+                "a `must_Give` value in a `union.tagged` case",
                 "12.8",
             ));
         }
@@ -1024,13 +1045,7 @@ impl Checker<'_> {
                     "12.8",
                 ));
             }
-            if self.is_must_give(&return_type) {
-                return Err(Report::not_designed(
-                    function.return_type.span,
-                    "a `must_Give` value returned",
-                    "12.8",
-                ));
-            }
+
             let failures = match &function.fails {
                 Some(entries) => self.resolve_failure_list(entries)?,
                 None => Vec::new(),
@@ -1865,14 +1880,9 @@ impl Checker<'_> {
                         "a collection's types go in `< >`, and one type can go bare (D24, D25)",
                     ));
                 };
+                // A collection can hold `must_Give` items, and `for … in Give` hands them out.
+                // trace: D180, D177
                 let item = Box::new(self.resolve_type(written_type)?);
-                if self.is_must_give(&item) {
-                    return Err(Report::not_designed(
-                        written_type.span,
-                        "a `must_Give` value in a collection",
-                        "12.8",
-                    ));
-                }
                 let (mut len, mut min, mut max) = (None, None, None);
                 // trace: D140
                 let mut len_type = IntegerKind::U64;

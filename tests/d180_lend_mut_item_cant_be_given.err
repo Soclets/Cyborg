@@ -1,0 +1,5 @@
+refused: d180_lend_mut_item_cant_be_given.cy:17:20, line 17 column 20
+17 |         close(Give $f);
+   |                    ^^
+ what: `$f` is only lent here, so it can't be given away
+ why:  `Lend` is temporary access, and the caller keeps it (D2)

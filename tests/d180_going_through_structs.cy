@@ -1,5 +1,5 @@
-// Going through items that are structs isn't decided.
-// trace: D2
+// A bare `for` reads items of any type in place.
+// trace: D180, D182, D2
 import std;
 
 struct box:
