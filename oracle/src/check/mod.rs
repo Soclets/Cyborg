@@ -199,6 +199,8 @@ pub struct Checker<'a> {
     imports: HashSet<String>,
     limb_imports: HashSet<String>,
     aliases: HashMap<String, String>,
+    /// `%append` from `use std::list.%append as %append;`, with its type and real name. (D178)
+    pub(super) method_aliases: HashMap<String, (String, String)>,
     structs: HashMap<String, StructInfo>,
     unions: HashMap<String, UnionInfo>,
     failure_sets: HashMap<String, Vec<Failure>>,
@@ -228,6 +230,7 @@ pub fn check(source: &str, program: &Program) -> Outcome<Code> {
         imports: HashSet::new(),
         limb_imports: HashSet::new(),
         aliases: HashMap::new(),
+        method_aliases: HashMap::new(),
         structs: HashMap::new(),
         unions: HashMap::new(),
         failure_sets: HashMap::new(),
@@ -371,7 +374,9 @@ impl Checker<'_> {
                 .text
                 .rsplit(['.', ':'])
                 .next()
-                .unwrap_or_default();
+                .unwrap_or_default()
+                .trim_start_matches('%');
+            let mark = if declared.method { "%" } else { "" };
             if declared.quoted {
                 // trace: D151
                 if !crate::syntax::could_be_called(&declared.short.text) {
@@ -384,9 +389,22 @@ impl Checker<'_> {
             } else if declared.short.text != last_word {
                 return Err(Report::refused(
                     declared.short.span,
-                    format!("`{}` doesn't match `{last_word}`, the end of this path", declared.short.text),
+                    format!("`{mark}{}` doesn't match `{mark}{last_word}`, the end of this path", declared.short.text),
                     "an unquoted name has to match the last word of its path, and a quoted one is your own choice (D150)",
                 ));
+            }
+            // trace: D178
+            if declared.method {
+                let (owner, _) = declared
+                    .path
+                    .text
+                    .rsplit_once(".%")
+                    .unwrap_or((&declared.path.text, ""));
+                self.method_aliases.insert(
+                    declared.short.text.clone(),
+                    (owner.to_string(), last_word.to_string()),
+                );
+                continue;
             }
             // trace: D93
             self.aliases
@@ -399,6 +417,18 @@ impl Checker<'_> {
     fn refuse_short_names_that_clash(&self, program: &Program) -> Outcome<()> {
         for declared in &program.uses {
             let name = &declared.short.text;
+            // trace: D178
+            if declared.method {
+                let (owner, _) = self.method_aliases.get(name).cloned().unwrap_or_default();
+                if self.signatures.contains_key(&format!("{owner}.%{name}")) {
+                    return Err(Report::refused(
+                        declared.short.span,
+                        format!("`%{name}` is also a method of yours on `{owner}`"),
+                        "a short kit method and one of your own with the same name on the same type clash (D178)",
+                    ));
+                }
+                continue;
+            }
             if self.signatures.contains_key(name)
                 || self.structs.contains_key(name)
                 || self.unions.contains_key(name)

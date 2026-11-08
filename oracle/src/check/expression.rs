@@ -1692,6 +1692,39 @@ impl Checker<'_> {
         }
     }
 
+    /// The kit method a short name from `use` stands for, when the receiver is of its type.
+    /// trace: D178
+    fn kit_method_alias(
+        &self,
+        kit: Option<&str>,
+        percent: bool,
+        name: &crate::ast::Name,
+        receiver_type: &Type,
+    ) -> Option<(String, crate::ast::Name)> {
+        if kit.is_some() || !percent {
+            return None;
+        }
+        let (owner, real) = self.method_aliases.get(&name.text)?;
+        let receiver_owner = match receiver_type {
+            Type::List { .. } => "std::list",
+            Type::Array { .. } => "std::array",
+            Type::Map { ordered: true, .. } => "std::map.tree",
+            Type::Map { ordered: false, .. } => "std::map.hash",
+            _ => return None,
+        };
+        if owner != receiver_owner {
+            return None;
+        }
+        let (kit, _) = owner.split_once("::")?;
+        Some((
+            kit.to_string(),
+            crate::ast::Name {
+                text: real.clone(),
+                span: name.span,
+            },
+        ))
+    }
+
     /// `$xs.std::%append(val: 4)` is the one method that's decided. (D4, D115)
     #[allow(clippy::too_many_arguments)] // A method call has this many parts.
     #[allow(clippy::too_many_lines)] // Every way to spell a method wrong, top to bottom.
@@ -1730,6 +1763,13 @@ impl Checker<'_> {
         } else {
             let (node, found) = self.check_expression(receiver, None)?;
             (Some(node), found)
+        };
+        // A short name from `use` stands for the kit method it names, on that type only.
+        // trace: D178
+        let resolved = self.kit_method_alias(kit, percent, name, &receiver_type);
+        let (kit, name) = match &resolved {
+            Some((kit, real)) => (Some(kit.as_str()), real),
+            None => (kit, name),
         };
         let own_method = match &receiver_type {
             Type::Struct(type_name)

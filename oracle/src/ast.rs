@@ -36,6 +36,8 @@ pub struct Use {
     pub short: Name,
     /// Quoted names are your own choice, and unquoted ones match the path. (D150)
     pub quoted: bool,
+    /// `use std::list.%append as %append;`, a kit method. (D178)
+    pub method: bool,
 }
 
 #[derive(Clone, Debug)]

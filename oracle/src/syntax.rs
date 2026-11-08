@@ -800,6 +800,96 @@ impl Parser {
         start.to(end)
     }
 
+    fn parse_use(&mut self) -> Outcome<Use> {
+        self.advance(); // `use`
+        let mut path = self.parse_path()?;
+        // `std::list.%append`, a kit method named with its type. (D178)
+        let mut method = false;
+        if self.at_symbol(".") && self.symbol_at(1, "%") {
+            if let Lexeme::Word(name) = self.peek_at(2).lexeme.clone() {
+                self.advance();
+                self.advance();
+                let end = self.advance().span;
+                path.text.push_str(".%");
+                path.text.push_str(&name);
+                path.span = path.span.to(end);
+                method = true;
+            }
+        }
+        if !self.eat_word("as") {
+            // trace: D93
+            return Err(Report::refused(
+                path.span,
+                "`use` always writes `as`",
+                "`use` gives a path a shorter name, and `as` is always written (D93)",
+            ));
+        }
+        // trace: D155
+        if matches!(self.peek().lexeme, Lexeme::Symbol("@")) {
+            return Err(Report::refused(
+                self.peek().span,
+                "the short name has no `@`",
+                "`@` with no `::` is a compiler builtin, so `@c` looks like one (D155, D56)",
+            ));
+        }
+        let percent_span = self.span();
+        let percent = self.eat_symbol("%");
+        // trace: D150
+        let quoted = matches!(self.peek().lexeme, Lexeme::Text(_));
+        let short = if let Lexeme::Text(text) = self.peek().lexeme.clone() {
+            let span = self.advance().span;
+            Name { text, span }
+        } else {
+            self.expect_name("the shorter name")?
+        };
+        Self::refuse_a_lost_percent(method, percent, quoted, &short, percent_span)?;
+        self.expect_semicolon()?;
+        if path.text.starts_with('@') {
+            self.limb_short_names
+                .push((short.text.clone(), path.text.clone()));
+        }
+        Ok(Use {
+            path,
+            short,
+            quoted,
+            method,
+        })
+    }
+
+    /// A method's short name keeps its `%`, outside any quotes, and nothing else has one.
+    /// trace: D178, D179
+    fn refuse_a_lost_percent(
+        method: bool,
+        percent: bool,
+        quoted: bool,
+        short: &Name,
+        percent_span: Span,
+    ) -> Outcome<()> {
+        let bare = short.text.strip_prefix('%').unwrap_or(&short.text);
+        let fix = if quoted {
+            format!("as %\"{bare}\"")
+        } else {
+            format!("as %{bare}")
+        };
+        let span = percent_span.to(short.span);
+        if method && (!percent || (quoted && short.text.starts_with('%'))) {
+            return Err(Report::refused(
+                span,
+                "a method's short name keeps its `%`, outside the quotes",
+                "the `%` warns that ownership isn't written at the call, so a short name can't drop it (D178, D179)",
+            )
+            .fix(fix));
+        }
+        if !method && percent {
+            return Err(Report::refused(
+                span,
+                "only a method's short name has `%`",
+                "`%` marks a method call, where ownership isn't written (D178, D4)",
+            ));
+        }
+        Ok(())
+    }
+
     fn parse_closer_piece(&mut self) -> Option<String> {
         let Lexeme::Word(first) = self.peek().lexeme.clone() else {
             return None;
@@ -890,42 +980,8 @@ impl Parser {
                 self.expect_semicolon()?;
                 program.imports.push(Import { limb, name });
             } else if self.at_word("use") {
-                self.advance();
-                let path = self.parse_path()?;
-                if !self.eat_word("as") {
-                    // trace: D93
-                    return Err(Report::refused(
-                        path.span,
-                        "`use` always writes `as`",
-                        "`use` gives a path a shorter name, and `as` is always written (D93)",
-                    ));
-                }
-                // trace: D155
-                if matches!(self.peek().lexeme, Lexeme::Symbol("@")) {
-                    return Err(Report::refused(
-                        self.peek().span,
-                        "the short name has no `@`",
-                        "`@` with no `::` is a compiler builtin, so `@c` looks like one (D155, D56)",
-                    ));
-                }
-                // trace: D150
-                let quoted = matches!(self.peek().lexeme, Lexeme::Text(_));
-                let short = if let Lexeme::Text(text) = self.peek().lexeme.clone() {
-                    let span = self.advance().span;
-                    Name { text, span }
-                } else {
-                    self.expect_name("the shorter name")?
-                };
-                self.expect_semicolon()?;
-                if path.text.starts_with('@') {
-                    self.limb_short_names
-                        .push((short.text.clone(), path.text.clone()));
-                }
-                program.uses.push(Use {
-                    path,
-                    short,
-                    quoted,
-                });
+                let declared = self.parse_use()?;
+                program.uses.push(declared);
             } else {
                 let item = self.parse_item()?;
                 program.items.push(item);
