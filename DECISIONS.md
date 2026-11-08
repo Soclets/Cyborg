@@ -859,6 +859,8 @@ a placeholder for a version that isn't correctly rounded. A float prints as the 
 
 **D192. Two hardware milestones.** First, a Cyborg program running on a Raspberry Pi, on Linux on ARM. Second, `std::println` printing over serial on a real Arduino, bare metal with no OS, starting with an ARM board such as the Uno R4, with the 8-bit AVR boards as a stretch goal, since LLVM's AVR support is less mature. CyborgPL has printed with `std` on emulated bare metal, so Cyborg's bar is the real board. Claude proposed them, first with no printing on the Arduino, which the owner corrected: "No printing? Lol, CyborgPL has already achieved emulated bare metal, and printing there with std"; the owner chose: "Yes, please". (Owner, 2026-11-08)
 
+**D193. Linux on ARM runs in a virtual machine.** The first milestone from D192 is a Cyborg program running on Linux on ARM in a virtual machine on the owner's Mac, an Apple M5, instead of on a real Raspberry Pi, since the Pi 5 has reached $385 during a RAM shortage. The second stays on real hardware: `std::println` over serial on an Arduino Uno R4 Minima, about $20, because emulators hide timing and memory problems. This replaces D192's first milestone. The owner said "Or we could just go with bare metal Arduino"; Claude proposed the virtual machine; the owner chose: "Hell yeah". (Owner, 2026-11-08)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude
