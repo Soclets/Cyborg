@@ -1,0 +1,5 @@
+refused: d169_held_comes_after_mut.cy:9:30, line 9 column 30
+ 9 |     let $lock: Lend.held.mut from $r reading = Lend.mut $r;
+   |                              ^^^^
+ what: expected `mut` or `held`, but found `from`
+ why:  `;` ends a statement, `:` opens a block, and `end` closes it (D33)

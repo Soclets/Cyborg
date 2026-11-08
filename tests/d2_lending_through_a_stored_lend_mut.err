@@ -1,5 +1,0 @@
-NotDesignedYet: d2_lending_through_a_stored_lend_mut.cy:14:22, line 14 column 22
-14 |     replace(Lend.mut $b);
-   |                      ^^
- what: lending through a stored `Lend.mut`
- why:  not decided yet (standard 12.8)

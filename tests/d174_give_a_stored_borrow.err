@@ -1,0 +1,5 @@
+refused: d174_give_a_stored_borrow.cy:14:14, line 14 column 14
+14 |     eat(Give $m);
+   |              ^^
+ what: `$m` is only lent here, so it can't be given away
+ why:  `Lend` is temporary access, and the caller keeps it (D2)

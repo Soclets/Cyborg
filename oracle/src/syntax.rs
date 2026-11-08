@@ -92,6 +92,9 @@ pub fn is_clashing(word: &str) -> bool {
     CLASHING_WORDS.contains(&word)
 }
 
+/// The placeholder narrowing on a stored borrow that lasts to the end of its block. (D169)
+const HELD_WORD: &str = "held";
+
 /// The placeholder word in front of an exponent literal. (D165)
 const EXPONENT_WORD: &str = "exponent";
 
@@ -1928,13 +1931,16 @@ impl Parser {
     fn parse_stored_borrow(&mut self) -> Outcome<TypeExpression> {
         let start = self.advance().span; // `Lend`
         let mut mutable = false;
-        if self.at_symbol(".") {
+        let mut held = false;
+        // `Lend.mut`, `Lend.held` and `Lend.mut.held`, in that order. (D169)
+        while self.at_symbol(".") {
             self.advance();
-            let narrowing = self.expect_name("`mut`")?;
-            if narrowing.text != "mut" {
-                return Err(self.expected("`mut`"));
+            let narrowing = self.expect_name("`mut` or `held`")?;
+            match narrowing.text.as_str() {
+                "mut" if !mutable && !held => mutable = true,
+                HELD_WORD if !held => held = true,
+                _ => return Err(self.expected("`mut` or `held`")),
             }
-            mutable = true;
         }
         if !self.eat_word("from") {
             return Err(self.expected("`from`"));
@@ -1960,6 +1966,7 @@ impl Parser {
             span: start.to(self.previous_span()),
             kind: TypeKind::StoredBorrow {
                 mutable,
+                held,
                 sources,
                 inner: Box::new(inner),
             },

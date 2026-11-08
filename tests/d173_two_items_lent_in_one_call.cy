@@ -1,5 +1,5 @@
-// `Lend.mut` on two items of one list may or may not touch, like two fields.
-// trace: D133, D2
+// Two items of one list may be the same one, so they stay locked together.
+// trace: D173, D133, D2
 import std;
 
 fn swap_them [$a: Lent.mut str, $b: Lent.mut str] -> void:

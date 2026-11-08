@@ -1,0 +1,9 @@
+refused: d172_an_item_locks_the_list.cy:13:18, line 13 column 18
+13 |     std::println($first.n as str);
+   |                  ^^^^^^
+ what: `$first` can't be used after what it borrows was used
+ why:  a stored `Lend.mut` means nothing else uses it meanwhile, and a `Lend` means it can't change (D2)
+ because: d172_an_item_locks_the_list.cy:12:12, line 12 column 12
+12 |     change $xs[pos: 2].n = 5;
+   |            ^^^^^^^^^^^^^
+     what it borrows was used here

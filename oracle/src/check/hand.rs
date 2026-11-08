@@ -67,6 +67,11 @@ impl Checker<'_> {
     /// Whether a borrow lasts to its last use or to its scope isn't decided, so nothing is said
     /// until the borrow is read again, which is wrong either way. (D2)
     pub(super) fn note_use(&mut self, name: &str, kind: UseKind, span: Span) {
+        self.note_use_at(name, &[], kind, span);
+    }
+
+    /// The same, for a use of one part of `$name`: different fields are separate. (D173)
+    pub(super) fn note_use_at(&mut self, name: &str, path: &[usize], kind: UseKind, span: Span) {
         let conflicts: Vec<usize> = self
             .context
             .variables
@@ -76,14 +81,39 @@ impl Checker<'_> {
                 variable.origin == Origin::StoredBorrow
                     && variable.borrows.iter().any(|borrowed| borrowed == name)
                     && (variable.mutable || kind == UseKind::Write)
+                    && ir::paths_overlap(path, &variable.borrowed_path)
                     && self.is_in_scope(*slot)
             })
             .map(|(slot, _)| slot)
             .collect();
         for slot in conflicts {
+            // trace: D169
+            if self.context.held_borrows.contains(&slot) && self.context.held_conflict.is_none() {
+                self.context.held_conflict = Some((span, slot));
+            }
             if let Some(state) = self.context.state.get_mut(slot) {
                 state.invalidated = state.invalidated.or(Some(span));
             }
+        }
+    }
+
+    /// The values a borrow of `$name` really borrows: through a stored borrow, the original. (D174)
+    pub(super) fn borrow_roots(&self, name: &str) -> Vec<String> {
+        let Some(slot) = self.find_variable(name) else {
+            return vec![name.to_string()];
+        };
+        match self.context.variables.get(slot) {
+            Some(variable) if variable.origin == Origin::StoredBorrow => variable
+                .borrows
+                .iter()
+                .filter(|borrowed| {
+                    self.find_variable(borrowed)
+                        .and_then(|found| self.context.variables.get(found))
+                        .is_none_or(|found| found.origin != Origin::StoredBorrow)
+                })
+                .cloned()
+                .collect(),
+            _ => vec![name.to_string()],
         }
     }
 
@@ -558,35 +588,6 @@ impl Checker<'_> {
         Ok(())
     }
 
-    /// Changing one field while a stored borrow holds another has no stated answer, so it isn't
-    /// counted as ending the borrow, and isn't allowed either.
-    pub(super) fn refuse_disjoint_borrow(
-        &self,
-        name: &str,
-        path: &[usize],
-        span: Span,
-    ) -> Outcome<()> {
-        let holds_another_field =
-            self.context
-                .variables
-                .iter()
-                .enumerate()
-                .any(|(slot, variable)| {
-                    variable.origin == Origin::StoredBorrow
-                        && self.is_in_scope(slot)
-                        && variable.borrows.iter().any(|borrowed| borrowed == name)
-                        && !ir::paths_overlap(path, &variable.borrowed_path)
-                });
-        if holds_another_field {
-            return Err(Report::not_designed(
-                span,
-                format!("changing one part of `${name}` while a stored borrow holds another"),
-                "",
-            ));
-        }
-        Ok(())
-    }
-
     pub(super) fn check_copy(&mut self, value: &Expression) -> Outcome<Held> {
         if matches!(
             self.context.kind,
@@ -625,6 +626,17 @@ impl Checker<'_> {
         let Some(variable) = self.context.variables.get(slot).cloned() else {
             return Ok(held);
         };
+        // trace: D174
+        if !variable.mutable && variable.origin == Origin::StoredBorrow {
+            return Err(Report::refused(
+                value.span,
+                format!(
+                    "`${}` only reads what it borrows, so it can't lend it with `Lend.mut`",
+                    variable.name
+                ),
+                "a stored `Lend` can be lent on with `Lend` only (D174, D2)",
+            ));
+        }
         // trace: D3
         if !variable.mutable {
             return Err(Report::refused(
@@ -636,17 +648,10 @@ impl Checker<'_> {
                 "`let` declares a variable that can't change, and `let mut` one that can (D3)",
             ));
         }
-        if variable.origin == Origin::StoredBorrow {
-            return Err(Report::not_designed(
-                value.span,
-                "lending through a stored `Lend.mut`",
-                "12.8",
-            ));
-        }
+        // A stored `Lend.mut` can be lent on, and the new borrow names the original. (D174)
         let path = held.place.as_ref().map(ir::Place::keys).unwrap_or_default();
         self.refuse_while_read(&variable.name, &path, value.span)?;
-        self.refuse_disjoint_borrow(&variable.name, &path, value.span)?;
-        self.note_use(&variable.name, UseKind::Write, value.span);
+        self.note_use_at(&variable.name, &path, UseKind::Write, value.span);
         // trace: D104
         let ended_at = self.use_span(value.span);
         if let Some(state) = self.context.state.get_mut(slot) {
@@ -936,7 +941,7 @@ impl Checker<'_> {
                     continue;
                 }
                 let pair = (first.word, second.word);
-                let overlaps = ir::paths_overlap(&first.path, &second.path);
+                let overlaps = ir::paths_may_meet(&first.path, &second.path);
                 let definite = matches!(
                     pair,
                     (HandWord::Give, _)
@@ -956,20 +961,8 @@ impl Checker<'_> {
                     )
                     .because(first.span, "that's here"));
                 }
-                let troubled = matches!(pair, (HandWord::LendMut | HandWord::Give, _))
-                    || matches!(pair, (_, HandWord::LendMut | HandWord::Give));
-                if troubled {
-                    return Err(Report::not_designed(
-                        second.span,
-                        format!(
-                            "`{}` and `{}` on parts of `${}` in one call",
-                            first.word.word(),
-                            second.word.word(),
-                            first.root
-                        ),
-                        "",
-                    ));
-                }
+                // Different fields are separate, so they can be handed off together. Items
+                // overlap, since which one isn't known. (D173)
             }
         }
         for read in reads {

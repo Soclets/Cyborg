@@ -110,6 +110,12 @@ enum Origin {
     LoopRest,
 }
 
+impl Variable {
+    fn name_shown(&self) -> String {
+        format!("${}", self.name)
+    }
+}
+
 #[derive(Clone, Debug)]
 struct Variable {
     name: String,
@@ -172,6 +178,10 @@ struct FunctionContext {
     /// Collections a `for … in Lend.mut` is changing through its items, so nothing else may use
     /// them meanwhile. (D180)
     being_changed: Vec<String>,
+    /// Stored borrows made `.held`, which last until their block ends. (D169)
+    held_borrows: Vec<usize>,
+    /// The first use that a `.held` borrow forbids, and the borrow, found while noting uses.
+    held_conflict: Option<(Span, usize)>,
 }
 
 impl FunctionContext {
@@ -196,6 +206,8 @@ impl FunctionContext {
             next_loop_id: 0,
             being_read: Vec::new(),
             being_changed: Vec::new(),
+            held_borrows: Vec::new(),
+            held_conflict: None,
         }
     }
 }
@@ -918,12 +930,25 @@ impl Checker<'_> {
             let mut parameters = Vec::new();
             for parameter in &function.parameters {
                 let parameter_type = self.resolve_type(&parameter.written_type)?;
-                if matches!(parameter_type, Type::Borrow { .. }) {
-                    return Err(Report::not_designed(
+                // A bare parameter already is a borrow, and `Lent.mut` the changing one.
+                // trace: D175
+                if let Type::Borrow { mutable, .. } = &parameter_type {
+                    let inner_text = match &parameter.written_type.kind {
+                        TypeKind::StoredBorrow { inner, .. } => self.text_of(inner.span),
+                        TypeKind::Named { .. } => "",
+                    };
+                    let name = &parameter.name.text;
+                    let fix = if *mutable {
+                        format!("${name}: Lent.mut {inner_text}")
+                    } else {
+                        format!("${name}: {inner_text}")
+                    };
+                    return Err(Report::refused(
                         parameter.written_type.span,
-                        "a parameter whose type is a stored borrow",
-                        "12.8",
-                    ));
+                        "a parameter isn't typed as a stored borrow",
+                        "a bare parameter is already lent, and `Lent.mut` already is the changing one (D175)",
+                    )
+                    .fix(fix));
                 }
                 // trace: D2
                 if parameter.word != ParameterWord::Bare && parameter_type.is_always_copied() {
@@ -1455,9 +1480,18 @@ impl Checker<'_> {
         let (path, fill, describe) = match &written.kind {
             TypeKind::StoredBorrow {
                 mutable,
+                held,
                 sources,
                 inner,
             } => {
+                // trace: D169
+                if *held {
+                    return Err(Report::not_designed(
+                        written.span,
+                        "`held` on a borrow that isn't stored in a `let`",
+                        "",
+                    ));
+                }
                 let sources = match sources {
                     crate::ast::BorrowSources::Program => Sources::Program,
                     crate::ast::BorrowSources::Variables(names) => {

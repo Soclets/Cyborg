@@ -224,6 +224,8 @@ pub enum TypeKind {
     },
     StoredBorrow {
         mutable: bool,
+        /// `Lend.held from $r reading` lasts to the end of its block. (D169)
+        held: bool,
         sources: BorrowSources,
         inner: Box<TypeExpression>,
     },

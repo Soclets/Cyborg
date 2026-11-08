@@ -289,13 +289,12 @@ impl Checker<'_> {
                 return Err(report);
             }
         };
-        let scope_check = self.check_borrows_at_scope_end().and_then(|()| {
-            if terminated {
-                Ok(())
-            } else {
-                self.check_innermost_scope_end(end_span)
-            }
-        });
+        self.end_held_borrows();
+        let scope_check = if terminated {
+            Ok(())
+        } else {
+            self.check_innermost_scope_end(end_span)
+        };
         self.context.scopes.pop();
         scope_check?;
         Ok((code, terminated))
@@ -306,35 +305,51 @@ impl Checker<'_> {
         let mut terminated = false;
         for statement in statements {
             let (instruction, ends) = self.check_statement(statement)?;
+            self.refuse_use_while_held()?;
             code.push(instruction);
             terminated = terminated || ends;
         }
         Ok((code, terminated))
     }
 
-    /// A stored borrow whose source got used, and which was never read again, is only wrong if a
-    /// borrow lasts to the end of its scope, and that isn't decided. (D2)
-    fn check_borrows_at_scope_end(&self) -> Outcome<()> {
-        let Some(scope) = self.context.scopes.last() else {
+    /// A stored borrow ends at its last use, so one whose source was used and which is never read
+    /// again was fine. A `.held` one lasts its whole block, so a use that would end it is
+    /// refused there and then. (D169)
+    fn refuse_use_while_held(&mut self) -> Outcome<()> {
+        let Some((used_at, slot)) = self.context.held_conflict.take() else {
             return Ok(());
         };
-        let mut slots: Vec<usize> = scope.values().copied().collect();
-        slots.sort_unstable();
-        for slot in slots {
-            let used_at = self
-                .context
-                .state
-                .get(slot)
-                .and_then(|state| state.invalidated);
-            if let Some(used_at) = used_at {
-                return Err(Report::not_designed(
-                    used_at,
-                    "whether a stored borrow ends at its last use or at the end of its scope",
-                    "",
-                ));
-            }
-        }
-        Ok(())
+        let Some(variable) = self.context.variables.get(slot) else {
+            return Ok(());
+        };
+        let source = variable
+            .borrows
+            .first()
+            .map_or(String::new(), |name| format!("${name}"));
+        Err(Report::refused(
+            used_at,
+            format!(
+                "`{}` holds `{source}` until the end of its block",
+                variable.name_shown()
+            ),
+            "`.held` means nobody touches what it borrows for the whole block (D169)",
+        )
+        .because(
+            variable.declared,
+            format!("`{}` holds it from here", variable.name_shown()),
+        ))
+    }
+
+    fn end_held_borrows(&mut self) {
+        let ended: Vec<usize> = self
+            .context
+            .scopes
+            .last()
+            .map(|scope| scope.values().copied().collect())
+            .unwrap_or_default();
+        self.context
+            .held_borrows
+            .retain(|slot| !ended.contains(slot));
     }
 
     /// trace: D2
@@ -743,10 +758,28 @@ impl Checker<'_> {
         value: &Expression,
     ) -> Outcome<InstructionKind> {
         self.refuse_second_declaration(name)?;
-        let held_type = self.resolve_type(written_type)?;
-        if let TypeKind::StoredBorrow { .. } = &written_type.kind {
-            return self.check_stored_borrow(mutable, name, &held_type, value);
+        // `held` only says how long a `let` keeps its borrow, so the type is read without it.
+        // trace: D169
+        if let TypeKind::StoredBorrow {
+            mutable: lends_mut,
+            held,
+            sources,
+            inner,
+        } = &written_type.kind
+        {
+            let plain = TypeExpression {
+                span: written_type.span,
+                kind: TypeKind::StoredBorrow {
+                    mutable: *lends_mut,
+                    held: false,
+                    sources: sources.clone(),
+                    inner: inner.clone(),
+                },
+            };
+            let held_type = self.resolve_type(&plain)?;
+            return self.check_stored_borrow(mutable, *held, name, &held_type, value);
         }
+        let held_type = self.resolve_type(written_type)?;
         // trace: D2
         let must_give = self.is_must_give(&held_type);
         let node = self.check_into(value, &held_type)?;
@@ -788,10 +821,44 @@ impl Checker<'_> {
         Ok(InstructionKind::Let { slot, value: node })
     }
 
+    /// What a stored borrow really borrows, which its type has to name. (D2, D174)
+    fn borrow_roots_named(&self, root: &str, names: &[String], span: Span) -> Outcome<Vec<String>> {
+        let roots = self.borrow_roots(root);
+        let through = roots != [root.to_string()];
+        if through && !roots.iter().all(|root| names.contains(root)) {
+            let shown = roots
+                .iter()
+                .map(|n| format!("${n}"))
+                .collect::<Vec<_>>()
+                .join(", ");
+            return Err(Report::refused(
+                span,
+                format!("this borrows `{shown}` through `${root}`, so the type names `{shown}`"),
+                "a borrow taken through a stored borrow names the original value (D174)",
+            ));
+        }
+        if roots.is_empty() || !roots.iter().all(|root| names.contains(root)) {
+            return Err(Report::refused(
+                span,
+                format!(
+                    "this borrow says it's from `{}`",
+                    names
+                        .iter()
+                        .map(|n| format!("${n}"))
+                        .collect::<Vec<_>>()
+                        .join(", ")
+                ),
+                "a stored borrow's type says what it borrows (D2)",
+            ));
+        }
+        Ok(roots)
+    }
+
     /// trace: D2
     fn check_stored_borrow(
         &mut self,
         mutable: bool,
+        held: bool,
         name: &crate::ast::Name,
         held_type: &Type,
         value: &Expression,
@@ -842,20 +909,8 @@ impl Checker<'_> {
             ));
         }
         let place = self.check_lent_place(lent, *word)?;
-        if place.root_name.is_empty() || !names.contains(&place.root_name) {
-            return Err(Report::refused(
-                value.span,
-                format!(
-                    "this borrow says it's from `{}`",
-                    names
-                        .iter()
-                        .map(|n| format!("${n}"))
-                        .collect::<Vec<_>>()
-                        .join(", ")
-                ),
-                "a stored borrow's type says what it borrows (D2)",
-            ));
-        }
+        // A borrow taken through a stored borrow names the original value. (D174)
+        let roots = self.borrow_roots_named(&place.root_name, names, value.span)?;
         if place.value_type != **inner {
             return Err(Self::mismatch(value.span, inner, &place.value_type));
         }
@@ -866,6 +921,18 @@ impl Checker<'_> {
                 "12.8",
             ));
         };
+        // Lending an item locks the whole list, since adding to it can move every item. (D172)
+        let mut borrowed_path = source.keys();
+        if let Some(first_item) = borrowed_path.iter().position(|key| *key == ir::ANY_ITEM) {
+            borrowed_path.truncate(first_item);
+        }
+        // Through a stored borrow, the path is into the original, which isn't tracked this
+        // finely, so it borrows the whole of it.
+        let mut borrows = roots.clone();
+        if !roots.contains(&place.root_name) {
+            borrows.push(place.root_name.clone());
+            borrowed_path = Vec::new();
+        }
         let slot = self.declare_variable(Variable {
             name: name.text.clone(),
             held_type: held_type.clone(),
@@ -874,9 +941,12 @@ impl Checker<'_> {
             declared: name.span,
             must_give: false,
             constant: None,
-            borrows: names.clone(),
-            borrowed_path: source.keys(),
+            borrows,
+            borrowed_path,
         });
+        if held {
+            self.context.held_borrows.push(slot);
+        }
         Ok(InstructionKind::LetAlias {
             slot,
             place: source,
@@ -1054,8 +1124,8 @@ impl Checker<'_> {
         }
         let keys = place.keys();
         self.refuse_while_read(&held.root_name, &keys, target.span)?;
-        self.refuse_disjoint_borrow(&held.root_name, &keys, target.span)?;
-        self.note_use(&held.root_name, UseKind::Write, target.span);
+        // trace: D173
+        self.note_use_at(&held.root_name, &keys, UseKind::Write, target.span);
         let node = self.check_into(value, &held.value_type)?;
         Ok(InstructionKind::Set { place, value: node })
     }
@@ -1339,9 +1409,8 @@ impl Checker<'_> {
                     None => None,
                 };
                 let (body, ends) = this.check_block(&arm.body)?;
-                let scope_check = this.check_borrows_at_scope_end();
+                this.end_held_borrows();
                 this.context.scopes.pop();
-                scope_check?;
                 Ok(((binding_slot, body), ends))
             })?;
             code.push(ir::MatchArm {

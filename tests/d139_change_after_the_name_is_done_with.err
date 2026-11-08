@@ -1,5 +1,0 @@
-NotDesignedYet: d139_change_after_the_name_is_done_with.cy:13:20, line 13 column 20
-13 |             change $s = status.ok;
-   |                    ^^
- what: whether a stored borrow ends at its last use or at the end of its scope
- why:  not decided yet, and the standard doesn't say

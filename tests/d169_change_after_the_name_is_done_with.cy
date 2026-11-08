@@ -1,5 +1,5 @@
-// Whether that ends at its last use or its scope isn't decided, as for a stored borrow.
-// trace: D139, D2
+// `$f` is a view, so like a stored borrow it ends at its last use.
+// trace: D169, D139, D2
 union.tagged status:
     ok
     failed[code: i32]

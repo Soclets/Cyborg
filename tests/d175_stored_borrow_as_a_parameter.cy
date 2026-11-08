@@ -1,4 +1,4 @@
-// trace: D2
+// trace: D175, D2
 struct reading:
     celsius: i32;
 end struct reading

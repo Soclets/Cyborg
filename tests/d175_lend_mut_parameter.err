@@ -1,0 +1,5 @@
+refused: d175_lend_mut_parameter.cy:7:14, line 7 column 14
+ 7 | fn warm [$v: Lend.mut from $r reading] -> void:
+   |              ^^^^^^^^^^^^^^^^^^^^^^^^
+ fix:  `$v: Lent.mut reading`
+ why:  a bare parameter is already lent, and `Lent.mut` already is the changing one (D175)

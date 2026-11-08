@@ -1,5 +1,5 @@
-// Whether the borrow is over by then isn't decided.
-// trace: D2
+// `$b` isn't used after the read, so the borrow is over before `Give`.
+// trace: D169, D2
 struct reading:
     celsius: i32;
 end struct reading

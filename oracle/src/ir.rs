@@ -46,6 +46,15 @@ impl Place {
 
 /// Whether two paths from one variable surely touch. Two different fields don't, and neither is
 /// sure for two items, since which ones they are may only be known while running.
+/// Whether two paths can reach the same value: two items of one list may be the same one, so
+/// they're held together. (D173)
+pub fn paths_may_meet(first: &[usize], second: &[usize]) -> bool {
+    first
+        .iter()
+        .zip(second)
+        .all(|(one, other)| *one == *other || *one == ANY_ITEM || *other == ANY_ITEM)
+}
+
 pub fn paths_overlap(first: &[usize], second: &[usize]) -> bool {
     first
         .iter()

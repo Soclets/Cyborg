@@ -1,4 +1,4 @@
-// trace: D125, D2
+// trace: D173, D125, D2
 struct inner:
     n: i32;
 end struct inner

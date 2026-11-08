@@ -1,5 +1,0 @@
-NotDesignedYet: d125_other_field_while_borrowed.cy:14:12, line 14 column 12
-14 |     change $o.b.n = 3;
-   |            ^^^^^^
- what: changing one part of `$o` while a stored borrow holds another
- why:  not decided yet, and the standard doesn't say
