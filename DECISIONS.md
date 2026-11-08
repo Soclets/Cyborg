@@ -847,6 +847,8 @@ a placeholder for a version that isn't correctly rounded. A float prints as the 
 
 **D186. A package is what you install.** A package is the unit you install, version and publish, like Rust's crate, and the manifest lists packages. It holds a kit half, Cyborg code reached as `name::`, a limb half, a compiler extension reached as `@name::`, or both, with one name and one version for everything inside, so the halves always fit together. Third-party C it needs goes in its own folder, as D161 allows. `std` is a package with both halves, and is listed in the manifest like any other. The base language and builtins aren't packages. Code doesn't change: the `@` still says which half you reach. Whether your own project is a package, and whether `import std;` brings in both halves, are not settled here. The Java and Go meaning, a folder of code, isn't Cyborg's. Claude proposed `std` following the compiler's version; the owner said "what if a 3rd party wants to create a kit & limb too", then "We need a third category", "I meant the general one. Like, how Rust's crate term", "Define this first", and "Maybe something plain and accurate?"; Claude proposed `package`; the owner chose: "Yea". (Owner, 2026-11-08)
 
+**D187. Import the half you use.** `import std;` brings in a package's kit half, and `import @std;` its limb half, so a file using both writes both. This keeps 9.2 working: a search for `@` finds every file using a compiler extension in its imports. A single line importing both halves is not settled here. Claude proposed it; the owner chose: "Yea", and asked "`import std pkg` does both?" (Owner, 2026-11-08)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude

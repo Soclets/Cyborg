@@ -123,7 +123,7 @@ These are inherited from Radium with D2:
 
 - Modules, and how files see each other.
 - The manifest's format and name. D30, D35, D81 and D183 rely on it.
-- Whether your own project is a package, and whether `import std;` brings in both halves of a package.
+- Whether your own project is a package, and whether one line can import both halves of a package.
 - How the manifest says which compiler a package's limb half works with.
 - Whether the mark goes only at the path's start.
 - Whether other limbs have a kit part like `std`.

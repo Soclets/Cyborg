@@ -74,7 +74,9 @@ import @csup;
 std::println("hi");
 ```
 
-**From:** D22, D56, D80, D81, D82, D92, D161, D183, D186.
+A file imports the half of a package it uses: `import std;` for `std::`, and `import @std;` for `@std::`.
+
+**From:** D22, D56, D80, D81, D82, D92, D161, D183, D186, D187.
 
 ## 1.6 Narrowings: `.`
 
