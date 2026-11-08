@@ -29,9 +29,11 @@ Bare `@`, with no `::`, is a compiler builtin instead ([5.7](5-functions.md#57-b
 
 The manifest lists packages. `std` is a package with both halves. Your own project is a package too, named in the manifest, and no file says which package it belongs to. The base and builtins aren't packages.
 
+Packages are installed with CyJet, Cyborg's package manager, which shares only its name with CyborgPL's.
+
 **Refused:** a line like Go's `package main`.
 
-**From:** D22, D28, D36, D56, D186, D189.
+**From:** D22, D28, D36, D56, D186, D189, D190.
 
 ## 9.2 `@`: a limb
 

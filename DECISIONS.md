@@ -853,6 +853,8 @@ a placeholder for a version that isn't correctly rounded. A float prints as the 
 
 **D189. Your own project is a package.** It's named in the manifest, so it can be published like any other, and no file says which package it belongs to: there's no line like Go's `package main`, since the manifest and folder already say it, and `fn.main` already marks where a program starts. Your own code is still reached bare, or with `my::` on a clash (D75). The owner asked "Why does Go say Package main? And should we say it too?"; Claude proposed this; the owner chose: "Yea". (Owner, 2026-11-08)
 
+**D190. Cyborg's package manager is CyJet.** It shares only the name with CyborgPL's CyJet. It's Cyborg's own tool, not the same one. The manifest's format and name are not settled here. The owner said "Our PM is also CyJet, btw."; Claude asked whether it's the same tool; the owner chose: "Just name is same." (Owner, 2026-11-08)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude
