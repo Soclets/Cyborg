@@ -851,6 +851,8 @@ a placeholder for a version that isn't correctly rounded. A float prints as the 
 
 **D188. `import pkg std;` imports both halves.** `pkg` names the whole package, as D186 defines it, so `import pkg std;` brings in both `std::` and `@std::`. The word goes before the name, like `@` in `import @csup;` and the word in front of a literal in D165. A search for `@` alone no longer finds every file using a limb, so 9.2's search becomes `@` or `pkg`, and the linter can list each limb a file uses. Claude proposed `import std, @std;`, then `import package std;`; the owner said "`pkg` does shorten a lot, though", asked "What fits more?", and chose: "Yup". (Owner, 2026-11-08)
 
+**D189. Your own project is a package.** It's named in the manifest, so it can be published like any other, and no file says which package it belongs to: there's no line like Go's `package main`, since the manifest and folder already say it, and `fn.main` already marks where a program starts. Your own code is still reached bare, or with `my::` on a clash (D75). The owner asked "Why does Go say Package main? And should we say it too?"; Claude proposed this; the owner chose: "Yea". (Owner, 2026-11-08)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude

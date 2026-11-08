@@ -27,9 +27,11 @@ Bare `@`, with no `::`, is a compiler builtin instead ([5.7](5-functions.md#57-b
 | Limb | A compiler extension | `@` and its path: `@csup::union.untagged` |
 | Package | What you install: a kit, a limb, or both, with one name and one version | Its halves, as `std::` and `@std::` |
 
-The manifest lists packages. `std` is a package with both halves. The base and builtins aren't packages.
+The manifest lists packages. `std` is a package with both halves. Your own project is a package too, named in the manifest, and no file says which package it belongs to. The base and builtins aren't packages.
 
-**From:** D22, D28, D36, D56, D186.
+**Refused:** a line like Go's `package main`.
+
+**From:** D22, D28, D36, D56, D186, D189.
 
 ## 9.2 `@`: a limb
 
