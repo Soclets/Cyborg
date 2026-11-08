@@ -233,9 +233,10 @@ With `$name` as `"rope"`, `$count` as `3`, `$price` as `12.5` and `$tenth` as an
 - **Escapes in the text:** `\\`, `\"`, `\'`, `\r`, `\0`, `\xHH`, `\uHHHH`, `\UHHHHHHHH`, and `\{` and `\}` for a brace.
 - **Too wide:** a value wider than its width prints whole.
 - **`.stored`:** prints every float exactly as it's stored.
+- **`.stderr`:** prints to stderr instead of stdout, as in `std::print.stderr("failed{newln}");`.
 
 A literal format is checked when building.
 
-**Refused:** `\n`, with `fix: {newln}`; `{0}`; mixing plain and numbered holes; more or fewer values than holes; a shape that doesn't apply, like `places:` on an integer; a width with no unit; `zeros` with no width; a shape written twice; an unknown escape; and `std::println`, with `fix: std::print`.
+**Refused:** `\n`, with `fix: {newln}`; `{0}`; mixing plain and numbered holes; more or fewer values than holes; a shape that doesn't apply, like `places:` on an integer; a width with no unit; `zeros` with no width; a shape written twice; an unknown escape; `std::print.stdout`, since stdout is the default, and `std::println`, with `fix: std::print`.
 
-**From:** D11, D122, D162, D165, D194, and CyborgPL's format print.
+**From:** D11, D50, D51, D122, D162, D165, D194, D195, and CyborgPL's format print.

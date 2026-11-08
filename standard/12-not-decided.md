@@ -69,7 +69,7 @@ Waiting on the owner, most needed first. Each is `NotDesignedYet` unless it says
 - Units (D99 to D111): the spelling of `together`, offsets, moments, how a conversion is written, what a lossy conversion does, and the full list of units `std` has.
 - On floats: whether `div.trunc` and the other integer narrowings work, and what `mod` does.
 - Negative exponents, as in `exponent ~1.5e-3`, and exponents on integers.
-- Print (D194): how the fill character is written, a per-value `form: stored`, stderr, formatting to a `str` without printing, and what the output is on bare metal. `form: science` is how a float prints with an exponent.
+- Print (D194): how the fill character is written, a per-value `form: stored`, whether `.stderr` and `.stored` combine, formatting to a `str` without printing, and what the output is on bare metal. `form: science` is how a float prints with an exponent.
 - How to check a float's sign.
 - Raw pointers' spelling, though D38 puts them in shields.
 - Function types: `-> i32` no longer shows failures, so a function's type needs some way to include them.
