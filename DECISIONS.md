@@ -841,6 +841,8 @@ a placeholder for a version that isn't correctly rounded. A float prints as the 
 
 **D183. Every program needs a manifest.** This replaces D81's exception, where a program using only `std` needed none, so hello world is a source file plus a manifest. The manifest still lists what's installed and which version, and versions live only there. Whether `std`'s version goes in it, and how that works when `std`'s limb part lives in the compiler, are not settled here, and neither is the manifest's format or name. Claude had said `std` ships with the compiler, which the owner never chose; the owner asked "when did I decide it ships with the compiler? And isn't it decided by the manifest?", and chose: "Every program needs a manifest." (Owner, 2026-11-08)
 
+**D184. Numbers can be lent to change.** `fn bump [$n: Lent.mut i32] -> void:` called with `bump(Lend.mut $count);` changes `$count`. `Give`, `Copy` and `Lend` stay refused on numbers and `bool`, as D123 says, since they make no difference there, while `Lend.mut` says the number changes. A plain number parameter can't be changed, following D125, so a function changing its own copy while you expect yours to change can't compile. This makes D173's example, `adjust(Lend.mut $r.celsius, Lend.mut $r.time);`, writable. Oracle claude found that the example couldn't be written; Claude proposed this; the owner asked "would it make a bug there?", and chose: "yea". (Owner, 2026-11-08)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude

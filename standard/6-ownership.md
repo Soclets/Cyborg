@@ -85,11 +85,22 @@ add_row(Lend.mut $t);
 
 ## 6.6 Plain numbers and `bool`
 
-**Rule:** they're always copied, and take no word. That covers `i32`, `f64`, bounded integers, numbers with units and `d32`.
+**Rule:** they're always copied, and take no word. That covers `i32`, `f64`, bounded integers, numbers with units and `d32`. The one exception is `Lend.mut`, which lets a function change one:
 
-**Refused:** any ownership word on them.
+```
+fn bump [$n: Lent.mut i32] -> void:
+    change $n = $n + 1;
+    return void;
+end fn bump
 
-**From:** D2, D123.
+bump(Lend.mut $count);
+```
+
+A plain number parameter can't be changed, so a function can't quietly change its own copy.
+
+**Refused:** `Give`, `Copy` and `Lend` on them, and `change` on a plain number parameter.
+
+**From:** D2, D123, D125, D184.
 
 ## 6.7 No implicit ownership
 
