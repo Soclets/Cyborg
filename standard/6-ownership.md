@@ -209,7 +209,15 @@ end fn build
 
 **Refused:** leaving a source out, a source no field uses, and the same `lasts_at_least` fact written twice.
 
-**From:** D2, D169, D170, D171.
+Lending an item or a field borrows the whole value it came from, so all of it is locked while the borrow is held:
+
+```
+fn first [$xs: std::list<reading>[len.min: 1 items]] -> Lend from $xs reading:
+    return Lend $xs[pos: 1];
+end fn first
+```
+
+**From:** D2, D169, D170, D171, D172.
 
 ## 6.11 No word needed
 
