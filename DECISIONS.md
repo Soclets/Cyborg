@@ -825,6 +825,8 @@ a placeholder for a version that isn't correctly rounded. A float prints as the 
 
 **D175. A parameter isn't typed as a stored borrow.** `fn show [$v: Lend from $r reading]` is refused, because a bare parameter already is a borrow: `fn show [$v: reading]` called with `Lend $view` does the same, and D174 makes that borrow name the original value. The fix says "a bare parameter is already lent, so write `$v: reading`". `Lend.mut from` on a parameter is refused the same way, with `Lent.mut` as the fix. A struct parameter holding a borrow stays as D171 has it. Claude proposed it; the owner chose: "yea". (Owner, 2026-11-08)
 
+**D176. A union case can hold a borrow, like a struct.** A `union.tagged` names its sources in backticks the same way D171 does for structs, as in ``union.tagged lookup <`text`>:`` with the case ``found[item: Lend from `text` reading]``. Every source is used by a case, and a type fills them with `:`. A borrow reached through `match` or the test still names the same source. Claude proposed it, writing the case like a struct field at first, which Claude corrected to D33's form; the owner chose: "yea". (Owner, 2026-11-08)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude

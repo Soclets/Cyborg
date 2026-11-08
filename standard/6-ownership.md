@@ -207,7 +207,16 @@ end fn build
 - A function states which parameter lasts longer with `requires … lasts_at_least …;`, and every call meets it.
 - A function names a borrow inside a parameter with its own sources: ``fn shown <`t`> [$v: view<`text`: `t`>]``.
 
-**Refused:** leaving a source out, a source no field uses, and the same `lasts_at_least` fact written twice.
+A `union.tagged` case can hold a borrow the same way:
+
+```
+union.tagged lookup <`text`>:
+    found[item: Lend from `text` reading]
+    missing
+end union.tagged lookup
+```
+
+**Refused:** leaving a source out, a source no field or case uses, and the same `lasts_at_least` fact written twice.
 
 Lending an item locks the whole list, and its type names the list:
 
@@ -239,7 +248,7 @@ A parameter is never typed as a stored borrow, because a bare parameter already 
 
 **Refused:** `fn show [$v: Lend from $r reading]`, with `fix: $v: reading`, and `Lend.mut from` on a parameter, with `fix: Lent.mut`.
 
-**From:** D2, D169, D170, D171, D172, D173, D174, D175.
+**From:** D2, D169, D170, D171, D172, D173, D174, D175, D176.
 
 ## 6.11 No word needed
 
