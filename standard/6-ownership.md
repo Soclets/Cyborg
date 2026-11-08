@@ -168,7 +168,27 @@ std::println($lock.celsius as str);
 
 The `change` is fine, because `$view` isn't used after the print. After `$lock`, nothing can change `$r` until the block ends. `Lend.mut.held` works the same way, and `held` is a placeholder name.
 
-**From:** D2, D169.
+A function can return a borrow by naming where it comes from. That's Cyborg's lifetime: `from $a` means it lives as long as `$a`.
+
+```
+fn warmer [$a: reading, $b: reading] -> Lend from <$a, $b> reading:
+    if $a.celsius > $b.celsius:
+        return Lend $a;
+    end if
+    return Lend $b;
+end fn warmer
+
+let $w: Lend from <$x, $y> reading = warmer(Lend $x, Lend $y);
+```
+
+- It comes only from a parameter, a named source or `program`.
+- The body is checked against the claim.
+- `<$a, $b>` lasts only while both do.
+- At the call, the result's sources become the arguments, and each of those has to be a named value.
+
+**Refused:** borrowing a local or a `Given` parameter, returning `Lend $b` from `-> Lend from $a`, a fresh argument the result borrows from, and a borrow of a plain number ([6.6](#66-plain-numbers-and-bool)).
+
+**From:** D2, D169, D170.
 
 ## 6.11 No word needed
 
