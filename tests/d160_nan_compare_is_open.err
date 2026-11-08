@@ -1,5 +1,0 @@
-NotDesignedYet: d160_nan_compare_is_open.cy:11:8, line 11 column 8
-11 |     if $nan == $nan:
-   |        ^^^^^^^^^^^^
- what: how NaN compares
- why:  not decided yet (standard 12.2)

@@ -1,5 +1,0 @@
-NotDesignedYet: d161_nan_as_str_is_open.cy:10:18, line 10 column 18
-10 |     std::println($nan as str);
-   |                  ^^^^^^^^^^^
- what: how NaN prints
- why:  not decided yet (standard 12.2)

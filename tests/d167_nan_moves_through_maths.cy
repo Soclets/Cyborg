@@ -1,4 +1,4 @@
-// trace: D161, D159
+// trace: D167, D166
 import std;
 
 fn.main [] -> void:
@@ -7,6 +7,7 @@ fn.main [] -> void:
         change $x = $x x $x;
     end for
     let $nan: f64.ieee = $x - $x;
-    std::println($nan as str);
+    let $more: f64.ieee = $nan x 0.0 + 1.0;
+    std::println($more as str);
     return void;
 end fn.main

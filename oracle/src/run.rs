@@ -868,8 +868,10 @@ impl<'c> Runner<'c> {
                 let (Some(held), Number::Float(kind, _)) = (float_value(&value), number) else {
                     return Err(oracle_bug(span, "`as str` on something else"));
                 };
-                refuse_non_finite_text(held, span).map_err(Stop::Report)?;
-                Ok(Value::Str(show_float(*kind, held)))
+                Ok(Value::Str(match non_finite_text(held) {
+                    Some(word) => word.to_string(),
+                    None => show_float(*kind, held),
+                }))
             }
             // trace: D161
             NodeKind::PrintlnStored(value) => {
@@ -877,7 +879,7 @@ impl<'c> Runner<'c> {
                 let Some(held) = float_value(&value) else {
                     return Err(oracle_bug(span, "`println.stored` on something else"));
                 };
-                let mut line = stored_text(held, span).map_err(Stop::Report)?;
+                let mut line = stored_text(held);
                 line.push('\n');
                 self.write_line(&line, span)
             }
@@ -1084,15 +1086,9 @@ fn compare(
             ))
         }
     };
-    // Only `f64.ieee` can hold NaN, and how it compares isn't decided.
-    // trace: D160
-    if ordering.is_none() {
-        return Err(Stop::Report(Report::not_designed(
-            span,
-            "how NaN compares",
-            "12.2",
-        )));
-    }
+    // Only `f64.ieee` can hold NaN, and IEEE 754 says every comparison with it is false except
+    // `!=`, which is what an ordering of `None` gives below.
+    // trace: D167
     Ok(match operator {
         CompareOperator::Equal => ordering == Some(Equal),
         CompareOperator::NotEqual => ordering != Some(Equal),
@@ -1127,21 +1123,25 @@ fn float_in_bound(value: f64, low: f64, high: f64) -> bool {
 
 /// How NaN or infinity prints isn't decided, and everything else has a text.
 /// trace: D161
-fn refuse_non_finite_text(value: f64, span: Span) -> Outcome<()> {
-    if value.is_finite() {
-        return Ok(());
+fn non_finite_text(value: f64) -> Option<&'static str> {
+    // trace: D166
+    if value.is_nan() {
+        Some("NaN")
+    } else if value == f64::INFINITY {
+        Some("inf")
+    } else if value == f64::NEG_INFINITY {
+        Some("-inf")
+    } else {
+        None
     }
-    Err(Report::not_designed(
-        span,
-        format!("how {} prints", non_finite_name(value)),
-        "12.2",
-    ))
 }
 
 /// trace: D161, D162
-fn stored_text(value: f64, span: Span) -> Outcome<String> {
-    refuse_non_finite_text(value, span)?;
-    Ok(stored_float(value))
+fn stored_text(value: f64) -> String {
+    match non_finite_text(value) {
+        Some(word) => word.to_string(),
+        None => stored_float(value),
+    }
 }
 
 fn arithmetic(

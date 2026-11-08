@@ -1,0 +1,5 @@
+NotDesignedYet: d165_negative_exponent.cy:3:29, line 3 column 29
+ 3 |     let $a: f64 = exponent ~1.5e-3;
+   |                             ^^^^^^
+ what: a negative exponent
+ why:  not decided yet (standard 12.2)

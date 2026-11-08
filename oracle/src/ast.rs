@@ -466,6 +466,9 @@ pub enum ExpressionKind {
         digits: String,
         negative: bool,
         inexact: bool,
+        /// How an exponent literal was written, as in `6.02214076e23`, while `digits` holds its
+        /// value in plain digits. (D165)
+        exponent: Option<String>,
     },
     Text(String),
     Empty,

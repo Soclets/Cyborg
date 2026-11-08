@@ -1,4 +1,4 @@
-// trace: D161, D159
+// trace: D166, D159
 import std;
 
 fn.main [] -> void:
@@ -7,5 +7,8 @@ fn.main [] -> void:
         change $x = $x x $x;
     end for
     std::println($x as str);
+    std::println((-$x) as str);
+    std::println.stored($x);
+    std::println.stored(-$x);
     return void;
 end fn.main

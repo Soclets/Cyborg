@@ -92,6 +92,38 @@ pub fn is_clashing(word: &str) -> bool {
     CLASHING_WORDS.contains(&word)
 }
 
+/// The placeholder word in front of an exponent literal. (D165)
+const EXPONENT_WORD: &str = "exponent";
+
+/// `6.02214076e23` in plain digits, as `602214076000000000000000.0`. Past what any float holds, the
+/// digits stop growing, since the value is too large either way and a giant exponent mustn't
+/// build a giant string.
+/// trace: D165
+fn expand_exponent(mantissa: &str, power: &str) -> String {
+    const PAST_ANY_FLOAT: usize = 400;
+    let (whole, fraction) = mantissa.split_once('.').unwrap_or((mantissa, ""));
+    let all: String = format!("{whole}{fraction}");
+    let Some(first) = all.find(|c: char| c != '0') else {
+        return "0.0".to_string();
+    };
+    let power: usize = power.parse().unwrap_or(usize::MAX);
+    let point = whole.len().saturating_add(power);
+    if point.saturating_sub(first) > PAST_ANY_FLOAT {
+        return format!("1{}.0", "0".repeat(PAST_ANY_FLOAT));
+    }
+    let digits = if point >= all.len() {
+        format!("{all}{}.0", "0".repeat(point - all.len()))
+    } else {
+        format!("{}.{}", &all[..point], &all[point..])
+    };
+    let trimmed = digits.trim_start_matches('0');
+    if trimmed.starts_with('.') {
+        format!("0{trimmed}")
+    } else {
+        trimmed.to_string()
+    }
+}
+
 /// Whether a program could write this as a plain name, which is what a quoted `use` has to give.
 /// trace: D151
 pub fn could_be_called(text: &str) -> bool {
@@ -136,6 +168,12 @@ enum Lexeme {
     Variable(String),
     Integer(String),
     Float(String),
+    /// `6.02214076e23`, which only `exponent` in front may write. (D165)
+    Exponent {
+        written: String,
+        mantissa: String,
+        power: String,
+    },
     Text(String),
     Symbol(&'static str),
     End,
@@ -450,6 +488,49 @@ fn lex_number(source: &str, position: &mut usize) -> Outcome<Lexeme> {
             is_float = true;
         }
     }
+    // trace: D165
+    let after_number = source.get(start + length..).unwrap_or("");
+    if let Some(power) = after_number.strip_prefix('e') {
+        let digits_after: String = power.chars().take_while(char::is_ascii_digit).collect();
+        let sign = power.chars().next().filter(|c| *c == '-' || *c == '+');
+        let signed_digits = sign.map_or(0, |_| {
+            power
+                .get(1..)
+                .unwrap_or("")
+                .chars()
+                .take_while(char::is_ascii_digit)
+                .count()
+        });
+        if sign.is_some() && signed_digits > 0 {
+            let span = Span::new(start, start + length + 2 + signed_digits);
+            return Err(Report::not_designed(
+                span,
+                if sign == Some('-') {
+                    "a negative exponent"
+                } else {
+                    "an exponent written with `+`"
+                },
+                "12.2",
+            ));
+        }
+        if !digits_after.is_empty() {
+            let span = Span::new(start, start + length + 1 + digits_after.len());
+            if !is_float {
+                return Err(Report::not_designed(
+                    span,
+                    "an exponent on an integer",
+                    "12.2",
+                ));
+            }
+            *position = span.end;
+            let mantissa: String = number.chars().filter(|c| *c != '_').collect();
+            return Ok(Lexeme::Exponent {
+                written: format!("{mantissa}e{digits_after}"),
+                mantissa,
+                power: digits_after,
+            });
+        }
+    }
     let end = start + length;
     if let Some(next) = source.get(end..).and_then(|after| after.chars().next()) {
         if is_word_part(next) {
@@ -577,6 +658,7 @@ impl Parser {
             Lexeme::Word(word) => format!("`{word}`"),
             Lexeme::Variable(name) => format!("`${name}`"),
             Lexeme::Integer(digits) | Lexeme::Float(digits) => format!("`{digits}`"),
+            Lexeme::Exponent { written, .. } => format!("`{written}`"),
             Lexeme::Text(_) => "a string".to_string(),
             Lexeme::Symbol(symbol) => format!("`{symbol}`"),
             Lexeme::End => "the end of the file".to_string(),
@@ -3094,16 +3176,51 @@ impl Parser {
 
     fn parse_primary_number(&mut self) -> Outcome<Expression> {
         let start = self.span();
+        // trace: D165
+        let said_exponent = self.eat_word(EXPONENT_WORD);
         let inexact = self.eat_symbol("~");
         // trace: D59
         let negative = self.eat_symbol("-");
         let lexeme = self.peek().lexeme.clone();
         let kind = match lexeme {
+            Lexeme::Exponent {
+                written,
+                mantissa,
+                power,
+            } => {
+                if !said_exponent {
+                    let shown = format!(
+                        "{EXPONENT_WORD} {}{}{written}",
+                        if inexact { "~" } else { "" },
+                        if negative { "-" } else { "" }
+                    );
+                    return Err(Report::refused(
+                        start.to(self.span()),
+                        format!("an exponent says so with `{EXPONENT_WORD}` in front"),
+                        "a stray `e` can't quietly change a number, so the word goes in front (D165)",
+                    )
+                    .fix(shown));
+                }
+                ExpressionKind::Float {
+                    digits: expand_exponent(&mantissa, &power),
+                    negative,
+                    inexact,
+                    exponent: Some(written),
+                }
+            }
+            _ if said_exponent => {
+                return Err(Report::refused(
+                    start.to(self.span()),
+                    format!("`{EXPONENT_WORD}` goes only on a literal with an exponent"),
+                    "the word says the literal has an `e` in it (D165)",
+                ));
+            }
             Lexeme::Integer(digits) if !inexact => ExpressionKind::Integer { digits, negative },
             Lexeme::Integer(digits) | Lexeme::Float(digits) => ExpressionKind::Float {
                 digits,
                 negative,
                 inexact,
+                exponent: None,
             },
             _ => return Err(self.expected("a number")),
         };
@@ -3150,10 +3267,27 @@ impl Parser {
         result
     }
 
+    /// A number starts here, perhaps with `exponent` in front of it. (D165)
+    fn at_number_start(&self) -> bool {
+        let starts = |lexeme: &Lexeme| {
+            matches!(
+                lexeme,
+                Lexeme::Integer(_)
+                    | Lexeme::Float(_)
+                    | Lexeme::Exponent { .. }
+                    | Lexeme::Symbol("-" | "~")
+            )
+        };
+        let first = &self.peek().lexeme;
+        starts(first)
+            || matches!(first, Lexeme::Word(word) if word == EXPONENT_WORD)
+                && starts(&self.peek_at(1).lexeme)
+    }
+
     fn parse_primary_inner(&mut self) -> Outcome<Expression> {
         let start = self.span();
         match self.peek().lexeme.clone() {
-            Lexeme::Integer(_) | Lexeme::Float(_) | Lexeme::Symbol("-" | "~") => {
+            _ if self.at_number_start() => {
                 let number = self.parse_primary_number()?;
                 self.with_unit(number)
             }
@@ -3422,7 +3556,10 @@ impl Parser {
                 text.push(' ');
             }
             match &token.lexeme {
-                Lexeme::Word(word) | Lexeme::Integer(word) | Lexeme::Float(word) => {
+                Lexeme::Word(word)
+                | Lexeme::Integer(word)
+                | Lexeme::Float(word)
+                | Lexeme::Exponent { written: word, .. } => {
                     text.push_str(word);
                 }
                 Lexeme::Variable(name) => {

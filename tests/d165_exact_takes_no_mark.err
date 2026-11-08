@@ -1,0 +1,5 @@
+refused: d165_exact_takes_no_mark.cy:3:19, line 3 column 19
+ 3 |     let $a: f64 = exponent ~1.5e3;
+   |                   ^^^^^^^^^^^^^^^
+ fix:  `exponent 1.5e3`
+ why:  f64 holds 1.5e3 exactly (D59)

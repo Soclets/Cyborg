@@ -834,6 +834,7 @@ impl Checker<'_> {
             digits,
             negative,
             inexact,
+            exponent,
         } = &expression.kind
         else {
             return Err(Report::refused(span, "this number can't be read", "(D59)"));
@@ -884,14 +885,19 @@ impl Checker<'_> {
             ));
         }
         let exact = decimal_is_exact(digits, held);
-        let shown = format!("{}{digits}", if *negative { "-" } else { "" });
+        let sign = if *negative { "-" } else { "" };
+        // An exponent literal's fix keeps the way it was written. (D165)
+        let (shown, word) = match exponent {
+            Some(written) => (format!("{sign}{written}"), "exponent "),
+            None => (format!("{sign}{digits}"), ""),
+        };
         if exact && *inexact {
             return Err(Report::refused(
                 span,
                 "this literal is exact, so it takes no `~`",
                 format!("{} holds {shown} exactly (D59)", kind.word()),
             )
-            .fix(shown));
+            .fix(format!("{word}{shown}")));
         }
         if !exact && !*inexact {
             return Err(Report::refused(
@@ -899,7 +905,7 @@ impl Checker<'_> {
                 "this literal gets rounded, so it says so",
                 format!("{} can't hold {shown} exactly (D59)", kind.word()),
             )
-            .fix(format!("~{shown}")));
+            .fix(format!("{word}~{shown}")));
         }
         Ok((
             Node {
