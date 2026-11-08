@@ -1,5 +1,0 @@
-NotDesignedYet: d2_giving_one_field.cy:13:14, line 13 column 14
-13 |     eat(Give $b.s);
-   |              ^^^^
- what: giving away one field of a struct
- why:  not decided yet, and the standard doesn't say

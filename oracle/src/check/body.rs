@@ -523,7 +523,7 @@ impl Checker<'_> {
                 "`Lend` is temporary access, and the caller keeps it (D2, D129)",
             ));
         }
-        self.refuse_finish_with_duties_inside(name, &variable.held_type, target.span)?;
+        self.refuse_finish_with_duties_inside(slot, name, &variable.held_type, target.span)?;
         self.refuse_while_read(name, &[], target.span)?;
         self.note_use(name, UseKind::Write, target.span);
         if let Some(state) = self.context.state.get_mut(slot) {
@@ -538,6 +538,7 @@ impl Checker<'_> {
     /// trace: D129, D177
     fn refuse_finish_with_duties_inside(
         &self,
+        slot: usize,
         name: &str,
         held_type: &Type,
         span: Span,
@@ -549,11 +550,18 @@ impl Checker<'_> {
                     .get(struct_name)
                     .map(|info| info.fields.clone())
                     .unwrap_or_default();
-                if let Some((field, _)) = fields
-                    .iter()
-                    .find(|(_, field_type)| self.is_must_give(field_type))
-                {
-                    // Giving one field away isn't decided yet, so it can't have happened.
+                // A field moved out on every path here no longer needs giving. (D185)
+                let moved_everywhere = |index: usize| {
+                    self.context.state.get(slot).is_some_and(|state| {
+                        state
+                            .moved
+                            .iter()
+                            .any(|moved| moved.every_path && moved.path == [index])
+                    })
+                };
+                if let Some((field, _)) = fields.iter().enumerate().find_map(|(index, field)| {
+                    (self.is_must_give(&field.1) && !moved_everywhere(index)).then_some(field)
+                }) {
                     return Err(Report::refused(
                         span,
                         format!("`${name}.{field}` hasn't been given away, so `finish` waits for it"),
@@ -624,6 +632,7 @@ impl Checker<'_> {
                 None
             };
             slot_state.trust_ended = trust_ended;
+            slot_state.moved = join_moved(branches, index);
         }
         self.context.state = joined;
     }
@@ -1295,6 +1304,17 @@ impl Checker<'_> {
             Report::refused(target.span, format!("`${name}` isn't declared"), "(D2)")
         })?;
         self.require_alive(slot, target.span)?;
+        // trace: D184, D125
+        if !variable.mutable
+            && variable.origin == Origin::LentParameter
+            && variable.held_type.is_always_copied()
+        {
+            return Err(Report::refused(
+                target.span,
+                format!("`${name}` is a plain parameter, so it can't change"),
+                "a function can't quietly change its own copy, and `Lent.mut` says it changes the caller's (D184, D125)",
+            ));
+        }
         // trace: D3
         if !variable.mutable {
             return Err(Report::refused(
@@ -3012,4 +3032,31 @@ fn float_test_bound(subject: &Type, test: &Type) -> Option<(f64, f64)> {
         ) if kind == test_kind && unit == test_unit => Some((low.value(), high.value())),
         _ => None,
     }
+}
+
+/// Moved fields after branches meet: any moved on some path stay moved, and count as moved for
+/// `finish` only where every path moved them. (D185)
+fn join_moved(branches: &[Vec<VariableState>], index: usize) -> Vec<super::MovedField> {
+    let mut joined: Vec<super::MovedField> = Vec::new();
+    for branch in branches {
+        let Some(state) = branch.get(index) else {
+            continue;
+        };
+        for moved in &state.moved {
+            if !joined.iter().any(|found| found.path == moved.path) {
+                joined.push(moved.clone());
+            }
+        }
+    }
+    for moved in &mut joined {
+        moved.every_path = branches.iter().all(|branch| {
+            branch.get(index).is_some_and(|state| {
+                state
+                    .moved
+                    .iter()
+                    .any(|found| found.path == moved.path && found.every_path)
+            })
+        });
+    }
+    joined
 }

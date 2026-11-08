@@ -1,5 +1,0 @@
-refused: d173_numbers_in_the_standards_example.cy:8:16, line 8 column 16
- 8 | fn adjust [$c: Lent.mut i32, $t: Lent.mut i32] -> void:
-   |                ^^^^
- what: `i32` is always copied, and takes no word
- why:  plain numbers and `bool` are always copied, and take no word (D2, D123)

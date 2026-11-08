@@ -1,0 +1,5 @@
+refused: d185_on_one_path_only.cy:24:12, line 24 column 12
+24 |     finish $l;
+   |            ^^
+ what: `$l.file` hasn't been given away, so `finish` waits for it
+ why:  `finish` ends a value's own duty, after every `must_Give` value inside it is given away (D129, D177)

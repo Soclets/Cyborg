@@ -1,16 +1,21 @@
-// The standard's example lends two number fields with `Lend.mut`, which D123 refuses for numbers.
-// trace: D173, D123
+// D173's example, which D184 made writable: two number fields, each lent to change.
+// trace: D184, D173
+import std;
+
 struct reading:
     celsius: i32;
     time: i32;
 end struct reading
 
 fn adjust [$c: Lent.mut i32, $t: Lent.mut i32] -> void:
+    change $c = $c + 1;
+    change $t = $t x 2;
     return void;
 end fn adjust
 
 fn.main [] -> void:
     let mut $r: reading = reading[celsius = 21, time = 3600];
     adjust(Lend.mut $r.celsius, Lend.mut $r.time);
+    std::println($r.celsius as str, " ", $r.time as str);
     return void;
 end fn.main

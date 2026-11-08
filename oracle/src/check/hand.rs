@@ -322,6 +322,7 @@ impl Checker<'_> {
             }
             self.require_alive(slot, span)?;
             self.refuse_invalidated(slot, span)?;
+            self.refuse_after_a_move(slot, name, span)?;
             // trace: D180
             if self
                 .context
@@ -518,6 +519,9 @@ impl Checker<'_> {
 
     /// `Give $x`: the value moves, and `$x` is dead afterwards on any path. (D2)
     pub(super) fn check_give(&mut self, value: &Expression, hand_span: Span) -> Outcome<Held> {
+        if matches!(value.kind, ExpressionKind::Field { .. }) && root_variable(value).is_some() {
+            return self.check_give_field(value, hand_span);
+        }
         if !matches!(value.kind, ExpressionKind::Variable(_)) {
             if matches!(value.kind, ExpressionKind::Item { .. }) {
                 return Err(Report::not_designed(
@@ -580,6 +584,90 @@ impl Checker<'_> {
             state.given_on_some_path = false;
         }
         Ok(held)
+    }
+
+    /// `Give $l.file` moves a field out of something this code owns, and afterwards `$l` can only
+    /// have more fields moved out, or be finished. (D185)
+    /// trace: D185
+    fn check_give_field(&mut self, value: &Expression, hand_span: Span) -> Outcome<Held> {
+        let root = root_variable(value).unwrap_or_default();
+        let slot = self.find_variable(&root);
+        let origin = slot
+            .and_then(|slot| self.context.variables.get(slot))
+            .map(|variable| variable.origin);
+        if !matches!(origin, Some(Origin::Owned | Origin::GivenParameter)) {
+            return Err(Report::refused(
+                value.span,
+                format!("`${root}` is only borrowed here, so a field can't be moved out of it"),
+                "a field moves out only of something you own, a `Given` parameter or your own `let` (D185)",
+            ));
+        }
+        self.context.moving_field = true;
+        let checked = self.check_held(value);
+        self.context.moving_field = false;
+        let held = checked?;
+        let Some(place) = held.place.clone() else {
+            return Err(Report::not_designed(
+                value.span,
+                "giving away a constant",
+                "",
+            ));
+        };
+        let path = place.keys();
+        if path.contains(&ir::ANY_ITEM) {
+            return Err(Report::not_designed(
+                value.span,
+                "giving away one item of a collection",
+                "",
+            ));
+        }
+        let earlier = self.context.state.get(place.slot).and_then(|state| {
+            state
+                .moved
+                .iter()
+                .find(|moved| ir::paths_overlap(&moved.path, &path))
+                .map(|moved| moved.span)
+        });
+        if let Some(earlier) = earlier {
+            return Err(Report::refused(
+                value.span,
+                format!("`{}` was already moved out", self.text_of(value.span)),
+                "a given value is dead afterwards (D2, D185)",
+            )
+            .because(earlier, "it was moved out here"));
+        }
+        self.refuse_while_read(&root, &path, value.span)?;
+        self.note_use_at(&root, &path, UseKind::Write, value.span);
+        let span = self.use_span(hand_span);
+        if let Some(state) = self.context.state.get_mut(place.slot) {
+            state.moved.push(super::MovedField {
+                path,
+                span,
+                every_path: true,
+            });
+        }
+        Ok(held)
+    }
+
+    /// After a field is moved out, `$l` can only have more moved out, or be finished. (D185)
+    fn refuse_after_a_move(&self, slot: usize, name: &str, span: Span) -> Outcome<()> {
+        if self.context.moving_field {
+            return Ok(());
+        }
+        let Some(moved) = self
+            .context
+            .state
+            .get(slot)
+            .and_then(|state| state.moved.first())
+        else {
+            return Ok(());
+        };
+        Err(Report::refused(
+            span,
+            format!("a field of `${name}` was moved out, so all that's left is moving out another, or `finish`"),
+            "after a field is moved out, the value is incomplete (D185)",
+        )
+        .because(moved.span, "it was moved out here"))
     }
 
     /// Nothing may change or take `$xs` while `for` is reading it in place. (D2)
@@ -772,6 +860,52 @@ impl Checker<'_> {
         Err(Self::mismatch(span, target, found))
     }
 
+    /// A number lent to change says `Lend.mut`, and that's the one word it takes. (D184)
+    /// trace: D184
+    fn check_number_lent_to_change(
+        &mut self,
+        value: &Expression,
+        parameter: &ParameterInfo,
+        handed: &mut Vec<HandedOff>,
+    ) -> Outcome<ir::Argument> {
+        let target = &parameter.parameter_type;
+        let ExpressionKind::Hand {
+            word: HandWord::LendMut,
+            value: inner,
+        } = &value.kind
+        else {
+            let mut report = Report::refused(
+                value.span,
+                format!("`{}` changes this, so it says `Lend.mut`", parameter_name(parameter)),
+                "a number lent to change says `Lend.mut`, and it's the one word a number takes (D184, D3)",
+            );
+            let place = match &value.kind {
+                ExpressionKind::Hand { value: inner, .. } => inner,
+                _ => value,
+            };
+            if root_variable(place).is_some() {
+                report = report.fix(format!("Lend.mut {}", self.text_of(place.span)));
+            }
+            return Err(report);
+        };
+        let held = self.check_lent_place(inner, HandWord::LendMut)?;
+        Self::check_held_type(value.span, target, &held.value_type)?;
+        let Some(place) = held.place else {
+            return Err(Report::refused(
+                value.span,
+                "a constant can't be lent with `Lend.mut`",
+                "a constant's value is fixed at compile time (D83)",
+            ));
+        };
+        handed.push(HandedOff {
+            root: held.root_name.clone(),
+            path: place.keys(),
+            word: HandWord::LendMut,
+            span: value.span,
+        });
+        Ok(ir::Argument::Alias(place))
+    }
+
     /// One argument, against the parameter it fills. (D2)
     pub(super) fn check_argument(
         &mut self,
@@ -782,6 +916,9 @@ impl Checker<'_> {
         let target = &parameter.parameter_type;
         if parameter.label_has_unit {
             return self.check_argument_for_unit_label(value, parameter);
+        }
+        if target.is_always_copied() && parameter.word == ParameterWord::LentMut {
+            return self.check_number_lent_to_change(value, parameter, handed);
         }
         if target.is_always_copied() {
             // trace: D2
@@ -1088,4 +1225,8 @@ pub(super) fn plain_type(found: &Type) -> &Type {
         Type::Holding { base, .. } => base,
         other => other,
     }
+}
+
+fn parameter_name(parameter: &ParameterInfo) -> String {
+    format!("${}", parameter.name)
 }

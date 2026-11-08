@@ -92,6 +92,9 @@ pub fn is_clashing(word: &str) -> bool {
     CLASHING_WORDS.contains(&word)
 }
 
+/// The word in front of an import that brings in both halves of a package. (D188)
+const PKG_WORD: &str = "pkg";
+
 /// The word between two sources, one lasting at least as long as the other. (D171)
 const LASTS_AT_LEAST: &str = "lasts_at_least";
 
@@ -1006,10 +1009,31 @@ impl Parser {
                     ));
                 }
                 self.advance();
+                // `import pkg std;` brings in both halves of a package. (D188)
+                // trace: D188
+                let whole = self.at_word(PKG_WORD)
+                    && !matches!(self.peek_at(1).lexeme, Lexeme::Symbol(";"));
+                if whole {
+                    self.advance();
+                }
                 let limb = self.eat_symbol("@");
+                if whole && limb {
+                    return Err(Report::refused(
+                        self.previous_span(),
+                        "`pkg` names the whole package, so it takes no `@`",
+                        "`import pkg std;` brings in both halves, and `@` picks only the limb half (D188, D187)",
+                    ));
+                }
                 let name = self.expect_name("what to import")?;
                 self.expect_semicolon()?;
-                program.imports.push(Import { limb, name });
+                program.imports.push(Import { limb, whole, name });
+            } else if self.at_word("package") && matches!(self.peek_at(1).lexeme, Lexeme::Word(_)) {
+                // trace: D189
+                return Err(Report::refused(
+                    self.span(),
+                    "a file doesn't say which package it's in",
+                    "the manifest names your package, and `fn.main` already marks where a program starts (D189)",
+                ));
             } else if self.at_word("use") {
                 let declared = self.parse_use()?;
                 program.uses.push(declared);

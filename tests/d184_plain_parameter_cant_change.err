@@ -1,0 +1,5 @@
+refused: d184_plain_parameter_cant_change.cy:4:12, line 4 column 12
+ 4 |     change $n = $n + 1;
+   |            ^^
+ what: `$n` is a plain parameter, so it can't change
+ why:  a function can't quietly change its own copy, and `Lent.mut` says it changes the caller's (D184, D125)

@@ -108,6 +108,16 @@ struct VariableState {
     finished: bool,
     /// For a stored borrow: where what it borrows was used in a way that ends the borrow.
     invalidated: Option<Span>,
+    /// Fields moved out with `Give $l.file`. (D185)
+    moved: Vec<MovedField>,
+}
+
+/// A field moved out, where, and whether that happened on every path here. (D185)
+#[derive(Clone, Debug, PartialEq, Eq)]
+struct MovedField {
+    path: Vec<usize>,
+    span: Span,
+    every_path: bool,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -167,6 +177,7 @@ struct LoopInfo {
 }
 
 /// Facts about the function being checked.
+#[allow(clippy::struct_excessive_bools)] // Each says what the code being checked is inside of.
 struct FunctionContext {
     kind: FunctionKind,
     name: String,
@@ -201,6 +212,8 @@ struct FunctionContext {
     source_facts: Vec<(String, String)>,
     /// A call handing back a borrow may be checked now, for a stored borrow or a `return`. (D170)
     borrow_result_wanted: bool,
+    /// `Give $l.file` is checking `$l`, which may still have fields moved out. (D185)
+    moving_field: bool,
     /// What the last such call's result borrows, by the caller's names. (D170)
     borrowed_result: Option<BorrowedResult>,
 }
@@ -238,6 +251,7 @@ impl FunctionContext {
             held_borrows: Vec::new(),
             held_conflict: None,
             borrow_result_wanted: false,
+            moving_field: false,
             lasts: Vec::new(),
             source_facts: Vec::new(),
             borrowed_result: None,
@@ -385,6 +399,26 @@ impl Checker<'_> {
 
     fn read_imports(&mut self, program: &Program) -> Outcome<()> {
         for import in &program.imports {
+            // trace: D188, D187
+            if import.whole {
+                match import.name.text.as_str() {
+                    "std" => {
+                        self.imports.insert("std".to_string());
+                        self.limb_imports.insert("std".to_string());
+                    }
+                    "csup" => {
+                        self.limb_imports.insert("csup".to_string());
+                    }
+                    other => {
+                        return Err(Report::not_designed(
+                            import.name.span,
+                            format!("how the package `{other}` is found"),
+                            "12.9",
+                        ));
+                    }
+                }
+                continue;
+            }
             if import.limb {
                 match import.name.text.as_str() {
                     "csup" | "std" => {
@@ -1276,8 +1310,9 @@ impl Checker<'_> {
                     )
                     .fix(fix));
                 }
-                // trace: D2
-                if parameter.word != ParameterWord::Bare && parameter_type.is_always_copied() {
+                // A number takes `Lent.mut`, since that says it changes, and no other word.
+                // trace: D2, D184
+                if parameter.word == ParameterWord::Given && parameter_type.is_always_copied() {
                     return Err(Report::refused(
                         parameter.word_span,
                         format!("`{parameter_type}` is always copied, and takes no word"),

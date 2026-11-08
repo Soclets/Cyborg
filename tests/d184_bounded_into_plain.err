@@ -1,0 +1,5 @@
+refused: d184_bounded_into_plain.cy:10:10, line 10 column 10
+10 |     bump(Lend.mut $n);
+   |          ^^^^^^^^^^^
+ what: this is `i32[min: 0, max: 9]`, where `i32` is needed
+ why:  `:` doesn't convert, and `as` builds a new value of another type (D7)

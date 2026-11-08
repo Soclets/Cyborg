@@ -27,6 +27,8 @@ pub struct Program {
 #[derive(Clone, Debug)]
 pub struct Import {
     pub limb: bool,
+    /// `import pkg std;`, both halves of the package. (D188)
+    pub whole: bool,
     pub name: Name,
 }
 

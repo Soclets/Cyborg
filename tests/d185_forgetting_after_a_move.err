@@ -1,0 +1,9 @@
+refused: d185_forgetting_after_a_move.cy:22:5, line 22 column 5
+22 |     return void;
+   |     ^^^^^^^^^^^^
+ what: this leaves with `$l` never given away or finished
+ why:  a `must_Give` value is handed off with `Give` exactly once, or `finish` ends it (D2, D129)
+ because: d185_forgetting_after_a_move.cy:20:9, line 20 column 9
+20 |     let $l: log = log[file = open_file[fd = 4], lines = 1];
+   |         ^^
+     `$l` was made here

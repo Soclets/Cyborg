@@ -1,5 +1,4 @@
-// Giving away one field of a struct isn't in the standard yet.
-// trace: D2
+// trace: D185, D2
 struct box:
     s: str;
 end struct box

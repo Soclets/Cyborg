@@ -1,0 +1,31 @@
+// The standard's `close_log`: a `struct.must_Give` ends its duty at last.
+// trace: D185, D177, D129
+import std;
+
+struct.must_Give open_file:
+    fd: i32;
+end struct.must_Give open_file
+
+fn close [$f: Given open_file] -> void:
+    std::println("closing ", $f.fd as str);
+    finish $f;
+    return void;
+end fn close
+
+struct.must_Give log:
+    file: open_file;
+    lines: i32;
+end struct.must_Give log
+
+fn close_log [$l: Given log] -> void:
+    close(Give $l.file);
+    finish $l;
+    return void;
+end fn close_log
+
+fn.main [] -> void:
+    let $l: log = log[file = open_file[fd = 3], lines = 1];
+    close_log(Give $l);
+    std::println("done");
+    return void;
+end fn.main

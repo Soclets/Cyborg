@@ -1,0 +1,5 @@
+refused: d189_no_package_line.cy:2:1, line 2 column 1
+ 2 | package main;
+   | ^^^^^^^
+ what: a file doesn't say which package it's in
+ why:  the manifest names your package, and `fn.main` already marks where a program starts (D189)

@@ -1,0 +1,5 @@
+refused: d188_pkg_takes_no_mark.cy:2:12, line 2 column 12
+ 2 | import pkg @std;
+   |            ^
+ what: `pkg` names the whole package, so it takes no `@`
+ why:  `import pkg std;` brings in both halves, and `@` picks only the limb half (D188, D187)

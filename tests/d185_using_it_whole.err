@@ -1,0 +1,9 @@
+refused: d185_using_it_whole.cy:28:15, line 28 column 15
+28 |     keep(Give $l);
+   |               ^^
+ what: a field of `$l` was moved out, so all that's left is moving out another, or `finish`
+ why:  after a field is moved out, the value is incomplete (D185)
+ because: d185_using_it_whole.cy:27:5, line 27 column 5
+27 |     close(Give $l.file);
+   |     ^^^^^^^^^^^^^^^^^^^
+     it was moved out here
