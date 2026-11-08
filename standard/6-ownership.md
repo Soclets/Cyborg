@@ -162,9 +162,19 @@ struct.must_Give log:
 end struct.must_Give log
 ```
 
-**Refused:** forgetting it, giving it twice, `finish` outside the kit or file that declared the type, `finish` while a `must_Give` field inside hasn't been given away, and a struct holding a `must_Give` field without saying `must_Give`, with the fix shown.
+A field can be moved out of something you own. After that, the only things left are moving out its other fields, or `finish`:
 
-**From:** D2, D57, D129, D177.
+```
+fn close_log [$l: Given log] -> void:
+    close(Give $l.file);
+    finish $l;
+    return void;
+end fn close_log
+```
+
+**Refused:** forgetting it, giving it twice, `finish` outside the kit or file that declared the type, `finish` while a `must_Give` field inside hasn't been given away, a struct holding a `must_Give` field without saying `must_Give`, with the fix shown, moving a field out of something borrowed, and using a value whole after a field has been moved out.
+
+**From:** D2, D57, D129, D177, D185.
 
 ## 6.10 Stored borrows
 

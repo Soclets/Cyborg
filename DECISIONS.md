@@ -843,6 +843,8 @@ a placeholder for a version that isn't correctly rounded. A float prints as the 
 
 **D184. Numbers can be lent to change.** `fn bump [$n: Lent.mut i32] -> void:` called with `bump(Lend.mut $count);` changes `$count`. `Give`, `Copy` and `Lend` stay refused on numbers and `bool`, as D123 says, since they make no difference there, while `Lend.mut` says the number changes. A plain number parameter can't be changed, following D125, so a function changing its own copy while you expect yours to change can't compile. This makes D173's example, `adjust(Lend.mut $r.celsius, Lend.mut $r.time);`, writable. Oracle claude found that the example couldn't be written; Claude proposed this; the owner asked "would it make a bug there?", and chose: "yea". (Owner, 2026-11-08)
 
+**D185. Moving a field out.** `Give $l.file` takes a field out of something you own, a `Given` parameter or your own `let`. After that, `$l` is incomplete: the only things left are taking out its other fields, or `finish $l`. Reading `$l.file`, lending or giving `$l` whole, and forgetting `$l` without `finish` are refused. A field can't be moved out of something borrowed. This lets a `struct.must_Give` end its duty, which D177 left impossible. Rust calls it a partial move. Oracle claude found the conflict; Claude proposed this; the owner chose: "Yea". (Owner, 2026-11-08)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude
