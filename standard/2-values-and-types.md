@@ -108,12 +108,12 @@ Comparing works as usual, and `-0.0 == 0.0` is true. The linter can flag compari
 
 IEEE 754 is the authority on how `f64.ieee` behaves, including comparing, arithmetic, and NaN and infinity moving through the maths. So any comparison with NaN is false except `!=`, and `NaN == NaN` is false. Cyborg still decides syntax, printing, `as` crossings and bounds.
 
-A float prints as the shortest text that means its value, and `std::println.stored` prints what's actually in memory:
+A float prints as the shortest text that means its value, and `std::print.stored` prints what's actually in memory:
 
 ```
 let $x: f64 = ~0.1;
-std::println($x as str);
-std::println.stored($x);
+std::print("{}{newln}", $x);
+std::print.stored("{}{newln}", $x);
 ```
 
 The first prints `0.1`, and the second prints every digit, with no limit: `0.1000000000000000055511151231257827021181583404541015625`.
@@ -230,7 +230,7 @@ The label names are a placeholder.
 **Rule:** `as` builds a new value of another type, which can allocate memory or fail. `:` doesn't convert.
 
 ```
-std::println($t as str);
+let $text: str = $t as str;
 ```
 
 A failed `as` is a failure, so it crashes unless handled ([8.9](8-failures.md#89-crash-by-default)). What can convert to what isn't decided ([12.3](12-not-decided.md#123-operators-and-conversion)).

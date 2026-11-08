@@ -9,6 +9,7 @@
 | [1.5](#15-paths-) | `::` | How you reach a kit or limb |
 | [1.11](#111-short-names-use) | `use … as …;` | A shorter name for a path |
 | [1.12](#112-comments) | `//`, `///`, `comment` | Notes and documentation |
+| [1.13](#113-printing-stdprint) | `std::print` | The one print, a format print |
 | [1.6](#16-narrowings-) | `.` | Makes the thing before it more specific |
 | [1.7](#17-bare-names) | Bare names | The obvious default, or nothing |
 | [1.8](#18-brackets) | `( )`, `[ ]`, `< >` | Runs, describes, fills in |
@@ -29,7 +30,7 @@
 import std;
 
 fn.main [] -> void:
-    std::println("hi");
+    std::print("hi{newln}");
     return void;
 end fn.main
 ```
@@ -58,20 +59,20 @@ end if
 
 ```
 let $r: reading = reading[celsius = 21, time = 3600 std::time.seconds];
-std::println($r.celsius as str);
+std::print("{}{newln}", $r.celsius);
 ```
 
 **From:** D57, D58, the sketch.
 
 ## 1.5 Paths: `::`
 
-**Rule:** `::` reaches into a kit or limb by its path. `std` is flat, as in `std::println` and `std::sin`, and any grouping would use `::`, not `.`. A family is one level deep. A file imports what it uses, and a manifest lists which packages are installed and which version ([9.1](9-limbs-and-shields.md#91-base-kits-and-limbs)). Everything gets imported, including `std` and limbs, but not builtins or `my::`. Every program has a manifest, `CyJet.zml`, even one using only `std`. Imports go at the top of the file. There is no `@import`.
+**Rule:** `::` reaches into a kit or limb by its path. `std` is flat, as in `std::print` and `std::sin`, and any grouping would use `::`, not `.`. A family is one level deep. A file imports what it uses, and a manifest lists which packages are installed and which version ([9.1](9-limbs-and-shields.md#91-base-kits-and-limbs)). Everything gets imported, including `std` and limbs, but not builtins or `my::`. Every program has a manifest, `CyJet.zml`, even one using only `std`. Imports go at the top of the file. There is no `@import`.
 
 ```
 import std;
 import @csup;
 
-std::println("hi");
+std::print("hi{newln}");
 ```
 
 A file imports the half of a package it uses: `import std;` for `std::`, and `import @std;` for `@std::`. `import pkg std;` brings in both.
@@ -101,11 +102,11 @@ A default the language or `std` fixes can't be written out. In a collection you 
 
 ```
 let $a: str = "hi";
-std::println("hi");
+std::print("hi{newln}");
 7 div.trunc 2
 ```
 
-**Refused:** `str.utf8`, `std::println.stdout`, a bare `div` on integers, and a bare `mod`.
+**Refused:** `str.utf8`, `std::print.stdout`, a bare `div` on integers, and a bare `mod`.
 
 **From:** D48, D50, D51, D97, D164.
 
@@ -166,10 +167,10 @@ If Cyborg later adds a built-in with the same name, old code gets a compile erro
 
 ```
 use std::time.seconds as seconds;
-use std::print.useful as "printu";
+use std::print as "say";
 
 let $a: i32.seconds = 3600 seconds;
-printu("hi");
+say("hi{newln}");
 ```
 
 A limb works the same way: `use @csup::extern.c as c;`, or `as "ext";`.
@@ -212,3 +213,29 @@ end comment why_sorted
 **Refused:** `//text` with no space, a block with no name, a closer naming the wrong block, and a block that never closes.
 
 **From:** D118, D119.
+
+## 1.13 Printing: `std::print`
+
+**Rule:** `std` has one print, `std::print`, and it's always a format print. Plain text is a format with no holes. A newline is `{newln}` and a tab is `{tab}`, inside the text.
+
+```
+std::print("hi{newln}");
+std::print("{}: {} at ${places: 2}{newln}", $name, $count, $price);
+std::print("0x{base: hex.upper, zeros, width: 4 cols}{newln}", 255);
+std::print("[{align: right, width: 6 cols}] {form: science, places: 2}{newln}", 42, 12.5);
+std::print.stored("{}{newln}", $tenth);
+```
+
+With `$name` as `"rope"`, `$count` as `3`, `$price` as `12.5` and `$tenth` as an `f64` holding `~0.1`, these print `hi`, `rope: 3 at $12.50`, `0x00FF`, `[    42] 1.25e1`, and `0.1000000000000000055511151231257827021181583404541015625`.
+
+- **Holes:** `{}` takes the next value in its readable form. `{1}`, `{2}` are numbered, counting from 1, and can't be mixed with plain ones.
+- **Shapes are words:** `align: left`, `right` or `center`; `width:` with its unit, `cols`, `cols.east_asian`, `graphemes`, `points` or `bytes`; `places:`; `base: bin`, `oct`, `hex` or `hex.upper`; `form: science`; and bare `zeros` and `sign`.
+- **Escapes in the text:** `\\`, `\"`, `\'`, `\r`, `\0`, `\xHH`, `\uHHHH`, `\UHHHHHHHH`, and `\{` and `\}` for a brace.
+- **Too wide:** a value wider than its width prints whole.
+- **`.stored`:** prints every float exactly as it's stored.
+
+A literal format is checked when building.
+
+**Refused:** `\n`, with `fix: {newln}`; `{0}`; mixing plain and numbered holes; more or fewer values than holes; a shape that doesn't apply, like `places:` on an integer; a width with no unit; `zeros` with no width; a shape written twice; an unknown escape; and `std::println`, with `fix: std::print`.
+
+**From:** D11, D122, D162, D165, D194, and CyborgPL's format print.

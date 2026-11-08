@@ -140,7 +140,7 @@ A receiver that's `Given` is refused, because methods only borrow.
 @bytes_of<i32>()
 ```
 
-**Refused:** `@let`. `let`, `+` and `as` aren't calls, and `std::println` could be written in Cyborg.
+**Refused:** `@let`. `let`, `+` and `as` aren't calls, and `std::print` could be written in Cyborg.
 
 **From:** D56.
 

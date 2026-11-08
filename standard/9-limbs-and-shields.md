@@ -23,7 +23,7 @@ Bare `@`, with no `::`, is a compiler builtin instead ([5.7](5-functions.md#57-b
 | Thing | What it is | How it looks |
 |---|---|---|
 | Base | The language itself | Bare |
-| Kit | A library, written in Cyborg | Its path: `std::println` |
+| Kit | A library, written in Cyborg | Its path: `std::print` |
 | Limb | A compiler extension | `@` and its path: `@csup::union.untagged` |
 | Package | What you install: a kit, a limb, or both, with one name and one version | Its halves, as `std::` and `@std::` |
 
@@ -39,7 +39,7 @@ Packages are installed with CyJet, Cyborg's package manager, which shares only i
 
 **Rule:** `@` with `::` marks something a limb provides, and only that. A search for `@` finds every file using a compiler extension, through its full path, its `use` line or its import, and every builtin, and a search for `pkg` finds the rest, since `import pkg std;` brings in a limb half without an `@`. The linter can require the full path. It's a plain `@`, not the fullwidth one Radium uses.
 
-**Refused:** `@std::println`, because `println` is in the kit part.
+**Refused:** `@std::print`, because `print` is in the kit part.
 
 **From:** D22, D36, D56, D155, D188.
 

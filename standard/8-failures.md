@@ -99,7 +99,7 @@ end otherwise
 ```
 let $h: i32 = half($n) otherwise:
     case negative $f:
-        std::println($f.val as str);
+        std::print("{}{newln}", $f.val);
         instead 0;
 end otherwise
 ```
@@ -143,16 +143,16 @@ let $w: str = first_word(Lend $text) otherwise word_failed.*bail;
 
 ```
 // crashes if it fails
-std::println("hi");
+std::print("hi{newln}");
 
 // hands it to the caller
-std::println("hi")?;
+std::print("hi{newln}")?;
 
 // ignores it, on purpose
-std::println("hi") ?? void;
+std::print("hi{newln}") ?? void;
 
 // handles it
-std::println("hi") otherwise:
+std::print("hi{newln}") otherwise:
     case print_failed:
         return void;
 end otherwise

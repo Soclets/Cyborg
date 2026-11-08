@@ -59,7 +59,7 @@ Waiting on the owner, most needed first. Each is `NotDesignedYet` unless it says
 - **Handling what can't fail.** `?`, `??` and `otherwise` on a call that can't fail.
 - **A failed `as`.** What the failure is called.
 - **`Given` parameters.** They can't change without `let mut $ys: … = Give $xs;`. This follows the rules, and is only flagged.
-- **Smaller ones.** A bound with only `min` or only `max`; a bound on a number with a unit; `my::` on a name that doesn't clash; building fields out of order; two `case`s for one failure; `case file_failed:` covering a set; `match` on a non-union; a variable typed `status.failed`; `==` on `str` or structs; `<` on `bool`; `shr` on a negative; `shl` into the sign bit; the lowest `i32` divided by -1; `all` with something other than a plain number; `std::println()` with no pieces; a struct holding itself.
+- **Smaller ones.** A bound with only `min` or only `max`; a bound on a number with a unit; `my::` on a name that doesn't clash; building fields out of order; two `case`s for one failure; `case file_failed:` covering a set; `match` on a non-union; a variable typed `status.failed`; `==` on `str` or structs; `<` on `bool`; `shr` on a negative; `shl` into the sign bit; the lowest `i32` divided by -1; `all` with something other than a plain number; `std::print()` with no text; a struct holding itself.
 - **The oracle's own limits**, so they don't get pinned by accident: 2000 levels of nesting, 10,000 call depth, 10 million compile-time steps, 16 million items in `all`, exit code 0 or 1, and stopping at the first error. Running out of stack may want a row in [10.4](10-build-modes.md#104-what-happens-when-something-goes-wrong).
 - **The `NotDesignedYet:` layout**, as a first word in the D16 format.
 
@@ -69,7 +69,7 @@ Waiting on the owner, most needed first. Each is `NotDesignedYet` unless it says
 - Units (D99 to D111): the spelling of `together`, offsets, moments, how a conversion is written, what a lossy conversion does, and the full list of units `std` has.
 - On floats: whether `div.trunc` and the other integer narrowings work, and what `mod` does.
 - Negative exponents, as in `exponent ~1.5e-3`, and exponents on integers.
-- Format print, including how a float asks to print with an exponent. D165 expects it to exist, and nothing else about it is decided.
+- Print (D194): how the fill character is written, a per-value `form: stored`, stderr, formatting to a `str` without printing, and what the output is on bare metal. `form: science` is how a float prints with an exponent.
 - How to check a float's sign.
 - Raw pointers' spelling, though D38 puts them in shields.
 - Function types: `-> i32` no longer shows failures, so a function's type needs some way to include them.
@@ -77,7 +77,7 @@ Waiting on the owner, most needed first. Each is `NotDesignedYet` unless it says
 - An uninitialized array, like Zig's `= undefined`. Claude suggested only inside a shield, if at all.
 - Whether a bad position can be handled, rather than trapping.
 - `str` narrowings other than `str.utf16`, and how string literals work.
-- The full print (D98): how `std` spells the stream, the buffer and flushing.
+- The full print (D98): how `std::print` takes a stream, a buffer and flushing.
 - The test on a value already known to be that type, like `if $n: bool:` on a `bool`. Claude suggested refusing it.
 
 ## 12.3 Operators and conversion

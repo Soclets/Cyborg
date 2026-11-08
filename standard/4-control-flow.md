@@ -19,7 +19,7 @@ Each loop says how it ends. There is no `continue`: wrap the work in an `if` ins
 
 ```
 if $t at_least 10:
-    std::println("big total: ", $t as str);
+    std::print("big total: {}{newln}", $t);
 end if
 ```
 
@@ -27,11 +27,11 @@ end if
 
 ```
 if $n > 100:
-    std::println("huge");
+    std::print("huge{newln}");
 else if $n > 0:
-    std::println("big");
+    std::print("big{newln}");
 else:
-    std::println("small");
+    std::print("small{newln}");
 end if
 ```
 
@@ -45,7 +45,7 @@ It works on a union's case, and on a bound for a plain integer.
 
 ```
 if $s: status.failed:
-    std::println("failed: ", $s.code as str);
+    std::print("failed: {}{newln}", $s.code);
 end if
 
 if $n: i32[min: 0, max: 100]:
@@ -59,7 +59,7 @@ Changing `$s` inside the block, or lending it with `Lend.mut`, is allowed, and t
 
 ```
 if $s: status.failed:
-    std::println($s.code as str);
+    std::print("{}{newln}", $s.code);
     change $s = status.ok;
 end if
 ```
@@ -77,9 +77,9 @@ The test is the program's own logic, so on a plain integer it stays in every bui
 ```
 match $s:
     case status.ok:
-        std::println("worked");
+        std::print("worked{newln}");
     case status.failed:
-        std::println("failed");
+        std::print("failed{newln}");
 end match
 ```
 
@@ -88,9 +88,9 @@ Naming a case lets its arm read its data:
 ```
 match $s:
     case status.failed $f:
-        std::println($f.code as str);
+        std::print("{}{newln}", $f.code);
     case status.ok:
-        std::println("worked");
+        std::print("worked{newln}");
 end match
 ```
 
