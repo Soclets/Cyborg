@@ -17,7 +17,7 @@
 **Rule:** a function that can fail lists its failures in its body, after `requires` and `ensures` ([5.4](5-functions.md#54-the-top-of-the-body)). The list can mix named sets and one-off failures, and a failure can carry data in `[ ]`.
 
 ```
-fn load [$path: str] -> config:
+fn load [$path: Lent str] -> config:
     fails [file_failed, bad_syntax];
     …
 end fn load
