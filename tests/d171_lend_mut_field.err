@@ -1,0 +1,5 @@
+NotDesignedYet: d171_lend_mut_field.cy:7:12, line 7 column 12
+ 7 |     words: Lend.mut from `text` reading;
+   |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ what: a `Lend.mut` borrow inside a struct or union
+ why:  not decided yet, and the standard doesn't say

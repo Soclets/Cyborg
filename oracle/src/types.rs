@@ -141,6 +141,8 @@ pub fn stored_float(value: f64) -> String {
 pub enum Sources {
     Program,
     Variables(Vec<String>),
+    /// A struct's, union's or function's own source, as in ``Lend from `text` reading``. (D171)
+    Named(String),
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -182,6 +184,13 @@ pub enum Type {
         mutable: bool,
         sources: Sources,
         inner: Box<Type>,
+    },
+    /// A struct or union holding borrows, with its sources filled in, as in
+    /// ``index<`text`: $article>``. Each fill is `$name`, `program` or `` `t` ``. (D171, D176)
+    Holding {
+        base: Box<Type>,
+        sources: Vec<String>,
+        fills: Vec<String>,
     },
     /// What `case negative $f:` names: a failure, whose data its fields read. (D139)
     Failure {
@@ -270,6 +279,18 @@ impl fmt::Display for Type {
             Type::Struct(name) | Type::Union(name) | Type::New { name, .. } => {
                 write!(formatter, "{name}")
             }
+            Type::Holding {
+                base,
+                sources,
+                fills,
+            } => {
+                let pairs: Vec<String> = sources
+                    .iter()
+                    .zip(fills)
+                    .map(|(source, fill)| format!("`{source}`: {fill}"))
+                    .collect();
+                write!(formatter, "{base}<{}>", pairs.join(", "))
+            }
             Type::List {
                 item,
                 min,
@@ -316,26 +337,7 @@ impl fmt::Display for Type {
                 mutable,
                 sources,
                 inner,
-            } => {
-                write!(
-                    formatter,
-                    "{} from ",
-                    if *mutable { "Lend.mut" } else { "Lend" }
-                )?;
-                match sources {
-                    Sources::Program => write!(formatter, "program")?,
-                    Sources::Variables(names) => {
-                        if let [only] = names.as_slice() {
-                            write!(formatter, "${only}")?;
-                        } else {
-                            let joined: Vec<String> =
-                                names.iter().map(|name| format!("${name}")).collect();
-                            write!(formatter, "<{}>", joined.join(", "))?;
-                        }
-                    }
-                }
-                write!(formatter, " {inner}")
-            }
+            } => write_borrow(formatter, *mutable, sources, inner),
         }
     }
 }
@@ -367,4 +369,30 @@ impl Value {
             _ => None,
         }
     }
+}
+
+fn write_borrow(
+    formatter: &mut fmt::Formatter<'_>,
+    mutable: bool,
+    sources: &Sources,
+    inner: &Type,
+) -> fmt::Result {
+    write!(
+        formatter,
+        "{} from ",
+        if mutable { "Lend.mut" } else { "Lend" }
+    )?;
+    match sources {
+        Sources::Program => write!(formatter, "program")?,
+        Sources::Named(name) => write!(formatter, "`{name}`")?,
+        Sources::Variables(names) => {
+            if let [only] = names.as_slice() {
+                write!(formatter, "${only}")?;
+            } else {
+                let joined: Vec<String> = names.iter().map(|name| format!("${name}")).collect();
+                write!(formatter, "<{}>", joined.join(", "))?;
+            }
+        }
+    }
+    write!(formatter, " {inner}")
 }

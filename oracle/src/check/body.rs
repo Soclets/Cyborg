@@ -5,8 +5,8 @@ use std::collections::HashMap;
 use super::expression::{is_number_literal, literal_number};
 use super::hand::UseKind;
 use super::{
-    ArmInfo, Checker, Failure, FunctionContext, LoopInfo, Origin, Variable, VariableState,
-    ITEM_LIMIT,
+    ArmInfo, Checker, Failure, FunctionContext, LoopInfo, Origin, Signature, Variable,
+    VariableState, ITEM_LIMIT,
 };
 use crate::ast::{
     Arm, Contract, Expression, ExpressionKind, ForSource, Function, FunctionKind, HandWord, IfLink,
@@ -53,7 +53,14 @@ impl Checker<'_> {
         context.name.clone_from(&function.name.text);
         context.return_type = signature.return_type.clone();
         context.failures = function.fails.as_ref().map(|_| signature.failures.clone());
+        // trace: D171
+        context.lasts.clone_from(&signature.lasts);
+        context.source_facts.clone_from(&signature.source_facts);
+        self.allowed_sources
+            .borrow_mut()
+            .clone_from(&signature.sources);
         self.context = context;
+        self.check_signature_facts(function, &signature)?;
 
         // trace: D86
         if matches!(function.kind, FunctionKind::Pure | FunctionKind::PureBaked)
@@ -782,6 +789,9 @@ impl Checker<'_> {
         let held_type = self.resolve_type(written_type)?;
         // trace: D2
         let must_give = self.is_must_give(&held_type);
+        // A struct holding borrows borrows from what its type names, so using one of those
+        // ends it, as with a stored borrow. (D171)
+        let borrows = self.borrows_named_by(&held_type, written_type.span)?;
         let node = self.check_into(value, &held_type)?;
         let slot = self.declare_variable(Variable {
             name: name.text.clone(),
@@ -791,7 +801,7 @@ impl Checker<'_> {
             declared: name.span,
             must_give,
             constant: None,
-            borrows: Vec::new(),
+            borrows,
             borrowed_path: Vec::new(),
         });
         Ok(InstructionKind::Let { slot, value: node })
@@ -897,6 +907,213 @@ impl Checker<'_> {
             self.context.held_borrows.push(slot);
         }
         Ok(InstructionKind::LetCallAlias { slot, call })
+    }
+
+    /// The variables a struct holding borrows names as its sources, which have to be in scope
+    /// and meet the struct's `lasts_at_least` facts. (D171)
+    /// trace: D171
+    pub(super) fn borrows_named_by(&self, held_type: &Type, span: Span) -> Outcome<Vec<String>> {
+        let Type::Holding { fills, .. } = held_type else {
+            return Ok(Vec::new());
+        };
+        let mut names = Vec::new();
+        for fill in fills {
+            if let Some(name) = fill.strip_prefix('$') {
+                if self.find_variable(name).is_none() {
+                    return Err(Report::refused(
+                        span,
+                        format!("`${name}` isn't declared here"),
+                        "a source is filled with a value in scope, `program`, or a source (D171)",
+                    ));
+                }
+                names.push(name.to_string());
+            }
+        }
+        self.check_source_facts(held_type, span)?;
+        Ok(names)
+    }
+
+    /// The struct facts in a function's own parameter and return types hold, given what its
+    /// `requires` and its own sources say. (D171)
+    fn check_signature_facts(&self, function: &Function, signature: &Signature) -> Outcome<()> {
+        let parameter_types = signature
+            .parameters
+            .iter()
+            .map(|parameter| &parameter.parameter_type);
+        for (found, written) in parameter_types.zip(&function.parameters) {
+            self.check_source_facts_with_parameters(found, written.written_type.span, signature)?;
+        }
+        self.check_source_facts_with_parameters(
+            &signature.return_type,
+            function.return_type.span,
+            signature,
+        )
+    }
+
+    /// As `check_source_facts`, with the parameters known by name before their scope opens.
+    fn check_source_facts_with_parameters(
+        &self,
+        held_type: &Type,
+        span: Span,
+        signature: &Signature,
+    ) -> Outcome<()> {
+        let Type::Holding {
+            base,
+            sources,
+            fills,
+        } = held_type
+        else {
+            return Ok(());
+        };
+        let (_, facts) = self.sources_of(base);
+        for (longer, shorter) in facts {
+            let fill_of = |source: &str| {
+                sources
+                    .iter()
+                    .position(|name| *name == source)
+                    .and_then(|index| fills.get(index))
+                    .cloned()
+                    .unwrap_or_default()
+            };
+            let (long_fill, short_fill) = (fill_of(&longer), fill_of(&shorter));
+            let strip = |fill: &str, mark: char| {
+                fill.strip_prefix(mark)
+                    .map(|rest| rest.trim_end_matches(mark).to_string())
+            };
+            let known = long_fill == short_fill
+                || match (strip(&long_fill, '$'), strip(&short_fill, '$')) {
+                    (Some(long), Some(short)) => signature.lasts.contains(&(long, short)),
+                    _ => match (strip(&long_fill, '`'), strip(&short_fill, '`')) {
+                        (Some(long), Some(short)) => {
+                            signature.source_facts.contains(&(long, short))
+                        }
+                        _ => long_fill == "program",
+                    },
+                };
+            if !known {
+                let mut report = Report::refused(
+                    span,
+                    format!("nothing says `{long_fill}` lasts at least as long as `{short_fill}`"),
+                    "a function states which parameter lasts longer with `requires … lasts_at_least …;` (D171)",
+                );
+                if long_fill.starts_with('$') && short_fill.starts_with('$') {
+                    report =
+                        report.fix(format!("requires {long_fill} lasts_at_least {short_fill};"));
+                }
+                return Err(report);
+            }
+        }
+        Ok(())
+    }
+
+    /// A struct's `lasts_at_least` facts hold for what its type fills in. (D171)
+    /// trace: D171
+    pub(super) fn check_source_facts(&self, held_type: &Type, span: Span) -> Outcome<()> {
+        let Type::Holding {
+            base,
+            sources,
+            fills,
+        } = held_type
+        else {
+            return Ok(());
+        };
+        let (_, facts) = self.sources_of(base);
+        for (longer, shorter) in facts {
+            let fill_of = |source: &str| {
+                sources
+                    .iter()
+                    .position(|name| name == source)
+                    .and_then(|index| fills.get(index))
+                    .cloned()
+                    .unwrap_or_default()
+            };
+            let (long_fill, short_fill) = (fill_of(&longer), fill_of(&shorter));
+            match self.fill_lasts(&long_fill, &short_fill) {
+                Some(true) => {}
+                Some(false) => {
+                    return Err(Report::refused(
+                        span,
+                        format!("`{long_fill}` doesn't last as long as `{short_fill}`, and `{base}` says `{longer}` lasts at least as long as `{shorter}`"),
+                        "a struct's `lasts_at_least` fact holds for every type that fills it in (D171)",
+                    ));
+                }
+                None if long_fill.starts_with('$') && short_fill.starts_with('$') => {
+                    return Err(Report::refused(
+                        span,
+                        format!("nothing says `{long_fill}` lasts at least as long as `{short_fill}`"),
+                        "a function states which parameter lasts longer with `requires … lasts_at_least …;` (D171)",
+                    )
+                    .fix(format!("requires {long_fill} lasts_at_least {short_fill};")));
+                }
+                None => {
+                    return Err(Report::not_designed(
+                        span,
+                        format!("whether `{long_fill}` lasts at least as long as `{short_fill}`"),
+                        "",
+                    ));
+                }
+            }
+        }
+        Ok(())
+    }
+
+    /// Whether one source lasts at least as long as another, each `$name`, `program` or
+    /// `` `t` ``. A parameter outlasts the function's own values, an outer block's value outlasts
+    /// an inner one's, values in one block end together, and two parameters need a `requires`.
+    /// trace: D171
+    pub(super) fn fill_lasts(&self, longer: &str, shorter: &str) -> Option<bool> {
+        if longer == shorter || longer == "program" {
+            return Some(true);
+        }
+        if shorter == "program" {
+            return Some(false);
+        }
+        if let (Some(long), Some(short)) = (
+            longer
+                .strip_prefix('`')
+                .and_then(|rest| rest.strip_suffix('`')),
+            shorter
+                .strip_prefix('`')
+                .and_then(|rest| rest.strip_suffix('`')),
+        ) {
+            let known = self
+                .context
+                .source_facts
+                .iter()
+                .any(|(a, b)| a == long && b == short);
+            return known.then_some(true);
+        }
+        let (Some(long), Some(short)) = (longer.strip_prefix('$'), shorter.strip_prefix('$'))
+        else {
+            return None;
+        };
+        let depth = |name: &str| {
+            self.context
+                .scopes
+                .iter()
+                .rposition(|scope| scope.contains_key(name))
+        };
+        let is_parameter = |name: &str| {
+            self.find_variable(name)
+                .and_then(|slot| self.context.variables.get(slot))
+                .is_some_and(|variable| {
+                    matches!(
+                        variable.origin,
+                        Origin::LentParameter | Origin::LentMutParameter | Origin::GivenParameter
+                    )
+                })
+        };
+        match (is_parameter(long), is_parameter(short)) {
+            (true, true) => self
+                .context
+                .lasts
+                .iter()
+                .any(|(a, b)| a == long && b == short)
+                .then_some(true),
+            (true, false) => Some(true),
+            (false, true) => Some(false),
+            (false, false) => Some(depth(long)? <= depth(short)?),
+        }
     }
 
     /// What a stored borrow really borrows, which its type has to name. (D2, D174)
@@ -1303,7 +1520,7 @@ impl Checker<'_> {
         let slot = self.find_variable(name);
         // trace: D9
         if let Some((union_name, case_name)) = self.split_case_path(written_type) {
-            let Type::Union(subject_union) = &subject_type else {
+            let Type::Union(subject_union) = super::hand::plain_type(&subject_type) else {
                 return Err(Report::refused(
                     written_type.span,
                     format!("`${name}` is `{subject_type}`, so it has no such case"),
@@ -1391,6 +1608,7 @@ impl Checker<'_> {
             path,
             fill,
             describe,
+            ..
         } = &written_type.kind
         else {
             return None;
@@ -1423,7 +1641,7 @@ impl Checker<'_> {
         span: Span,
     ) -> Outcome<(InstructionKind, bool)> {
         let (node, subject_type) = self.check_expression(subject, None)?;
-        let Type::Union(union_name) = &subject_type else {
+        let Type::Union(union_name) = super::hand::plain_type(&subject_type) else {
             return Err(Report::not_designed(
                 subject.span,
                 format!("`match` on `{subject_type}`, which isn't a union"),

@@ -1,0 +1,5 @@
+NotDesignedYet: d176_case_borrowing_from_program.cy:9:13, line 9 column 13
+ 9 |     some[r: Lend from program reading]
+   |             ^^^^^^^^^^^^^^^^^^^^^^^^^
+ what: a field borrowing `from program`
+ why:  not decided yet (standard 12.8)

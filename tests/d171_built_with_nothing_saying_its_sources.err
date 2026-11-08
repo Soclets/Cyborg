@@ -1,0 +1,5 @@
+NotDesignedYet: d171_built_with_nothing_saying_its_sources.cy:14:18, line 14 column 18
+14 |     std::println(view[words = Lend $a].words.celsius as str);
+   |                  ^^^^^^^^^^^^^^^^^^^^^
+ what: building `view`, which holds borrows, where nothing says its sources
+ why:  not decided yet, and the standard doesn't say

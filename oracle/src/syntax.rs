@@ -4,10 +4,10 @@ use crate::ast::{
     Argument, Arm, BinaryOperator, BorrowSources, CompareOperator, Contract, Describe, Expression,
     ExpressionKind, FailureEntry, FailureSet, FieldDeclaration, FieldValue, Fill, ForSource,
     Function, FunctionKind, HandWord, Handler, HandlerSet, Handling, IfLink, IfTest, Import, Item,
-    LabelLine, Name, Narrowing, Parameter, ParameterWord, Path, Program, RangeEnd, RangeExpression,
-    ShieldContent, ShieldItem, Statement, StatementKind, StructDeclaration, Together,
-    TogetherOperator, TypeExpression, TypeKind, TypeName, UnionCase, UnionDeclaration, UnitMeaning,
-    UnitMember, UnitSet, Use,
+    LabelLine, LastsAtLeast, Name, Narrowing, Parameter, ParameterWord, Path, Program, RangeEnd,
+    RangeExpression, ShieldContent, ShieldItem, SourceDeclaration, SourceFill, SourceValue,
+    Statement, StatementKind, StructDeclaration, Together, TogetherOperator, TypeExpression,
+    TypeKind, TypeName, UnionCase, UnionDeclaration, UnitMeaning, UnitMember, UnitSet, Use,
 };
 use crate::report::{Outcome, Report, ReportExtra, Span};
 
@@ -92,6 +92,9 @@ pub fn is_clashing(word: &str) -> bool {
     CLASHING_WORDS.contains(&word)
 }
 
+/// The word between two sources, one lasting at least as long as the other. (D171)
+const LASTS_AT_LEAST: &str = "lasts_at_least";
+
 /// The placeholder narrowing on a stored borrow that lasts to the end of its block. (D169)
 const HELD_WORD: &str = "held";
 
@@ -171,6 +174,8 @@ enum Lexeme {
     Variable(String),
     Integer(String),
     Float(String),
+    /// `` `text` ``, a source a borrow comes from. (D171)
+    Source(String),
     /// `6.02214076e23`, which only `exponent` in front may write. (D165)
     Exponent {
         written: String,
@@ -353,7 +358,26 @@ fn lex(source: &str) -> Outcome<Vec<Token>> {
             continue;
         }
         let start = position;
-        let lexeme = if character == '"' {
+        let lexeme = if character == '`' {
+            // trace: D171
+            let name_start = position + 1;
+            let name: String = source
+                .get(name_start..)
+                .unwrap_or("")
+                .chars()
+                .take_while(|c| is_word_part(*c))
+                .collect();
+            let close = name_start + name.len();
+            if name.is_empty() || source.get(close..close + 1) != Some("`") {
+                return Err(Report::refused(
+                    Span::new(position, close),
+                    "a source is a name in backticks, as in `` `text` ``",
+                    "a struct names the sources of its borrows in backticks (D171)",
+                ));
+            }
+            position = close + 1;
+            Lexeme::Source(name)
+        } else if character == '"' {
             lex_text(source, &mut position)?
         } else if character == '$' {
             let name_start = position + 1;
@@ -574,6 +598,7 @@ pub fn parse(source: &str) -> Outcome<Program> {
         position: 0,
         depth: 0,
         limb_short_names: Vec::new(),
+        source_fills: Vec::new(),
     };
     parser.parse_program()
 }
@@ -584,6 +609,8 @@ struct Parser {
     depth: usize,
     /// Short names from `use` on a limb, with the path each stands for. (D155)
     limb_short_names: Vec<(String, String)>,
+    /// Source fills read inside a type's `< >`, collected for that type. (D171)
+    source_fills: Vec<SourceFill>,
 }
 
 /// How deep brackets and blocks can nest here. Past this the oracle says so, instead of running
@@ -662,6 +689,7 @@ impl Parser {
             Lexeme::Variable(name) => format!("`${name}`"),
             Lexeme::Integer(digits) | Lexeme::Float(digits) => format!("`{digits}`"),
             Lexeme::Exponent { written, .. } => format!("`{written}`"),
+            Lexeme::Source(name) => format!("the source `` `{name}` ``"),
             Lexeme::Text(_) => "a string".to_string(),
             Lexeme::Symbol(symbol) => format!("`{symbol}`"),
             Lexeme::End => "the end of the file".to_string(),
@@ -1097,13 +1125,7 @@ impl Parser {
         } else {
             self.parse_function_name()?
         };
-        if self.at_symbol("<") {
-            return Err(Report::not_designed(
-                self.span(),
-                "the spelling of generics",
-                "12.5",
-            ));
-        }
+        let sources = self.parse_source_declarations()?;
         let parameters = self.parse_parameters()?;
         self.expect_symbol("->")?;
         let return_type = self.parse_type()?;
@@ -1126,6 +1148,8 @@ impl Parser {
             labels: None,
             defaults: Vec::new(),
             requires: Vec::new(),
+            lasts: Vec::new(),
+            sources,
             ensures: Vec::new(),
             fails: None,
             body: Vec::new(),
@@ -1272,6 +1296,21 @@ impl Parser {
             match word_phase {
                 1 => function.labels = Some(self.parse_labels()?),
                 2 => function.defaults = self.parse_defaults()?,
+                // trace: D171
+                3 if matches!(self.peek_at(1).lexeme, Lexeme::Variable(_))
+                    && self.word_at(2, LASTS_AT_LEAST) =>
+                {
+                    let start = self.advance().span; // `requires`
+                    let longer = self.expect_variable("a parameter")?;
+                    self.advance(); // `lasts_at_least`
+                    let shorter = self.expect_variable("a parameter")?;
+                    self.expect_semicolon()?;
+                    function.lasts.push(LastsAtLeast {
+                        longer,
+                        shorter,
+                        span: start.to(self.previous_span()),
+                    });
+                }
                 3 => {
                     let contract = self.parse_contract()?;
                     function.requires.push(contract);
@@ -1430,13 +1469,7 @@ impl Parser {
             }
         }
         let name = self.expect_name("the struct's name")?;
-        if self.at_symbol("<") {
-            return Err(Report::not_designed(
-                self.span(),
-                "the spelling of generics",
-                "12.5",
-            ));
-        }
+        let sources = self.parse_source_declarations()?;
         self.expect_symbol(":")?;
         let mut fields = Vec::new();
         while !self.at_word("end") {
@@ -1457,6 +1490,7 @@ impl Parser {
         Ok(StructDeclaration {
             must_give,
             name,
+            sources,
             fields,
         })
     }
@@ -1493,13 +1527,7 @@ impl Parser {
             }
         }
         let name = self.expect_name("the union's name")?;
-        if self.at_symbol("<") {
-            return Err(Report::not_designed(
-                self.span(),
-                "the spelling of generics",
-                "12.5",
-            ));
-        }
+        let sources = self.parse_source_declarations()?;
         self.expect_symbol(":")?;
         let mut cases = Vec::new();
         while !self.at_word("end") {
@@ -1515,7 +1543,11 @@ impl Parser {
             });
         }
         self.expect_closer(&["union.tagged", &name.text])?;
-        Ok(UnionDeclaration { name, cases })
+        Ok(UnionDeclaration {
+            name,
+            sources,
+            cases,
+        })
     }
 
     /// A family: a declared group of related names. (D135)
@@ -1852,9 +1884,11 @@ impl Parser {
         }
         let path = self.parse_path()?;
         let mut fill = Vec::new();
+        let outer_fills = std::mem::take(&mut self.source_fills);
         if self.at_symbol("<") {
             fill = self.parse_fill()?;
         }
+        let sources = std::mem::replace(&mut self.source_fills, outer_fills);
         let mut describe = Vec::new();
         if self.at_symbol("[") {
             self.advance();
@@ -1882,8 +1916,54 @@ impl Parser {
                 path,
                 fill,
                 describe,
+                sources,
             },
         })
+    }
+
+    /// ``<`text`, `table`: lasts_at_least `text`>`` after a struct's, union's or function's name.
+    /// trace: D171
+    fn parse_source_declarations(&mut self) -> Outcome<Vec<SourceDeclaration>> {
+        if !self.at_symbol("<") {
+            return Ok(Vec::new());
+        }
+        if !matches!(self.peek_at(1).lexeme, Lexeme::Source(_)) {
+            return Err(Report::not_designed(
+                self.span(),
+                "the spelling of generics",
+                "12.5",
+            ));
+        }
+        self.advance(); // `<`
+        let mut sources = Vec::new();
+        while !self.at_symbol(">") {
+            let name = self.expect_source()?;
+            let mut lasts_at_least = Vec::new();
+            if self.eat_symbol(":") {
+                if !self.eat_word(LASTS_AT_LEAST) {
+                    return Err(self.expected("`lasts_at_least`"));
+                }
+                lasts_at_least.push(self.expect_source()?);
+            }
+            sources.push(SourceDeclaration {
+                name,
+                lasts_at_least,
+            });
+            if !self.eat_symbol(",") {
+                break;
+            }
+        }
+        self.expect_symbol(">")?;
+        Ok(sources)
+    }
+
+    fn expect_source(&mut self) -> Outcome<Name> {
+        if let Lexeme::Source(text) = self.peek().lexeme.clone() {
+            let span = self.advance().span;
+            Ok(Name { text, span })
+        } else {
+            Err(self.expected("a source in backticks, as in `` `text` ``"))
+        }
     }
 
     fn parse_fill(&mut self) -> Outcome<Vec<Fill>> {
@@ -1898,6 +1978,28 @@ impl Parser {
         }
         let mut fill = Vec::new();
         while !self.at_symbol(">") {
+            // ``index<`text`: $article>`` fills a source, not a type. (D171)
+            if matches!(self.peek().lexeme, Lexeme::Source(_)) {
+                let source = self.expect_source()?;
+                self.expect_symbol(":")?;
+                let value = if let Lexeme::Source(_) = self.peek().lexeme {
+                    SourceValue::Source(self.expect_source()?)
+                } else if self.at_word("program") {
+                    {
+                        self.advance();
+                        SourceValue::Program
+                    }
+                } else {
+                    SourceValue::Variable(
+                        self.expect_variable("`$` and a name, `program` or a source")?,
+                    )
+                };
+                self.source_fills.push(SourceFill { source, value });
+                if !self.eat_symbol(",") {
+                    break;
+                }
+                continue;
+            }
             let label = if matches!(self.peek().lexeme, Lexeme::Word(_)) && self.symbol_at(1, ":") {
                 let name = self.expect_name("a label")?;
                 self.advance();
@@ -1945,7 +2047,10 @@ impl Parser {
         if !self.eat_word("from") {
             return Err(self.expected("`from`"));
         }
-        let sources = if self.eat_word("program") {
+        let sources = if let Lexeme::Source(_) = self.peek().lexeme {
+            // trace: D171
+            BorrowSources::Source(self.expect_source()?)
+        } else if self.eat_word("program") {
             BorrowSources::Program
         } else if self.at_symbol("<") {
             self.advance();
@@ -3628,6 +3733,11 @@ impl Parser {
                 Lexeme::Variable(name) => {
                     text.push('$');
                     text.push_str(name);
+                }
+                Lexeme::Source(name) => {
+                    text.push('`');
+                    text.push_str(name);
+                    text.push('`');
                 }
                 Lexeme::Text(content) => {
                     text.push('"');

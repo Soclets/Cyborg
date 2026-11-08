@@ -1,0 +1,5 @@
+refused: d171_source_named_twice.cy:6:22, line 6 column 22
+ 6 | struct view <`text`, `text`>:
+   |                      ^^^^^^
+ what: `text` is named twice
+ why:  each source has its own name (D171)

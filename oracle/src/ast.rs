@@ -98,6 +98,37 @@ pub struct Contract {
     pub condition: Expression,
 }
 
+/// A named source in backticks, as in ``struct index <`text`, `table`: lasts_at_least `text`>``,
+/// with the sources it lasts at least as long as. (D171)
+#[derive(Clone, Debug)]
+pub struct SourceDeclaration {
+    pub name: Name,
+    pub lasts_at_least: Vec<Name>,
+}
+
+/// ``index<`text`: $article>`` fills the source `text` with `$article`. (D171)
+#[derive(Clone, Debug)]
+pub struct SourceFill {
+    pub source: Name,
+    pub value: SourceValue,
+}
+
+#[derive(Clone, Debug)]
+pub enum SourceValue {
+    Variable(Name),
+    Program,
+    /// A function's own source, as in ``view<`text`: `t`>``.
+    Source(Name),
+}
+
+/// `requires $list lasts_at_least $article;` (D171)
+#[derive(Clone, Debug)]
+pub struct LastsAtLeast {
+    pub longer: Name,
+    pub shorter: Name,
+    pub span: Span,
+}
+
 #[derive(Clone, Debug)]
 pub struct FailureEntry {
     pub path: Path,
@@ -114,6 +145,10 @@ pub struct Function {
     pub labels: Option<LabelLine>,
     pub defaults: Vec<(Name, Expression)>,
     pub requires: Vec<Contract>,
+    /// `requires $list lasts_at_least $article;`, which is checked while compiling. (D171)
+    pub lasts: Vec<LastsAtLeast>,
+    /// ``fn shown <`t`>``, the function's own sources. (D171)
+    pub sources: Vec<SourceDeclaration>,
     pub ensures: Vec<Contract>,
     pub fails: Option<Vec<FailureEntry>>,
     pub body: Vec<Statement>,
@@ -130,6 +165,7 @@ pub struct FieldDeclaration {
 pub struct StructDeclaration {
     pub must_give: bool,
     pub name: Name,
+    pub sources: Vec<SourceDeclaration>,
     pub fields: Vec<FieldDeclaration>,
 }
 
@@ -142,6 +178,7 @@ pub struct UnionCase {
 #[derive(Clone, Debug)]
 pub struct UnionDeclaration {
     pub name: Name,
+    pub sources: Vec<SourceDeclaration>,
     pub cases: Vec<UnionCase>,
 }
 
@@ -221,6 +258,8 @@ pub enum TypeKind {
         path: Path,
         fill: Vec<Fill>,
         describe: Vec<Describe>,
+        /// ``index<`text`: $article>``, the struct's sources filled in. (D171)
+        sources: Vec<SourceFill>,
     },
     StoredBorrow {
         mutable: bool,
@@ -235,6 +274,8 @@ pub enum TypeKind {
 pub enum BorrowSources {
     Program,
     Variables(Vec<Name>),
+    /// ``Lend from `text` reading``, a struct's or function's own source. (D171)
+    Source(Name),
 }
 
 #[derive(Clone, Debug)]

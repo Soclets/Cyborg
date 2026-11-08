@@ -16,15 +16,24 @@ use crate::report::{Kind, Outcome, Report, ReportExtra, Span};
 use crate::syntax::is_clashing;
 use crate::types::{FloatBound, FloatKind, FloatRules, IntegerKind, Sources, Type};
 
+/// A struct's, union's or function's sources, and which lasts at least as long as which. (D171)
+type SourceList = (Vec<String>, Vec<(String, String)>);
+
 #[derive(Clone, Debug)]
 struct StructInfo {
     must_give: bool,
     fields: Vec<(String, Type)>,
+    /// Its sources in backticks, and which lasts at least as long as which. (D171)
+    sources: Vec<String>,
+    facts: Vec<(String, String)>,
 }
 
 #[derive(Clone, Debug)]
 struct UnionInfo {
     cases: Vec<(String, Vec<(String, Type)>)>,
+    /// (D176)
+    sources: Vec<String>,
+    facts: Vec<(String, String)>,
 }
 
 /// A failure's identity is its full name, so `file_failed.denied` and `net_failed.denied` differ.
@@ -55,6 +64,11 @@ struct Signature {
     any_order: bool,
     return_type: Type,
     failures: Vec<Failure>,
+    /// ``fn shown <`t`>``: its own sources, and which lasts at least as long as which. (D171)
+    sources: Vec<String>,
+    source_facts: Vec<(String, String)>,
+    /// `requires $list lasts_at_least $article;`, by parameter names. (D171)
+    lasts: Vec<(String, String)>,
 }
 
 #[derive(Clone, Debug)]
@@ -182,6 +196,9 @@ struct FunctionContext {
     held_borrows: Vec<usize>,
     /// The first use that a `.held` borrow forbids, and the borrow, found while noting uses.
     held_conflict: Option<(Span, usize)>,
+    /// `requires $list lasts_at_least $article;` and the function's own source facts. (D171)
+    lasts: Vec<(String, String)>,
+    source_facts: Vec<(String, String)>,
     /// A call handing back a borrow may be checked now, for a stored borrow or a `return`. (D170)
     borrow_result_wanted: bool,
     /// What the last such call's result borrows, by the caller's names. (D170)
@@ -221,6 +238,8 @@ impl FunctionContext {
             held_borrows: Vec::new(),
             held_conflict: None,
             borrow_result_wanted: false,
+            lasts: Vec::new(),
+            source_facts: Vec::new(),
             borrowed_result: None,
         }
     }
@@ -235,6 +254,9 @@ pub struct Checker<'a> {
     pub(super) method_aliases: HashMap<String, (String, String)>,
     structs: HashMap<String, StructInfo>,
     unions: HashMap<String, UnionInfo>,
+    /// The sources a type may name here: a struct's while its fields are read, a function's while
+    /// its signature and body are. (D171)
+    allowed_sources: std::cell::RefCell<Vec<String>>,
     failure_sets: HashMap<String, Vec<Failure>>,
     handlers: HashMap<(String, String), Vec<crate::ast::Arm>>,
     units: HashMap<String, UnitInfo>,
@@ -265,6 +287,7 @@ pub fn check(source: &str, program: &Program) -> Outcome<Code> {
         method_aliases: HashMap::new(),
         structs: HashMap::new(),
         unions: HashMap::new(),
+        allowed_sources: std::cell::RefCell::new(Vec::new()),
         failure_sets: HashMap::new(),
         handlers: HashMap::new(),
         units: HashMap::new(),
@@ -445,6 +468,142 @@ impl Checker<'_> {
         Ok(())
     }
 
+    /// ``<`text`, `table`: lasts_at_least `text`>``: each source has its own name, and no fact is
+    /// written twice. (D171)
+    /// trace: D171
+    fn read_source_declarations(declared: &[crate::ast::SourceDeclaration]) -> Outcome<SourceList> {
+        let mut sources: Vec<String> = Vec::new();
+        for source in declared {
+            if sources.contains(&source.name.text) {
+                return Err(Report::refused(
+                    source.name.span,
+                    format!("`{}` is named twice", source.name.text),
+                    "each source has its own name (D171)",
+                ));
+            }
+            sources.push(source.name.text.clone());
+        }
+        let mut facts: Vec<(String, String)> = Vec::new();
+        for source in declared {
+            for shorter in &source.lasts_at_least {
+                if !sources.contains(&shorter.text) {
+                    return Err(Report::refused(
+                        shorter.span,
+                        format!("`{}` isn't one of these sources", shorter.text),
+                        "`lasts_at_least` compares two declared sources (D171)",
+                    ));
+                }
+                let fact = (source.name.text.clone(), shorter.text.clone());
+                if facts.contains(&fact) || fact.0 == fact.1 {
+                    return Err(Report::refused(
+                        shorter.span,
+                        format!(
+                            "`{}` lasts at least as long as `{}` is already known",
+                            fact.0, fact.1
+                        ),
+                        "the same `lasts_at_least` fact isn't written twice (D171)",
+                    ));
+                }
+                facts.push(fact);
+            }
+        }
+        Ok((sources, facts))
+    }
+
+    /// `requires $list lasts_at_least $article;` names two parameters, and says each fact once.
+    /// trace: D171
+    fn read_lasts(
+        written: &[crate::ast::LastsAtLeast],
+        parameters: &[ParameterInfo],
+    ) -> Outcome<Vec<(String, String)>> {
+        let mut facts: Vec<(String, String)> = Vec::new();
+        for fact in written {
+            for name in [&fact.longer, &fact.shorter] {
+                if !parameters
+                    .iter()
+                    .any(|parameter| parameter.name == name.text)
+                {
+                    return Err(Report::refused(
+                        name.span,
+                        format!("`${}` isn't a parameter", name.text),
+                        "`requires … lasts_at_least …` compares two parameters (D171)",
+                    ));
+                }
+            }
+            let pair = (fact.longer.text.clone(), fact.shorter.text.clone());
+            if facts.contains(&pair) || pair.0 == pair.1 {
+                return Err(Report::refused(
+                    fact.span,
+                    format!(
+                        "`${}` lasts at least as long as `${}` is already known",
+                        pair.0, pair.1
+                    ),
+                    "the same `lasts_at_least` fact isn't written twice (D171)",
+                ));
+            }
+            facts.push(pair);
+        }
+        Ok(facts)
+    }
+
+    /// A returned struct holding borrows names parameters as its sources, like a returned borrow.
+    /// trace: D171, D170
+    fn check_holding_claim(
+        return_type: &Type,
+        parameters: &[ParameterInfo],
+        span: Span,
+    ) -> Outcome<()> {
+        if let Type::Borrow {
+            sources: Sources::Named(_),
+            ..
+        } = return_type
+        {
+            return Err(Report::not_designed(
+                span,
+                "returning a borrow from a function's own source",
+                "",
+            ));
+        }
+        let Type::Holding { fills, .. } = return_type else {
+            return Ok(());
+        };
+        let mut names = Vec::new();
+        for fill in fills {
+            if let Some(name) = fill.strip_prefix('$') {
+                names.push(name.to_string());
+            } else {
+                return Err(Report::not_designed(
+                    span,
+                    format!("returning a struct whose source is filled with `{fill}`"),
+                    "",
+                ));
+            }
+        }
+        let claim = Type::Borrow {
+            mutable: false,
+            sources: Sources::Variables(names),
+            inner: Box::new(Type::Struct(String::new())),
+        };
+        Self::check_borrow_claim(&claim, parameters, span)
+    }
+
+    /// The sources a struct or union declares, by its name.
+    pub(super) fn sources_of(&self, base: &Type) -> (Vec<String>, Vec<(String, String)>) {
+        match base {
+            Type::Struct(name) => self
+                .structs
+                .get(name)
+                .map(|info| (info.sources.clone(), info.facts.clone()))
+                .unwrap_or_default(),
+            Type::Union(name) => self
+                .unions
+                .get(name)
+                .map(|info| (info.sources.clone(), info.facts.clone()))
+                .unwrap_or_default(),
+            _ => (Vec::new(), Vec::new()),
+        }
+    }
+
     /// `-> Lend from <$a, $b> reading` names where the borrow comes from, and that has to be a
     /// parameter that outlives the call. (D170)
     /// trace: D170
@@ -469,12 +628,22 @@ impl Checker<'_> {
                 "plain numbers and `bool` are always copied, so there's nothing to borrow (D170, D123)",
             ));
         }
-        let Sources::Variables(names) = sources else {
-            return Err(Report::not_designed(
-                span,
-                "returning a borrow `from program`",
-                "12.8",
-            ));
+        let names = match sources {
+            Sources::Variables(names) => names,
+            Sources::Named(_) => {
+                return Err(Report::not_designed(
+                    span,
+                    "returning a borrow from a function's own source",
+                    "",
+                ));
+            }
+            Sources::Program => {
+                return Err(Report::not_designed(
+                    span,
+                    "returning a borrow `from program`",
+                    "12.8",
+                ));
+            }
         };
         for name in names {
             let Some(parameter) = parameters.iter().find(|parameter| parameter.name == *name)
@@ -606,18 +775,29 @@ impl Checker<'_> {
             }
             match item {
                 Item::Struct(declaration) => {
+                    let (sources, facts) = Self::read_source_declarations(&declaration.sources)?;
                     self.structs.insert(
                         name.text.clone(),
                         StructInfo {
                             must_give: declaration.must_give,
                             fields: Vec::new(),
+                            sources,
+                            facts,
                         },
                     );
                 }
-                _ => {
-                    self.unions
-                        .insert(name.text.clone(), UnionInfo { cases: Vec::new() });
+                Item::Union(declaration) => {
+                    let (sources, facts) = Self::read_source_declarations(&declaration.sources)?;
+                    self.unions.insert(
+                        name.text.clone(),
+                        UnionInfo {
+                            cases: Vec::new(),
+                            sources,
+                            facts,
+                        },
+                    );
                 }
+                _ => {}
             }
         }
         Ok(())
@@ -746,6 +926,9 @@ impl Checker<'_> {
         for item in items {
             match item {
                 Item::Struct(declaration) => {
+                    let (sources, _) =
+                        self.sources_of(&Type::Struct(declaration.name.text.clone()));
+                    self.allowed_sources.borrow_mut().clone_from(&sources);
                     let mut fields: Vec<(String, Type)> = Vec::new();
                     for field in &declaration.fields {
                         // trace: D57
@@ -777,13 +960,19 @@ impl Checker<'_> {
                         } else {
                             self.refuse_undecided_content(&field_type, field.written_type.span)?;
                         }
+                        Self::check_borrow_in_a_field(&field_type, field.written_type.span)?;
                         fields.push((field.name.text.clone(), field_type));
                     }
+                    self.allowed_sources.borrow_mut().clear();
+                    let types: Vec<&Type> = fields.iter().map(|(_, found)| found).collect();
+                    Self::refuse_unused_sources(&sources, &types, &declaration.sources)?;
                     if let Some(info) = self.structs.get_mut(&declaration.name.text) {
                         info.fields = fields;
                     }
                 }
                 Item::Union(declaration) => {
+                    let (sources, _) = self.sources_of(&Type::Union(declaration.name.text.clone()));
+                    self.allowed_sources.borrow_mut().clone_from(&sources);
                     let mut cases: Vec<(String, Vec<(String, Type)>)> = Vec::new();
                     for case in &declaration.cases {
                         // trace: D33
@@ -800,18 +989,19 @@ impl Checker<'_> {
                         let mut fields = Vec::new();
                         for field in &case.fields {
                             let field_type = self.resolve_type(&field.written_type)?;
-                            if matches!(field_type, Type::Borrow { .. }) {
-                                return Err(Report::not_designed(
-                                    field.written_type.span,
-                                    "a `union.tagged` case holding a borrow",
-                                    "12.8",
-                                ));
-                            }
+                            // trace: D176
                             self.refuse_undecided_content(&field_type, field.written_type.span)?;
+                            Self::check_borrow_in_a_field(&field_type, field.written_type.span)?;
                             fields.push((field.name.text.clone(), field_type));
                         }
                         cases.push((case.name.text.clone(), fields));
                     }
+                    self.allowed_sources.borrow_mut().clear();
+                    let types: Vec<&Type> = cases
+                        .iter()
+                        .flat_map(|(_, fields)| fields.iter().map(|(_, found)| found))
+                        .collect();
+                    Self::refuse_unused_sources(&sources, &types, &declaration.sources)?;
                     if let Some(info) = self.unions.get_mut(&declaration.name.text) {
                         info.cases = cases;
                     }
@@ -836,12 +1026,56 @@ impl Checker<'_> {
                 "12.8",
             ));
         }
-        if matches!(content, Type::Borrow { .. }) {
+        Ok(())
+    }
+
+    /// A field's borrow comes from one of its struct's sources, by name. (D171, D176)
+    /// trace: D171, D176
+    fn check_borrow_in_a_field(field_type: &Type, span: Span) -> Outcome<()> {
+        let Type::Borrow {
+            mutable, sources, ..
+        } = field_type
+        else {
+            return Ok(());
+        };
+        if matches!(sources, Sources::Program) {
             return Err(Report::not_designed(
                 span,
-                "a stored borrow in a field",
+                "a field borrowing `from program`",
                 "12.8",
             ));
+        }
+        if !matches!(sources, Sources::Named(_)) {
+            return Err(Report::refused(
+                span,
+                "a borrow in a field names one of its type's sources, in backticks",
+                "a struct names the sources of its borrows, as in ``Lend from `text` reading`` (D171)",
+            ));
+        }
+        if *mutable {
+            return Err(Report::not_designed(
+                span,
+                "a `Lend.mut` borrow inside a struct or union",
+                "",
+            ));
+        }
+        Ok(())
+    }
+
+    /// Every source is used by a field or case. (D171, D176)
+    fn refuse_unused_sources(
+        sources: &[String],
+        types: &[&Type],
+        declared: &[crate::ast::SourceDeclaration],
+    ) -> Outcome<()> {
+        for (source, declaration) in sources.iter().zip(declared) {
+            if !types.iter().any(|found| uses_source(found, source)) {
+                return Err(Report::refused(
+                    declaration.name.span,
+                    format!("`{source}` isn't used by any field"),
+                    "each source is used by a field, or it says nothing (D171)",
+                ));
+            }
         }
         Ok(())
     }
@@ -1002,9 +1236,26 @@ impl Checker<'_> {
                     "",
                 ));
             }
+            // trace: D171
+            let (function_sources, function_facts) =
+                Self::read_source_declarations(&function.sources)?;
+            self.allowed_sources
+                .borrow_mut()
+                .clone_from(&function_sources);
             let mut parameters = Vec::new();
             for parameter in &function.parameters {
                 let parameter_type = self.resolve_type(&parameter.written_type)?;
+                // A parameter names the sources of a borrow inside it with the function's own.
+                // trace: D171
+                if let Type::Holding { fills, .. } = &parameter_type {
+                    if fills.iter().any(|fill| !fill.starts_with('`')) {
+                        return Err(Report::not_designed(
+                            parameter.written_type.span,
+                            "a parameter whose sources are filled with anything but the function's own",
+                            "",
+                        ));
+                    }
+                }
                 // A bare parameter already is a borrow, and `Lent.mut` the changing one.
                 // trace: D175
                 if let Type::Borrow { mutable, .. } = &parameter_type {
@@ -1138,7 +1389,10 @@ impl Checker<'_> {
             }
             self.check_method_declaration(function, &parameters)?;
             let return_type = self.resolve_type(&function.return_type)?;
+            self.allowed_sources.borrow_mut().clear();
             Self::check_borrow_claim(&return_type, &parameters, function.return_type.span)?;
+            Self::check_holding_claim(&return_type, &parameters, function.return_type.span)?;
+            let lasts = Self::read_lasts(&function.lasts, &parameters)?;
 
             let failures = match &function.fails {
                 Some(entries) => self.resolve_failure_list(entries)?,
@@ -1157,6 +1411,9 @@ impl Checker<'_> {
                     any_order,
                     return_type,
                     failures,
+                    sources: function_sources,
+                    source_facts: function_facts,
+                    lasts,
                 },
             );
         }
@@ -1353,6 +1610,7 @@ impl Checker<'_> {
     fn is_must_give(&self, value_type: &Type) -> bool {
         match value_type {
             Type::Struct(name) => self.structs.get(name).is_some_and(|info| info.must_give),
+            Type::Holding { base, .. } => self.is_must_give(base),
             Type::List { item, .. } | Type::Array { item, .. } => self.is_must_give(item),
             Type::New { underlying, .. } => self.is_must_give(underlying),
             _ => false,
@@ -1544,8 +1802,82 @@ impl Checker<'_> {
         }
     }
 
-    #[allow(clippy::too_many_lines)] // One arm per way a type can be spelled.
+    /// A type, with a struct's or union's sources filled in when it holds borrows. (D171, D176)
     fn resolve_type(&self, written: &TypeExpression) -> Outcome<Type> {
+        let plain = self.resolve_plain_type(written)?;
+        let TypeKind::Named { sources: fills, .. } = &written.kind else {
+            return Ok(plain);
+        };
+        let (declared, _) = self.sources_of(&plain);
+        if declared.is_empty() && fills.is_empty() {
+            return Ok(plain);
+        }
+        // trace: D171
+        if declared.is_empty() {
+            return Err(Report::refused(
+                written.span,
+                format!("`{plain}` holds no borrows, so it has no sources to fill"),
+                "a struct that holds a borrow names its sources, and others have none (D171)",
+            ));
+        }
+        let order = declared
+            .iter()
+            .map(|name| format!("`{name}`"))
+            .collect::<Vec<_>>()
+            .join(", then ");
+        for (index, source) in declared.iter().enumerate() {
+            let Some(fill) = fills.get(index) else {
+                return Err(Report::refused(
+                    written.span,
+                    format!("`{plain}` has the sources {order}, and this leaves out `{source}`"),
+                    "a type fills every source, in the declared order, and leaving one out is refused (D171)",
+                ));
+            };
+            if fill.source.text != *source {
+                return Err(Report::refused(
+                    fill.source.span,
+                    format!("`{plain}`'s sources go in their declared order: {order}"),
+                    "a type fills every source, in the declared order (D171)",
+                ));
+            }
+        }
+        if let Some(extra) = fills.get(declared.len()) {
+            return Err(Report::refused(
+                extra.source.span,
+                format!("`{plain}` has no source `{}`", extra.source.text),
+                "a type fills the sources its struct declares (D171)",
+            ));
+        }
+        let mut values = Vec::new();
+        for fill in fills {
+            values.push(match &fill.value {
+                crate::ast::SourceValue::Variable(name) => format!("${}", name.text),
+                crate::ast::SourceValue::Program => "program".to_string(),
+                crate::ast::SourceValue::Source(name) => {
+                    if !self.allowed_sources.borrow().contains(&name.text) {
+                        return Err(Self::not_a_source_here(name));
+                    }
+                    format!("`{}`", name.text)
+                }
+            });
+        }
+        Ok(Type::Holding {
+            base: Box::new(plain),
+            sources: declared,
+            fills: values,
+        })
+    }
+
+    fn not_a_source_here(name: &crate::ast::Name) -> Box<Report> {
+        Report::refused(
+            name.span,
+            format!("`{}` isn't a source here", name.text),
+            "a source is declared in backticks on the struct, union or function it belongs to (D171)",
+        )
+    }
+
+    #[allow(clippy::too_many_lines)] // One arm per way a type can be spelled.
+    fn resolve_plain_type(&self, written: &TypeExpression) -> Outcome<Type> {
         let (path, fill, describe) = match &written.kind {
             TypeKind::StoredBorrow {
                 mutable,
@@ -1563,6 +1895,13 @@ impl Checker<'_> {
                 }
                 let sources = match sources {
                     crate::ast::BorrowSources::Program => Sources::Program,
+                    // trace: D171
+                    crate::ast::BorrowSources::Source(name) => {
+                        if !self.allowed_sources.borrow().contains(&name.text) {
+                            return Err(Self::not_a_source_here(name));
+                        }
+                        Sources::Named(name.text.clone())
+                    }
                     crate::ast::BorrowSources::Variables(names) => {
                         Sources::Variables(names.iter().map(|name| name.text.clone()).collect())
                     }
@@ -1577,6 +1916,7 @@ impl Checker<'_> {
                 path,
                 fill,
                 describe,
+                ..
             } => (path, fill, describe),
         };
         let text = self.canonical(&path.text);
@@ -2277,4 +2617,17 @@ fn looks_like_number_type(word: &str) -> bool {
     matches!(characters.next(), Some('i' | 'u' | 'f' | 'd'))
         && !characters.as_str().is_empty()
         && characters.all(|character| character.is_ascii_digit())
+}
+
+/// Whether a type borrows from the named source somewhere in it. (D171)
+fn uses_source(found: &Type, source: &str) -> bool {
+    match found {
+        Type::Borrow {
+            sources: Sources::Named(name),
+            ..
+        } => name == source,
+        Type::Holding { fills, .. } => fills.iter().any(|fill| *fill == format!("`{source}`")),
+        Type::List { item, .. } | Type::Array { item, .. } => uses_source(item, source),
+        _ => false,
+    }
 }

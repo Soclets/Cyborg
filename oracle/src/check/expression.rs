@@ -227,6 +227,18 @@ pub(super) fn float_rules_clash(
     )
 }
 
+/// A type holding borrows, with its sources and what fills them. (D171)
+type Filled = (Type, Vec<String>, Vec<String>);
+
+/// A union case with no data, of a union holding borrows, takes its sources from where it lands.
+/// (D176)
+fn holding_if_expected(found: Type, expected: Option<&Type>) -> Type {
+    match expected {
+        Some(holding @ Type::Holding { base, .. }) if **base == found => holding.clone(),
+        _ => found,
+    }
+}
+
 /// Whether `text` in decimal is exactly what `value` holds. (D59)
 fn decimal_is_exact(text: &str, value: f64) -> bool {
     // Formatting with this many places writes a binary float's value out in full.
@@ -684,8 +696,13 @@ impl Checker<'_> {
                 let held = self.check_held(expression)?;
                 Ok((held.node, held.value_type))
             }
-            ExpressionKind::Path(path) => self.check_path_value(path, span),
-            ExpressionKind::Build { path, fields } => self.check_build(path, fields, span),
+            ExpressionKind::Path(path) => {
+                let (node, found) = self.check_path_value(path, span)?;
+                Ok((node, holding_if_expected(found, expected)))
+            }
+            ExpressionKind::Build { path, fields } => {
+                self.check_build(path, fields, span, expected)
+            }
             ExpressionKind::Call { .. } | ExpressionKind::Method { .. } => {
                 let raw = self.check_raw_call(expression)?;
                 Ok(Self::crash_if_it_fails(raw, span))
@@ -1162,6 +1179,7 @@ impl Checker<'_> {
         written: &[FieldValue],
         owner: &str,
         span: Span,
+        filled: Option<(&[String], &[String])>,
     ) -> Outcome<Vec<(usize, Node)>> {
         // trace: D57
         if let Some((missing, _)) = declared
@@ -1193,12 +1211,70 @@ impl Checker<'_> {
                     "",
                 ));
             }
-            let field_type = declared
+            let mut field_type = declared
                 .get(index)
                 .map_or(Type::Void, |(_, field_type)| field_type.clone());
+            // trace: D171, D176
+            if let Some((sources, fills)) = filled {
+                field_type = super::hand::fill_sources(&field_type, sources, fills);
+                if let Type::Borrow { sources, inner, .. } = &field_type {
+                    let node = self.check_borrow_field_value(&field.value, sources, inner)?;
+                    nodes.push((index, node));
+                    continue;
+                }
+            }
             nodes.push((index, self.check_into(&field.value, &field_type)?));
         }
         Ok(nodes)
+    }
+
+    /// A field that borrows is filled with `Lend` of what its type names. Only reading is
+    /// allowed while it lives, so the oracle can hold a copy and see the same thing. (D171)
+    /// trace: D171, D176
+    fn check_borrow_field_value(
+        &mut self,
+        value: &Expression,
+        sources: &Sources,
+        inner: &Type,
+    ) -> Outcome<Node> {
+        let ExpressionKind::Hand {
+            word: HandWord::Lend,
+            value: lent,
+        } = &value.kind
+        else {
+            return Err(Report::refused(
+                value.span,
+                "a field that borrows is filled with `Lend`",
+                "a struct names the sources of its borrows, and each is lent from one (D171)",
+            ));
+        };
+        let Sources::Variables(wanted) = sources else {
+            let shown = match sources {
+                Sources::Named(name) => format!("`{name}`"),
+                _ => "program".to_string(),
+            };
+            return Err(Report::not_designed(
+                value.span,
+                format!("building a borrow whose source is filled with `{shown}`"),
+                "",
+            ));
+        };
+        let held = self.check_lent_place(lent, HandWord::Lend)?;
+        let roots = self.borrow_roots(&held.root_name);
+        if roots != *wanted {
+            let said: Vec<String> = wanted.iter().map(|name| format!("${name}")).collect();
+            return Err(Report::refused(
+                value.span,
+                format!(
+                    "this borrows `${}`, and the type says this field's source is `{}`",
+                    held.root_name,
+                    said.join(", ")
+                ),
+                "a type fills each source, and every field borrows from what fills its own (D171)",
+            ));
+        }
+        Self::check_held_type(value.span, inner, &held.value_type)?;
+        Ok(held.node)
     }
 
     fn check_build(
@@ -1206,6 +1282,7 @@ impl Checker<'_> {
         path: &crate::ast::Path,
         fields: &[FieldValue],
         span: Span,
+        expected: Option<&Type>,
     ) -> Outcome<(Node, Type)> {
         let text = self.canonical(&path.text);
         // trace: D134
@@ -1233,13 +1310,23 @@ impl Checker<'_> {
             text.clone()
         };
         if let Some(info) = self.structs.get(&bare).cloned() {
-            let nodes = self.check_field_values(&info.fields, fields, &bare, span)?;
+            let built = Type::Struct(bare.clone());
+            let filled = Self::filled_for(&built, &info.sources, expected, span)?;
+            let nodes = self.check_field_values(
+                &info.fields,
+                fields,
+                &bare,
+                span,
+                filled
+                    .as_ref()
+                    .map(|(_, sources, fills)| (sources.as_slice(), fills.as_slice())),
+            )?;
             return Ok((
                 Node {
                     span,
                     kind: NodeKind::Struct(nodes),
                 },
-                Type::Struct(bare),
+                filled.map_or(built, |(found, _, _)| found),
             ));
         }
         if let Some((union_name, case_name)) = bare.split_once('.') {
@@ -1250,13 +1337,24 @@ impl Checker<'_> {
                     .and_then(|info| info.cases.get(case))
                     .map(|(_, declared)| declared.clone())
                     .unwrap_or_default();
-                let nodes = self.check_field_values(&declared, fields, &bare, span)?;
+                let built = Type::Union(union_name.to_string());
+                let (sources, _) = self.sources_of(&built);
+                let filled = Self::filled_for(&built, &sources, expected, span)?;
+                let nodes = self.check_field_values(
+                    &declared,
+                    fields,
+                    &bare,
+                    span,
+                    filled
+                        .as_ref()
+                        .map(|(_, sources, fills)| (sources.as_slice(), fills.as_slice())),
+                )?;
                 return Ok((
                     Node {
                         span,
                         kind: NodeKind::Case(case, nodes),
                     },
-                    Type::Union(union_name.to_string()),
+                    filled.map_or(built, |(found, _, _)| found),
                 ));
             }
         }
@@ -1399,6 +1497,30 @@ impl Checker<'_> {
             code.push((*parameter_index, argument));
         }
         Self::check_handed_together(&handed, &Self::reads_in_place(&written))?;
+        self.check_lasts_at_the_call(&signature, &parameters, &bound, span)?;
+        // A struct holding borrows, handed back, borrows what was lent to the call. (D171)
+        let mut value_type = signature.return_type.clone();
+        if let Type::Holding {
+            base,
+            sources,
+            fills,
+        } = &signature.return_type
+        {
+            let mut filled = Vec::new();
+            for fill in fills {
+                let name = fill.trim_start_matches('$').to_string();
+                let result = self.borrowed_by_call(&[name], &parameters, &bound)?;
+                filled.push(match result.roots.as_slice() {
+                    [only] => format!("${only}"),
+                    _ => fill.clone(),
+                });
+            }
+            value_type = Type::Holding {
+                base: base.clone(),
+                sources: sources.clone(),
+                fills: filled,
+            };
+        }
         // trace: D170
         if let Type::Borrow {
             sources: Sources::Variables(claimed),
@@ -1423,10 +1545,50 @@ impl Checker<'_> {
                     arguments: code,
                 },
             },
-            value_type: signature.return_type.clone(),
+            value_type,
             failures: signature.failures.clone(),
             unnamed: None,
         })
+    }
+
+    /// Every call meets the function's `requires … lasts_at_least …`. (D171)
+    /// trace: D171
+    fn check_lasts_at_the_call(
+        &self,
+        signature: &Signature,
+        parameters: &[ParameterInfo],
+        bound: &[(usize, &Expression)],
+        span: Span,
+    ) -> Outcome<()> {
+        for (longer, shorter) in &signature.lasts {
+            let root = |name: &str| -> Outcome<String> {
+                let result = self.borrowed_by_call(&[name.to_string()], parameters, bound)?;
+                Ok(result
+                    .roots
+                    .first()
+                    .map_or_else(|| format!("${name}"), |found| format!("${found}")))
+            };
+            let (long, short) = (root(longer)?, root(shorter)?);
+            match self.fill_lasts(&long, &short) {
+                Some(true) => {}
+                Some(false) => {
+                    return Err(Report::refused(
+                        span,
+                        format!("`{long}` doesn't last as long as `{short}`, and `{}` requires `${longer} lasts_at_least ${shorter}`", signature.name),
+                        "every call meets a function's `requires … lasts_at_least …` (D171)",
+                    ));
+                }
+                None => {
+                    return Err(Report::refused(
+                        span,
+                        format!("nothing says `{long}` lasts at least as long as `{short}`, which `{}` requires", signature.name),
+                        "a function states which parameter lasts longer with `requires … lasts_at_least …;` (D171)",
+                    )
+                    .fix(format!("requires {long} lasts_at_least {short};")));
+                }
+            }
+        }
+        Ok(())
     }
 
     /// trace: D86
@@ -1469,6 +1631,33 @@ impl Checker<'_> {
 
     /// Matches what's written to the parameters, by label and position, and says what's wrong.
     /// The result is in the order written, with defaults added at the end. (D113, D114)
+    /// Building a struct or union that holds borrows takes its sources from the type it's built
+    /// into, since nothing else says them. (D171, D176)
+    fn filled_for(
+        built: &Type,
+        sources: &[String],
+        expected: Option<&Type>,
+        span: Span,
+    ) -> Outcome<Option<Filled>> {
+        if sources.is_empty() {
+            return Ok(None);
+        }
+        match expected {
+            Some(
+                holding @ Type::Holding {
+                    base,
+                    sources,
+                    fills,
+                },
+            ) if **base == *built => Ok(Some((holding.clone(), sources.clone(), fills.clone()))),
+            _ => Err(Report::not_designed(
+                span,
+                format!("building `{built}`, which holds borrows, where nothing says its sources"),
+                "",
+            )),
+        }
+    }
+
     /// At the call, the result's sources become the arguments, and each has to be a named value.
     /// trace: D170, D174
     fn borrowed_by_call(

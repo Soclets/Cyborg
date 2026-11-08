@@ -1,0 +1,5 @@
+refused: d176_unused_source.cy:6:22, line 6 column 22
+ 6 | union.tagged lookup <`text`>:
+   |                      ^^^^^^
+ what: `text` isn't used by any field
+ why:  each source is used by a field, or it says nothing (D171)

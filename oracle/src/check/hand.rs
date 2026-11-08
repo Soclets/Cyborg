@@ -5,7 +5,7 @@ use super::{Checker, Origin, ParameterInfo};
 use crate::ast::{Expression, ExpressionKind, HandWord, ParameterWord};
 use crate::ir::{self, Node, NodeKind, Place, Step};
 use crate::report::{Outcome, Report, ReportExtra, Span};
-use crate::types::Type;
+use crate::types::{Sources, Type};
 
 /// A value that lives in a variable or a constant, as an ownership word sees it.
 pub(super) struct Held {
@@ -78,9 +78,14 @@ impl Checker<'_> {
             .iter()
             .enumerate()
             .filter(|(slot, variable)| {
-                variable.origin == Origin::StoredBorrow
-                    && variable.borrows.iter().any(|borrowed| borrowed == name)
-                    && (variable.mutable || kind == UseKind::Write)
+                // A struct holding borrows only reads what it borrows. (D171)
+                let ended_by_this = if variable.origin == Origin::StoredBorrow {
+                    variable.mutable || kind == UseKind::Write
+                } else {
+                    kind == UseKind::Write
+                };
+                variable.borrows.iter().any(|borrowed| borrowed == name)
+                    && ended_by_this
                     && ir::paths_overlap(path, &variable.borrowed_path)
                     && self.is_in_scope(*slot)
             })
@@ -381,6 +386,17 @@ impl Checker<'_> {
         name: &crate::ast::Name,
     ) -> Outcome<(usize, Type)> {
         match base_type {
+            // Reading through a borrow, or into a struct holding one, with its sources filled in.
+            // trace: D171
+            Type::Borrow { inner, .. } => self.find_field(base, inner, name),
+            Type::Holding {
+                base: inner,
+                sources,
+                fills,
+            } => {
+                let (index, found) = self.find_field(base, inner, name)?;
+                Ok((index, fill_sources(&found, sources, fills)))
+            }
             Type::Struct(struct_name) => {
                 let fields = self
                     .structs
@@ -729,6 +745,21 @@ impl Checker<'_> {
         if target == found {
             return Ok(());
         }
+        // A parameter filled with the function's own sources takes any value of that type,
+        // whose sources those then stand for. (D171)
+        if let (
+            Type::Holding {
+                base: wanted,
+                fills: wanted_fills,
+                ..
+            },
+            Type::Holding { base: given, .. },
+        ) = (target, found)
+        {
+            if wanted == given && wanted_fills.iter().all(|fill| fill.starts_with('`')) {
+                return Ok(());
+            }
+        }
         if let (Type::List { item: left, .. }, Type::List { item: right, .. }) = (target, found) {
             if left == right {
                 return Err(Report::not_designed(
@@ -998,5 +1029,63 @@ impl Checker<'_> {
             });
         }
         reads
+    }
+}
+
+/// A field's type with its struct's sources replaced by what they're filled with. (D171)
+pub(super) fn fill_sources(found: &Type, sources: &[String], fills: &[String]) -> Type {
+    let fill_of = |source: &str| {
+        sources
+            .iter()
+            .position(|name| name == source)
+            .and_then(|index| fills.get(index))
+            .cloned()
+    };
+    match found {
+        Type::Borrow {
+            mutable,
+            sources: Sources::Named(source),
+            inner,
+        } => {
+            let filled = match fill_of(source) {
+                Some(fill) => match fill.strip_prefix('$') {
+                    Some(name) => Sources::Variables(vec![name.to_string()]),
+                    None if fill == "program" => Sources::Program,
+                    None => Sources::Named(fill.trim_matches('`').to_string()),
+                },
+                None => Sources::Named(source.clone()),
+            };
+            Type::Borrow {
+                mutable: *mutable,
+                sources: filled,
+                inner: inner.clone(),
+            }
+        }
+        Type::Holding {
+            base,
+            sources: inner_sources,
+            fills: inner_fills,
+        } => Type::Holding {
+            base: base.clone(),
+            sources: inner_sources.clone(),
+            fills: inner_fills
+                .iter()
+                .map(|fill| {
+                    fill.strip_prefix('`')
+                        .and_then(|rest| rest.strip_suffix('`'))
+                        .and_then(fill_of)
+                        .unwrap_or_else(|| fill.clone())
+                })
+                .collect(),
+        },
+        other => other.clone(),
+    }
+}
+
+/// The struct or union under its filled-in sources. (D171, D176)
+pub(super) fn plain_type(found: &Type) -> &Type {
+    match found {
+        Type::Holding { base, .. } => base,
+        other => other,
     }
 }

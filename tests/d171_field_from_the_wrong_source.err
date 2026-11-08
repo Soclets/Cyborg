@@ -1,0 +1,5 @@
+refused: d171_field_from_the_wrong_source.cy:14:69, line 14 column 69
+14 |     let $i: index<`text`: $article, `table`: $list> = index[words = Lend $list, lookup = Lend $list];
+   |                                                                     ^^^^^^^^^^
+ what: this borrows `$list`, and the type says this field's source is `$article`
+ why:  a type fills each source, and every field borrows from what fills its own (D171)

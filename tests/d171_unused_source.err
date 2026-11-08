@@ -1,0 +1,5 @@
+refused: d171_unused_source.cy:6:22, line 6 column 22
+ 6 | struct view <`text`, `extra`>:
+   |                      ^^^^^^^
+ what: `extra` isn't used by any field
+ why:  each source is used by a field, or it says nothing (D171)
