@@ -857,6 +857,8 @@ a placeholder for a version that isn't correctly rounded. A float prints as the 
 
 **D191. The manifest is `CyJet.zml`.** The Z is a nod to everyone putting a Z in front of their own version of something, like ZJIT and ZGC. It's not XML or any existing `.zml` format. The format inside it is not settled here. Claude found `.zml` used only by a few old, obscure formats; the owner asked "Does `.zml` exist yet?", said "It's a nod every fucking person putting Z Infront of a third party impl", and chose: "That name. Look at fucking ZJIT, ZGC, what the fucking Z is going on". (Owner, 2026-11-08)
 
+**D192. Two hardware milestones.** First, a Cyborg program running on a Raspberry Pi, on Linux on ARM. Second, `std::println` printing over serial on a real Arduino, bare metal with no OS, starting with an ARM board such as the Uno R4, with the 8-bit AVR boards as a stretch goal, since LLVM's AVR support is less mature. CyborgPL has printed with `std` on emulated bare metal, so Cyborg's bar is the real board. Claude proposed them, first with no printing on the Arduino, which the owner corrected: "No printing? Lol, CyborgPL has already achieved emulated bare metal, and printing there with std"; the owner chose: "Yes, please". (Owner, 2026-11-08)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude
