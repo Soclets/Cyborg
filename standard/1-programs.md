@@ -41,7 +41,7 @@ end fn.main
 **Rule:** `;` ends a statement, `:` opens a block, and `end` closes it. The closer repeats what it closes, including the name.
 
 ```
-fn total [$xs: Lent std::list<i32>[len.max: inf items]] -> i32:
+fn total [$xs: std::list<i32>[len.max: inf items]] -> i32:
     …
 end fn total
 
@@ -192,7 +192,7 @@ A method of your own with the same name on the same type in that file clashes, a
 
 ```
 /// Adds up every item in the list.
-fn total [$xs: Lent std::list<i32>[len.max: inf items]] -> i32:
+fn total [$xs: std::list<i32>[len.max: inf items]] -> i32:
     // a note for whoever reads this
     …
 end fn total

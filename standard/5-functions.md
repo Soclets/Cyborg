@@ -19,7 +19,7 @@
 **Rule:** a function is declared with `[ ]`, and its parameters are lent unless they say otherwise ([6.1](6-ownership.md#61-the-words)).
 
 ```
-fn total [$xs: Lent std::list<i32>[len.max: inf items]] -> i32:
+fn total [$xs: std::list<i32>[len.max: inf items]] -> i32:
     …
 end fn total
 ```
@@ -62,7 +62,7 @@ In `std`, the first argument, the thing being worked on, stays bare, and every o
 **Rule:** `labels`, `defaults`, `requires`, `ensures` and `fails` go first in the body, in that order, then the code. So the top of a body says how to call it, and what it promises.
 
 ```
-fn first_word [$text: Lent str, $limit: i32] -> str:
+fn first_word [$text: str, $limit: i32] -> str:
     labels [$limit as limit];
     defaults [$limit = 40];
     requires $limit at_least 1;

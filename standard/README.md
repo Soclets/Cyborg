@@ -26,7 +26,7 @@ What Cyborg does now, in one place. The oracle, the compiler and check claude fo
 | Word | Section | | Word | Section |
 |---|---|---|---|---|
 | `$` | [1.4](1-programs.md#14-names-and-) | | `inf` | [2.10](2-values-and-types.md#210-lists) |
-| `%` | [6.8](6-ownership.md#68--unsaid-ownership) | | `Lend`, `Lent` | [6.4](6-ownership.md#64-lend-and-lent) |
+| `%` | [6.8](6-ownership.md#68--unsaid-ownership) | | `Lend` | [6.4](6-ownership.md#64-lend-and-bare-parameters) |
 | `*` (handlers) | [8.8](8-failures.md#88--handlers-that-jump) | | `Lend from` | [6.10](6-ownership.md#610-stored-borrows) |
 | `+`, `-` | [3.2](3-operators.md#32-arithmetic----x) | | `Lend.mut` | [6.5](6-ownership.md#65-lendmut-and-lentmut) |
 | `.` | [1.6](1-programs.md#16-narrowings-) | | `len`, `len.max`, `len.min` | [2.10](2-values-and-types.md#210-lists), [2.11](2-values-and-types.md#211-arrays) |

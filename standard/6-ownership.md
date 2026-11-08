@@ -5,7 +5,7 @@
 | [6.1](#61-the-words) | All the words | One table |
 | [6.2](#62-give-and-given) | `Give`, `Given` | Ownership moves |
 | [6.3](#63-copy) | `Copy` | A separate copy |
-| [6.4](#64-lend-and-lent) | `Lend`, `Lent` | Read-only borrow |
+| [6.4](#64-lend-and-bare-parameters) | `Lend`, bare | Read-only borrow |
 | [6.5](#65-lendmut-and-lentmut) | `Lend.mut`, `Lent.mut` | Borrow that may change it |
 | [6.6](#66-plain-numbers-and-bool) | Plain numbers, `bool` | Always copied, no word |
 | [6.7](#67-no-implicit-ownership) | No implicit ownership | Every hand-off shows |
@@ -22,12 +22,12 @@
 |---|---|---|
 | `Give $x` | `Given` | Ownership moves, and `$x` can't be used afterwards |
 | `Copy $x` | `Given` | The function owns a separate copy, and the caller's is untouched |
-| `Lend $x` | `Lent` | Temporary read-only access, and the caller keeps it |
+| `Lend $x` | (bare) | Temporary read-only access, and the caller keeps it |
 | `Lend.mut $x` | `Lent.mut` | Temporary access that may change it, and nothing else uses it meanwhile |
 
-These are Radium's words, except that Radium leaves a lent parameter bare.
+These are Radium's words, unchanged.
 
-**From:** D2, D181.
+**From:** D2.
 
 ## 6.2 `Give` and `Given`
 
@@ -53,21 +53,21 @@ close(Give $f);
 
 **From:** D2.
 
-## 6.4 `Lend` and `Lent`
+## 6.4 `Lend` and bare parameters
 
-**Rule:** a parameter that's lent, read-only, says `Lent`, and the call writes `Lend`.
+**Rule:** a bare parameter is lent, read-only, and the call still writes `Lend`.
 
 ```
-fn total [$xs: Lent std::list<i32>[len.max: inf items]] -> i32:
+fn total [$xs: std::list<i32>[len.max: inf items]] -> i32:
     …
 end fn total
 
 let $t: i32 = total(Lend $xs);
 ```
 
-**Refused:** a bare parameter that isn't a plain number, as in `fn total [$xs: std::list<i32>[len.max: inf items]]`, with `fix: $xs: Lent std::list<…>`.
+**Refused:** writing `Lent` alone on a parameter, because it's the default.
 
-**From:** D2, D181.
+**From:** D2, D182.
 
 ## 6.5 `Lend.mut` and `Lent.mut`
 
@@ -142,7 +142,7 @@ end fn close
 A function can return one, which hands the duty to the caller. A struct holding one is `must_Give` too, and says so:
 
 ```
-fn open [$path: Lent str] -> open_file:
+fn open [$path: str] -> open_file:
     …
 end fn open
 
@@ -183,7 +183,7 @@ The `change` is fine, because `$view` isn't used after the print. After `$lock`,
 A function can return a borrow by naming where it comes from. That's Cyborg's lifetime: `from $a` means it lives as long as `$a`.
 
 ```
-fn warmer [$a: Lent reading, $b: Lent reading] -> Lend from <$a, $b> reading:
+fn warmer [$a: reading, $b: reading] -> Lend from <$a, $b> reading:
     if $a.celsius > $b.celsius:
         return Lend $a;
     end if
@@ -208,7 +208,7 @@ struct index <`text`, `table`: lasts_at_least `text`>:
     lookup: Lend from `table` reading;
 end struct index
 
-fn build [$article: Lent reading, $list: Lent reading] -> index<`text`: $article, `table`: $list>:
+fn build [$article: reading, $list: reading] -> index<`text`: $article, `table`: $list>:
     requires $list lasts_at_least $article;
     return index[words = Lend $article, lookup = Lend $list];
 end fn build
@@ -217,7 +217,7 @@ end fn build
 - Each source is used by a field, and has its own name.
 - `program` is a source that lasts until the program ends.
 - A function states which parameter lasts longer with `requires … lasts_at_least …;`, and every call meets it.
-- A function names a borrow inside a parameter with its own sources: ``fn shown <`t`> [$v: Lent view<`text`: `t`>]``.
+- A function names a borrow inside a parameter with its own sources: ``fn shown <`t`> [$v: view<`text`: `t`>]``.
 
 A `union.tagged` case can hold a borrow the same way:
 
@@ -233,7 +233,7 @@ end union.tagged lookup
 Lending an item locks the whole list, and its type names the list:
 
 ```
-fn first [$xs: Lent std::list<reading>[len.min: 1 items]] -> Lend from $xs reading:
+fn first [$xs: std::list<reading>[len.min: 1 items]] -> Lend from $xs reading:
     return Lend $xs[pos: 1];
 end fn first
 ```
@@ -256,19 +256,20 @@ change $m.celsius = 30;
 
 While `Lend.mut $m` is held, `$m` can't be used. While `Lend $m` is held, `$m` can be read but not changed. `Give $m` is refused.
 
-A parameter is never typed as a stored borrow, because `Lent` already is one, and `Lent.mut` already is the changing one.
+A parameter is never typed as a stored borrow, because a bare parameter already is one, and `Lent.mut` already is the changing one.
 
-**Refused:** `fn show [$v: Lend from $r reading]`, with `fix: $v: Lent reading`, and `Lend.mut from` on a parameter, with `fix: Lent.mut`.
+**Refused:** `fn show [$v: Lend from $r reading]`, with `fix: $v: reading`, and `Lend.mut from` on a parameter, with `fix: Lent.mut`.
 
-**From:** D2, D169, D170, D171, D172, D173, D174, D175, D176, D181.
+**From:** D2, D169, D170, D171, D172, D173, D174, D175, D176.
 
 ## 6.11 No word needed
 
-**Rule:** reading in place, and a fresh value that has no holder yet, take no word. A loop isn't reading in place: it says its word ([4.4](4-control-flow.md#44-for)).
+**Rule:** reading in place, and a fresh value that has no holder yet, take no word.
 
 ```
 $xs.len
+for $x in $xs:
 reading[celsius = 21, time = 3600 std::time.seconds]
 ```
 
-**From:** D2, D180.
+**From:** D2, D182.
