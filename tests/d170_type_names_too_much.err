@@ -1,0 +1,5 @@
+NotDesignedYet: d170_type_names_too_much.cy:13:42, line 13 column 42
+13 |     let $w: Lend from <$x, $y> reading = first(Lend $x);
+   |                                          ^^^^^^^^^^^^^^
+ what: a stored borrow that names more than it borrows
+ why:  not decided yet, and the standard doesn't say

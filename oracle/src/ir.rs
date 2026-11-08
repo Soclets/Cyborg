@@ -28,6 +28,13 @@ pub struct Position {
     pub span: Span,
 }
 
+/// Where a returned borrow points: a place, or what a call hands back. (D170)
+#[derive(Clone, Debug)]
+pub enum Alias {
+    Place(Place),
+    Call(Node),
+}
+
 /// Stands for an item in a path that's compared while checking, since which one isn't known.
 pub const ANY_ITEM: usize = usize::MAX;
 
@@ -250,6 +257,14 @@ pub enum InstructionKind {
     Break(usize),
     Instead(Node),
     Return(Node),
+    /// `return Lend $a;`, handing back a borrow rather than a value. (D170)
+    ReturnBorrow(Alias),
+    /// `let $w: Lend from <$x, $y> reading = warmer(Lend $x, Lend $y);`, a borrow a call hands
+    /// back. (D170)
+    LetCallAlias {
+        slot: usize,
+        call: Node,
+    },
     Fail {
         name: String,
         shown: String,

@@ -182,6 +182,18 @@ struct FunctionContext {
     held_borrows: Vec<usize>,
     /// The first use that a `.held` borrow forbids, and the borrow, found while noting uses.
     held_conflict: Option<(Span, usize)>,
+    /// A call handing back a borrow may be checked now, for a stored borrow or a `return`. (D170)
+    borrow_result_wanted: bool,
+    /// What the last such call's result borrows, by the caller's names. (D170)
+    borrowed_result: Option<BorrowedResult>,
+}
+
+/// What a returned borrow borrows at the call: the original values, and the names it went
+/// through on the way, which also can't be used meanwhile. (D170, D174)
+#[derive(Clone, Debug, Default)]
+struct BorrowedResult {
+    roots: Vec<String>,
+    through: Vec<String>,
 }
 
 impl FunctionContext {
@@ -208,6 +220,8 @@ impl FunctionContext {
             being_changed: Vec::new(),
             held_borrows: Vec::new(),
             held_conflict: None,
+            borrow_result_wanted: false,
+            borrowed_result: None,
         }
     }
 }
@@ -427,6 +441,67 @@ impl Checker<'_> {
             // trace: D93
             self.aliases
                 .insert(declared.short.text.clone(), declared.path.text.clone());
+        }
+        Ok(())
+    }
+
+    /// `-> Lend from <$a, $b> reading` names where the borrow comes from, and that has to be a
+    /// parameter that outlives the call. (D170)
+    /// trace: D170
+    fn check_borrow_claim(
+        return_type: &Type,
+        parameters: &[ParameterInfo],
+        span: Span,
+    ) -> Outcome<()> {
+        let Type::Borrow {
+            mutable,
+            sources,
+            inner,
+        } = return_type
+        else {
+            return Ok(());
+        };
+        // trace: D123
+        if inner.is_always_copied() {
+            return Err(Report::refused(
+                span,
+                format!("a borrow of `{inner}`, which is always copied"),
+                "plain numbers and `bool` are always copied, so there's nothing to borrow (D170, D123)",
+            ));
+        }
+        let Sources::Variables(names) = sources else {
+            return Err(Report::not_designed(
+                span,
+                "returning a borrow `from program`",
+                "12.8",
+            ));
+        };
+        for name in names {
+            let Some(parameter) = parameters.iter().find(|parameter| parameter.name == *name)
+            else {
+                return Err(Report::refused(
+                    span,
+                    format!("`${name}` isn't a parameter, and a returned borrow comes from one"),
+                    "a function hands back a borrow only of a parameter, a named source or `program` (D170)",
+                ));
+            };
+            match parameter.word {
+                ParameterWord::Given => {
+                    return Err(Report::refused(
+                        span,
+                        format!("`${name}` is given to this function, so it ends when the function does"),
+                        "a returned borrow can't come from a `Given` parameter, which ends with the function (D170)",
+                    ));
+                }
+                ParameterWord::Bare if *mutable => {
+                    return Err(Report::refused(
+                        span,
+                        format!("`${name}` is only lent to read, so the function can't hand back `Lend.mut` of it"),
+                        "`Lend.mut` comes only from what can change, here a `Lent.mut` parameter (D170, D2)",
+                    ));
+                }
+                _ => {}
+            }
         }
         Ok(())
     }
@@ -1063,13 +1138,7 @@ impl Checker<'_> {
             }
             self.check_method_declaration(function, &parameters)?;
             let return_type = self.resolve_type(&function.return_type)?;
-            if matches!(return_type, Type::Borrow { .. }) {
-                return Err(Report::not_designed(
-                    function.return_type.span,
-                    "returning a stored borrow",
-                    "12.8",
-                ));
-            }
+            Self::check_borrow_claim(&return_type, &parameters, function.return_type.span)?;
 
             let failures = match &function.fails {
                 Some(entries) => self.resolve_failure_list(entries)?,

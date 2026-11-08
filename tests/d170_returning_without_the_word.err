@@ -1,0 +1,5 @@
+refused: d170_returning_without_the_word.cy:7:12, line 7 column 12
+ 7 |     return $a;
+   |            ^^
+ what: this function hands back a borrow, so this says `Lend`
+ why:  a returned borrow is made with `Lend` or `Lend.mut`, or comes from a call that hands one back (D170)

@@ -11,6 +11,7 @@ use crate::ast::{
 use crate::ir::{self, Arithmetic, Node, NodeKind, Number};
 use crate::report::{Outcome, Report, ReportExtra, Span};
 use crate::syntax::is_clashing;
+use crate::types::Sources;
 use crate::types::{show_float, FloatKind, FloatRules, IntegerKind, Type, Value};
 
 /// A call before anything has said what happens if it fails.
@@ -1351,6 +1352,8 @@ impl Checker<'_> {
         arguments: &[Argument],
         span: Span,
     ) -> Outcome<RawCall> {
+        // Only the call itself may hand back a borrow, and not one nested inside it.
+        let borrow_wanted = std::mem::take(&mut self.context.borrow_result_wanted);
         let text = self.canonical(&path.text);
         self.refuse_limb_outside_shield(&text, path.span)?;
         if let Some(rest) = text.strip_prefix("std::") {
@@ -1396,6 +1399,22 @@ impl Checker<'_> {
             code.push((*parameter_index, argument));
         }
         Self::check_handed_together(&handed, &Self::reads_in_place(&written))?;
+        // trace: D170
+        if let Type::Borrow {
+            sources: Sources::Variables(claimed),
+            ..
+        } = &signature.return_type
+        {
+            if !borrow_wanted {
+                return Err(Report::not_designed(
+                    span,
+                    "using a returned borrow anywhere but in a stored borrow or a `return`",
+                    "",
+                ));
+            }
+            let result = self.borrowed_by_call(claimed, &parameters, &bound)?;
+            self.context.borrowed_result = Some(result);
+        }
         Ok(RawCall {
             node: Node {
                 span,
@@ -1450,6 +1469,51 @@ impl Checker<'_> {
 
     /// Matches what's written to the parameters, by label and position, and says what's wrong.
     /// The result is in the order written, with defaults added at the end. (D113, D114)
+    /// At the call, the result's sources become the arguments, and each has to be a named value.
+    /// trace: D170, D174
+    fn borrowed_by_call(
+        &self,
+        claimed: &[String],
+        parameters: &[ParameterInfo],
+        bound: &[(usize, &Expression)],
+    ) -> Outcome<super::BorrowedResult> {
+        let mut result = super::BorrowedResult::default();
+        for name in claimed {
+            let Some(index) = parameters
+                .iter()
+                .position(|parameter| parameter.name == *name)
+            else {
+                continue;
+            };
+            let Some((_, argument)) = bound.iter().find(|(found, _)| *found == index) else {
+                continue;
+            };
+            let lent_root = match &argument.kind {
+                ExpressionKind::Hand {
+                    word: HandWord::Lend | HandWord::LendMut,
+                    value,
+                } => root_variable(value),
+                _ => None,
+            };
+            let Some(root) = lent_root else {
+                return Err(Report::refused(
+                    argument.span,
+                    "the result borrows from this, so it has to be a named value",
+                    "a returned borrow's sources become the arguments, and a fresh one would end with the call (D170)",
+                ));
+            };
+            for original in self.borrow_roots(&root) {
+                if !result.roots.contains(&original) {
+                    result.roots.push(original);
+                }
+            }
+            if !result.through.contains(&root) {
+                result.through.push(root);
+            }
+        }
+        Ok(result)
+    }
+
     fn bind_arguments<'e>(
         &self,
         parameters: &'e [ParameterInfo],

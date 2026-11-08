@@ -821,6 +821,84 @@ impl Checker<'_> {
         Ok(InstructionKind::Let { slot, value: node })
     }
 
+    /// `let $w: Lend from <$x, $y> reading = warmer(Lend $x, Lend $y);`: the call's result borrows
+    /// what was lent to it, and the type names exactly that. (D170)
+    /// trace: D170
+    fn check_borrow_from_call(
+        &mut self,
+        name: &crate::ast::Name,
+        held: bool,
+        held_type: &Type,
+        (borrow_mutable, names, inner): (bool, &[String], &Type),
+        value: &Expression,
+    ) -> Outcome<InstructionKind> {
+        let (call, found, result) = self.check_borrowing_call(value)?;
+        let Type::Borrow {
+            mutable: found_mutable,
+            inner: found_inner,
+            ..
+        } = &found
+        else {
+            return Err(Self::not_a_borrow(value));
+        };
+        if *found_mutable != borrow_mutable {
+            let word = if *found_mutable { "Lend.mut" } else { "Lend" };
+            return Err(Report::refused(
+                value.span,
+                format!("this call hands back `{word}`, so the type says it"),
+                "a stored borrow's type says what kind of borrow it holds (D170, D2)",
+            ));
+        }
+        if **found_inner != *inner {
+            return Err(Self::mismatch(value.span, inner, found_inner));
+        }
+        let shown = |names: &[String]| {
+            names
+                .iter()
+                .map(|n| format!("${n}"))
+                .collect::<Vec<_>>()
+                .join(", ")
+        };
+        if !result.roots.iter().all(|root| names.contains(root)) {
+            return Err(Report::refused(
+                value.span,
+                format!(
+                    "this borrows `{}`, so the type names that",
+                    shown(&result.roots)
+                ),
+                "at the call, the result's sources become the arguments (D170)",
+            ));
+        }
+        if !names.iter().all(|declared| result.roots.contains(declared)) {
+            return Err(Report::not_designed(
+                value.span,
+                "a stored borrow that names more than it borrows",
+                "",
+            ));
+        }
+        let mut borrows = result.roots.clone();
+        for through in result.through {
+            if !borrows.contains(&through) {
+                borrows.push(through);
+            }
+        }
+        let slot = self.declare_variable(Variable {
+            name: name.text.clone(),
+            held_type: held_type.clone(),
+            mutable: borrow_mutable,
+            origin: Origin::StoredBorrow,
+            declared: name.span,
+            must_give: false,
+            constant: None,
+            borrows,
+            borrowed_path: Vec::new(),
+        });
+        if held {
+            self.context.held_borrows.push(slot);
+        }
+        Ok(InstructionKind::LetCallAlias { slot, call })
+    }
+
     /// What a stored borrow really borrows, which its type has to name. (D2, D174)
     fn borrow_roots_named(&self, root: &str, names: &[String], span: Span) -> Outcome<Vec<String>> {
         let roots = self.borrow_roots(root);
@@ -889,6 +967,15 @@ impl Checker<'_> {
                 "12.8",
             ));
         };
+        if let ExpressionKind::Call { .. } = &value.kind {
+            return self.check_borrow_from_call(
+                name,
+                held,
+                held_type,
+                (*borrow_mutable, names, inner),
+                value,
+            );
+        }
         let ExpressionKind::Hand { word, value: lent } = &value.kind else {
             return Err(Report::refused(
                 value.span,
@@ -1964,6 +2051,11 @@ impl Checker<'_> {
 
     fn check_return(&mut self, value: &Expression, span: Span) -> Outcome<InstructionKind> {
         let return_type = self.context.return_type.clone();
+        if let Type::Borrow { .. } = return_type {
+            let alias = self.check_borrow_return(value, &return_type)?;
+            self.check_leaving_by_return(span)?;
+            return Ok(InstructionKind::ReturnBorrow(alias));
+        }
         let node = if matches!(value.kind, ExpressionKind::Void) {
             if return_type != Type::Void {
                 return Err(Report::refused(
@@ -1987,6 +2079,12 @@ impl Checker<'_> {
             }
             self.check_into(value, &return_type)?
         };
+        self.check_leaving_by_return(span)?;
+        Ok(InstructionKind::Return(node))
+    }
+
+    /// What a `return` checks on its way out, whatever it hands back.
+    fn check_leaving_by_return(&self, span: Span) -> Outcome<()> {
         for (name, name_span) in self.context.ensures_variables.clone() {
             if let Some(slot) = self.find_variable(&name) {
                 if let Some(given) = self.context.state.get(slot).and_then(|state| state.given) {
@@ -1999,8 +2097,160 @@ impl Checker<'_> {
                 }
             }
         }
-        self.check_duties_at_exit(span)?;
-        Ok(InstructionKind::Return(node))
+        self.check_duties_at_exit(span)
+    }
+
+    /// `return Lend $a;` is checked against `-> Lend from $a reading`. (D170)
+    /// trace: D170
+    fn check_borrow_return(
+        &mut self,
+        value: &Expression,
+        return_type: &Type,
+    ) -> Outcome<ir::Alias> {
+        let Type::Borrow {
+            mutable,
+            sources: Sources::Variables(claimed),
+            inner,
+        } = return_type
+        else {
+            return Err(Report::not_designed(
+                value.span,
+                "returning a borrow `from program`",
+                "12.8",
+            ));
+        };
+        let wanted = if *mutable {
+            HandWord::LendMut
+        } else {
+            HandWord::Lend
+        };
+        let (alias, roots, found) = match &value.kind {
+            ExpressionKind::Hand { word, value: lent }
+                if matches!(word, HandWord::Lend | HandWord::LendMut) =>
+            {
+                if *word != wanted {
+                    return Err(Report::refused(
+                        value.span,
+                        format!(
+                            "this function hands back `{}`, so this says it",
+                            wanted.word()
+                        ),
+                        "the claim and what's returned say the same borrow (D170, D2)",
+                    ));
+                }
+                let held = self.check_lent_place(lent, *word)?;
+                let Some(place) = held.place else {
+                    return Err(Report::not_designed(
+                        value.span,
+                        "returning a borrow of a constant",
+                        "12.8",
+                    ));
+                };
+                let roots = self.borrow_roots(&held.root_name);
+                (ir::Alias::Place(place), roots, held.value_type)
+            }
+            ExpressionKind::Call { .. } => {
+                let (node, found, result) = self.check_borrowing_call(value)?;
+                let Type::Borrow {
+                    mutable: found_mutable,
+                    inner: found_inner,
+                    ..
+                } = found
+                else {
+                    return Err(Self::not_a_borrow(value));
+                };
+                if found_mutable != *mutable {
+                    return Err(Report::refused(
+                        value.span,
+                        format!(
+                            "this function hands back `{}`, so this says it",
+                            wanted.word()
+                        ),
+                        "the claim and what's returned say the same borrow (D170, D2)",
+                    ));
+                }
+                (ir::Alias::Call(node), result.roots, *found_inner)
+            }
+            _ => return Err(Self::not_a_borrow(value)),
+        };
+        if found != **inner {
+            return Err(Self::mismatch(value.span, inner, &found));
+        }
+        for root in &roots {
+            self.refuse_returned_root(root, claimed, value.span)?;
+        }
+        Ok(alias)
+    }
+
+    fn not_a_borrow(value: &Expression) -> Box<Report> {
+        Report::refused(
+            value.span,
+            "this function hands back a borrow, so this says `Lend`",
+            "a returned borrow is made with `Lend` or `Lend.mut`, or comes from a call that hands one back (D170)",
+        )
+    }
+
+    /// A returned borrow comes from a parameter the claim names, never a local or a `Given` one.
+    /// trace: D170
+    fn refuse_returned_root(&self, root: &str, claimed: &[String], span: Span) -> Outcome<()> {
+        let origin = self
+            .find_variable(root)
+            .and_then(|slot| self.context.variables.get(slot))
+            .map(|variable| variable.origin);
+        match origin {
+            Some(Origin::LentParameter | Origin::LentMutParameter) => {}
+            Some(Origin::GivenParameter) => {
+                return Err(Report::refused(
+                    span,
+                    format!("`${root}` was given to this function, so it ends when the function returns"),
+                    "a returned borrow can't come from a `Given` parameter (D170)",
+                ));
+            }
+            Some(Origin::ForItem) => {
+                return Err(Report::not_designed(
+                    span,
+                    "returning a borrow of a loop's item",
+                    "",
+                ));
+            }
+            _ => {
+                return Err(Report::refused(
+                    span,
+                    format!("`${root}` is a local, which ends when the function returns"),
+                    "a returned borrow comes only from a parameter, a named source or `program` (D170)",
+                ));
+            }
+        }
+        if !claimed.iter().any(|name| name == root) {
+            let said = claimed
+                .iter()
+                .map(|name| format!("${name}"))
+                .collect::<Vec<_>>()
+                .join(", ");
+            return Err(Report::refused(
+                span,
+                format!("this borrows `${root}`, and the function says it's from `{said}`"),
+                "the body is checked against the claim (D170)",
+            ));
+        }
+        Ok(())
+    }
+
+    /// A call that hands back a borrow, with what the borrow is of by this function's names.
+    /// trace: D170
+    pub(super) fn check_borrowing_call(
+        &mut self,
+        value: &Expression,
+    ) -> Outcome<(Node, Type, super::BorrowedResult)> {
+        self.context.borrow_result_wanted = true;
+        self.context.borrowed_result = None;
+        let checked = self.check_expression(value, None);
+        self.context.borrow_result_wanted = false;
+        let (node, found) = checked?;
+        let Some(result) = self.context.borrowed_result.take() else {
+            return Err(Self::not_a_borrow(value));
+        };
+        Ok((node, found, result))
     }
 
     /// trace: D52

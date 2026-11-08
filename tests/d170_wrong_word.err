@@ -1,0 +1,5 @@
+refused: d170_wrong_word.cy:7:12, line 7 column 12
+ 7 |     return Lend.mut $a;
+   |            ^^^^^^^^^^^
+ what: this function hands back `Lend`, so this says it
+ why:  the claim and what's returned say the same borrow (D170, D2)

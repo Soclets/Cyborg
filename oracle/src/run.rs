@@ -6,6 +6,7 @@ use std::io::Write;
 use std::rc::Rc;
 
 use crate::ast::{CompareOperator, Narrowing};
+use crate::ir::Alias;
 use crate::ir::{
     Argument, Arithmetic, Code, Contract, Function, Instruction, InstructionKind, Node, NodeKind,
     Number, Place, Position, RangeCode, Step, Test,
@@ -36,6 +37,8 @@ struct Raised {
 enum Stop {
     Raised(Raised),
     Return(Value, Span),
+    /// A borrow handed back, which still points at what it borrows. (D170)
+    ReturnBorrow(Binding, Span),
     Break(usize),
     /// `instead 0;`, on its way to the call its arm belongs to.
     Instead(Value),
@@ -177,7 +180,7 @@ pub fn check_compile_time(code: &Code) -> Outcome<()> {
                     "a `const`'s value must be fully known at compile time (D83, D91)",
                 ));
             }
-            Err(Stop::Return(_, span)) => {
+            Err(Stop::Return(_, span) | Stop::ReturnBorrow(_, span)) => {
                 return Err(Report::refused(
                     span,
                     "this `return` jumps out of compile-time code",
@@ -221,7 +224,9 @@ pub fn run(code: &Code) -> Outcome<()> {
             format!("{}, and nothing handled it", raised.shown),
             "a failure nothing handles stops the program (D96)",
         )),
-        Err(Stop::Return(..) | Stop::Break(_) | Stop::Instead(_)) => Ok(()),
+        Err(Stop::Return(..) | Stop::ReturnBorrow(..) | Stop::Break(_) | Stop::Instead(_)) => {
+            Ok(())
+        }
     }
 }
 
@@ -242,7 +247,7 @@ impl<'c> Runner<'c> {
         function: usize,
         arguments: Vec<(usize, Binding)>,
         call_span: Span,
-    ) -> Result<Value, Stop> {
+    ) -> Result<Binding, Stop> {
         let code = self.code;
         let Some(function) = code.functions.get(function) else {
             return Err(oracle_bug(
@@ -281,7 +286,7 @@ impl<'c> Runner<'c> {
         function: &Function,
         frame: &mut Frame,
         call_span: Span,
-    ) -> Result<Value, Stop> {
+    ) -> Result<Binding, Stop> {
         for contract in &function.requires {
             // trace: D29
             self.check_contract(contract, frame, "requires", call_span, "called here")?;
@@ -293,12 +298,14 @@ impl<'c> Runner<'c> {
                     "a function ran off its end, which the checker refuses",
                 ));
             }
-            Err(Stop::Return(value, span)) => (value, span),
+            Err(Stop::Return(value, span)) => (Binding::fresh(value), span),
+            // trace: D170
+            Err(Stop::ReturnBorrow(binding, span)) => (binding, span),
             Err(other) => return Err(other),
         };
         if !function.ensures.is_empty() {
             if let Some(slot) = frame.slots.get_mut(function.result_slot) {
-                *slot = Some(Binding::fresh(returned.0.clone()));
+                *slot = Some(returned.0.clone());
             }
             for contract in &function.ensures {
                 self.check_contract(
@@ -351,6 +358,30 @@ impl<'c> Runner<'c> {
     }
 
     /// Works out where a place is right now. An item's position runs here, and is checked here.
+    /// Runs a call, keeping what it hands back as a binding, since a borrow still points at what
+    /// it borrows. (D170)
+    fn call_binding(&mut self, node: &Node, frame: &mut Frame) -> Result<Binding, Stop> {
+        let NodeKind::Call {
+            function,
+            arguments,
+        } = &node.kind
+        else {
+            return Err(oracle_bug(
+                node.span,
+                "a borrow from something that isn't a call",
+            ));
+        };
+        let mut bindings = Vec::with_capacity(arguments.len());
+        for (parameter, argument) in arguments {
+            let binding = match argument {
+                Argument::Value(value) => Binding::fresh(self.evaluate(value, frame)?),
+                Argument::Alias(place) => self.binding_of(frame, place, node.span)?,
+            };
+            bindings.push((*parameter, binding));
+        }
+        self.call(*function, bindings, node.span)
+    }
+
     fn binding_of(
         &mut self,
         frame: &mut Frame,
@@ -421,6 +452,18 @@ impl<'c> Runner<'c> {
             InstructionKind::LetAlias { slot, place } => {
                 let binding = self.binding_of(frame, place, span)?;
                 Self::set_slot(frame, *slot, binding, span)
+            }
+            // trace: D170
+            InstructionKind::LetCallAlias { slot, call } => {
+                let binding = self.call_binding(call, frame)?;
+                Self::set_slot(frame, *slot, binding, span)
+            }
+            InstructionKind::ReturnBorrow(alias) => {
+                let binding = match alias {
+                    Alias::Place(place) => self.binding_of(frame, place, span)?,
+                    Alias::Call(call) => self.call_binding(call, frame)?,
+                };
+                Err(Stop::ReturnBorrow(binding, span))
             }
             InstructionKind::Set { place, value } => {
                 // Left to right as written, so an item's position runs before the value does.
@@ -806,19 +849,12 @@ impl<'c> Runner<'c> {
                 }
                 Ok(Value::Bool(true))
             }
-            NodeKind::Call {
-                function,
-                arguments,
-            } => {
-                let mut bindings = Vec::with_capacity(arguments.len());
-                for (parameter, argument) in arguments {
-                    let binding = match argument {
-                        Argument::Value(value) => Binding::fresh(self.evaluate(value, frame)?),
-                        Argument::Alias(place) => self.binding_of(frame, place, span)?,
-                    };
-                    bindings.push((*parameter, binding));
-                }
-                self.call(*function, bindings, span)
+            NodeKind::Call { .. } => {
+                let binding = self.call_binding(node, frame)?;
+                let root = binding.root.borrow();
+                walk(&root, &binding.path)
+                    .cloned()
+                    .ok_or_else(|| oracle_bug(span, "a call handed back a borrow of nothing"))
             }
             NodeKind::Println(pieces) => self.println(pieces, frame, span),
             NodeKind::Append {
