@@ -811,6 +811,8 @@ a placeholder for a version that isn't correctly rounded. A float prints as the 
 
 **D168. What the first compiler comes with.** The first compiler has LLVM's standard optimizations through Lyftar, such as inlining, constant folding, dead code removal, loop unrolling and vectorizing, and Cyborg's own, where Precog drops checks it proves. It also compiles fast from the start: incremental, so only what changed is rebuilt, parallel across every core, cached between builds, and with a lighter `Working` build that runs fewer passes. This extends rule 10. The owner said "Things that should come in the first compiler: standard general optimizations, and fast compilation tricks"; Claude proposed the list; the owner chose: "Yeah". (Owner, 2026-11-08)
 
+**D169. A stored borrow ends at its last use, or says `.held`.** `let $view: Lend from $r reading = Lend $r;` ends at the last use of `$view`, so `$r` can be changed after it, like Rust since 2018. `Lend.held from $r reading` lasts until the end of its block even if it's never used again, so the code says nobody touches `$r` for the whole block. `Lend.mut.held` works the same way. `held` is a placeholder name. Claude proposed last use; the owner asked "How about let them choose?", Claude proposed the narrowing, and the owner chose: "yea". (Owner, 2026-11-08)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude
