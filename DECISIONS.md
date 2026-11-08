@@ -849,6 +849,8 @@ a placeholder for a version that isn't correctly rounded. A float prints as the 
 
 **D187. Import the half you use.** `import std;` brings in a package's kit half, and `import @std;` its limb half, so a file using both writes both. This keeps 9.2 working: a search for `@` finds every file using a compiler extension in its imports. A single line importing both halves is not settled here. Claude proposed it; the owner chose: "Yea", and asked "`import std pkg` does both?" (Owner, 2026-11-08)
 
+**D188. `import pkg std;` imports both halves.** `pkg` names the whole package, as D186 defines it, so `import pkg std;` brings in both `std::` and `@std::`. The word goes before the name, like `@` in `import @csup;` and the word in front of a literal in D165. A search for `@` alone no longer finds every file using a limb, so 9.2's search becomes `@` or `pkg`, and the linter can list each limb a file uses. Claude proposed `import std, @std;`, then `import package std;`; the owner said "`pkg` does shorten a lot, though", asked "What fits more?", and chose: "Yup". (Owner, 2026-11-08)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude

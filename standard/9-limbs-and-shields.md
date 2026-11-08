@@ -33,11 +33,11 @@ The manifest lists packages. `std` is a package with both halves. The base and b
 
 ## 9.2 `@`: a limb
 
-**Rule:** `@` with `::` marks something a limb provides, and only that. A search for `@` finds every file using a compiler extension, through its full path or its `use` line, and every builtin. The linter can require the full path. It's a plain `@`, not the fullwidth one Radium uses.
+**Rule:** `@` with `::` marks something a limb provides, and only that. A search for `@` finds every file using a compiler extension, through its full path, its `use` line or its import, and every builtin, and a search for `pkg` finds the rest, since `import pkg std;` brings in a limb half without an `@`. The linter can require the full path. It's a plain `@`, not the fullwidth one Radium uses.
 
 **Refused:** `@std::println`, because `println` is in the kit part.
 
-**From:** D22, D36, D56, D155.
+**From:** D22, D36, D56, D155, D188.
 
 ## 9.3 `std`'s two parts
 
