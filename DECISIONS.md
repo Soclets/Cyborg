@@ -829,6 +829,8 @@ a placeholder for a version that isn't correctly rounded. A float prints as the 
 
 **D177. A `must_Give` value can be returned or held in a field.** `fn open [$path: str] -> open_file` hands the duty to the caller, who has to `Give` it or `finish` it. A struct holding a `must_Give` field is `must_Give` itself, and says so, as in `struct.must_Give log:`, since D3 rules out anything implicit. A struct that doesn't is refused, with a fix that adds it. `finish` on it still waits for the field to be given away, as D129 says. Claude proposed it; the owner chose: "yea". (Owner, 2026-11-08)
 
+**D178. Kit methods can be `use`d.** `use std::list.%append as %append;` lets a file write `$xs.%append(val: 4);`. The path names the method's type, following D130, and the `%` stays, since it says the method's ownership isn't written at the call. D150 applies, so `as %add` is refused. A method of your own with the same name on the same type in that file is a clash, and refused. This loosens D115 the way every `use` does: the path shows on the `use` line. How a quoted name carries the `%` is not settled here. The owner asked "Can kit methods be `use`'d?"; Claude proposed it; the owner chose: "Yeah". (Owner, 2026-11-08)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude

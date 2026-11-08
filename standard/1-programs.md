@@ -172,9 +172,19 @@ printu("hi");
 
 A limb works the same way: `use @csup::extern.c as c;`, or `as "ext";`.
 
+A kit method works the same way, with its type in the path and its `%` kept:
+
+```
+use std::list.%append as %append;
+
+$xs.%append(val: 4);
+```
+
+A method of your own with the same name on the same type in that file clashes, and is refused.
+
 **Refused:** `use std::time.seconds as minutes;`, `use @csup::extern.c as @c;`, because `@c` looks like a builtin, and a quoted name nothing could use, like `"my say"`, `""` or `"fn"`.
 
-**From:** D93, D150, D151, D155.
+**From:** D93, D150, D151, D155, D178.
 
 ## 1.12 Comments
 
