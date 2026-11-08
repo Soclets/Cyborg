@@ -69,7 +69,6 @@ Waiting on the owner, most needed first. Each is `NotDesignedYet` unless it says
 - Units (D99 to D111): the spelling of `together`, offsets, moments, how a conversion is written, what a lossy conversion does, and the full list of units `std` has.
 - On floats: whether `div.trunc` and the other integer narrowings work, and what `mod` does.
 - Negative exponents, as in `exponent ~1.5e-3`, and exponents on integers.
-- How a quoted short name for a kit method carries its `%`.
 - Format print, including how a float asks to print with an exponent. D165 expects it to exist, and nothing else about it is decided.
 - How to check a float's sign.
 - Raw pointers' spelling, though D38 puts them in shields.

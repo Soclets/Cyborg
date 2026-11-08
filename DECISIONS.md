@@ -831,6 +831,8 @@ a placeholder for a version that isn't correctly rounded. A float prints as the 
 
 **D178. Kit methods can be `use`d.** `use std::list.%append as %append;` lets a file write `$xs.%append(val: 4);`. The path names the method's type, following D130, and the `%` stays, since it says the method's ownership isn't written at the call. D150 applies, so `as %add` is refused. A method of your own with the same name on the same type in that file is a clash, and refused. This loosens D115 the way every `use` does: the path shows on the `use` line. How a quoted name carries the `%` is not settled here. The owner asked "Can kit methods be `use`'d?"; Claude proposed it; the owner chose: "Yeah". (Owner, 2026-11-08)
 
+**D179. A quoted method name keeps its `%` outside the quotes.** `use std::list.%append as %"push";` gives `$xs.%push(val: 4);`. The `%` warns that ownership isn't written at the call, so a name of your own choosing can't drop it. `as "push"` and `as "%push"` are refused, with `fix: as %"push"`. A limb's short name still drops its `@`, as D155 says, because `@` says where something comes from, which the `use` line shows, and a bare `@name` is a builtin (D56). The owner asked "should quoted still require `%`?" and "should `@` be required even with double quotes?"; Claude proposed this; the owner chose: "yea". (Owner, 2026-11-08)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude

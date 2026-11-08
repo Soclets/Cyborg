@@ -180,11 +180,11 @@ use std::list.%append as %append;
 $xs.%append(val: 4);
 ```
 
-A method of your own with the same name on the same type in that file clashes, and is refused.
+A method of your own with the same name on the same type in that file clashes, and is refused. A quoted name keeps the `%` outside the quotes, as in `use std::list.%append as %"push";`. A limb's short name has no `@`, since a bare `@name` is a builtin.
 
-**Refused:** `use std::time.seconds as minutes;`, `use @csup::extern.c as @c;`, because `@c` looks like a builtin, and a quoted name nothing could use, like `"my say"`, `""` or `"fn"`.
+**Refused:** `use std::list.%append as "push";` and `as "%push"`, with `fix: as %"push"`, `use std::time.seconds as minutes;`, `use @csup::extern.c as @c;`, because `@c` looks like a builtin, and a quoted name nothing could use, like `"my say"`, `""` or `"fn"`.
 
-**From:** D93, D150, D151, D155, D178.
+**From:** D93, D150, D151, D155, D178, D179.
 
 ## 1.12 Comments
 
