@@ -139,9 +139,21 @@ fn close [$f: Given open_file] -> void:
 end fn close
 ```
 
-**Refused:** forgetting it, giving it twice, `finish` outside the kit or file that declared the type, and `finish` while a `must_Give` field inside hasn't been given away.
+A function can return one, which hands the duty to the caller. A struct holding one is `must_Give` too, and says so:
 
-**From:** D2, D57, D129.
+```
+fn open [$path: str] -> open_file:
+    …
+end fn open
+
+struct.must_Give log:
+    file: open_file
+end struct.must_Give log
+```
+
+**Refused:** forgetting it, giving it twice, `finish` outside the kit or file that declared the type, `finish` while a `must_Give` field inside hasn't been given away, and a struct holding a `must_Give` field without saying `must_Give`, with the fix shown.
+
+**From:** D2, D57, D129, D177.
 
 ## 6.10 Stored borrows
 
