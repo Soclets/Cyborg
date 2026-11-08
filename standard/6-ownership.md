@@ -11,7 +11,7 @@
 | [6.7](#67-no-implicit-ownership) | No implicit ownership | Every hand-off shows |
 | [6.8](#68--unsaid-ownership) | `%` | Unsaid ownership on a method |
 | [6.9](#69-must_give) | `must_Give`, `finish` | Handed off exactly once |
-| [6.10](#610-stored-borrows) | `Lend from` | A borrow as a type |
+| [6.10](#610-stored-borrows) | `Lend from` | A borrow as a type, returned or in a struct |
 | [6.11](#611-no-word-needed) | No word needed | Reading in place, fresh values |
 
 ## 6.1 The words
@@ -188,7 +188,28 @@ let $w: Lend from <$x, $y> reading = warmer(Lend $x, Lend $y);
 
 **Refused:** borrowing a local or a `Given` parameter, returning `Lend $b` from `-> Lend from $a`, a fresh argument the result borrows from, and a borrow of a plain number ([6.6](#66-plain-numbers-and-bool)).
 
-**From:** D2, D169, D170.
+A struct can hold a borrow. It names its sources in backticks, and a type fills them in, in the declared order:
+
+```
+struct index <`text`, `table`: lasts_at_least `text`>:
+    words: Lend from `text` reading;
+    lookup: Lend from `table` reading;
+end struct index
+
+fn build [$article: reading, $list: reading] -> index<`text`: $article, `table`: $list>:
+    requires $list lasts_at_least $article;
+    return index[words = Lend $article, lookup = Lend $list];
+end fn build
+```
+
+- Each source is used by a field, and has its own name.
+- `program` is a source that lasts until the program ends.
+- A function states which parameter lasts longer with `requires … lasts_at_least …;`, and every call meets it.
+- A function names a borrow inside a parameter with its own sources: ``fn shown <`t`> [$v: view<`text`: `t`>]``.
+
+**Refused:** leaving a source out, a source no field uses, and the same `lasts_at_least` fact written twice.
+
+**From:** D2, D169, D170, D171.
 
 ## 6.11 No word needed
 

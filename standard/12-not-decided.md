@@ -122,7 +122,6 @@ These are inherited from Radium with D2:
 - A `must_Give` value in a field or returned.
 - A parameter whose type is a stored borrow.
 - Lending one item or field, like `Lend $xs[pos: 1]`, and what its borrow names.
-- Borrows inside structs. Radium settled them with named sources and `lasts_at_least`.
 - A `union.tagged` case holding a borrow.
 - Going through items that are structs, unions or arrays.
 
