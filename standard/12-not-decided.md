@@ -122,7 +122,8 @@ These are inherited from Radium with D2:
 ## 12.9 Limbs and projects
 
 - Modules, and how files see each other.
-- The manifest's format and name. D30, D35 and D81 rely on it.
+- The manifest's format and name. D30, D35, D81 and D183 rely on it.
+- Whether `std`'s version goes in the manifest, and how, since its limb part lives in the compiler.
 - Whether the mark goes only at the path's start.
 - Whether other limbs have a kit part like `std`.
 - How a third-party kit or limb is spelled.

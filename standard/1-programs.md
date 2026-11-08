@@ -65,7 +65,7 @@ std::println($r.celsius as str);
 
 ## 1.5 Paths: `::`
 
-**Rule:** `::` reaches into a kit or limb by its path. `std` is flat, as in `std::println` and `std::sin`, and any grouping would use `::`, not `.`. A family is one level deep. A file imports what it uses, and a manifest lists what's installed and which version. Everything gets imported, including `std` and limbs, but not builtins or `my::`. A program using only `std` needs no manifest. Imports go at the top of the file. There is no `@import`.
+**Rule:** `::` reaches into a kit or limb by its path. `std` is flat, as in `std::println` and `std::sin`, and any grouping would use `::`, not `.`. A family is one level deep. A file imports what it uses, and a manifest lists what's installed and which version. Everything gets imported, including `std` and limbs, but not builtins or `my::`. Every program has a manifest, even one using only `std`. Imports go at the top of the file. There is no `@import`.
 
 ```
 import std;
@@ -74,7 +74,7 @@ import @csup;
 std::println("hi");
 ```
 
-**From:** D22, D56, D80, D81, D82, D92, D161.
+**From:** D22, D56, D80, D81, D82, D92, D161, D183.
 
 ## 1.6 Narrowings: `.`
 
