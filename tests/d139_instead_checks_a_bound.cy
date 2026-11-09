@@ -1,6 +1,6 @@
 // trace: D139, D20
-import std;
 @config(default);
+import std;
 
 fn f [] -> i32[min: 0, max: 9]:
     fails [a];

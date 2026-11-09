@@ -1,7 +1,7 @@
 // The second time round, it's already gone.
 // trace: D2
-import std;
 @config(default);
+import std;
 
 struct box:
     n: i32;

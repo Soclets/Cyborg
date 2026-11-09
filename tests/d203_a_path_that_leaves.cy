@@ -1,7 +1,7 @@
 // The path that doesn't assign returns, so every path that reaches the read has assigned.
 // trace: D203
-import std;
 @config(default);
+import std;
 
 fn pick [$hot: bool] -> void:
     decl $x: i32;

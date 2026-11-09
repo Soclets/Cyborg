@@ -1,6 +1,6 @@
 // trace: D44, D47
-import std;
 @config(default);
+import std;
 
 fn inner [$n: i32] -> i32:
     fails [odd];

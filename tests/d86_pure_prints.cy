@@ -1,6 +1,6 @@
 // trace: D86
-import std;
 @config(default);
+import std;
 
 fn.pure f [] -> i32:
     std::io::fmt_print("hi{newln}");

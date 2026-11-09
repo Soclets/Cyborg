@@ -1,6 +1,6 @@
 // trace: D133, D2
-import std;
 @config(default);
+import std;
 
 fn both [$xs: Lent.mut std::array<str>[len: 2 items], $s: str] -> void:
     return void;

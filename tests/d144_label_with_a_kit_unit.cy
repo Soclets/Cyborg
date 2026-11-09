@@ -1,6 +1,6 @@
 // trace: D144, D112
-import std;
 @config(default);
+import std;
 
 fn wait [$t: i32.std::units::time.seconds] -> void:
     labels [$t as for.std::units::time.seconds];

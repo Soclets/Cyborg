@@ -1,6 +1,6 @@
 // trace: D199, D196
-import std;
 @config(default);
+import std;
 
 fn.main [] -> void:
     let $a: i64.std::units::time.seconds = 3600 std::units::time.seconds;

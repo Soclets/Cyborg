@@ -1,6 +1,6 @@
 // trace: D198, D199
-import std::io::fmt_print.stderr;
 @config(default);
+import std::io::fmt_print.stderr;
 
 fn.main [] -> void:
     return void;

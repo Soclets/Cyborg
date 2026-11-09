@@ -1,6 +1,6 @@
 // trace: D142, D143
-import std;
 @config(default);
+import std;
 
 fn.main [] -> void:
     let mut $xs: std::list<i32>[len.max: 8 items] = [10, 20, 30];

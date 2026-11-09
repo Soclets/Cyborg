@@ -1,6 +1,6 @@
 // trace: D133, D86
-import std;
 @config(default);
+import std;
 
 fn.pure first [$xs: std::array<i32>[len: 2 items]] -> i32:
     return $xs[pos: 1];

@@ -1,7 +1,7 @@
 // Each way out of the loop ended the duty.
 // trace: D129, D128
-import std;
 @config(default);
+import std;
 
 struct.must_Give open_file:
     fd: i32;

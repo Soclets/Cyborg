@@ -1,7 +1,7 @@
 // A step isn't stored, so a `u8` range can take 300, and jumps past its end.
 // trace: D146
-import std;
 @config(default);
+import std;
 
 fn.main [] -> void:
     let $from: u8 = 1;

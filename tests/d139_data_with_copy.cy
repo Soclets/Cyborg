@@ -1,6 +1,6 @@
 // trace: D139, D3
-import std;
 @config(default);
+import std;
 
 fn f [] -> str:
     fails [a[label: str]];

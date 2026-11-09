@@ -1,6 +1,6 @@
 // trace: D203
-import std;
 @config(default);
+import std;
 
 fn.main [] -> void:
     let mut $x: i32 = 1;

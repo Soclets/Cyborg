@@ -1,6 +1,6 @@
 // trace: D128
-import std;
 @config(default);
+import std;
 
 fn.main [] -> void:
     for $a in range[from: 1, to: 2]:

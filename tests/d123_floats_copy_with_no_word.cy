@@ -1,6 +1,6 @@
 // trace: D123
-import std;
 @config(default);
+import std;
 
 fn twice [$x: f64] -> f64:
     return $x + $x;

@@ -1,6 +1,6 @@
 // trace: D203
-import std;
 @config(default);
+import std;
 
 fn pick [$hot: bool] -> void:
     decl $x: i32;

@@ -1,7 +1,7 @@
 // The standard's `close_log`: a `struct.must_Give` ends its duty at last.
 // trace: D185, D177, D129
-import std;
 @config(default);
+import std;
 
 struct.must_Give open_file:
     fd: i32;

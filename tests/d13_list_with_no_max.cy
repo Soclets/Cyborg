@@ -1,6 +1,6 @@
 // trace: D11
-import std;
 @config(default);
+import std;
 
 fn.main [] -> void:
     let $xs: std::list<i32> = empty;

@@ -1,7 +1,7 @@
 // The result names the original value, as D174 says.
 // trace: D170, D174
-import std;
 @config(default);
+import std;
 
 struct reading:
     celsius: i32;

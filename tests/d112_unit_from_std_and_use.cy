@@ -1,8 +1,8 @@
 // trace: D112, D93
+@config(default);
 import std;
 
 use std::units::time.seconds as seconds;
-@config(default);
 
 struct reading:
     time: i64.std::units::time.seconds;

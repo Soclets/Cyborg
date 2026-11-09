@@ -1,6 +1,6 @@
 // trace: D48, D116
-import std;
 @config(default);
+import std;
 
 fn.main [] -> void:
     let $s: str = 7 div.trunc 2 as str;

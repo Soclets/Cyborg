@@ -1,4 +1,4 @@
-// trace: D201
+// trace: D204, D201
 fn f [] -> i32:
     return 1;
 end fn f

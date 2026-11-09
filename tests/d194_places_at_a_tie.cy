@@ -1,7 +1,7 @@
 // 0.125 is stored exactly, so two places is exactly halfway.
 // trace: D194
-import std;
 @config(default);
+import std;
 
 fn.main [] -> void:
     let $x: f64 = 0.125;

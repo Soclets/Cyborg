@@ -1,6 +1,6 @@
 // trace: D125, D2
-import std;
 @config(default);
+import std;
 
 struct tally:
     total: i32;

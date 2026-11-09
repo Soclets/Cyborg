@@ -1,7 +1,7 @@
 // `.stored` is on the whole print.
 // trace: D194, D162
-import std;
 @config(default);
+import std;
 
 fn.main [] -> void:
     let $x: f64 = ~0.1;

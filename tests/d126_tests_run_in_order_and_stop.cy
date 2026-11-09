@@ -1,6 +1,6 @@
 // trace: D126
-import std;
 @config(default);
+import std;
 
 fn say [$n: i32] -> bool:
     std::io::fmt_print("test {}{newln}", $n);

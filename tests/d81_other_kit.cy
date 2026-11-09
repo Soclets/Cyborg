@@ -1,7 +1,7 @@
 // How a third-party kit is found isn't decided.
 // trace: D81
-import json;
 @config(default);
+import json;
 
 fn.main [] -> void:
     return void;

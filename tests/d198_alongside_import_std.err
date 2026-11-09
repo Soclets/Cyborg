@@ -1,5 +1,5 @@
-NotDesignedYet: d198_alongside_import_std.cy:2:8, line 2 column 8
- 2 | import std;
+NotDesignedYet: d198_alongside_import_std.cy:3:8, line 3 column 8
+ 3 | import std;
    |        ^^^
  what: importing one thing alongside `import std;`
  why:  not decided yet (standard 12.2)

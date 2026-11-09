@@ -1,7 +1,7 @@
 // `$first` is one item, and still all of `$xs` is locked, since adding can move every item.
 // trace: D172
-import std;
 @config(default);
+import std;
 
 struct inner:
     n: i32;

@@ -1,6 +1,6 @@
 // trace: D133, D26
-import std;
 @config(default);
+import std;
 
 fn.main [] -> void:
     let mut $a: std::array<i32>[len: 2 items] = [1, 2];

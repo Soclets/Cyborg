@@ -2,4 +2,4 @@ refused: d201_no_rules_line.cy:2:1, line 2 column 1
  2 | fn.main [] -> void:
    | ^^
  fix:  `@config(default);`
- why:  every file starts with `@config(…);` or `@match_config(…);`, and the compiler's defaults are `@config(default);` (D201)
+ why:  every file's first line is `@config(…);` or `@match_config(…);`, and the compiler's defaults are `@config(default);` (D201, D204)

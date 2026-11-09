@@ -1,9 +1,9 @@
 // A short name for the print keeps its narrowings.
 // trace: D199, D197, D150
+@config(default);
 import std;
 
 use std::io::fmt_print as fmt_print;
-@config(default);
 
 fn.main [] -> void:
     let $x: f64 = 0.5;

@@ -1,6 +1,6 @@
 // trace: D124
-import std;
 @config(default);
+import std;
 
 fn say [$n: i32] -> i32:
     std::io::fmt_print("evaluated {}{newln}", $n);

@@ -1,6 +1,6 @@
 // trace: D159, D158
-import std;
 @config(default);
+import std;
 
 fn.main [] -> void:
     let mut $x: f64.ieee = 2.0;

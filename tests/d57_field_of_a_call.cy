@@ -1,6 +1,6 @@
 // trace: D57, D2
-import std;
 @config(default);
+import std;
 
 struct box:
     n: i32;

@@ -1,6 +1,6 @@
 // trace: D129, D2, D126
-import std;
 @config(default);
+import std;
 
 struct.must_Give open_file:
     fd: i32;

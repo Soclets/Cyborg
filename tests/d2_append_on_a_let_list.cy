@@ -1,7 +1,7 @@
 // `%` hides `Lend.mut`, and the compiler still checks it.
 // trace: D4, D3
-import std;
 @config(default);
+import std;
 
 fn.main [] -> void:
     let $xs: std::list<i32>[len.max: inf items] = empty;

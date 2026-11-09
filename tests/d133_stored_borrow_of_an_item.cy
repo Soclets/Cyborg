@@ -1,6 +1,6 @@
 // trace: D133, D2
-import std;
 @config(default);
+import std;
 
 fn show [$s: str] -> void:
     std::io::fmt_print("{}{newln}", $s);

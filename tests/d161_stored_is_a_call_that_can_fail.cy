@@ -1,6 +1,6 @@
 // trace: D161, D95
-import std;
 @config(default);
+import std;
 
 fn.pure p [$x: f64] -> f64:
     std::io::fmt_print.stored("{}{newln}", $x);

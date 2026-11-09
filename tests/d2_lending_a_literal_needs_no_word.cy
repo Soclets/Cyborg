@@ -1,6 +1,6 @@
 // trace: D2
-import std;
 @config(default);
+import std;
 
 fn f [$s: str] -> void:
     std::io::fmt_print("{}{newln}", $s);

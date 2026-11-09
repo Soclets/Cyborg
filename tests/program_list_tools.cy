@@ -1,7 +1,7 @@
 // Lists built up and read back, with bounds and recursion standing in for what isn't decided yet.
 // trace: D2, D4, D13, D20, D96, D115, D120
-import std;
 @config(default);
+import std;
 
 fn.main [] -> void:
     let mut $xs: std::list<i32>[len.max: 8 items] = empty;

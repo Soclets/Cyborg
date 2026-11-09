@@ -1,7 +1,7 @@
 // The name is for reading its data, and nothing else has its type.
 // trace: D139
-import std;
 @config(default);
+import std;
 
 fn f [] -> void:
     fails [a[val: i32]];

@@ -1,7 +1,7 @@
 // That `break` stops the `for`, so the `forever` around it still has no way out.
 // trace: D128, D11
-import std;
 @config(default);
+import std;
 
 fn f [] -> i32:
     forever:

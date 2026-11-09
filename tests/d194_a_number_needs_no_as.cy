@@ -1,7 +1,7 @@
 // `{}` takes a value in its readable form, so a number needs no `as str`.
 // trace: D194, D95
-import std;
 @config(default);
+import std;
 
 fn.main [] -> void:
     let $n: i32 = 1;

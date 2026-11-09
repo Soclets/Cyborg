@@ -1,6 +1,6 @@
 // trace: D139
-import std;
 @config(default);
+import std;
 
 fn word [$bad: bool] -> str:
     fails [too_long];

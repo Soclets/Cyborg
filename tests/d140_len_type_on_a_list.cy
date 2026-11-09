@@ -1,6 +1,6 @@
 // trace: D140
-import std;
 @config(default);
+import std;
 
 fn total [$xs: std::list<i32>[len.max: inf items, len.type: u32]] -> u32.items:
     return $xs.len;

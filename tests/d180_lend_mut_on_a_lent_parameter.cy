@@ -1,6 +1,6 @@
 // trace: D180, D2
-import std;
 @config(default);
+import std;
 
 fn change_all [$xs: std::array<i32>[len: 2 items]] -> void:
     for $n in Lend.mut $xs:

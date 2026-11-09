@@ -1,6 +1,6 @@
 // trace: D128
-import std;
 @config(default);
+import std;
 
 fn.main [] -> void:
     let $start: i64 = 2;

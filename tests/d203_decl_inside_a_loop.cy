@@ -1,7 +1,7 @@
 // Each round has its own `$x`.
 // trace: D203, D128
-import std;
 @config(default);
+import std;
 
 fn.main [] -> void:
     for $i in range[from: 1, to: 3]:

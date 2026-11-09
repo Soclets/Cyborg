@@ -1,6 +1,6 @@
 // trace: D2
-import std;
 @config(default);
+import std;
 
 struct box:
     s: str;

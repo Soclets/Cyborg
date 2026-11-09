@@ -1,6 +1,6 @@
 // trace: D139, D128, D52
-import std;
 @config(default);
+import std;
 
 fn f [$which: i32] -> i32:
     fails [a];

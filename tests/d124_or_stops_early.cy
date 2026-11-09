@@ -1,6 +1,6 @@
 // trace: D124
-import std;
 @config(default);
+import std;
 
 fn.main [] -> void:
     let $n: i32 = 0;

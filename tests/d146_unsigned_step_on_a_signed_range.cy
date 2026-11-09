@@ -1,6 +1,6 @@
 // trace: D146
-import std;
 @config(default);
+import std;
 
 fn.main [] -> void:
     let $by: u8 = 3;

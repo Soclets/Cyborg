@@ -1,7 +1,7 @@
 // trace: D199, D150
+@config(default);
 import std;
 use std::units::time.seconds as seconds;
-@config(default);
 
 fn.main [] -> void:
     let $a: i32.seconds = 60 seconds;

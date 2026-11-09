@@ -1,6 +1,6 @@
 // trace: D116, D48, D97
-import std;
 @config(default);
+import std;
 
 fn.main [] -> void:
     std::io::fmt_print("{}{newln}", (7 div.trunc 2));

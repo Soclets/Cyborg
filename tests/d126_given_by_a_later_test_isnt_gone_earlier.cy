@@ -1,7 +1,7 @@
 // The second test hasn't run when the first block runs.
 // trace: D126, D2
-import std;
 @config(default);
+import std;
 
 fn eat [$s: Given str] -> bool:
     return 1 < 2;

@@ -1,6 +1,6 @@
 // trace: D188
-import pkg @std;
 @config(default);
+import pkg @std;
 
 fn.main [] -> void:
     return void;

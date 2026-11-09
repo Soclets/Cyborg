@@ -1,7 +1,7 @@
 // `-0.0` and `0.0` give the same answer here, so nothing hangs on how they compare.
 // trace: D158
-import std;
 @config(default);
+import std;
 
 fn.main [] -> void:
     let $z: f64 = -0.0;

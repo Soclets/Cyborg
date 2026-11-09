@@ -1,9 +1,9 @@
 // `std`'s full contents aren't chosen.
 // trace: D93
+@config(default);
 import std;
 
 use std::io::read_line as "readu";
-@config(default);
 
 fn.main [] -> void:
     readu();

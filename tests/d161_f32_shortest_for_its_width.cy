@@ -1,6 +1,6 @@
 // trace: D161
-import std;
 @config(default);
+import std;
 
 fn.main [] -> void:
     let $x: f32 = ~0.1;

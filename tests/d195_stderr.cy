@@ -1,6 +1,6 @@
 // trace: D195
-import std;
 @config(default);
+import std;
 
 fn.main [] -> void:
     std::io::fmt_print("out{newln}");

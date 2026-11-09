@@ -1,5 +1,5 @@
-NotDesignedYet: d198_unknown_thing.cy:2:8, line 2 column 8
- 2 | import std::io::read_line;
+NotDesignedYet: d198_unknown_thing.cy:3:8, line 3 column 8
+ 3 | import std::io::read_line;
    |        ^^^^^^^^^^^^^^^^^^
  what: `std::io::read_line`, since `std`'s full contents aren't chosen
  why:  not decided yet, and the standard doesn't say

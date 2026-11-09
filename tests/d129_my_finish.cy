@@ -1,6 +1,6 @@
 // trace: D129, D75
-import std;
 @config(default);
+import std;
 
 fn finish [] -> void:
     std::io::fmt_print("mine{newln}");

@@ -1,6 +1,6 @@
 // trace: D158
-import std;
 @config(default);
+import std;
 
 fn.main [] -> void:
     let $low: f64[min: -40.0, max: 125.0] = -40.0;

@@ -1,7 +1,7 @@
 // The borrow points at `$y` itself, so changing through it changes `$y`.
 // trace: D170
-import std;
 @config(default);
+import std;
 
 struct reading:
     celsius: i32;

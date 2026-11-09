@@ -1,8 +1,8 @@
 // trace: D150
+@config(default);
 import std;
 
 use std::units::time.seconds as minutes;
-@config(default);
 
 fn.main [] -> void:
     return void;

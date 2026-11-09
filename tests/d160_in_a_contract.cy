@@ -1,6 +1,6 @@
 // trace: D160, D29
-import std;
 @config(default);
+import std;
 
 fn half [$x: f64] -> f64:
     requires $x at_least 0.0;

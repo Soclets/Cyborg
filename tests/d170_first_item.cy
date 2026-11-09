@@ -1,7 +1,7 @@
 // The standard's example: lending an item names the whole list.
 // trace: D170, D172
-import std;
 @config(default);
+import std;
 
 struct reading:
     celsius: i32;

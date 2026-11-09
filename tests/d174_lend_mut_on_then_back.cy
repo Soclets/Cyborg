@@ -1,7 +1,7 @@
 // `$n` isn't used after its change, so `$m` is free again.
 // trace: D174, D169
-import std;
 @config(default);
+import std;
 
 struct reading:
     celsius: i32;

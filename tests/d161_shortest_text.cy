@@ -1,6 +1,6 @@
 // trace: D161
-import std;
 @config(default);
+import std;
 
 fn show [$x: f64] -> void:
     std::io::fmt_print("{}{newln}", $x);

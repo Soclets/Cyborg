@@ -1,7 +1,7 @@
 // The longest answer there is, and there's still no limit.
 // trace: D162, D164
-import std;
 @config(default);
+import std;
 
 fn.main [] -> void:
     let mut $x: f64 = 1.0;

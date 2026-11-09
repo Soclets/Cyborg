@@ -1,7 +1,7 @@
 // `Lend.mut` may change the value, so its field can change too. Reported as a reading.
 // trace: D125, D2
-import std;
 @config(default);
+import std;
 
 struct box:
     n: i32;

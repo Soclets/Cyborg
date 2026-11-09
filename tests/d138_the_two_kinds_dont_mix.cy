@@ -1,6 +1,6 @@
 // trace: D138, D7
-import std;
 @config(default);
+import std;
 
 fn.main [] -> void:
     let $h: std::map.hash<key: str, val: i32> = empty;

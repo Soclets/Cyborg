@@ -1,7 +1,7 @@
 // One file is one package, so `pub` changes nothing it can see.
 // trace: D200
-import std;
 @config(default);
+import std;
 
 pub const $max: i32 = 100;
 

@@ -1,7 +1,7 @@
 // Going round again would assign it a second time.
 // trace: D203, D128
-import std;
 @config(default);
+import std;
 
 fn.main [] -> void:
     decl $x: i32;

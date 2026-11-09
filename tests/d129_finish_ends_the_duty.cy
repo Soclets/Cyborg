@@ -1,7 +1,7 @@
 // A whole `must_Give` program: made, lent, handed on, and finished.
 // trace: D129, D2, D57
-import std;
 @config(default);
+import std;
 
 struct.must_Give open_file:
     fd: i32;

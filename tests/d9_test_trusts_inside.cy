@@ -1,6 +1,6 @@
 // trace: D9
-import std;
 @config(default);
+import std;
 
 union.tagged status:
     ok

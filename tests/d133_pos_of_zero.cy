@@ -1,7 +1,7 @@
 // `pos:` counts from 1, so 0 is a bad position.
 // trace: D133, D26
-import std;
 @config(default);
+import std;
 
 fn.main [] -> void:
     let $a: std::array<i32>[len: 2 items] = [1, 2];

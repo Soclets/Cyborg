@@ -1,7 +1,7 @@
 // A name of yours that clashes stays bare where it's defined, and says `my::` where it's used.
 // trace: D134, D75
-import std;
 @config(default);
+import std;
 
 type.alias str = i32;
 

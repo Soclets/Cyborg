@@ -1,7 +1,7 @@
 // A failure's name can clash too: the list stays bare, and every use says `my::`.
 // trace: D47, D75
-import std;
 @config(default);
+import std;
 
 fn first_word [$bad: bool] -> void:
     fails [too_long, empty];

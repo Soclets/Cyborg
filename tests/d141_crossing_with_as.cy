@@ -1,6 +1,6 @@
 // trace: D141
-import std;
 @config(default);
+import std;
 
 type.new user_id = i64;
 

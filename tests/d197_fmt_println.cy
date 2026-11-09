@@ -1,6 +1,6 @@
 // trace: D197
-import std;
 @config(default);
+import std;
 
 fn.main [] -> void:
     std::io::fmt_println("hi");

@@ -1,6 +1,6 @@
 // trace: D111
-import std;
 @config(default);
+import std;
 
 fam.unit length:
     length.meters: base;

@@ -1,6 +1,6 @@
 // trace: D38
-import @csup;
 @config(default);
+import @csup;
 
 fn.main [] -> void:
     @csup::call();

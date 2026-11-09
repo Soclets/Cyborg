@@ -1,8 +1,8 @@
 // trace: D178
+@config(default);
 import std;
 
 use std::list.%remove as %remove;
-@config(default);
 
 fn.main [] -> void:
     let mut $xs: std::list<i32>[len.max: inf items] = empty;

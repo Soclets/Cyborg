@@ -1,7 +1,7 @@
 // D177 is about structs, so a union case holding one is still open.
 // trace: D177
-import std;
 @config(default);
+import std;
 
 struct.must_Give open_file:
     fd: i32;

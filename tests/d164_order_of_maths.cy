@@ -1,6 +1,6 @@
 // trace: D164, D116
-import std;
 @config(default);
+import std;
 
 fn.main [] -> void:
     let $a: f64 = 1.0 + 4.0 div 2.0;

@@ -1,6 +1,6 @@
 // trace: D148, D20
-import std;
 @config(default);
+import std;
 
 fn.main [] -> void:
     let $start: i32[min: 1, max: 3] = 2;

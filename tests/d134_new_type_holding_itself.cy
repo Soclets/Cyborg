@@ -1,6 +1,6 @@
 // trace: D134
-import std;
 @config(default);
+import std;
 
 type.new tree = std::list<tree>[len.max: inf items];
 

@@ -1,7 +1,7 @@
 // A literal lands in `items` next to one, so the item's in `items` too. Reported as a reading.
 // trace: D142, D101
-import std;
 @config(default);
+import std;
 
 fn.main [] -> void:
     let $xs: std::array<i32>[len: 3 items] = [4, 5, 6];

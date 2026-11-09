@@ -1,7 +1,7 @@
 // trace: D198
+@config(default);
 import std;
 import std::io::fmt_print;
-@config(default);
 
 fn.main [] -> void:
     return void;

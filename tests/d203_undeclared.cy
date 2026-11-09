@@ -1,6 +1,6 @@
 // trace: D203
-import std;
 @config(default);
+import std;
 
 fn.main [] -> void:
     assign $x = 1;

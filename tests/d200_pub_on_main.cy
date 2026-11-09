@@ -1,6 +1,6 @@
 // trace: D200
-import std;
 @config(default);
+import std;
 
 pub fn.main [] -> void:
     return void;

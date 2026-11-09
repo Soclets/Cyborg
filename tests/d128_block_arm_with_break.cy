@@ -1,7 +1,7 @@
 // An arm written at the call needs no `*`.
 // trace: D128, D45
-import std;
 @config(default);
+import std;
 
 fn.main [] -> void:
     forever:

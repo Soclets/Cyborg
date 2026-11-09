@@ -1,6 +1,6 @@
 // trace: D134, D128
-import std;
 @config(default);
+import std;
 
 type.new row = std::array<i32>[len: 2 items];
 

@@ -1,6 +1,6 @@
 // trace: D194
-import std;
 @config(default);
+import std;
 
 fn.main [] -> void:
     std::io::fmt_print("[{width: 5 cols}]{newln}", "ab");

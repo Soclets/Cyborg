@@ -1,6 +1,6 @@
 // trace: D200
-import std;
 @config(default);
+import std;
 
 fn.pub total [] -> i32:
     return 1;

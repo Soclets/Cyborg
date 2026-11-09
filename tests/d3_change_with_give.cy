@@ -1,6 +1,6 @@
 // trace: D3
-import std;
 @config(default);
+import std;
 
 fn.main [] -> void:
     let $s: str = "a";

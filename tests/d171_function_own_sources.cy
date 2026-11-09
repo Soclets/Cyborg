@@ -1,7 +1,7 @@
 // The standard's `shown`: a parameter names the borrow inside it with the function's own source.
 // trace: D171
-import std;
 @config(default);
+import std;
 
 struct reading:
     celsius: i32;

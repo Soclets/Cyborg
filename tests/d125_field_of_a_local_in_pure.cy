@@ -1,7 +1,7 @@
 // A pure function changes nothing outside itself, and its own variable isn't outside.
 // trace: D125, D86
-import std;
 @config(default);
+import std;
 
 struct box:
     n: i32;

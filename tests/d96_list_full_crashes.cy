@@ -1,7 +1,7 @@
 // A full list is a failure like any other, and its name isn't decided.
 // trace: D96, D13
-import std;
 @config(default);
+import std;
 
 fn.main [] -> void:
     let mut $xs: std::list<i32>[len.max: 2 items] = empty;

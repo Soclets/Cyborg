@@ -1,6 +1,6 @@
 // trace: D12, D13
-import std;
 @config(default);
+import std;
 
 fn.main [] -> void:
     let $a: std::array<i32>[len.max: 3 items] = [1];

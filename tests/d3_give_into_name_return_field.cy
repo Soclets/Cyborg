@@ -1,7 +1,7 @@
 // Every hand-off shows, and a fresh value needs no word.
 // trace: D3, D2
-import std;
 @config(default);
+import std;
 
 struct name_tag:
     text: str;

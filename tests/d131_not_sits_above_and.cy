@@ -1,6 +1,6 @@
 // trace: D131, D117
-import std;
 @config(default);
+import std;
 
 fn.main [] -> void:
     let $t: bool = true;

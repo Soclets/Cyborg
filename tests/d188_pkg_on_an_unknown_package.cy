@@ -1,6 +1,6 @@
 // trace: D188
-import pkg other;
 @config(default);
+import pkg other;
 
 fn.main [] -> void:
     return void;

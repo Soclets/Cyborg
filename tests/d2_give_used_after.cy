@@ -1,6 +1,6 @@
 // trace: D2
-import std;
 @config(default);
+import std;
 
 struct open_data:
     fd: i32;

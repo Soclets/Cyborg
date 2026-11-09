@@ -1,7 +1,7 @@
 // Only running shows these numbers, and a range that can't reach its end runs zero rounds.
 // trace: D145
-import std;
 @config(default);
+import std;
 
 fn.main [] -> void:
     let $start: i32 = 5;

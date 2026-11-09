@@ -1,6 +1,6 @@
 // trace: D159, D141
-import std;
 @config(default);
+import std;
 
 type.new sensor = f64.ieee;
 

@@ -1,7 +1,7 @@
 // The language has no exponent to write, so the text is all digits, however big.
 // trace: D161
-import std;
 @config(default);
+import std;
 
 fn.main [] -> void:
     let mut $x: f64 = 2.0;

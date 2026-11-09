@@ -1,6 +1,6 @@
 // trace: D198, D187
-import @std::inline;
 @config(default);
+import @std::inline;
 
 fn.main [] -> void:
     return void;

@@ -1,6 +1,6 @@
 // trace: D126, D2
-import std;
 @config(default);
+import std;
 
 fn eat [$s: Given str] -> void:
     return void;

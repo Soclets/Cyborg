@@ -1,6 +1,6 @@
 // trace: D44
-import std;
 @config(default);
+import std;
 
 fn read_port [$ok: bool] -> i32:
     fails [no_port];

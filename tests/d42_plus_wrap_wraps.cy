@@ -1,6 +1,6 @@
 // trace: D42
-import std;
 @config(default);
+import std;
 
 fn.main [] -> void:
     let $a: i32 = 2147483647;

@@ -1,6 +1,6 @@
 // trace: D185
-import std;
 @config(default);
+import std;
 
 struct.must_Give open_file:
     fd: i32;

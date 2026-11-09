@@ -1,6 +1,6 @@
 // trace: D180, D128, D2
-import std;
 @config(default);
+import std;
 
 fn.main [] -> void:
     let $grid: std::array<std::array<i32>[len: 1 items]>[len: 1 items] = [[1]];

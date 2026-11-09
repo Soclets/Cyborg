@@ -1,6 +1,6 @@
 // trace: D114
-import std;
 @config(default);
+import std;
 
 fn pair [$a: i32, $b: i32] -> i32:
     labels.any_order [$a as first, $b as second];

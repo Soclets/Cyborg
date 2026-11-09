@@ -1,7 +1,7 @@
 // A plain `i32` means just a number.
 // trace: D101
-import std;
 @config(default);
+import std;
 
 fn.main [] -> void:
     let $x: i32 = 3600;

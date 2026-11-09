@@ -1,7 +1,7 @@
 // It can be handed on, and as with any `struct.must_Give`, nothing can end its duty yet.
 // trace: D177, D2
-import std;
 @config(default);
+import std;
 
 struct.must_Give open_file:
     fd: i32;

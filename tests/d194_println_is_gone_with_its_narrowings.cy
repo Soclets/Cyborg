@@ -1,6 +1,6 @@
 // trace: D194, D197
-import std;
 @config(default);
+import std;
 
 fn.main [] -> void:
     std::println.stdout("hi");

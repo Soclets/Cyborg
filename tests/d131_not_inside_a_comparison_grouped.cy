@@ -1,6 +1,6 @@
 // trace: D131
-import std;
 @config(default);
+import std;
 
 fn.main [] -> void:
     let $b: bool = true;

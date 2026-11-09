@@ -1,6 +1,6 @@
 // trace: D2, D4
-import std;
 @config(default);
+import std;
 
 fn add [$xs: Lent.mut std::list<i32>[len.max: inf items]] -> void:
     $xs.std::%append(val: 1);

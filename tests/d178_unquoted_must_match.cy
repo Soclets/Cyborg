@@ -1,8 +1,8 @@
 // trace: D178, D150
+@config(default);
 import std;
 
 use std::list.%append as %add;
-@config(default);
 
 fn.main [] -> void:
     return void;

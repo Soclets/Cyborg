@@ -1,7 +1,7 @@
 // Two fields don't touch, but nothing says whether `for` is using the whole variable.
 // trace: D125, D2
-import std;
 @config(default);
+import std;
 
 struct bag:
     items: std::array<i32>[len: 2 items];

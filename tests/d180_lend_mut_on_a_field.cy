@@ -1,6 +1,6 @@
 // trace: D180
-import std;
 @config(default);
+import std;
 
 struct holder:
     items: std::array<i32>[len: 2 items];

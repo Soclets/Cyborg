@@ -1,6 +1,6 @@
 // trace: D83, D59
-import std;
 @config(default);
+import std;
 
 const $b: i32 = 60 x 60;
 

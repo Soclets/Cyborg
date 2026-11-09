@@ -1,6 +1,6 @@
 // trace: D91
-import std;
 @config(default);
+import std;
 
 fn.pure.baked seconds_in [$days: i32] -> i32:
     return $days x 86_400;

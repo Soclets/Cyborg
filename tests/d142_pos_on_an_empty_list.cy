@@ -1,6 +1,6 @@
 // trace: D142, D26
-import std;
 @config(default);
+import std;
 
 fn.main [] -> void:
     let $xs: std::list<i32>[len.max: 8 items] = empty;

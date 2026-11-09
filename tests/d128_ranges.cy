@@ -1,6 +1,6 @@
 // trace: D128
-import std;
 @config(default);
+import std;
 
 fn show [$label: str, $n: i32] -> void:
     std::io::fmt_print("{}{}{newln}", $label, $n);

@@ -1,6 +1,6 @@
 // trace: D127, D75
-import std;
 @config(default);
+import std;
 
 fn true [] -> i32:
     return 1;

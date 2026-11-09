@@ -1,6 +1,6 @@
 // trace: D198, D199
-import std::io::fmt_print;
 @config(default);
+import std::io::fmt_print;
 
 fn.main [] -> void:
     std::io::fmt_print("only this{newln}");

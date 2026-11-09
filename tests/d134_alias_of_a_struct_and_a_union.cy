@@ -1,7 +1,7 @@
 // An alias is fully interchangeable, so it builds, tests and matches too.
 // trace: D134, D9, D57
-import std;
 @config(default);
+import std;
 
 struct reading:
     celsius: i32;

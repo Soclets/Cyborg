@@ -1,6 +1,6 @@
 // trace: D128
-import std;
 @config(default);
+import std;
 
 fn.pure again [] -> bool:
     return false;

@@ -1,6 +1,6 @@
 // trace: D86
-import std;
 @config(default);
+import std;
 
 fn.pure positive [$n: i32] -> bool:
     return $n at_least 0;

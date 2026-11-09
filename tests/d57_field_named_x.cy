@@ -1,7 +1,7 @@
 // `x` is an operator, but a field has no clash, because `.` says what it is.
 // trace: D57, D75
-import std;
 @config(default);
+import std;
 
 struct point:
     x: i32;

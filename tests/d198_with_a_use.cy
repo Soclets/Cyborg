@@ -1,7 +1,7 @@
 // trace: D198, D93
+@config(default);
 import std::io::fmt_print;
 use std::io::fmt_print as fmt_print;
-@config(default);
 
 fn.main [] -> void:
     fmt_print("hi{newln}");

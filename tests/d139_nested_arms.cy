@@ -1,7 +1,7 @@
 // Each `instead` belongs to the arm around it.
 // trace: D139
-import std;
 @config(default);
+import std;
 
 fn f [] -> i32:
     fails [a];

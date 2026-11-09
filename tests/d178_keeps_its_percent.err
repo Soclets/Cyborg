@@ -1,5 +1,5 @@
-refused: d178_keeps_its_percent.cy:4:26, line 4 column 26
- 4 | use std::list.%append as append;
+refused: d178_keeps_its_percent.cy:5:26, line 5 column 26
+ 5 | use std::list.%append as append;
    |                          ^^^^^^
  fix:  `as %append`
  why:  the `%` warns that ownership isn't written at the call, so a short name can't drop it (D178, D179)

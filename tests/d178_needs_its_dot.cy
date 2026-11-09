@@ -1,9 +1,9 @@
 // `.` never runs code, so the short name still goes after `.%`.
 // trace: D178, D8
+@config(default);
 import std;
 
 use std::list.%append as %append;
-@config(default);
 
 fn.main [] -> void:
     let mut $xs: std::list<i32>[len.max: inf items] = empty;

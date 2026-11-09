@@ -1,7 +1,7 @@
 // A borrow handed back by one call can be handed back again.
 // trace: D170
-import std;
 @config(default);
+import std;
 
 struct reading:
     celsius: i32;

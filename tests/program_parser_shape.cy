@@ -1,7 +1,7 @@
 // The shape of a small tokenizer step: a union of tokens, passed around and given away.
 // trace: D2, D3, D9, D33, D57, D104
-import std;
 @config(default);
+import std;
 
 union.tagged token:
     number[value: i32]

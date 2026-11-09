@@ -1,6 +1,6 @@
 // trace: D198
-import std::io::read_line;
 @config(default);
+import std::io::read_line;
 
 fn.main [] -> void:
     return void;

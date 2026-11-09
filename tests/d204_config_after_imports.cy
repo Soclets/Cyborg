@@ -1,5 +1,5 @@
-// trace: D201
-@config(default);
+// trace: D204
+import std;
 @config(default);
 
 fn.main [] -> void:

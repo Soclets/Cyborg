@@ -1,6 +1,6 @@
 // trace: D134, D135
-import std;
 @config(default);
+import std;
 
 fam.type.alias sizes:
     sizes.small = i32;

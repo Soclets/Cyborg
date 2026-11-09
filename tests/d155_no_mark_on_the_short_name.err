@@ -1,5 +1,5 @@
-refused: d155_no_mark_on_the_short_name.cy:4:24, line 4 column 24
- 4 | use @csup::extern.c as @c;
+refused: d155_no_mark_on_the_short_name.cy:5:24, line 5 column 24
+ 5 | use @csup::extern.c as @c;
    |                        ^
  what: the short name has no `@`
  why:  `@` with no `::` is a compiler builtin, so `@c` looks like one (D155, D56)

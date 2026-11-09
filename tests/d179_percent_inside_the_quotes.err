@@ -1,5 +1,5 @@
-refused: d179_percent_inside_the_quotes.cy:4:26, line 4 column 26
- 4 | use std::list.%append as "%push";
+refused: d179_percent_inside_the_quotes.cy:5:26, line 5 column 26
+ 5 | use std::list.%append as "%push";
    |                          ^^^^^^^
  fix:  `as %"push"`
  why:  the `%` warns that ownership isn't written at the call, so a short name can't drop it (D178, D179)

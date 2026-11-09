@@ -1,6 +1,6 @@
 // trace: D185, D180
-import std;
 @config(default);
+import std;
 
 struct box:
     s: str;

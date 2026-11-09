@@ -1,6 +1,6 @@
 // trace: D141, D101
-import std;
 @config(default);
+import std;
 
 fn.main [] -> void:
     let $t: u64.items = 5 items;

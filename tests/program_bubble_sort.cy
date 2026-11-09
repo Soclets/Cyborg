@@ -1,7 +1,7 @@
 // A real program: sort an array in place, with positions and `while`.
 // trace: D125, D126, D127, D128, D133
-import std;
 @config(default);
+import std;
 
 fn sort [$xs: Lent.mut std::array<i32>[len: 6 items]] -> void:
     let mut $swapped: bool = true;

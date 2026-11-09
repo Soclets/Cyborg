@@ -1,7 +1,7 @@
 // The test is how to handle a bad value yourself.
 // trace: D20, D9
-import std;
 @config(default);
+import std;
 
 fn use_score [$s: i32[min: 0, max: 100]] -> void:
     std::io::fmt_print("score {}{newln}", $s);

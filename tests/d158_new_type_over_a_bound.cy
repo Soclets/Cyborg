@@ -1,6 +1,6 @@
 // trace: D158, D141
-import std;
 @config(default);
+import std;
 
 type.new ratio = f64[min: 0.0, max: 1.0];
 

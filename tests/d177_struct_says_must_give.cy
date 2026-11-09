@@ -1,8 +1,8 @@
 // Building and lending one works, but nothing can end its duty yet: `finish` waits for the file,
 // and giving one field away is still open.
 // trace: D177, D129
-import std;
 @config(default);
+import std;
 
 struct.must_Give open_file:
     fd: i32;

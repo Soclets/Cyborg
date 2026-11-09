@@ -1,8 +1,8 @@
 // trace: D93
+@config(default);
 import std;
 
 use std::io::fmt_print as "say";
-@config(default);
 
 fn.main [] -> void:
     say("hi{newln}");

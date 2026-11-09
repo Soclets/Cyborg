@@ -1,7 +1,7 @@
 // Which item isn't known, so nothing says these don't touch.
 // trace: D133, D2
-import std;
 @config(default);
+import std;
 
 fn.main [] -> void:
     let mut $g: std::list<std::list<i32>[len.max: 2 items]>[len.max: 2 items] = [[1], [2]];

@@ -1,7 +1,7 @@
 // Never read, so nothing reads it empty.
 // trace: D203
-import std;
 @config(default);
+import std;
 
 fn.main [] -> void:
     decl $x: i32;

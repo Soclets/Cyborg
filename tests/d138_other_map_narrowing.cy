@@ -1,6 +1,6 @@
 // trace: D138
-import std;
 @config(default);
+import std;
 
 fn.main [] -> void:
     let $m: std::map.tree<key: str, val: i32> = empty;

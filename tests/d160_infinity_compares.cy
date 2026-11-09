@@ -1,7 +1,7 @@
 // Only NaN's comparison is open.
 // trace: D160, D159
-import std;
 @config(default);
+import std;
 
 fn.main [] -> void:
     let mut $x: f64.ieee = 2.0;

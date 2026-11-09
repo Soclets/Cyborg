@@ -1,8 +1,8 @@
 // trace: D155, D151
+@config(default);
 import @csup;
 
 use @csup::extern.c as "@c";
-@config(default);
 
 fn.main [] -> void:
     return void;

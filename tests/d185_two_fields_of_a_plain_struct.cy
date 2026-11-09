@@ -1,7 +1,7 @@
 // A struct with no duty just goes away once its fields are out.
 // trace: D185
-import std;
 @config(default);
+import std;
 
 struct pair:
     a: str;

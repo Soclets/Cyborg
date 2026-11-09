@@ -1,7 +1,7 @@
 // A fresh value has no holder, so nothing's left behind.
 // trace: D141, D2
-import std;
 @config(default);
+import std;
 
 struct reading:
     celsius: i32;

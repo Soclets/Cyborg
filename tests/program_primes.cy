@@ -1,7 +1,7 @@
 // A real program, now that loops exist: primes by trial division.
 // trace: D126, D127, D128
-import std;
 @config(default);
+import std;
 
 fn is_prime [$n: i32] -> bool:
     if $n < 2:

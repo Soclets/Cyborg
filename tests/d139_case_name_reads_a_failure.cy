@@ -1,6 +1,6 @@
 // trace: D139, D47
-import std;
 @config(default);
+import std;
 
 fn half [$n: i32] -> i32:
     fails [negative[val: i32], odd];

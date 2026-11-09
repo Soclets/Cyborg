@@ -1,7 +1,7 @@
 // Giving inside a block that leaves doesn't touch the path that carries on.
 // trace: D2
-import std;
 @config(default);
+import std;
 
 struct box:
     n: i32;

@@ -1,9 +1,9 @@
 // The short name is for `std::list`, so on an array it's still the bare, base-or-yours meaning.
 // trace: D178, D115
+@config(default);
 import std;
 
 use std::list.%append as %append;
-@config(default);
 
 fn.main [] -> void:
     let mut $a: std::array<i32>[len: 2 items] = [1, 2];

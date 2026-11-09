@@ -1,6 +1,6 @@
 // trace: D47
-import std;
 @config(default);
+import std;
 
 fam.failure file_failed:
     file_failed.denied;

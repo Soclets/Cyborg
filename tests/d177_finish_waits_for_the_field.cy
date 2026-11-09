@@ -1,7 +1,7 @@
 // `finish` ends `$l`'s own duty, and its file still needs giving away first.
 // trace: D177, D129
-import std;
 @config(default);
+import std;
 
 struct.must_Give open_file:
     fd: i32;

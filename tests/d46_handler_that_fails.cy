@@ -1,8 +1,8 @@
 // `fail` leaves the function like `return` does, though D46 lists only `return`, `break` and
 // `continue` as what needs a `*`. Reported to the design session.
 // trace: D46, D52
-import std;
 @config(default);
+import std;
 
 fam.handler say_failed:
     say_failed.up:
