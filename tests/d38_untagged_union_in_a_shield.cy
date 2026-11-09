@@ -5,8 +5,8 @@ import @csup;
 shield c_number:
     reason "matches the union in libfoo's header"
     @csup::union.untagged number:
-        i: i32
-        f: f32
+        i: i32;
+        f: f32;
     end @csup::union.untagged number
 end shield c_number
 

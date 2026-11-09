@@ -1,0 +1,5 @@
+refused: d208_untagged_field_without_a_semicolon.cy:8:12, line 8 column 12
+ 8 |         i: i32
+   |            ^^^
+ what: expected `;` after this, but found `end`
+ why:  `;` ends a statement, `:` opens a block, and `end` closes it (D33)

@@ -18,8 +18,8 @@ fn open [$fd: i32] -> open_file:
 end fn open
 
 union.tagged maybe_file:
-    some[file: open_file]
-    none
+    some[file: open_file];
+    none;
 end union.tagged maybe_file
 
 fn.main [] -> void:

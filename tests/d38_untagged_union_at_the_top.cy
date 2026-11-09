@@ -3,7 +3,7 @@
 import @csup;
 
 @csup::union.untagged number:
-    i: i32
+    i: i32;
 end @csup::union.untagged number
 
 fn.main [] -> void:

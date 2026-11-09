@@ -8,8 +8,8 @@ struct reading:
 end struct reading
 
 union.tagged status:
-    ok
-    failed[code: i32]
+    ok;
+    failed[code: i32];
 end union.tagged status
 
 type.alias r = reading;

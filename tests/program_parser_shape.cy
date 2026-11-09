@@ -4,9 +4,9 @@
 import std;
 
 union.tagged token:
-    number[value: i32]
-    word[text: str]
-    done
+    number[value: i32];
+    word[text: str];
+    done;
 end union.tagged token
 
 fn describe [$t: Given token] -> str:

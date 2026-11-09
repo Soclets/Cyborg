@@ -3,9 +3,9 @@
 import std;
 
 union.tagged status:
-    ok
-    failed[code: i32]
-    lost[where: str]
+    ok;
+    failed[code: i32];
+    lost[where: str];
 end union.tagged status
 
 fn show [$s: status] -> void:

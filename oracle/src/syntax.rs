@@ -2037,6 +2037,9 @@ impl Parser {
             } else {
                 Vec::new()
             };
+            // A member line ends with `;`, like a struct's fields. (D208)
+            // trace: D208
+            self.expect_semicolon()?;
             cases.push(UnionCase {
                 name: case_name,
                 fields,
@@ -2344,6 +2347,8 @@ impl Parser {
                     self.expect_name("a field")?;
                     self.expect_symbol(":")?;
                     self.parse_type()?;
+                    // trace: D208
+                    self.expect_semicolon()?;
                 }
                 self.expect_limb_closer(&written.text, &union_name.text)?;
                 items.push(ShieldContent::UntaggedUnion { path });

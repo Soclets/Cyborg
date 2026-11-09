@@ -2,9 +2,9 @@
 @config(default);
 
 union.tagged status:
-    ok
-    failed[code: i32]
-    lost
+    ok;
+    failed[code: i32];
+    lost;
 end union.tagged status
 
 fn.main [] -> void:

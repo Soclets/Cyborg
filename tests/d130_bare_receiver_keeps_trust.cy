@@ -3,8 +3,8 @@
 import std;
 
 union.tagged status:
-    ok
-    failed[code: i32]
+    ok;
+    failed[code: i32];
 end union.tagged status
 
 fn status.%label [$s: status] -> str:

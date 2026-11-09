@@ -8,9 +8,9 @@ fam.unit stock:
 end fam.unit stock
 
 union.tagged level:
-    plenty
-    low[left: i32.stock.pieces]
-    out
+    plenty;
+    low[left: i32.stock.pieces];
+    out;
 end union.tagged level
 
 struct line:

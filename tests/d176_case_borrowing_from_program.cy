@@ -7,8 +7,8 @@ struct reading:
 end struct reading
 
 union.tagged maybe:
-    none
-    some[r: Lend from program reading]
+    none;
+    some[r: Lend from program reading];
 end union.tagged maybe
 
 fn.main [] -> void:

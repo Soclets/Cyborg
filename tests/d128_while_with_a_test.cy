@@ -3,7 +3,7 @@
 @config(default);
 
 union.tagged status:
-    ok
+    ok;
 end union.tagged status
 
 fn.main [] -> void:

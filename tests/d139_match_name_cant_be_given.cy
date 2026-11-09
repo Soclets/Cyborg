@@ -2,8 +2,8 @@
 @config(default);
 
 union.tagged status:
-    ok
-    failed[code: i32]
+    ok;
+    failed[code: i32];
 end union.tagged status
 
 fn eat [$s: Given status] -> void:

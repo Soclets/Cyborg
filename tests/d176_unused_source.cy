@@ -6,8 +6,8 @@ struct reading:
 end struct reading
 
 union.tagged lookup <`text`>:
-    found[n: i32]
-    missing
+    found[n: i32];
+    missing;
 end union.tagged lookup
 
 fn.main [] -> void:

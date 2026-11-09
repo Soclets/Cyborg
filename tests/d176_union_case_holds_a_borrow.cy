@@ -7,8 +7,8 @@ struct reading:
 end struct reading
 
 union.tagged lookup <`text`>:
-    found[item: Lend from `text` reading]
-    missing
+    found[item: Lend from `text` reading];
+    missing;
 end union.tagged lookup
 
 fn.main [] -> void:

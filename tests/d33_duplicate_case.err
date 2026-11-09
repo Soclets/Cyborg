@@ -1,5 +1,5 @@
 refused: d33_duplicate_case.cy:6:5, line 6 column 5
- 6 |     ok
+ 6 |     ok;
    |     ^^
  what: `status` has two cases called `ok`
  why:  a union's cases are narrowings, so a case's name says which (D33)
