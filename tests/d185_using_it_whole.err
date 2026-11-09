@@ -7,3 +7,13 @@ refused: d185_using_it_whole.cy:29:15, line 29 column 15
 28 |     close(Give $l.file);
    |     ^^^^^^^^^^^^^^^^^^^
      it was moved out here
+
+refused: d185_using_it_whole.cy:30:5, line 30 column 5
+30 |     return void;
+   |     ^^^^^^^^^^^^
+ what: this leaves with `$l` never given away or finished
+ why:  a `must_Give` value is handed off with `Give` exactly once, or `finish` ends it (D2, D129)
+ because: d185_using_it_whole.cy:27:9, line 27 column 9
+27 |     let $l: log = log[file = open_file[fd = 4], lines = 7];
+   |         ^^
+     `$l` was made here

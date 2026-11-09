@@ -1606,7 +1606,7 @@ impl Checker<'_> {
                         format!("nothing says `{long}` lasts at least as long as `{short}`, which `{}` requires", signature.name),
                         "a function states which parameter lasts longer with `requires … lasts_at_least …;` (D171)",
                     )
-                    .fix(format!("requires {long} lasts_at_least {short};")));
+                    .fix_elsewhere(format!("requires {long} lasts_at_least {short};")));
                 }
             }
         }
@@ -2175,24 +2175,28 @@ impl Checker<'_> {
     }
 
     /// `.%` lends a receiver read-only, and `.%%` lends it to change, as the method says. (D211)
-    fn wrong_receiver_mark(span: Span, changes: bool) -> Box<Report> {
-        let (what, fix) = if changes {
+    /// The span covers the marks as written and the name, so the fix can replace them. The
+    /// call wrote the other mark, `%` when it needs `%%` and `%%` when it needs `%`. (D207)
+    fn wrong_receiver_mark(name: &crate::ast::Name, changes: bool) -> Box<Report> {
+        let (what, mark, written) = if changes {
             (
                 "this method changes its receiver, so the call says `.%%`",
-                ".%%",
+                "%%",
+                1,
             )
         } else {
             (
                 "this method only reads its receiver, so the call says `.%`",
-                ".%",
+                "%",
+                2,
             )
         };
         Report::refused(
-            span,
+            Span::new(name.span.start.saturating_sub(written), name.span.end),
             what,
             "`.%` lends a receiver read-only and `.%%` lends it to change, so the call shows which (D211)",
         )
-        .fix(fix)
+        .fix(format!("{mark}{}", name.text))
     }
 
     /// The kit method a short name from `use` stands for, when the receiver is of its type.
@@ -2251,7 +2255,7 @@ impl Checker<'_> {
         // trace: D211
         if let (None, Some((_, _, alias_changes))) = (kit, self.method_aliases.get(&name.text)) {
             if percent && changes != *alias_changes {
-                return Err(Self::wrong_receiver_mark(name.span, *alias_changes));
+                return Err(Self::wrong_receiver_mark(name, *alias_changes));
             }
         }
         if let Some(limb) = kit.filter(|kit| kit.starts_with('@')) {
@@ -2342,7 +2346,7 @@ impl Checker<'_> {
             // trace: D211
             let declared_changes = method.contains(".%%");
             if changes != declared_changes {
-                return Err(Self::wrong_receiver_mark(name.span, declared_changes));
+                return Err(Self::wrong_receiver_mark(name, declared_changes));
             }
             return self.check_own_method(receiver, fresh, &signature, arguments, span);
         }
@@ -2385,7 +2389,7 @@ impl Checker<'_> {
         }
         // trace: D211
         if !changes {
-            return Err(Self::wrong_receiver_mark(name.span, true));
+            return Err(Self::wrong_receiver_mark(name, true));
         }
         if self.is_pure() {
             return Err(Report::not_designed(

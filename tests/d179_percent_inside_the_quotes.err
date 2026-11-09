@@ -1,5 +1,5 @@
 refused: d179_percent_inside_the_quotes.cy:5:27, line 5 column 27
  5 | use std::list.%%append as "%push";
    |                           ^^^^^^^
- fix:  `as %%"push"`
+ fix:  `%%"push"`
  why:  `%` lends a receiver read-only and `%%` lends it to change, so a short name keeps which (D178, D179, D211)

@@ -12,7 +12,7 @@ use crate::ast::{
     ShieldContent, Statement, StatementKind, TypeExpression, TypeKind, TypeName, UnitMeaning,
 };
 use crate::ir::{Code, Node};
-use crate::report::{Kind, Outcome, Report, ReportExtra, Span};
+use crate::report::{Outcome, Report, ReportExtra, Span};
 use crate::syntax::is_clashing;
 use crate::types::{FloatBound, FloatKind, FloatRules, IntegerKind, Sources, Type};
 
@@ -227,6 +227,13 @@ struct FunctionContext {
     moving_field: bool,
     /// What the last such call's result borrows, by the caller's names. (D170)
     borrowed_result: Option<BorrowedResult>,
+    /// Variables a skipped `let` or `decl` made, which have their type and no value. (D215)
+    skipped: HashSet<usize>,
+    /// Names a broken `:=` or `const` line left with no known type, so lines using them can't
+    /// be checked, and say nothing. (D215, D216)
+    unknown: HashSet<String>,
+    /// Whether a skipped statement was one that leaves, like `return`. (D215)
+    skipped_exit: bool,
 }
 
 /// What a returned borrow borrows at the call: the original values, and the names it went
@@ -266,6 +273,9 @@ impl FunctionContext {
             lasts: Vec::new(),
             source_facts: Vec::new(),
             borrowed_result: None,
+            skipped: HashSet::new(),
+            unknown: HashSet::new(),
+            skipped_exit: false,
         }
     }
 }
@@ -295,6 +305,11 @@ pub struct Checker<'a> {
     global_nodes: Vec<Node>,
     compile_time: Vec<Node>,
     context: FunctionContext,
+    /// Every error found so far, since checking carries on past one. (D207, D215)
+    errors: Vec<Report>,
+    /// Set when an error sits where how to carry on isn't decided, like an `if`'s line or a
+    /// function's header. Checking stops there, and what's still unwinding is already counted.
+    stopped: bool,
 }
 
 /// Compile-time work's limit, standing in for D89's "such as through a step limit".
@@ -304,8 +319,9 @@ const WHY_TYPES: &str = "`:` doesn't convert, and `as` builds a new value of ano
 /// memory, which rule 6 forbids.
 const ITEM_LIMIT: i128 = 16_000_000;
 
-/// trace: D72
-pub fn check(source: &str, program: &Program) -> Outcome<Code> {
+/// Checks the whole program, and gives every error it finds, in the order they appear.
+/// trace: D72, D207, D215
+pub fn check(source: &str, program: &Program) -> Result<Code, Vec<Report>> {
     let mut checker = Checker {
         source,
         imports: HashSet::new(),
@@ -326,8 +342,31 @@ pub fn check(source: &str, program: &Program) -> Outcome<Code> {
         global_nodes: Vec::new(),
         compile_time: Vec::new(),
         context: FunctionContext::outside_any_function(),
+        errors: Vec::new(),
+        stopped: false,
     };
-    checker.check_program(program)
+    let result = checker.check_program(program);
+    let stopped = checker.stopped;
+    let mut errors = checker.errors;
+    match result {
+        Ok(code) if errors.is_empty() => Ok(code),
+        Ok(_) => Err(in_order(errors)),
+        Err(report) => {
+            if !stopped {
+                errors.push(*report);
+            }
+            Err(in_order(errors))
+        }
+    }
+}
+
+/// Errors in the order they appear in the file, each once. (D207)
+pub fn in_order(mut errors: Vec<Report>) -> Vec<Report> {
+    errors.sort_by_key(|report| report.span.start);
+    errors.dedup_by(|later, earlier| {
+        later.span == earlier.span && later.what == earlier.what && later.why == earlier.why
+    });
+    errors
 }
 
 /// The items of a program, with those inside shields included.
@@ -363,20 +402,26 @@ impl Checker<'_> {
         self.check_globals(&items)?;
 
         let mut compiled = Vec::new();
-        // A definite refusal anywhere wins over an undecided thing elsewhere, because the program
-        // is wrong whichever way the undecided thing goes.
-        let mut undecided: Option<Box<Report>> = None;
+        // An error in a function's body was counted where it was found, and checking went on
+        // with the next statement. One in its header stops checking, since how to carry on
+        // past it isn't decided. (D207, D215)
         for function in &functions {
             match self.check_function(function) {
                 Ok(code) => compiled.push(code),
-                Err(report) if report.kind == Kind::NotDesignedYet => {
-                    undecided.get_or_insert(report);
+                Err(report) => {
+                    if !self.stopped {
+                        let body_start = function
+                            .body
+                            .first()
+                            .map_or(function.end_span.start, |statement| statement.span.start);
+                        self.stopped = report.span.start < body_start;
+                        self.errors.push(*report);
+                    }
+                    if self.stopped {
+                        return Err(Report::refused(function.span, "", ""));
+                    }
                 }
-                Err(report) => return Err(report),
             }
-        }
-        if let Some(report) = undecided {
-            return Err(report);
         }
         let main = self.find_main(&functions)?;
         Ok(Code {
@@ -863,7 +908,7 @@ impl Checker<'_> {
             "this file uses `std` without importing it",
             "everything gets imported, including `std` (D82)",
         )
-        .fix("import std;"))
+        .fix_elsewhere("import std;"))
     }
 
     /// trace: D82
@@ -876,7 +921,7 @@ impl Checker<'_> {
             format!("this file uses `@{limb}` without importing it"),
             "everything gets imported, including limbs (D82)",
         )
-        .fix(format!("import @{limb};")))
+        .fix_elsewhere(format!("import @{limb};")))
     }
 
     fn declare_type_names(&mut self, items: &[&Item]) -> Outcome<()> {
@@ -1075,7 +1120,7 @@ impl Checker<'_> {
                                     ),
                                     "a struct holding a `must_Give` value is `must_Give` itself, and nothing is implicit (D177, D3)",
                                 )
-                                .fix(format!("struct.must_Give {}", declaration.name.text)));
+                                .fix_elsewhere(format!("struct.must_Give {}", declaration.name.text)));
                             }
                         } else {
                             self.refuse_undecided_content(&field_type, field.written_type.span)?;
@@ -1383,11 +1428,10 @@ impl Checker<'_> {
                         TypeKind::StoredBorrow { inner, .. } => self.text_of(inner.span),
                         TypeKind::Named { .. } => "",
                     };
-                    let name = &parameter.name.text;
                     let fix = if *mutable {
-                        format!("${name}: Lent.mut {inner_text}")
+                        format!("Lent.mut {inner_text}")
                     } else {
-                        format!("${name}: {inner_text}")
+                        inner_text.to_string()
                     };
                     return Err(Report::refused(
                         parameter.written_type.span,

@@ -4,6 +4,7 @@
 #![warn(clippy::pedantic)]
 
 mod ast;
+mod cascade;
 mod check;
 mod ir;
 mod print;
@@ -14,27 +15,44 @@ mod types;
 
 use std::process::ExitCode;
 
-use report::{Outcome, Source};
+use report::{Report, Source};
 
 /// Deep but ordinary Cyborg recursion needs far more stack than the default, and running out would
 /// crash the oracle, which rule 6 forbids.
 const STACK_BYTES: usize = 2 * 1024 * 1024 * 1024;
 
-fn run_program(source: &Source) -> Outcome<()> {
-    let program = syntax::parse(&source.text)?;
-    let code = check::check(&source.text, &program)?;
-    run::check_compile_time(&code)?;
-    run::run(&code)
+/// Builds a program, or gives every error building found, in the order they appear. (D207)
+fn build(text: &str) -> Result<ir::Code, Vec<Report>> {
+    let (program, mut errors) = syntax::parse(text);
+    let Some(program) = program else {
+        return Err(check::in_order(errors));
+    };
+    let code = match check::check(text, &program) {
+        Ok(code) if errors.is_empty() => code,
+        Ok(_) => return Err(check::in_order(errors)),
+        Err(more) => {
+            errors.extend(more);
+            return Err(check::in_order(errors));
+        }
+    };
+    run::check_compile_time(&code).map_err(|report| vec![*report])?;
+    Ok(code)
 }
 
 fn run_and_report(source: &Source) -> ExitCode {
-    match run_program(source) {
-        Ok(()) => ExitCode::SUCCESS,
-        Err(report) => {
-            eprint!("{}", source.render(&report));
-            ExitCode::FAILURE
-        }
-    }
+    let errors = match build(&source.text) {
+        Ok(code) => match run::run(&code) {
+            Ok(()) => return ExitCode::SUCCESS,
+            Err(report) => vec![*report],
+        },
+        // trace: D207
+        Err(errors) => cascade::mark_cascades(&source.text, errors, |text| {
+            build(text).err().unwrap_or_default()
+        }),
+    };
+    let shown: Vec<String> = errors.iter().map(|report| source.render(report)).collect();
+    eprint!("{}", shown.join("\n"));
+    ExitCode::FAILURE
 }
 
 fn main() -> ExitCode {

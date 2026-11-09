@@ -127,7 +127,11 @@ impl Checker<'_> {
         }
         let (body, terminated) = self.check_block(&function.body)?;
         Self::check_function_end(function, terminated, &signature.return_type)?;
-        self.check_scope_end_at_function(function.end_span)?;
+        // A skipped `return` already has its error, which a duty left over would only repeat.
+        // trace: D215
+        if !self.context.skipped_exit {
+            self.check_scope_end_at_function(function.end_span)?;
+        }
         Ok(ir::Function {
             slot_count: self.context.variables.len(),
             result_slot,
@@ -311,12 +315,142 @@ impl Checker<'_> {
         let mut code = Vec::new();
         let mut terminated = false;
         for statement in statements {
-            let (instruction, ends) = self.check_statement(statement)?;
-            self.refuse_use_while_held()?;
-            code.push(instruction);
-            terminated = terminated || ends;
+            let before = self.statement_start();
+            let checked = self.check_statement(statement).and_then(|done| {
+                self.refuse_use_while_held()?;
+                Ok(done)
+            });
+            match checked {
+                Ok((instruction, ends)) => {
+                    code.push(instruction);
+                    terminated = terminated || ends;
+                }
+                Err(report) => {
+                    self.carry_on_past(statement, report, before)?;
+                    // A skipped `return` still leaves, so nothing after it is wrongly checked as
+                    // reachable, or its end as missing one. (D215)
+                    let exits = matches!(
+                        statement.kind,
+                        StatementKind::Return(_)
+                            | StatementKind::Fail { .. }
+                            | StatementKind::Break { .. }
+                            | StatementKind::Instead(_)
+                    );
+                    self.context.skipped_exit = self.context.skipped_exit || exits;
+                    terminated = terminated || exits;
+                }
+            }
         }
         Ok((code, terminated))
+    }
+
+    /// What a statement may change while it's checked, so a skipped one leaves none of it.
+    fn statement_start(&self) -> StatementStart {
+        StatementStart {
+            scopes: self.context.scopes.len(),
+            loops: self.context.loops.len(),
+            arms: self.context.arms.len(),
+            being_read: self.context.being_read.len(),
+            being_changed: self.context.being_changed.len(),
+            held_borrows: self.context.held_borrows.len(),
+            variables: self.context.variables.len(),
+            state: self.context.state.clone(),
+        }
+    }
+
+    /// After an error, checking skips only that statement and goes on with the next. A skipped
+    /// `let` or `decl` still creates its variable, with the type it wrote and no value. An error
+    /// in a line that opens a block stops checking, since how to carry on there isn't decided.
+    /// trace: D207, D215
+    fn carry_on_past(
+        &mut self,
+        statement: &Statement,
+        report: Box<Report>,
+        before: StatementStart,
+    ) -> Outcome<()> {
+        if self.stopped {
+            return Err(report);
+        }
+        let line = line_at(self.source, report.span.start);
+        // A line using a name whose type is unknown can't be checked, so it says nothing.
+        let says_nothing = self.context.unknown.iter().any(|name| mentions(line, name));
+        if line_opens_a_block(line) {
+            self.stopped = true;
+            if !says_nothing {
+                self.errors.push(*report);
+            }
+            return Err(Report::refused(statement.span, "", ""));
+        }
+        if !says_nothing {
+            self.errors.push(*report);
+        }
+        self.context.scopes.truncate(before.scopes);
+        self.context.loops.truncate(before.loops);
+        self.context.arms.truncate(before.arms);
+        self.context.being_read.truncate(before.being_read);
+        self.context.being_changed.truncate(before.being_changed);
+        self.context.held_borrows.truncate(before.held_borrows);
+        self.context.held_conflict = None;
+        for (slot, state) in before.state.into_iter().enumerate() {
+            if let Some(now) = self.context.state.get_mut(slot) {
+                *now = state;
+            }
+        }
+        // A variable this statement made before failing is made again, as a skipped one.
+        if let Some(scope) = self.context.scopes.last_mut() {
+            scope.retain(|_, slot| *slot < before.variables);
+        }
+        self.declare_skipped(statement);
+        Ok(())
+    }
+
+    fn declare_skipped(&mut self, statement: &Statement) {
+        let (mutable, name, written_type) = match &statement.kind {
+            StatementKind::Let {
+                mutable,
+                name,
+                written_type,
+                ..
+            }
+            | StatementKind::Decl {
+                mutable,
+                name,
+                written_type,
+            } => (*mutable, name, written_type),
+            // trace: D216
+            StatementKind::Inferred { name, .. } | StatementKind::Constant { name, .. } => {
+                self.context.unknown.insert(name.text.clone());
+                return;
+            }
+            _ => return,
+        };
+        if self.find_variable(&name.text).is_some_and(|slot| {
+            self.context
+                .scopes
+                .last()
+                .is_some_and(|scope| scope.values().any(|found| *found == slot))
+        }) {
+            return;
+        }
+        let Ok(held_type) = self.resolve_type(written_type) else {
+            self.context.unknown.insert(name.text.clone());
+            return;
+        };
+        let slot = self.declare_variable(Variable {
+            name: name.text.clone(),
+            held_type,
+            mutable,
+            origin: Origin::Owned,
+            declared: name.span,
+            must_give: false,
+            constant: None,
+            borrows: Vec::new(),
+            borrowed_path: Vec::new(),
+        });
+        if let Some(state) = self.context.state.get_mut(slot) {
+            state.filled = super::Filled::No;
+        }
+        self.context.skipped.insert(slot);
     }
 
     /// A stored borrow ends at its last use, so one whose source was used and which is never read
@@ -1229,8 +1363,9 @@ impl Checker<'_> {
                     "a function states which parameter lasts longer with `requires … lasts_at_least …;` (D171)",
                 );
                 if long_fill.starts_with('$') && short_fill.starts_with('$') {
-                    report =
-                        report.fix(format!("requires {long_fill} lasts_at_least {short_fill};"));
+                    report = report.fix_elsewhere(format!(
+                        "requires {long_fill} lasts_at_least {short_fill};"
+                    ));
                 }
                 return Err(report);
             }
@@ -1275,7 +1410,7 @@ impl Checker<'_> {
                         format!("nothing says `{long_fill}` lasts at least as long as `{short_fill}`"),
                         "a function states which parameter lasts longer with `requires … lasts_at_least …;` (D171)",
                     )
-                    .fix(format!("requires {long_fill} lasts_at_least {short_fill};")));
+                    .fix_elsewhere(format!("requires {long_fill} lasts_at_least {short_fill};")));
                 }
                 None => {
                     return Err(Report::not_designed(
@@ -3282,4 +3417,60 @@ fn join_moved(branches: &[Vec<VariableState>], index: usize) -> Vec<super::Moved
         });
     }
     joined
+}
+
+/// What a statement may change while it's checked, so a skipped one can leave none of it. (D215)
+struct StatementStart {
+    scopes: usize,
+    loops: usize,
+    arms: usize,
+    being_read: usize,
+    being_changed: usize,
+    held_borrows: usize,
+    variables: usize,
+    state: Vec<super::VariableState>,
+}
+
+/// The source line holding `at`.
+fn line_at(source: &str, at: usize) -> &str {
+    let at = at.min(source.len());
+    let start = source
+        .get(..at)
+        .and_then(|before| before.rfind('\n'))
+        .map_or(0, |found| found + 1);
+    let end = source
+        .get(at..)
+        .and_then(|after| after.find('\n'))
+        .map_or(source.len(), |found| at + found);
+    source.get(start..end).unwrap_or("")
+}
+
+/// Whether a line opens a block, as `if $a < 3:` and `let $n: i32 = read() otherwise:` do. A
+/// trailing `//` comment doesn't count, and `//` inside a string doesn't start one.
+fn line_opens_a_block(line: &str) -> bool {
+    let mut in_text = false;
+    let mut previous = ' ';
+    let mut code_end = line.len();
+    for (at, character) in line.char_indices() {
+        if character == '"' && previous != '\\' {
+            in_text = !in_text;
+        }
+        if !in_text && line.get(at..).is_some_and(|rest| rest.starts_with("//")) {
+            code_end = at;
+            break;
+        }
+        previous = character;
+    }
+    line.get(..code_end).unwrap_or("").trim_end().ends_with(':')
+}
+
+/// Whether a line uses `$name`, and not a longer name starting with it.
+fn mentions(line: &str, name: &str) -> bool {
+    let written = format!("${name}");
+    line.match_indices(&written).any(|(at, _)| {
+        !line
+            .get(at + written.len()..)
+            .and_then(|rest| rest.chars().next())
+            .is_some_and(|next| next.is_alphanumeric() || next == '_')
+    })
 }

@@ -1,0 +1,17 @@
+refused: d207_every_error.cy:7:19, line 7 column 19
+ 7 |     let $a: f64 = 0.1;
+   |                   ^^^
+ fix:  `~0.1`
+ why:  f64 can't hold 0.1 exactly (D59)
+
+refused: d207_every_error.cy:9:19, line 9 column 19
+ 9 |     let $c: i64 = $b;
+   |                   ^^
+ what: this is `i32`, where `i64` is needed
+ why:  `:` doesn't convert, and `as` builds a new value of another type (D7)
+
+refused: d207_every_error.cy:10:20, line 10 column 20
+10 |     let $d: bool = $b < "x";
+   |                    ^^^^^^^^
+ what: this compares `i32` and `str`
+ why:  `:` doesn't convert, and `as` builds a new value of another type (D7)

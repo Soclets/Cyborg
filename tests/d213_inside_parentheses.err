@@ -3,3 +3,9 @@ refused: d213_inside_parentheses.cy:8:19, line 8 column 19
    |                   ^^^^
  fix:  `($x`
  why:  a mark or a bracket touches what it goes with, so `( $x )`, `- $x` and `read() ?` are refused (D23, D213)
+
+refused: d213_inside_parentheses.cy:8:21, line 8 column 21
+ 8 |     let $y: i32 = ( $x ) + 1;
+   |                     ^^^^
+ fix:  `$x)`
+ why:  a mark or a bracket touches what it goes with, so `( $x )`, `- $x` and `read() ?` are refused (D23, D213)

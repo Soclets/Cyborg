@@ -1,0 +1,11 @@
+refused: d215_a_skipped_let_keeps_its_variable.cy:7:21, line 7 column 21
+ 7 |     let $sum: i32 = totl(5);
+   |                     ^^^^
+ what: the function `totl` isn't declared
+ why:  a function is declared with `fn` and `[ ]` (D23)
+
+refused: d215_a_skipped_let_keeps_its_variable.cy:8:5, line 8 column 5
+ 8 |     std::io::fmt_print("{}{newln}", $sum);
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ what: `$sum` never got a value
+ why:  a variable is read only after it has one (D203)

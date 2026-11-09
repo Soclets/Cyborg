@@ -1,0 +1,11 @@
+refused: d215_a_skipped_return_still_leaves.cy:8:12, line 8 column 12
+ 8 |     return $n x "two";
+   |            ^^^^^^^^^^
+ what: maths needs numbers, and this has `i32` and `str`
+ why:  `:` doesn't convert, and `as` builds a new value of another type (D7)
+
+refused: d215_a_skipped_return_still_leaves.cy:13:23, line 13 column 23
+13 |     let $wrong: i64 = $h;
+   |                       ^^
+ what: this is `i32`, where `i64` is needed
+ why:  `:` doesn't convert, and `as` builds a new value of another type (D7)

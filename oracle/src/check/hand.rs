@@ -47,6 +47,14 @@ impl Checker<'_> {
             .state
             .get(slot)
             .map_or(super::Filled::Yes, |state| state.filled);
+        // trace: D215
+        if filled != super::Filled::Yes && self.context.skipped.contains(&slot) {
+            return Err(Report::refused(
+                self.use_span(span),
+                format!("`${}` never got a value", variable.name),
+                "a variable is read only after it has one (D203)",
+            ));
+        }
         if filled != super::Filled::Yes {
             return Err(Report::refused(
                 self.use_span(span),

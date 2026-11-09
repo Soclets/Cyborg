@@ -1,0 +1,15 @@
+refused: d207_a_cascade.cy:7:19, line 7 column 19
+ 7 |     let $a: f64 = 0.1;
+   |                   ^^^
+ fix:  `~0.1`
+ why:  f64 can't hold 0.1 exactly (D59)
+
+refused: d207_a_cascade.cy:8:19, line 8 column 19
+ 8 |     let $b: f64 = $a;
+   |                   ^^
+ what: `$a` never got a value
+ why:  a variable is read only after it has one (D203)
+ because: d207_a_cascade.cy:7:19, line 7 column 19
+ 7 |     let $a: f64 = 0.1;
+   |                   ^^^
+     with `~0.1` here, this error goes away

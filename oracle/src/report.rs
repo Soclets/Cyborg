@@ -54,6 +54,9 @@ pub struct Report {
     pub span: Span,
     pub what: String,
     pub fix: Option<String>,
+    /// Whether the fix goes somewhere other than over this report's span, like a missing
+    /// `import std;`. Such a fix can't be applied in memory, so it finds no cascades. (D207)
+    pub fix_elsewhere: bool,
     pub why: String,
     pub when: Option<String>,
     pub because: Vec<Because>,
@@ -69,6 +72,7 @@ impl Report {
             span,
             what: what.into(),
             fix: None,
+            fix_elsewhere: false,
             why: why.into(),
             when: None,
             because: Vec::new(),
@@ -101,6 +105,9 @@ impl Report {
 pub trait ReportExtra {
     #[must_use]
     fn fix(self, code: impl Into<String>) -> Self;
+    /// A fix written somewhere other than over the report's span. (D207)
+    #[must_use]
+    fn fix_elsewhere(self, code: impl Into<String>) -> Self;
     #[must_use]
     fn when(self, values: impl Into<String>) -> Self;
     #[must_use]
@@ -110,6 +117,12 @@ pub trait ReportExtra {
 impl ReportExtra for Box<Report> {
     fn fix(mut self, code: impl Into<String>) -> Self {
         self.fix = Some(code.into());
+        self
+    }
+
+    fn fix_elsewhere(mut self, code: impl Into<String>) -> Self {
+        self.fix = Some(code.into());
+        self.fix_elsewhere = true;
         self
     }
 

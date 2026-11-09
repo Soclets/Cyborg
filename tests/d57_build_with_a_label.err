@@ -1,5 +1,5 @@
-refused: d57_build_with_a_label.cy:10:38, line 10 column 38
+refused: d57_build_with_a_label.cy:10:31, line 10 column 31
 10 |     let $r: reading = reading[celsius: 21];
-   |                                      ^
- fix:  `=`
+   |                               ^^^^^^^^
+ fix:  `celsius =`
  why:  building one uses `[ ]`, with `=` setting a field (D57)

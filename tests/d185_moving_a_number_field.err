@@ -3,3 +3,13 @@ refused: d185_moving_a_number_field.cy:23:19, line 23 column 19
    |                   ^^^^^^^^^^^^^
  fix:  `$l.lines`
  why:  plain numbers and `bool` are always copied, and take no word (D2, D123)
+
+refused: d185_moving_a_number_field.cy:24:5, line 24 column 5
+24 |     return void;
+   |     ^^^^^^^^^^^^
+ what: this leaves with `$l` never given away or finished
+ why:  a `must_Give` value is handed off with `Give` exactly once, or `finish` ends it (D2, D129)
+ because: d185_moving_a_number_field.cy:22:9, line 22 column 9
+22 |     let $l: log = log[file = open_file[fd = 4], lines = 7];
+   |         ^^
+     `$l` was made here

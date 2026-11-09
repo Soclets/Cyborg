@@ -3,3 +3,13 @@ NotDesignedYet: d177_finish_a_list.cy:21:12, line 21 column 12
    |            ^^^^^^
  what: `finish` on a collection of `must_Give` values
  why:  not decided yet, and the standard doesn't say
+
+refused: d177_finish_a_list.cy:22:5, line 22 column 5
+22 |     return void;
+   |     ^^^^^^^^^^^^
+ what: this leaves with `$files` never given away or finished
+ why:  a `must_Give` value is handed off with `Give` exactly once, or `finish` ends it (D2, D129)
+ because: d177_finish_a_list.cy:20:9, line 20 column 9
+20 |     let $files: std::list<open_file>[len.max: inf items] = [open(3)];
+   |         ^^^^^^
+     `$files` was made here

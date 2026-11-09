@@ -1,0 +1,11 @@
+NotDesignedYet: d215_a_skipped_decl.cy:11:14, line 11 column 14
+11 |     decl $x: open_file;
+   |              ^^^^^^^^^
+ what: `decl` of `open_file`, which has a duty or a borrow
+ why:  not decided yet, and the standard doesn't say
+
+refused: d215_a_skipped_decl.cy:13:19, line 13 column 19
+13 |     let $n: i64 = $x.fd;
+   |                   ^^^^^
+ what: this is `i32`, where `i64` is needed
+ why:  `:` doesn't convert, and `as` builds a new value of another type (D7)

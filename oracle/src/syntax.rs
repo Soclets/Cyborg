@@ -745,7 +745,7 @@ fn lex(source: &str) -> Outcome<Vec<Token>> {
                     "a doc comment goes on its own line, above what it describes",
                     "a `///` sits above what it describes, so it can't trail code, though a `//` can (D206, D205)",
                 )
-                .fix(doc.to_string()));
+                .fix_elsewhere(doc.to_string()));
             }
             position = skip_line_comment(source, position)?;
             continue;
@@ -1008,15 +1008,22 @@ fn lex_number(source: &str, position: &mut usize) -> Outcome<Lexeme> {
 }
 
 /// trace: D33
-pub fn parse(source: &str) -> Outcome<Program> {
+/// The program, when it parses, and every error found reading it. A spacing error doesn't stop
+/// the parse, so a program can come back with errors. Any other error stops it, so it's the last.
+/// trace: D207, D213
+pub fn parse(source: &str) -> (Option<Program>, Vec<Report>) {
     if source.starts_with('\u{feff}') {
-        return Err(Report::not_designed(
+        let report = Report::not_designed(
             Span::new(0, 3),
             "a byte order mark at the start of a source file",
             "",
-        ));
+        );
+        return (None, vec![*report]);
     }
-    let tokens = lex(source)?;
+    let tokens = match lex(source) {
+        Ok(tokens) => tokens,
+        Err(report) => return (None, vec![*report]),
+    };
     let mut parser = Parser {
         tokens,
         position: 0,
@@ -1026,17 +1033,30 @@ pub fn parse(source: &str) -> Outcome<Program> {
         spacing: Vec::new(),
     };
     let result = parser.parse_program();
-    // A spacing error doesn't stop parsing, so the first error in the file is whichever comes
-    // first: a spacing error, or what stopped the parse. A refusal beats a `NotDesignedYet`
-    // at the same place, since it judges a gap the other only says no rule covers.
-    let spacing = parser
+    // Several spaces that a rule judges are that rule's refusal, so the `NotDesignedYet` saying
+    // no rule covers them goes. (D213)
+    let refusals: Vec<Span> = parser
+        .spacing
+        .iter()
+        .filter(|report| report.kind == Kind::Refused)
+        .map(|report| report.span)
+        .collect();
+    let mut errors: Vec<Report> = parser
         .spacing
         .into_iter()
-        .min_by_key(|report| (report.span.start, report.kind != Kind::Refused));
-    match (result, spacing) {
-        (Ok(_), Some(report)) => Err(Box::new(report)),
-        (Err(error), Some(report)) if report.span.start < error.span.start => Err(Box::new(report)),
-        (result, _) => result,
+        .filter(|report| {
+            report.kind == Kind::Refused
+                || !refusals
+                    .iter()
+                    .any(|span| span.start <= report.span.start && report.span.end <= span.end)
+        })
+        .collect();
+    match result {
+        Ok(program) => (Some(program), errors),
+        Err(report) => {
+            errors.push(*report);
+            (None, errors)
+        }
     }
 }
 
@@ -1465,9 +1485,9 @@ impl Parser {
         let bare = short.text.trim_start_matches('%');
         let mark = "%".repeat(path_marks);
         let fix = if quoted {
-            format!("as {mark}\"{bare}\"")
+            format!("{mark}\"{bare}\"")
         } else {
-            format!("as {mark}{bare}")
+            format!("{mark}{bare}")
         };
         let span = percent_span.to(short.span);
         let method = path_marks > 0;
@@ -1672,7 +1692,7 @@ impl Parser {
             "this file doesn't say its rules",
             "every file's first line is `@config(…);` or `@match_config(…);`, and the compiler's defaults are `@config(default);` (D201, D204)",
         )
-        .fix(format!("{RULES_DEFAULT};"))
+        .fix_elsewhere(format!("{RULES_DEFAULT};"))
     }
 
     /// `@config`, `@match_config`, `@tighten_config` or `@loosen_config`, when one is next.
@@ -1936,10 +1956,11 @@ impl Parser {
                 written,
             ));
         }
+        let keyword_span = self.previous_span();
         let name = self.expect_name(what)?;
         if keyword == "fn" && name.text == "main" {
             return Err(Report::refused(
-                name.span,
+                keyword_span.to(name.span),
                 "a program starts at `fn.main`, and a function named `main` is `fn my::main`",
                 "`main` clashes, so a plain `fn main` is refused (D214, D11)",
             )
@@ -1951,7 +1972,7 @@ impl Parser {
                 format!("`{}` clashes, so its declaration says `my::` too", name.text),
                 "a clashing name is written `my::x` everywhere, its declaration and closer included (D214, D75)",
             )
-            .fix(format!("{keyword} my::{}", name.text)));
+            .fix(format!("my::{}", name.text)));
         }
         let written = name.text.clone();
         Ok((name, written))
@@ -2145,7 +2166,7 @@ impl Parser {
                         "`fails` goes in the header, after the return type",
                         "the header says a function can fail, so its failures are listed there (D209)",
                     )
-                    .fix(format!("{header_text} {listed}:")));
+                    .fix_elsewhere(format!("{header_text} {listed}:")));
                 }
             }
         }
@@ -4245,11 +4266,11 @@ impl Parser {
             if self.at_symbol(":") {
                 // trace: D57
                 return Err(Report::refused(
-                    self.span(),
+                    name.span.to(self.span()),
                     "`=` sets a field",
                     "building one uses `[ ]`, with `=` setting a field (D57)",
                 )
-                .fix("="));
+                .fix(format!("{} =", name.text)));
             }
             self.expect_symbol("=")?;
             let value = self.parse_expression()?;

@@ -1,5 +1,5 @@
 refused: d175_stored_borrow_as_a_parameter.cy:8:11, line 8 column 11
  8 | fn f [$b: Lend from program reading] -> void:
    |           ^^^^^^^^^^^^^^^^^^^^^^^^^
- fix:  `$b: reading`
+ fix:  `reading`
  why:  a bare parameter is already lent, and `Lent.mut` already is the changing one (D175)

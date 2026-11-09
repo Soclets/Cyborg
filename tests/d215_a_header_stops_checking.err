@@ -1,0 +1,5 @@
+refused: d215_a_header_stops_checking.cy:6:14, line 6 column 14
+ 6 | fn half [$n: nope] -> i32:
+   |              ^^^^
+ what: the type `nope` isn't known
+ why:  a type is built in, or declared with `struct` or `union.tagged` (D33, D57)
