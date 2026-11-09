@@ -867,6 +867,8 @@ a placeholder for a version that isn't correctly rounded. A float prints as the 
 
 **D196. `std` has groups, with `::`.** `std` is grouped, as in `std::io::` and `std::math::sin`, and `use` shortens a long path. `::` is for paths, which never run anything, and a `.` after a function is a narrowing, as in `std::io::fmt_print.stderr`. This replaces D161's flat `std`, which the owner had doubted then: "it might wanna be with `::`". `std::math.sin` stays refused, now with `fix: std::math::sin`. A family is still one level deep. Which groups `std` has, and what the print is called, are not settled here. The owner proposed `std::io::fmt_print`, saying "`::` only appears where it doesn't run anything"; Claude asked whether that replaces the flat `std`; the owner chose: "Yes, because there's `use` to reduce the pain." (Owner, 2026-11-09)
 
+**D197. The print is `std::io::fmt_print`.** It's in `std`'s `io` group, and `fmt_` warns that `{` is special inside the text, so a plain `std::io::fmt_print("{")` is refused, and a brace is written `\{`, with `\` to escape, as D194 has it. Its narrowings stay: `std::io::fmt_print.stored` and `std::io::fmt_print.stderr`. This replaces D194's name, `std::print`. `std::sin` is `std::math::sin` under D196. Claude proposed `std::io::print`; the owner chose: "`fmt_print`. Btw, `\` to esc, `\{`". (Owner, 2026-11-09)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude

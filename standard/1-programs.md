@@ -9,7 +9,7 @@
 | [1.5](#15-paths-) | `::` | How you reach a kit or limb |
 | [1.11](#111-short-names-use) | `use … as …;` | A shorter name for a path |
 | [1.12](#112-comments) | `//`, `///`, `comment` | Notes and documentation |
-| [1.13](#113-printing-stdprint) | `std::print` | The one print, a format print |
+| [1.13](#113-printing-stdiofmt_print) | `std::io::fmt_print` | The one print, a format print |
 | [1.6](#16-narrowings-) | `.` | Makes the thing before it more specific |
 | [1.7](#17-bare-names) | Bare names | The obvious default, or nothing |
 | [1.8](#18-brackets) | `( )`, `[ ]`, `< >` | Runs, describes, fills in |
@@ -30,7 +30,7 @@
 import std;
 
 fn.main [] -> void:
-    std::print("hi{newln}");
+    std::io::fmt_print("hi{newln}");
     return void;
 end fn.main
 ```
@@ -59,7 +59,7 @@ end if
 
 ```
 let $r: reading = reading[celsius = 21, time = 3600 std::time.seconds];
-std::print("{}{newln}", $r.celsius);
+std::io::fmt_print("{}{newln}", $r.celsius);
 ```
 
 **From:** D57, D58, the sketch.
@@ -72,7 +72,7 @@ std::print("{}{newln}", $r.celsius);
 import std;
 import @csup;
 
-std::print("hi{newln}");
+std::io::fmt_print("hi{newln}");
 ```
 
 A file imports the half of a package it uses: `import std;` for `std::`, and `import @std;` for `@std::`. `import pkg std;` brings in both.
@@ -102,11 +102,11 @@ A default the language or `std` fixes can't be written out. In a collection you 
 
 ```
 let $a: str = "hi";
-std::print("hi{newln}");
+std::io::fmt_print("hi{newln}");
 7 div.trunc 2
 ```
 
-**Refused:** `str.utf8`, `std::print.stdout`, a bare `div` on integers, and a bare `mod`.
+**Refused:** `str.utf8`, `std::io::fmt_print.stdout`, a bare `div` on integers, and a bare `mod`.
 
 **From:** D48, D50, D51, D97, D164.
 
@@ -167,7 +167,7 @@ If Cyborg later adds a built-in with the same name, old code gets a compile erro
 
 ```
 use std::time.seconds as seconds;
-use std::print as "say";
+use std::io::fmt_print as "say";
 
 let $a: i32.seconds = 3600 seconds;
 say("hi{newln}");
@@ -214,16 +214,16 @@ end comment why_sorted
 
 **From:** D118, D119.
 
-## 1.13 Printing: `std::print`
+## 1.13 Printing: `std::io::fmt_print`
 
-**Rule:** `std` has one print, `std::print`, and it's always a format print. Plain text is a format with no holes. A newline is `{newln}` and a tab is `{tab}`, inside the text.
+**Rule:** `std` has one print, `std::io::fmt_print`, and it's always a format print. Plain text is a format with no holes. A newline is `{newln}` and a tab is `{tab}`, inside the text.
 
 ```
-std::print("hi{newln}");
-std::print("{}: {} at ${places: 2}{newln}", $name, $count, $price);
-std::print("0x{base: hex.upper, zeros, width: 4 cols}{newln}", 255);
-std::print("[{align: right, width: 6 cols}] {form: science, places: 2}{newln}", 42, 12.5);
-std::print.stored("{}{newln}", $tenth);
+std::io::fmt_print("hi{newln}");
+std::io::fmt_print("{}: {} at ${places: 2}{newln}", $name, $count, $price);
+std::io::fmt_print("0x{base: hex.upper, zeros, width: 4 cols}{newln}", 255);
+std::io::fmt_print("[{align: right, width: 6 cols}] {form: science, places: 2}{newln}", 42, 12.5);
+std::io::fmt_print.stored("{}{newln}", $tenth);
 ```
 
 With `$name` as `"rope"`, `$count` as `3`, `$price` as `12.5` and `$tenth` as an `f64` holding `~0.1`, these print `hi`, `rope: 3 at $12.50`, `0x00FF`, `[    42] 1.25e1`, and `0.1000000000000000055511151231257827021181583404541015625`.
@@ -233,10 +233,10 @@ With `$name` as `"rope"`, `$count` as `3`, `$price` as `12.5` and `$tenth` as an
 - **Escapes in the text:** `\\`, `\"`, `\'`, `\r`, `\0`, `\xHH`, `\uHHHH`, `\UHHHHHHHH`, and `\{` and `\}` for a brace.
 - **Too wide:** a value wider than its width prints whole.
 - **`.stored`:** prints every float exactly as it's stored.
-- **`.stderr`:** prints to stderr instead of stdout, as in `std::print.stderr("failed{newln}");`.
+- **`.stderr`:** prints to stderr instead of stdout, as in `std::io::fmt_print.stderr("failed{newln}");`.
 
 A literal format is checked when building.
 
-**Refused:** `\n`, with `fix: {newln}`; `{0}`; mixing plain and numbered holes; more or fewer values than holes; a shape that doesn't apply, like `places:` on an integer; a width with no unit; `zeros` with no width; a shape written twice; an unknown escape; `std::print.stdout`, since stdout is the default, and `std::println`, with `fix: std::print`.
+**Refused:** a bare `{` in the text, with `fix: \{`; `\n`, with `fix: {newln}`; `{0}`; mixing plain and numbered holes; more or fewer values than holes; a shape that doesn't apply, like `places:` on an integer; a width with no unit; `zeros` with no width; a shape written twice; an unknown escape; `std::io::fmt_print.stdout`, since stdout is the default, and `std::io::fmt_println`, with `fix: std::io::fmt_print`.
 
-**From:** D11, D50, D51, D122, D162, D165, D194, D195, and CyborgPL's format print.
+**From:** D11, D50, D51, D122, D162, D165, D194, D195, D197, and CyborgPL's format print.

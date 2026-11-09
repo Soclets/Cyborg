@@ -192,11 +192,11 @@ A stored borrow ends at its last use. `.held` makes it last until the end of its
 ```
 let mut $r: reading = reading[celsius = 21, time = 3600 std::time.seconds];
 let $view: Lend from $r reading = Lend $r;
-std::print("{}{newln}", $view.celsius);
+std::io::fmt_print("{}{newln}", $view.celsius);
 change $r.celsius = 22;
 
 let $lock: Lend.held from $r reading = Lend $r;
-std::print("{}{newln}", $lock.celsius);
+std::io::fmt_print("{}{newln}", $lock.celsius);
 ```
 
 The `change` is fine, because `$view` isn't used after the print. After `$lock`, nothing can change `$r` until the block ends. `Lend.mut.held` works the same way, and `held` is a placeholder name.
