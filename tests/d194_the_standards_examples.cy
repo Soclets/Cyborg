@@ -1,5 +1,4 @@
-// The standard's five prints, with their exact output. Its fourth prints a bare `12.5`, which
-// gives NotDesignedYet as a value with no type around it, so this gives it `$price`, which is 12.5.
+// The standard's five prints, with their exact output.
 // trace: D194, D197, D162
 @config(default);
 import std;

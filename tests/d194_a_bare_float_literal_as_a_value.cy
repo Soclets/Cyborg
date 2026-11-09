@@ -1,4 +1,4 @@
-// The standard's fourth example prints `12.5` with nothing saying which float it is.
+// A bare float literal as a value says nothing about which float it is.
 // trace: D194, D59
 @config(default);
 import std;
