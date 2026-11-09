@@ -923,6 +923,8 @@ a placeholder for a version that isn't correctly rounded. A float prints as the 
 
 **D224. `okay comp` and `okay run`.** `okay comp` compiles and leaves a program, and `okay run` compiles and runs it. The build mode is a flag of its own, as in `okay comp --FinalShit`, replacing `--mode` in D26, and one mode flag is still required every time. `--max_cores=` takes a number, `max` or `min`, and leaving it out means `max`, since a missing core count can't hide a mistake. Flags use underscores, matching Cyborg's names. This replaces `okay build` from D222. Other commands and flags are not settled here. The owner proposed `okay comp/run --FinalShit --max_cores=10/max/min`; Claude proposed `max` as the default; the owner chose: "yup". (Owner, 2026-11-09)
 
+**D225. `extern.c` is gone from the examples.** `@csup::extern.c` came from the owner's example in D93, after Rust's `extern "C"`, but it was never defined, and calls like `c("hi")` meant nothing. The standard now shows a limb's short name with `use @csup::union.untagged as untagged;`, which 9.6 already uses. How a C function is declared and called through `@csup` is not designed, and whether D220 covers a limb function's narrowing waits until it is. Oracle claude asked whether D220 applies to `use @csup::extern.c as c;`; the owner asked "What in the cursed fuck is `extern.c()`?"; Claude proposed dropping it; the owner chose: "yea". (Owner, 2026-11-09)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude
