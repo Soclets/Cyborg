@@ -869,6 +869,8 @@ a placeholder for a version that isn't correctly rounded. A float prints as the 
 
 **D197. The print is `std::io::fmt_print`.** It's in `std`'s `io` group, and `fmt_` warns that `{` is special inside the text, so a plain `std::io::fmt_print("{")` is refused, and a brace is written `\{`, with `\` to escape, as D194 has it. Its narrowings stay: `std::io::fmt_print.stored` and `std::io::fmt_print.stderr`. This replaces D194's name, `std::print`. `std::sin` is `std::math::sin` under D196. Claude proposed `std::io::print`; the owner chose: "`fmt_print`. Btw, `\` to esc, `\{`". (Owner, 2026-11-09)
 
+**D198. Importing one thing.** `import std::io::fmt_print;` imports only that one thing, so the file can reach nothing else from `std`, unlike `import std;`. It doesn't give a short name: the file still writes `std::io::fmt_print(…)`, or adds a `use`. Not settled here: whether a file may have both `import std;` and an import of one of its things, and how this works with `@` and `pkg`. The owner proposed it; Claude asked whether it also shortens the name; the owner chose: "It just imports that thing specifically, only. Unlike `import std;`". (Owner, 2026-11-09)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude
