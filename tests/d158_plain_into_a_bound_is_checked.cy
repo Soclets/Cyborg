@@ -4,8 +4,8 @@ import std;
 
 fn.main [] -> void:
     let $x: f64 = 130.5;
-    std::println("before");
+    std::io::fmt_print("before{newln}");
     let $t: f64[min: -40.0, max: 125.0] = $x;
-    std::println("after");
+    std::io::fmt_print("after{newln}");
     return void;
 end fn.main

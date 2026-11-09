@@ -3,8 +3,8 @@ import std;
 @config(default);
 
 fn.main [] -> void:
-    std::println(first() as str);
-    std::println($later as str);
+    std::io::fmt_print("{}{newln}", first());
+    std::io::fmt_print("{}{newln}", $later);
     return void;
 end fn.main
 

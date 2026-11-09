@@ -4,8 +4,8 @@ import std;
 
 fn.main [] -> void:
     let $z: i32 = 0;
-    std::println("before");
+    std::io::fmt_print("before{newln}");
     let $a: i32 = 1 div.trunc $z;
-    std::println("after");
+    std::io::fmt_print("after{newln}");
     return void;
 end fn.main

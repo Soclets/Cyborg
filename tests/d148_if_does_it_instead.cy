@@ -6,7 +6,7 @@ fn.main [] -> void:
     let $start: i32 = 150;
     if $start: i32[min: 100, max: 200]:
         for $i in range[from: $start, to: 151]:
-            std::println($i as str);
+            std::io::fmt_print("{}{newln}", $i);
         end for
     end if
     return void;

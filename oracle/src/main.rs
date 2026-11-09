@@ -6,6 +6,7 @@
 mod ast;
 mod check;
 mod ir;
+mod print;
 mod report;
 mod run;
 mod syntax;

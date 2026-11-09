@@ -18,6 +18,6 @@ end fn shown
 fn.main [] -> void:
     let $a: reading = reading[celsius = 9];
     let $v: view<`text`: $a> = view[words = Lend $a];
-    std::println(shown(Lend $v) as str);
+    std::io::fmt_print("{}{newln}", shown(Lend $v));
     return void;
 end fn.main

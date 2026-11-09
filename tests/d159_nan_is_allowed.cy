@@ -10,6 +10,6 @@ fn.main [] -> void:
     end for
     let $nan: f64.ieee = $x - $x;
     let $same: f64.ieee = $nan + 1.0;
-    std::println("still running");
+    std::io::fmt_print("still running{newln}");
     return void;
 end fn.main

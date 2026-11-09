@@ -1,0 +1,5 @@
+refused: d194_println_is_gone_with_its_narrowings.cy:6:5, line 6 column 5
+ 6 |     std::println.stdout("hi");
+   |     ^^^^^^^^^^^^^^^^^^^
+ what: `std::println.stdout` is gone, and `std` has one print
+ why:  `std::io::fmt_print` is the one print, a format print, with `{newln}` for a newline (D194, D197)

@@ -6,7 +6,7 @@ import std;
 /// Says hello.
 fn hello [] -> void:
     // a note inside
-    std::println("hello"); // and one after code
+    std::io::fmt_print("hello{newln}"); // and one after code
     //
     return void;
 end fn hello

@@ -10,7 +10,7 @@ end fn eat
 fn.main [] -> void:
     let $s: str = "a";
     if 1 < 2:
-        std::println(Lend $s);
+        std::io::fmt_print("{}{newln}", $s);
     else if eat(Give $s):
         return void;
     end if

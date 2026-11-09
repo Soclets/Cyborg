@@ -14,6 +14,6 @@ type.new rewrapped = wrapped;
 fn.main [] -> void:
     let $r: reading = reading[celsius = 1];
     let $w: rewrapped = Give $r as wrapped as rewrapped;
-    std::println("ok");
+    std::io::fmt_print("ok{newln}");
     return void;
 end fn.main

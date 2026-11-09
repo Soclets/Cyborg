@@ -5,7 +5,7 @@ import std;
 fn wait [$t: i32.std::time.seconds] -> void:
     labels [$t as for.std::time.seconds];
 
-    std::println(($t as i32) as str);
+    std::io::fmt_print("{}{newln}", ($t as i32));
     return void;
 end fn wait
 

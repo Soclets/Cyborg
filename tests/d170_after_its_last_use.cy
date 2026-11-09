@@ -17,8 +17,8 @@ fn.main [] -> void:
     let $x: reading = reading[celsius = 21];
     let mut $y: reading = reading[celsius = 25];
     let $w: Lend from <$x, $y> reading = warmer(Lend $x, Lend $y);
-    std::println($w.celsius as str);
+    std::io::fmt_print("{}{newln}", $w.celsius);
     change $y.celsius = 0;
-    std::println($y.celsius as str);
+    std::io::fmt_print("{}{newln}", $y.celsius);
     return void;
 end fn.main

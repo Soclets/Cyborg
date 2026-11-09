@@ -9,7 +9,7 @@ struct pair:
 end struct pair
 
 fn eat [$s: Given str] -> void:
-    std::println(Lend $s);
+    std::io::fmt_print("{}{newln}", $s);
     return void;
 end fn eat
 

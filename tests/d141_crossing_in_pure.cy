@@ -10,6 +10,6 @@ fn.pure raw [$u: user_id] -> i64:
 end fn.pure raw
 
 fn.main [] -> void:
-    std::println(raw(3) as str);
+    std::io::fmt_print("{}{newln}", raw(3));
     return void;
 end fn.main

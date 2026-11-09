@@ -11,6 +11,6 @@ type.new wrapped = reading;
 fn.main [] -> void:
     let $r: reading = reading[celsius = 1];
     let $w: wrapped = Copy $r as wrapped;
-    std::println($r.celsius as str);
+    std::io::fmt_print("{}{newln}", $r.celsius);
     return void;
 end fn.main

@@ -13,7 +13,7 @@ fn.main [] -> void:
     let $w: wrapped = Copy $r as wrapped;
     change $r.celsius = 9;
     let $back: reading = Give $w as reading;
-    std::println($back.celsius as str);
-    std::println($r.celsius as str);
+    std::io::fmt_print("{}{newln}", $back.celsius);
+    std::io::fmt_print("{}{newln}", $r.celsius);
     return void;
 end fn.main

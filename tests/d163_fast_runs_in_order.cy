@@ -6,6 +6,6 @@ import std;
 fn.main [] -> void:
     let $a: f64.fast = 1.5;
     let $b: f64.fast = $a + $a x 2.0;
-    std::println("ran");
+    std::io::fmt_print("ran{newln}");
     return void;
 end fn.main

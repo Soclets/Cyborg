@@ -1,5 +1,5 @@
 NotDesignedYet: d161_sin_isnt_in_yet.cy:8:19, line 8 column 19
- 8 |     let $y: f64 = std::sin($x);
-   |                   ^^^^^^^^
- what: `std::sin`, since `std`'s full contents aren't chosen
+ 8 |     let $y: f64 = std::math::sin($x);
+   |                   ^^^^^^^^^^^^^^
+ what: `std::math::sin`, since `std`'s full contents aren't chosen
  why:  not decided yet, and the standard doesn't say

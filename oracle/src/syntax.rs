@@ -1,5 +1,6 @@
 //! How Cyborg is written: the one place that knows spelling, so a spelling change stays small.
 
+use crate::ast::{Align, Base, FormatPiece, Hole, Shapes, WidthUnit};
 use crate::ast::{
     Argument, Arm, BinaryOperator, BorrowSources, CompareOperator, Contract, Describe, Expression,
     ExpressionKind, FailureEntry, FailureSet, FieldDeclaration, FieldValue, Fill, ForSource,
@@ -90,6 +91,299 @@ const CLASHING_WORDS: &[&str] = &[
 /// trace: D75
 pub fn is_clashing(word: &str) -> bool {
     CLASHING_WORDS.contains(&word)
+}
+
+/// Reads a format print's text, whose first character is at `start` in the file. Its escapes,
+/// holes and shapes are all spelled here. (D194, D197)
+/// trace: D194, D197
+#[allow(clippy::too_many_lines)] // The whole little language of a format, read in one pass.
+pub fn parse_format(raw: &str, start: usize) -> Outcome<Vec<FormatPiece>> {
+    let mut pieces: Vec<FormatPiece> = Vec::new();
+    let mut text = String::new();
+    let mut characters = raw.char_indices().peekable();
+    let span_of = |from: usize, to: usize| Span::new(start + from, start + to);
+    while let Some((at, character)) = characters.next() {
+        match character {
+            '\\' => {
+                let Some((_, escape)) = characters.next() else {
+                    return Err(Report::refused(
+                        span_of(at, at + 1),
+                        "this `\\` escapes nothing",
+                        "a `\\` starts an escape, as in `\\\\` or `\\{` (D194, D197)",
+                    ));
+                };
+                let mut hex = |count: usize| -> Option<u32> {
+                    let mut digits = String::new();
+                    for _ in 0..count {
+                        let (_, digit) = characters.next()?;
+                        digits.push(digit);
+                    }
+                    u32::from_str_radix(&digits, 16).ok()
+                };
+                let read = match escape {
+                    '\\' => Some('\\'),
+                    '"' => Some('"'),
+                    '\'' => Some('\''),
+                    'r' => Some('\r'),
+                    '0' => Some('\0'),
+                    '{' => Some('{'),
+                    '}' => Some('}'),
+                    'x' => match hex(2) {
+                        Some(value) if value < 0x80 => char::from_u32(value),
+                        Some(_) => {
+                            return Err(Report::not_designed(
+                                span_of(at, at + 4),
+                                "`\\x` above `7F`, which isn't one character in UTF-8",
+                                "12.2",
+                            ));
+                        }
+                        None => None,
+                    },
+                    'u' | 'U' => {
+                        let digits = if escape == 'u' { 4 } else { 8 };
+                        match hex(digits) {
+                            Some(value) => match char::from_u32(value) {
+                                Some(found) => Some(found),
+                                None => {
+                                    return Err(Report::refused(
+                                        span_of(at, at + 2 + digits),
+                                        format!("`{value:X}` isn't a character"),
+                                        "`\\uHHHH` and `\\UHHHHHHHH` give a character by its number (D194)",
+                                    ));
+                                }
+                            },
+                            None => None,
+                        }
+                    }
+                    'n' => {
+                        return Err(Report::refused(
+                            span_of(at, at + 2),
+                            "a newline in a format is `{newln}`",
+                            "a newline and a tab are words inside the text, `{newln}` and `{tab}` (D194)",
+                        )
+                        .fix("{newln}"));
+                    }
+                    _ => {
+                        return Err(Report::refused(
+                            span_of(at, at + 1 + escape.len_utf8()),
+                            format!("`\\{escape}` isn't an escape"),
+                            "the escapes are `\\\\ \\\" \\' \\r \\0 \\xHH \\uHHHH \\UHHHHHHHH`, and `\\{` and `\\}` for a brace (D194, D197)",
+                        ));
+                    }
+                };
+                let Some(read) = read else {
+                    return Err(Report::refused(
+                        span_of(at, at + 2),
+                        format!("`\\{escape}` needs hex digits for a character"),
+                        "`\\xHH`, `\\uHHHH` and `\\UHHHHHHHH` give a character by its number (D194)",
+                    ));
+                };
+                text.push(read);
+            }
+            '{' => {
+                let mut content = String::new();
+                let mut close = None;
+                for (inside_at, inside) in characters.by_ref() {
+                    if inside == '}' {
+                        close = Some(inside_at);
+                        break;
+                    }
+                    content.push(inside);
+                }
+                let Some(close) = close else {
+                    return Err(Report::refused(
+                        span_of(at, at + 1),
+                        "a bare `{` in a format",
+                        "`fmt_` says `{` starts a hole, so a brace in the text is `\\{` (D197)",
+                    )
+                    .fix("\\{"));
+                };
+                let span = span_of(at, close + 1);
+                match content.trim() {
+                    "newln" => text.push('\n'),
+                    "tab" => text.push('\t'),
+                    inner => {
+                        if !text.is_empty() {
+                            pieces.push(FormatPiece::Text(std::mem::take(&mut text)));
+                        }
+                        pieces.push(FormatPiece::Hole(parse_hole(inner, span)?));
+                    }
+                }
+            }
+            '}' => {
+                return Err(Report::not_designed(
+                    span_of(at, at + 1),
+                    "a bare `}` in a format's text",
+                    "12.2",
+                ));
+            }
+            other => text.push(other),
+        }
+    }
+    if !text.is_empty() {
+        pieces.push(FormatPiece::Text(text));
+    }
+    Ok(pieces)
+}
+
+/// What's inside a hole's `{ }`: nothing, a number, or its shapes. (D194)
+fn parse_hole(inner: &str, span: Span) -> Outcome<Hole> {
+    let mut shapes = Shapes::default();
+    if inner.is_empty() {
+        return Ok(Hole {
+            number: None,
+            shapes,
+            span,
+        });
+    }
+    if inner.chars().all(|c| c.is_ascii_digit()) {
+        let number: usize = inner.parse().unwrap_or(usize::MAX);
+        if number == 0 {
+            return Err(Report::refused(
+                span,
+                "numbered holes count from 1",
+                "`{1}`, `{2}` are numbered holes, counting from 1 (D194)",
+            )
+            .fix("{1}"));
+        }
+        return Ok(Hole {
+            number: Some(number),
+            shapes,
+            span,
+        });
+    }
+    let mut parts = inner.split(',').map(str::trim);
+    if inner
+        .split(',')
+        .next()
+        .is_some_and(|first| first.trim().chars().all(|c| c.is_ascii_digit()))
+    {
+        let _ = parts.next();
+        return Err(Report::not_designed(
+            span,
+            "shapes on a numbered hole, and how they're written",
+            "12.2",
+        ));
+    }
+    for part in parts {
+        let (word, value) = match part.split_once(':') {
+            Some((word, value)) => (word.trim(), Some(value.trim())),
+            None => (part, None),
+        };
+        let name: &'static str = match word {
+            "align" => "align:",
+            "width" => "width:",
+            "places" => "places:",
+            "base" => "base:",
+            "form" => "form:",
+            "zeros" => "zeros",
+            "sign" => "sign",
+            _ => {
+                return Err(Report::refused(
+                    span,
+                    format!("`{part}` isn't a shape"),
+                    "the shapes are `align:`, `width:`, `places:`, `base:`, `form:`, `zeros` and `sign` (D194)",
+                ));
+            }
+        };
+        if shapes.written.iter().any(|(found, _)| *found == name) {
+            return Err(Report::refused(
+                span,
+                format!("`{name}` is written twice in this hole"),
+                "each shape is written once (D194)",
+            ));
+        }
+        shapes.written.push((name, span));
+        parse_shape(&mut shapes, name, value, part, span)?;
+    }
+    if shapes.zeros && shapes.width.is_none() {
+        return Err(Report::refused(
+            span,
+            "`zeros` needs a width to fill",
+            "`zeros` pads a value to its width (D194)",
+        ));
+    }
+    Ok(Hole {
+        number: None,
+        shapes,
+        span,
+    })
+}
+
+/// One shape inside a hole, such as `width: 8 cols`. (D194)
+fn parse_shape(
+    shapes: &mut Shapes,
+    name: &str,
+    value: Option<&str>,
+    part: &str,
+    span: Span,
+) -> Outcome<()> {
+    let bad = |what: String| {
+        Report::refused(span, what, "shapes are words, as in `width: 8 cols` (D194)")
+    };
+    match (name, value) {
+        ("zeros", None) => shapes.zeros = true,
+        ("sign", None) => shapes.sign = true,
+        ("align:", Some(value)) => {
+            shapes.align = Some(match value {
+                "left" => Align::Left,
+                "right" => Align::Right,
+                "center" => Align::Center,
+                _ => return Err(bad(format!("`{value}` isn't an alignment"))),
+            });
+        }
+        ("width:", Some(value)) => {
+            let mut words = value.split_whitespace();
+            let count = words.next().and_then(|count| count.parse::<usize>().ok());
+            let Some(count) = count else {
+                return Err(bad(format!("`{value}` isn't a width")));
+            };
+            let unit = match words.next() {
+                None => {
+                    return Err(Report::refused(
+                        span,
+                        "a width says its unit",
+                        "a width is written with its unit, `cols`, `cols.east_asian`, `graphemes`, `points` or `bytes` (D194)",
+                    ));
+                }
+                Some("cols") => WidthUnit::Cols,
+                Some("cols.east_asian") => WidthUnit::ColsEastAsian,
+                Some("graphemes") => WidthUnit::Graphemes,
+                Some("bytes") => WidthUnit::Bytes,
+                Some("points") => {
+                    return Err(Report::not_designed(
+                        span,
+                        "what a point is, for a width in a print",
+                        "12.2",
+                    ));
+                }
+                Some(other) => return Err(bad(format!("`{other}` isn't a width's unit"))),
+            };
+            if words.next().is_some() {
+                return Err(bad(format!("`{value}` isn't a width")));
+            }
+            shapes.width = Some((count, unit));
+        }
+        ("places:", Some(value)) => {
+            let Ok(count) = value.parse::<usize>() else {
+                return Err(bad(format!("`{value}` isn't a number of places")));
+            };
+            shapes.places = Some(count);
+        }
+        ("base:", Some(value)) => {
+            shapes.base = Some(match value {
+                "bin" => Base::Bin,
+                "oct" => Base::Oct,
+                "hex" => Base::Hex,
+                "hex.upper" => Base::HexUpper,
+                _ => return Err(bad(format!("`{value}` isn't a base"))),
+            });
+        }
+        ("form:", Some("science")) => shapes.science = true,
+        ("form:", Some(value)) => return Err(bad(format!("`{value}` isn't a form"))),
+        (_, _) => return Err(bad(format!("`{part}` isn't written like that"))),
+    }
+    Ok(())
 }
 
 /// The builtins that set a file's rules, and the line that asks for the compiler's defaults.
@@ -474,19 +768,25 @@ fn lex_text(source: &str, position: &mut usize) -> Outcome<Lexeme> {
     let start = *position;
     let rest = source.get(start + 1..).unwrap_or("");
     let mut text = String::new();
+    let mut escaped = false;
     for character in rest.chars() {
+        if escaped {
+            escaped = false;
+            if character != '\n' {
+                text.push(character);
+                continue;
+            }
+        }
         match character {
             '"' => {
                 *position = start + 1 + text.len() + 1;
                 return Ok(Lexeme::Text(text));
             }
+            // The text keeps its `\`, since only a format print's text says what one means,
+            // and an escaped `"` doesn't end it. (D194)
             '\\' => {
-                let at = start + 1 + text.len();
-                return Err(Report::not_designed(
-                    Span::new(at, at + 1),
-                    "`\\` in a string",
-                    "12.2",
-                ));
+                text.push('\\');
+                escaped = true;
             }
             '\n' => {
                 return Err(Report::not_designed(

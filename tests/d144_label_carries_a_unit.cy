@@ -9,7 +9,7 @@ end fam.unit screen
 fn draw [$x: i32.screen.pixels] -> void:
     labels [$x as at.screen.pixels];
 
-    std::println(($x as i32) as str);
+    std::io::fmt_print("{}{newln}", ($x as i32));
     return void;
 end fn draw
 

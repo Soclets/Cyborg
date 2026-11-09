@@ -4,6 +4,6 @@ import std;
 
 fn.main [] -> void:
     let $a: i32[min: 0, max: 100] = 50;
-    std::println($a as str);
+    std::io::fmt_print("{}{newln}", $a);
     return void;
 end fn.main

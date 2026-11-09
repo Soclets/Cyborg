@@ -31,8 +31,8 @@ fn.main [] -> void:
     change $r.label = Give $s;
     change $r.at = $r.at + 5 time.seconds;
     change $r.deep.n = 9;
-    std::println($r.celsius as str, " ", Lend $r.label, " ", $r.at as str, " ", $r.deep.n as str);
+    std::io::fmt_print("{} {} {} {}{newln}", $r.celsius, $r.label, $r.at, $r.deep.n);
     change $r.deep = inner[n = 10];
-    std::println($r.deep.n as str);
+    std::io::fmt_print("{}{newln}", $r.deep.n);
     return void;
 end fn.main

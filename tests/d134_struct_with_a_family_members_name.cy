@@ -13,6 +13,6 @@ end fam.type.alias sizes
 
 fn.main [] -> void:
     let $a: small = small[n = 1];
-    std::println($a.n as str);
+    std::io::fmt_print("{}{newln}", $a.n);
     return void;
 end fn.main

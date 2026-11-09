@@ -8,9 +8,9 @@ fn.main [] -> void:
     let $b: f64 = ~0.2;
     let $c: f64 = $a + $b;
     if $c == ~0.3:
-        std::println("equal");
+        std::io::fmt_print("equal{newln}");
     else:
-        std::println("different");
+        std::io::fmt_print("different{newln}");
     end if
     return void;
 end fn.main

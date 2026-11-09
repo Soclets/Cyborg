@@ -14,8 +14,8 @@ fn sign [$n: i32] -> i32:
 end fn sign
 
 fn.main [] -> void:
-    std::println(sign(5) as str);
-    std::println(sign(-5) as str);
-    std::println(sign(0) as str);
+    std::io::fmt_print("{}{newln}", sign(5));
+    std::io::fmt_print("{}{newln}", sign(-5));
+    std::io::fmt_print("{}{newln}", sign(0));
     return void;
 end fn.main

@@ -4,8 +4,8 @@ import std;
 
 fn.main [] -> void:
     let $n: i32 = 150;
-    std::println("before");
+    std::io::fmt_print("before{newln}");
     let $b: i32[min: 0, max: 100] = $n;
-    std::println("after");
+    std::io::fmt_print("after{newln}");
     return void;
 end fn.main

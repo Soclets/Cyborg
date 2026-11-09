@@ -1,6 +1,7 @@
 //! Runs every program in the repository's `tests/` folder, and compares its output byte for byte.
 //! `name.cy` is the program, `name.out` its exact standard output, and `name.err` its exact error.
-//! A missing file means that stream stays empty, and an `.err` means the oracle must exit with 1.
+//! A missing file means that stream stays empty, and an `.err` means the oracle must exit with 1,
+//! unless `name.exit` gives the code, as for a program that prints to stderr and ends well. (D195)
 #![forbid(unsafe_code)]
 #![deny(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
 #![warn(clippy::pedantic)]
@@ -37,7 +38,11 @@ fn run_one(folder: &Path, stem: &str) -> Result<(), String> {
             "\n--- wanted stderr\n{want_err}--- got stderr\n{got_err}"
         );
     }
-    let want_code = i32::from(!want_err.is_empty());
+    let written_code = read_or_empty(&folder.join(format!("{stem}.exit")));
+    let want_code = match written_code.trim().parse::<i32>() {
+        Ok(code) => code,
+        Err(_) => i32::from(!want_err.is_empty()),
+    };
     if output.status.code() != Some(want_code) {
         let _ = write!(
             problems,

@@ -10,11 +10,11 @@ end union.tagged status
 fn.main [] -> void:
     let mut $s: status = status.failed[code = 3];
     if $s: status.failed:
-        std::println($s.code as str);
+        std::io::fmt_print("{}{newln}", $s.code);
         change $s = status.ok;
     end if
     if $s: status.ok:
-        std::println("now ok");
+        std::io::fmt_print("now ok{newln}");
     end if
     return void;
 end fn.main

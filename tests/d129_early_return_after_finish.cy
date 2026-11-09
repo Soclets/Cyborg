@@ -12,7 +12,7 @@ fn f [$quick: bool] -> void:
         finish $g;
         return void;
     end if
-    std::println("slow");
+    std::io::fmt_print("slow{newln}");
     finish $g;
     return void;
 end fn f

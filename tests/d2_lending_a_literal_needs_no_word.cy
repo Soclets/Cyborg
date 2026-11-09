@@ -3,12 +3,12 @@ import std;
 @config(default);
 
 fn f [$s: str] -> void:
-    std::println(Lend $s);
+    std::io::fmt_print("{}{newln}", $s);
     return void;
 end fn f
 
 fn g [$s: Given str] -> void:
-    std::println(Lend $s);
+    std::io::fmt_print("{}{newln}", $s);
     return void;
 end fn g
 

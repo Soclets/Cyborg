@@ -9,6 +9,6 @@ fn pair [$a: i32, $b: i32] -> i32:
 end fn pair
 
 fn.main [] -> void:
-    std::println(pair(second: 1, first: 2) as str);
+    std::io::fmt_print("{}{newln}", pair(second: 1, first: 2));
     return void;
 end fn.main

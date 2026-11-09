@@ -11,9 +11,9 @@ fn.main [] -> void:
     let mut $r: reading = reading[celsius = 21, time = 3600];
     if $r.celsius > 0:
         let $lock: Lend.held from $r reading = Lend $r;
-        std::println($lock.celsius as str);
+        std::io::fmt_print("{}{newln}", $lock.celsius);
     end if
     change $r.celsius = 22;
-    std::println($r.celsius as str);
+    std::io::fmt_print("{}{newln}", $r.celsius);
     return void;
 end fn.main

@@ -4,8 +4,8 @@ import std;
 
 fn.main [] -> void:
     let $zero: f64 = 0.0;
-    std::println("before");
+    std::io::fmt_print("before{newln}");
     let $a: f64 = 1.0 div $zero;
-    std::println("after");
+    std::io::fmt_print("after{newln}");
     return void;
 end fn.main

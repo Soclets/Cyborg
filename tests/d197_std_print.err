@@ -1,0 +1,5 @@
+refused: d197_std_print.cy:7:5, line 7 column 5
+ 7 |     std::print("hi{newln}");
+   |     ^^^^^^^^^^
+ fix:  `std::io::fmt_print`
+ why:  the print is `std::io::fmt_print` (D197)

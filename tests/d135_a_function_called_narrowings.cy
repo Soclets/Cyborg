@@ -8,6 +8,6 @@ fn narrowings [] -> i32:
 end fn narrowings
 
 fn.main [] -> void:
-    std::println(narrowings() as str);
+    std::io::fmt_print("{}{newln}", narrowings());
     return void;
 end fn.main

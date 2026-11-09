@@ -1,5 +1,0 @@
-refused: d161_other_println_narrowing.cy:6:5, line 6 column 5
- 6 |     std::println.stdout("hi");
-   |     ^^^^^^^^^^^^^^^^^^^
- fix:  `std::println`
- why:  a default `std` fixes can't be written out (D51)

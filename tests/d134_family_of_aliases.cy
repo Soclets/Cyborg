@@ -11,8 +11,8 @@ fn.main [] -> void:
     let $a: sizes.small = 1;
     let $b: i32 = $a;
     let $c: sizes.large = 2;
-    std::println($b as str);
+    std::io::fmt_print("{}{newln}", $b);
     let $d: i64 = $c + 1;
-    std::println("large");
+    std::io::fmt_print("large{newln}");
     return void;
 end fn.main

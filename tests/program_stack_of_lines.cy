@@ -6,7 +6,7 @@ import std;
 fn print_backwards [$xs: std::list<str>[len.max: 8 items]] -> void:
     let mut $at: u64 = $xs.len as u64;
     while $at > 0:
-        std::println(Lend $xs[pos: $at]);
+        std::io::fmt_print("{}{newln}", $xs[pos: $at]);
         change $at = $at - 1;
     end while
     return void;

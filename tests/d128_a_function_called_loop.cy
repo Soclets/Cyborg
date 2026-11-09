@@ -4,7 +4,7 @@ import std;
 @config(default);
 
 fn loop [] -> void:
-    std::println("called");
+    std::io::fmt_print("called{newln}");
     return void;
 end fn loop
 

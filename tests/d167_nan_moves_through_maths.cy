@@ -9,6 +9,6 @@ fn.main [] -> void:
     end for
     let $nan: f64.ieee = $x - $x;
     let $more: f64.ieee = $nan x 0.0 + 1.0;
-    std::println($more as str);
+    std::io::fmt_print("{}{newln}", $more);
     return void;
 end fn.main

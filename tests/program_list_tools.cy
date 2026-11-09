@@ -6,8 +6,8 @@ import std;
 fn.main [] -> void:
     let mut $xs: std::list<i32>[len.max: 8 items] = empty;
     fill(Lend.mut $xs, 5);
-    std::println("sum ", sum(Lend $xs) as str);
-    std::println("largest ", largest(Lend $xs) as str);
+    std::io::fmt_print("sum {}{newln}", sum(Lend $xs));
+    std::io::fmt_print("largest {}{newln}", largest(Lend $xs));
     let mut $evens: std::list<i32>[len.max: 8 items] = empty;
     keep_even(Lend $xs, Lend.mut $evens);
     print_all(Lend $evens);
@@ -54,7 +54,7 @@ end fn keep_even
 
 fn print_all [$xs: std::list<i32>[len.max: 8 items]] -> void:
     for $x in $xs:
-        std::println($x as str);
+        std::io::fmt_print("{}{newln}", $x);
     end for
     return void;
 end fn print_all

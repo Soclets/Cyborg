@@ -4,7 +4,7 @@ import std;
 @config(default);
 
 fn take [$x: f64[min: 0.0, max: 1.0]] -> void:
-    std::println("taken");
+    std::io::fmt_print("taken{newln}");
     return void;
 end fn take
 

@@ -8,7 +8,7 @@ fn.main [] -> void:
     let $to: i32 = 5;
     for $i in range[from: $from, to: $to, step_by: $by]:
         let $kept: i32 = $i;
-        std::println($kept as str);
+        std::io::fmt_print("{}{newln}", $kept);
     end for
     return void;
 end fn.main

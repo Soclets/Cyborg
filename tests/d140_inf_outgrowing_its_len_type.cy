@@ -8,8 +8,8 @@ fn.main [] -> void:
     for $i in range[from: 1, to: 255]:
         $xs.std::%append(val: $i);
     end for
-    std::println($xs.len as str);
+    std::io::fmt_print("{}{newln}", $xs.len);
     $xs.std::%append(val: 256);
-    std::println("after");
+    std::io::fmt_print("after{newln}");
     return void;
 end fn.main

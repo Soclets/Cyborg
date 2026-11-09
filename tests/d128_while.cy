@@ -5,11 +5,11 @@ import std;
 fn.main [] -> void:
     let mut $n: i32 = 3;
     while $n > 0:
-        std::println($n as str);
+        std::io::fmt_print("{}{newln}", $n);
         change $n = $n - 1;
     end while
     while false:
-        std::println("never");
+        std::io::fmt_print("never{newln}");
     end while
     return void;
 end fn.main

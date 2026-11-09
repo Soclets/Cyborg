@@ -1,0 +1,5 @@
+refused: d194_a_shape_twice.cy:6:25, line 6 column 25
+ 6 |     std::io::fmt_print("{places: 2, places: 3}{newln}", 1.5);
+   |                         ^^^^^^^^^^^^^^^^^^^^^^
+ what: `places:` is written twice in this hole
+ why:  each shape is written once (D194)

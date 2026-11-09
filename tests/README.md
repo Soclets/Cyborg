@@ -5,6 +5,8 @@ Each test is a Cyborg program and its exact result, compared byte for byte with 
 - `name.cy` is the program.
 - `name.out` is its exact standard output.
 - `name.err` is its exact error. A test with one must exit with 1, and any other exits with 0.
+- `name.exit` holds the exit code, when it isn't that, as for a program that prints to stderr with
+  `std::io::fmt_print.stderr` and ends well.
 
 A missing `.out` or `.err` means that stream stays empty. Tests run from this folder, so errors name the file as `name.cy`.
 

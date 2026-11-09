@@ -1,0 +1,5 @@
+refused: d194_sign_on_a_str.cy:6:25, line 6 column 25
+ 6 |     std::io::fmt_print("{sign}{newln}", "a");
+   |                         ^^^^^^
+ what: `sign` doesn't apply to `str`
+ why:  a literal format is checked when building, including a shape that doesn't apply (D194)

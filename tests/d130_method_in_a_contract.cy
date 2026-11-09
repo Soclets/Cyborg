@@ -18,8 +18,8 @@ end fn take
 
 fn.main [] -> void:
     let $ok: box = box[n = 1];
-    std::println(take(Lend $ok) as str);
+    std::io::fmt_print("{}{newln}", take(Lend $ok));
     let $bad: box = box[n = 0];
-    std::println(take(Lend $bad) as str);
+    std::io::fmt_print("{}{newln}", take(Lend $bad));
     return void;
 end fn.main

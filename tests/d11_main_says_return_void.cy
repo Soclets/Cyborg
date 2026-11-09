@@ -3,5 +3,5 @@ import std;
 @config(default);
 
 fn.main [] -> void:
-    std::println("hi");
+    std::io::fmt_print("hi{newln}");
 end fn.main

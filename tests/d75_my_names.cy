@@ -16,8 +16,8 @@ fn.main [] -> void:
     let $area: i32 = $width x $height;
     let $mine: i32 = my::x($width, $height);
     let $thing: my::if = my::if[n = 9];
-    std::println($area as str);
-    std::println($mine as str);
-    std::println($thing.n as str);
+    std::io::fmt_print("{}{newln}", $area);
+    std::io::fmt_print("{}{newln}", $mine);
+    std::io::fmt_print("{}{newln}", $thing.n);
     return void;
 end fn.main

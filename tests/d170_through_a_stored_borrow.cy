@@ -15,6 +15,6 @@ fn.main [] -> void:
     let $x: reading = reading[celsius = 4];
     let $v: Lend from $x reading = Lend $x;
     let $w: Lend from $x reading = first(Lend $v);
-    std::println($w.celsius as str);
+    std::io::fmt_print("{}{newln}", $w.celsius);
     return void;
 end fn.main

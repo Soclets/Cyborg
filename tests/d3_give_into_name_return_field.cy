@@ -16,7 +16,7 @@ fn.main [] -> void:
     let $s: str = "hello";
     let $k: str = Copy $s;
     let $t: name_tag = make(Give $s);
-    std::println(Lend $t.text);
-    std::println(Lend $k);
+    std::io::fmt_print("{}{newln}", $t.text);
+    std::io::fmt_print("{}{newln}", $k);
     return void;
 end fn.main

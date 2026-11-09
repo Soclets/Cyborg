@@ -17,17 +17,17 @@ fn pass_on [$f: Given open_file] -> void:
 end fn pass_on
 
 fn close [$f: Given open_file] -> void:
-    std::println("closing ", $f.fd as str);
+    std::io::fmt_print("closing {}{newln}", $f.fd);
     finish $f;
     return void;
 end fn close
 
 fn.main [] -> void:
     let $f: open_file = open_file[fd = 3];
-    std::println(read_from(Lend $f) as str);
+    std::io::fmt_print("{}{newln}", read_from(Lend $f));
     pass_on(Give $f);
     let $g: open_file = open_file[fd = 4];
     finish $g;
-    std::println("done");
+    std::io::fmt_print("done{newln}");
     return void;
 end fn.main

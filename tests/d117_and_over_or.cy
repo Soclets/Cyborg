@@ -12,10 +12,10 @@ end fn.pure no
 
 fn.main [] -> void:
     if yes() or no() and no():
-        std::println("and binds tighter");
+        std::io::fmt_print("and binds tighter{newln}");
     end if
     if not no() and yes():
-        std::println("not binds tighter");
+        std::io::fmt_print("not binds tighter{newln}");
     end if
     return void;
 end fn.main

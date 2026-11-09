@@ -8,8 +8,8 @@ fn.main [] -> void:
         change $x = $x x $x;
     end for
     let $nan: f64.ieee = $x - $x;
-    std::println($nan as str);
-    std::println((-$nan) as str);
-    std::println.stored($nan);
+    std::io::fmt_print("{}{newln}", $nan);
+    std::io::fmt_print("{}{newln}", (-$nan));
+    std::io::fmt_print.stored("{}{newln}", $nan);
     return void;
 end fn.main

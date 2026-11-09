@@ -14,6 +14,6 @@ end fn half
 
 fn.main [] -> void:
     let $n: i32 = half(-3);
-    std::println($n as str);
+    std::io::fmt_print("{}{newln}", $n);
     return void;
 end fn.main

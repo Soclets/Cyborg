@@ -11,9 +11,9 @@ fn.main [] -> void:
     let $a: i32.time.seconds = 3600 time.seconds;
     let $b: i32.time.seconds = 5 time.seconds;
     let $c: i32.time.seconds = $a + $b;
-    std::println($c as str);
+    std::io::fmt_print("{}{newln}", $c);
     if $c > $a:
-        std::println("more");
+        std::io::fmt_print("more{newln}");
     end if
     return void;
 end fn.main

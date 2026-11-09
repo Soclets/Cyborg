@@ -19,6 +19,6 @@ fn.main [] -> void:
     let mut $p: pair = pair[a = inner[n = 1], b = inner[n = 2]];
     let $l: Lend from $p inner = Lend $p.a;
     reset(Lend.mut $p);
-    std::println($l.n as str);
+    std::io::fmt_print("{}{newln}", $l.n);
     return void;
 end fn.main

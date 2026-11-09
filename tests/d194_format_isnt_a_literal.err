@@ -1,0 +1,5 @@
+NotDesignedYet: d194_format_isnt_a_literal.cy:7:24, line 7 column 24
+ 7 |     std::io::fmt_print($f);
+   |                        ^^
+ what: a format that isn't a literal
+ why:  not decided yet, and the standard doesn't say

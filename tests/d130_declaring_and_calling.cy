@@ -13,7 +13,7 @@ fn reading.%warm_up [$r: Lent.mut reading, $by: i32] -> void:
 end fn reading.%warm_up
 
 fn reading.%show [$r: reading] -> void:
-    std::println($r.celsius as str);
+    std::io::fmt_print("{}{newln}", $r.celsius);
     return void;
 end fn reading.%show
 
@@ -31,7 +31,7 @@ fn.main [] -> void:
     $r.%show();
     $r.%warm_up(by: 1);
     $r.%show();
-    std::println($r.%doubled() as str);
+    std::io::fmt_print("{}{newln}", $r.%doubled());
     make().%show();
     return void;
 end fn.main

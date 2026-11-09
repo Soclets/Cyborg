@@ -10,8 +10,8 @@ end struct reading
 fn.main [] -> void:
     let mut $r: reading = reading[celsius = 21, time = 3600];
     let $view: Lend from $r reading = Lend $r;
-    std::println($view.celsius as str);
+    std::io::fmt_print("{}{newln}", $view.celsius);
     change $r.celsius = 22;
-    std::println($r.celsius as str);
+    std::io::fmt_print("{}{newln}", $r.celsius);
     return void;
 end fn.main

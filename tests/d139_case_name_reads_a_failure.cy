@@ -17,12 +17,12 @@ end fn half
 fn show [$n: i32] -> void:
     let $h: i32 = half($n) otherwise:
         case negative $f:
-            std::println("negative ", $f.val as str);
+            std::io::fmt_print("negative {}{newln}", $f.val);
             instead 0;
         case odd:
             instead -1;
     end otherwise
-    std::println("got ", $h as str);
+    std::io::fmt_print("got {}{newln}", $h);
     return void;
 end fn show
 

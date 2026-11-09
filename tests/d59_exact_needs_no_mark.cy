@@ -17,7 +17,7 @@ fn.main [] -> void:
         if $b: f64[min: ~0.1, max: ~0.1]:
             if $c: f64[min: ~-0.1, max: ~-0.1]:
                 if $h: f32[min: 0.5, max: 0.5]:
-                    std::println("floats work");
+                    std::io::fmt_print("floats work{newln}");
                 end if
             end if
         end if

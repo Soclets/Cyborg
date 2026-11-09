@@ -10,6 +10,6 @@ fn.main [] -> void:
     let $a: reading = reading[celsius = 1];
     let $c: reading = reading[celsius = 2];
     let $b: Lend from <$a, $c> reading = Lend $c;
-    std::println($b.celsius as str);
+    std::io::fmt_print("{}{newln}", $b.celsius);
     return void;
 end fn.main

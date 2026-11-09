@@ -10,6 +10,6 @@ fn.main [] -> void:
             break;
         end if
     end forever
-    std::println($n as str);
+    std::io::fmt_print("{}{newln}", $n);
     return void;
 end fn.main

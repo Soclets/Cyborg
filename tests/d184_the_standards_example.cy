@@ -17,6 +17,6 @@ end fn adjust
 fn.main [] -> void:
     let mut $r: reading = reading[celsius = 21, time = 3600];
     adjust(Lend.mut $r.celsius, Lend.mut $r.time);
-    std::println($r.celsius as str, " ", $r.time as str);
+    std::io::fmt_print("{} {}{newln}", $r.celsius, $r.time);
     return void;
 end fn.main

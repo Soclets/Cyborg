@@ -3,6 +3,6 @@ import std;
 @config(default);
 
 fn.main [] -> void:
-    std::println(7 div.trunc 2 as str);
+    let $s: str = 7 div.trunc 2 as str;
     return void;
 end fn.main

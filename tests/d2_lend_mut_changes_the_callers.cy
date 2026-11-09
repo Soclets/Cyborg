@@ -14,6 +14,6 @@ end fn replace
 fn.main [] -> void:
     let mut $b: box = box[n = 1];
     replace(Lend.mut $b);
-    std::println($b.n as str);
+    std::io::fmt_print("{}{newln}", $b.n);
     return void;
 end fn.main

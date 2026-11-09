@@ -8,6 +8,6 @@ fn.main [] -> void:
     for $i in range[from: 1, to: 9]:
         change $x = $x x $x;
     end for
-    std::println($x as str);
+    std::io::fmt_print("{}{newln}", $x);
     return void;
 end fn.main

@@ -6,7 +6,7 @@ import std;
 fn.main [] -> void:
     shield sensor:
         reason "talks to the chip"
-        std::println("inside");
+        std::io::fmt_print("inside{newln}");
     end shield sensor
     return void;
 end fn.main

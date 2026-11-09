@@ -20,6 +20,6 @@ end fn adjust
 fn.main [] -> void:
     let mut $p: pair = pair[a = inner[n = 1], b = inner[n = 2]];
     adjust(Lend.mut $p.a, Lend.mut $p.b);
-    std::println($p.a.n as str, " ", $p.b.n as str);
+    std::io::fmt_print("{} {}{newln}", $p.a.n, $p.b.n);
     return void;
 end fn.main

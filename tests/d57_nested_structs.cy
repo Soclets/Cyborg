@@ -18,7 +18,7 @@ end fn read
 fn.main [] -> void:
     let $first: inner = inner[n = 1];
     let $o: outer = outer[a = Give $first, b = inner[n = 2]];
-    std::println($o.a.n as str);
-    std::println(read(Lend $o.b) as str);
+    std::io::fmt_print("{}{newln}", $o.a.n);
+    std::io::fmt_print("{}{newln}", read(Lend $o.b));
     return void;
 end fn.main

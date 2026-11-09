@@ -12,7 +12,7 @@ end fn eat
 
 fn.main [] -> void:
     let $b: box = box[n = 7];
-    std::println(eat(Copy $b) as str);
-    std::println($b.n as str);
+    std::io::fmt_print("{}{newln}", eat(Copy $b));
+    std::io::fmt_print("{}{newln}", $b.n);
     return void;
 end fn.main

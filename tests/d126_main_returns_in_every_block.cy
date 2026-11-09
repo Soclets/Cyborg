@@ -4,7 +4,7 @@ import std;
 
 fn.main [] -> void:
     if 1 < 2:
-        std::println("yes");
+        std::io::fmt_print("yes{newln}");
         return void;
     else:
         return void;

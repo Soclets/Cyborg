@@ -13,7 +13,7 @@ fn.main [] -> void:
     if $s: status.ok:
         change $s = status.failed[code = 4];
     else if $s: status.failed:
-        std::println($s.code as str);
+        std::io::fmt_print("{}{newln}", $s.code);
     end if
     return void;
 end fn.main

@@ -8,9 +8,9 @@ fn.main [] -> void:
             if $a == 2 and $b == 2:
                 break rows;
             end if
-            std::println($a as str, " ", $b as str);
+            std::io::fmt_print("{} {}{newln}", $a, $b);
         end for
     end for rows
-    std::println("done");
+    std::io::fmt_print("done{newln}");
     return void;
 end fn.main

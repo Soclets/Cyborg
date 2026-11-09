@@ -11,6 +11,6 @@ end struct reading
 fn.main [] -> void:
     let $d: i32.seconds = 3600 seconds;
     let $r: reading = reading[time = 3600 std::time.seconds];
-    std::println($d as str);
+    std::io::fmt_print("{}{newln}", $d);
     return void;
 end fn.main

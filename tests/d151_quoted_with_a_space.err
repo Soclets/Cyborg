@@ -1,5 +1,5 @@
-refused: d151_quoted_with_a_space.cy:4:21, line 4 column 21
- 4 | use std::println as "my say";
-   |                     ^^^^^^^^
+refused: d151_quoted_with_a_space.cy:4:27, line 4 column 27
+ 4 | use std::io::fmt_print as "my say";
+   |                           ^^^^^^^^
  what: nothing could use `"my say"` as a name
  why:  the quotes only skip the check against the path, so a quoted name still has to be usable (D151)

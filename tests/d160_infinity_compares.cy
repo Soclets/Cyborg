@@ -9,7 +9,7 @@ fn.main [] -> void:
         change $x = $x x $x;
     end for
     if $x > 1.5:
-        std::println("above");
+        std::io::fmt_print("above{newln}");
     end if
     return void;
 end fn.main

@@ -4,11 +4,11 @@ import std;
 
 fn.main [] -> void:
     let $xs: std::array<i32>[len: 3 items] = [4, 5, 6];
-    std::println($xs[offset.items: 0] as str);
-    std::println($xs[offset.items: 1 items] as str);
+    std::io::fmt_print("{}{newln}", $xs[offset.items: 0]);
+    std::io::fmt_print("{}{newln}", $xs[offset.items: 1 items]);
     let $n: u64.items = 2 items;
-    std::println($xs[offset.items: $n] as str);
+    std::io::fmt_print("{}{newln}", $xs[offset.items: $n]);
     let $i: i32 = 1;
-    std::println($xs[offset.items: $i] as str);
+    std::io::fmt_print("{}{newln}", $xs[offset.items: $i]);
     return void;
 end fn.main

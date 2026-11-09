@@ -1,5 +1,5 @@
-refused: d164_as_needs_a_group.cy:7:25, line 7 column 25
- 7 |     std::println($a div 3.0 as str);
-   |                         ^^^^^^^^^^
+refused: d164_as_needs_a_group.cy:7:26, line 7 column 26
+ 7 |     let $s: str = $a div 3.0 as str;
+   |                          ^^^^^^^^^^
  what: this `as` is mixed with other operators, so it needs `( )`
  why:  `as` works on a single value, and where maths gives no order you group with `( )` (D116)

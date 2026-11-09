@@ -10,6 +10,6 @@ fn.main [] -> void:
     while again():
         return void;
     end while
-    std::println("done");
+    std::io::fmt_print("done{newln}");
     return void;
 end fn.main

@@ -1,0 +1,6 @@
+NotDesignedYet: d194_places_at_a_tie.cy:8:25, line 8 column 25
+ 8 |     std::io::fmt_print("{places: 2}{newln}", $x);
+   |                         ^^^^^^^^^^^
+ what: which way a value exactly halfway rounds
+ why:  not decided yet, and the standard doesn't say
+ when: the value is 0.125

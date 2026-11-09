@@ -24,6 +24,6 @@ fn.main [] -> void:
             end otherwise
             instead $m + 1;
     end otherwise
-    std::println($n as str);
+    std::io::fmt_print("{}{newln}", $n);
     return void;
 end fn.main

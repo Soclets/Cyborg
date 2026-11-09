@@ -4,7 +4,7 @@ import std;
 
 fn.main [] -> void:
     let $b: box = box[n = 1];
-    std::println($b.%read() as str);
+    std::io::fmt_print("{}{newln}", $b.%read());
     return void;
 end fn.main
 

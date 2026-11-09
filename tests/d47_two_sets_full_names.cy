@@ -19,10 +19,10 @@ end fn load
 fn.main [] -> void:
     let $n: i32 = load() otherwise:
         case file_failed.denied:
-            std::println("file");
+            std::io::fmt_print("file{newln}");
             return void;
         case net_failed.denied:
-            std::println("net");
+            std::io::fmt_print("net{newln}");
             return void;
     end otherwise
     return void;

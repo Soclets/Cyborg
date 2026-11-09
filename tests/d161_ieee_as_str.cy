@@ -4,6 +4,6 @@ import std;
 
 fn.main [] -> void:
     let $r: f64.ieee = 1.5;
-    std::println($r as str);
+    std::io::fmt_print("{}{newln}", $r);
     return void;
 end fn.main

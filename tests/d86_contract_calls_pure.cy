@@ -13,6 +13,6 @@ fn f [$n: i32] -> i32:
 end fn f
 
 fn.main [] -> void:
-    std::println(f(1) as str);
+    std::io::fmt_print("{}{newln}", f(1));
     return void;
 end fn.main

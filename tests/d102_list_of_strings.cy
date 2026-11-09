@@ -8,8 +8,8 @@ fn.main [] -> void:
     let $b: str = "b";
     let $xs: std::list<str>[len.max: 8 items] = [Give $a, Copy $b, "c"];
     for $s in $xs:
-        std::println(Lend $s);
+        std::io::fmt_print("{}{newln}", $s);
     end for
-    std::println(Lend $b);
+    std::io::fmt_print("{}{newln}", $b);
     return void;
 end fn.main

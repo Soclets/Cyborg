@@ -20,6 +20,6 @@ fn.main [] -> void:
     let $list: reading = reading[celsius = 2];
     let $article: reading = reading[celsius = 1];
     let $i: index<`text`: $article, `table`: $list> = build(Lend $article, Lend $list);
-    std::println($i.lookup.celsius as str);
+    std::io::fmt_print("{}{newln}", $i.lookup.celsius);
     return void;
 end fn.main

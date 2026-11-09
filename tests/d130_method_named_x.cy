@@ -13,6 +13,6 @@ end fn point.%x
 
 fn.main [] -> void:
     let $p: point = point[x = 3];
-    std::println(($p.%x() x 2) as str);
+    std::io::fmt_print("{}{newln}", ($p.%x() x 2));
     return void;
 end fn.main

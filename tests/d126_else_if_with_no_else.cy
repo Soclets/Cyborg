@@ -5,10 +5,10 @@ import std;
 fn.main [] -> void:
     let $n: i32 = 0;
     if $n > 0:
-        std::println("positive");
+        std::io::fmt_print("positive{newln}");
     else if $n < 0:
-        std::println("negative");
+        std::io::fmt_print("negative{newln}");
     end if
-    std::println("carried on");
+    std::io::fmt_print("carried on{newln}");
     return void;
 end fn.main

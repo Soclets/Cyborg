@@ -10,7 +10,7 @@ type.new wrapped = reading;
 
 fn take [$w: Given wrapped] -> void:
     let $r: reading = Give $w as reading;
-    std::println($r.celsius as str);
+    std::io::fmt_print("{}{newln}", $r.celsius);
     return void;
 end fn take
 

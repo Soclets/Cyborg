@@ -1,5 +1,5 @@
-NotDesignedYet: d93_short_name_clashes_with_yours.cy:4:21, line 4 column 21
- 4 | use std::println as "say";
-   |                     ^^^^^
+NotDesignedYet: d93_short_name_clashes_with_yours.cy:4:27, line 4 column 27
+ 4 | use std::io::fmt_print as "say";
+   |                           ^^^^^
  what: `use … as say` when `say` is also declared in this file
  why:  not decided yet, and the standard doesn't say

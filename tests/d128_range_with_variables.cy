@@ -7,11 +7,11 @@ fn.main [] -> void:
     let $stop: i64 = 4;
     for $i in range[from: $start, to: $stop]:
         let $copy: i64 = $i;
-        std::println("i64");
+        std::io::fmt_print("i64{newln}");
     end for
     let $bounded: i32[min: 0, max: 9] = 1;
     for $i in range[from: $bounded, to: 2]:
-        std::println(($i + 1) as str);
+        std::io::fmt_print("{}{newln}", ($i + 1));
     end for
     return void;
 end fn.main

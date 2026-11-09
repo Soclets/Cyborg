@@ -1,0 +1,5 @@
+refused: d197_fmt_println.cy:6:5, line 6 column 5
+ 6 |     std::io::fmt_println("hi");
+   |     ^^^^^^^^^^^^^^^^^^^^
+ fix:  `std::io::fmt_print`
+ why:  the print is `std::io::fmt_print` (D197)

@@ -6,8 +6,8 @@ import std;
 fn.main [] -> void:
     let $xs: std::list<i32>[len.max: 8 items] = empty;
     for $i in range[from: 1, to: $xs.len]:
-        std::println("inside");
+        std::io::fmt_print("inside{newln}");
     end for
-    std::println("after");
+    std::io::fmt_print("after{newln}");
     return void;
 end fn.main

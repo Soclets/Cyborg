@@ -12,7 +12,7 @@ end fn f
 fn.main [] -> void:
     f() otherwise:
         case a $x:
-            std::println($x);
+            std::io::fmt_print("{}{newln}", $x);
     end otherwise
     return void;
 end fn.main

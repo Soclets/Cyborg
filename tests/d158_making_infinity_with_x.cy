@@ -6,7 +6,7 @@ import std;
 fn.main [] -> void:
     let mut $x: f64 = 2.0;
     for $i in range[from: 1, to: 10]:
-        std::println($i as str);
+        std::io::fmt_print("{}{newln}", $i);
         change $x = $x x $x;
     end for
     return void;

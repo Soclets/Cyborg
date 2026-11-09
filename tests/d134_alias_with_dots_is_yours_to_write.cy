@@ -8,6 +8,6 @@ type.alias int.signed.32_bit = i32;
 fn.main [] -> void:
     let $a: int.signed.32_bit = 1;
     let $b: i32 = $a;
-    std::println($b as str);
+    std::io::fmt_print("{}{newln}", $b);
     return void;
 end fn.main

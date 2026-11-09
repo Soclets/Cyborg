@@ -12,7 +12,7 @@ use crate::ir::{
     Number, Place, Position, RangeCode, Step, Test,
 };
 use crate::report::{Kind, Outcome, Report, ReportExtra, Span};
-use crate::types::{show_float, stored_float, FloatKind, FloatRules, IntegerKind, Value};
+use crate::types::{show_float, FloatKind, FloatRules, IntegerKind, Value};
 
 /// How deep Cyborg calls can go here. Past this the oracle says so, instead of running out of
 /// stack and crashing, which rule 6 forbids. What running out of stack means isn't decided.
@@ -856,7 +856,12 @@ impl<'c> Runner<'c> {
                     .cloned()
                     .ok_or_else(|| oracle_bug(span, "a call handed back a borrow of nothing"))
             }
-            NodeKind::Println(pieces) => self.println(pieces, frame, span),
+            NodeKind::FormatPrint {
+                pieces,
+                values,
+                stored,
+                stderr,
+            } => self.format_print(pieces, values, *stored, *stderr, frame, span),
             NodeKind::Append {
                 receiver,
                 shown,
@@ -939,16 +944,6 @@ impl<'c> Runner<'c> {
                     Some(word) => word.to_string(),
                     None => show_float(*kind, held),
                 }))
-            }
-            // trace: D161
-            NodeKind::PrintlnStored(value) => {
-                let value = self.evaluate(value, frame)?;
-                let Some(held) = float_value(&value) else {
-                    return Err(oracle_bug(span, "`println.stored` on something else"));
-                };
-                let mut line = stored_text(held);
-                line.push('\n');
-                self.write_line(&line, span)
             }
             NodeKind::IntegerToStr(value) => {
                 let Value::Integer(value) = self.evaluate(value, frame)? else {
@@ -1033,28 +1028,54 @@ impl<'c> Runner<'c> {
         }
     }
 
-    /// trace: D95
-    fn println(&mut self, pieces: &[Node], frame: &mut Frame, span: Span) -> Result<Value, Stop> {
+    /// Shapes each value into its hole, then prints the line to stdout, or stderr. (D194, D195)
+    /// trace: D95, D194, D195
+    fn format_print(
+        &mut self,
+        pieces: &[crate::ir::PrintPiece],
+        values: &[Node],
+        stored: bool,
+        stderr: bool,
+        frame: &mut Frame,
+        span: Span,
+    ) -> Result<Value, Stop> {
+        let mut evaluated = Vec::with_capacity(values.len());
+        for value in values {
+            evaluated.push(self.evaluate(value, frame)?);
+        }
         let mut line = String::new();
         for piece in pieces {
-            let Value::Str(text) = self.evaluate(piece, frame)? else {
-                return Err(oracle_bug(span, "a printed piece that isn't a `str`"));
-            };
-            line.push_str(&text);
+            match piece {
+                crate::ir::PrintPiece::Text(text) => line.push_str(text),
+                crate::ir::PrintPiece::Hole {
+                    value,
+                    shapes,
+                    span: hole_span,
+                } => {
+                    let Some(value) = evaluated.get(*value) else {
+                        return Err(oracle_bug(span, "a hole with no value"));
+                    };
+                    let text = crate::print::render(value, shapes, stored, *hole_span)
+                        .map_err(Stop::Report)?;
+                    line.push_str(&text);
+                }
+            }
         }
-        line.push('\n');
+        if stderr {
+            // stdout goes first, so what was printed before shows before this does.
+            let flushed = self.out.flush().is_ok();
+            let mut error = std::io::stderr();
+            if !flushed || error.write_all(line.as_bytes()).is_err() || error.flush().is_err() {
+                return Err(print_failed(span));
+            }
+            return Ok(Value::Void);
+        }
         self.write_line(&line, span)
     }
 
     fn write_line(&mut self, line: &str, span: Span) -> Result<Value, Stop> {
         if self.out.write_all(line.as_bytes()).is_err() || self.out.flush().is_err() {
-            return Err(Stop::Raised(Raised {
-                name: "print_failed".to_string(),
-                shown: "`print_failed` failed".to_string(),
-                when: None,
-                data: Vec::new(),
-                span,
-            }));
+            return Err(print_failed(span));
         }
         Ok(Value::Void)
     }
@@ -1188,28 +1209,7 @@ fn float_in_bound(value: f64, low: f64, high: f64) -> bool {
     low <= value && value <= high
 }
 
-/// How NaN or infinity prints isn't decided, and everything else has a text.
-/// trace: D161
-fn non_finite_text(value: f64) -> Option<&'static str> {
-    // trace: D166
-    if value.is_nan() {
-        Some("NaN")
-    } else if value == f64::INFINITY {
-        Some("inf")
-    } else if value == f64::NEG_INFINITY {
-        Some("-inf")
-    } else {
-        None
-    }
-}
-
-/// trace: D161, D162
-fn stored_text(value: f64) -> String {
-    match non_finite_text(value) {
-        Some(word) => word.to_string(),
-        None => stored_float(value),
-    }
-}
+use crate::print::non_finite_text;
 
 fn arithmetic(
     operator: Arithmetic,
@@ -1438,4 +1438,14 @@ fn division_by_zero(right: i128, span: Span) -> Outcome<()> {
         ));
     }
     Ok(())
+}
+
+fn print_failed(span: Span) -> Stop {
+    Stop::Raised(Raised {
+        name: "print_failed".to_string(),
+        shown: "`print_failed` failed".to_string(),
+        when: None,
+        data: Vec::new(),
+        span,
+    })
 }

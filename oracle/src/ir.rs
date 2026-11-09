@@ -28,6 +28,17 @@ pub struct Position {
     pub span: Span,
 }
 
+/// A piece of a format print: text, or a hole with the value it takes, counting from 0. (D194)
+#[derive(Clone, Debug)]
+pub enum PrintPiece {
+    Text(String),
+    Hole {
+        value: usize,
+        shapes: crate::ast::Shapes,
+        span: Span,
+    },
+}
+
 /// Where a returned borrow points: a place, or what a call hands back. (D170)
 #[derive(Clone, Debug)]
 pub enum Alias {
@@ -138,7 +149,13 @@ pub enum NodeKind {
         function: usize,
         arguments: Vec<(usize, Argument)>,
     },
-    Println(Vec<Node>),
+    /// `std::io::fmt_print`, with its text in pieces and the values its holes take. (D194)
+    FormatPrint {
+        pieces: Vec<PrintPiece>,
+        values: Vec<Node>,
+        stored: bool,
+        stderr: bool,
+    },
     Append {
         receiver: Place,
         shown: String,
@@ -169,8 +186,7 @@ pub enum NodeKind {
     },
     /// `$x as str`, in a float's shortest text. (D161)
     FloatToStr(Number, Box<Node>),
-    /// `std::println.stored($x)`, which prints what's actually in memory. (D161)
-    PrintlnStored(Box<Node>),
+
     /// `$reading as f64`, which fails on NaN or infinity. (D159)
     FloatFromIeee {
         value: Box<Node>,

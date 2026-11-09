@@ -3,7 +3,7 @@ import std;
 @config(default);
 
 fn.main [] -> void:
-    std::println("hi") otherwise:
+    std::io::fmt_print("hi{newln}") otherwise:
         case print_failed:
             return void;
     end otherwise

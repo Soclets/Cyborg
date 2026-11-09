@@ -13,6 +13,6 @@ fn.main [] -> void:
         case a $x:
             instead Copy $x.label;
     end otherwise
-    std::println(Lend $s);
+    std::io::fmt_print("{}{newln}", $s);
     return void;
 end fn.main

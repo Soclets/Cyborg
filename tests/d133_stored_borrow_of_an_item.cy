@@ -3,7 +3,7 @@ import std;
 @config(default);
 
 fn show [$s: str] -> void:
-    std::println(Lend $s);
+    std::io::fmt_print("{}{newln}", $s);
     return void;
 end fn show
 

@@ -9,7 +9,7 @@ end fn half
 
 fn.main [] -> void:
     let $h: f64 = half(1.5);
-    std::println("ok");
+    std::io::fmt_print("ok{newln}");
     let $i: f64 = half(-1.5);
     return void;
 end fn.main

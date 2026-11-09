@@ -15,6 +15,6 @@ end fn make
 fn.main [] -> void:
     let $w: wrapped = make() as wrapped;
     let $v: wrapped = reading[celsius = 4] as wrapped;
-    std::println("ok");
+    std::io::fmt_print("ok{newln}");
     return void;
 end fn.main

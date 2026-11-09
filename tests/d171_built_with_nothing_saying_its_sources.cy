@@ -12,6 +12,6 @@ end struct view
 
 fn.main [] -> void:
     let $a: reading = reading[celsius = 1];
-    std::println(view[words = Lend $a].words.celsius as str);
+    std::io::fmt_print("{}{newln}", view[words = Lend $a].words.celsius);
     return void;
 end fn.main

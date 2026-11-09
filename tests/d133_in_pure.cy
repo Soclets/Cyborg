@@ -8,6 +8,6 @@ end fn.pure first
 
 fn.main [] -> void:
     let $a: std::array<i32>[len: 2 items] = [6, 7];
-    std::println(first(Lend $a) as str);
+    std::io::fmt_print("{}{newln}", first(Lend $a));
     return void;
 end fn.main

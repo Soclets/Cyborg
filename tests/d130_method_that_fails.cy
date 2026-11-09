@@ -18,9 +18,9 @@ end fn box.%half
 fn.main [] -> void:
     let $even: box = box[n = 4];
     let $odd: box = box[n = 3];
-    std::println($even.%half() as str);
-    std::println(($odd.%half() ?? -1) as str);
+    std::io::fmt_print("{}{newln}", $even.%half());
+    std::io::fmt_print("{}{newln}", ($odd.%half() ?? -1));
     let $c: i32 = $odd.%half();
-    std::println("not reached");
+    std::io::fmt_print("not reached{newln}");
     return void;
 end fn.main

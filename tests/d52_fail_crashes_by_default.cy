@@ -12,8 +12,8 @@ fn half [$n: i32] -> i32:
 end fn half
 
 fn.main [] -> void:
-    std::println(half(4) as str);
-    std::println(half(3) as str);
-    std::println("not reached");
+    std::io::fmt_print("{}{newln}", half(4));
+    std::io::fmt_print("{}{newln}", half(3));
+    std::io::fmt_print("not reached{newln}");
     return void;
 end fn.main

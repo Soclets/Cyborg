@@ -8,8 +8,8 @@ end struct box
 
 fn.main [] -> void:
     let mut $b: box = box[n = 10];
-    std::println("before");
+    std::io::fmt_print("before{newln}");
     change $b.n = $b.n + 1;
-    std::println("after");
+    std::io::fmt_print("after{newln}");
     return void;
 end fn.main

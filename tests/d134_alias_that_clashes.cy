@@ -8,7 +8,7 @@ type.alias str = i32;
 fn.main [] -> void:
     let $a: my::str = 5;
     let $b: str = "still a string";
-    std::println($a as str);
-    std::println(Lend $b);
+    std::io::fmt_print("{}{newln}", $a);
+    std::io::fmt_print("{}{newln}", $b);
     return void;
 end fn.main

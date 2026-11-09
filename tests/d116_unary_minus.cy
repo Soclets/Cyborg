@@ -8,10 +8,10 @@ fn.main [] -> void:
     let $z: i32 = -7 + -$y x 2;
     let $f: f64 = 0.5;
     let $g: f64 = -$f;
-    std::println($y as str);
-    std::println($z as str);
+    std::io::fmt_print("{}{newln}", $y);
+    std::io::fmt_print("{}{newln}", $z);
     if $g: f64[min: -0.5, max: -0.5]:
-        std::println("negated");
+        std::io::fmt_print("negated{newln}");
     end if
     return void;
 end fn.main

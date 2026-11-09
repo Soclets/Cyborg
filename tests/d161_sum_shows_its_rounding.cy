@@ -7,6 +7,6 @@ fn.main [] -> void:
     let $a: f64 = ~0.1;
     let $b: f64 = ~0.2;
     let $c: f64 = $a + $b;
-    std::println($c as str);
+    std::io::fmt_print("{}{newln}", $c);
     return void;
 end fn.main

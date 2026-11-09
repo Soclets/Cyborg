@@ -7,7 +7,7 @@ fn.main [] -> void:
     let $b: i32 = $a plus.wrap 1;
     let $c: u8 = 255;
     let $d: u8 = $c plus.wrap 1;
-    std::println($b as str);
-    std::println($d as str);
+    std::io::fmt_print("{}{newln}", $b);
+    std::io::fmt_print("{}{newln}", $d);
     return void;
 end fn.main

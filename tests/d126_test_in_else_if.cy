@@ -10,22 +10,22 @@ end union.tagged status
 
 fn show [$s: status] -> void:
     if $s: status.failed:
-        std::println("failed ", $s.code as str);
+        std::io::fmt_print("failed {}{newln}", $s.code);
     else if $s: status.lost:
-        std::println("lost ", $s.where as str);
+        std::io::fmt_print("lost {}{newln}", $s.where);
     else:
-        std::println("something else");
+        std::io::fmt_print("something else{newln}");
     end if
     return void;
 end fn show
 
 fn grade [$n: i32] -> void:
     if $n < 0:
-        std::println("too low");
+        std::io::fmt_print("too low{newln}");
     else if $n: i32[min: 0, max: 100]:
-        std::println("fits");
+        std::io::fmt_print("fits{newln}");
     else:
-        std::println("too high");
+        std::io::fmt_print("too high{newln}");
     end if
     return void;
 end fn grade

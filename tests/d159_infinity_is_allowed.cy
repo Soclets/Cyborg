@@ -7,6 +7,6 @@ fn.main [] -> void:
     for $i in range[from: 1, to: 12]:
         change $x = $x x $x;
     end for
-    std::println("still running");
+    std::io::fmt_print("still running{newln}");
     return void;
 end fn.main

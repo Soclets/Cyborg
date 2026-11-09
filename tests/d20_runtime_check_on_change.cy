@@ -6,6 +6,6 @@ import std;
 fn.main [] -> void:
     let mut $b: i32[min: 0, max: 100] = 100;
     change $b = $b + 1;
-    std::println("after");
+    std::io::fmt_print("after{newln}");
     return void;
 end fn.main

@@ -11,7 +11,7 @@ fn.main [] -> void:
     let $s: str = "a";
     for $x in $xs:
         if $x == 1:
-            std::println("one");
+            std::io::fmt_print("one{newln}");
         else:
             eat(Give $s);
         end if

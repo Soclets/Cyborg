@@ -10,6 +10,6 @@ end fn bump
 fn.main [] -> void:
     let mut $xs: std::array<i32>[len: 2 items] = [1, 2];
     bump(Lend.mut $xs[pos: 2]);
-    std::println($xs[pos: 2] as str);
+    std::io::fmt_print("{}{newln}", $xs[pos: 2]);
     return void;
 end fn.main

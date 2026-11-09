@@ -20,8 +20,8 @@ fn.main [] -> void:
     let mut $xs: std::list<i32>[len.max: inf items] = empty;
     $xs.std::%append(val: $c);
     let $ys: numbers = Copy $xs;
-    std::println(total(Lend $ys) as str);
-    std::println(total(Lend $xs) as str);
-    std::println($a as str);
+    std::io::fmt_print("{}{newln}", total(Lend $ys));
+    std::io::fmt_print("{}{newln}", total(Lend $xs));
+    std::io::fmt_print("{}{newln}", $a);
     return void;
 end fn.main

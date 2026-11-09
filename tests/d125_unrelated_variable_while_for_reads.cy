@@ -12,6 +12,6 @@ fn.main [] -> void:
     for $x in $xs:
         change $t.total = $t.total + $x;
     end for
-    std::println($t.total as str);
+    std::io::fmt_print("{}{newln}", $t.total);
     return void;
 end fn.main

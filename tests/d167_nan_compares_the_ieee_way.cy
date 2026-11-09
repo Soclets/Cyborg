@@ -10,23 +10,23 @@ fn.main [] -> void:
     end for
     let $nan: f64.ieee = $x - $x;
     if $nan == $nan:
-        std::println("==");
+        std::io::fmt_print("=={newln}");
     end if
     if $nan != $nan:
-        std::println("!=");
+        std::io::fmt_print("!={newln}");
     end if
     if $nan < 1.0:
-        std::println("<");
+        std::io::fmt_print("<{newln}");
     end if
     if $nan > 1.0:
-        std::println(">");
+        std::io::fmt_print(">{newln}");
     end if
     if $nan at_least 1.0:
-        std::println("at_least");
+        std::io::fmt_print("at_least{newln}");
     end if
     if $nan at_most 1.0:
-        std::println("at_most");
+        std::io::fmt_print("at_most{newln}");
     end if
-    std::println("done");
+    std::io::fmt_print("done{newln}");
     return void;
 end fn.main

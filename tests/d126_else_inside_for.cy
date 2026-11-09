@@ -7,9 +7,9 @@ fn.main [] -> void:
     let $xs: std::array<i32>[len: 1 items] = [1];
     if 1 < 2:
         for $x in $xs:
-            std::println("x");
+            std::io::fmt_print("x{newln}");
         else:
-            std::println("y");
+            std::io::fmt_print("y{newln}");
         end for
     end if
     return void;

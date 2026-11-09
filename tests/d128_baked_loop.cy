@@ -13,6 +13,6 @@ end fn.pure.baked sum_to
 const $ten: i32 = sum_to(4);
 
 fn.main [] -> void:
-    std::println($ten as str);
+    std::io::fmt_print("{}{newln}", $ten);
     return void;
 end fn.main

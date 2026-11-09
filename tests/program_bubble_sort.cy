@@ -23,7 +23,7 @@ fn.main [] -> void:
     let mut $xs: std::array<i32>[len: 6 items] = [5, 2, 9, 1, 7, 3];
     sort(Lend.mut $xs);
     for $x in $xs:
-        std::println($x as str);
+        std::io::fmt_print("{}{newln}", $x);
     end for
     return void;
 end fn.main

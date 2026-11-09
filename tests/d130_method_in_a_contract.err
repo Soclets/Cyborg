@@ -3,7 +3,7 @@ check failed: d130_method_in_a_contract.cy:14:14, line 14 column 14
    |              ^^^^^^^^^^^^^^
  what: this `requires` is false
  why:  contracts are checked at runtime, and a false one stops the program (D29)
- because: d130_method_in_a_contract.cy:23:18, line 23 column 18
-23 |     std::println(take(Lend $bad) as str);
-   |                  ^^^^^^^^^^^^^^^
+ because: d130_method_in_a_contract.cy:23:37, line 23 column 37
+23 |     std::io::fmt_print("{}{newln}", take(Lend $bad));
+   |                                     ^^^^^^^^^^^^^^^
      called here

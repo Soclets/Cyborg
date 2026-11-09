@@ -16,9 +16,9 @@ end fn save
 fn.main [] -> void:
     save() otherwise:
         case not_found:
-            std::println("not found");
+            std::io::fmt_print("not found{newln}");
         case file_failed.disk_full $d:
-            std::println(Lend $d.label, " has ", $d.free as str, " free");
+            std::io::fmt_print("{} has {} free{newln}", $d.label, $d.free);
     end otherwise
     return void;
 end fn.main

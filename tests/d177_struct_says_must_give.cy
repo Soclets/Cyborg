@@ -9,7 +9,7 @@ struct.must_Give open_file:
 end struct.must_Give open_file
 
 fn close [$f: Given open_file] -> void:
-    std::println("closing ", $f.fd as str);
+    std::io::fmt_print("closing {}{newln}", $f.fd);
     finish $f;
     return void;
 end fn close
@@ -30,6 +30,6 @@ end fn read_log
 fn.main [] -> void:
     let $f: open_file = open(3);
     let $l: log = log[file = Give $f, lines = 10];
-    std::println(read_log(Lend $l) as str);
+    std::io::fmt_print("{}{newln}", read_log(Lend $l));
     return void;
 end fn.main

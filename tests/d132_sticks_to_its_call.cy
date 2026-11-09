@@ -10,12 +10,12 @@ end fn read
 
 fn.main [] -> void:
     let $a: i32 = 10;
-    std::println(($a + read() ?? 1) as str);
-    std::println(($a x read() ?? 2) as str);
-    std::println((read() ?? 1 + 2) as str);
-    std::println((read() ?? 3 x 2) as str);
+    std::io::fmt_print("{}{newln}", ($a + read() ?? 1));
+    std::io::fmt_print("{}{newln}", ($a x read() ?? 2));
+    std::io::fmt_print("{}{newln}", (read() ?? 1 + 2));
+    std::io::fmt_print("{}{newln}", (read() ?? 3 x 2));
     if read() ?? 1 < 2:
-        std::println("compared after");
+        std::io::fmt_print("compared after{newln}");
     end if
     return void;
 end fn.main

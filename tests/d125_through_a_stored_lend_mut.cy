@@ -8,7 +8,7 @@ struct box:
 end struct box
 
 fn show [$b: box] -> void:
-    std::println($b.n as str);
+    std::io::fmt_print("{}{newln}", $b.n);
     return void;
 end fn show
 

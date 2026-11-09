@@ -11,6 +11,6 @@ fn.main [] -> void:
     let mut $xs: std::list<i32>[len.max: inf items] = empty;
     add(Lend.mut $xs);
     add(Lend.mut $xs);
-    std::println($xs.len as str);
+    std::io::fmt_print("{}{newln}", $xs.len);
     return void;
 end fn.main

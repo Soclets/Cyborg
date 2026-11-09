@@ -19,6 +19,6 @@ fn.main [] -> void:
         case lost $l:
             instead $l.where;
     end otherwise
-    std::println($n as str);
+    std::io::fmt_print("{}{newln}", $n);
     return void;
 end fn.main

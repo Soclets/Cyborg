@@ -3,7 +3,7 @@ import std;
 @config(default);
 
 fn show [$x: f64] -> void:
-    std::println($x as str);
+    std::io::fmt_print("{}{newln}", $x);
     return void;
 end fn show
 

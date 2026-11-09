@@ -8,7 +8,7 @@ fn.main [] -> void:
             if $b == 2:
                 break;
             end if
-            std::println($a as str, " ", $b as str);
+            std::io::fmt_print("{} {}{newln}", $a, $b);
         end for
     end for
     return void;

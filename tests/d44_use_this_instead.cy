@@ -14,7 +14,7 @@ end fn read_port
 fn.main [] -> void:
     let $a: i32 = read_port(1 < 2) ?? 8080;
     let $b: i32 = read_port(2 < 1) ?? 8080;
-    std::println($a as str);
-    std::println($b as str);
+    std::io::fmt_print("{}{newln}", $a);
+    std::io::fmt_print("{}{newln}", $b);
     return void;
 end fn.main

@@ -5,10 +5,10 @@ import std;
 
 fn.main [] -> void:
     let $by: i32 = 0;
-    std::println("before");
+    std::io::fmt_print("before{newln}");
     for $i in range[from: 1, to: 5, step_by: $by]:
-        std::println("inside");
+        std::io::fmt_print("inside{newln}");
     end for
-    std::println("after");
+    std::io::fmt_print("after{newln}");
     return void;
 end fn.main

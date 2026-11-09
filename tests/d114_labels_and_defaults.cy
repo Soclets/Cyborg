@@ -12,7 +12,7 @@ end fn first_word
 
 fn.main [] -> void:
     let $text: str = "x";
-    std::println(first_word(Lend $text, limit: 20) as str);
-    std::println(first_word(Lend $text) as str);
+    std::io::fmt_print("{}{newln}", first_word(Lend $text, limit: 20));
+    std::io::fmt_print("{}{newln}", first_word(Lend $text));
     return void;
 end fn.main

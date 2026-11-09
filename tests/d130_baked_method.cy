@@ -15,7 +15,7 @@ const $c: i32 = $b.%twice();
 
 fn.main [] -> void:
     let $d: i32 = bake $b.%twice();
-    std::println($c as str);
-    std::println($d as str);
+    std::io::fmt_print("{}{newln}", $c);
+    std::io::fmt_print("{}{newln}", $d);
     return void;
 end fn.main

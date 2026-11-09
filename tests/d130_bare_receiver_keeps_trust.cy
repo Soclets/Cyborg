@@ -14,8 +14,8 @@ end fn status.%label
 fn.main [] -> void:
     let $s: status = status.failed[code = 3];
     if $s: status.failed:
-        std::println($s.%label());
-        std::println($s.code as str);
+        std::io::fmt_print("{}{newln}", $s.%label());
+        std::io::fmt_print("{}{newln}", $s.code);
     end if
     return void;
 end fn.main

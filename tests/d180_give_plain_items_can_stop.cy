@@ -9,7 +9,7 @@ fn.main [] -> void:
         if $n == 2:
             break;
         end if
-        std::println($n as str);
+        std::io::fmt_print("{}{newln}", $n);
     end for
     return void;
 end fn.main

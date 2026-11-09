@@ -11,7 +11,7 @@ fn.pure.baked seconds_in [$days: i32] -> i32:
 end fn.pure.baked seconds_in
 
 fn.main [] -> void:
-    std::println(area(3, 4) as str);
-    std::println(seconds_in(2) as str);
+    std::io::fmt_print("{}{newln}", area(3, 4));
+    std::io::fmt_print("{}{newln}", seconds_in(2));
     return void;
 end fn.main

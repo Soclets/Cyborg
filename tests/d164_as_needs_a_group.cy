@@ -4,6 +4,6 @@ import std;
 
 fn.main [] -> void:
     let $a: f64 = 1.5;
-    std::println($a div 3.0 as str);
+    let $s: str = $a div 3.0 as str;
     return void;
 end fn.main

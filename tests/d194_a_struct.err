@@ -1,0 +1,5 @@
+NotDesignedYet: d194_a_struct.cy:11:37, line 11 column 37
+11 |     std::io::fmt_print("{}{newln}", $r);
+   |                                     ^^
+ what: how `reading` prints
+ why:  not decided yet, and the standard doesn't say

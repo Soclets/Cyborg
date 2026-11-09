@@ -4,7 +4,7 @@ import std;
 
 fn.main [] -> void:
     let $a: first = 3;
-    std::println($a as str);
+    std::io::fmt_print("{}{newln}", $a);
     return void;
 end fn.main
 

@@ -11,7 +11,7 @@ fn.main [] -> void:
     let mut $on: bool = false;
     flip(Lend.mut $on);
     if $on:
-        std::println("on");
+        std::io::fmt_print("on{newln}");
     end if
     return void;
 end fn.main

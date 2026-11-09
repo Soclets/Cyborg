@@ -12,7 +12,7 @@ fn.main [] -> void:
         change $r.celsius = $r.celsius + 1;
     end for
     for $r in $readings:
-        std::println($r.celsius as str);
+        std::io::fmt_print("{}{newln}", $r.celsius);
     end for
     return void;
 end fn.main

@@ -17,7 +17,7 @@ end fn status.%code_or_zero
 fn.main [] -> void:
     let $a: status = status.failed[code = 7];
     let $b: status = status.ok;
-    std::println($a.%code_or_zero() as str);
-    std::println($b.%code_or_zero() as str);
+    std::io::fmt_print("{}{newln}", $a.%code_or_zero());
+    std::io::fmt_print("{}{newln}", $b.%code_or_zero());
     return void;
 end fn.main

@@ -7,7 +7,7 @@ struct.must_Give open_file:
 end struct.must_Give open_file
 
 fn close [$f: Given open_file] -> void:
-    std::println("closing ", $f.fd as str);
+    std::io::fmt_print("closing {}{newln}", $f.fd);
     finish $f;
     return void;
 end fn close
@@ -17,6 +17,6 @@ fn.main [] -> void:
     for $f in Give $files:
         finish $f;
     end for
-    std::println("all finished");
+    std::io::fmt_print("all finished{newln}");
     return void;
 end fn.main

@@ -8,9 +8,9 @@ end struct flags
 
 fn yes_or_no [$b: bool] -> void:
     if $b:
-        std::println("yes");
+        std::io::fmt_print("yes{newln}");
     else:
-        std::println("no");
+        std::io::fmt_print("no{newln}");
     end if
     return void;
 end fn yes_or_no

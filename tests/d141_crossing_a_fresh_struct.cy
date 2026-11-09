@@ -15,6 +15,6 @@ end fn make
 
 fn.main [] -> void:
     let $r: reading = make() as reading;
-    std::println($r.celsius as str);
+    std::io::fmt_print("{}{newln}", $r.celsius);
     return void;
 end fn.main

@@ -8,6 +8,6 @@ fn.main [] -> void:
     for $i in range[from: 1, to: 1074]:
         change $x = $x div 2.0;
     end for
-    std::println.stored($x);
+    std::io::fmt_print.stored("{}{newln}", $x);
     return void;
 end fn.main

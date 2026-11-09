@@ -8,7 +8,7 @@ fn.main [] -> void:
     let $r: ratio = 0.5;
     let $x: f64 = $r as f64;
     if $x: f64[min: 0.5, max: 0.5]:
-        std::println("crossed");
+        std::io::fmt_print("crossed{newln}");
     end if
     return void;
 end fn.main

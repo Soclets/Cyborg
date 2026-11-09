@@ -1,0 +1,5 @@
+refused: d194_newline_escape.cy:6:27, line 6 column 27
+ 6 |     std::io::fmt_print("hi\n");
+   |                           ^^
+ fix:  `{newln}`
+ why:  a newline and a tab are words inside the text, `{newln}` and `{tab}` (D194)

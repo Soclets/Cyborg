@@ -17,12 +17,12 @@ end fn box.%bump
 
 fn.main [] -> void:
     let mut $b: bag = bag[boxes = [box[n = 1], box[n = 2]]];
-    std::println($b.boxes[pos: 2].n as str);
+    std::io::fmt_print("{}{newln}", $b.boxes[pos: 2].n);
     change $b.boxes[pos: 1].n = 5;
-    std::println($b.boxes[offset.items: 0].n as str);
+    std::io::fmt_print("{}{newln}", $b.boxes[offset.items: 0].n);
     $b.boxes[pos: 1].%bump();
-    std::println($b.boxes[pos: 1].n as str);
+    std::io::fmt_print("{}{newln}", $b.boxes[pos: 1].n);
     change $b.boxes[pos: 2] = box[n = 9];
-    std::println($b.boxes[pos: 2].n as str);
+    std::io::fmt_print("{}{newln}", $b.boxes[pos: 2].n);
     return void;
 end fn.main

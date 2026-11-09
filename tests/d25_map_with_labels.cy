@@ -4,6 +4,6 @@ import std;
 
 fn.main [] -> void:
     let $m: std::map.hash<key: str, val: i32> = empty;
-    std::println("made");
+    std::io::fmt_print("made{newln}");
     return void;
 end fn.main

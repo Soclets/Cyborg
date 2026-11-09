@@ -2,10 +2,10 @@
 // trace: D93
 import std;
 
-use std::print.useful as "printu";
+use std::io::read_line as "readu";
 @config(default);
 
 fn.main [] -> void:
-    printu("hi");
+    readu();
     return void;
 end fn.main

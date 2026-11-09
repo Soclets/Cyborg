@@ -4,7 +4,7 @@ import std;
 @config(default);
 
 fn use_score [$s: i32[min: 0, max: 100]] -> void:
-    std::println("score ", $s as str);
+    std::io::fmt_print("score {}{newln}", $s);
     return void;
 end fn use_score
 

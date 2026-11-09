@@ -9,6 +9,6 @@ end struct reading
 
 fn.main [] -> void:
     let $r: reading = reading[celsius = 21, label = "kitchen"];
-    std::println(Lend $r.label, ": ", $r.celsius as str);
+    std::io::fmt_print("{}: {}{newln}", $r.label, $r.celsius);
     return void;
 end fn.main

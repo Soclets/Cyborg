@@ -10,6 +10,6 @@ end fn read
 
 fn.main [] -> void:
     let $a: i32 = (read()) ?? 4;
-    std::println($a as str);
+    std::io::fmt_print("{}{newln}", $a);
     return void;
 end fn.main

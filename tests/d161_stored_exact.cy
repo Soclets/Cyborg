@@ -8,9 +8,9 @@ fn.main [] -> void:
     let $b: f64 = 1.0;
     let $c: f64 = -0.25;
     let $d: f32 = ~0.1;
-    std::println.stored($a);
-    std::println.stored($b);
-    std::println.stored($c);
-    std::println.stored($d);
+    std::io::fmt_print.stored("{}{newln}", $a);
+    std::io::fmt_print.stored("{}{newln}", $b);
+    std::io::fmt_print.stored("{}{newln}", $c);
+    std::io::fmt_print.stored("{}{newln}", $d);
     return void;
 end fn.main

@@ -3,7 +3,7 @@ import std;
 @config(default);
 
 fn finish [] -> void:
-    std::println("mine");
+    std::io::fmt_print("mine{newln}");
     return void;
 end fn finish
 

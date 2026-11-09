@@ -8,7 +8,7 @@ struct reading:
 end struct reading
 
 fn show [$v: reading] -> void:
-    std::println($v.celsius as str);
+    std::io::fmt_print("{}{newln}", $v.celsius);
     return void;
 end fn show
 

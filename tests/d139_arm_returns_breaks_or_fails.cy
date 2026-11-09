@@ -30,15 +30,15 @@ fn h [] -> i32:
 end fn h
 
 fn.main [] -> void:
-    std::println((g() ?? 5) as str);
-    std::println(h() as str);
+    std::io::fmt_print("{}{newln}", (g() ?? 5));
+    std::io::fmt_print("{}{newln}", h());
     forever:
         let $n: i32 = f(1) otherwise:
             case a:
-                std::println("broke out");
+                std::io::fmt_print("broke out{newln}");
                 break;
         end otherwise
-        std::println("not reached");
+        std::io::fmt_print("not reached{newln}");
     end forever
     return void;
 end fn.main

@@ -4,6 +4,6 @@ import @csup;
 @config(default);
 
 fn.main [] -> void:
-    std::println("no manifest needed");
+    std::io::fmt_print("no manifest needed{newln}");
     return void;
 end fn.main

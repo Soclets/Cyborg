@@ -1,5 +1,5 @@
-refused: d46_star_on_one_that_cant_jump.cy:13:34, line 13 column 34
-13 |     std::println("hi") otherwise say_failed.*log;
-   |                                  ^^^^^^^^^^^^^^^
+refused: d46_star_on_one_that_cant_jump.cy:13:47, line 13 column 47
+13 |     std::io::fmt_print("hi{newln}") otherwise say_failed.*log;
+   |                                               ^^^^^^^^^^^^^^^
  fix:  `say_failed.log`
  why:  the compiler refuses `*` on a handler that can't jump (D46)

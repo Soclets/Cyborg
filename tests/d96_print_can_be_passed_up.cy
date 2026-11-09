@@ -6,7 +6,7 @@ import std;
 fn say [] -> void:
     fails [print_failed];
 
-    std::println("hi")?;
+    std::io::fmt_print("hi{newln}")?;
     return void;
 end fn say
 

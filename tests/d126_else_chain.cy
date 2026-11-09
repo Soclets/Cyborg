@@ -4,11 +4,11 @@ import std;
 
 fn size [$n: i32] -> void:
     if $n > 100:
-        std::println("huge");
+        std::io::fmt_print("huge{newln}");
     else if $n > 0:
-        std::println("big");
+        std::io::fmt_print("big{newln}");
     else:
-        std::println("small");
+        std::io::fmt_print("small{newln}");
     end if
     return void;
 end fn size

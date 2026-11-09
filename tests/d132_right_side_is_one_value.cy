@@ -10,8 +10,8 @@ end fn read
 
 fn.main [] -> void:
     let $x: i32 = 5;
-    std::println((read() ?? -1) as str);
-    std::println((read() ?? $x) as str);
-    std::println((read() ?? ($x + 1)) as str);
+    std::io::fmt_print("{}{newln}", (read() ?? -1));
+    std::io::fmt_print("{}{newln}", (read() ?? $x));
+    std::io::fmt_print("{}{newln}", (read() ?? ($x + 1)));
     return void;
 end fn.main

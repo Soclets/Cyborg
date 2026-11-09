@@ -14,6 +14,6 @@ fn.main [] -> void:
     let mut $a: reading = reading[celsius = 1];
     let $v: view<`text`: $a> = view[words = Lend $a];
     change $a.celsius = 5;
-    std::println($v.words.celsius as str);
+    std::io::fmt_print("{}{newln}", $v.words.celsius);
     return void;
 end fn.main

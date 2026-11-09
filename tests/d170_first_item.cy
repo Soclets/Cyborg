@@ -14,6 +14,6 @@ end fn first
 fn.main [] -> void:
     let $xs: std::list<reading>[len.min: 1 items, len.max: inf items] = [reading[celsius = 3]];
     let $f: Lend from $xs reading = first(Lend $xs);
-    std::println($f.celsius as str);
+    std::io::fmt_print("{}{newln}", $f.celsius);
     return void;
 end fn.main

@@ -11,9 +11,9 @@ fn.main [] -> void:
     let $b: u8 = 200;
     let $c: i32.time.seconds = 3 time.seconds;
     let $d: i32[min: 0, max: 9] = 4;
-    std::println($a as str);
-    std::println($b as str);
-    std::println($c as str);
-    std::println($d as str);
+    std::io::fmt_print("{}{newln}", $a);
+    std::io::fmt_print("{}{newln}", $b);
+    std::io::fmt_print("{}{newln}", $c);
+    std::io::fmt_print("{}{newln}", $d);
     return void;
 end fn.main

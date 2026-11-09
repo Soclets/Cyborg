@@ -27,11 +27,11 @@ fn.main [] -> void:
     let $r: row = [1, 2];
     let $i: ids.user = 9;
     let $back: i64 = first_user() as i64;
-    std::println($back as str);
+    std::io::fmt_print("{}{newln}", $back);
     let $again: i64 = same(7) as i64;
-    std::println($again as str);
+    std::io::fmt_print("{}{newln}", $again);
     let $whole: i64 = $i as i64;
-    std::println($whole as str);
-    std::println("all built");
+    std::io::fmt_print("{}{newln}", $whole);
+    std::io::fmt_print("all built{newln}");
     return void;
 end fn.main

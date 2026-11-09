@@ -14,7 +14,7 @@ end fam.handler say_failed
 fn say [] -> void:
     fails [lost];
 
-    std::println("hi") otherwise say_failed.up;
+    std::io::fmt_print("hi{newln}") otherwise say_failed.up;
     return void;
 end fn say
 

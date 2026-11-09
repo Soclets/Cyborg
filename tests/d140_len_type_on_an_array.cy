@@ -6,6 +6,6 @@ import std;
 fn.main [] -> void:
     let $a: std::array<i32>[len: 2 items, len.type: u8] = [1, 2];
     let $n: u8.items = $a.len;
-    std::println($n as str);
+    std::io::fmt_print("{}{newln}", $n);
     return void;
 end fn.main

@@ -227,6 +227,9 @@ pub(super) fn float_rules_clash(
     )
 }
 
+/// A value's type, and where it was written.
+type TypedSpan = (Type, Span);
+
 /// A type holding borrows, with its sources and what fills them. (D171)
 type Filled = (Type, Vec<String>, Vec<String>);
 
@@ -615,10 +618,21 @@ impl Checker<'_> {
                     Self::check_integer_literal(number, expected, Some(resolved))
                 }
             }
-            ExpressionKind::Text(text) => Ok((
-                simple(NodeKind::Constant(Value::Str(text.clone()))),
-                Type::Str,
-            )),
+            ExpressionKind::Text(text) => {
+                // Only a format print's text says what `\` means. (D194)
+                if let Some(at) = text.find('\\') {
+                    let at = span.start + 1 + at;
+                    return Err(Report::not_designed(
+                        Span::new(at, at + 1),
+                        "`\\` in a string",
+                        "12.2",
+                    ));
+                }
+                Ok((
+                    simple(NodeKind::Constant(Value::Str(text.clone()))),
+                    Type::Str,
+                ))
+            }
             ExpressionKind::Empty => Self::check_empty(span, expected),
             ExpressionKind::Items(items) => self.check_items(items, span, expected),
             ExpressionKind::All(value) => self.check_all(value, span, expected),
@@ -1415,13 +1429,13 @@ impl Checker<'_> {
             return Ok(());
         };
         // trace: D22
-        if path == "std::println" {
+        if path == "std::io::fmt_print" {
             return Err(Report::refused(
                 span,
-                "`println` is in `std`'s kit part",
+                "`fmt_print` is in `std`'s kit part",
                 "`@` goes only on things a limb provides (D22)",
             )
-            .fix("std::println"));
+            .fix("std::io::fmt_print"));
         }
         let dangerous = path.starts_with("csup::") || path == "std::inline.asm";
         if let Some(limb) = path.split("::").next() {
@@ -1791,53 +1805,7 @@ impl Checker<'_> {
         Ok(bound)
     }
 
-    /// `std::println.stored($x)` shows what a float actually holds.
-    /// trace: D161
-    fn check_println_stored(
-        &mut self,
-        arguments: &[Argument],
-        span: Span,
-        path_span: Span,
-    ) -> Outcome<RawCall> {
-        if self.is_pure() || self.context.in_contract {
-            // trace: D86
-            return Err(Report::refused(
-                path_span,
-                "printing is I/O, which a pure function refuses",
-                "a pure function refuses I/O, and contracts can only call pure functions (D86)",
-            ));
-        }
-        let [Argument { label: None, value }] = arguments else {
-            return Err(Report::not_designed(
-                span,
-                "`std::println.stored` with anything but one float",
-                "",
-            ));
-        };
-        let (node, found) = self.check_expression(value, None)?;
-        let Type::Float { unit: None, .. } = found else {
-            return Err(Report::not_designed(
-                value.span,
-                format!("`std::println.stored` on `{found}`"),
-                "",
-            ));
-        };
-        Ok(RawCall {
-            node: Node {
-                span,
-                kind: NodeKind::PrintlnStored(Box::new(node)),
-            },
-            value_type: Type::Void,
-            failures: vec![Failure {
-                short: "print_failed".to_string(),
-                full: "print_failed".to_string(),
-                data: Vec::new(),
-            }],
-            unnamed: None,
-        })
-    }
-
-    /// trace: D95
+    /// trace: D95, D194
     fn check_std_call(
         &mut self,
         rest: &str,
@@ -1845,35 +1813,96 @@ impl Checker<'_> {
         span: Span,
         path_span: Span,
     ) -> Outcome<RawCall> {
-        if rest == "println.stored" {
-            return self.check_println_stored(arguments, span, path_span);
-        }
-        // `std` is flat, and any grouping would use `::`.
-        // trace: D161
+        // `std` is grouped with `::`, and `.` after a function is a narrowing.
+        // trace: D196, D161
         if let Some(inside) = rest.strip_prefix("math.") {
             return Err(Report::refused(
                 path_span,
                 format!("`std::{rest}` isn't how `std` is laid out"),
-                "`std` is flat, and any grouping would use `::`, not `.` (D161)",
+                "`std` is grouped with `::`, and `.` after a function is a narrowing (D196)",
             )
-            .fix(format!("std::{inside}")));
+            .fix(format!("std::math::{inside}")));
         }
-        if rest.starts_with("println.") {
-            // trace: D51
+        if rest == "sin" {
             return Err(Report::refused(
                 path_span,
-                format!("`std::{rest}` spells out what bare `std::println` means"),
-                "a default `std` fixes can't be written out (D51)",
+                "`sin` is in `std`'s `math` group",
+                "`std` is grouped with `::` (D196, D197)",
             )
-            .fix("std::println"));
+            .fix("std::math::sin"));
         }
-        if rest != "println" {
+        Self::refuse_old_prints(rest, path_span)?;
+        let Some(narrowing) = rest.strip_prefix("io::fmt_print") else {
             return Err(Report::not_designed(
                 path_span,
                 format!("`std::{rest}`, since `std`'s full contents aren't chosen"),
                 "",
             ));
+        };
+        let (stored, stderr) = match narrowing {
+            "" => (false, false),
+            ".stored" => (true, false),
+            ".stderr" => (false, true),
+            // trace: D195, D51
+            ".stdout" => {
+                return Err(Report::refused(
+                    path_span,
+                    "`std::io::fmt_print.stdout` spells out what bare `std::io::fmt_print` means",
+                    "a default `std` fixes can't be written out, and stdout is the default (D195, D51)",
+                )
+                .fix("std::io::fmt_print"));
+            }
+            ".stored.stderr" | ".stderr.stored" => {
+                return Err(Report::not_designed(
+                    path_span,
+                    "whether `.stored` and `.stderr` combine, and in which order",
+                    "12.2",
+                ));
+            }
+            other => {
+                return Err(Report::not_designed(
+                    path_span,
+                    format!("`std::io::fmt_print{other}`"),
+                    "",
+                ));
+            }
+        };
+        self.check_fmt_print(arguments, span, path_span, stored, stderr)
+    }
+
+    /// `std::println`, `std::print` and `std::io::fmt_println` aren't the print any more.
+    fn refuse_old_prints(rest: &str, path_span: Span) -> Outcome<()> {
+        // One print, and every other is gone. (D194, D197)
+        // trace: D194, D197
+        if rest == "println" || rest.starts_with("println.") {
+            return Err(Report::refused(
+            path_span,
+            format!("`std::{rest}` is gone, and `std` has one print"),
+            "`std::io::fmt_print` is the one print, a format print, with `{newln}` for a newline (D194, D197)",
+        ));
         }
+        if rest == "print" || rest.starts_with("print.") || rest == "io::fmt_println" {
+            return Err(Report::refused(
+                path_span,
+                format!("`std::{rest}` isn't the print"),
+                "the print is `std::io::fmt_print` (D197)",
+            )
+            .fix("std::io::fmt_print"));
+        }
+        Ok(())
+    }
+
+    /// `std::io::fmt_print("{}: {}{newln}", $name, $count)`: a literal format, checked here, and
+    /// its values. (D194)
+    /// trace: D194, D197
+    fn check_fmt_print(
+        &mut self,
+        arguments: &[Argument],
+        span: Span,
+        path_span: Span,
+        stored: bool,
+        stderr: bool,
+    ) -> Outcome<RawCall> {
         if self.is_pure() || self.context.in_contract {
             // trace: D86
             return Err(Report::refused(
@@ -1882,41 +1911,69 @@ impl Checker<'_> {
                 "a pure function refuses I/O, and contracts can only call pure functions (D86)",
             ));
         }
-        if arguments.is_empty() {
-            return Err(Report::not_designed(
-                span,
-                "`std::println` with no pieces",
-                "",
+        // trace: D114
+        if let Some(label) = arguments
+            .iter()
+            .find_map(|argument| argument.label.as_ref())
+        {
+            return Err(Report::refused(
+                label.span,
+                "a print's text and values have no labels",
+                "`std` labels every other argument, except where every one has the same role, like a print's values (D114)",
             ));
         }
-        let piece = ParameterInfo {
-            name: "piece".to_string(),
-            label: None,
-            word: ParameterWord::Bare,
-            parameter_type: Type::Str,
-            default: None,
-            label_has_unit: false,
+        let Some((format, values)) = arguments.split_first() else {
+            return Err(Report::not_designed(
+                span,
+                "`std::io::fmt_print()` with no text",
+                "12.1",
+            ));
         };
-        let mut handed: Vec<HandedOff> = Vec::new();
-        let mut nodes = Vec::new();
-        for argument in arguments {
-            // trace: D114
-            if let Some(label) = &argument.label {
-                return Err(Report::refused(
-                    label.span,
-                    "`print`'s pieces have no labels",
-                    "`std` labels every other argument, except lists where every item has the same role, like `print`'s pieces (D114)",
-                ));
+        let ExpressionKind::Text(raw) = &format.value.kind else {
+            return Err(Report::not_designed(
+                format.value.span,
+                "a format that isn't a literal",
+                "",
+            ));
+        };
+        let pieces = crate::syntax::parse_format(raw, format.value.span.start + 1)?;
+        let holes: Vec<&crate::ast::Hole> = pieces
+            .iter()
+            .filter_map(|piece| match piece {
+                crate::ast::FormatPiece::Hole(hole) => Some(hole),
+                crate::ast::FormatPiece::Text(_) => None,
+            })
+            .collect();
+        let slots = Self::hole_slots(&holes, values.len(), format.value.span)?;
+        let (value_nodes, value_types) = self.check_print_values(values)?;
+        let mut printed = Vec::new();
+        let mut holes_seen = 0;
+        for piece in pieces {
+            match piece {
+                crate::ast::FormatPiece::Text(text) => printed.push(ir::PrintPiece::Text(text)),
+                crate::ast::FormatPiece::Hole(hole) => {
+                    let value = slots.get(holes_seen).copied().unwrap_or_default();
+                    holes_seen += 1;
+                    if let Some((found, value_span)) = value_types.get(value) {
+                        Self::check_shapes(found, &hole.shapes, *value_span, stored)?;
+                    }
+                    printed.push(ir::PrintPiece::Hole {
+                        value,
+                        shapes: hole.shapes,
+                        span: hole.span,
+                    });
+                }
             }
-            // A number gets `as str` to be printed, and that's the one fix.
-            let value = &argument.value;
-            let code = self.check_println_piece(value, &piece, &mut handed)?;
-            nodes.push(code);
         }
         Ok(RawCall {
             node: Node {
                 span,
-                kind: NodeKind::Println(nodes),
+                kind: NodeKind::FormatPrint {
+                    pieces: printed,
+                    values: value_nodes,
+                    stored,
+                    stderr,
+                },
             },
             value_type: Type::Void,
             failures: vec![Failure {
@@ -1928,21 +1985,134 @@ impl Checker<'_> {
         })
     }
 
-    fn check_println_piece(
-        &mut self,
-        value: &Expression,
-        piece: &ParameterInfo,
-        handed: &mut Vec<HandedOff>,
-    ) -> Outcome<Node> {
-        let argument = self.check_argument(value, piece, handed);
-        match argument {
-            Ok(ir::Argument::Value(node)) => Ok(node),
-            Ok(ir::Argument::Alias(place)) => Ok(Node {
-                span: value.span,
-                kind: NodeKind::Read(place),
-            }),
-            Err(report) => Err(report),
+    /// A print reads its values, each in its readable form. (D194)
+    fn check_print_values(&mut self, values: &[Argument]) -> Outcome<(Vec<Node>, Vec<TypedSpan>)> {
+        let mut value_nodes = Vec::new();
+        let mut value_types = Vec::new();
+        for argument in values {
+            if let ExpressionKind::Hand { .. } = argument.value.kind {
+                return Err(Report::not_designed(
+                    argument.value.span,
+                    "a word on a print's value",
+                    "",
+                ));
+            }
+            let (node, found) = self.check_expression(&argument.value, None)?;
+            // trace: D139
+            if matches!(found, Type::Failure { .. }) {
+                return Err(Report::refused(
+                    argument.value.span,
+                    format!(
+                        "`{}` names a failure, which is for reading its data",
+                        self.text_of(argument.value.span)
+                    ),
+                    "`case negative $f:` names the failure, so `$f.val` reads its data (D139)",
+                ));
+            }
+            value_nodes.push(node);
+            value_types.push((found, argument.value.span));
         }
+        Ok((value_nodes, value_types))
+    }
+
+    /// Which value each hole takes, in order or by number, and the counts match. (D194)
+    fn hole_slots(holes: &[&crate::ast::Hole], values: usize, span: Span) -> Outcome<Vec<usize>> {
+        let numbered = holes.iter().filter(|hole| hole.number.is_some()).count();
+        if numbered > 0 && numbered < holes.len() {
+            let plain = holes.iter().find(|hole| hole.number.is_none());
+            return Err(Report::refused(
+                plain.map_or(span, |hole| hole.span),
+                "this mixes plain holes and numbered ones",
+                "`{1}`, `{2}` are numbered holes, and they can't be mixed with plain ones (D194)",
+            ));
+        }
+        let slots: Vec<usize> = if numbered > 0 {
+            holes
+                .iter()
+                .map(|hole| hole.number.unwrap_or(1).saturating_sub(1))
+                .collect()
+        } else {
+            (0..holes.len()).collect()
+        };
+        let wanted = slots.iter().copied().max().map_or(0, |most| most + 1);
+        if let Some(unused) = (0..values).find(|value| !slots.contains(value)) {
+            if wanted == values {
+                return Err(Report::refused(
+                    span,
+                    format!("value {} has no hole", unused + 1),
+                    "a literal format is checked when building, and every value goes in a hole (D194)",
+                ));
+            }
+        }
+        if wanted != values {
+            return Err(Report::refused(
+                span,
+                format!(
+                    "this format takes {wanted} {}, and it's given {values}",
+                    if wanted == 1 { "value" } else { "values" }
+                ),
+                "a literal format is checked when building, including how many values it takes (D194)",
+            ));
+        }
+        Ok(slots)
+    }
+
+    /// A shape has to apply to the value it shapes. (D194)
+    fn check_shapes(
+        found: &Type,
+        shapes: &crate::ast::Shapes,
+        span: Span,
+        stored: bool,
+    ) -> Outcome<()> {
+        let shown = match found {
+            Type::Str => "str",
+            Type::Integer { .. } => "integer",
+            Type::Float { .. } => "float",
+            Type::Bool => {
+                return Err(Report::not_designed(span, "how a `bool` prints", "12.3"));
+            }
+            other => {
+                return Err(Report::not_designed(
+                    span,
+                    format!("how `{other}` prints"),
+                    "",
+                ));
+            }
+        };
+        let applies = |shape: &str| match shown {
+            "str" => matches!(shape, "align:" | "width:"),
+            "integer" => !matches!(shape, "places:" | "form:"),
+            _ => shape != "base:",
+        };
+        if let Some((shape, at)) = shapes.written.iter().find(|(shape, _)| !applies(shape)) {
+            return Err(Report::refused(
+                *at,
+                format!("`{shape}` doesn't apply to `{found}`"),
+                "a literal format is checked when building, including a shape that doesn't apply (D194)",
+            ));
+        }
+        if shapes.width.is_some() && shapes.align.is_none() && !shapes.zeros {
+            return Err(Report::not_designed(
+                span,
+                "which way a value lines up when only its width is given",
+                "",
+            ));
+        }
+        if shapes.zeros && shapes.align.is_some() {
+            return Err(Report::not_designed(
+                span,
+                "`zeros` together with `align:`",
+                "",
+            ));
+        }
+        if stored && shown == "float" && (shapes.places.is_some() || shapes.science) {
+            return Err(Report::not_designed(
+                span,
+                "`places:` or `form:` in a `.stored` print",
+                "12.2",
+            ));
+        }
+        Ok(())
     }
 
     /// The kit method a short name from `use` stands for, when the receiver is of its type.

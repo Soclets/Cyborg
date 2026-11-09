@@ -12,6 +12,6 @@ fn.main [] -> void:
     let $m: Lend.mut from $r reading = Lend.mut $r;
     let $n: Lend from $r reading = Lend $m;
     change $m.celsius = 1;
-    std::println($n.celsius as str);
+    std::io::fmt_print("{}{newln}", $n.celsius);
     return void;
 end fn.main

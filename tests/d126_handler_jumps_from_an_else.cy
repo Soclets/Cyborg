@@ -7,7 +7,7 @@ fam.handler say_failed:
     say_failed.maybe:
         case print_failed:
             if 1 < 2:
-                std::println("x") ?? void;
+                std::io::fmt_print("x{newln}") ?? void;
             else:
                 return void;
             end if
@@ -15,6 +15,6 @@ fam.handler say_failed:
 end fam.handler say_failed
 
 fn.main [] -> void:
-    std::println("hi") otherwise say_failed.maybe;
+    std::io::fmt_print("hi{newln}") otherwise say_failed.maybe;
     return void;
 end fn.main

@@ -11,6 +11,6 @@ fn make [] -> box:
 end fn make
 
 fn.main [] -> void:
-    std::println(make().n as str);
+    std::io::fmt_print("{}{newln}", make().n);
     return void;
 end fn.main

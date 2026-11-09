@@ -9,7 +9,7 @@ fn.main [] -> void:
         change $n = $n x 10;
     end for
     for $n in $xs:
-        std::println($n as str);
+        std::io::fmt_print("{}{newln}", $n);
     end for
     return void;
 end fn.main

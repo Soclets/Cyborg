@@ -18,6 +18,6 @@ end fn inner.%bump
 fn.main [] -> void:
     let mut $o: outer = outer[a = inner[n = 1]];
     $o.a.%bump();
-    std::println($o.a.n as str);
+    std::io::fmt_print("{}{newln}", $o.a.n);
     return void;
 end fn.main

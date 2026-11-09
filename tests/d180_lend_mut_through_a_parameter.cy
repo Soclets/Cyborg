@@ -17,7 +17,7 @@ fn.main [] -> void:
     let mut $readings: std::list<reading>[len.max: inf items] = [reading[celsius = 1]];
     warm_all(Lend.mut $readings);
     for $r in $readings:
-        std::println($r.celsius as str);
+        std::io::fmt_print("{}{newln}", $r.celsius);
     end for
     return void;
 end fn.main

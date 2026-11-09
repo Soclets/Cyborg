@@ -17,7 +17,7 @@ fn end_it [$f: Given open_file, $quick: bool] -> void:
     else:
         close(Give $f);
     end if
-    std::println("ended");
+    std::io::fmt_print("ended{newln}");
     return void;
 end fn end_it
 

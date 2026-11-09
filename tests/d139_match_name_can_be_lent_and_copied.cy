@@ -9,7 +9,7 @@ end union.tagged status
 
 fn show [$s: status] -> void:
     if $s: status.failed:
-        std::println($s.code as str);
+        std::io::fmt_print("{}{newln}", $s.code);
     end if
     return void;
 end fn show

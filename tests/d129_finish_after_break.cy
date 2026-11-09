@@ -13,6 +13,6 @@ fn.main [] -> void:
         finish $f;
         break;
     end forever
-    std::println("out");
+    std::io::fmt_print("out{newln}");
     return void;
 end fn.main

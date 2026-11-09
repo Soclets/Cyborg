@@ -1,6 +1,6 @@
-refused: d169_used_after_its_source_changed.cy:14:18, line 14 column 18
-14 |     std::println($view.celsius as str);
-   |                  ^^^^^
+refused: d169_used_after_its_source_changed.cy:14:37, line 14 column 37
+14 |     std::io::fmt_print("{}{newln}", $view.celsius);
+   |                                     ^^^^^
  what: `$view` can't be used after what it borrows was used
  why:  a stored `Lend.mut` means nothing else uses it meanwhile, and a `Lend` means it can't change (D2)
  because: d169_used_after_its_source_changed.cy:13:12, line 13 column 12

@@ -15,7 +15,7 @@ fn outer [$n: i32] -> i32:
     fails [odd];
 
     let $m: i32 = inner($n)?;
-    std::println("got ", $m as str);
+    std::io::fmt_print("got {}{newln}", $m);
     return $m;
 end fn outer
 

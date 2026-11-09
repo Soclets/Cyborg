@@ -14,11 +14,11 @@ end fn eat
 
 fn.main [] -> void:
     let $r: box = box[n = 5];
-    std::println(eat(val: Give $r) as str);
+    std::io::fmt_print("{}{newln}", eat(val: Give $r));
     let mut $xs: std::list<box>[len.max: inf items] = empty;
     let $q: box = box[n = 6];
     $xs.std::%append(val: Give $q);
     $xs.std::%append(val: box[n = 7]);
-    std::println($xs.len as str);
+    std::io::fmt_print("{}{newln}", $xs.len);
     return void;
 end fn.main

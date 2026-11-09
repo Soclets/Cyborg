@@ -19,7 +19,7 @@ fn pick [$b: Given box, $early: bool] -> i32:
 end fn pick
 
 fn.main [] -> void:
-    std::println(pick(box[n = 1], 1 < 2) as str);
-    std::println(pick(box[n = 1], 2 < 1) as str);
+    std::io::fmt_print("{}{newln}", pick(box[n = 1], 1 < 2));
+    std::io::fmt_print("{}{newln}", pick(box[n = 1], 2 < 1));
     return void;
 end fn.main

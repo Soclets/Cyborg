@@ -6,7 +6,7 @@ fn.main [] -> void:
     let $a: f64.ieee = 1.5;
     let $b: f64.ieee = 2.5;
     if $a at_most $b:
-        std::println("at most");
+        std::io::fmt_print("at most{newln}");
     end if
     return void;
 end fn.main

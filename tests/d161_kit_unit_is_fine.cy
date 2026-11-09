@@ -7,6 +7,6 @@ use std::time.seconds as seconds;
 
 fn.main [] -> void:
     let $a: i32.seconds = 3600 seconds;
-    std::println("ok");
+    std::io::fmt_print("ok{newln}");
     return void;
 end fn.main

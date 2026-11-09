@@ -4,7 +4,7 @@ import std;
 
 fn.main [] -> void:
     for x $i in range[from: 1, to: 2]:
-        std::println($i as str);
+        std::io::fmt_print("{}{newln}", $i);
         break my::x;
     end for x
     return void;

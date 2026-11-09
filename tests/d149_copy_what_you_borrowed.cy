@@ -10,7 +10,7 @@ type.new wrapped = reading;
 
 fn look [$r: reading] -> void:
     let $w: wrapped = Copy $r as wrapped;
-    std::println($r.celsius as str);
+    std::io::fmt_print("{}{newln}", $r.celsius);
     return void;
 end fn look
 

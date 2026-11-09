@@ -17,6 +17,6 @@ end fn part
 fn.main [] -> void:
     let $o: outer = outer[a = inner[n = 7]];
     let $p: Lend from $o inner = part(Lend $o);
-    std::println($p.n as str);
+    std::io::fmt_print("{}{newln}", $p.n);
     return void;
 end fn.main

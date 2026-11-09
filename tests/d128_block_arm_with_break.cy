@@ -5,7 +5,7 @@ import std;
 
 fn.main [] -> void:
     forever:
-        std::println("once") otherwise:
+        std::io::fmt_print("once{newln}") otherwise:
             case print_failed:
                 break;
         end otherwise

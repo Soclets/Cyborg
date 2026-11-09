@@ -15,7 +15,7 @@ end fn box.%plus
 
 fn.main [] -> void:
     let $b: box = box[n = 1];
-    std::println($b.%plus() as str);
-    std::println($b.%plus(by: 5) as str);
+    std::io::fmt_print("{}{newln}", $b.%plus());
+    std::io::fmt_print("{}{newln}", $b.%plus(by: 5));
     return void;
 end fn.main

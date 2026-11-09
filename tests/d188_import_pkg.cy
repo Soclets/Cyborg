@@ -5,6 +5,6 @@ use @std::inline.asm as asm;
 @config(default);
 
 fn.main [] -> void:
-    std::println("both halves");
+    std::io::fmt_print("both halves{newln}");
     return void;
 end fn.main

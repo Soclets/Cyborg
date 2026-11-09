@@ -18,6 +18,6 @@ fn code_of [$s: status] -> i32:
 end fn code_of
 
 fn.main [] -> void:
-    std::println(code_of(status.failed[code = 7]) as str);
+    std::io::fmt_print("{}{newln}", code_of(status.failed[code = 7]));
     return void;
 end fn.main

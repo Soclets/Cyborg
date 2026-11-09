@@ -1,7 +1,7 @@
 // trace: D151
 import std;
 
-use std::println as "";
+use std::io::fmt_print as "";
 @config(default);
 
 fn.main [] -> void:

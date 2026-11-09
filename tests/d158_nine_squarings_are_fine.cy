@@ -7,6 +7,6 @@ fn.main [] -> void:
     for $i in range[from: 1, to: 9]:
         change $x = $x x $x;
     end for
-    std::println("2^512 is fine");
+    std::io::fmt_print("2^512 is fine{newln}");
     return void;
 end fn.main

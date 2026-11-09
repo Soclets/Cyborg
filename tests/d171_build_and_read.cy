@@ -15,6 +15,6 @@ fn.main [] -> void:
     let $list: reading = reading[celsius = 2];
     let $article: reading = reading[celsius = 1];
     let $i: index<`text`: $article, `table`: $list> = index[words = Lend $article, lookup = Lend $list];
-    std::println($i.words.celsius as str, " ", $i.lookup.celsius as str);
+    std::io::fmt_print("{} {}{newln}", $i.words.celsius, $i.lookup.celsius);
     return void;
 end fn.main

@@ -11,7 +11,7 @@ end fam.handler say_failed
 
 fn.main [] -> void:
     forever:
-        std::println("hi") otherwise say_failed.*stop;
+        std::io::fmt_print("hi{newln}") otherwise say_failed.*stop;
         break;
     end forever
     return void;

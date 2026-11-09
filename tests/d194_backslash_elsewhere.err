@@ -1,0 +1,5 @@
+NotDesignedYet: d194_backslash_elsewhere.cy:7:21, line 7 column 21
+ 7 |     let $s: str = "a\\b";
+   |                     ^
+ what: `\` in a string
+ why:  not decided yet (standard 12.2)

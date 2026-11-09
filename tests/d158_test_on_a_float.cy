@@ -4,9 +4,9 @@ import std;
 
 fn pick [$x: f64] -> void:
     if $x: f64[min: 100.0, max: 200.0]:
-        std::println("inside");
+        std::io::fmt_print("inside{newln}");
     else:
-        std::println("outside");
+        std::io::fmt_print("outside{newln}");
     end if
     return void;
 end fn pick

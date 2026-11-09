@@ -15,9 +15,9 @@ end fn first_word
 fn.main [] -> void:
     first_word(1 < 2) otherwise:
         case too_long:
-            std::println("too long");
+            std::io::fmt_print("too long{newln}");
         case my::empty:
-            std::println("(none)");
+            std::io::fmt_print("(none){newln}");
     end otherwise
     return void;
 end fn.main

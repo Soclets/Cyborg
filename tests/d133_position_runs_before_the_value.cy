@@ -4,7 +4,7 @@ import std;
 @config(default);
 
 fn say [$n: i32] -> i32:
-    std::println("say ", $n as str);
+    std::io::fmt_print("say {}{newln}", $n);
     return $n;
 end fn say
 

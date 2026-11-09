@@ -11,17 +11,17 @@ struct b:
 end struct b
 
 fn a.%show [$v: a] -> void:
-    std::println("a ", $v.n as str);
+    std::io::fmt_print("a {}{newln}", $v.n);
     return void;
 end fn a.%show
 
 fn b.%show [$v: b] -> void:
-    std::println("b ", $v.n as str);
+    std::io::fmt_print("b {}{newln}", $v.n);
     return void;
 end fn b.%show
 
 fn show [$n: i32] -> void:
-    std::println("plain ", $n as str);
+    std::io::fmt_print("plain {}{newln}", $n);
     return void;
 end fn show
 

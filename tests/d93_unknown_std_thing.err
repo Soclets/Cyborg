@@ -1,5 +1,5 @@
 NotDesignedYet: d93_unknown_std_thing.cy:9:5, line 9 column 5
- 9 |     printu("hi");
-   |     ^^^^^^
- what: `std::print.useful`, since `std`'s full contents aren't chosen
+ 9 |     readu();
+   |     ^^^^^
+ what: `std::io::read_line`, since `std`'s full contents aren't chosen
  why:  not decided yet, and the standard doesn't say

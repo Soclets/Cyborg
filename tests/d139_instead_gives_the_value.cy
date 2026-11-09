@@ -20,7 +20,7 @@ fn.main [] -> void:
         case too_long:
             instead "…";
     end otherwise
-    std::println(Lend $a);
-    std::println(Lend $b);
+    std::io::fmt_print("{}{newln}", $a);
+    std::io::fmt_print("{}{newln}", $b);
     return void;
 end fn.main

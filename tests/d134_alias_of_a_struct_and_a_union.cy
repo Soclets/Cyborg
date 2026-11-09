@@ -18,16 +18,16 @@ type.alias s = status;
 fn.main [] -> void:
     let $a: r = r[celsius = 21];
     let $b: reading = Copy $a;
-    std::println($b.celsius as str);
+    std::io::fmt_print("{}{newln}", $b.celsius);
     let $c: s = s.failed[code = 7];
     if $c: s.failed:
-        std::println($c.code as str);
+        std::io::fmt_print("{}{newln}", $c.code);
     end if
     match $c:
         case s.ok:
-            std::println("ok");
+            std::io::fmt_print("ok{newln}");
         case status.failed:
-            std::println("failed");
+            std::io::fmt_print("failed{newln}");
     end match
     return void;
 end fn.main

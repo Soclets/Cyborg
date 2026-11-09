@@ -14,6 +14,6 @@ fn.pure bumped [$start: i32] -> i32:
 end fn.pure bumped
 
 fn.main [] -> void:
-    std::println(bumped(1) as str);
+    std::io::fmt_print("{}{newln}", bumped(1));
     return void;
 end fn.main

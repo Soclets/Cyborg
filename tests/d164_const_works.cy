@@ -5,6 +5,6 @@ import std;
 const $half: f64 = 1.0 div 2.0;
 
 fn.main [] -> void:
-    std::println($half as str);
+    std::io::fmt_print("{}{newln}", $half);
     return void;
 end fn.main

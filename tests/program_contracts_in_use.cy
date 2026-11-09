@@ -27,9 +27,9 @@ fn per_day [$total: i32, $n: i32] -> i32:
 end fn per_day
 
 fn.main [] -> void:
-    std::println($week as str);
-    std::println(per_day($week) as str);
-    std::println(per_day($week, days: 2) as str);
-    std::println((per_day(0) ?? -1) as str);
+    std::io::fmt_print("{}{newln}", $week);
+    std::io::fmt_print("{}{newln}", per_day($week));
+    std::io::fmt_print("{}{newln}", per_day($week, days: 2));
+    std::io::fmt_print("{}{newln}", (per_day(0) ?? -1));
     return void;
 end fn.main

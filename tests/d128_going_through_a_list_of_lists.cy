@@ -9,10 +9,10 @@ fn.main [] -> void:
     for rows $row in $grid:
         for $cell in $row:
             if $cell == $target:
-                std::println("found");
+                std::io::fmt_print("found{newln}");
                 break rows;
             end if
-            std::println($cell as str);
+            std::io::fmt_print("{}{newln}", $cell);
         end for
     end for rows
     return void;

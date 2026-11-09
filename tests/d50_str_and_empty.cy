@@ -5,6 +5,6 @@ import std;
 fn.main [] -> void:
     let $a: str = "hi";
     let $b: str = empty;
-    std::println(Lend $a, Lend $b, "!");
+    std::io::fmt_print("{}{}!{newln}", $a, $b);
     return void;
 end fn.main

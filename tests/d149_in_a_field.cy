@@ -15,6 +15,6 @@ end struct holder
 fn.main [] -> void:
     let $a: reading = reading[celsius = 1];
     let $h: holder = holder[inner = Give $a as wrapped];
-    std::println("ok");
+    std::io::fmt_print("ok{newln}");
     return void;
 end fn.main

@@ -25,16 +25,16 @@ end fn load
 fn name_of [$which: i32] -> void:
     let $n: i32 = load($which) otherwise:
         case not_found:
-            std::println("not found");
+            std::io::fmt_print("not found{newln}");
             return void;
         case file_failed.denied:
-            std::println("denied");
+            std::io::fmt_print("denied{newln}");
             return void;
         case bad_syntax:
-            std::println("bad syntax");
+            std::io::fmt_print("bad syntax{newln}");
             return void;
     end otherwise
-    std::println("fine ", $n as str);
+    std::io::fmt_print("fine {}{newln}", $n);
     return void;
 end fn name_of
 

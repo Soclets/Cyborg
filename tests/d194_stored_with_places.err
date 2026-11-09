@@ -1,0 +1,5 @@
+NotDesignedYet: d194_stored_with_places.cy:7:53, line 7 column 53
+ 7 |     std::io::fmt_print.stored("{places: 2}{newln}", $x);
+   |                                                     ^^
+ what: `places:` or `form:` in a `.stored` print
+ why:  not decided yet (standard 12.2)

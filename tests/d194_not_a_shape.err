@@ -1,0 +1,5 @@
+refused: d194_not_a_shape.cy:6:25, line 6 column 25
+ 6 |     std::io::fmt_print("{bold}{newln}", 1);
+   |                         ^^^^^^
+ what: `bold` isn't a shape
+ why:  the shapes are `align:`, `width:`, `places:`, `base:`, `form:`, `zeros` and `sign` (D194)

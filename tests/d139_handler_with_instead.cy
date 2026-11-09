@@ -8,7 +8,7 @@ fam.handler word_failed:
         case too_long:
             instead "…";
         case no_words $n:
-            std::println("words: ", $n.count as str);
+            std::io::fmt_print("words: {}{newln}", $n.count);
             instead "(none)";
     end word_failed.use_placeholder
 end fam.handler word_failed
@@ -29,8 +29,8 @@ fn.main [] -> void:
     let $a: str = first_word(1) otherwise word_failed.use_placeholder;
     let $b: str = first_word(2) otherwise word_failed.use_placeholder;
     let $c: str = first_word(3) otherwise word_failed.use_placeholder;
-    std::println(Lend $a);
-    std::println(Lend $b);
-    std::println(Lend $c);
+    std::io::fmt_print("{}{newln}", $a);
+    std::io::fmt_print("{}{newln}", $b);
+    std::io::fmt_print("{}{newln}", $c);
     return void;
 end fn.main

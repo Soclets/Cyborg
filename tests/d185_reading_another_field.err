@@ -1,6 +1,6 @@
-refused: d185_reading_another_field.cy:24:18, line 24 column 18
-24 |     std::println($l.lines as str);
-   |                  ^^
+refused: d185_reading_another_field.cy:24:37, line 24 column 37
+24 |     std::io::fmt_print("{}{newln}", $l.lines);
+   |                                     ^^
  what: a field of `$l` was moved out, so all that's left is moving out another, or `finish`
  why:  after a field is moved out, the value is incomplete (D185)
  because: d185_reading_another_field.cy:23:5, line 23 column 5

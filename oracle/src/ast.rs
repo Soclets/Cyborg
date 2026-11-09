@@ -598,3 +598,54 @@ impl Narrowing {
         }
     }
 }
+
+/// A piece of a format print's text: plain text, or a hole a value goes into. (D194)
+#[derive(Clone, Debug)]
+pub enum FormatPiece {
+    Text(String),
+    Hole(Hole),
+}
+
+/// `{}`, `{2}` or `{places: 2}`. A numbered hole counts from 1. (D194)
+#[derive(Clone, Debug)]
+pub struct Hole {
+    pub number: Option<usize>,
+    pub shapes: Shapes,
+    pub span: Span,
+}
+
+/// A hole's shapes, each a word, with where each was written. (D194)
+#[derive(Clone, Debug, Default)]
+pub struct Shapes {
+    pub align: Option<Align>,
+    pub width: Option<(usize, WidthUnit)>,
+    pub places: Option<usize>,
+    pub base: Option<Base>,
+    pub science: bool,
+    pub zeros: bool,
+    pub sign: bool,
+    pub written: Vec<(&'static str, Span)>,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Align {
+    Left,
+    Right,
+    Center,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum WidthUnit {
+    Cols,
+    ColsEastAsian,
+    Graphemes,
+    Bytes,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Base {
+    Bin,
+    Oct,
+    Hex,
+    HexUpper,
+}

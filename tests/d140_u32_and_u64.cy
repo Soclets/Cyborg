@@ -7,8 +7,8 @@ fn.main [] -> void:
     let $a: u32 = 4294967295;
     let $b: u64 = 18446744073709551615;
     let $c: u32 = $a plus.wrap 1;
-    std::println($a as str);
-    std::println($b as str);
-    std::println($c as str);
+    std::io::fmt_print("{}{newln}", $a);
+    std::io::fmt_print("{}{newln}", $b);
+    std::io::fmt_print("{}{newln}", $c);
     return void;
 end fn.main

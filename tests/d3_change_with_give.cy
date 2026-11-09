@@ -6,6 +6,6 @@ fn.main [] -> void:
     let $s: str = "a";
     let mut $t: str = "b";
     change $t = Give $s;
-    std::println(Lend $t);
+    std::io::fmt_print("{}{newln}", $t);
     return void;
 end fn.main

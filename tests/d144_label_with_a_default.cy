@@ -10,7 +10,7 @@ fn draw [$x: i32.screen.pixels] -> void:
     labels [$x as at.screen.pixels];
     defaults [$x = 3];
 
-    std::println(($x as i32) as str);
+    std::io::fmt_print("{}{newln}", ($x as i32));
     return void;
 end fn draw
 

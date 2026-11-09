@@ -17,9 +17,9 @@ fn.main [] -> void:
     let $m: lookup<`text`: $a> = lookup.missing;
     match $l:
         case lookup.found $f:
-            std::println($f.item.celsius as str);
+            std::io::fmt_print("{}{newln}", $f.item.celsius);
         case lookup.missing:
-            std::println("missing");
+            std::io::fmt_print("missing{newln}");
     end match
     return void;
 end fn.main

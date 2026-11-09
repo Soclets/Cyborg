@@ -1,0 +1,5 @@
+NotDesignedYet: d194_science_below_one.cy:7:25, line 7 column 25
+ 7 |     std::io::fmt_print("{form: science}{newln}", $x);
+   |                         ^^^^^^^^^^^^^^^
+ what: a negative exponent, or zero, in `form: science`
+ why:  not decided yet (standard 12.2)

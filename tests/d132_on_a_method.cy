@@ -17,6 +17,6 @@ end fn box.%half
 
 fn.main [] -> void:
     let $b: box = box[n = 3];
-    std::println((1 + $b.%half() ?? 0) as str);
+    std::io::fmt_print("{}{newln}", (1 + $b.%half() ?? 0));
     return void;
 end fn.main

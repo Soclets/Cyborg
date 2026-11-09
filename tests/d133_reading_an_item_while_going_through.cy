@@ -8,6 +8,6 @@ fn.main [] -> void:
     for $i in range[from: 1, to: 3]:
         change $total = $total + $a[pos: $i];
     end for
-    std::println($total as str);
+    std::io::fmt_print("{}{newln}", $total);
     return void;
 end fn.main

@@ -20,6 +20,6 @@ end fn cursor.%move
 fn.main [] -> void:
     let mut $c: cursor = cursor[x = 1 screen.pixels];
     $c.%move(by.screen.pixels: 2);
-    std::println(($c.x as i32) as str);
+    std::io::fmt_print("{}{newln}", ($c.x as i32));
     return void;
 end fn.main

@@ -7,6 +7,6 @@ fn.main [] -> void:
     for $x in $d:
         let $copy: u8 = $x;
     end for
-    std::println($d.len as str);
+    std::io::fmt_print("{}{newln}", $d.len);
     return void;
 end fn.main

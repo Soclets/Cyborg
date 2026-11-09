@@ -1,0 +1,5 @@
+refused: d194_mixing_holes.cy:6:29, line 6 column 29
+ 6 |     std::io::fmt_print("{1} {}{newln}", 1, 2);
+   |                             ^^
+ what: this mixes plain holes and numbered ones
+ why:  `{1}`, `{2}` are numbered holes, and they can't be mixed with plain ones (D194)

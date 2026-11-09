@@ -26,17 +26,17 @@ end fn make_word
 
 fn.main [] -> void:
     let $name: str = "hello";
-    std::println(describe(token.number[value = 42]));
-    std::println(describe(make_word(Give $name)));
-    std::println(describe(token.done));
+    std::io::fmt_print("{}{newln}", describe(token.number[value = 42]));
+    std::io::fmt_print("{}{newln}", describe(make_word(Give $name)));
+    std::io::fmt_print("{}{newln}", describe(token.done));
 
     let mut $state: token = token.number[value = 1];
     if $state: token.number:
-        std::println($state.value as str);
+        std::io::fmt_print("{}{newln}", $state.value);
         change $state = token.done;
     end if
     if $state: token.done:
-        std::println("finished");
+        std::io::fmt_print("finished{newln}");
     end if
     return void;
 end fn.main

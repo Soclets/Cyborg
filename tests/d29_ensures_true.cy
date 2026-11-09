@@ -9,6 +9,6 @@ fn right [$n: i32] -> i32:
 end fn right
 
 fn.main [] -> void:
-    std::println(right(5) as str);
+    std::io::fmt_print("{}{newln}", right(5));
     return void;
 end fn.main

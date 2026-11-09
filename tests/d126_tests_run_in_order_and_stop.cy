@@ -3,19 +3,19 @@ import std;
 @config(default);
 
 fn say [$n: i32] -> bool:
-    std::println("test ", $n as str);
+    std::io::fmt_print("test {}{newln}", $n);
     return $n == 2;
 end fn say
 
 fn.main [] -> void:
     if say(1):
-        std::println("one");
+        std::io::fmt_print("one{newln}");
     else if say(2):
-        std::println("two");
+        std::io::fmt_print("two{newln}");
     else if say(3):
-        std::println("three");
+        std::io::fmt_print("three{newln}");
     else:
-        std::println("none");
+        std::io::fmt_print("none{newln}");
     end if
     return void;
 end fn.main

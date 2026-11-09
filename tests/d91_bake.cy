@@ -12,8 +12,8 @@ fn.main [] -> void:
     let $day: i32 = bake seconds_in(1);
     let $d: i32 = 2;
     let $n: i32 = seconds_in($d);
-    std::println($week as str);
-    std::println($day as str);
-    std::println($n as str);
+    std::io::fmt_print("{}{newln}", $week);
+    std::io::fmt_print("{}{newln}", $day);
+    std::io::fmt_print("{}{newln}", $n);
     return void;
 end fn.main

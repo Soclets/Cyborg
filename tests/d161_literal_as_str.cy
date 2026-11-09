@@ -4,6 +4,6 @@ import std;
 @config(default);
 
 fn.main [] -> void:
-    std::println(~0.1 as str);
+    std::io::fmt_print("{}{newln}", ~0.1);
     return void;
 end fn.main

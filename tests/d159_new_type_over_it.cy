@@ -8,6 +8,6 @@ fn.main [] -> void:
     let $r: sensor = 0.5;
     let $i: f64.ieee = $r as f64.ieee;
     let $clean: f64 = $i as f64;
-    std::println("ok");
+    std::io::fmt_print("ok{newln}");
     return void;
 end fn.main

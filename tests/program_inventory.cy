@@ -25,7 +25,7 @@ fn.main [] -> void:
     report(Lend $bolts);
     report(Lend $nuts);
     report(Lend $pins);
-    std::println("pieces: ", (total_of(Lend $bolts, Lend $nuts) + $pins.count) as str);
+    std::io::fmt_print("pieces: {}{newln}", (total_of(Lend $bolts, Lend $nuts) + $pins.count));
 
     show_restock(Lend $nuts);
     show_restock(Lend $bolts);
@@ -46,11 +46,11 @@ fn report [$l: line] -> void:
     let $level: level = level_of(Lend $l);
     match $level:
         case level.plenty:
-            std::println(Lend $l.name, ": plenty");
+            std::io::fmt_print("{}: plenty{newln}", $l.name);
         case level.low $low:
-            std::println(Lend $l.name, ": low, ", $low.left as str, " left");
+            std::io::fmt_print("{}: low, {} left{newln}", $l.name, $low.left);
         case level.out:
-            std::println(Lend $l.name, ": out");
+            std::io::fmt_print("{}: out{newln}", $l.name);
     end match
     return void;
 end fn report
@@ -71,9 +71,9 @@ end fn order_size
 fn show_restock [$l: line] -> void:
     let $n: i32.stock.pieces = order_size(Lend $l) otherwise:
         case nothing_needed:
-            std::println(Lend $l.name, ": no order");
+            std::io::fmt_print("{}: no order{newln}", $l.name);
             return void;
     end otherwise
-    std::println(Lend $l.name, ": order ", $n as str);
+    std::io::fmt_print("{}: order {}{newln}", $l.name, $n);
     return void;
 end fn show_restock

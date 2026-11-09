@@ -3,6 +3,6 @@ import std;
 @config(default);
 
 fn.main [] -> void:
-    std::print.buffered("hi");
+    std::io::fmt_print.buffered("hi{newln}");
     return void;
 end fn.main

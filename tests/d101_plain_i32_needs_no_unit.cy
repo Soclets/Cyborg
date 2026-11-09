@@ -5,6 +5,6 @@ import std;
 
 fn.main [] -> void:
     let $x: i32 = 3600;
-    std::println($x as str);
+    std::io::fmt_print("{}{newln}", $x);
     return void;
 end fn.main

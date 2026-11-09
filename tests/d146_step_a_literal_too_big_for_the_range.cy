@@ -7,7 +7,7 @@ fn.main [] -> void:
     let $from: u8 = 1;
     let $to: u8 = 5;
     for $i in range[from: $from, to: $to, step_by: 300]:
-        std::println($i as str);
+        std::io::fmt_print("{}{newln}", $i);
     end for
     return void;
 end fn.main

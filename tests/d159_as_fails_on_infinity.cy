@@ -7,8 +7,8 @@ fn.main [] -> void:
     for $i in range[from: 1, to: 10]:
         change $x = $x x $x;
     end for
-    std::println("before");
+    std::io::fmt_print("before{newln}");
     let $clean: f64 = $x as f64;
-    std::println("after");
+    std::io::fmt_print("after{newln}");
     return void;
 end fn.main

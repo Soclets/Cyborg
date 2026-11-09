@@ -3,7 +3,7 @@ import std;
 @config(default);
 
 fn.pure p [$x: f64] -> f64:
-    std::println.stored($x);
+    std::io::fmt_print.stored("{}{newln}", $x);
     return $x;
 end fn.pure p
 

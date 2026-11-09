@@ -1,5 +1,5 @@
-refused: d178_percent_only_on_a_method.cy:4:21, line 4 column 21
- 4 | use std::println as %println;
-   |                     ^^^^^^^^
+refused: d178_percent_only_on_a_method.cy:4:27, line 4 column 27
+ 4 | use std::io::fmt_print as %fmt_print;
+   |                           ^^^^^^^^^^
  what: only a method's short name has `%`
  why:  `%` marks a method call, where ownership isn't written (D178, D4)

@@ -10,6 +10,6 @@ fam.handler say_failed:
 end fam.handler say_failed
 
 fn.main [] -> void:
-    std::println("hi") otherwise say_failed.*bail;
+    std::io::fmt_print("hi{newln}") otherwise say_failed.*bail;
     return void;
 end fn.main

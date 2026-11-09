@@ -25,8 +25,8 @@ fn.main [] -> void:
         end if
     end for
     for $p in $found:
-        std::println($p as str);
+        std::io::fmt_print("{}{newln}", $p);
     end for
-    std::println("kept ", $found.len as str);
+    std::io::fmt_print("kept {}{newln}", $found.len);
     return void;
 end fn.main

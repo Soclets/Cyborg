@@ -7,6 +7,6 @@ fn make [] -> std::array<i32>[len: 2 items]:
 end fn make
 
 fn.main [] -> void:
-    std::println(make()[pos: 2] as str);
+    std::io::fmt_print("{}{newln}", make()[pos: 2]);
     return void;
 end fn.main

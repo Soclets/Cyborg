@@ -10,9 +10,9 @@ end union.tagged status
 fn show [$s: status] -> void:
     match $s:
         case status.ok:
-            std::println("worked");
+            std::io::fmt_print("worked{newln}");
         case status.failed $f:
-            std::println("failed: ", $f.code as str);
+            std::io::fmt_print("failed: {}{newln}", $f.code);
     end match
     return void;
 end fn show

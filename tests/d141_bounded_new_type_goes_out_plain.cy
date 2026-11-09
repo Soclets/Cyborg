@@ -7,6 +7,6 @@ type.new percent = i32[min: 0, max: 100];
 fn.main [] -> void:
     let $p: percent = 40;
     let $n: i32 = $p as i32;
-    std::println($n as str);
+    std::io::fmt_print("{}{newln}", $n);
     return void;
 end fn.main

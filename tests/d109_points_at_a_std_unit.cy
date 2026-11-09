@@ -8,6 +8,6 @@ end fam.unit time
 
 fn.main [] -> void:
     let $m: i32.time.minutes = 2 time.minutes;
-    std::println($m as str);
+    std::io::fmt_print("{}{newln}", $m);
     return void;
 end fn.main

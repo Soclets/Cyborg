@@ -8,6 +8,6 @@ end fn use_score
 
 fn.main [] -> void:
     let $n: i32 = 100;
-    std::println(use_score($n) as str);
+    std::io::fmt_print("{}{newln}", use_score($n));
     return void;
 end fn.main

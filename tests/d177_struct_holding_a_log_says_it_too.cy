@@ -7,7 +7,7 @@ struct.must_Give open_file:
 end struct.must_Give open_file
 
 fn close [$f: Given open_file] -> void:
-    std::println("closing ", $f.fd as str);
+    std::io::fmt_print("closing {}{newln}", $f.fd);
     finish $f;
     return void;
 end fn close

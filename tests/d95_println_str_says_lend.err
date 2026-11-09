@@ -1,5 +1,0 @@
-refused: d95_println_str_says_lend.cy:8:18, line 8 column 18
- 8 |     std::println($s);
-   |                  ^^
- fix:  `Lend $s`
- why:  every hand-off shows on the page (D3)

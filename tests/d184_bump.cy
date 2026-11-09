@@ -11,6 +11,6 @@ fn.main [] -> void:
     let mut $count: i32 = 1;
     bump(Lend.mut $count);
     bump(Lend.mut $count);
-    std::println($count as str);
+    std::io::fmt_print("{}{newln}", $count);
     return void;
 end fn.main

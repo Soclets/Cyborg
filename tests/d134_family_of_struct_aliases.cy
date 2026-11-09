@@ -12,6 +12,6 @@ end fam.type.alias shapes
 
 fn.main [] -> void:
     let $d: shapes.dot = shapes.dot[x = 4];
-    std::println($d.x as str);
+    std::io::fmt_print("{}{newln}", $d.x);
     return void;
 end fn.main

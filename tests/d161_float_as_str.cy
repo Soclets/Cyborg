@@ -4,6 +4,6 @@ import std;
 
 fn.main [] -> void:
     let $x: f64 = ~0.1;
-    std::println($x as str);
+    std::io::fmt_print("{}{newln}", $x);
     return void;
 end fn.main

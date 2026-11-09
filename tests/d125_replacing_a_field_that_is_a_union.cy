@@ -16,9 +16,9 @@ fn.main [] -> void:
     change $j.state = status.failed[code = 7];
     match $j.state:
         case status.ok:
-            std::println("ok");
+            std::io::fmt_print("ok{newln}");
         case status.failed:
-            std::println("failed");
+            std::io::fmt_print("failed{newln}");
     end match
     return void;
 end fn.main

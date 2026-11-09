@@ -11,6 +11,6 @@ end struct point
 fn.main [] -> void:
     let $p: point = point[x = 3, y = 4];
     let $n: i32 = $p.x x $p.y;
-    std::println($n as str);
+    std::io::fmt_print("{}{newln}", $n);
     return void;
 end fn.main

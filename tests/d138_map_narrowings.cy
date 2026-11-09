@@ -5,6 +5,6 @@ import std;
 fn.main [] -> void:
     let $h: std::map.hash<key: str, val: i32> = empty;
     let $o: std::map.ordered<key: str, val: i32> = empty;
-    std::println("made");
+    std::io::fmt_print("made{newln}");
     return void;
 end fn.main

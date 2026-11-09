@@ -16,6 +16,6 @@ end fn warmer
 fn.main [] -> void:
     let $x: reading = reading[celsius = 21];
     let $y: reading = reading[celsius = 25];
-    std::println(warmer(Lend $x, Lend $y).celsius as str);
+    std::io::fmt_print("{}{newln}", warmer(Lend $x, Lend $y).celsius);
     return void;
 end fn.main

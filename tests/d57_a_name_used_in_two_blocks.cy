@@ -6,11 +6,11 @@ import std;
 fn.main [] -> void:
     if 1 < 2:
         let $a: i32 = 1;
-        std::println($a as str);
+        std::io::fmt_print("{}{newln}", $a);
     end if
     if 1 < 2:
         let $a: i32 = 2;
-        std::println($a as str);
+        std::io::fmt_print("{}{newln}", $a);
     end if
     return void;
 end fn.main

@@ -6,16 +6,16 @@ fn.main [] -> void:
     let $n: f64 = -0.0;
     let $p: f64 = 0.0;
     if $n == $p:
-        std::println("equal");
+        std::io::fmt_print("equal{newln}");
     end if
     if $n != $p:
-        std::println("different");
+        std::io::fmt_print("different{newln}");
     end if
     if $n < $p:
-        std::println("below");
+        std::io::fmt_print("below{newln}");
     end if
     if $n at_least $p:
-        std::println("at least");
+        std::io::fmt_print("at least{newln}");
     end if
     return void;
 end fn.main

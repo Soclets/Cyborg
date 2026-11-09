@@ -14,6 +14,6 @@ fn first_over [$limit: i32] -> i32:
 end fn first_over
 
 fn.main [] -> void:
-    std::println(first_over(10) as str);
+    std::io::fmt_print("{}{newln}", first_over(10));
     return void;
 end fn.main
