@@ -1,5 +1,5 @@
-refused: d169_held_comes_after_mut.cy:11:30, line 11 column 30
+refused: d169_held_comes_after_mut.cy:11:16, line 11 column 16
 11 |     let $lock: Lend.held.mut from $r reading = Lend.mut $r;
-   |                              ^^^^
- what: expected `mut` or `held`, but found `from`
- why:  `;` ends a statement, `:` opens a block, and `end` closes it (D33)
+   |                ^^^^^^^^^^^^^
+ fix:  `Lend.mut.held`
+ why:  the narrowing that changes the action most sits next to the thing, and for a borrow how it can be used comes before how long (D223, D169)

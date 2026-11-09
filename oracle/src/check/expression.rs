@@ -1445,6 +1445,14 @@ impl Checker<'_> {
             )
             .fix("std::io::fmt_print"));
         }
+        // trace: D225
+        if path.starts_with("csup::extern") {
+            return Err(Report::not_designed(
+                span,
+                "how a C function is declared and called through `@csup`",
+                "12.5",
+            ));
+        }
         let dangerous = path.starts_with("csup::") || path == "std::inline.asm";
         if let Some(limb) = path.split("::").next() {
             if limb == "csup" {
@@ -1869,14 +1877,18 @@ impl Checker<'_> {
                 )
                 .fix(format!("std::io::fmt_print.{}", &after[2..])));
             }
-            // They combine, but which order is written isn't settled. (D221)
-            // trace: D221
-            ".stored.stderr" | ".stderr.stored" => {
-                return Err(Report::not_designed(
+            // They combine, strongest first: `.stored` changes what's printed, and `.stderr` only
+            // where it goes. (D221, D223)
+            // trace: D221, D223
+            ".stored.stderr" => (true, true),
+            ".stderr.stored" => {
+                let written = self.text_of(path_span);
+                return Err(Report::refused(
                     path_span,
-                    "the order of `.stderr` and `.stored` together",
-                    "12.2",
-                ));
+                    "narrowings go strongest first, so `.stored` comes before `.stderr`",
+                    "the narrowing that changes the action most sits next to the thing, and `.stored` changes what's printed while `.stderr` changes only where (D223)",
+                )
+                .fix(written.replace(".stderr.stored", ".stored.stderr")));
             }
             other => {
                 return Err(Report::not_designed(

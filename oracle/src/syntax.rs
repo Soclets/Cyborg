@@ -1554,11 +1554,20 @@ impl Parser {
         }
         // trace: D155
         if matches!(self.peek().lexeme, Lexeme::Symbol("@")) {
+            let mark = self.peek().span;
+            let Lexeme::Word(word) = self.peek_at(1).lexeme.clone() else {
+                return Err(Report::refused(
+                    mark,
+                    "the short name has no `@`",
+                    "`@` with no `::` is a compiler builtin (D155, D56)",
+                ));
+            };
             return Err(Report::refused(
-                self.peek().span,
+                mark.to(self.peek_at(1).span),
                 "the short name has no `@`",
-                "`@` with no `::` is a compiler builtin, so `@c` looks like one (D155, D56)",
-            ));
+                format!("`@` with no `::` is a compiler builtin, so `@{word}` looks like one (D155, D56)"),
+            )
+            .fix(word));
         }
         let percent_span = self.span();
         let mut short_marks = 0;
@@ -1988,6 +1997,15 @@ impl Parser {
             ".main" => FunctionKind::Main,
             ".pure" => FunctionKind::Pure,
             ".pure.baked" => FunctionKind::PureBaked,
+            // trace: D223
+            ".baked.pure" => {
+                return Err(Report::refused(
+                    start.to(self.previous_span()),
+                    "narrowings go in a fixed order, and this one is `fn.pure.baked`",
+                    "narrowings go strongest first in a fixed order, and `fn.pure.baked` is how this one is spelled (D223, D91)",
+                )
+                .fix("fn.pure.baked"));
+            }
             other => {
                 return Err(Report::not_designed(
                     start.to(self.previous_span()),
@@ -3024,6 +3042,16 @@ impl Parser {
             let narrowing = self.expect_name("`mut` or `held`")?;
             match narrowing.text.as_str() {
                 "mut" if !mutable && !held => mutable = true,
+                // How it can be used goes before how long, strongest first. (D223)
+                // trace: D223
+                "mut" if held && !mutable => {
+                    return Err(Report::refused(
+                        start.to(narrowing.span),
+                        "narrowings go strongest first, so `mut` comes before `held`",
+                        "the narrowing that changes the action most sits next to the thing, and for a borrow how it can be used comes before how long (D223, D169)",
+                    )
+                    .fix("Lend.mut.held"));
+                }
                 HELD_WORD if !held => held = true,
                 _ => return Err(self.expected("`mut` or `held`")),
             }

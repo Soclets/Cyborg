@@ -1,5 +1,0 @@
-NotDesignedYet: d221_the_other_order.cy:7:5, line 7 column 5
- 7 |     std::io::fmt_print.stderr.stored("{}{newln}", 0.5);
-   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
- what: the order of `.stderr` and `.stored` together
- why:  not decided yet (standard 12.2)

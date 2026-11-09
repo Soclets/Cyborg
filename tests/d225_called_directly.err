@@ -1,0 +1,5 @@
+NotDesignedYet: d225_called_directly.cy:9:9, line 9 column 9
+ 9 |         @csup::extern.c("hi");
+   |         ^^^^^^^^^^^^^^^
+ what: how a C function is declared and called through `@csup`
+ why:  not decided yet (standard 12.5)

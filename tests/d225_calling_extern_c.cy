@@ -1,4 +1,5 @@
-// trace: D155
+// `@csup::extern.c` was never defined, and how C functions come through `@csup` isn't designed.
+// trace: D225, D155
 @config(default);
 import @csup;
 

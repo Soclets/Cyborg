@@ -1,8 +1,8 @@
-// trace: D155, D150
+// trace: D155, D150, D225
 @config(default);
 import @csup;
 
-use @csup::extern.c as ext;
+use @csup::union.untagged as ext;
 
 fn.main [] -> void:
     return void;

@@ -1,0 +1,5 @@
+refused: d223_through_a_short_name.cy:9:5, line 9 column 5
+ 9 |     fmt_print.stderr.stored("{}{newln}", 0.5);
+   |     ^^^^^^^^^^^^^^^^^^^^^^^
+ fix:  `fmt_print.stored.stderr`
+ why:  the narrowing that changes the action most sits next to the thing, and `.stored` changes what's printed while `.stderr` changes only where (D223)

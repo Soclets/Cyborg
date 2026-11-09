@@ -533,6 +533,14 @@ impl Checker<'_> {
                 let limb = rest.split("::").next().unwrap_or(rest);
                 if limb == "csup" || limb == "std" {
                     self.require_limb(limb, declared.path.span)?;
+                    // trace: D225
+                    if rest.starts_with("csup::extern") {
+                        return Err(Report::not_designed(
+                            declared.path.span,
+                            "how a C function is declared and called through `@csup`",
+                            "12.5",
+                        ));
+                    }
                 } else {
                     return Err(Report::not_designed(
                         declared.path.span,
@@ -2871,8 +2879,8 @@ fn uses_source(found: &Type, source: &str) -> bool {
 
 /// The function a `use` path narrows, as `std::io::fmt_print` in `std::io::fmt_print.stored`.
 /// A unit's narrowing, like `std::units::time.seconds`, isn't a function's, and keeps D150. The
-/// one function in `std` the oracle knows is the print (D194), and a limb's `use` keeps D155,
-/// as 1.9's `use @csup::extern.c as c;` shows.
+/// one function in `std` the oracle knows is the print (D194). Whether D220 covers a limb
+/// function's narrowing waits on how C functions come through `@csup` (D225).
 /// trace: D220
 fn narrowed_function(path: &str) -> Option<&str> {
     let (function, _) = path.rsplit_once('.')?;

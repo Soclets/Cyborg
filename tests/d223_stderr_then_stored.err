@@ -1,0 +1,5 @@
+refused: d223_stderr_then_stored.cy:8:5, line 8 column 5
+ 8 |     std::io::fmt_print.stderr.stored("{}{newln}", $tenth);
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ fix:  `std::io::fmt_print.stored.stderr`
+ why:  the narrowing that changes the action most sits next to the thing, and `.stored` changes what's printed while `.stderr` changes only where (D223)
