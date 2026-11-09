@@ -12,7 +12,7 @@
 | [9.8](#98-what-must-live-in-a-shield) | What goes inside | The list |
 | [9.9](#99-a-shields-walls) | Entry, exit, containment | The three walls |
 | [9.10](#910-precog) | Precog | Proving things |
-| [9.11](#911-the-linter) | The linter | An official limb |
+| [9.11](#911-the-linter) | The linter | Part of the compiler |
 | [9.12](#912-pub) | `pub` | Seen outside its package |
 | [9.13](#913-a-files-rules-config) | `@config` | The rules a file is held to |
 
@@ -129,9 +129,9 @@ Using a limb doesn't need a shield by itself: `@` says it's a compiler extension
 
 ## 9.11 The linter
 
-**Rule:** the linter is an official limb like Rust's Clippy. It ships with the compiler, and is configured with a file's rules ([9.13](#913-a-files-rules-config)). It can force comments, and can show the hidden checks in [2.5](2-values-and-types.md#25-bounded-integers). Linter strictness is separate from the build mode. Definite mistakes stay compiler errors. It can require handling failures that otherwise crash by default ([8.9](8-failures.md#89-crash-by-default)).
+**Rule:** the linter is part of the compiler, not a limb, and its rules are set with a file's rules ([9.13](#913-a-files-rules-config)). A limb can add rules of its own, named by its path, as in `@house_style::fn::name_length`. It can force comments, and can show the hidden checks in [2.5](2-values-and-types.md#25-bounded-integers). Linter strictness is separate from the build mode. Definite mistakes stay compiler errors. It can require handling failures that otherwise crash by default ([8.9](8-failures.md#89-crash-by-default)).
 
-**From:** D14, D21, D30, D96, D201.
+**From:** D14, D21, D30, D96, D201, D202.
 
 ## 9.12 `pub`
 
