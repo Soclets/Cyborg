@@ -90,13 +90,20 @@ refused: main.cy:1:15, line 1 column 15
 To find those, the checker applies the first error's `fix:` in memory and checks again. Any later error that disappears was caused by it. The ones still there are independent, and the same is done for the next one. An error with no single fix can't be applied, so the errors after it stay independent.
 
 ```
-refused: no name `totl`
-  at main.cy:4
-  fix: total
+refused: main.cy:4:20, line 4 column 20
+4 |     let $sum: i32 = totl(Lend $xs);
+  |                     ^^^^
+ what: there's no function `totl`
+ fix:  total
 
-refused: `$sum` has no type
-  at main.cy:9
-  because: main.cy:4, `totl` has no type, so `$sum` couldn't get one
+refused: main.cy:9:5, line 9 column 5
+9 |     change $sum = $sum + $more;
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ what: `$sum` never got a value
+ because: main.cy:4:20, line 4 column 20
+ 4 |     let $sum: i32 = totl(Lend $xs);
+   |                     ^^^^
+     with `total` here, this error goes away
 ```
 
 Cascades are defined this way, not guessed, so the oracle and the compiler agree byte for byte.
