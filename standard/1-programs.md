@@ -184,14 +184,14 @@ A limb works the same way: `use @csup::extern.c as c;`, or `as "ext";`.
 A kit method works the same way, with its type in the path and its `%` kept:
 
 ```
-use std::list.%append as %append;
+use std::list.%%append as %%append;
 
-$xs.%append(val: 4);
+$xs.%%append(val: 4);
 ```
 
-A method of your own with the same name on the same type in that file clashes, and is refused. A quoted name keeps the `%` outside the quotes, as in `use std::list.%append as %"push";`. A limb's short name has no `@`, since a bare `@name` is a builtin.
+A method of your own with the same name on the same type in that file clashes, and is refused. A quoted name keeps the `%` or `%%` outside the quotes, as in `use std::list.%%append as %%"push";`. A limb's short name has no `@`, since a bare `@name` is a builtin.
 
-**Refused:** `use std::list.%append as "push";` and `as "%push"`, with `fix: as %"push"`, `use std::units::time.seconds as minutes;`, `use @csup::extern.c as @c;`, because `@c` looks like a builtin, and a quoted name nothing could use, like `"my say"`, `""` or `"fn"`.
+**Refused:** `use std::list.%%append as "push";` and `as "%%push"`, with `fix: as %%"push"`, `as %append`, which drops a `%`, `use std::units::time.seconds as minutes;`, `use @csup::extern.c as @c;`, because `@c` looks like a builtin, and a quoted name nothing could use, like `"my say"`, `""` or `"fn"`.
 
 **From:** D93, D150, D151, D155, D178, D179.
 

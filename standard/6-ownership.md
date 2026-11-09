@@ -9,7 +9,7 @@
 | [6.5](#65-lendmut-and-lentmut) | `Lend.mut`, `Lent.mut` | Borrow that may change it |
 | [6.6](#66-plain-numbers-and-bool) | Plain numbers, `bool` | Always copied, no word |
 | [6.7](#67-no-implicit-ownership) | No implicit ownership | Every hand-off shows |
-| [6.8](#68--unsaid-ownership) | `%` | Unsaid ownership on a method |
+| [6.8](#68--and--lending-a-receiver) | `%`, `%%` | How a method lends its receiver |
 | [6.9](#69-must_give) | `must_Give`, `finish` | Handed off exactly once |
 | [6.10](#610-stored-borrows) | `Lend from` | A borrow as a type, returned or in a struct |
 | [6.11](#611-no-word-needed) | No word needed | Reading in place, fresh values |
@@ -118,17 +118,18 @@ name_tag[text = Give $s]
 
 **From:** D2, D3.
 
-## 6.8 `%`: unsaid ownership
+## 6.8 `%` and `%%`: lending a receiver
 
-**Rule:** a `%` on a method's name says the receiver's ownership is unsaid here, and found in the signature. The compiler still checks it. It hides only `Lend` and `Lend.mut`, so after a `%` the value is always still alive. A search for `%` finds every unsaid hand-off.
+**Rule:** on a method call, `.%` lends the receiver read-only, and `.%%` lends it to change. They're short forms of `Lend` and `Lend.mut`, so after either one the value is still alive, and the call alone shows whether the receiver might change. The declaration's receiver has to match: a bare receiver for `%`, and `Lent.mut` for `%%`. A search for `%%` finds every method call that changes its receiver.
 
 ```
-$xs.std::%append(val: 4);
+$p.%area();
+$xs.std::%%append(val: 4);
 ```
 
-**Refused:** `total(%$xs)`, because `%` goes only on a method call. Hiding `Give`: write `close(Give $f)`.
+**Refused:** `total(%$xs)`, because `%` goes only on a method call, a `.%` on a method that changes its receiver, with `fix: .%%`, and a `.%%` on one that doesn't, with `fix: .%`. Methods can't give their receiver away: write `close(Give $f)`.
 
-**From:** D4, D5, D115.
+**From:** D4, D5, D115, D211.
 
 ## 6.9 `must_Give`
 

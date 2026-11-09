@@ -99,36 +99,36 @@ Contracts can only call pure functions ([5.9](#59-pure-functions)), so turning c
 
 ## 5.6 Methods: `.%`
 
-**Rule:** a method is a function attached to a type, called on a receiver with `.%`. A `.` never runs code, and a `.%` always does. A method from a kit says its path, because bare means base or your own, and a limb's has `@`.
+**Rule:** a method is a function attached to a type, called on a receiver with `.%` when it lends the receiver read-only, or `.%%` when it lends it to change. A `.` never runs code, and a `.%` always does. A method from a kit says its path, because bare means base or your own, and a limb's has `@`.
 
 ```
-$xs.std::%append(val: 4);
+$xs.std::%%append(val: 4);
 ```
 
-Methods only borrow, because `%` can't hide `Give` ([6.8](6-ownership.md#68--unsaid-ownership)). Anything that consumes its value is a plain function: `close(Give $f)`.
+Methods only borrow, because `%` and `%%` stand only for `Lend` and `Lend.mut` ([6.8](6-ownership.md#68--and--lending-a-receiver)). Anything that consumes its value is a plain function: `close(Give $f)`.
 
 ```
 $p.%area();
 $x.@csup::%name();
 ```
 
-**Refused:** `$xs.%append(val: 4);`, with `fix: $xs.std::%append(val: 4);`.
+**Refused:** `$xs.%%append(val: 4);`, with `fix: $xs.std::%%append(val: 4);`, and `$xs.std::%append(val: 4);`, with `fix: .%%`, since `append` changes its receiver.
 
-A method is declared as a normal function with its type in the name. The first parameter is the receiver, and says how it's held, which is where `%` looks up what's unsaid.
+A method is declared as a normal function with its type in the name. The first parameter is the receiver, and says how it's held, which has to match the `%` or `%%` in the name.
 
 ```
-fn reading.%warm_up [$r: Lent.mut reading, $by: i32] -> void:
+fn reading.%%warm_up [$r: Lent.mut reading, $by: i32] -> void:
     labels [$by as by];
     change $r.celsius = $r.celsius + $by;
     return void;
-end fn reading.%warm_up
+end fn reading.%%warm_up
 
-$r.%warm_up(by: 2);
+$r.%%warm_up(by: 2);
 ```
 
 A receiver that's `Given` is refused, because methods only borrow.
 
-**From:** D4, D5, D8, D115, D130.
+**From:** D4, D5, D8, D115, D130, D211.
 
 ## 5.7 Builtins: `@`
 
