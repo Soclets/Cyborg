@@ -1,5 +1,5 @@
-NotDesignedYet: d159_plain_into_ieee_with_as.cy:5:30, line 5 column 30
- 5 |     let $reading: f64.ieee = $x as f64.ieee;
+NotDesignedYet: d159_plain_into_ieee_with_as.cy:7:30, line 7 column 30
+ 7 |     let $reading: f64.ieee = $x as f64.ieee;
    |                              ^^^^^^^^^^^^^^
  what: converting `f64` to `f64.ieee` with `as`
  why:  not decided yet (standard 12.3)

@@ -1,5 +1,7 @@
 // `instead` replaced the bare last line, which read like a leftover.
 // trace: D139, D45
+@config(default);
+
 fn first_word [] -> str:
     fails [too_long];
 

@@ -1,5 +1,5 @@
-NotDesignedYet: d57_name_taken_by_a_constant.cy:5:9, line 5 column 9
- 5 |     let $a: i32 = 2;
+NotDesignedYet: d57_name_taken_by_a_constant.cy:7:9, line 7 column 9
+ 7 |     let $a: i32 = 2;
    |         ^^
  what: declaring `$a` again while the first is in scope
  why:  not decided yet, and the standard doesn't say

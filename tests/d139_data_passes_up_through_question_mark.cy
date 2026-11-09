@@ -1,5 +1,6 @@
 // trace: D139, D44
 import std;
+@config(default);
 
 fn inner [] -> i32:
     fails [lost[where: i32]];

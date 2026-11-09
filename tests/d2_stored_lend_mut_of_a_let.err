@@ -1,5 +1,5 @@
-refused: d2_stored_lend_mut_of_a_let.cy:8:49, line 8 column 49
- 8 |     let $b: Lend.mut from $r reading = Lend.mut $r;
+refused: d2_stored_lend_mut_of_a_let.cy:10:49, line 10 column 49
+10 |     let $b: Lend.mut from $r reading = Lend.mut $r;
    |                                                 ^^
  what: `$r` can't change, so it can't be lent with `Lend.mut`
  why:  `let` declares a variable that can't change, and `let mut` one that can (D3)

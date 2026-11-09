@@ -1,5 +1,5 @@
-refused: d161_type_family_one_level.cy:3:5, line 3 column 5
- 3 |     ids.user.admin = i64;
+refused: d161_type_family_one_level.cy:5:5, line 5 column 5
+ 5 |     ids.user.admin = i64;
    |     ^^^^^^^^^^^^^^
  what: `ids.user.admin` goes more than one level into `ids`
  why:  a family is one level deep, so a family can't hold a family (D161)

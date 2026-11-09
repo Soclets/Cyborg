@@ -1,5 +1,5 @@
-refused: d9_test_on_something_else.cy:8:12, line 8 column 12
- 8 |     if $n: status.ok:
+refused: d9_test_on_something_else.cy:10:12, line 10 column 12
+10 |     if $n: status.ok:
    |            ^^^^^^^^^
  what: `$n` is `i32`, so it has no such case
  why:  `if $s: status.failed:` tests one case of a union (D9)

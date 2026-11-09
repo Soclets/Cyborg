@@ -1,5 +1,6 @@
 // trace: D124
 import std;
+@config(default);
 
 fn say [$n: i32] -> i32:
     std::println("evaluated ", $n as str);

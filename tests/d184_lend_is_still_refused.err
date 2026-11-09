@@ -1,5 +1,5 @@
-refused: d184_lend_is_still_refused.cy:9:10, line 9 column 10
- 9 |     bump(Lend $count);
+refused: d184_lend_is_still_refused.cy:11:10, line 11 column 10
+11 |     bump(Lend $count);
    |          ^^^^^^^^^^^
  fix:  `Lend.mut $count`
  why:  a number lent to change says `Lend.mut`, and it's the one word a number takes (D184, D3)

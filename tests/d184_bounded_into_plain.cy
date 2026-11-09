@@ -1,5 +1,7 @@
 // Changing through a plain `i32` could break the bound, so the types must match.
 // trace: D184, D20
+@config(default);
+
 fn bump [$n: Lent.mut i32] -> void:
     change $n = $n + 1;
     return void;

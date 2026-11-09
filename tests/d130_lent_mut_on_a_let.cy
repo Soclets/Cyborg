@@ -1,5 +1,7 @@
 // The compiler still checks what `%` leaves unsaid.
 // trace: D130, D4, D3
+@config(default);
+
 struct box:
     n: i32;
 end struct box

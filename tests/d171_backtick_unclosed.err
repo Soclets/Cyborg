@@ -1,5 +1,5 @@
-refused: d171_backtick_unclosed.cy:2:14, line 2 column 14
- 2 | struct view <`text>:
+refused: d171_backtick_unclosed.cy:4:14, line 4 column 14
+ 4 | struct view <`text>:
    |              ^^^^^
  what: a source is a name in backticks, as in `` `text` ``
  why:  a struct names the sources of its borrows in backticks (D171)

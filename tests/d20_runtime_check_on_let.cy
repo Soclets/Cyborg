@@ -1,5 +1,6 @@
 // trace: D20
 import std;
+@config(default);
 
 fn.main [] -> void:
     let $n: i32 = 150;

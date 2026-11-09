@@ -1,5 +1,7 @@
 // How a unit prints isn't decided.
 // trace: D122
+@config(default);
+
 fam.unit time:
     time.seconds: base;
 end fam.unit time

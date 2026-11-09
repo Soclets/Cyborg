@@ -1,5 +1,5 @@
-NotDesignedYet: d142_range_mixing_a_plain_variable.cy:7:27, line 7 column 27
- 7 |     for $i in range[from: $n, to: $xs.len]:
+NotDesignedYet: d142_range_mixing_a_plain_variable.cy:8:27, line 8 column 27
+ 8 |     for $i in range[from: $n, to: $xs.len]:
    |                           ^^
  what: a range mixing a plain variable with a number in `items`
  why:  not decided yet, and the standard doesn't say

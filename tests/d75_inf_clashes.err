@@ -1,5 +1,5 @@
-refused: d75_inf_clashes.cy:7:19, line 7 column 19
- 7 |     let $a: i32 = inf();
+refused: d75_inf_clashes.cy:9:19, line 9 column 19
+ 9 |     let $a: i32 = inf();
    |                   ^^^^^
  fix:  `my::inf()`
  why:  a name of yours that clashes is written with `my::` (D75)

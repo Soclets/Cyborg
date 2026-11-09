@@ -1,5 +1,5 @@
-refused: d57_build_missing_a_field.cy:8:23, line 8 column 23
- 8 |     let $r: reading = reading[celsius = 21];
+refused: d57_build_missing_a_field.cy:10:23, line 10 column 23
+10 |     let $r: reading = reading[celsius = 21];
    |                       ^^^^^^^^^^^^^^^^^^^^^
  what: building `reading` needs `time`
  why:  building one uses `[ ]`, with `=` setting each field (D57)

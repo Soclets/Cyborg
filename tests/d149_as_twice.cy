@@ -1,6 +1,7 @@
 // The word is on the whole value, so the second `as` is on something fresh.
 // trace: D149
 import std;
+@config(default);
 
 struct reading:
     celsius: i32;

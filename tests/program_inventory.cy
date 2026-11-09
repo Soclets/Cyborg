@@ -1,6 +1,7 @@
 // A real program: stock levels, a report, and a failure handled at the call.
 // trace: D2, D9, D13, D20, D45, D57, D115, D120
 import std;
+@config(default);
 
 fam.unit stock:
     stock.pieces: base;

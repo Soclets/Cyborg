@@ -1,5 +1,6 @@
 // trace: D134
 import std;
+@config(default);
 
 type.alias score = i32;
 type.alias numbers = std::list<i32>[len.max: inf items];

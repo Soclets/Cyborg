@@ -1,9 +1,9 @@
-refused: d126_else_if_after_else.cy:7:5, line 7 column 5
- 7 |     else if 2 < 1:
+refused: d126_else_if_after_else.cy:9:5, line 9 column 5
+ 9 |     else if 2 < 1:
    |     ^^^^
  what: nothing follows `else:` but `end if`
  why:  `else if` and `else:` continue an `if`, and one `end if` closes the chain (D126)
- because: d126_else_if_after_else.cy:5:5, line 5 column 5
- 5 |     else:
+ because: d126_else_if_after_else.cy:7:5, line 7 column 5
+ 7 |     else:
    |     ^^^^
      the `else:` is here

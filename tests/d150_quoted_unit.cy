@@ -2,6 +2,7 @@
 import std;
 
 use std::time.seconds as "secs";
+@config(default);
 
 fn.main [] -> void:
     let $a: i32.secs = 3600 secs;

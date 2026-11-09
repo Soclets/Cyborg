@@ -1,4 +1,6 @@
 // trace: D134
+@config(default);
+
 fam.type.alias sizes:
     sizes.small = i32;
 end fam.type.alias sizes

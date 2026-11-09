@@ -1,4 +1,6 @@
 // trace: D134, D75
+@config(default);
+
 fn type [] -> i32:
     return 1;
 end fn type

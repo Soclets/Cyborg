@@ -1,9 +1,9 @@
-refused: d125_field_of_a_must_give.cy:10:5, line 10 column 5
-10 |     return void;
+refused: d125_field_of_a_must_give.cy:12:5, line 12 column 5
+12 |     return void;
    |     ^^^^^^^^^^^^
  what: this leaves with `$f` never given away or finished
  why:  a `must_Give` value is handed off with `Give` exactly once, or `finish` ends it (D2, D129)
- because: d125_field_of_a_must_give.cy:8:13, line 8 column 13
- 8 |     let mut $f: open_file = open_file[fd = 3];
+ because: d125_field_of_a_must_give.cy:10:13, line 10 column 13
+10 |     let mut $f: open_file = open_file[fd = 3];
    |             ^^
      `$f` was made here

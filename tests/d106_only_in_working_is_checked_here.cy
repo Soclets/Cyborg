@@ -1,5 +1,7 @@
 // The oracle treats every check as on, as in `Working`.
 // trace: D106
+@config(default);
+
 fn f [$n: i32] -> i32:
     requires.only_in_working $n at_least 0;
 

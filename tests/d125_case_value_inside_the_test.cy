@@ -1,5 +1,7 @@
 // D125 speaks of fields, and whether the test's trust survives this isn't stated.
 // trace: D125, D104
+@config(default);
+
 union.tagged status:
     ok
     failed[code: i32]

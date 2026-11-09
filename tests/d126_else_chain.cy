@@ -1,5 +1,6 @@
 // trace: D126
 import std;
+@config(default);
 
 fn size [$n: i32] -> void:
     if $n > 100:

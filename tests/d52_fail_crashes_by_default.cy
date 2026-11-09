@@ -1,5 +1,6 @@
 // trace: D52, D96
 import std;
+@config(default);
 
 fn half [$n: i32] -> i32:
     fails [odd];

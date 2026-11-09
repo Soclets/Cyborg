@@ -1,5 +1,5 @@
-check failed: d133_pos_of_zero.cy:7:19, line 7 column 19
- 7 |     let $n: i32 = $a[pos: 0];
+check failed: d133_pos_of_zero.cy:8:19, line 8 column 19
+ 8 |     let $n: i32 = $a[pos: 0];
    |                   ^^^^^^^^^^
  what: `pos: 0` is outside `$a`
  why:  a bad position is a bounds check (D26, D133)

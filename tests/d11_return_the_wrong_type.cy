@@ -1,4 +1,6 @@
 // trace: D11, D7
+@config(default);
+
 fn f [] -> i32:
     return "x";
 end fn f

@@ -1,5 +1,5 @@
-NotDesignedYet: d161_literal_as_str.cy:6:18, line 6 column 18
- 6 |     std::println(~0.1 as str);
+NotDesignedYet: d161_literal_as_str.cy:7:18, line 7 column 18
+ 7 |     std::println(~0.1 as str);
    |                  ^^^^
  what: which float type a literal has when nothing around it says
  why:  not decided yet, and the standard doesn't say

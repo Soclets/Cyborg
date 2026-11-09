@@ -1,5 +1,6 @@
 // trace: D47
 import std;
+@config(default);
 
 fam.failure file_failed:
     file_failed.not_found;

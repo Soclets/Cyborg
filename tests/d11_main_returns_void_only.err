@@ -1,5 +1,5 @@
-refused: d11_main_returns_void_only.cy:2:15, line 2 column 15
- 2 | fn.main [] -> i32:
+refused: d11_main_returns_void_only.cy:4:15, line 4 column 15
+ 4 | fn.main [] -> i32:
    |               ^^^
  what: `fn.main` returns `void`
  why:  a program starts at `fn.main`, and `main` says `return void;` (D11)

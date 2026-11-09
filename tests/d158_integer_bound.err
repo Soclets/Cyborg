@@ -1,5 +1,5 @@
-NotDesignedYet: d158_integer_bound.cy:3:22, line 3 column 22
- 3 |     let $t: f64[min: 0, max: 1] = 0.5;
+NotDesignedYet: d158_integer_bound.cy:5:22, line 5 column 22
+ 5 |     let $t: f64[min: 0, max: 1] = 0.5;
    |                      ^
  what: an integer literal where a float is needed
  why:  not decided yet, and the standard doesn't say

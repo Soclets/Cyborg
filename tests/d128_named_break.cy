@@ -1,5 +1,6 @@
 // trace: D128
 import std;
+@config(default);
 
 fn.main [] -> void:
     for rows $a in range[from: 1, to: 3]:

@@ -1,5 +1,5 @@
-refused: d83_change_a_constant.cy:5:12, line 5 column 12
- 5 |     change $a = 2;
+refused: d83_change_a_constant.cy:7:12, line 7 column 12
+ 7 |     change $a = 2;
    |            ^^
  what: `$a` is a constant, so it can't change
  why:  a constant's value is fixed at compile time (D83)

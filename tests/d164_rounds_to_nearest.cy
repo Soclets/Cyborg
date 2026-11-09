@@ -1,5 +1,6 @@
 // trace: D164, D162
 import std;
+@config(default);
 
 fn.main [] -> void:
     let $one: f64 = 1.0;

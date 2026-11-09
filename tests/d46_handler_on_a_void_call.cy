@@ -1,6 +1,7 @@
 // A handler narrowing is used at a call as if written there.
 // trace: D46
 import std;
+@config(default);
 
 fam.handler say_failed:
     say_failed.log:

@@ -1,5 +1,5 @@
-NotDesignedYet: d138_other_map_narrowing.cy:5:13, line 5 column 13
- 5 |     let $m: std::map.tree<key: str, val: i32> = empty;
+NotDesignedYet: d138_other_map_narrowing.cy:6:13, line 6 column 13
+ 6 |     let $m: std::map.tree<key: str, val: i32> = empty;
    |             ^^^^^^^^^^^^^
  what: the type `std::map.tree`
  why:  not decided yet (standard 12.2)

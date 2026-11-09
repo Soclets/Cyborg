@@ -1,5 +1,7 @@
 // How a shield's own entry and exit are written isn't decided.
 // trace: D37, D39
+@config(default);
+
 fn.main [] -> void:
     shield sensor:
         reason "talks to the chip"

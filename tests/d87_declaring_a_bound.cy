@@ -1,4 +1,6 @@
 // trace: D87
+@config(default);
+
 struct reading:
     n: i32;
 end struct reading

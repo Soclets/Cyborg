@@ -1,5 +1,5 @@
-refused: d9_field_outside_the_test.cy:9:19, line 9 column 19
- 9 |     let $n: i32 = $s.code;
+refused: d9_field_outside_the_test.cy:11:19, line 11 column 19
+11 |     let $n: i32 = $s.code;
    |                   ^^^^^^^
  what: `$s` isn't known to be `status.failed` here
  why:  inside `if $s: status.failed:` the compiler trusts it, and outside that's a compile error (D9)

@@ -1,5 +1,6 @@
 // trace: D158, D20
 import std;
+@config(default);
 
 fn.main [] -> void:
     let $x: f64 = 20.5;

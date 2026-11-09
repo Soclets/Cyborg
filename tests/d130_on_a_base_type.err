@@ -1,5 +1,5 @@
-NotDesignedYet: d130_on_a_base_type.cy:3:4, line 3 column 4
- 3 | fn i32.%double [$n: i32] -> i32:
+NotDesignedYet: d130_on_a_base_type.cy:5:4, line 5 column 4
+ 5 | fn i32.%double [$n: i32] -> i32:
    |    ^^^^^^^^^^^
  what: a method on `i32`, which isn't your own type
  why:  not decided yet, and the standard doesn't say

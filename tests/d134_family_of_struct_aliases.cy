@@ -1,5 +1,6 @@
 // trace: D134, D57
 import std;
+@config(default);
 
 struct point:
     x: i32;

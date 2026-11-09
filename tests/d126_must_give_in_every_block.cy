@@ -1,5 +1,7 @@
 // Only one block runs, and each of them hands the duty on.
 // trace: D126, D2
+@config(default);
+
 struct.must_Give open_file:
     fd: i32;
 end struct.must_Give open_file

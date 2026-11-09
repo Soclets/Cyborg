@@ -1,6 +1,7 @@
 // Numbers carry no duty, so stopping early leaves nothing owed.
 // trace: D180, D128
 import std;
+@config(default);
 
 fn.main [] -> void:
     let $xs: std::list<i32>[len.max: inf items] = [1, 2, 3];

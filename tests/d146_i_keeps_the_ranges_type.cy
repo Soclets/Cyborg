@@ -1,5 +1,7 @@
 // `$i` follows the range, and the step leaves no mark on it.
 // trace: D146
+@config(default);
+
 fn.main [] -> void:
     let $by: i64 = 1;
     let $from: i32 = 1;

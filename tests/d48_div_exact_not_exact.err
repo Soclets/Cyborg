@@ -1,5 +1,5 @@
-NotDesignedYet: d48_div_exact_not_exact.cy:4:19, line 4 column 19
- 4 |     let $a: i32 = 7 div.exact 2;
+NotDesignedYet: d48_div_exact_not_exact.cy:6:19, line 6 column 19
+ 6 |     let $a: i32 = 7 div.exact 2;
    |                   ^^^^^^^^^^^^^
  what: what `div.exact` does when it isn't exact
  why:  not decided yet (standard 12.3)

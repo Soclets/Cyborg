@@ -1,4 +1,6 @@
 // trace: D49
+@config(default);
+
 fn.main [] -> void:
     let $a: str = "a";
     if $a == "a":

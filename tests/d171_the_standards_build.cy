@@ -1,5 +1,6 @@
 // trace: D171, D170
 import std;
+@config(default);
 
 struct reading:
     celsius: i32;

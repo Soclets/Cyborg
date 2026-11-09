@@ -1,5 +1,7 @@
 // `Lend.mut` means nothing else uses it meanwhile.
 // trace: D2
+@config(default);
+
 struct reading:
     celsius: i32;
 end struct reading

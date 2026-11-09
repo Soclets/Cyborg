@@ -1,4 +1,6 @@
 // trace: D83, D120
+@config(default);
+
 const $a: i32 = $b;
 const $b: i32 = $a;
 

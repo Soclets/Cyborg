@@ -1,6 +1,7 @@
 // Items that aren't plain numbers show their hand-off too.
 // trace: D102, D3
 import std;
+@config(default);
 
 fn.main [] -> void:
     let $a: str = "a";

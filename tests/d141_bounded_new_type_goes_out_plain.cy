@@ -1,5 +1,6 @@
 // trace: D141, D20
 import std;
+@config(default);
 
 type.new percent = i32[min: 0, max: 100];
 

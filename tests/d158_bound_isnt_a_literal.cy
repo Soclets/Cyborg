@@ -1,4 +1,6 @@
 // trace: D158
+@config(default);
+
 const $top: f64 = 1.0;
 
 fn.main [] -> void:

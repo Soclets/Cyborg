@@ -1,4 +1,6 @@
 // trace: D128, D2
+@config(default);
+
 fn eat [$s: Given str] -> void:
     return void;
 end fn eat

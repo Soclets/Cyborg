@@ -1,6 +1,7 @@
 // A `u8` can't hold -1, and a step isn't stored, so it doesn't have to.
 // trace: D146
 import std;
+@config(default);
 
 fn.main [] -> void:
     let $from: u8 = 3;

@@ -1,4 +1,6 @@
 // trace: D130, D8
+@config(default);
+
 struct.must_Give open_file:
     fd: i32;
 end struct.must_Give open_file

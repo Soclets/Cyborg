@@ -1,5 +1,6 @@
 // trace: D167, D166
 import std;
+@config(default);
 
 fn.main [] -> void:
     let mut $x: f64.ieee = 2.0;

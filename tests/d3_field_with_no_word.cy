@@ -1,4 +1,6 @@
 // trace: D3
+@config(default);
+
 struct name_tag:
     text: str;
 end struct name_tag

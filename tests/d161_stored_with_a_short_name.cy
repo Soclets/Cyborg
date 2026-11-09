@@ -2,6 +2,7 @@
 import std;
 
 use std::println.stored as stored;
+@config(default);
 
 fn.main [] -> void:
     let $x: f64 = 0.5;

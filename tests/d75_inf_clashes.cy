@@ -1,4 +1,6 @@
 // trace: D75
+@config(default);
+
 fn inf [] -> i32:
     return 1;
 end fn inf

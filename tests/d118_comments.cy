@@ -1,6 +1,7 @@
 // A note for whoever reads this.
 // trace: D118, D119
 import std;
+@config(default);
 
 /// Says hello.
 fn hello [] -> void:

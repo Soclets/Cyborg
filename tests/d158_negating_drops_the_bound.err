@@ -1,5 +1,5 @@
-check failed: d158_negating_drops_the_bound.cy:4:39, line 4 column 39
- 4 |     let $b: f64[min: 0.0, max: 1.0] = -$a;
+check failed: d158_negating_drops_the_bound.cy:6:39, line 6 column 39
+ 6 |     let $b: f64[min: 0.0, max: 1.0] = -$a;
    |                                       ^^^
  what: this doesn't fit `f64[min: 0.0, max: 1.0]`
  why:  a plain `=`, `change` or argument checks a bound when the compiler can't see it fits (D20, D158)

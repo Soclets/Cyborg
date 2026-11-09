@@ -1,5 +1,7 @@
 // The result would borrow a value that ends with the call.
 // trace: D170
+@config(default);
+
 struct reading:
     celsius: i32;
 end struct reading

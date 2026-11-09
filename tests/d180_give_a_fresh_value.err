@@ -1,5 +1,5 @@
-refused: d180_give_a_fresh_value.cy:9:20, line 9 column 20
- 9 |     for $n in Give make():
+refused: d180_give_a_fresh_value.cy:10:20, line 10 column 20
+10 |     for $n in Give make():
    |                    ^^^^^^
  what: a fresh value takes no word
  why:  a fresh value that has no holder yet takes no word (D2)

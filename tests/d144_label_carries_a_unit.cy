@@ -1,5 +1,6 @@
 // trace: D144
 import std;
+@config(default);
 
 fam.unit screen:
     screen.pixels: base;

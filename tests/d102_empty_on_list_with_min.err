@@ -1,5 +1,5 @@
-refused: d102_empty_on_list_with_min.cy:5:66, line 5 column 66
- 5 |     let $b: std::list<i32>[len.min: 1 items, len.max: 8 items] = empty;
+refused: d102_empty_on_list_with_min.cy:6:66, line 6 column 66
+ 6 |     let $b: std::list<i32>[len.min: 1 items, len.max: 8 items] = empty;
    |                                                                  ^^^^^
  what: `std::list<i32>[len.min: 1 items, len.max: 8 items]` can't be `empty`
  why:  `empty` is refused where it can't be true, so a list with `len.min` above 0 can't use it (D102, D103)

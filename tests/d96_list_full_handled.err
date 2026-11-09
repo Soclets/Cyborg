@@ -1,5 +1,5 @@
-NotDesignedYet: d96_list_full_handled.cy:7:5, line 7 column 5
- 7 |     $xs.std::%append(val: 1) otherwise:
+NotDesignedYet: d96_list_full_handled.cy:8:5, line 8 column 5
+ 8 |     $xs.std::%append(val: 1) otherwise:
    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
  what: what the failure is called when a list is full
  why:  not decided yet (standard 12.7)

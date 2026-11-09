@@ -1,5 +1,7 @@
 // `??` only uses its right side if the left failed.
 // trace: D44, D2
+@config(default);
+
 fn read [] -> str:
     fails [none];
 

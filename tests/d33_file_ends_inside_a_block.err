@@ -1,5 +1,5 @@
-refused: d33_file_ends_inside_a_block.cy:3:16, line 3 column 16
- 3 |     return void;
+refused: d33_file_ends_inside_a_block.cy:5:16, line 5 column 16
+ 5 |     return void;
    |                ^
  what: the file ended inside a block
  why:  `;` ends a statement, `:` opens a block, and `end` closes it (D33)

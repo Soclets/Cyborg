@@ -1,4 +1,6 @@
 // trace: D125, D9
+@config(default);
+
 union.tagged status:
     ok
     failed[code: i32]

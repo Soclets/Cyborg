@@ -1,5 +1,6 @@
 // trace: D29, D84
 import std;
+@config(default);
 
 fn right [$n: i32] -> i32:
     ensures result at_least $n;

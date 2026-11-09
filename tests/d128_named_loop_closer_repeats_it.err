@@ -1,5 +1,5 @@
-refused: d128_named_loop_closer_repeats_it.cy:5:5, line 5 column 5
- 5 |     end for
+refused: d128_named_loop_closer_repeats_it.cy:7:5, line 7 column 5
+ 7 |     end for
    |     ^^^^^^^
  fix:  `end for rows`
  why:  the closer repeats all of what it closes, including its narrowings and name (D33, D121)

@@ -1,9 +1,9 @@
-refused: d130_used_after_give.cy:17:19, line 17 column 19
-17 |     let $n: i32 = $b.%read();
+refused: d130_used_after_give.cy:19:19, line 19 column 19
+19 |     let $n: i32 = $b.%read();
    |                   ^^^^^^^^^^
  what: `$b` was already given away
  why:  a given value is dead afterwards (D2)
- because: d130_used_after_give.cy:16:5, line 16 column 5
-16 |     eat(Give $b);
+ because: d130_used_after_give.cy:18:5, line 18 column 5
+18 |     eat(Give $b);
    |     ^^^^^^^^^^^^
      `$b` was given away here

@@ -1,5 +1,7 @@
 // `Lend.mut` means nothing else uses it meanwhile, though this read is over before the call.
 // trace: D130, D2
+@config(default);
+
 struct box:
     n: i32;
 end struct box

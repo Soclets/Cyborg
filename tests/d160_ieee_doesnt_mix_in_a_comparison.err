@@ -1,5 +1,5 @@
-refused: d160_ieee_doesnt_mix_in_a_comparison.cy:5:8, line 5 column 8
- 5 |     if $reading == $x:
+refused: d160_ieee_doesnt_mix_in_a_comparison.cy:7:8, line 7 column 8
+ 7 |     if $reading == $x:
    |        ^^^^^^^^^^^^^^
  what: this compares `f64.ieee` and `f64`
  why:  `f64.ieee` is a different type from `f64`, and `as` is the wall between them (D159)

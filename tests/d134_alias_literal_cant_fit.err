@@ -1,5 +1,5 @@
-refused: d134_alias_literal_cant_fit.cy:5:23, line 5 column 23
- 5 |     let $a: percent = 150;
+refused: d134_alias_literal_cant_fit.cy:7:23, line 7 column 23
+ 7 |     let $a: percent = 150;
    |                       ^^^
  what: `150` doesn't fit `i32[min: 0, max: 100]`
  why:  a literal that can't fit is a compile error (D20)

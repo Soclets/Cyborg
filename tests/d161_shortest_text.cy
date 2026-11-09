@@ -1,5 +1,6 @@
 // trace: D161
 import std;
+@config(default);
 
 fn show [$x: f64] -> void:
     std::println($x as str);

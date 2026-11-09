@@ -1,4 +1,6 @@
 // trace: D86
+@config(default);
+
 fn g [] -> i32:
     return 1;
 end fn g

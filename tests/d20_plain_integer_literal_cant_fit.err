@@ -1,5 +1,5 @@
-refused: d20_plain_integer_literal_cant_fit.cy:3:19, line 3 column 19
- 3 |     let $a: i32 = 3000000000;
+refused: d20_plain_integer_literal_cant_fit.cy:5:19, line 5 column 19
+ 5 |     let $a: i32 = 3000000000;
    |                   ^^^^^^^^^^
  what: `3000000000` doesn't fit `i32`
  why:  a literal that can't fit is a compile error (D20)

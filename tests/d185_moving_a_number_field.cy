@@ -1,6 +1,7 @@
 // A number is copied, and takes no word.
 // trace: D185, D123
 import std;
+@config(default);
 
 struct.must_Give open_file:
     fd: i32;

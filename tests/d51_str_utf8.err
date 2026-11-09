@@ -1,5 +1,5 @@
-refused: d51_str_utf8.cy:3:13, line 3 column 13
- 3 |     let $a: str.utf8 = "hi";
+refused: d51_str_utf8.cy:5:13, line 5 column 13
+ 5 |     let $a: str.utf8 = "hi";
    |             ^^^^^^^^
  fix:  `str`
  why:  a default the language fixes can't be written out (D51)

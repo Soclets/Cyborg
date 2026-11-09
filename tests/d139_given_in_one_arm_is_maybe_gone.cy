@@ -1,5 +1,7 @@
 // The call may not fail, so what an arm gives away is only maybe gone.
 // trace: D139, D2
+@config(default);
+
 fn f [] -> str:
     fails [a];
 

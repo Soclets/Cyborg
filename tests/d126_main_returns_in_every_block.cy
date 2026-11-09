@@ -1,5 +1,6 @@
 // trace: D126, D11
 import std;
+@config(default);
 
 fn.main [] -> void:
     if 1 < 2:

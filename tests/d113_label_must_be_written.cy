@@ -1,4 +1,6 @@
 // trace: D113, D114
+@config(default);
+
 fn add [$a: i32, $b: i32] -> i32:
     labels [$b as to];
 

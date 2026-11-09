@@ -1,5 +1,5 @@
-refused: d11_return_void_from_a_value.cy:3:12, line 3 column 12
- 3 |     return void;
+refused: d11_return_void_from_a_value.cy:5:12, line 5 column 12
+ 5 |     return void;
    |            ^^^^
  what: this function returns `i32`, so it can't `return void`
  why:  `return` hands back a value (D11)

@@ -1,5 +1,6 @@
 // trace: D130
 import std;
+@config(default);
 
 struct a:
     n: i32;

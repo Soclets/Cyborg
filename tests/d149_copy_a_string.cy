@@ -1,5 +1,6 @@
 // trace: D149
 import std;
+@config(default);
 
 type.new title = str;
 

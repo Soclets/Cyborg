@@ -1,5 +1,6 @@
 // trace: D86
 import std;
+@config(default);
 
 fn.pure f [] -> i32:
     std::println("hi");

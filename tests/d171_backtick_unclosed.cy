@@ -1,4 +1,6 @@
 // trace: D171
+@config(default);
+
 struct view <`text>:
     n: i32;
 end struct view

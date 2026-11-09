@@ -1,4 +1,6 @@
 // trace: D134
+@config(default);
+
 type.alias a = b;
 type.alias b = a;
 

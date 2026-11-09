@@ -1,5 +1,5 @@
-refused: d83_older_constant_spelling.cy:3:17, line 3 column 17
- 3 |     let $a: i32 := 1;
+refused: d83_older_constant_spelling.cy:5:17, line 5 column 17
+ 5 |     let $a: i32 := 1;
    |                 ^^
  what: `:=` is gone
  why:  a constant is `const`, with no `let` (D83)

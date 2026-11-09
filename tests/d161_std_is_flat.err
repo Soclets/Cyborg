@@ -1,5 +1,5 @@
-refused: d161_std_is_flat.cy:6:19, line 6 column 19
- 6 |     let $y: f64 = std::math.sin($x);
+refused: d161_std_is_flat.cy:7:19, line 7 column 19
+ 7 |     let $y: f64 = std::math.sin($x);
    |                   ^^^^^^^^^^^^^
  fix:  `std::sin`
  why:  `std` is flat, and any grouping would use `::`, not `.` (D161)

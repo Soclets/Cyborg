@@ -1,5 +1,5 @@
-NotDesignedYet: d34_shield_with_its_own_contract.cy:6:9, line 6 column 9
- 6 |         requires 1 < 2;
+NotDesignedYet: d34_shield_with_its_own_contract.cy:8:9, line 8 column 9
+ 8 |         requires 1 < 2;
    |         ^^^^^^^^
  what: how a shield's own entry and exit are written
  why:  not decided yet (standard 12.9)

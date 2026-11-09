@@ -1,5 +1,5 @@
-check failed: d96_list_full_crashes.cy:10:5, line 10 column 5
-10 |     $xs.std::%append(val: 3);
+check failed: d96_list_full_crashes.cy:11:5, line 11 column 5
+11 |     $xs.std::%append(val: 3);
    |     ^^^^^^^^^^^^^^^^^^^^^^^^
  what: `$xs` is full, and nothing handled it
  why:  a failure nothing handles stops the program (D96)

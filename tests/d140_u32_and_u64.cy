@@ -1,6 +1,7 @@
 // D140 brings these two in, and they work like the other integers.
 // trace: D140, D42
 import std;
+@config(default);
 
 fn.main [] -> void:
     let $a: u32 = 4294967295;

@@ -1,5 +1,6 @@
 // trace: D116, D44
 import std;
+@config(default);
 
 fn read [] -> i32:
     fails [none];

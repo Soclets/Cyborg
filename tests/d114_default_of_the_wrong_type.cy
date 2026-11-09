@@ -1,4 +1,6 @@
 // trace: D114, D7
+@config(default);
+
 fn f [$a: i32] -> i32:
     labels [$a as first];
     defaults [$a = "x"];

@@ -1,5 +1,6 @@
 // trace: D128, D91
 import std;
+@config(default);
 
 fn.pure.baked sum_to [$n: i32] -> i32:
     let mut $total: i32 = 0;

@@ -1,6 +1,7 @@
 // Left to right as written, which is the guess in the queue.
 // trace: D133
 import std;
+@config(default);
 
 fn say [$n: i32] -> i32:
     std::println("say ", $n as str);

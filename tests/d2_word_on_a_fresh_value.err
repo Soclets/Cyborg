@@ -1,5 +1,5 @@
-refused: d2_word_on_a_fresh_value.cy:7:12, line 7 column 12
- 7 |     f(Give "a");
+refused: d2_word_on_a_fresh_value.cy:9:12, line 9 column 12
+ 9 |     f(Give "a");
    |            ^^^
  what: a fresh value takes no word
  why:  a fresh value that has no holder yet takes no word (D2)

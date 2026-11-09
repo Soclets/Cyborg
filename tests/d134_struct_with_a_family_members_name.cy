@@ -1,6 +1,7 @@
 // `small` is its own struct here, so the family's `sizes.small` doesn't come into it.
 // trace: D134, D57
 import std;
+@config(default);
 
 struct small:
     n: i32;

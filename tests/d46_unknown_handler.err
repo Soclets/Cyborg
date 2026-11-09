@@ -1,5 +1,5 @@
-refused: d46_unknown_handler.cy:5:34, line 5 column 34
- 5 |     std::println("hi") otherwise say_failed.log;
+refused: d46_unknown_handler.cy:6:34, line 6 column 34
+ 6 |     std::println("hi") otherwise say_failed.log;
    |                                  ^^^^^^^^^^^^^^
  what: there's no handler `say_failed.log`
  why:  a handler narrowing is a named set of `otherwise` arms (D46)

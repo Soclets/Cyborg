@@ -1,9 +1,9 @@
-refused: d180_give_on_one_path.cy:16:9, line 16 column 9
-16 |     for $f in Give $files:
+refused: d180_give_on_one_path.cy:17:9, line 17 column 9
+17 |     for $f in Give $files:
    |         ^^
  what: `$f` isn't given away or finished on every path
  why:  a `must_Give` value is handed off with `Give` exactly once, or `finish` ends it (D2, D129)
- because: d180_give_on_one_path.cy:18:13, line 18 column 13
-18 |             close(Give $f);
+ because: d180_give_on_one_path.cy:19:13, line 19 column 13
+19 |             close(Give $f);
    |             ^^^^^^^^^^^^^^
      `$f` went here, on only one path

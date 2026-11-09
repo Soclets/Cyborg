@@ -1,4 +1,6 @@
 // trace: D82
+@config(default);
+
 fn.main [] -> void:
     shield c_call:
         reason "calls libfoo"

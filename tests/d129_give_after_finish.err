@@ -1,5 +1,5 @@
-NotDesignedYet: d129_give_after_finish.cy:15:5, line 15 column 5
-15 |     close(Give $f);
+NotDesignedYet: d129_give_after_finish.cy:17:5, line 17 column 5
+17 |     close(Give $f);
    |     ^^^^^^^^^^^^^^
  what: using `$f` after `finish`
  why:  not decided yet, and the standard doesn't say

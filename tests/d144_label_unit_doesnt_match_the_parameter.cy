@@ -1,4 +1,6 @@
 // trace: D144
+@config(default);
+
 fam.unit screen:
     screen.pixels: base;
     screen.points: base;

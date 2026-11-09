@@ -2,6 +2,7 @@
 import @csup;
 
 use @csup::extern.c as "@c";
+@config(default);
 
 fn.main [] -> void:
     return void;

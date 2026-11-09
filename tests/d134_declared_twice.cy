@@ -1,4 +1,6 @@
 // trace: D134
+@config(default);
+
 type.alias score = i32;
 type.alias score = i64;
 

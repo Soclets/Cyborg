@@ -1,5 +1,7 @@
 // The name views what's matched, so it can't be read once that's changed.
 // trace: D139, D104
+@config(default);
+
 union.tagged status:
     ok
     failed[code: i32]

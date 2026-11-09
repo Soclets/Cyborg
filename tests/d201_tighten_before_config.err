@@ -1,0 +1,5 @@
+NotDesignedYet: d201_tighten_before_config.cy:2:1, line 2 column 1
+ 2 | @tighten_config(var::mut::never_changed = refuse);
+   | ^
+ what: `@tighten_config` before the file's first rules
+ why:  not decided yet (standard 12.2)

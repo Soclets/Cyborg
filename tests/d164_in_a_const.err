@@ -1,5 +1,5 @@
-refused: d164_in_a_const.cy:2:17, line 2 column 17
- 2 | const $a: f64 = 1.0 div 0.0;
+refused: d164_in_a_const.cy:4:17, line 4 column 17
+ 4 | const $a: f64 = 1.0 div 0.0;
    |                 ^^^^^^^^^^^
  what: this makes infinity
  why:  a float can't be NaN or infinity, and making one is a failure (D158)

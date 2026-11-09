@@ -1,5 +1,5 @@
-refused: d113_label_must_be_written.cy:9:26, line 9 column 26
- 9 |     let $n: i32 = add(1, 2);
+refused: d113_label_must_be_written.cy:11:26, line 11 column 26
+11 |     let $n: i32 = add(1, 2);
    |                          ^
  fix:  `to: 2`
  why:  a declared label must be written, and a parameter with no label is called without one (D113, D114)

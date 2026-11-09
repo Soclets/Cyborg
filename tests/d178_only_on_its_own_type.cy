@@ -3,6 +3,7 @@
 import std;
 
 use std::list.%append as %append;
+@config(default);
 
 fn.main [] -> void:
     let mut $a: std::array<i32>[len: 2 items] = [1, 2];

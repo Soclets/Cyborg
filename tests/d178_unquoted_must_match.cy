@@ -2,6 +2,7 @@
 import std;
 
 use std::list.%append as %add;
+@config(default);
 
 fn.main [] -> void:
     return void;

@@ -1,5 +1,5 @@
-refused: d91_baked_overflow_at_compile_time.cy:3:17, line 3 column 17
- 3 | const $a: i32 = 2147483647 + 1;
+refused: d91_baked_overflow_at_compile_time.cy:5:17, line 5 column 17
+ 5 | const $a: i32 = 2147483647 + 1;
    |                 ^^^^^^^^^^^^^^
  what: this `+` overflows `i32`
  why:  a plain `+` that overflows traps in `Working` (D42)

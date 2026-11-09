@@ -1,5 +1,5 @@
-NotDesignedYet: d127_ordering_a_bool_isnt_decided.cy:3:20, line 3 column 20
- 3 |     let $a: bool = true > false;
+NotDesignedYet: d127_ordering_a_bool_isnt_decided.cy:5:20, line 5 column 20
+ 5 |     let $a: bool = true > false;
    |                    ^^^^^^^^^^^^
  what: `>` on `bool`
  why:  not decided yet, and the standard doesn't say

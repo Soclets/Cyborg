@@ -1,5 +1,6 @@
 // trace: D117, D49
 import std;
+@config(default);
 
 fn.pure yes [] -> bool:
     return 1 < 2;

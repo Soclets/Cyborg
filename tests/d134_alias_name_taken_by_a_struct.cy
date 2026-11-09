@@ -1,4 +1,6 @@
 // trace: D134
+@config(default);
+
 struct score:
     n: i32;
 end struct score

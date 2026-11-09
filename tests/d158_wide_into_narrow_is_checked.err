@@ -1,5 +1,5 @@
-check failed: d158_wide_into_narrow_is_checked.cy:4:39, line 4 column 39
- 4 |     let $n: f64[min: 1.0, max: 2.0] = $w;
+check failed: d158_wide_into_narrow_is_checked.cy:6:39, line 6 column 39
+ 6 |     let $n: f64[min: 1.0, max: 2.0] = $w;
    |                                       ^^
  what: `$w` doesn't fit `f64[min: 1.0, max: 2.0]`
  why:  a plain `=`, `change` or argument checks a bound when the compiler can't see it fits (D20, D158)

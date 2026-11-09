@@ -1,5 +1,6 @@
 // trace: D133, D125
 import std;
+@config(default);
 
 fn f [$a: std::array<i32>[len: 2 items]] -> void:
     change $a[pos: 1] = 9;

@@ -1,5 +1,7 @@
 // Declaring a name already in scope isn't decided.
 // trace: D139
+@config(default);
+
 fn f [] -> i32:
     fails [a[val: i32]];
 

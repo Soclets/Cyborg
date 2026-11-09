@@ -1,4 +1,6 @@
 // trace: D126, D2
+@config(default);
+
 fn eat [$s: Given str] -> bool:
     return 1 < 2;
 end fn eat

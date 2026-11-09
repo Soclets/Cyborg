@@ -1,4 +1,6 @@
 // trace: D160, D134
+@config(default);
+
 type.new temperature = f64;
 
 fn.main [] -> void:

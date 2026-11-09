@@ -1,6 +1,7 @@
 // Everything here fits in the digits the standard shows.
 // trace: D161
 import std;
+@config(default);
 
 fn.main [] -> void:
     let $a: f64 = 0.5;

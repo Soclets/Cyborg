@@ -1,4 +1,6 @@
 // trace: D109, D108
+@config(default);
+
 fam.unit money:
     money.cents: base;
     money.dollars = 100 money.cents;

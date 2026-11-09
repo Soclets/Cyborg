@@ -1,5 +1,7 @@
 // `Given` isn't `let mut` or `Lent.mut`, so the standard's rule doesn't reach it.
 // trace: D125
+@config(default);
+
 struct box:
     n: i32;
 end struct box

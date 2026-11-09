@@ -1,5 +1,5 @@
-refused: d109_unit_says_neither.cy:3:5, line 3 column 5
- 3 |     money.cents;
+refused: d109_unit_says_neither.cy:5:5, line 5 column 5
+ 5 |     money.cents;
    |     ^^^^^^^^^^^
  what: this unit says neither `base` nor `=`
  why:  every unit says what it is, `: base` or `=` with a conversion (D109)

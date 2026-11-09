@@ -1,6 +1,7 @@
 // Two items of one list may be the same one, so they stay locked together.
 // trace: D173, D133, D2
 import std;
+@config(default);
 
 fn swap_them [$a: Lent.mut str, $b: Lent.mut str] -> void:
     return void;

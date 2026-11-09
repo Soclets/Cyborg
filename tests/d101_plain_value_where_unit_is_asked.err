@@ -1,5 +1,5 @@
-refused: d101_plain_value_where_unit_is_asked.cy:8:32, line 8 column 32
- 8 |     let $b: i32.time.seconds = $x;
+refused: d101_plain_value_where_unit_is_asked.cy:10:32, line 10 column 32
+10 |     let $b: i32.time.seconds = $x;
    |                                ^^
  what: this is `i32`, where `i32.time.seconds` is needed
  why:  the compiler checks units, and mixing them is refused (D100, D101)

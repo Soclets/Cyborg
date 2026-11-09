@@ -1,4 +1,6 @@
 // trace: D139
+@config(default);
+
 fn f [] -> i32:
     fails [a[val: i32], b];
 

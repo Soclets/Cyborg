@@ -1,5 +1,5 @@
-refused: d133_constant_past_the_end.cy:6:20, line 6 column 20
- 6 | const $nope: i32 = $primes[pos: 9];
+refused: d133_constant_past_the_end.cy:7:20, line 7 column 20
+ 7 | const $nope: i32 = $primes[pos: 9];
    |                    ^^^^^^^^^^^^^^^
  what: `pos: 9` is outside `$primes`
  why:  a bad position is a bounds check (D26, D133)

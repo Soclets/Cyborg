@@ -1,5 +1,6 @@
 // trace: D120
 import std;
+@config(default);
 
 fn.main [] -> void:
     std::println(first() as str);

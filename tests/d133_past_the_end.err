@@ -1,5 +1,5 @@
-check failed: d133_past_the_end.cy:7:18, line 7 column 18
- 7 |     std::println($xs[pos: 3] as str);
+check failed: d133_past_the_end.cy:8:18, line 8 column 18
+ 8 |     std::println($xs[pos: 3] as str);
    |                  ^^^^^^^^^^^
  what: `pos: 3` is outside `$xs`
  why:  a bad position is a bounds check (D26, D133)

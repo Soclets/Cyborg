@@ -1,5 +1,7 @@
 // Two families have a `small`, so there's no one fix to show.
 // trace: D134, D16
+@config(default);
+
 fam.type.alias sizes:
     sizes.small = i32;
 end fam.type.alias sizes

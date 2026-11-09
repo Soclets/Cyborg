@@ -1,4 +1,6 @@
 // trace: D2
+@config(default);
+
 fn f [$b: bool] -> bool:
     return $b;
 end fn f

@@ -1,5 +1,7 @@
 // The writer picks this or a unit behind the number, and here a plain number has no label's unit.
 // trace: D144, D101
+@config(default);
+
 fam.unit screen:
     screen.pixels: base;
 end fam.unit screen

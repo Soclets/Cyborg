@@ -3,6 +3,7 @@
 import std;
 
 use std::print.useful as "printu";
+@config(default);
 
 fn.main [] -> void:
     printu("hi");

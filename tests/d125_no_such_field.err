@@ -1,5 +1,5 @@
-refused: d125_no_such_field.cy:8:15, line 8 column 15
- 8 |     change $b.m = 2;
+refused: d125_no_such_field.cy:10:15, line 10 column 15
+10 |     change $b.m = 2;
    |               ^
  what: `box` has no field `m`
  why:  a field read is a plain `.` (D57)

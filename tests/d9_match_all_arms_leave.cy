@@ -1,6 +1,7 @@
 // When every arm leaves, nothing runs past the `match`.
 // trace: D9
 import std;
+@config(default);
 
 union.tagged status:
     ok

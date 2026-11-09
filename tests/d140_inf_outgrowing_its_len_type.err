@@ -1,5 +1,5 @@
-NotDesignedYet: d140_inf_outgrowing_its_len_type.cy:11:5, line 11 column 5
-11 |     $xs.std::%append(val: 256);
+NotDesignedYet: d140_inf_outgrowing_its_len_type.cy:12:5, line 12 column 5
+12 |     $xs.std::%append(val: 256);
    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^
  what: `$xs` growing past what its `len.type` can count, with `inf` as its `len.max`
  why:  not decided yet, and the standard doesn't say

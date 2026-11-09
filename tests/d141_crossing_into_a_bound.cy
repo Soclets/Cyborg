@@ -1,5 +1,7 @@
 // `as` can't fail when crossing, and a bound can.
 // trace: D141, D20
+@config(default);
+
 type.new percent = i32[min: 0, max: 100];
 
 fn.main [] -> void:

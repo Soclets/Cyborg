@@ -1,5 +1,5 @@
-refused: d33_missing_semicolon.cy:3:19, line 3 column 19
- 3 |     let $a: i32 = 1
+refused: d33_missing_semicolon.cy:5:19, line 5 column 19
+ 5 |     let $a: i32 = 1
    |                   ^
  what: expected `;` after this, but found `return`
  why:  `;` ends a statement, `:` opens a block, and `end` closes it (D33)

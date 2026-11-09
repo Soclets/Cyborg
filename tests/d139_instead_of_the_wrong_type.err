@@ -1,5 +1,5 @@
-refused: d139_instead_of_the_wrong_type.cy:11:21, line 11 column 21
-11 |             instead "none";
+refused: d139_instead_of_the_wrong_type.cy:13:21, line 13 column 21
+13 |             instead "none";
    |                     ^^^^^^
  what: this is `str`, where `i32` is needed
  why:  `:` doesn't convert, and `as` builds a new value of another type (D7)

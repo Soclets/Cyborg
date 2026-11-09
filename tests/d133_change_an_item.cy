@@ -1,5 +1,6 @@
 // trace: D133, D125
 import std;
+@config(default);
 
 fn set_first [$xs: Lent.mut std::array<i32>[len: 2 items], $to: i32] -> void:
     change $xs[pos: 1] = $to;

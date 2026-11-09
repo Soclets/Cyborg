@@ -1,5 +1,5 @@
-refused: d2_lend_mut_of_let.cy:12:22, line 12 column 22
-12 |     replace(Lend.mut $b);
+refused: d2_lend_mut_of_let.cy:14:22, line 14 column 22
+14 |     replace(Lend.mut $b);
    |                      ^^
  what: `$b` can't change, so it can't be lent with `Lend.mut`
  why:  `let` declares a variable that can't change, and `let mut` one that can (D3)

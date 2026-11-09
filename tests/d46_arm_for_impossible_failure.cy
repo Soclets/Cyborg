@@ -1,4 +1,6 @@
 // trace: D46
+@config(default);
+
 fn load [] -> i32:
     fails [a];
 

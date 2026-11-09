@@ -1,6 +1,7 @@
 // `$y` changes while `$w` may still point at it.
 // trace: D170, D169
 import std;
+@config(default);
 
 struct reading:
     celsius: i32;

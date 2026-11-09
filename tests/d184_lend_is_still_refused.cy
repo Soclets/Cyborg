@@ -1,4 +1,6 @@
 // trace: D184, D123
+@config(default);
+
 fn bump [$n: Lent.mut i32] -> void:
     change $n = $n + 1;
     return void;

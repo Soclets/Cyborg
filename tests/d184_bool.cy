@@ -1,5 +1,6 @@
 // trace: D184
 import std;
+@config(default);
 
 fn flip [$b: Lent.mut bool] -> void:
     change $b = not $b;

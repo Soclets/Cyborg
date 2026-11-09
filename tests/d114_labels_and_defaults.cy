@@ -1,5 +1,6 @@
 // trace: D114
 import std;
+@config(default);
 
 fn first_word [$text: str, $limit: i32] -> i32:
     labels [$limit as limit];

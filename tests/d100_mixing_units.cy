@@ -1,4 +1,6 @@
 // trace: D100
+@config(default);
+
 fam.unit time:
     time.seconds: base;
 end fam.unit time

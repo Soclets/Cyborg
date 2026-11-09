@@ -1,5 +1,7 @@
 // Handling a call that can't fail isn't decided, and this can't fail.
 // trace: D141, D44
+@config(default);
+
 type.new user_id = i64;
 
 fn.main [] -> void:

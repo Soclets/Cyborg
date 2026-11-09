@@ -1,6 +1,7 @@
 // Which lists are accepted where another is asked for isn't stated.
 // trace: D140
 import std;
+@config(default);
 
 fn f [$xs: std::list<i32>[len.max: inf items]] -> void:
     return void;

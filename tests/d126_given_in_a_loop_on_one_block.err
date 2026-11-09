@@ -1,9 +1,9 @@
-refused: d126_given_in_a_loop_on_one_block.cy:15:13, line 15 column 13
-15 |             eat(Give $s);
+refused: d126_given_in_a_loop_on_one_block.cy:16:13, line 16 column 13
+16 |             eat(Give $s);
    |             ^^^^^^^^^^^^
  what: `$s` was already given away
  why:  a given value is dead afterwards (D2)
- because: d126_given_in_a_loop_on_one_block.cy:15:13, line 15 column 13
-15 |             eat(Give $s);
+ because: d126_given_in_a_loop_on_one_block.cy:16:13, line 16 column 13
+16 |             eat(Give $s);
    |             ^^^^^^^^^^^^
      `$s` was given away here

@@ -1,5 +1,6 @@
 // trace: D180, D2
 import std;
+@config(default);
 
 fn make [] -> std::list<i32>[len.max: inf items]:
     return [1, 2];

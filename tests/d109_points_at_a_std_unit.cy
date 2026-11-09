@@ -1,5 +1,6 @@
 // trace: D109, D112
 import std;
+@config(default);
 
 fam.unit time:
     time.minutes = 60 std::time.seconds;

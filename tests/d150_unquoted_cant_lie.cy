@@ -2,6 +2,7 @@
 import std;
 
 use std::time.seconds as minutes;
+@config(default);
 
 fn.main [] -> void:
     return void;

@@ -1,4 +1,6 @@
 // trace: D129, D75
+@config(default);
+
 fn finish [] -> void:
     return void;
 end fn finish

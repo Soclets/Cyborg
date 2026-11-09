@@ -1,5 +1,7 @@
 // A chain stops at its first false, so this may never run.
 // trace: D124, D2
+@config(default);
+
 struct.must_Give open_file:
     fd: i32;
 end struct.must_Give open_file

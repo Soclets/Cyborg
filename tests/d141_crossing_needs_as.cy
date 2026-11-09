@@ -1,4 +1,6 @@
 // trace: D141, D134
+@config(default);
+
 type.new user_id = i64;
 
 fn.main [] -> void:

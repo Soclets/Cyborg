@@ -1,6 +1,7 @@
 // `-` overflowing isn't decided, and an unsigned length makes that easy to hit.
 // trace: D140, D42
 import std;
+@config(default);
 
 fn.main [] -> void:
     let $a: std::array<i32>[len: 1 items] = [1];

@@ -1,5 +1,5 @@
-refused: d134_family_mixes_kinds_across.cy:7:5, line 7 column 5
- 7 |     ids.order = i64;
+refused: d134_family_mixes_kinds_across.cy:9:5, line 9 column 5
+ 9 |     ids.order = i64;
    |     ^^^^^^^^^
  what: `ids` is already declared with the other kind
  why:  a family doesn't mix `type.alias` and `type.new` (D134)

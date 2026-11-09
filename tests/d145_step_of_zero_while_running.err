@@ -1,5 +1,5 @@
-check failed: d145_step_of_zero_while_running.cy:8:46, line 8 column 46
- 8 |     for $i in range[from: 1, to: 5, step_by: $by]:
+check failed: d145_step_of_zero_while_running.cy:9:46, line 9 column 46
+ 9 |     for $i in range[from: 1, to: 5, step_by: $by]:
    |                                              ^^^
  what: `step_by:` is 0, and nothing handled it
  why:  a step of 0 is a failure, since it never ends (D145, D96)

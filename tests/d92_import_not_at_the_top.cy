@@ -1,4 +1,6 @@
 // trace: D92
+@config(default);
+
 fn f [] -> i32:
     return 1;
 end fn f

@@ -1,5 +1,7 @@
 // Whether a `fn.pure` may allocate isn't decided.
 // trace: D86
+@config(default);
+
 fn.pure f [$n: i32] -> str:
     return $n as str;
 end fn.pure f

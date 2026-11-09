@@ -1,6 +1,7 @@
 // An array's `$a.len` follows the same rule, which is Claude's reading in D140.
 // trace: D140
 import std;
+@config(default);
 
 fn.main [] -> void:
     let $a: std::array<i32>[len: 2 items, len.type: u8] = [1, 2];

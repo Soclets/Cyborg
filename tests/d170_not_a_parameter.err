@@ -1,5 +1,5 @@
-refused: d170_not_a_parameter.cy:6:26, line 6 column 26
- 6 | fn pick [$a: reading] -> Lend from $z reading:
+refused: d170_not_a_parameter.cy:8:26, line 8 column 26
+ 8 | fn pick [$a: reading] -> Lend from $z reading:
    |                          ^^^^^^^^^^^^^^^^^^^^
  what: `$z` isn't a parameter, and a returned borrow comes from one
  why:  a function hands back a borrow only of a parameter, a named source or `program` (D170)

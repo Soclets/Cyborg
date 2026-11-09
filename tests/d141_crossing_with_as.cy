@@ -1,5 +1,6 @@
 // trace: D141
 import std;
+@config(default);
 
 type.new user_id = i64;
 

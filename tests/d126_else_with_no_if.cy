@@ -1,4 +1,6 @@
 // trace: D126
+@config(default);
+
 fn.main [] -> void:
     else:
         return void;

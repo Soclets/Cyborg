@@ -1,5 +1,5 @@
-refused: d43_no_slash.cy:3:21, line 3 column 21
- 3 |     let $a: i32 = 2 / 3;
+refused: d43_no_slash.cy:5:21, line 5 column 21
+ 5 |     let $a: i32 = 2 / 3;
    |                     ^
  what: divide has a narrowing, and no symbol
  why:  division has no single right answer, so you pick one (D48)

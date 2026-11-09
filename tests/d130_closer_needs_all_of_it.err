@@ -1,5 +1,5 @@
-refused: d130_closer_needs_all_of_it.cy:8:1, line 8 column 1
- 8 | end fn f
+refused: d130_closer_needs_all_of_it.cy:10:1, line 10 column 1
+10 | end fn f
    | ^^^^^^^^
  fix:  `end fn box.%f`
  why:  the closer repeats all of what it closes, including its narrowings and name (D33, D121)

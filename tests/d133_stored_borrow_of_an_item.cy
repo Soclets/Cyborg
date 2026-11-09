@@ -1,5 +1,6 @@
 // trace: D133, D2
 import std;
+@config(default);
 
 fn show [$s: str] -> void:
     std::println(Lend $s);

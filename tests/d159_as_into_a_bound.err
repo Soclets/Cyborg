@@ -1,5 +1,5 @@
-NotDesignedYet: d159_as_into_a_bound.cy:4:39, line 4 column 39
- 4 |     let $x: f64[min: 0.0, max: 2.0] = $reading as f64[min: 0.0, max: 2.0];
+NotDesignedYet: d159_as_into_a_bound.cy:6:39, line 6 column 39
+ 6 |     let $x: f64[min: 0.0, max: 2.0] = $reading as f64[min: 0.0, max: 2.0];
    |                                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
  what: converting `f64.ieee` to `f64[min: 0.0, max: 2.0]` with `as`
  why:  not decided yet (standard 12.3)

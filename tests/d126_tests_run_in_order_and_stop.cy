@@ -1,5 +1,6 @@
 // trace: D126
 import std;
+@config(default);
 
 fn say [$n: i32] -> bool:
     std::println("test ", $n as str);

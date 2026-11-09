@@ -1,5 +1,5 @@
-NotDesignedYet: d180_lend_mut_on_a_field.cy:10:24, line 10 column 24
-10 |     for $n in Lend.mut $h.items:
+NotDesignedYet: d180_lend_mut_on_a_field.cy:11:24, line 11 column 24
+11 |     for $n in Lend.mut $h.items:
    |                        ^^^^^^^^
  what: whether `for` over `$h.items` uses all of what holds it
  why:  not decided yet (standard 12.1)

@@ -3,6 +3,7 @@ import std;
 import @std;
 
 use @std::inline.asm as asm;
+@config(default);
 
 fn.main [] -> void:
     std::println("both halves");

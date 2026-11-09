@@ -1,5 +1,6 @@
 // trace: D128
 import std;
+@config(default);
 
 fn.main [] -> void:
     let mut $n: i32 = 0;

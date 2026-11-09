@@ -1,6 +1,7 @@
 // Stopping early would leave the items not reached yet with nobody to give them.
 // trace: D180, D2, D128
 import std;
+@config(default);
 
 struct.must_Give open_file:
     fd: i32;

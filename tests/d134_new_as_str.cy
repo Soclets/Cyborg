@@ -1,4 +1,6 @@
 // trace: D134, D122
+@config(default);
+
 type.new user_id = i64;
 
 fn f [$a: user_id] -> str:

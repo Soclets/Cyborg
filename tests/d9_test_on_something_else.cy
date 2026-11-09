@@ -1,4 +1,6 @@
 // trace: D9
+@config(default);
+
 union.tagged status:
     ok
 end union.tagged status

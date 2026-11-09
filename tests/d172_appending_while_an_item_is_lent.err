@@ -1,9 +1,9 @@
-refused: d172_appending_while_an_item_is_lent.cy:12:18, line 12 column 18
-12 |     std::println($first.n as str);
+refused: d172_appending_while_an_item_is_lent.cy:13:18, line 13 column 18
+13 |     std::println($first.n as str);
    |                  ^^^^^^
  what: `$first` can't be used after what it borrows was used
  why:  a stored `Lend.mut` means nothing else uses it meanwhile, and a `Lend` means it can't change (D2)
- because: d172_appending_while_an_item_is_lent.cy:11:5, line 11 column 5
-11 |     $xs.std::%append(val: inner[n = 2]);
+ because: d172_appending_while_an_item_is_lent.cy:12:5, line 12 column 5
+12 |     $xs.std::%append(val: inner[n = 2]);
    |     ^^^
      what it borrows was used here

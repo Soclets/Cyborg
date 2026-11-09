@@ -1,5 +1,7 @@
 // A case's data is read through a name now, and nothing says the old way still works.
 // trace: D139, D9
+@config(default);
+
 union.tagged status:
     ok
     failed[code: i32]

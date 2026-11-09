@@ -1,4 +1,6 @@
 // trace: D164, D48
+@config(default);
+
 fn.main [] -> void:
     let $a: i32 = 7;
     let $b: i32 = 2;

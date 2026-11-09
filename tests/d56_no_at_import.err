@@ -1,5 +1,5 @@
-refused: d56_no_at_import.cy:2:1, line 2 column 1
- 2 | @import std;
+refused: d56_no_at_import.cy:4:1, line 4 column 1
+ 4 | @import std;
    | ^^^^^^^
  fix:  `import`
  why:  importing is a plain keyword (D56, D92)

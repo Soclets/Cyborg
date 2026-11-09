@@ -1,5 +1,6 @@
 // trace: D158, D20
 import std;
+@config(default);
 
 fn pick [$x: f64] -> void:
     if $x: f64[min: 100.0, max: 200.0]:

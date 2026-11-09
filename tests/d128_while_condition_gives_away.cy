@@ -1,5 +1,7 @@
 // The test runs again each time round.
 // trace: D128, D2
+@config(default);
+
 fn eat [$s: Given str] -> bool:
     return false;
 end fn eat

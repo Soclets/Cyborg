@@ -1,5 +1,5 @@
-refused: d128_while_can_finish_so_it_needs_a_return.cy:7:1, line 7 column 1
- 7 | end fn f
+refused: d128_while_can_finish_so_it_needs_a_return.cy:9:1, line 9 column 1
+ 9 | end fn f
    | ^^^^^^^^
  what: `f` can reach its end without a `return`
  why:  `return` hands back a value (D11)

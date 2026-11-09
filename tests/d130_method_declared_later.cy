@@ -1,5 +1,6 @@
 // trace: D130, D120
 import std;
+@config(default);
 
 fn.main [] -> void:
     let $b: box = box[n = 1];

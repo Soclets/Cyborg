@@ -1,5 +1,7 @@
 // Unary `-` sits below `??`, so this needs `( )`, and `-1` is a literal so it doesn't.
 // trace: D132, D116
+@config(default);
+
 fn read [] -> i32:
     fails [none];
 

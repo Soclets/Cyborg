@@ -1,5 +1,7 @@
 // The place says bytes for tools and graphemes for people.
 // trace: D16
+@config(default);
+
 struct box:
     n: i32;
 end struct box

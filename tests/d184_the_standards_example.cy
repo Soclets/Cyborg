@@ -1,6 +1,7 @@
 // D173's example, which D184 made writable: two number fields, each lent to change.
 // trace: D184, D173
 import std;
+@config(default);
 
 struct reading:
     celsius: i32;

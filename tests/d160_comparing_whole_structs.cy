@@ -1,4 +1,6 @@
 // trace: D160
+@config(default);
+
 struct pair:
     a: f64;
 end struct pair

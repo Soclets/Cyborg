@@ -1,5 +1,7 @@
 // `Given` takes `Give` or `Copy`, so no one fix can be shown.
 // trace: D2, D16
+@config(default);
+
 struct box:
     n: i32;
 end struct box

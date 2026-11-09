@@ -1,5 +1,5 @@
-refused: d89_step_limit.cy:4:12, line 4 column 12
- 4 |     return spin($n + 1);
+refused: d89_step_limit.cy:6:12, line 6 column 12
+ 6 |     return spin($n + 1);
    |            ^^^^^^^^^^^^
  what: compile-time work didn't finish within its step limit
  why:  compile-time code always finishes, through a step limit that refuses it (D89, D91)

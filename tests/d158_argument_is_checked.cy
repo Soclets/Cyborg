@@ -1,4 +1,6 @@
 // trace: D158, D20
+@config(default);
+
 fn use_ratio [$r: f64[min: 0.0, max: 1.0]] -> void:
     return void;
 end fn use_ratio

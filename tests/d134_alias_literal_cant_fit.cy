@@ -1,4 +1,6 @@
 // trace: D134, D20
+@config(default);
+
 type.alias percent = i32[min: 0, max: 100];
 
 fn.main [] -> void:

@@ -2,6 +2,7 @@
 import std;
 
 use std::println;
+@config(default);
 
 fn.main [] -> void:
     return void;

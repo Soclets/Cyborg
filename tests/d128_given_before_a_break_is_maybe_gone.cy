@@ -1,5 +1,7 @@
 // The loop might not run at all, and it's dead on the path where it did.
 // trace: D128, D2
+@config(default);
+
 fn eat [$s: Given str] -> void:
     return void;
 end fn eat

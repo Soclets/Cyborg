@@ -1,5 +1,5 @@
-refused: d146_i_keeps_the_ranges_type.cy:7:27, line 7 column 27
- 7 |         let $wrong: i64 = $i;
+refused: d146_i_keeps_the_ranges_type.cy:9:27, line 9 column 27
+ 9 |         let $wrong: i64 = $i;
    |                           ^^
  what: this is `i32`, where `i64` is needed
  why:  `:` doesn't convert, and `as` builds a new value of another type (D7)

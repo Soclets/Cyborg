@@ -2,6 +2,7 @@
 import @csup;
 
 use @csup::union.untagged as untagged;
+@config(default);
 
 shield c_number:
     reason "matches the union in libfoo's header"

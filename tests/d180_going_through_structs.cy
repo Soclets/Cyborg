@@ -1,6 +1,7 @@
 // A bare `for` reads items of any type in place.
 // trace: D180, D182, D2
 import std;
+@config(default);
 
 struct box:
     n: i32;

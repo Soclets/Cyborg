@@ -1,5 +1,5 @@
-refused: d59_exact_refuses_the_mark.cy:3:19, line 3 column 19
- 3 |     let $a: f64 = ~0.5;
+refused: d59_exact_refuses_the_mark.cy:5:19, line 5 column 19
+ 5 |     let $a: f64 = ~0.5;
    |                   ^^^^
  fix:  `0.5`
  why:  f64 holds 0.5 exactly (D59)

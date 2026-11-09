@@ -1,6 +1,7 @@
 // Contracts, a pure function and baked constants working together.
 // trace: D29, D53, D84, D86, D91
 import std;
+@config(default);
 
 const $week: i32 = days(7);
 

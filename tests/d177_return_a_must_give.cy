@@ -1,6 +1,7 @@
 // The caller gets the duty with the value.
 // trace: D177, D129
 import std;
+@config(default);
 
 struct.must_Give open_file:
     fd: i32;

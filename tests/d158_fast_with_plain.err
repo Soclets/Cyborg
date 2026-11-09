@@ -1,5 +1,5 @@
-NotDesignedYet: d158_fast_with_plain.cy:4:19, line 4 column 19
- 4 |     let $b: f64 = $a;
+NotDesignedYet: d158_fast_with_plain.cy:6:19, line 6 column 19
+ 6 |     let $b: f64 = $a;
    |                   ^^
  what: how `f64.fast` and `f64` mix
  why:  not decided yet (standard 12.2)

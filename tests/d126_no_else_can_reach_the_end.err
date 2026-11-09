@@ -1,5 +1,5 @@
-refused: d126_no_else_can_reach_the_end.cy:8:1, line 8 column 1
- 8 | end fn sign
+refused: d126_no_else_can_reach_the_end.cy:10:1, line 10 column 1
+10 | end fn sign
    | ^^^^^^^^^^^
  what: `sign` can reach its end without a `return`
  why:  `return` hands back a value (D11)

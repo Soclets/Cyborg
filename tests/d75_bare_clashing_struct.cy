@@ -1,4 +1,6 @@
 // trace: D75
+@config(default);
+
 struct div:
     n: i32;
 end struct div

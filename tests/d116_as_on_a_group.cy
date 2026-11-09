@@ -1,5 +1,6 @@
 // trace: D116, D48, D97
 import std;
+@config(default);
 
 fn.main [] -> void:
     std::println((7 div.trunc 2) as str);

@@ -1,5 +1,5 @@
-refused: d128_trust_doesnt_leave_through_a_break.cy:15:19, line 15 column 19
-15 |     let $n: i32 = $s.code;
+refused: d128_trust_doesnt_leave_through_a_break.cy:17:19, line 17 column 19
+17 |     let $n: i32 = $s.code;
    |                   ^^^^^^^
  what: `$s` isn't known to be `status.failed` here
  why:  inside `if $s: status.failed:` the compiler trusts it, and outside that's a compile error (D9)

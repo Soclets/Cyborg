@@ -1,4 +1,6 @@
 // trace: D34
+@config(default);
+
 fn.main [] -> void:
     shield sensor:
         return void;

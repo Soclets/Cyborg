@@ -1,4 +1,6 @@
 // trace: D130
+@config(default);
+
 fn widget.%f [$b: i32] -> i32:
     return $b;
 end fn widget.%f

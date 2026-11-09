@@ -1,5 +1,6 @@
 // trace: D184
 import std;
+@config(default);
 
 fn bump [$n: Lent.mut i32] -> void:
     change $n = $n + 1;

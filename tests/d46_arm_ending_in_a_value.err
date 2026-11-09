@@ -1,5 +1,5 @@
-refused: d46_arm_ending_in_a_value.cy:12:13, line 12 column 13
-12 |             "…";
+refused: d46_arm_ending_in_a_value.cy:14:13, line 14 column 13
+14 |             "…";
    |             ^^^
  fix:  `instead "…"`
  why:  `instead` gives the value used in place of a failed call (D139)

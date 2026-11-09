@@ -1,5 +1,5 @@
-refused: d126_else_if_needs_a_bool.cy:5:13, line 5 column 13
- 5 |     else if 1:
+refused: d126_else_if_needs_a_bool.cy:7:13, line 7 column 13
+ 7 |     else if 1:
    |             ^
  what: this is `i32`, where a `bool` is needed
  why:  `:` doesn't convert, and `as` builds a new value of another type (D7)

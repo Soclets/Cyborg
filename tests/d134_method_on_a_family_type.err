@@ -1,5 +1,5 @@
-NotDesignedYet: d134_method_on_a_family_type.cy:6:4, line 6 column 4
- 6 | fn ids.user.%same [$u: ids.user] -> ids.user:
+NotDesignedYet: d134_method_on_a_family_type.cy:8:4, line 8 column 4
+ 8 | fn ids.user.%same [$u: ids.user] -> ids.user:
    |    ^^^^^^^^
  what: a method on a type from a family
  why:  not decided yet, and the standard doesn't say

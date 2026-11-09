@@ -1,4 +1,6 @@
 // trace: D184, D123
+@config(default);
+
 fn show [$n: i32] -> void:
     return void;
 end fn show

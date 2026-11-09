@@ -1,0 +1,5 @@
+NotDesignedYet: d201_loosen.cy:3:16, line 3 column 16
+ 3 | @loosen_config(var::mut::never_changed = allow);
+   |                ^^^
+ what: how a rule is spelled, and the list of rules
+ why:  not decided yet (standard 12.2)

@@ -1,5 +1,6 @@
 // trace: D139, D9
 import std;
+@config(default);
 
 union.tagged status:
     ok

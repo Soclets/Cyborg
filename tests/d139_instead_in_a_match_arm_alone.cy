@@ -1,5 +1,7 @@
 // A `match` arm isn't a failure's arm.
 // trace: D139
+@config(default);
+
 union.tagged status:
     ok
 end union.tagged status

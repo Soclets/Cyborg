@@ -1,4 +1,6 @@
 // trace: D160, D7
+@config(default);
+
 fn.main [] -> void:
     let $a: f64 = 0.5;
     let $b: f32 = 0.5;

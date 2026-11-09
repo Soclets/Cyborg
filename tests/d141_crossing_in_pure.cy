@@ -1,6 +1,7 @@
 // Crossing is the same data, so it isn't the allocating kind of `as`.
 // trace: D141, D86
 import std;
+@config(default);
 
 type.new user_id = i64;
 

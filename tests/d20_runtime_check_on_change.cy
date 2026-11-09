@@ -1,6 +1,7 @@
 // Arithmetic gives back a plain `i32`, and `change` checks it.
 // trace: D20
 import std;
+@config(default);
 
 fn.main [] -> void:
     let mut $b: i32[min: 0, max: 100] = 100;

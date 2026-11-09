@@ -1,5 +1,7 @@
 // Handing one along as itself is fine: it's only other types it doesn't mix with.
 // trace: D134, D123
+@config(default);
+
 type.new user_id = i64;
 
 fn g [$u: user_id] -> user_id:

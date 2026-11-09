@@ -1,5 +1,5 @@
-refused: d128_range_with_equals.cy:3:26, line 3 column 26
- 3 |     for $i in range[from = 1, to: 5]:
+refused: d128_range_with_equals.cy:5:26, line 5 column 26
+ 5 |     for $i in range[from = 1, to: 5]:
    |                          ^
  fix:  `:`
  why:  a label names a value inside brackets (D13)

@@ -1,5 +1,6 @@
 // trace: D134, D120
 import std;
+@config(default);
 
 fn.main [] -> void:
     let $a: first = 3;

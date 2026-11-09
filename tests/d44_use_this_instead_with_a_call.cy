@@ -1,5 +1,7 @@
 // Whether `??` can take a call isn't decided.
 // trace: D44
+@config(default);
+
 fn read_port [] -> i32:
     fails [no_port];
 

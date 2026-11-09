@@ -1,5 +1,5 @@
-NotDesignedYet: d49_shift_right_of_a_negative.cy:5:19, line 5 column 19
- 5 |     let $a: i32 = $n shr 1;
+NotDesignedYet: d49_shift_right_of_a_negative.cy:7:19, line 7 column 19
+ 7 |     let $a: i32 = $n shr 1;
    |                   ^^^^^^^^
  what: whether `shr` on a negative number keeps its sign
  why:  not decided yet, and the standard doesn't say

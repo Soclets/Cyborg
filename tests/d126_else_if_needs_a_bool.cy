@@ -1,4 +1,6 @@
 // trace: D126, D7
+@config(default);
+
 fn.main [] -> void:
     if 1 < 2:
         return void;

@@ -1,5 +1,6 @@
 // trace: D99, D112, D109
 import std;
+@config(default);
 
 fam.unit time:
     time.seconds: base;

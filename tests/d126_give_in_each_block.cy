@@ -1,6 +1,7 @@
 // Only one block runs, so each may give it away, and it's dead after.
 // trace: D126, D2
 import std;
+@config(default);
 
 fn eat [$s: Given str] -> void:
     std::println(Lend $s);

@@ -1,9 +1,9 @@
-refused: d104_trust_ends_the_second_time_round.cy:14:27, line 14 column 27
-14 |             let $b: i32 = $s.code;
+refused: d104_trust_ends_the_second_time_round.cy:15:27, line 15 column 27
+15 |             let $b: i32 = $s.code;
    |                           ^^^^^^^
  what: `$s` may not be `status.failed` any more
  why:  a test's trust ends at a `change`, and at a `Lend.mut` too (D104)
- because: d104_trust_ends_the_second_time_round.cy:15:13, line 15 column 13
-15 |             change $s = status.ok;
+ because: d104_trust_ends_the_second_time_round.cy:16:13, line 16 column 13
+16 |             change $s = status.ok;
    |             ^^^^^^^^^^^^^^^^^^^^^^
      `$s` changed here

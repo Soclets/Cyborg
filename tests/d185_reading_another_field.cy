@@ -1,6 +1,7 @@
 // "The only things left" are moving out another field, or `finish`, so even this read waits.
 // trace: D185
 import std;
+@config(default);
 
 struct.must_Give open_file:
     fd: i32;

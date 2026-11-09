@@ -1,5 +1,5 @@
-NotDesignedYet: d161_stored_on_an_integer.cy:6:25, line 6 column 25
- 6 |     std::println.stored($n);
+NotDesignedYet: d161_stored_on_an_integer.cy:7:25, line 7 column 25
+ 7 |     std::println.stored($n);
    |                         ^^
  what: `std::println.stored` on `i32`
  why:  not decided yet, and the standard doesn't say

@@ -1,5 +1,5 @@
-NotDesignedYet: d11_void_function_without_return.cy:4:1, line 4 column 1
- 4 | end fn f
+NotDesignedYet: d11_void_function_without_return.cy:6:1, line 6 column 1
+ 6 | end fn f
    | ^^^^^^^^
  what: whether every `void` function says `return void;`
  why:  not decided yet (standard 12.5)

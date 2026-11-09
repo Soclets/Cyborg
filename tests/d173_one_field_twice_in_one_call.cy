@@ -1,4 +1,6 @@
 // trace: D173, D2
+@config(default);
+
 struct inner:
     n: i32;
 end struct inner

@@ -1,5 +1,6 @@
 // trace: D128
 import std;
+@config(default);
 
 fn show [$label: str, $n: i32] -> void:
     std::println(Lend $label, $n as str);

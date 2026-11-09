@@ -1,4 +1,6 @@
 // trace: D158, D20
+@config(default);
+
 struct gauge:
     ratio: f64[min: 0.0, max: 1.0];
 end struct gauge

@@ -1,5 +1,6 @@
 // trace: D2
 import std;
+@config(default);
 
 fn f [$s: str] -> void:
     std::println(Lend $s);

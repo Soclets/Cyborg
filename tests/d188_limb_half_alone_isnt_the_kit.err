@@ -1,5 +1,5 @@
-refused: d188_limb_half_alone_isnt_the_kit.cy:5:5, line 5 column 5
- 5 |     std::println("hi");
+refused: d188_limb_half_alone_isnt_the_kit.cy:6:5, line 6 column 5
+ 6 |     std::println("hi");
    |     ^^^^^^^^^^^^
  fix:  `import std;`
  why:  everything gets imported, including `std` (D82)

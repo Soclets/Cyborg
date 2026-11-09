@@ -1,5 +1,6 @@
 // trace: D29, D84
 import std;
+@config(default);
 
 fn half [$n: i32] -> i32:
     requires $n at_least 0;

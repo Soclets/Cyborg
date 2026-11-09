@@ -1,5 +1,6 @@
 // trace: D128
 import std;
+@config(default);
 
 fn.main [] -> void:
     let $start: i64 = 2;

@@ -1,5 +1,7 @@
 // `$f` is a view, so like a stored borrow it ends at its last use.
 // trace: D169, D139, D2
+@config(default);
+
 union.tagged status:
     ok
     failed[code: i32]

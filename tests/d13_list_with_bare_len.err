@@ -1,5 +1,5 @@
-refused: d13_list_with_bare_len.cy:5:29, line 5 column 29
- 5 |     let $xs: std::list<i32>[len: 3 items] = [1, 2, 3];
+refused: d13_list_with_bare_len.cy:6:29, line 6 column 29
+ 6 |     let $xs: std::list<i32>[len: 3 items] = [1, 2, 3];
    |                             ^^^
  what: a list has no bare `len`, since exactly that many is an `array`
  why:  a list with a bare `len` is refused in favour of `array` (D13)

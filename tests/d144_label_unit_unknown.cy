@@ -1,4 +1,6 @@
 // trace: D144, D112
+@config(default);
+
 fn draw [$x: i32] -> void:
     labels [$x as at.nothing.here];
 

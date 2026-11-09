@@ -1,4 +1,6 @@
 // trace: D134
+@config(default);
+
 fam.type.new ids:
     ids.user = i64;
     type.alias ids.other = i64;

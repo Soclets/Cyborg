@@ -1,5 +1,5 @@
-refused: d159_doesnt_mix_as_an_argument.cy:8:10, line 8 column 10
- 8 |     take($reading);
+refused: d159_doesnt_mix_as_an_argument.cy:10:10, line 10 column 10
+10 |     take($reading);
    |          ^^^^^^^^
  fix:  `$reading as f64`
  why:  `f64.ieee` is a different type from `f64`, and `as` is the wall between them (D159)

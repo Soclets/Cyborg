@@ -1,5 +1,5 @@
-refused: d140_len_type_changes_what_len_is.cy:6:25, line 6 column 25
- 6 |     let $n: u64.items = $xs.len;
+refused: d140_len_type_changes_what_len_is.cy:7:25, line 7 column 25
+ 7 |     let $n: u64.items = $xs.len;
    |                         ^^^^^^^
  what: this is `u32.items`, where `u64.items` is needed
  why:  `:` doesn't convert, and `as` builds a new value of another type (D7)

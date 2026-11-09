@@ -1,5 +1,6 @@
 // trace: D2
 import std;
+@config(default);
 
 fn eat [$s: Given str] -> void:
     return void;

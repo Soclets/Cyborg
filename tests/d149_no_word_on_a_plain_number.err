@@ -1,5 +1,5 @@
-refused: d149_no_word_on_a_plain_number.cy:7:23, line 7 column 23
- 7 |     let $u: user_id = Copy $n as user_id;
+refused: d149_no_word_on_a_plain_number.cy:9:23, line 9 column 23
+ 9 |     let $u: user_id = Copy $n as user_id;
    |                       ^^^^^^^
  fix:  `$n`
  why:  plain numbers and `bool` are always copied, and take no word (D2, D123)

@@ -1,5 +1,7 @@
 // A field moves out of what you own, and `as` crosses it like any whole value.
 // trace: D185, D149
+@config(default);
+
 struct reading:
     celsius: i32;
 end struct reading

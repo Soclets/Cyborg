@@ -1,5 +1,6 @@
 // trace: D129, D75
 import std;
+@config(default);
 
 fn finish [] -> void:
     std::println("mine");

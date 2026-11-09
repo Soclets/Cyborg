@@ -1,4 +1,6 @@
 // trace: D91
+@config(default);
+
 fn.pure.baked f [$w: i32] -> i32:
     return $w;
 end fn.pure.baked f

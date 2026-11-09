@@ -92,6 +92,11 @@ pub fn is_clashing(word: &str) -> bool {
     CLASHING_WORDS.contains(&word)
 }
 
+/// The builtins that set a file's rules, and the line that asks for the compiler's defaults.
+/// (D201)
+const RULES_WORDS: &[&str] = &["config", "match_config", "tighten_config", "loosen_config"];
+const RULES_DEFAULT: &str = "@config(default)";
+
 /// The word in front of an import that brings in both halves of a package. (D188)
 const PKG_WORD: &str = "pkg";
 
@@ -997,7 +1002,34 @@ impl Parser {
             uses: Vec::new(),
             items: Vec::new(),
         };
+        // trace: D201
+        let mut rules: Option<(Span, &'static str)> = None;
+        let mut first_item: Option<Span> = None;
         while !matches!(self.peek().lexeme, Lexeme::End) {
+            if self.at_symbol("@") && self.rules_word_ahead().is_some() {
+                self.parse_rules_line(&mut rules, &program)?;
+                continue;
+            }
+            if let (Some(_), true) = (
+                rules,
+                program.items.is_empty() && (self.at_word("import") || self.at_word("use")),
+            ) {
+                return Err(Report::not_designed(
+                    self.span(),
+                    format!(
+                        "an `{}` line after `@config`, since where `@config` goes isn't settled",
+                        if self.at_word("import") {
+                            "import"
+                        } else {
+                            "use"
+                        }
+                    ),
+                    "12.2",
+                ));
+            }
+            if !self.at_word("import") && !self.at_word("use") && first_item.is_none() {
+                first_item = Some(self.span());
+            }
             if self.at_word("import") {
                 let span = self.span();
                 // trace: D92
@@ -1038,11 +1070,107 @@ impl Parser {
                 let declared = self.parse_use()?;
                 program.uses.push(declared);
             } else {
+                // trace: D201
+                if rules.is_none() {
+                    return Err(Self::no_rules_line(self.span()));
+                }
                 let item = self.parse_item()?;
                 program.items.push(item);
             }
         }
+        if rules.is_none() {
+            return Err(Self::no_rules_line(first_item.unwrap_or(self.span())));
+        }
         Ok(program)
+    }
+
+    /// Every file sets its rules first, and there's no unsaid default. (D201)
+    fn no_rules_line(span: Span) -> Box<Report> {
+        Report::refused(
+            span,
+            "this file doesn't say its rules",
+            "every file starts with `@config(…);` or `@match_config(…);`, and the compiler's defaults are `@config(default);` (D201)",
+        )
+        .fix(format!("{RULES_DEFAULT};"))
+    }
+
+    /// `@config`, `@match_config`, `@tighten_config` or `@loosen_config`, when one is next.
+    fn rules_word_ahead(&self) -> Option<&'static str> {
+        let Lexeme::Word(word) = &self.peek_at(1).lexeme else {
+            return None;
+        };
+        RULES_WORDS.iter().copied().find(|found| found == word)
+    }
+
+    /// `@config(default);`, the one rules line whose contents are settled. (D201)
+    /// trace: D201
+    fn parse_rules_line(
+        &mut self,
+        rules: &mut Option<(Span, &'static str)>,
+        program: &Program,
+    ) -> Outcome<()> {
+        let start = self.span();
+        let word = self.rules_word_ahead().unwrap_or("config");
+        self.advance(); // `@`
+        self.advance(); // the word
+        if !program.items.is_empty() {
+            return Err(Report::not_designed(
+                start,
+                format!("`@{word}` after the file's code, since where it goes isn't settled"),
+                "12.2",
+            ));
+        }
+        match word {
+            "config" | "match_config" => {
+                if let Some(earlier) = *rules {
+                    // `@config` and `@match_config` both set the first rules, and a file
+                    // can't have both. Two of the same isn't said.
+                    let (earlier, earlier_word) = earlier;
+                    if earlier_word != word {
+                        return Err(Report::refused(
+                            start,
+                            "a file sets its first rules with `@config` or `@match_config`, not both",
+                            "every file starts with one of the two (D201)",
+                        )
+                        .because(earlier, "they're set here"));
+                    }
+                    return Err(Report::not_designed(
+                        start,
+                        format!("a second `@{word}` in one file"),
+                        "12.2",
+                    )
+                    .because(earlier, "the first is here"));
+                }
+            }
+            _ => {
+                if rules.is_none() {
+                    return Err(Report::not_designed(
+                        start,
+                        format!("`@{word}` before the file's first rules"),
+                        "12.2",
+                    ));
+                }
+            }
+        }
+        self.expect_symbol("(")?;
+        let inside = self.span();
+        let is_default = word == "config" && self.at_word("default") && self.symbol_at(1, ")");
+        if !is_default {
+            return Err(Report::not_designed(
+                inside,
+                if word == "match_config" {
+                    "how `@match_config` names the file it copies"
+                } else {
+                    "how a rule is spelled, and the list of rules"
+                },
+                "12.2",
+            ));
+        }
+        self.advance(); // `default`
+        self.expect_symbol(")")?;
+        self.expect_semicolon()?;
+        *rules = Some((start.to(self.previous_span()), word));
+        Ok(())
     }
 
     fn parse_item(&mut self) -> Outcome<Item> {

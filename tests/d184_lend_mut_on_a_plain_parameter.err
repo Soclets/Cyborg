@@ -1,5 +1,5 @@
-refused: d184_lend_mut_on_a_plain_parameter.cy:8:10, line 8 column 10
- 8 |     show(Lend.mut $count);
+refused: d184_lend_mut_on_a_plain_parameter.cy:10:10, line 10 column 10
+10 |     show(Lend.mut $count);
    |          ^^^^^^^^^^^^^^^
  fix:  `$count`
  why:  plain numbers and `bool` are always copied, and take no word (D2, D123)

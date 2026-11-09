@@ -1,6 +1,7 @@
 // An `else` can't reach past the `for` around it to an `if` outside.
 // trace: D126
 import std;
+@config(default);
 
 fn.main [] -> void:
     let $xs: std::array<i32>[len: 1 items] = [1];

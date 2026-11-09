@@ -1,5 +1,7 @@
 // How a conversion is written isn't decided, so two units with one base still don't add.
 // trace: D109, D100
+@config(default);
+
 fam.unit money:
     money.cents: base;
     money.dollars = 100 money.cents;

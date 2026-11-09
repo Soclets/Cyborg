@@ -1,4 +1,6 @@
 // trace: D2
+@config(default);
+
 fn f [$s: Lent.mut str] -> void:
     return void;
 end fn f

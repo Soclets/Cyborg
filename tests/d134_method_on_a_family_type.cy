@@ -1,4 +1,6 @@
 // trace: D134, D130
+@config(default);
+
 fam.type.new ids:
     ids.user = i64;
 end fam.type.new ids

@@ -1,4 +1,6 @@
 // trace: D149
+@config(default);
+
 struct reading:
     celsius: i32;
 end struct reading

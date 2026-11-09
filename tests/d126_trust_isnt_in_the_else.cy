@@ -1,5 +1,7 @@
 // Inside the block the compiler trusts it, and `else:` isn't inside it, even with two cases.
 // trace: D126, D9
+@config(default);
+
 union.tagged status:
     ok
     failed[code: i32]

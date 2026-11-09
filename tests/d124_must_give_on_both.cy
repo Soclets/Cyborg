@@ -1,5 +1,7 @@
 // A narrowing runs both sides, so this one always gives it away.
 // trace: D124, D2
+@config(default);
+
 struct.must_Give open_file:
     fd: i32;
 end struct.must_Give open_file

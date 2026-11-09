@@ -1,5 +1,5 @@
-refused: d133_position_of_the_wrong_type.cy:6:27, line 6 column 27
- 6 |     let $n: i32 = $a[pos: "one"];
+refused: d133_position_of_the_wrong_type.cy:7:27, line 7 column 27
+ 7 |     let $n: i32 = $a[pos: "one"];
    |                           ^^^^^
  what: a position is a whole number, and this is `str`
  why:  `pos:` counts from 1, and `offset.items:` counts from 0 (D133, D144)

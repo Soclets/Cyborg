@@ -1,9 +1,9 @@
-refused: d139_given_in_one_arm_is_maybe_gone.cy:15:24, line 15 column 24
-15 |     let $u: str = Give $s;
+refused: d139_given_in_one_arm_is_maybe_gone.cy:17:24, line 17 column 24
+17 |     let $u: str = Give $s;
    |                        ^^
  what: `$s` was already given away
  why:  a given value is dead afterwards (D2)
- because: d139_given_in_one_arm_is_maybe_gone.cy:13:21, line 13 column 21
-13 |             instead Give $s;
+ because: d139_given_in_one_arm_is_maybe_gone.cy:15:21, line 15 column 21
+15 |             instead Give $s;
    |                     ^^^^^^^
      `$s` was given away here

@@ -1,4 +1,6 @@
 // trace: D114
+@config(default);
+
 fn pair [$a: i32] -> i32:
     defaults [$a = 1];
 

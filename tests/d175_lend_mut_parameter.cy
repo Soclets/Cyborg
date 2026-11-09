@@ -1,4 +1,6 @@
 // trace: D175
+@config(default);
+
 struct reading:
     celsius: i32;
     time: i32;

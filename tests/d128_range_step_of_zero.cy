@@ -1,4 +1,6 @@
 // trace: D128
+@config(default);
+
 fn.main [] -> void:
     for $i in range[from: 1, to: 5, step_by: 0]:
         return void;

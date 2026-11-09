@@ -2,6 +2,7 @@
 // `continue` as what needs a `*`. Reported to the design session.
 // trace: D46, D52
 import std;
+@config(default);
 
 fam.handler say_failed:
     say_failed.up:

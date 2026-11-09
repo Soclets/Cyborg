@@ -1,9 +1,9 @@
-refused: d2_must_give_early_return.cy:14:9, line 14 column 9
-14 |         return void;
+refused: d2_must_give_early_return.cy:16:9, line 16 column 9
+16 |         return void;
    |         ^^^^^^^^^^^^
  what: this leaves with `$f` never given away or finished
  why:  a `must_Give` value is handed off with `Give` exactly once, or `finish` ends it (D2, D129)
- because: d2_must_give_early_return.cy:12:9, line 12 column 9
-12 |     let $f: open_file = open_file[fd = 3];
+ because: d2_must_give_early_return.cy:14:9, line 14 column 9
+14 |     let $f: open_file = open_file[fd = 3];
    |         ^^
      `$f` was made here

@@ -1,5 +1,5 @@
-NotDesignedYet: d159_literal_too_large.cy:3:24, line 3 column 24
- 3 |     let $x: f32.ieee = ~1000000000000000000000000000000000000000000.0;
+NotDesignedYet: d159_literal_too_large.cy:5:24, line 5 column 24
+ 5 |     let $x: f32.ieee = ~1000000000000000000000000000000000000000000.0;
    |                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
  what: a literal too large for `f32.ieee`
  why:  not decided yet, and the standard doesn't say

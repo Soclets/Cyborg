@@ -1,5 +1,7 @@
 // What can be lent from `program` is still open, in a case as anywhere.
 // trace: D176, D2, D33
+@config(default);
+
 struct reading:
     celsius: i32;
 end struct reading

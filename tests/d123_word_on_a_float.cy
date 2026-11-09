@@ -1,4 +1,6 @@
 // trace: D123
+@config(default);
+
 fn f [$x: f64] -> f64:
     return $x;
 end fn f

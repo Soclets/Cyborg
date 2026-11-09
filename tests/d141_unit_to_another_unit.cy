@@ -1,5 +1,7 @@
 // How a conversion is written isn't decided.
 // trace: D141, D109
+@config(default);
+
 fam.unit money:
     money.cents: base;
     money.dollars = 100 money.cents;

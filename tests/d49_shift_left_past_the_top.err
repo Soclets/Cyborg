@@ -1,5 +1,5 @@
-NotDesignedYet: d49_shift_left_past_the_top.cy:3:19, line 3 column 19
- 3 |     let $a: i32 = 1 shl 31;
+NotDesignedYet: d49_shift_left_past_the_top.cy:5:19, line 5 column 19
+ 5 |     let $a: i32 = 1 shl 31;
    |                   ^^^^^^^^
  what: what happens when `shl` overflows
  why:  not decided yet, and the standard doesn't say

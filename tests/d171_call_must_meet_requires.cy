@@ -1,5 +1,7 @@
 // `$list` is in an inner block, so it ends before `$article` does.
 // trace: D171
+@config(default);
+
 struct reading:
     celsius: i32;
 end struct reading

@@ -1,5 +1,6 @@
 // trace: D159, D158
 import std;
+@config(default);
 
 fn.main [] -> void:
     let $reading: f32.ieee = 0.5;

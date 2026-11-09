@@ -1,4 +1,6 @@
 // trace: D86
+@config(default);
+
 fn check [$n: i32] -> bool:
     return $n at_least 0;
 end fn check

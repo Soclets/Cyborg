@@ -1,5 +1,7 @@
 // `.` binds to the call first, so this is `??` on a field read, which can't fail.
 // trace: D132, D57
+@config(default);
+
 struct box:
     n: i32;
 end struct box

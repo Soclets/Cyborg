@@ -1,0 +1,5 @@
+refused: d201_config_after_the_code.cy:2:1, line 2 column 1
+ 2 | fn f [] -> i32:
+   | ^^
+ fix:  `@config(default);`
+ why:  every file starts with `@config(…);` or `@match_config(…);`, and the compiler's defaults are `@config(default);` (D201)

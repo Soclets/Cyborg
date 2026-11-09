@@ -1,5 +1,5 @@
-refused: d155_kit_things_arent_marked.cy:8:5, line 8 column 5
- 8 |     println("hi");
+refused: d155_kit_things_arent_marked.cy:9:5, line 9 column 5
+ 9 |     println("hi");
    |     ^^^^^^^
  fix:  `std::println`
  why:  `@` goes only on things a limb provides (D22)

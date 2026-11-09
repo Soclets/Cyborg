@@ -1,5 +1,7 @@
 // So each function has one way to call it.
 // trace: D144, D113
+@config(default);
+
 fam.unit screen:
     screen.pixels: base;
 end fam.unit screen

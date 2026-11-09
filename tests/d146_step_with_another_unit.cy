@@ -1,4 +1,6 @@
 // trace: D146
+@config(default);
+
 fam.unit length:
     length.meters: base;
 end fam.unit length

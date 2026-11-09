@@ -1,5 +1,5 @@
-refused: d91_bake_a_runtime_value.cy:8:26, line 8 column 26
- 8 |     let $a: i32 = bake f($d);
+refused: d91_bake_a_runtime_value.cy:10:26, line 10 column 26
+10 |     let $a: i32 = bake f($d);
    |                          ^^
  what: `$d` isn't known at compile time
  why:  a `const`'s value must be fully known at compile time (D83, D91)

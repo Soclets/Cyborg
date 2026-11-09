@@ -1,5 +1,7 @@
 // A block's own names mustn't throw off what's known about names declared after it.
 // trace: D2
+@config(default);
+
 struct box:
     n: i32;
 end struct box

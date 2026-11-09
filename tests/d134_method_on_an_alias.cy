@@ -1,4 +1,6 @@
 // trace: D134, D130
+@config(default);
+
 type.alias score = i32;
 
 fn score.%same [$s: score] -> score:

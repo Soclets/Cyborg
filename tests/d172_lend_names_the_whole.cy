@@ -1,5 +1,7 @@
 // The borrow's type names `$o`, the whole value it came from.
 // trace: D172
+@config(default);
+
 struct inner:
     n: i32;
 end struct inner

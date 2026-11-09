@@ -1,5 +1,7 @@
 // A test that ran before this block left its mark on it.
 // trace: D126, D2
+@config(default);
+
 fn eat [$s: Given str] -> bool:
     return 1 < 2;
 end fn eat

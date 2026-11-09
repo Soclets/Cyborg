@@ -1,4 +1,6 @@
 // trace: D159
+@config(default);
+
 fn take [$x: f64] -> void:
     return void;
 end fn take

@@ -1,5 +1,5 @@
-refused: d127_maths_on_a_bool.cy:3:19, line 3 column 19
- 3 |     let $a: i32 = true + 1;
+refused: d127_maths_on_a_bool.cy:5:19, line 5 column 19
+ 5 |     let $a: i32 = true + 1;
    |                   ^^^^^^^^
  what: maths needs numbers, and this has `bool` and `i32`
  why:  `:` doesn't convert, and `as` builds a new value of another type (D7)

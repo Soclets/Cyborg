@@ -1,5 +1,5 @@
-refused: d158_no_such_narrowing.cy:3:13, line 3 column 13
- 3 |     let $a: f64.quick = 0.5;
+refused: d158_no_such_narrowing.cy:5:13, line 5 column 13
+ 5 |     let $a: f64.quick = 0.5;
    |             ^^^^^^^^^
  what: the bare unit `quick` doesn't say its family
  why:  a unit always says its family, or its path from a kit, unless `use` shortens it (D112)

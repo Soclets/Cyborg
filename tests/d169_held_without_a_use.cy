@@ -1,5 +1,7 @@
 // Never used again, and still held: that's what the word is for.
 // trace: D169
+@config(default);
+
 struct reading:
     celsius: i32;
     time: i32;

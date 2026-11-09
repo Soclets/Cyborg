@@ -1,5 +1,5 @@
-NotDesignedYet: d169_held_only_on_a_let.cy:7:27, line 7 column 27
- 7 | fn first [$a: reading] -> Lend.held from $a reading:
+NotDesignedYet: d169_held_only_on_a_let.cy:9:27, line 9 column 27
+ 9 | fn first [$a: reading] -> Lend.held from $a reading:
    |                           ^^^^^^^^^^^^^^^^^^^^^^^^^
  what: `held` on a borrow that isn't stored in a `let`
  why:  not decided yet, and the standard doesn't say

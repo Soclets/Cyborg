@@ -1,6 +1,7 @@
 // `=` can point at a unit in any family.
 // trace: D109
 import std;
+@config(default);
 
 fam.unit money:
     money.cents: base;

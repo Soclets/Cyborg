@@ -1,5 +1,5 @@
-check failed: d164_by_zero_makes_infinity.cy:7:19, line 7 column 19
- 7 |     let $a: f64 = 1.0 div $zero;
+check failed: d164_by_zero_makes_infinity.cy:8:19, line 8 column 19
+ 8 |     let $a: f64 = 1.0 div $zero;
    |                   ^^^^^^^^^^^^^
  what: this makes infinity
  why:  a float can't be NaN or infinity, and making one is a failure (D158)

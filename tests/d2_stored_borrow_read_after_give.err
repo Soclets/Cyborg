@@ -1,9 +1,9 @@
-refused: d2_stored_borrow_read_after_give.cy:14:19, line 14 column 19
-14 |     let $n: i32 = $b.celsius;
+refused: d2_stored_borrow_read_after_give.cy:16:19, line 16 column 19
+16 |     let $n: i32 = $b.celsius;
    |                   ^^
  what: `$b` can't be used after what it borrows was used
  why:  a stored `Lend.mut` means nothing else uses it meanwhile, and a `Lend` means it can't change (D2)
- because: d2_stored_borrow_read_after_give.cy:13:14, line 13 column 14
-13 |     eat(Give $r);
+ because: d2_stored_borrow_read_after_give.cy:15:14, line 15 column 14
+15 |     eat(Give $r);
    |              ^^
      what it borrows was used here

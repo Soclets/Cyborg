@@ -1,5 +1,5 @@
-refused: d126_else_needs_its_colon.cy:6:9, line 6 column 9
- 6 |         return void;
+refused: d126_else_needs_its_colon.cy:8:9, line 8 column 9
+ 8 |         return void;
    |         ^^^^^^
  what: expected `if` or `:` after `else`, but found `return`
  why:  `;` ends a statement, `:` opens a block, and `end` closes it (D33)

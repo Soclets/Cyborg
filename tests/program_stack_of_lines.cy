@@ -1,6 +1,7 @@
 // A real program, now that lengths can reach positions: print a list backwards, by position.
 // trace: D126, D128, D133, D140, D141, D142
 import std;
+@config(default);
 
 fn print_backwards [$xs: std::list<str>[len.max: 8 items]] -> void:
     let mut $at: u64 = $xs.len as u64;

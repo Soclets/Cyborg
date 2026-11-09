@@ -1,5 +1,7 @@
 // A value given on one path can't be used after, on any path.
 // trace: D2
+@config(default);
+
 struct box:
     n: i32;
 end struct box

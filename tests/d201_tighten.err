@@ -1,0 +1,5 @@
+NotDesignedYet: d201_tighten.cy:3:17, line 3 column 17
+ 3 | @tighten_config(var::mut::never_changed = refuse);
+   |                 ^^^
+ what: how a rule is spelled, and the list of rules
+ why:  not decided yet (standard 12.2)

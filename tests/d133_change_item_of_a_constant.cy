@@ -1,5 +1,6 @@
 // trace: D133, D83
 import std;
+@config(default);
 
 const $primes: std::array<i32>[len: 1 items] = [2];
 

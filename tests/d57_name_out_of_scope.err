@@ -1,5 +1,5 @@
-refused: d57_name_out_of_scope.cy:6:19, line 6 column 19
- 6 |     let $b: i32 = $a;
+refused: d57_name_out_of_scope.cy:8:19, line 8 column 19
+ 8 |     let $b: i32 = $a;
    |                   ^^
  what: `$a` isn't declared
  why:  `let` and `const` declare a variable with its type and value (D57, D83)

@@ -1,4 +1,6 @@
 // trace: D47
+@config(default);
+
 fam.failure file_failed:
     file_failed.denied;
     file_failed.denied;

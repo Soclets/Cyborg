@@ -1,4 +1,6 @@
 // trace: D114
+@config(default);
+
 fn half [$n: i32] -> i32:
     fails [odd];
     requires $n at_least 0;

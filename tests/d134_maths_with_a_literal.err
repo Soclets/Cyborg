@@ -1,5 +1,5 @@
-NotDesignedYet: d134_maths_with_a_literal.cy:5:23, line 5 column 23
- 5 |     let $v: user_id = $u + 1;
+NotDesignedYet: d134_maths_with_a_literal.cy:7:23, line 7 column 23
+ 7 |     let $v: user_id = $u + 1;
    |                       ^^^^^^
  what: maths on a `type.new`
  why:  not decided yet (standard 12.1)

@@ -2,6 +2,7 @@
 import std;
 
 use std::time.seconds as seconds;
+@config(default);
 
 struct reading:
     time: i64.std::time.seconds;

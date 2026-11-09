@@ -1,5 +1,7 @@
 // The word doesn't help, so it's the conversion that gets talked about.
 // trace: D149, D7
+@config(default);
+
 struct reading:
     celsius: i32;
 end struct reading

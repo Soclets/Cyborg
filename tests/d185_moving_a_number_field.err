@@ -1,5 +1,5 @@
-refused: d185_moving_a_number_field.cy:22:19, line 22 column 19
-22 |     let $n: i32 = Give $l.lines;
+refused: d185_moving_a_number_field.cy:23:19, line 23 column 19
+23 |     let $n: i32 = Give $l.lines;
    |                   ^^^^^^^^^^^^^
  fix:  `$l.lines`
  why:  plain numbers and `bool` are always copied, and take no word (D2, D123)

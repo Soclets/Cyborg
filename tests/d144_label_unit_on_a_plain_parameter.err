@@ -1,5 +1,5 @@
-refused: d144_label_unit_on_a_plain_parameter.cy:7:19, line 7 column 19
- 7 |     labels [$x as at.screen.pixels];
+refused: d144_label_unit_on_a_plain_parameter.cy:9:19, line 9 column 19
+ 9 |     labels [$x as at.screen.pixels];
    |                   ^^^^^^^^^^^^^^^^
  what: this label says `screen.pixels`, and `$x` is `i32`
  why:  a label can carry the unit its parameter has (D144)

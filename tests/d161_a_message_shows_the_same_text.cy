@@ -1,4 +1,6 @@
 // trace: D161, D29
+@config(default);
+
 fn half [$x: f64] -> f64:
     requires $x at_least 2.0;
     return $x x 0.5;

@@ -1,5 +1,5 @@
-check failed: d158_making_infinity_with_plus.cy:4:21, line 4 column 21
- 4 |     let $sum: f32 = $big + $big;
+check failed: d158_making_infinity_with_plus.cy:6:21, line 6 column 21
+ 6 |     let $sum: f32 = $big + $big;
    |                     ^^^^^^^^^^^
  what: this makes infinity
  why:  a float can't be NaN or infinity, and making one is a failure (D158)

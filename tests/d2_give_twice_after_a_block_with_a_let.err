@@ -1,9 +1,9 @@
-refused: d2_give_twice_after_a_block_with_a_let.cy:17:5, line 17 column 5
-17 |     eat(Give $b);
+refused: d2_give_twice_after_a_block_with_a_let.cy:19:5, line 19 column 5
+19 |     eat(Give $b);
    |     ^^^^^^^^^^^^
  what: `$b` was already given away
  why:  a given value is dead afterwards (D2)
- because: d2_give_twice_after_a_block_with_a_let.cy:16:5, line 16 column 5
-16 |     eat(Give $b);
+ because: d2_give_twice_after_a_block_with_a_let.cy:18:5, line 18 column 5
+18 |     eat(Give $b);
    |     ^^^^^^^^^^^^
      `$b` was given away here

@@ -1,4 +1,6 @@
 // trace: D149
+@config(default);
+
 type.new title = str;
 
 fn.main [] -> void:

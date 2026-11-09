@@ -1,5 +1,6 @@
 // trace: D142, D128
 import std;
+@config(default);
 
 fn.main [] -> void:
     let $xs: std::array<i32>[len: 3 items] = [4, 5, 6];

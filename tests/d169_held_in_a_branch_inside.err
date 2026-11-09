@@ -1,9 +1,9 @@
-refused: d169_held_in_a_branch_inside.cy:11:16, line 11 column 16
-11 |         change $r.time = 1;
+refused: d169_held_in_a_branch_inside.cy:13:16, line 13 column 16
+13 |         change $r.time = 1;
    |                ^^^^^^^
  what: `$lock` holds `$r` until the end of its block
  why:  `.held` means nobody touches what it borrows for the whole block (D169)
- because: d169_held_in_a_branch_inside.cy:9:9, line 9 column 9
- 9 |     let $lock: Lend.held from $r reading = Lend $r;
+ because: d169_held_in_a_branch_inside.cy:11:9, line 11 column 9
+11 |     let $lock: Lend.held from $r reading = Lend $r;
    |         ^^^^^
      `$lock` holds it from here

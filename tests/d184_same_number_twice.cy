@@ -1,4 +1,6 @@
 // trace: D184, D2
+@config(default);
+
 fn both [$a: Lent.mut i32, $b: Lent.mut i32] -> void:
     return void;
 end fn both

@@ -1,5 +1,6 @@
 // trace: D133, D123
 import std;
+@config(default);
 
 fn f [$n: i32] -> void:
     return void;

@@ -1,5 +1,6 @@
 // trace: D127
 import std;
+@config(default);
 
 struct flags:
     on: bool;

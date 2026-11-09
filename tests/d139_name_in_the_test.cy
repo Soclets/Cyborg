@@ -1,5 +1,7 @@
 // D139 only shows a name on `case`, and the test trusts `$s` itself.
 // trace: D139, D9
+@config(default);
+
 union.tagged status:
     ok
     failed[code: i32]

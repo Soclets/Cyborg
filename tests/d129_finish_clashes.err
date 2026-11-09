@@ -1,5 +1,5 @@
-refused: d129_finish_clashes.cy:7:5, line 7 column 5
- 7 |     finish();
+refused: d129_finish_clashes.cy:9:5, line 9 column 5
+ 9 |     finish();
    |     ^^^^^^^^
  fix:  `my::finish()`
  why:  a name of yours that clashes is written with `my::` (D75)

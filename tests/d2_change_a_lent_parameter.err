@@ -1,5 +1,5 @@
-refused: d2_change_a_lent_parameter.cy:8:12, line 8 column 12
- 8 |     change $b = box[n = 9];
+refused: d2_change_a_lent_parameter.cy:10:12, line 10 column 12
+10 |     change $b = box[n = 9];
    |            ^^
  what: `$b` can't change
  why:  `let` declares a variable that can't change, and `let mut` one that can (D3)

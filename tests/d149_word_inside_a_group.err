@@ -1,5 +1,5 @@
-refused: d149_word_inside_a_group.cy:10:24, line 10 column 24
-10 |     let $w: wrapped = (Give $r) as wrapped;
+refused: d149_word_inside_a_group.cy:12:24, line 12 column 24
+12 |     let $w: wrapped = (Give $r) as wrapped;
    |                        ^^^^^^^
  what: `Give` goes where a value is handed off
  why:  the words go on a call's argument, or into a name, a `return` or a field (D2, D3)

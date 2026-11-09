@@ -2,6 +2,7 @@
 // and giving one field away is still open.
 // trace: D177, D129
 import std;
+@config(default);
 
 struct.must_Give open_file:
     fd: i32;

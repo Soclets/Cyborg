@@ -1,9 +1,9 @@
-refused: d125_field_of_a_dead_value.cy:13:12, line 13 column 12
-13 |     change $b.n = 2;
+refused: d125_field_of_a_dead_value.cy:15:12, line 15 column 12
+15 |     change $b.n = 2;
    |            ^^
  what: `$b` was already given away
  why:  a given value is dead afterwards (D2)
- because: d125_field_of_a_dead_value.cy:12:5, line 12 column 5
-12 |     eat(Give $b);
+ because: d125_field_of_a_dead_value.cy:14:5, line 14 column 5
+14 |     eat(Give $b);
    |     ^^^^^^^^^^^^
      `$b` was given away here

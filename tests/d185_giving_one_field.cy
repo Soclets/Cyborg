@@ -1,4 +1,6 @@
 // trace: D185, D2
+@config(default);
+
 struct box:
     s: str;
 end struct box

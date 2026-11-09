@@ -1,5 +1,5 @@
-NotDesignedYet: d171_returning_from_a_function_source.cy:10:43, line 10 column 43
-10 | fn words <`t`> [$v: view<`text`: `t`>] -> Lend from `t` reading:
+NotDesignedYet: d171_returning_from_a_function_source.cy:12:43, line 12 column 43
+12 | fn words <`t`> [$v: view<`text`: `t`>] -> Lend from `t` reading:
    |                                           ^^^^^^^^^^^^^^^^^^^^^
  what: returning a borrow from a function's own source
  why:  not decided yet, and the standard doesn't say

@@ -1,5 +1,5 @@
-NotDesignedYet: d85_generics_arent_spelled.cy:2:12, line 2 column 12
- 2 | fn largest <?T: ordered> [$a: ?T, $b: ?T] -> ?T:
+NotDesignedYet: d85_generics_arent_spelled.cy:4:12, line 4 column 12
+ 4 | fn largest <?T: ordered> [$a: ?T, $b: ?T] -> ?T:
    |            ^
  what: the spelling of generics
  why:  not decided yet (standard 12.5)

@@ -1,4 +1,6 @@
 // trace: D47, D75
+@config(default);
+
 fn first_word [] -> void:
     fails [empty];
 

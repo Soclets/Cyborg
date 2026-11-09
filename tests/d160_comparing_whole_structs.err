@@ -1,5 +1,5 @@
-NotDesignedYet: d160_comparing_whole_structs.cy:9:8, line 9 column 8
- 9 |     if $x == $y:
+NotDesignedYet: d160_comparing_whole_structs.cy:11:8, line 11 column 8
+11 |     if $x == $y:
    |        ^^^^^^^^
  what: comparing `pair` values
  why:  not decided yet, and the standard doesn't say

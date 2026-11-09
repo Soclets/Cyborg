@@ -1,4 +1,6 @@
 // trace: D149, D123
+@config(default);
+
 type.new flag = bool;
 
 fn.main [] -> void:

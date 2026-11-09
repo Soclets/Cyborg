@@ -1,6 +1,7 @@
 // A handler is used as if written there, and `instead` isn't a jump.
 // trace: D139, D46
 import std;
+@config(default);
 
 fam.handler word_failed:
     word_failed.use_placeholder:

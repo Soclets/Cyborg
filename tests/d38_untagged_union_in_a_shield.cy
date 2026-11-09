@@ -1,5 +1,6 @@
 // trace: D35, D38
 import @csup;
+@config(default);
 
 shield c_number:
     reason "matches the union in libfoo's header"

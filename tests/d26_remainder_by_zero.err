@@ -1,5 +1,5 @@
-check failed: d26_remainder_by_zero.cy:4:19, line 4 column 19
- 4 |     let $a: i32 = 1 mod.floor $z;
+check failed: d26_remainder_by_zero.cy:6:19, line 6 column 19
+ 6 |     let $a: i32 = 1 mod.floor $z;
    |                   ^^^^^^^^^^^^^^
  what: this divides by zero
  why:  division by zero traps (D26)

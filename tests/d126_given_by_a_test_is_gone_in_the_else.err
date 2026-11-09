@@ -1,9 +1,9 @@
-refused: d126_given_by_a_test_is_gone_in_the_else.cy:16:9, line 16 column 9
-16 |         read(Lend $s);
+refused: d126_given_by_a_test_is_gone_in_the_else.cy:18:9, line 18 column 9
+18 |         read(Lend $s);
    |         ^^^^^^^^^^^^^
  what: `$s` was already given away
  why:  a given value is dead afterwards (D2)
- because: d126_given_by_a_test_is_gone_in_the_else.cy:13:8, line 13 column 8
-13 |     if eat(Give $s):
+ because: d126_given_by_a_test_is_gone_in_the_else.cy:15:8, line 15 column 8
+15 |     if eat(Give $s):
    |        ^^^^^^^^^^^^
      `$s` was given away here

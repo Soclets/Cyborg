@@ -1,6 +1,7 @@
 // The next test runs only if this block didn't, so its `change` can't reach there.
 // trace: D126, D104
 import std;
+@config(default);
 
 union.tagged status:
     ok

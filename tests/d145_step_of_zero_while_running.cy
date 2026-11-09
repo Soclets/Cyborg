@@ -1,6 +1,7 @@
 // A step of 0 never ends, so it's a failure, and a `for` has nothing to handle it.
 // trace: D145
 import std;
+@config(default);
 
 fn.main [] -> void:
     let $by: i32 = 0;

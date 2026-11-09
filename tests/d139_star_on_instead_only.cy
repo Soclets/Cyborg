@@ -1,4 +1,6 @@
 // trace: D139, D46
+@config(default);
+
 fam.handler word_failed:
     word_failed.use_placeholder:
         case too_long:

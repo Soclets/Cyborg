@@ -1,6 +1,7 @@
 // `instead` can be anywhere in its arm, and each way through has to end somewhere.
 // trace: D139, D126
 import std;
+@config(default);
 
 fn f [] -> i32:
     fails [a[val: i32]];

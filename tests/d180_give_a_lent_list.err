@@ -1,5 +1,5 @@
-refused: d180_give_a_lent_list.cy:15:20, line 15 column 20
-15 |     for $f in Give $files:
+refused: d180_give_a_lent_list.cy:16:20, line 16 column 20
+16 |     for $f in Give $files:
    |                    ^^^^^^
  what: `$files` is only lent here, so it can't be given away
  why:  `Lend` is temporary access, and the caller keeps it (D2)

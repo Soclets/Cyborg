@@ -1,4 +1,6 @@
 // trace: D57, D83
+@config(default);
+
 const $a: i32 = 1;
 
 fn.main [] -> void:

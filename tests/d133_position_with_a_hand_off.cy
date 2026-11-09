@@ -1,5 +1,6 @@
 // trace: D133
 import std;
+@config(default);
 
 fn eat [$s: Given str] -> i32:
     return 1;

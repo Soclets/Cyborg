@@ -1,5 +1,5 @@
-NotDesignedYet: d101_scaling_by_a_plain_number.cy:9:32, line 9 column 32
- 9 |     let $b: i32.time.seconds = $a x 2;
+NotDesignedYet: d101_scaling_by_a_plain_number.cy:11:32, line 11 column 32
+11 |     let $b: i32.time.seconds = $a x 2;
    |                                ^^^^^^
  what: scaling a unit by a plain number, and what unit comes back
  why:  not decided yet, and the standard doesn't say

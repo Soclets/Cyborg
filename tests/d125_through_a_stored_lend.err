@@ -1,5 +1,5 @@
-refused: d125_through_a_stored_lend.cy:9:12, line 9 column 12
- 9 |     change $l.n = 2;
+refused: d125_through_a_stored_lend.cy:11:12, line 11 column 12
+11 |     change $l.n = 2;
    |            ^^^^
  what: `$l` can't change, so neither can its field
  why:  a field or item can be changed if the whole variable is `let mut`, or the parameter `Lent.mut` (D125, D133)

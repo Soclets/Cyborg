@@ -1,5 +1,5 @@
-refused: d100_comparing_mixed_units.cy:13:8, line 13 column 8
-13 |     if $a == $b:
+refused: d100_comparing_mixed_units.cy:15:8, line 15 column 8
+15 |     if $a == $b:
    |        ^^^^^^^^
  what: this compares `i32.time.seconds` and `i32.storage.bytes`
  why:  the same units can add and compare, and mixing them is refused (D100)

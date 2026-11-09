@@ -1,5 +1,6 @@
 // trace: D102
 import std;
+@config(default);
 
 fn.main [] -> void:
     let $d: std::list<u8>[len.max: 3 items] = all 0;

@@ -1,5 +1,5 @@
-refused: d177_finish_waits_for_the_field.cy:25:12, line 25 column 12
-25 |     finish $l;
+refused: d177_finish_waits_for_the_field.cy:26:12, line 26 column 12
+26 |     finish $l;
    |            ^^
  what: `$l.file` hasn't been given away, so `finish` waits for it
  why:  `finish` ends a value's own duty, after every `must_Give` value inside it is given away (D129, D177)

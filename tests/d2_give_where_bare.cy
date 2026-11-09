@@ -1,5 +1,7 @@
 // A bare parameter takes `Lend`, so that's the one fix.
 // trace: D2, D16
+@config(default);
+
 struct box:
     n: i32;
 end struct box

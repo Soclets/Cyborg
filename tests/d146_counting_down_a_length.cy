@@ -1,6 +1,7 @@
 // A length is unsigned, and the step needn't be.
 // trace: D146, D142, D140
 import std;
+@config(default);
 
 fn.main [] -> void:
     let $xs: std::array<i32>[len: 3 items] = [4, 5, 6];

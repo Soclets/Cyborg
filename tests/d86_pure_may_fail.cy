@@ -1,5 +1,7 @@
 // Whether a `fn.pure` may fail isn't decided.
 // trace: D86
+@config(default);
+
 fn.pure f [] -> i32:
     fails [a];
 

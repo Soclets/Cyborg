@@ -1,5 +1,5 @@
-NotDesignedYet: d134_other_type_kind.cy:2:1, line 2 column 1
- 2 | type.strict score = i32;
+NotDesignedYet: d134_other_type_kind.cy:4:1, line 4 column 1
+ 4 | type.strict score = i32;
    | ^^^^^^^^^^^
  what: `type.strict`
  why:  not decided yet, and the standard doesn't say

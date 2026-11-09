@@ -1,5 +1,5 @@
-refused: d2_given_integer_parameter.cy:2:11, line 2 column 11
- 2 | fn f [$n: Given i32] -> i32:
+refused: d2_given_integer_parameter.cy:4:11, line 4 column 11
+ 4 | fn f [$n: Given i32] -> i32:
    |           ^^^^^
  what: `i32` is always copied, and takes no word
  why:  plain numbers and `bool` are always copied, and take no word (D2, D123)

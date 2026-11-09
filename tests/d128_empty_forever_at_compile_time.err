@@ -1,5 +1,5 @@
-refused: d128_empty_forever_at_compile_time.cy:4:5, line 4 column 5
- 4 |     forever:
+refused: d128_empty_forever_at_compile_time.cy:6:5, line 6 column 5
+ 6 |     forever:
    |     ^^^^^^^^
  what: compile-time work didn't finish within its step limit
  why:  compile-time code always finishes, through a step limit that refuses it (D89, D91)

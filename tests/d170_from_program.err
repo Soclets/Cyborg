@@ -1,5 +1,5 @@
-NotDesignedYet: d170_from_program.cy:6:26, line 6 column 26
- 6 | fn pick [$a: reading] -> Lend from program reading:
+NotDesignedYet: d170_from_program.cy:8:26, line 8 column 26
+ 8 | fn pick [$a: reading] -> Lend from program reading:
    |                          ^^^^^^^^^^^^^^^^^^^^^^^^^
  what: returning a borrow `from program`
  why:  not decided yet (standard 12.8)

@@ -1,5 +1,5 @@
-refused: d11_return_a_value_from_void.cy:3:12, line 3 column 12
- 3 |     return 1;
+refused: d11_return_a_value_from_void.cy:5:12, line 5 column 12
+ 5 |     return 1;
    |            ^
  fix:  `void`
  why:  a function that returns nothing returns `void` (D11)

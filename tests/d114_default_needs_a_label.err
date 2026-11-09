@@ -1,5 +1,5 @@
-refused: d114_default_needs_a_label.cy:3:15, line 3 column 15
- 3 |     defaults [$a = 1];
+refused: d114_default_needs_a_label.cy:5:15, line 5 column 15
+ 5 |     defaults [$a = 1];
    |               ^^
  what: `$a` has no label, so it can't have a default
  why:  only labelled parameters can have defaults (D114)

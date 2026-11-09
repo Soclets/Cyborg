@@ -1,5 +1,5 @@
-NotDesignedYet: d134_alias_name_taken_by_a_struct.cy:6:12, line 6 column 12
- 6 | type.alias score = i32;
+NotDesignedYet: d134_alias_name_taken_by_a_struct.cy:8:12, line 8 column 12
+ 8 | type.alias score = i32;
    |            ^^^^^
  what: declaring `score` twice
  why:  not decided yet, and the standard doesn't say

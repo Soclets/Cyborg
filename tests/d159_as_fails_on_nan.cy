@@ -1,4 +1,6 @@
 // trace: D159
+@config(default);
+
 fn.main [] -> void:
     let mut $x: f64.ieee = 2.0;
     for $i in range[from: 1, to: 10]:

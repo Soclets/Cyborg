@@ -1,5 +1,5 @@
-NotDesignedYet: d158_only_min.cy:3:13, line 3 column 13
- 3 |     let $t: f64[min: 0.0] = 1.5;
+NotDesignedYet: d158_only_min.cy:5:13, line 5 column 13
+ 5 |     let $t: f64[min: 0.0] = 1.5;
    |             ^^^^^^^^^^^^^
  what: a bound with only `min` or only `max`
  why:  not decided yet, and the standard doesn't say

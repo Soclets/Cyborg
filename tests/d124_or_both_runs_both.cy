@@ -1,4 +1,6 @@
 // trace: D124
+@config(default);
+
 fn.main [] -> void:
     let $n: i32 = 0;
     if $n == 0 or.both 10 div.trunc $n > 1:

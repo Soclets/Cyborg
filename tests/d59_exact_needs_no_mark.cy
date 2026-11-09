@@ -1,5 +1,6 @@
 // trace: D59, D54
 import std;
+@config(default);
 
 const $pi: f64 = ~3.14159265358979323846;
 

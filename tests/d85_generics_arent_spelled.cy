@@ -1,4 +1,6 @@
 // trace: D85
+@config(default);
+
 fn largest <?T: ordered> [$a: ?T, $b: ?T] -> ?T:
     return $a;
 end fn largest

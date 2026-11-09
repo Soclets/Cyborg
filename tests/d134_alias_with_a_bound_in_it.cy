@@ -1,5 +1,6 @@
 // trace: D134, D20
 import std;
+@config(default);
 
 type.alias percent = i32[min: 0, max: 100];
 

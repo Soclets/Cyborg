@@ -1,5 +1,7 @@
 // A plain number is always copied, so it takes no word here either.
 // trace: D149, D123
+@config(default);
+
 type.new user_id = i32;
 
 fn.main [] -> void:

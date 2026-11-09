@@ -1,5 +1,7 @@
 // `change` doesn't stand in for an ownership word.
 // trace: D125, D3
+@config(default);
+
 struct box:
     s: str;
 end struct box

@@ -1,4 +1,6 @@
 // trace: D114
+@config(default);
+
 fn pair [$a: i32, $b: i32] -> i32:
     labels [$a as first, $b as second];
 

@@ -1,5 +1,5 @@
-NotDesignedYet: d170_used_in_an_expression.cy:18:18, line 18 column 18
-18 |     std::println(warmer(Lend $x, Lend $y).celsius as str);
+NotDesignedYet: d170_used_in_an_expression.cy:19:18, line 19 column 18
+19 |     std::println(warmer(Lend $x, Lend $y).celsius as str);
    |                  ^^^^^^^^^^^^^^^^^^^^^^^^
  what: using a returned borrow anywhere but in a stored borrow or a `return`
  why:  not decided yet, and the standard doesn't say

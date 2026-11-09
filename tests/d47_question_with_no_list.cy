@@ -1,5 +1,7 @@
 // `?` in a function that lists no failures isn't decided.
 // trace: D47
+@config(default);
+
 fn inner [] -> i32:
     fails [odd];
 

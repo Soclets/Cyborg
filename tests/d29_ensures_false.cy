@@ -1,4 +1,6 @@
 // trace: D29, D84
+@config(default);
+
 fn wrong [$n: i32] -> i32:
     ensures result at_least $n;
 

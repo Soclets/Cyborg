@@ -1,5 +1,5 @@
-refused: d170_type_must_match.cy:16:34, line 16 column 34
-16 |     let $w: Lend from $x other = first(Lend $x);
+refused: d170_type_must_match.cy:18:34, line 18 column 34
+18 |     let $w: Lend from $x other = first(Lend $x);
    |                                  ^^^^^^^^^^^^^^
  what: this is `reading`, where `other` is needed
  why:  `:` doesn't convert, and `as` builds a new value of another type (D7)

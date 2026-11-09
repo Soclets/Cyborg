@@ -1,5 +1,5 @@
-refused: d131_not_inside_maths.cy:3:23, line 3 column 23
- 3 |     let $n: i32 = 1 + not 2;
+refused: d131_not_inside_maths.cy:5:23, line 5 column 23
+ 5 |     let $n: i32 = 1 + not 2;
    |                       ^^^
  what: `not` sits below comparisons and maths, so here it needs `( )`
  why:  `not` sits just above `and`, and `( )` groups (D116, D131)

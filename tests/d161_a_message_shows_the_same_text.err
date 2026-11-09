@@ -1,10 +1,10 @@
-check failed: d161_a_message_shows_the_same_text.cy:3:14, line 3 column 14
- 3 |     requires $x at_least 2.0;
+check failed: d161_a_message_shows_the_same_text.cy:5:14, line 5 column 14
+ 5 |     requires $x at_least 2.0;
    |              ^^^^^^^^^^^^^^^
  what: this `requires` is false
  why:  contracts are checked at runtime, and a false one stops the program (D29)
  when: `$x` is 1.0
- because: d161_a_message_shows_the_same_text.cy:8:19, line 8 column 19
- 8 |     let $h: f64 = half(1.0);
+ because: d161_a_message_shows_the_same_text.cy:10:19, line 10 column 19
+10 |     let $h: f64 = half(1.0);
    |                   ^^^^^^^^^
      called here

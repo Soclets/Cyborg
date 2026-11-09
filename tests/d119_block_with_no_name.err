@@ -1,5 +1,5 @@
-refused: d119_block_with_no_name.cy:2:1, line 2 column 1
- 2 | comment:
+refused: d119_block_with_no_name.cy:4:1, line 4 column 1
+ 4 | comment:
    | ^^^^^^^^
  what: this comment block has no name
  why:  a comment block has a required name, and a closer names the block it closes (D119)

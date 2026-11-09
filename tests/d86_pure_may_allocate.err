@@ -1,5 +1,5 @@
-NotDesignedYet: d86_pure_may_allocate.cy:4:12, line 4 column 12
- 4 |     return $n as str;
+NotDesignedYet: d86_pure_may_allocate.cy:6:12, line 6 column 12
+ 6 |     return $n as str;
    |            ^^^^^^^^^
  what: whether a `fn.pure` may allocate, as `as` can
  why:  not decided yet (standard 12.5)

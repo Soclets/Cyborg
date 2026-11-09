@@ -1,6 +1,7 @@
 // CORE-MATH hasn't been added, so nothing can say what this prints.
 // trace: D161
 import std;
+@config(default);
 
 fn.main [] -> void:
     let $x: f64 = 0.5;

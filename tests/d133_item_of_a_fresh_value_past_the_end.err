@@ -1,5 +1,5 @@
-check failed: d133_item_of_a_fresh_value_past_the_end.cy:9:19, line 9 column 19
- 9 |     let $n: i32 = make()[pos: 3];
+check failed: d133_item_of_a_fresh_value_past_the_end.cy:10:19, line 10 column 19
+10 |     let $n: i32 = make()[pos: 3];
    |                   ^^^^^^^^^^^^^^
  what: `pos: 3` is outside `make()`
  why:  a bad position is a bounds check (D26, D133)

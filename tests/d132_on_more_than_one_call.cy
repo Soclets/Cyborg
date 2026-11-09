@@ -1,5 +1,7 @@
 // What `??` catches when its left side is more than one call isn't decided.
 // trace: D132
+@config(default);
+
 fn read [] -> i32:
     fails [none];
 

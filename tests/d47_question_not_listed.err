@@ -1,5 +1,5 @@
-refused: d47_question_not_listed.cy:11:12, line 11 column 12
-11 |     return inner()?;
+refused: d47_question_not_listed.cy:13:12, line 13 column 12
+13 |     return inner()?;
    |            ^^^^^^^^
  what: this passes up `odd`, which this function doesn't list
  why:  `?` is a compile error if the function doesn't list what it passes up (D47)

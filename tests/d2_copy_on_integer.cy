@@ -1,4 +1,6 @@
 // trace: D2
+@config(default);
+
 fn f [$n: i32] -> i32:
     return $n;
 end fn f

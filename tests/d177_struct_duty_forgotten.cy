@@ -1,5 +1,6 @@
 // trace: D177, D2
 import std;
+@config(default);
 
 struct.must_Give open_file:
     fd: i32;

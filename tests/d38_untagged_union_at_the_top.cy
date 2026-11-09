@@ -1,5 +1,6 @@
 // trace: D35, D38
 import @csup;
+@config(default);
 
 @csup::union.untagged number:
     i: i32

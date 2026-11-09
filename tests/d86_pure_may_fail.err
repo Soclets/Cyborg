@@ -1,5 +1,5 @@
-NotDesignedYet: d86_pure_may_fail.cy:3:1, line 3 column 1
- 3 | fn.pure f [] -> i32:
+NotDesignedYet: d86_pure_may_fail.cy:5:1, line 5 column 1
+ 5 | fn.pure f [] -> i32:
    | ^^^^^^^^^^^^^^^^^^^
  what: whether a `fn.pure` may fail
  why:  not decided yet (standard 12.5)

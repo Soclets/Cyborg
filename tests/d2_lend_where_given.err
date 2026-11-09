@@ -1,5 +1,5 @@
-refused: d2_lend_where_given.cy:13:9, line 13 column 9
-13 |     eat(Lend $b);
+refused: d2_lend_where_given.cy:15:9, line 15 column 9
+15 |     eat(Lend $b);
    |         ^^^^^^^
  what: this parameter is `Given`, so the call says `Give` or `Copy`
  why:  the call and the parameter both say it, and they must match (D2)

@@ -1,4 +1,6 @@
 // trace: D127, D75
+@config(default);
+
 fn true [] -> i32:
     return 1;
 end fn true

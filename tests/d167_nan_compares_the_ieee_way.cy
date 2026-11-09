@@ -1,6 +1,7 @@
 // Every comparison with NaN is false except `!=`, and NaN isn't even equal to itself.
 // trace: D167, D159
 import std;
+@config(default);
 
 fn.main [] -> void:
     let mut $x: f64.ieee = 2.0;

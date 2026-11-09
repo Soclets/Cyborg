@@ -1,4 +1,6 @@
 // trace: D126, D11
+@config(default);
+
 fn sign [$n: i32] -> i32:
     if $n > 0:
         return 1;

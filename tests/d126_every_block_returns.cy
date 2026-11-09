@@ -1,6 +1,7 @@
 // With `else:`, nothing runs past a chain whose blocks all leave.
 // trace: D126, D11
 import std;
+@config(default);
 
 fn sign [$n: i32] -> i32:
     if $n > 0:

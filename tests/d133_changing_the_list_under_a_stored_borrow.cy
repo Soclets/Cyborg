@@ -1,5 +1,6 @@
 // trace: D133, D2
 import std;
+@config(default);
 
 fn.main [] -> void:
     let mut $xs: std::array<str>[len: 2 items] = ["a", "b"];

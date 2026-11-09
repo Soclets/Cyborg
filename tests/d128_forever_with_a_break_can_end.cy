@@ -1,4 +1,6 @@
 // trace: D128, D11
+@config(default);
+
 fn f [] -> i32:
     forever:
         break;

@@ -1,5 +1,5 @@
-NotDesignedYet: d57_shadowing_isnt_in_the_standard.cy:5:13, line 5 column 13
- 5 |         let $a: i32 = 2;
+NotDesignedYet: d57_shadowing_isnt_in_the_standard.cy:7:13, line 7 column 13
+ 7 |         let $a: i32 = 2;
    |             ^^
  what: declaring `$a` again while the first is in scope
  why:  not decided yet, and the standard doesn't say

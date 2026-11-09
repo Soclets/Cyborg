@@ -1,4 +1,6 @@
 // trace: D26, D97
+@config(default);
+
 fn.main [] -> void:
     let $z: i32 = 0;
     let $a: i32 = 1 mod.floor $z;

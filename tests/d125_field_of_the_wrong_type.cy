@@ -1,4 +1,6 @@
 // trace: D125, D7
+@config(default);
+
 struct box:
     n: i32;
 end struct box

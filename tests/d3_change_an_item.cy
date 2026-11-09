@@ -1,5 +1,6 @@
 // trace: D3
 import std;
+@config(default);
 
 fn.main [] -> void:
     let $xs: std::array<i32>[len: 1 items] = [1];

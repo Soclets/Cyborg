@@ -1,6 +1,7 @@
 // `.%` says what it is, so a method's name doesn't clash.
 // trace: D130, D75
 import std;
+@config(default);
 
 struct point:
     x: i32;

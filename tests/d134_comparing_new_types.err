@@ -1,5 +1,5 @@
-NotDesignedYet: d134_comparing_new_types.cy:5:12, line 5 column 12
- 5 |     return $a == $b;
+NotDesignedYet: d134_comparing_new_types.cy:7:12, line 7 column 12
+ 7 |     return $a == $b;
    |            ^^^^^^^^
  what: comparing `user_id` values
  why:  not decided yet, and the standard doesn't say

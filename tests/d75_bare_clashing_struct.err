@@ -1,5 +1,5 @@
-refused: d75_bare_clashing_struct.cy:7:27, line 7 column 27
- 7 |     let $thing: my::div = div[n = 9];
+refused: d75_bare_clashing_struct.cy:9:27, line 9 column 27
+ 9 |     let $thing: my::div = div[n = 9];
    |                           ^^^^^^^^^^
  fix:  `my::div[n = 9]`
  why:  a name of yours that clashes is written with `my::` (D75)

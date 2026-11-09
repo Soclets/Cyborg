@@ -1,6 +1,7 @@
 // `==` looks at what's stored, and ~0.1 + ~0.2 doesn't store what ~0.3 does. The linter can flag this.
 // trace: D160, D59
 import std;
+@config(default);
 
 fn.main [] -> void:
     let $a: f64 = ~0.1;

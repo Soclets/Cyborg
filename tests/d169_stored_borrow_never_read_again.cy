@@ -1,5 +1,7 @@
 // `$b` isn't used after the read, so the borrow is over before `Give`.
 // trace: D169, D2
+@config(default);
+
 struct reading:
     celsius: i32;
 end struct reading

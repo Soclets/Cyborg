@@ -1,4 +1,6 @@
 // trace: D119
+@config(default);
+
 comment one:
     comment two:
     end comment two

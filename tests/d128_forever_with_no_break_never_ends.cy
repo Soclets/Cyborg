@@ -1,6 +1,7 @@
 // Nothing runs past a `forever` with no `break`, so this needs no `return` after it.
 // trace: D128, D11
 import std;
+@config(default);
 
 fn first_over [$limit: i32] -> i32:
     let mut $n: i32 = 0;

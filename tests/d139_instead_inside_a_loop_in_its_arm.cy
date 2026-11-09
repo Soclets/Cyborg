@@ -1,4 +1,6 @@
 // trace: D139, D128
+@config(default);
+
 fn f [] -> i32:
     fails [a];
 

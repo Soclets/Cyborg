@@ -1,6 +1,7 @@
 // The word is on the list, so a list of numbers takes one too, and each number changes in place.
 // trace: D180, D123
 import std;
+@config(default);
 
 fn.main [] -> void:
     let mut $xs: std::array<i32>[len: 3 items] = [1, 2, 3];

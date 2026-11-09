@@ -1,9 +1,9 @@
-refused: d173_two_items_lent_in_one_call.cy:11:37, line 11 column 37
-11 |     swap_them(Lend.mut $xs[pos: 1], Lend.mut $xs[pos: 2]);
+refused: d173_two_items_lent_in_one_call.cy:12:37, line 12 column 37
+12 |     swap_them(Lend.mut $xs[pos: 1], Lend.mut $xs[pos: 2]);
    |                                     ^^^^^^^^^^^^^^^^^^^^
  what: `$xs` is already handed off with `Lend.mut` in this call
  why:  `Lend.mut` means nothing else uses it meanwhile, and `Give` means it's gone (D2)
- because: d173_two_items_lent_in_one_call.cy:11:15, line 11 column 15
-11 |     swap_them(Lend.mut $xs[pos: 1], Lend.mut $xs[pos: 2]);
+ because: d173_two_items_lent_in_one_call.cy:12:15, line 12 column 15
+12 |     swap_them(Lend.mut $xs[pos: 1], Lend.mut $xs[pos: 2]);
    |               ^^^^^^^^^^^^^^^^^^^^
      that's here
