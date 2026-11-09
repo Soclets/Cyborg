@@ -668,12 +668,16 @@ fn lex(source: &str) -> Outcome<Vec<Token>> {
             let after_code = source
                 .get(line_start..position)
                 .is_some_and(|before| !before.trim().is_empty());
+            // trace: D206
             if after_code && rest.starts_with("///") {
-                return Err(Report::not_designed(
-                    Span::new(position, position + 3),
-                    "a `///` after code on its line, and what it attaches to",
-                    "",
-                ));
+                let end = line_end(source, position);
+                let doc = source.get(position..end).unwrap_or("").trim_end();
+                return Err(Report::refused(
+                    Span::new(position, position + doc.len()),
+                    "a doc comment goes on its own line, above what it describes",
+                    "a `///` sits above what it describes, so it can't trail code, though a `//` can (D206, D205)",
+                )
+                .fix(doc.to_string()));
             }
             position = skip_line_comment(source, position)?;
             continue;
