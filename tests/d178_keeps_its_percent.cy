@@ -2,7 +2,7 @@
 @config(default);
 import std;
 
-use std::list.%append as append;
+use std::list.%%append as append;
 
 fn.main [] -> void:
     return void;

@@ -8,7 +8,7 @@ end fn total
 
 fn.main [] -> void:
     let mut $xs: std::list<i32>[len.max: inf items, len.type: u32] = empty;
-    $xs.std::%append(val: 1);
+    $xs.std::%%append(val: 1);
     let $n: u32.items = $xs.len;
     std::io::fmt_print("{}{newln}", $n);
     std::io::fmt_print("{}{newln}", total(Lend $xs));

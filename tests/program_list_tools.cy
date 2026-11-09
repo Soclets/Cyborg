@@ -18,7 +18,7 @@ fn fill [$xs: Lent.mut std::list<i32>[len.max: 8 items], $n: i32[min: 0, max: 8]
     if $n == 0:
         return void;
     end if
-    $xs.std::%append(val: $n x $n);
+    $xs.std::%%append(val: $n x $n);
     fill(Lend.mut $xs, $n - 1);
     return void;
 end fn fill
@@ -46,7 +46,7 @@ end fn largest
 fn keep_even [$xs: std::list<i32>[len.max: 8 items], $out: Lent.mut std::list<i32>[len.max: 8 items]] -> void:
     for $x in $xs:
         if $x mod.trunc 2 == 0:
-            $out.std::%append(val: $x);
+            $out.std::%%append(val: $x);
         end if
     end for
     return void;

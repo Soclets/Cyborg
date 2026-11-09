@@ -1,5 +1,5 @@
 refused: d130_while_a_for_reads_it.cy:16:9, line 16 column 9
-16 |         $b.%empty_out();
+16 |         $b.%%empty_out();
    |         ^^
  what: a `for` is reading `$b` in place here
  why:  `Lend.mut` means nothing else uses it meanwhile, and `for` is using it (D2)

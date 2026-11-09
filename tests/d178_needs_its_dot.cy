@@ -3,7 +3,7 @@
 @config(default);
 import std;
 
-use std::list.%append as %append;
+use std::list.%%append as %%append;
 
 fn.main [] -> void:
     let mut $xs: std::list<i32>[len.max: inf items] = empty;

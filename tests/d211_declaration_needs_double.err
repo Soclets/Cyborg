@@ -1,0 +1,5 @@
+refused: d211_declaration_needs_double.cy:9:4, line 9 column 4
+ 9 | fn reading.%warm_up [$r: Lent.mut reading] -> void:
+   |    ^^^^^^^^^^^^^^^^
+ fix:  `reading.%%warm_up`
+ why:  `%` lends a method's receiver read-only and `%%` lends it to change, and the declaration matches (D211)

@@ -1408,8 +1408,16 @@ impl Checker<'_> {
                 kit,
                 name,
                 percent,
+                changes,
                 arguments,
-            } => self.check_method(receiver, kit.as_deref(), name, *percent, arguments, span),
+            } => self.check_method(
+                receiver,
+                kit.as_deref(),
+                name,
+                (*percent, *changes),
+                arguments,
+                span,
+            ),
             ExpressionKind::As { value, target } => self.check_as(value, target, span),
             _ => Err(Report::not_designed(
                 span,
@@ -2166,6 +2174,27 @@ impl Checker<'_> {
         Ok(())
     }
 
+    /// `.%` lends a receiver read-only, and `.%%` lends it to change, as the method says. (D211)
+    fn wrong_receiver_mark(span: Span, changes: bool) -> Box<Report> {
+        let (what, fix) = if changes {
+            (
+                "this method changes its receiver, so the call says `.%%`",
+                ".%%",
+            )
+        } else {
+            (
+                "this method only reads its receiver, so the call says `.%`",
+                ".%",
+            )
+        };
+        Report::refused(
+            span,
+            what,
+            "`.%` lends a receiver read-only and `.%%` lends it to change, so the call shows which (D211)",
+        )
+        .fix(fix)
+    }
+
     /// The kit method a short name from `use` stands for, when the receiver is of its type.
     /// trace: D178
     fn kit_method_alias(
@@ -2178,7 +2207,7 @@ impl Checker<'_> {
         if kit.is_some() || !percent {
             return None;
         }
-        let (owner, real) = self.method_aliases.get(&name.text)?;
+        let (owner, real, _) = self.method_aliases.get(&name.text)?;
         let receiver_owner = match receiver_type {
             Type::List { .. } => "std::list",
             Type::Array { .. } => "std::array",
@@ -2207,7 +2236,7 @@ impl Checker<'_> {
         receiver: &Expression,
         kit: Option<&str>,
         name: &crate::ast::Name,
-        percent: bool,
+        (percent, changes): (bool, bool),
         arguments: &[Argument],
         span: Span,
     ) -> Outcome<RawCall> {
@@ -2217,7 +2246,14 @@ impl Checker<'_> {
             .split_once(&name.text)
             .map_or("", |(_, rest)| rest)
             .to_string();
-        let correct = format!("{receiver_text}.std::%{}{after_name}", name.text);
+        let correct = format!("{receiver_text}.std::%%{}{after_name}", name.text);
+        // A short name from `use` keeps its method's mark. (D211)
+        // trace: D211
+        if let (None, Some((_, _, alias_changes))) = (kit, self.method_aliases.get(&name.text)) {
+            if percent && changes != *alias_changes {
+                return Err(Self::wrong_receiver_mark(name.span, *alias_changes));
+            }
+        }
         if let Some(limb) = kit.filter(|kit| kit.starts_with('@')) {
             let path = format!("{limb}::{}", name.text);
             self.refuse_limb_outside_shield(&path, name.span)?;
@@ -2245,12 +2281,20 @@ impl Checker<'_> {
             Some((kit, real)) => (Some(kit.as_str()), real),
             None => (kit, name),
         };
+        // A method of your own is declared with `%` or `%%`, and found under either. (D211)
         let own_method = match &receiver_type {
             Type::Struct(type_name)
             | Type::Union(type_name)
             | Type::New {
                 name: type_name, ..
-            } => Some(format!("{type_name}.%{}", name.text)),
+            } => {
+                let changing = format!("{type_name}.%%{}", name.text);
+                if self.signatures.contains_key(&changing) {
+                    Some(changing)
+                } else {
+                    Some(format!("{type_name}.%{}", name.text))
+                }
+            }
             _ => None,
         };
         // trace: D8
@@ -2263,8 +2307,19 @@ impl Checker<'_> {
             let is_own = own_method
                 .as_ref()
                 .is_some_and(|method| kit.is_none() && self.signatures.contains_key(method));
+            let own_mark = if own_method
+                .as_ref()
+                .is_some_and(|method| method.contains(".%%"))
+            {
+                "%%"
+            } else {
+                "%"
+            };
             return Err(if is_own {
-                let mut fixed = report.fix(format!("{receiver_text}.%{}{after_name}", name.text));
+                let mut fixed = report.fix(format!(
+                    "{receiver_text}.{own_mark}{}{after_name}",
+                    name.text
+                ));
                 fixed.span = span;
                 fixed
             } else if name.text == "append" {
@@ -2284,6 +2339,11 @@ impl Checker<'_> {
                     "a method is declared with its type in the name (D130)",
                 ));
             };
+            // trace: D211
+            let declared_changes = method.contains(".%%");
+            if changes != declared_changes {
+                return Err(Self::wrong_receiver_mark(name.span, declared_changes));
+            }
             return self.check_own_method(receiver, fresh, &signature, arguments, span);
         }
         match kit {
@@ -2322,6 +2382,10 @@ impl Checker<'_> {
                 ),
                 "",
             ));
+        }
+        // trace: D211
+        if !changes {
+            return Err(Self::wrong_receiver_mark(name.span, true));
         }
         if self.is_pure() {
             return Err(Report::not_designed(

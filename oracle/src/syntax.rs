@@ -1204,15 +1204,21 @@ impl Parser {
         let mut path = self.parse_path()?;
         // `std::list.%append`, a kit method named with its type. (D178)
         let mut method = false;
+        let mut path_marks = 0;
         if self.at_symbol(".") && self.symbol_at(1, "%") {
-            if let Lexeme::Word(name) = self.peek_at(2).lexeme.clone() {
-                self.advance();
-                self.advance();
+            // `.%%append` keeps its second `%`, which says it changes its receiver. (D211)
+            let marks = if self.symbol_at(2, "%") { 2 } else { 1 };
+            if let Lexeme::Word(name) = self.peek_at(1 + marks).lexeme.clone() {
+                for _ in 0..=marks {
+                    self.advance();
+                }
                 let end = self.advance().span;
-                path.text.push_str(".%");
+                path.text.push('.');
+                path.text.push_str(&"%".repeat(marks));
                 path.text.push_str(&name);
                 path.span = path.span.to(end);
                 method = true;
+                path_marks = marks;
             }
         }
         if !self.eat_word("as") {
@@ -1232,7 +1238,10 @@ impl Parser {
             ));
         }
         let percent_span = self.span();
-        let percent = self.eat_symbol("%");
+        let mut short_marks = 0;
+        while short_marks < 2 && self.eat_symbol("%") {
+            short_marks += 1;
+        }
         // trace: D150
         let quoted = matches!(self.peek().lexeme, Lexeme::Text(_));
         let short = if let Lexeme::Text(text) = self.peek().lexeme.clone() {
@@ -1241,7 +1250,7 @@ impl Parser {
         } else {
             self.expect_name("the shorter name")?
         };
-        Self::refuse_a_lost_percent(method, percent, quoted, &short, percent_span)?;
+        Self::refuse_a_lost_percent(path_marks, short_marks, quoted, &short, percent_span)?;
         self.expect_semicolon()?;
         if path.text.starts_with('@') {
             self.limb_short_names
@@ -1258,27 +1267,30 @@ impl Parser {
     /// A method's short name keeps its `%`, outside any quotes, and nothing else has one.
     /// trace: D178, D179
     fn refuse_a_lost_percent(
-        method: bool,
-        percent: bool,
+        path_marks: usize,
+        short_marks: usize,
         quoted: bool,
         short: &Name,
         percent_span: Span,
     ) -> Outcome<()> {
-        let bare = short.text.strip_prefix('%').unwrap_or(&short.text);
+        let bare = short.text.trim_start_matches('%');
+        let mark = "%".repeat(path_marks);
         let fix = if quoted {
-            format!("as %\"{bare}\"")
+            format!("as {mark}\"{bare}\"")
         } else {
-            format!("as %{bare}")
+            format!("as {mark}{bare}")
         };
         let span = percent_span.to(short.span);
-        if method && (!percent || (quoted && short.text.starts_with('%'))) {
+        let method = path_marks > 0;
+        if method && (short_marks != path_marks || (quoted && short.text.starts_with('%'))) {
             return Err(Report::refused(
                 span,
-                "a method's short name keeps its `%`, outside the quotes",
-                "the `%` warns that ownership isn't written at the call, so a short name can't drop it (D178, D179)",
+                format!("a method's short name keeps its `{mark}`, outside the quotes"),
+                "`%` lends a receiver read-only and `%%` lends it to change, so a short name keeps which (D178, D179, D211)",
             )
             .fix(fix));
         }
+        let percent = short_marks > 0;
         if !method && percent {
             return Err(Report::refused(
                 span,
@@ -1297,13 +1309,16 @@ impl Parser {
         let mut text = first;
         while self.at_symbol(".") {
             if self.symbol_at(1, "%") {
-                let Lexeme::Word(next) = self.peek_at(2).lexeme.clone() else {
+                // trace: D211
+                let marks = if self.symbol_at(2, "%") { 2 } else { 1 };
+                let Lexeme::Word(next) = self.peek_at(1 + marks).lexeme.clone() else {
                     break;
                 };
-                self.advance();
-                self.advance();
-                self.advance();
-                text.push_str(".%");
+                for _ in 0..=(marks + 1) {
+                    self.advance();
+                }
+                text.push('.');
+                text.push_str(&"%".repeat(marks));
                 text.push_str(&next);
                 continue;
             }
@@ -1710,9 +1725,12 @@ impl Parser {
         if self.symbol_at(1, "%") {
             self.advance();
             self.advance();
+            // `reading.%%warm_up` says its receiver is lent to change. (D211)
+            // trace: D211
+            let mark = if self.eat_symbol("%") { "%%" } else { "%" };
             let method = self.expect_name("the method's name")?;
             return Ok(Name {
-                text: format!("{}.%{}", name.text, method.text),
+                text: format!("{}.{mark}{}", name.text, method.text),
                 span: name.span.to(method.span),
             });
         }
@@ -3851,6 +3869,8 @@ impl Parser {
             kit = Some(text);
         }
         let percent = self.eat_symbol("%");
+        // trace: D211
+        let changes = percent && self.eat_symbol("%");
         let name = self.expect_name("a field or a method")?;
         if self.at_symbol("(") {
             let (arguments, end) = self.parse_arguments()?;
@@ -3861,6 +3881,7 @@ impl Parser {
                     kit,
                     name,
                     percent,
+                    changes,
                     arguments,
                 },
             });

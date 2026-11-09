@@ -1,0 +1,5 @@
+refused: d211_call_needs_single.cy:15:24, line 15 column 24
+15 |     let $n: i32 = $r.%%shown();
+   |                        ^^^^^
+ fix:  `.%`
+ why:  `.%` lends a receiver read-only and `.%%` lends it to change, so the call shows which (D211)

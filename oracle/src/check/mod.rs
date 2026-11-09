@@ -278,7 +278,7 @@ pub struct Checker<'a> {
     /// What `import std::io::fmt_print;` brought in, without `std::`. (D198)
     imported_things: Vec<String>,
     /// `%append` from `use std::list.%append as %append;`, with its type and real name. (D178)
-    pub(super) method_aliases: HashMap<String, (String, String)>,
+    pub(super) method_aliases: HashMap<String, (String, String, bool)>,
     structs: HashMap<String, StructInfo>,
     unions: HashMap<String, UnionInfo>,
     /// The sources a type may name here: a struct's while its fields are read, a function's while
@@ -504,7 +504,12 @@ impl Checker<'_> {
                 .next()
                 .unwrap_or_default()
                 .trim_start_matches('%');
-            let mark = if declared.method { "%" } else { "" };
+            let marks = declared
+                .path
+                .text
+                .split_once(".%")
+                .map_or(0, |(_, rest)| 1 + usize::from(rest.starts_with('%')));
+            let mark = "%".repeat(marks);
             if declared.quoted {
                 // trace: D151
                 if !crate::syntax::could_be_called(&declared.short.text) {
@@ -526,11 +531,21 @@ impl Checker<'_> {
                 let (owner, _) = declared
                     .path
                     .text
-                    .rsplit_once(".%")
+                    .split_once(".%")
                     .unwrap_or((&declared.path.text, ""));
+                // `append` changes its receiver, so its path says `%%`. (D211)
+                // trace: D211
+                if owner == "std::list" && last_word == "append" && marks != 2 {
+                    return Err(Report::refused(
+                        declared.path.span,
+                        "`append` changes its receiver, so it's `.%%append`",
+                        "`.%` lends a receiver read-only and `.%%` lends it to change (D211)",
+                    )
+                    .fix("std::list.%%append"));
+                }
                 self.method_aliases.insert(
                     declared.short.text.clone(),
-                    (owner.to_string(), last_word.to_string()),
+                    (owner.to_string(), last_word.to_string(), marks == 2),
                 );
                 continue;
             }
@@ -765,7 +780,7 @@ impl Checker<'_> {
             let name = &declared.short.text;
             // trace: D178
             if declared.method {
-                let (owner, _) = self.method_aliases.get(name).cloned().unwrap_or_default();
+                let (owner, _, _) = self.method_aliases.get(name).cloned().unwrap_or_default();
                 if self.signatures.contains_key(&format!("{owner}.%{name}")) {
                     return Err(Report::refused(
                         declared.short.span,
@@ -1586,6 +1601,36 @@ impl Checker<'_> {
                 "a method's receiver is written before `.%`, so it has no label or default",
                 "a method's first parameter is its receiver (D130)",
             ));
+        }
+        // `%%` in the name lends the receiver to change, and `%` lends it read-only. (D211)
+        // trace: D211
+        let changes = function.name.text.contains(".%%");
+        let lent_mut = receiver.word == ParameterWord::LentMut;
+        if changes != lent_mut {
+            let (type_part, method) = function
+                .name
+                .text
+                .split_once(".%")
+                .unwrap_or((&function.name.text, ""));
+            let method = method.trim_start_matches('%');
+            let (what, fixed) = if lent_mut {
+                (
+                    "its receiver is `Lent.mut`, so its name says `%%`",
+                    format!("{type_part}.%%{method}"),
+                )
+            } else {
+                (
+                    "its receiver is only lent to read, so its name says `%`",
+                    format!("{type_part}.%{method}"),
+                )
+            };
+            let mut report = Report::refused(
+                function.name.span,
+                format!("`{}`: {what}", function.name.text),
+                "`%` lends a method's receiver read-only and `%%` lends it to change, and the declaration matches (D211)",
+            );
+            report = report.fix(fixed);
+            return Err(report);
         }
         Ok(())
     }

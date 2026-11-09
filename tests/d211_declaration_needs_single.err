@@ -1,0 +1,5 @@
+refused: d211_declaration_needs_single.cy:9:4, line 9 column 4
+ 9 | fn reading.%%shown [$r: reading] -> i32:
+   |    ^^^^^^^^^^^^^^^
+ fix:  `reading.%shown`
+ why:  `%` lends a method's receiver read-only and `%%` lends it to change, and the declaration matches (D211)

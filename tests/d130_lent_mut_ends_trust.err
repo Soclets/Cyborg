@@ -4,6 +4,6 @@ refused: d130_lent_mut_ends_trust.cy:18:23, line 18 column 23
  what: `$s` may not be `status.failed` any more
  why:  a test's trust ends at a `change`, and at a `Lend.mut` too (D104)
  because: d130_lent_mut_ends_trust.cy:17:9, line 17 column 9
-17 |         $s.%reset();
-   |         ^^^^^^^^^^^
+17 |         $s.%%reset();
+   |         ^^^^^^^^^^^^
      `$s` changed here

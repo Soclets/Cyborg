@@ -2,7 +2,7 @@
 @config(default);
 import std;
 
-use std::list.%append as %"my push";
+use std::list.%%append as %%"my push";
 
 fn.main [] -> void:
     return void;

@@ -6,11 +6,11 @@ struct reading:
     celsius: i32;
 end struct reading
 
-fn reading.%warm_up [$r: Lent.mut reading, $by: i32] -> void:
+fn reading.%%warm_up [$r: Lent.mut reading, $by: i32] -> void:
     labels [$by as by];
     change $r.celsius = $r.celsius + $by;
     return void;
-end fn reading.%warm_up
+end fn reading.%%warm_up
 
 fn reading.%show [$r: reading] -> void:
     std::io::fmt_print("{}{newln}", $r.celsius);
@@ -27,9 +27,9 @@ end fn make
 
 fn.main [] -> void:
     let mut $r: reading = reading[celsius = 21];
-    $r.%warm_up(by: 2);
+    $r.%%warm_up(by: 2);
     $r.%show();
-    $r.%warm_up(by: 1);
+    $r.%%warm_up(by: 1);
     $r.%show();
     std::io::fmt_print("{}{newln}", $r.%doubled());
     make().%show();

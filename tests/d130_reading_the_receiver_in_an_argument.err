@@ -1,5 +1,5 @@
-NotDesignedYet: d130_reading_the_receiver_in_an_argument.cy:18:17, line 18 column 17
-18 |     $b.%add(by: $b.n);
-   |                 ^^
+NotDesignedYet: d130_reading_the_receiver_in_an_argument.cy:18:18, line 18 column 18
+18 |     $b.%%add(by: $b.n);
+   |                  ^^
  what: reading `$b` in a call that lends it with `Lend.mut`
  why:  not decided yet, and the standard doesn't say

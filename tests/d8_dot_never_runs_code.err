@@ -1,5 +1,5 @@
 refused: d8_dot_never_runs_code.cy:7:5, line 7 column 5
  7 |     $xs.std::append(val: 4);
    |     ^^^^^^^^^^^^^^^^^^^^^^^
- fix:  `$xs.std::%append(val: 4)`
+ fix:  `$xs.std::%%append(val: 4)`
  why:  a `.` never runs code, and a `.%` always does (D8)

@@ -18,7 +18,7 @@ fn.main [] -> void:
     let $b: i32 = $a;
     let $c: score = $b + 1;
     let mut $xs: std::list<i32>[len.max: inf items] = empty;
-    $xs.std::%append(val: $c);
+    $xs.std::%%append(val: $c);
     let $ys: numbers = Copy $xs;
     std::io::fmt_print("{}{newln}", total(Lend $ys));
     std::io::fmt_print("{}{newln}", total(Lend $xs));

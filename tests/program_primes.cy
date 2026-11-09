@@ -21,7 +21,7 @@ fn.main [] -> void:
     let mut $found: std::list<i32>[len.max: 8 items] = empty;
     for $n in range[from: 1, to: 30]:
         if is_prime($n):
-            $found.std::%append(val: $n) ?? void;
+            $found.std::%%append(val: $n) ?? void;
         end if
     end for
     for $p in $found:

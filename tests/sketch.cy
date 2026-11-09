@@ -13,9 +13,9 @@ end fn total
 
 fn.main [] -> void:
     let mut $xs: std::list<i32>[len.max: inf items] = empty;
-    $xs.std::%append(val: 4);
-    $xs.std::%append(val: 6);
-    $xs.std::%append(val: 5);
+    $xs.std::%%append(val: 4);
+    $xs.std::%%append(val: 6);
+    $xs.std::%%append(val: 5);
 
     let $t: i32 = total(Lend $xs);
     std::io::fmt_print("count: {}{newln}", $xs.len);

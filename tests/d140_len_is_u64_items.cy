@@ -6,7 +6,7 @@ fn.main [] -> void:
     let mut $xs: std::list<i32>[len.max: inf items] = [1, 2, 3];
     let $n: u64.items = $xs.len;
     std::io::fmt_print("{}{newln}", $n);
-    $xs.std::%append(val: 4);
+    $xs.std::%%append(val: 4);
     std::io::fmt_print("{}{newln}", $xs.len);
     std::io::fmt_print("{}{newln}", $n);
     let $more: u64.items = $xs.len + 2 items;

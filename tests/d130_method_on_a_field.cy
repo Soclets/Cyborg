@@ -10,14 +10,14 @@ struct outer:
     a: inner;
 end struct outer
 
-fn inner.%bump [$i: Lent.mut inner] -> void:
+fn inner.%%bump [$i: Lent.mut inner] -> void:
     change $i.n = $i.n + 1;
     return void;
-end fn inner.%bump
+end fn inner.%%bump
 
 fn.main [] -> void:
     let mut $o: outer = outer[a = inner[n = 1]];
-    $o.a.%bump();
+    $o.a.%%bump();
     std::io::fmt_print("{}{newln}", $o.a.n);
     return void;
 end fn.main

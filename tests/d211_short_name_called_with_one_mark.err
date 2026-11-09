@@ -1,0 +1,5 @@
+refused: d211_short_name_called_with_one_mark.cy:8:10, line 8 column 10
+ 8 |     $xs.%append(val: 4);
+   |          ^^^^^^
+ fix:  `.%%`
+ why:  `.%` lends a receiver read-only and `.%%` lends it to change, so the call shows which (D211)

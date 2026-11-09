@@ -6,13 +6,13 @@ struct box:
     n: i32;
 end struct box
 
-fn box.%bump [$b: Lent.mut box] -> void:
+fn box.%%bump [$b: Lent.mut box] -> void:
     change $b.n = 2;
     return void;
-end fn box.%bump
+end fn box.%%bump
 
 fn.main [] -> void:
     let $b: box = box[n = 1];
-    $b.%bump();
+    $b.%%bump();
     return void;
 end fn.main

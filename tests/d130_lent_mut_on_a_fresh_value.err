@@ -1,5 +1,5 @@
 NotDesignedYet: d130_lent_mut_on_a_fresh_value.cy:17:5, line 17 column 5
-17 |     make().%bump();
+17 |     make().%%bump();
    |     ^^^^^^
  what: lending a fresh value with `Lend.mut`
  why:  not decided yet, and the standard doesn't say

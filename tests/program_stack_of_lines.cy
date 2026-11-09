@@ -14,9 +14,9 @@ end fn print_backwards
 
 fn.main [] -> void:
     let mut $lines: std::list<str>[len.max: 8 items] = empty;
-    $lines.std::%append(val: "first");
-    $lines.std::%append(val: "second");
-    $lines.std::%append(val: "third");
+    $lines.std::%%append(val: "first");
+    $lines.std::%%append(val: "second");
+    $lines.std::%%append(val: "third");
     print_backwards(Lend $lines);
     return void;
 end fn.main

@@ -3,7 +3,7 @@
 import std;
 
 fn add [$xs: Lent.mut std::list<i32>[len.max: inf items]] -> void:
-    $xs.std::%append(val: 1);
+    $xs.std::%%append(val: 1);
     return void;
 end fn add
 

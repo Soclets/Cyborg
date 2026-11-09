@@ -557,6 +557,8 @@ pub enum ExpressionKind {
         kit: Option<String>,
         name: Name,
         percent: bool,
+        /// `.%%`, which lends the receiver to change. (D211)
+        changes: bool,
         arguments: Vec<Argument>,
     },
     Builtin(Path),

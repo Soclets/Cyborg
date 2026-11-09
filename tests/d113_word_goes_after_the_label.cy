@@ -17,8 +17,8 @@ fn.main [] -> void:
     std::io::fmt_print("{}{newln}", eat(val: Give $r));
     let mut $xs: std::list<box>[len.max: inf items] = empty;
     let $q: box = box[n = 6];
-    $xs.std::%append(val: Give $q);
-    $xs.std::%append(val: box[n = 7]);
+    $xs.std::%%append(val: Give $q);
+    $xs.std::%%append(val: box[n = 7]);
     std::io::fmt_print("{}{newln}", $xs.len);
     return void;
 end fn.main
