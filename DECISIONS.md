@@ -893,6 +893,8 @@ a placeholder for a version that isn't correctly rounded. A float prints as the 
 
 **D209. `fails` goes in the header.** A function's failures are listed after its return type, as in `fn safe_level [$r: reading] -> i32 fails [frozen]:`, so the header says it can fail. Failures stay their own track, not values like Rust's `Result`, so `-> result<i32, frozen>` isn't used, and a comma, `-> i32, frozen`, would read as two return values, as in Go. `labels`, `defaults`, `requires` and `ensures` stay first in the body, in that order. This replaces `fails` in the body from D84 and D114. An outside review, through multifinity, raised it; Claude proposed it; the owner asked "`-> result<i32, frozen>`?" and "`i32, frozen`?", then chose: "yea". (Owner, 2026-11-09)
 
+**D210. Named holes: `{$t}`.** In `std::io::fmt_print`, `{$t}` prints the variable `$t`, the way `{}` prints the next value, as in `fmt_print("temp: {$t} C{newln}");`. The `$` means it can only be a variable, never a shape word like `{zeros}`. Not settled here: shapes on a named hole, a field like `{$r.celsius}`, and mixing named holes with `{}` or numbered ones in one format. An outside review, through multifinity, thought `$` adds nothing without string interpolation; Claude proposed this; the owner chose: "`{}` shit". (Owner, 2026-11-09)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude

@@ -235,6 +235,7 @@ std::io::fmt_print.stored("{}{newln}", $tenth);
 With `$name` as `"rope"`, `$count` as `3`, `$price` as an `f64` holding `12.5`, and `$tenth` as an `f64` holding `~0.1`, these print `hi`, `rope: 3 at $12.50`, `0x00FF`, `[    42] 1.25e1`, and `0.1000000000000000055511151231257827021181583404541015625`.
 
 - **Holes:** `{}` takes the next value in its readable form. `{1}`, `{2}` are numbered, counting from 1, and can't be mixed with plain ones.
+- **Named holes:** `{$t}` prints the variable `$t`, as in `std::io::fmt_print("temp: {$t} C{newln}");`.
 - **Shapes are words:** `align: left`, `right` or `center`; `width:` with its unit, `cols`, `cols.east_asian`, `graphemes`, `points` or `bytes`; `places:`; `base: bin`, `oct`, `hex` or `hex.upper`; `form: science`; and bare `zeros` and `sign`.
 - **Escapes in the text:** `\\`, `\"`, `\'`, `\r`, `\0`, `\xHH`, `\uHHHH`, `\UHHHHHHHH`, and `\{` and `\}` for a brace.
 - **Too wide:** a value wider than its width prints whole.
@@ -245,4 +246,4 @@ A literal format is checked when building.
 
 **Refused:** a bare `{` in the text, with `fix: \{`; `\n`, with `fix: {newln}`; `{0}`; mixing plain and numbered holes; more or fewer values than holes; a shape that doesn't apply, like `places:` on an integer; a width with no unit; `zeros` with no width; a shape written twice; an unknown escape; `std::io::fmt_print.stdout`, since stdout is the default, and `std::io::fmt_println`, with `fix: std::io::fmt_print`.
 
-**From:** D11, D50, D51, D122, D162, D165, D194, D195, D197, and CyborgPL's format print.
+**From:** D11, D50, D51, D122, D162, D165, D194, D195, D197, D210, and CyborgPL's format print.
