@@ -913,6 +913,8 @@ a placeholder for a version that isn't correctly rounded. A float prints as the 
 
 **D219. Where a line can break.** A line break inside a statement is allowed only after a comma, after an opening `(`, `[` or `<`, with its closing bracket then on its own line, and after a binary operator, so the line visibly isn't finished. Everywhere else it's refused, with a fix that joins the line, so every block opener and closer stays on one line, and `end` with `fn.main` on the next line is refused. Indentation and line length are still not settled. An outside session in multifinity's chat found that a line break between `end` and `fn.main` was accepted while two spaces weren't; Claude proposed this; the owner chose: "yea". (Owner, 2026-11-09)
 
+**D220. A function's narrowing can't be shortened to its bare name.** `use std::io::fmt_print.stored as stored;` is refused, since `stored(…)` alone reads like it stores something: a function's narrowing only means something next to its function. The fix is `use std::io::fmt_print as fmt_print;`, then `fmt_print.stored(…)`, and a quoted name, as in `as "print_exact"`, is also allowed. Narrowings that aren't a function's, like units, keep D150, so `use std::units::time.seconds as seconds;` stays fine. An outside session in multifinity's chat found that `stored(…)` worked; the owner said "`stored()` is diabolically weird name" and asked "maybe, we refuse the other?"; Claude proposed keeping units; the owner chose: "yea". (Owner, 2026-11-09)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude

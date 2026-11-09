@@ -192,9 +192,21 @@ $xs.%%append(val: 4);
 
 A method of your own with the same name on the same type in that file clashes, and is refused. A quoted name keeps the `%` or `%%` outside the quotes, as in `use std::list.%%append as %%"push";`. A limb's short name has no `@`, since a bare `@name` is a builtin.
 
-**Refused:** `use std::list.%%append as "push";` and `as "%%push"`, with `fix: as %%"push"`, `as %append`, which drops a `%`, `use std::units::time.seconds as minutes;`, `use @csup::extern.c as @c;`, because `@c` looks like a builtin, and a quoted name nothing could use, like `"my say"`, `""` or `"fn"`.
+A function's narrowing can't be shortened to its bare name, since `stored(…)` alone reads like something else. Shorten the function, and write the narrowing after it, or use a quoted name:
 
-**From:** D93, D150, D151, D155, D178, D179.
+```
+use std::io::fmt_print as fmt_print;
+use std::io::fmt_print.stored as "print_exact";
+
+fmt_print.stored("{}{newln}", $x);
+print_exact("{}{newln}", $x);
+```
+
+Units keep the matching name, as in `use std::units::time.seconds as seconds;`.
+
+**Refused:** `use std::io::fmt_print.stored as stored;`, with `fix: use std::io::fmt_print as fmt_print;`, `use std::list.%%append as "push";` and `as "%%push"`, with `fix: as %%"push"`, `as %append`, which drops a `%`, `use std::units::time.seconds as minutes;`, `use @csup::extern.c as @c;`, because `@c` looks like a builtin, and a quoted name nothing could use, like `"my say"`, `""` or `"fn"`.
+
+**From:** D93, D150, D151, D155, D178, D179, D220.
 
 ## 1.12 Comments
 
