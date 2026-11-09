@@ -881,6 +881,8 @@ a placeholder for a version that isn't correctly rounded. A float prints as the 
 
 **D203. `decl` and `assign`.** `decl $x: i32;` declares a variable with no value yet, and `assign $x = 1;` gives it its value, once on each path. Every path must `assign` before any read, or it won't compile. After that, `$x` acts like a `let`, and `decl mut $x` lets it change later with `change`. `assign` on something that already has a value is refused, with `fix: change`. It isn't uninitialized memory: nothing can read it empty, so it needs no shield. Rust calls this definite initialization. The owner asked about uninitialized variables and Rust's, then proposed `decl` and `assign`; Claude proposed the rules; the owner chose: "yea". (Owner, 2026-11-09)
 
+**D204. A file's rules come first.** `@config(…);` or `@match_config(…);` is the first line of a file, before any `import` or `use`, and any `@tighten_config` or `@loosen_config` lines follow it straight away, before anything else. This settles where D201's lines go. The standard had put them after the imports, and oracle claude found the conflict with D201's "starts with". The owner chose: "configs are always first". (Owner, 2026-11-09)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude
