@@ -14,6 +14,7 @@
 | [9.10](#910-precog) | Precog | Proving things |
 | [9.11](#911-the-linter) | The linter | An official limb |
 | [9.12](#912-pub) | `pub` | Seen outside its package |
+| [9.13](#913-a-files-rules-config) | `@config` | The rules a file is held to |
 
 Bare `@`, with no `::`, is a compiler builtin instead ([5.7](5-functions.md#57-builtins-)).
 
@@ -128,9 +129,9 @@ Using a limb doesn't need a shield by itself: `@` says it's a compiler extension
 
 ## 9.11 The linter
 
-**Rule:** the linter is an official limb like Rust's Clippy. It ships with the compiler, and is configured in the project file. It can force comments, and can show the hidden checks in [2.5](2-values-and-types.md#25-bounded-integers). Linter strictness is separate from the build mode. Definite mistakes stay compiler errors. It can require handling failures that otherwise crash by default ([8.9](8-failures.md#89-crash-by-default)).
+**Rule:** the linter is an official limb like Rust's Clippy. It ships with the compiler, and is configured with a file's rules ([9.13](#913-a-files-rules-config)). It can force comments, and can show the hidden checks in [2.5](2-values-and-types.md#25-bounded-integers). Linter strictness is separate from the build mode. Definite mistakes stay compiler errors. It can require handling failures that otherwise crash by default ([8.9](8-failures.md#89-crash-by-default)).
 
-**From:** D14, D21, D30, D96.
+**From:** D14, D21, D30, D96, D201.
 
 ## 9.12 `pub`
 
@@ -148,3 +149,25 @@ pub const $max: i32 = 100;
 **Refused:** `fn.pub`, with `fix: pub fn`.
 
 **From:** D186, D200.
+
+## 9.13 A file's rules: `@config`
+
+**Rule:** every file starts with `@config(…);`, which sets its first rules, or `@match_config(that file);`, which copies another file's. The compiler's defaults are `@config(default);`, since there's no unsaid default. After that, `@tighten_config(…);` only makes rules stricter, and `@loosen_config(…);` only looser.
+
+```
+@config(default);
+@tighten_config(var::mut::never_changed = refuse);
+
+fn.main [] -> void:
+    let mut $x: i32 = 1000;
+    return void;
+end fn.main
+```
+
+The `let mut` is refused, since `$x` never changes. The spelling of a rule is a sketch.
+
+A search for `@loosen_config` finds every file that weakens its rules. The manifest only handles packages.
+
+**Refused:** a file with neither `@config` nor `@match_config`, both in one file, loosening with `@tighten_config` or tightening with `@loosen_config`, a cycle of `@match_config`, and a matched file that's missing.
+
+**From:** D30, D56, D201.

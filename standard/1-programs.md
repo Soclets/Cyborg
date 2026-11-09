@@ -29,6 +29,7 @@
 ```
 import std;
 use std::io::fmt_print as fmt_print;
+@config(default);
 
 fn.main [] -> void:
     fmt_print("Hello, World!{newln}");
@@ -38,7 +39,7 @@ end fn.main
 
 This is the owner's hello world. The `use` line is on purpose.
 
-**From:** D11, D23, D93, D197, the sketch.
+**From:** D11, D23, D93, D197, D201, the sketch.
 
 ## 1.3 Blocks and statements
 
