@@ -891,6 +891,8 @@ a placeholder for a version that isn't correctly rounded. A float prints as the 
 
 **D208. Every member line ends with `;`.** A line listing what a struct or union holds ends with `;`, as struct fields already did, so a tagged union's cases are `ok;` and `failed[code: i32];`, and C's untagged union in a shield writes `i: i32;`. Families already did this. 1.3 says `;` ends a statement, and a member line is one. This changes D33's union examples. An outside review, through multifinity, found the mismatch; Claude proposed it; the owner chose: "yea". (Owner, 2026-11-09)
 
+**D209. `fails` goes in the header.** A function's failures are listed after its return type, as in `fn safe_level [$r: reading] -> i32 fails [frozen]:`, so the header says it can fail. Failures stay their own track, not values like Rust's `Result`, so `-> result<i32, frozen>` isn't used, and a comma, `-> i32, frozen`, would read as two return values, as in Go. `labels`, `defaults`, `requires` and `ensures` stay first in the body, in that order. This replaces `fails` in the body from D84 and D114. An outside review, through multifinity, raised it; Claude proposed it; the owner asked "`-> result<i32, frozen>`?" and "`i32, frozen`?", then chose: "yea". (Owner, 2026-11-09)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude

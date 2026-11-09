@@ -2,7 +2,7 @@
 
 | Section | What | In short |
 |---|---|---|
-| [8.1](#81-fails) | `fails` | Lists what can fail, first in the body |
+| [8.1](#81-fails) | `fails` | Lists what can fail, in the header |
 | [8.2](#82-fail) | `fail` | Raises one |
 | [8.3](#83-named-sets-famfailure) | `fam.failure` | A reusable set |
 | [8.4](#84--pass-it-up) | `?` | Pass it to the caller |
@@ -14,16 +14,14 @@
 
 ## 8.1 `fails`
 
-**Rule:** a function that can fail lists its failures in its body, after `requires` and `ensures` ([5.4](5-functions.md#54-the-top-of-the-body)). The list can mix named sets and one-off failures, and a failure can carry data in `[ ]`.
+**Rule:** a function that can fail lists its failures in its header, after the return type. The list can mix named sets and one-off failures, and a failure can carry data in `[ ]`.
 
 ```
-fn load [$path: str] -> config:
-    fails [file_failed, bad_syntax];
+fn load [$path: str] -> config fails [file_failed, bad_syntax]:
     …
 end fn load
 
-fn half [$n: i32] -> i32:
-    fails [odd, negative[val: i32]];
+fn half [$n: i32] -> i32 fails [odd, negative[val: i32]]:
     …
 end fn half
 ```
