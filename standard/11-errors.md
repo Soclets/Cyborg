@@ -92,9 +92,9 @@ After an error, checking skips only that statement and goes on with the next. A 
 To find those, the checker applies the first error's `fix:` in memory and checks again. Any later error that disappears was caused by it. The ones still there are independent, and the same is done for the next one. An error with no single fix can't be applied, so the errors after it stay independent.
 
 ```
-refused: main.cy:4:21, line 4 column 21
- 4 |     let $sum: i32 = totl(Lend $xs);
-   |                     ^^^^
+refused: main.cy:4:25, line 4 column 25
+ 4 |     let mut $sum: i32 = totl(Lend $xs);
+   |                         ^^^^
  fix:  `total`
  why:  a name has to be declared before it's used (the sketch)
 
@@ -103,9 +103,9 @@ refused: main.cy:9:5, line 9 column 5
    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^
  what: `$sum` never got a value
  why:  a variable is read only after it has one (D203)
- because: main.cy:4:21, line 4 column 21
- 4 |     let $sum: i32 = totl(Lend $xs);
-   |                     ^^^^
+ because: main.cy:4:25, line 4 column 25
+ 4 |     let mut $sum: i32 = totl(Lend $xs);
+   |                         ^^^^
      with `total` here, this error goes away
 ```
 
