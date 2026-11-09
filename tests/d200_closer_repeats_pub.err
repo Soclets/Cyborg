@@ -1,0 +1,5 @@
+NotDesignedYet: d200_closer_repeats_pub.cy:7:5, line 7 column 5
+ 7 | end pub fn total
+   |     ^^^
+ what: whether a closer repeats `pub`
+ why:  not decided yet (standard 12.2)

@@ -40,6 +40,28 @@ impl Checker<'_> {
         let Some(variable) = self.context.variables.get(slot) else {
             return Ok(());
         };
+        // Every path assigns a `decl` before any read. (D203)
+        // trace: D203
+        let filled = self
+            .context
+            .state
+            .get(slot)
+            .map_or(super::Filled::Yes, |state| state.filled);
+        if filled != super::Filled::Yes {
+            return Err(Report::refused(
+                self.use_span(span),
+                if filled == super::Filled::No {
+                    format!("`${}` has no value yet", variable.name)
+                } else {
+                    format!("`${}` has no value yet on some path here", variable.name)
+                },
+                "every path has to `assign` a `decl` before reading it (D203)",
+            )
+            .because(
+                variable.declared,
+                format!("`${}` is declared here", variable.name),
+            ));
+        }
         if let Some(given) = self.context.state.get(slot).and_then(|state| state.given) {
             if self
                 .context

@@ -110,6 +110,17 @@ struct VariableState {
     invalidated: Option<Span>,
     /// Fields moved out with `Give $l.file`. (D185)
     moved: Vec<MovedField>,
+    /// Whether a `decl` variable has its value yet, on every path here. (D203)
+    filled: Filled,
+}
+
+/// A `decl` variable's value: there on every path, on none, or only on some. (D203)
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+enum Filled {
+    #[default]
+    Yes,
+    No,
+    OnSomePaths,
 }
 
 /// A field moved out, where, and whether that happened on every path here. (D185)

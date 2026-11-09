@@ -1,0 +1,5 @@
+NotDesignedYet: d200_pub_on_main.cy:5:1, line 5 column 1
+ 5 | pub fn.main [] -> void:
+   | ^^^
+ what: `pub` on `fn.main`, which needs none
+ why:  not decided yet, and the standard doesn't say

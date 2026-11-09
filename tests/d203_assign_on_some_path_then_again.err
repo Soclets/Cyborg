@@ -1,0 +1,5 @@
+refused: d203_assign_on_some_path_then_again.cy:10:5, line 10 column 5
+10 |     assign $x = 2;
+   |     ^^^^^^^^^^^^^^
+ what: `$x` may already have its value here
+ why:  `assign` gives a variable its value once on each path (D203)

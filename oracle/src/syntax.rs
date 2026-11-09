@@ -391,6 +391,9 @@ fn parse_shape(
 const RULES_WORDS: &[&str] = &["config", "match_config", "tighten_config", "loosen_config"];
 const RULES_DEFAULT: &str = "@config(default)";
 
+/// The word in front of a declaration that others can see. (D200)
+const PUB_WORD: &str = "pub";
+
 /// The word in front of an import that brings in both halves of a package. (D188)
 const PKG_WORD: &str = "pkg";
 
@@ -1087,6 +1090,14 @@ impl Parser {
         if !self.eat_word("end") {
             return Err(self.expected(&format!("`{wanted}`")));
         }
+        // trace: D200
+        if self.at_word(PUB_WORD) {
+            return Err(Report::not_designed(
+                self.span(),
+                "whether a closer repeats `pub`",
+                "12.2",
+            ));
+        }
         let pieces_start = self.position;
         let mut last = start;
         for word in words {
@@ -1390,6 +1401,7 @@ impl Parser {
                 if rules.is_none() {
                     return Err(Self::no_rules_line(self.span()));
                 }
+                self.eat_pub()?;
                 let item = self.parse_item()?;
                 program.items.push(item);
             }
@@ -1398,6 +1410,26 @@ impl Parser {
             return Err(Self::no_rules_line(first_item.unwrap_or(self.span())));
         }
         Ok(program)
+    }
+
+    /// `pub` in front of a declaration. A single file can only check where it goes. (D200)
+    /// trace: D200
+    fn eat_pub(&mut self) -> Outcome<()> {
+        if !self.at_word(PUB_WORD) {
+            return Ok(());
+        }
+        let start = self.advance().span;
+        if self.at_word("fn") && self.symbol_at(1, ".") && self.word_at(2, "main") {
+            return Err(Report::not_designed(
+                start,
+                "`pub` on `fn.main`, which needs none",
+                "",
+            ));
+        }
+        if self.at_word(PUB_WORD) {
+            return Err(Report::not_designed(start, "`pub pub`", ""));
+        }
+        Ok(())
     }
 
     /// Every file sets its rules first, and there's no unsaid default. (D201)
@@ -1571,6 +1603,16 @@ impl Parser {
             let piece = self.expect_name("a narrowing of `fn`")?;
             narrowing.push('.');
             narrowing.push_str(&piece.text);
+        }
+        // `pub` says who can see a thing, not what kind it is, so it's no narrowing. (D200)
+        // trace: D200
+        if let Some(rest) = narrowing.strip_prefix(".pub") {
+            return Err(Report::refused(
+                start.to(self.previous_span()),
+                "`pub` goes in front, as a word of its own",
+                "`pub` says who can see a thing, not what kind of thing it is, so it isn't a narrowing (D200)",
+            )
+            .fix(format!("pub fn{rest}")));
         }
         let kind = match narrowing.as_str() {
             "" => FunctionKind::Plain,
@@ -2592,6 +2634,24 @@ impl Parser {
         if let Lexeme::Word(word) = &self.peek().lexeme {
             match word.as_str() {
                 "let" => return self.parse_let(),
+                // trace: D203
+                "decl"
+                    if matches!(self.peek_at(1).lexeme, Lexeme::Variable(_))
+                        || self.word_at(1, "mut") =>
+                {
+                    return self.parse_decl();
+                }
+                "assign" if matches!(self.peek_at(1).lexeme, Lexeme::Variable(_)) => {
+                    let start = self.advance().span;
+                    let name = self.expect_variable("the variable's name, starting with `$`")?;
+                    self.expect_symbol("=")?;
+                    let value = self.parse_expression()?;
+                    let end = self.end_statement(&value)?;
+                    return Ok(Statement {
+                        span: start.to(end),
+                        kind: StatementKind::Assign { name, value },
+                    });
+                }
                 "const" => return self.parse_constant(),
                 "change" => return self.parse_change(),
                 "if" => return self.parse_if(),
@@ -2698,6 +2758,32 @@ impl Parser {
         Ok(Statement {
             span: start.to(end),
             kind: StatementKind::Expression(value),
+        })
+    }
+
+    /// `decl $x: i32;` declares a variable with no value yet. (D203)
+    /// trace: D203
+    fn parse_decl(&mut self) -> Outcome<Statement> {
+        let start = self.advance().span; // `decl`
+        let mutable = self.eat_word("mut");
+        let name = self.expect_variable("the variable's name, starting with `$`")?;
+        self.expect_symbol(":")?;
+        let written_type = self.parse_type()?;
+        if self.at_symbol("=") {
+            return Err(Report::refused(
+                self.span(),
+                "`decl` gives no value, and `let` does",
+                "`decl` declares a variable with no value yet, and `assign` gives it one (D203)",
+            ));
+        }
+        let end = self.expect_semicolon()?;
+        Ok(Statement {
+            span: start.to(end),
+            kind: StatementKind::Decl {
+                mutable,
+                name,
+                written_type,
+            },
         })
     }
 

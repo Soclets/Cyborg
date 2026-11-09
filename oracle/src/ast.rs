@@ -306,6 +306,17 @@ pub enum StatementKind {
         written_type: TypeExpression,
         value: Expression,
     },
+    /// `decl $x: i32;`, a variable with no value yet. (D203)
+    Decl {
+        mutable: bool,
+        name: Name,
+        written_type: TypeExpression,
+    },
+    /// `assign $x = 1;`, its value, once on each path. (D203)
+    Assign {
+        name: Name,
+        value: Expression,
+    },
     Constant {
         name: Name,
         written_type: TypeExpression,

@@ -1,0 +1,5 @@
+refused: d203_assign_in_a_loop.cy:9:9, line 9 column 9
+ 9 |         assign $x = $i;
+   |         ^^^^^^^^^^^^^^^
+ what: `$x` may already have its value here
+ why:  `assign` gives a variable its value once on each path (D203)

@@ -633,6 +633,16 @@ impl Checker<'_> {
             };
             slot_state.trust_ended = trust_ended;
             slot_state.moved = join_moved(branches, index);
+            // trace: D203
+            let filled: Vec<super::Filled> = branches
+                .iter()
+                .filter_map(|branch| branch.get(index).map(|state| state.filled))
+                .collect();
+            slot_state.filled = match filled.first() {
+                Some(first) if filled.iter().all(|found| found == first) => *first,
+                Some(_) => super::Filled::OnSomePaths,
+                None => slot_state.filled,
+            };
         }
         self.context.state = joined;
     }
@@ -687,6 +697,12 @@ impl Checker<'_> {
                 written_type,
                 value,
             } => self.check_let(*mutable, name, written_type, value)?,
+            StatementKind::Decl {
+                mutable,
+                name,
+                written_type,
+            } => self.check_decl(*mutable, name, written_type)?,
+            StatementKind::Assign { name, value } => self.check_assign(name, value, span)?,
             StatementKind::Constant {
                 name,
                 written_type,
@@ -813,6 +829,93 @@ impl Checker<'_> {
             borrows,
             borrowed_path: Vec::new(),
         });
+        Ok(InstructionKind::Let { slot, value: node })
+    }
+
+    /// `decl $x: i32;`: a variable with no value yet, which nothing can read empty. (D203)
+    /// trace: D203
+    fn check_decl(
+        &mut self,
+        mutable: bool,
+        name: &crate::ast::Name,
+        written_type: &TypeExpression,
+    ) -> Outcome<InstructionKind> {
+        self.refuse_second_declaration(name)?;
+        let held_type = self.resolve_type(written_type)?;
+        if self.is_must_give(&held_type)
+            || matches!(held_type, Type::Borrow { .. } | Type::Holding { .. })
+        {
+            return Err(Report::not_designed(
+                written_type.span,
+                format!("`decl` of `{held_type}`, which has a duty or a borrow"),
+                "",
+            ));
+        }
+        let slot = self.declare_variable(Variable {
+            name: name.text.clone(),
+            held_type,
+            mutable,
+            origin: Origin::Owned,
+            declared: name.span,
+            must_give: false,
+            constant: None,
+            borrows: Vec::new(),
+            borrowed_path: Vec::new(),
+        });
+        if let Some(state) = self.context.state.get_mut(slot) {
+            state.filled = super::Filled::No;
+        }
+        Ok(InstructionKind::Block(Vec::new()))
+    }
+
+    /// `assign $x = 1;` gives a `decl` its value, once on each path. (D203)
+    /// trace: D203
+    fn check_assign(
+        &mut self,
+        name: &crate::ast::Name,
+        value: &Expression,
+        span: Span,
+    ) -> Outcome<InstructionKind> {
+        let Some(slot) = self.find_variable(&name.text) else {
+            return Err(Report::refused(
+                name.span,
+                format!("`${}` isn't declared", name.text),
+                "`decl` declares a variable with no value yet, and `assign` gives it one (D203)",
+            ));
+        };
+        let filled = self
+            .context
+            .state
+            .get(slot)
+            .map_or(super::Filled::Yes, |state| state.filled);
+        match filled {
+            super::Filled::No => {}
+            super::Filled::OnSomePaths => {
+                return Err(Report::refused(
+                    span,
+                    format!("`${}` may already have its value here", name.text),
+                    "`assign` gives a variable its value once on each path (D203)",
+                ));
+            }
+            super::Filled::Yes => {
+                let shown = self.text_of(span).replacen("assign", "change", 1);
+                return Err(Report::refused(
+                    span,
+                    format!("`${}` already has a value", name.text),
+                    "`assign` gives a `decl` its first value, and `change` gives a new one (D203)",
+                )
+                .fix(shown));
+            }
+        }
+        let held_type = self
+            .context
+            .variables
+            .get(slot)
+            .map_or(Type::Void, |variable| variable.held_type.clone());
+        let node = self.check_into(value, &held_type)?;
+        if let Some(state) = self.context.state.get_mut(slot) {
+            state.filled = super::Filled::Yes;
+        }
         Ok(InstructionKind::Let { slot, value: node })
     }
 

@@ -1,0 +1,5 @@
+refused: d203_with_a_value.cy:6:18, line 6 column 18
+ 6 |     decl $x: i32 = 1;
+   |                  ^
+ what: `decl` gives no value, and `let` does
+ why:  `decl` declares a variable with no value yet, and `assign` gives it one (D203)

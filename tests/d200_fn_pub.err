@@ -1,0 +1,5 @@
+refused: d200_fn_pub.cy:5:1, line 5 column 1
+ 5 | fn.pub total [] -> i32:
+   | ^^^^^^
+ fix:  `pub fn`
+ why:  `pub` says who can see a thing, not what kind of thing it is, so it isn't a narrowing (D200)
