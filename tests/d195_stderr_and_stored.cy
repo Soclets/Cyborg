@@ -1,4 +1,5 @@
-// trace: D195
+// They combine, but their order isn't settled, so either order is NotDesignedYet.
+// trace: D195, D221
 @config(default);
 import std;
 

@@ -1869,10 +1869,12 @@ impl Checker<'_> {
                 )
                 .fix(format!("std::io::fmt_print.{}", &after[2..])));
             }
+            // They combine, but which order is written isn't settled. (D221)
+            // trace: D221
             ".stored.stderr" | ".stderr.stored" => {
                 return Err(Report::not_designed(
                     path_span,
-                    "whether `.stored` and `.stderr` combine, and in which order",
+                    "the order of `.stderr` and `.stored` together",
                     "12.2",
                 ));
             }
