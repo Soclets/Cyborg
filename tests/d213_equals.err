@@ -1,0 +1,5 @@
+refused: d213_equals.cy:7:13, line 7 column 13
+ 7 |     let $a: i32=1;
+   |             ^^^^^
+ fix:  `i32 = 1`
+ why:  a binary operator, `=` and word operators included, has one space on each side, so `1<8` is refused (D23, D213)

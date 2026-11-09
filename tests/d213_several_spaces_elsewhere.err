@@ -1,0 +1,5 @@
+NotDesignedYet: d213_several_spaces_elsewhere.cy:7:8, line 7 column 8
+ 7 |     let  $a: i32 = 1;
+   |        ^^
+ what: several spaces, or a tab, between two things on a line
+ why:  not decided yet, and the standard doesn't say

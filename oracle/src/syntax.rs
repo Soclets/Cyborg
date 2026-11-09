@@ -10,7 +10,7 @@ use crate::ast::{
     Statement, StatementKind, StructDeclaration, Together, TogetherOperator, TypeExpression,
     TypeKind, TypeName, UnionCase, UnionDeclaration, UnitMeaning, UnitMember, UnitSet, Use,
 };
-use crate::report::{Outcome, Report, ReportExtra, Span};
+use crate::report::{Kind, Outcome, Report, ReportExtra, Span};
 
 /// Words that clash with a name of yours, which is then written `my::name`. (D75)
 const CLASHING_WORDS: &[&str] = &[
@@ -523,12 +523,49 @@ enum Lexeme {
     End,
 }
 
+/// The whitespace between two tokens, which the spacing rules judge. A gap with a line break
+/// isn't judged, since how lines break and indent isn't decided. (D213)
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum Gap {
+    Touching,
+    One,
+    Several,
+    Line,
+}
+
+impl Gap {
+    fn between(text: &str) -> Gap {
+        if text.contains('\n') {
+            Gap::Line
+        } else if text.is_empty() {
+            Gap::Touching
+        } else if text == " " {
+            Gap::One
+        } else {
+            Gap::Several
+        }
+    }
+
+    fn written(self) -> &'static str {
+        if self == Gap::One {
+            " "
+        } else {
+            ""
+        }
+    }
+}
+
 #[derive(Clone, Debug)]
 struct Token {
     lexeme: Lexeme,
     span: Span,
     space_before: bool,
     space_after: bool,
+    /// What sits between this token and the one before it, and the one after it. (D213)
+    gap_before: Gap,
+    gap_after: Gap,
+    /// The token as written, for a `fix:` that shows the spaced version.
+    text: String,
     /// Whether a newline comes between this token and the one before it.
     starts_a_line: bool,
 }
@@ -744,6 +781,19 @@ fn lex(source: &str) -> Outcome<Vec<Token>> {
                 .take_while(|c| is_word_part(*c))
                 .collect();
             if name.is_empty() {
+                // `$ total` is refused as spacing, with the name joined on as its fix. (D213)
+                let after = source.get(name_start..).unwrap_or("");
+                let spaced = after.trim_start_matches([' ', '\t']);
+                let word: String = spaced.chars().take_while(|c| is_word_part(*c)).collect();
+                if spaced.len() < after.len() && !word.is_empty() {
+                    let end = name_start + (after.len() - spaced.len()) + word.len();
+                    return Err(Report::refused(
+                        Span::new(position, end),
+                        "this is spaced the wrong way",
+                        SPACING_MARKS,
+                    )
+                    .fix(format!("${word}")));
+                }
                 return Err(Report::refused(
                     Span::new(position, name_start),
                     "`$` needs a name after it",
@@ -800,11 +850,20 @@ fn lex(source: &str) -> Outcome<Vec<Token>> {
                 .get(last.span.end..start)
                 .is_some_and(|between| between.contains('\n'))
         });
+        let gap_before = tokens.last().map_or(Gap::Line, |last: &Token| {
+            Gap::between(source.get(last.span.end..start).unwrap_or("\n"))
+        });
+        if let Some(last) = tokens.last_mut() {
+            last.gap_after = gap_before;
+        }
         tokens.push(Token {
             lexeme,
             span: Span::new(start, position),
             space_before,
             space_after,
+            gap_before,
+            gap_after: Gap::Line,
+            text: source.get(start..position).unwrap_or("").to_string(),
             starts_a_line,
         });
     }
@@ -813,6 +872,9 @@ fn lex(source: &str) -> Outcome<Vec<Token>> {
         span: Span::new(source.len(), source.len()),
         space_before: true,
         space_after: true,
+        gap_before: Gap::Line,
+        gap_after: Gap::Line,
+        text: String::new(),
         starts_a_line: true,
     });
     Ok(tokens)
@@ -961,9 +1023,29 @@ pub fn parse(source: &str) -> Outcome<Program> {
         depth: 0,
         limb_short_names: Vec::new(),
         source_fills: Vec::new(),
+        spacing: Vec::new(),
     };
-    parser.parse_program()
+    let result = parser.parse_program();
+    // A spacing error doesn't stop parsing, so the first error in the file is whichever comes
+    // first: a spacing error, or what stopped the parse. A refusal beats a `NotDesignedYet`
+    // at the same place, since it judges a gap the other only says no rule covers.
+    let spacing = parser
+        .spacing
+        .into_iter()
+        .min_by_key(|report| (report.span.start, report.kind != Kind::Refused));
+    match (result, spacing) {
+        (Ok(_), Some(report)) => Err(Box::new(report)),
+        (Err(error), Some(report)) if report.span.start < error.span.start => Err(Box::new(report)),
+        (result, _) => result,
+    }
 }
+
+/// trace: D213
+const SPACING_JOINS: &str =
+    "no space goes around `.`, `::`, `%`, `%%` or `@`, so every program reads the same (D213)";
+const SPACING_MARKS: &str = "a mark or a bracket touches what it goes with, so `( $x )`, `- $x` and `read() ?` are refused (D23, D213)";
+const SPACING_OPERATORS: &str = "a binary operator, `=` and word operators included, has one space on each side, so `1<8` is refused (D23, D213)";
+const SPACING_LISTS: &str = "a comma or a label's `:` is followed by one space (D213)";
 
 struct Parser {
     tokens: Vec<Token>,
@@ -973,6 +1055,8 @@ struct Parser {
     limb_short_names: Vec<(String, String)>,
     /// Source fills read inside a type's `< >`, collected for that type. (D171)
     source_fills: Vec<SourceFill>,
+    /// Spacing errors, which don't stop the parse. (D213)
+    spacing: Vec<Report>,
 }
 
 /// How deep brackets and blocks can nest here. Past this the oracle says so, instead of running
@@ -1007,10 +1091,113 @@ impl Parser {
 
     fn advance(&mut self) -> Token {
         let token = self.peek().clone();
+        self.check_punctuation(self.position, &token);
         if self.position + 1 < self.tokens.len() {
             self.position += 1;
         }
         token
+    }
+
+    /// Spacing that a symbol always has, wherever it is. Operators whose role depends on where
+    /// they are, like `-` and `<`, are checked where the parser knows that role. (D213)
+    fn check_punctuation(&mut self, index: usize, token: &Token) {
+        let Lexeme::Symbol(symbol) = token.lexeme else {
+            if !matches!(token.lexeme, Lexeme::End) {
+                self.check_uncovered(index, token);
+            }
+            return;
+        };
+        let touching = Some(Gap::Touching);
+        let one = Some(Gap::One);
+        match symbol {
+            "." | "::" => self.check_gaps(index, index, touching, touching, SPACING_JOINS),
+            "@" | "%" => self.check_gaps(index, index, None, touching, SPACING_JOINS),
+            "(" | "[" | "~" => self.check_gaps(index, index, None, touching, SPACING_MARKS),
+            ")" | "]" | "?" => self.check_gaps(index, index, touching, None, SPACING_MARKS),
+            "," | ":" => self.check_gaps(index, index, None, one, SPACING_LISTS),
+            "=" | ":=" => self.check_gaps(index, index, one, one, SPACING_OPERATORS),
+            _ => {}
+        }
+        self.check_uncovered(index, token);
+    }
+
+    /// Several spaces or a tab where no rule says what goes. Any rule that judges this gap
+    /// refuses it first, so this only speaks where none does. (D213)
+    fn check_uncovered(&mut self, index: usize, token: &Token) {
+        if token.gap_before != Gap::Several {
+            return;
+        }
+        let Some(previous) = index.checked_sub(1).and_then(|at| self.tokens.get(at)) else {
+            return;
+        };
+        self.spacing.push(*Report::not_designed(
+            Span::new(previous.span.end, token.span.start),
+            "several spaces, or a tab, between two things on a line",
+            "",
+        ));
+    }
+
+    /// Checks the gap before the token at `first` and after the one at `last`, which together
+    /// are one operator or mark, against what goes there. A refusal shows the spaced version,
+    /// with the neighbours on each side it judges. (D213)
+    fn check_gaps(
+        &mut self,
+        first: usize,
+        last: usize,
+        before: Option<Gap>,
+        after: Option<Gap>,
+        why: &'static str,
+    ) {
+        let (Some(opening), Some(closing)) = (self.tokens.get(first), self.tokens.get(last)) else {
+            return;
+        };
+        let judged = |gap: Gap, want: Option<Gap>| want.filter(|_| gap != Gap::Line);
+        let before = judged(opening.gap_before, before);
+        let after = judged(closing.gap_after, after);
+        let wrong_before = before.is_some_and(|want| want != opening.gap_before);
+        let wrong_after = after.is_some_and(|want| want != closing.gap_after);
+        if !wrong_before && !wrong_after {
+            return;
+        }
+        let mut fix: String = self
+            .tokens
+            .get(first..=last)
+            .unwrap_or_default()
+            .iter()
+            .map(|token| token.text.as_str())
+            .collect();
+        let mut span = opening.span.to(closing.span);
+        if let Some(want) = before {
+            if let Some(previous) = first.checked_sub(1).and_then(|at| self.tokens.get(at)) {
+                fix = format!("{}{}{fix}", previous.text, want.written());
+                span = previous.span.to(span);
+            }
+        }
+        if let Some(want) = after {
+            if let Some(next) = self
+                .tokens
+                .get(last + 1)
+                .filter(|next| !matches!(next.lexeme, Lexeme::End))
+            {
+                fix = format!("{fix}{}{}", want.written(), next.text);
+                span = span.to(next.span);
+            }
+        }
+        self.spacing
+            .push(*Report::refused(span, "this is spaced the wrong way", why).fix(fix));
+    }
+
+    /// A binary operator from the token at `first` to the last one read, with one space on
+    /// each side. (D23, D213)
+    fn check_operator(&mut self, first: usize) {
+        let last = self.position.saturating_sub(1).max(first);
+        self.check_gaps(
+            first,
+            last,
+            Some(Gap::One),
+            Some(Gap::One),
+            SPACING_OPERATORS,
+        );
     }
 
     fn at_word(&self, word: &str) -> bool {
@@ -2624,15 +2811,10 @@ impl Parser {
     }
 
     fn parse_fill(&mut self) -> Outcome<Vec<Fill>> {
-        let open = self.advance(); // `<`
-                                   // trace: D23
-        if open.space_after {
-            return Err(Report::refused(
-                open.span,
-                "an opening `<` has no space after it",
-                "an opening `<` has no space after it, and a closing `>` has none before it (D23)",
-            ));
-        }
+        // trace: D23, D213
+        let open = self.position;
+        self.advance(); // `<`
+        self.check_gaps(open, open, None, Some(Gap::Touching), SPACING_MARKS);
         let mut fill = Vec::new();
         while !self.at_symbol(">") {
             // ``index<`text`: $article>`` fills a source, not a type. (D171)
@@ -2676,14 +2858,9 @@ impl Parser {
         if !self.at_symbol(">") {
             return Err(self.expected("`>`"));
         }
-        let close = self.advance();
-        if close.space_before {
-            return Err(Report::refused(
-                close.span,
-                "a closing `>` has no space before it",
-                "an opening `<` has no space after it, and a closing `>` has none before it (D23)",
-            ));
-        }
+        let close = self.position;
+        self.advance();
+        self.check_gaps(close, close, Some(Gap::Touching), None, SPACING_MARKS);
         Ok(fill)
     }
 
@@ -3500,12 +3677,15 @@ impl Parser {
 
     /// Reads `and` or `or`, and says whether it was narrowed to run both sides. (D124)
     fn logic_narrowing(&mut self, word: &str) -> Outcome<bool> {
+        let first = self.position;
         let start = self.advance().span;
         if !self.at_symbol(".") {
+            self.check_operator(first);
             return Ok(false);
         }
         self.advance();
         let narrowing = self.expect_name("a narrowing")?;
+        self.check_operator(first);
         if narrowing.text == "both" {
             // trace: D124
             return Ok(true);
@@ -3547,20 +3727,10 @@ impl Parser {
         } else {
             return Ok(None);
         };
-        let token = self.peek().clone();
-        // trace: D23
-        if matches!(operator, CompareOperator::Less | CompareOperator::Greater)
-            && !(token.space_before && token.space_after)
-        {
-            let word = operator.word();
-            return Err(Report::refused(
-                token.span,
-                format!("a comparison has a space on each side of `{word}`"),
-                "a comparison has a space on each side, so `$a<$b` is refused (D23)",
-            )
-            .fix(format!(" {word} ")));
-        }
+        // trace: D23, D213
+        let first = self.position;
         self.advance();
+        self.check_operator(first);
         Ok(Some(operator))
     }
 
@@ -3594,6 +3764,7 @@ impl Parser {
         let depth_before = self.depth;
         loop {
             self.enter()?;
+            let first = self.position;
             let operator = if self.at_symbol("+") {
                 self.advance();
                 BinaryOperator::Add
@@ -3622,6 +3793,7 @@ impl Parser {
             } else {
                 break;
             };
+            self.check_operator(first);
             let right = self.parse_multiplicative()?;
             Self::refuse_as_on_the_right(&right)?;
             left = Self::binary(operator, left, right)?;
@@ -3677,6 +3849,7 @@ impl Parser {
         let depth_before = self.depth;
         loop {
             self.enter()?;
+            let first = self.position;
             let operator = if self.eat_word("x") {
                 BinaryOperator::Multiply
             } else if self.at_word("div") {
@@ -3705,6 +3878,7 @@ impl Parser {
             } else {
                 break;
             };
+            self.check_operator(first);
             let right = self.parse_unary()?;
             Self::refuse_as_on_the_right(&right)?;
             left = Self::binary(operator, left, right)?;
@@ -3745,8 +3919,10 @@ impl Parser {
                     Lexeme::Integer(_) | Lexeme::Float(_)
                 ))
         {
-            // trace: D116
+            // trace: D116, D213
+            let minus = self.position;
             self.advance();
+            self.check_gaps(minus, minus, None, Some(Gap::Touching), SPACING_MARKS);
             let inner = self.parse_unary()?;
             Self::refuse_bit_mix(&inner)?;
             Self::refuse_as_on_the_right(&inner)?;
@@ -3759,7 +3935,9 @@ impl Parser {
         };
         // trace: D116
         if let Some((_, operator)) = self.bit_word_here() {
+            let first = self.position;
             self.advance();
+            self.check_operator(first);
             let right = self.parse_unary_operand()?;
             Self::refuse_bit_mix(&value)?;
             Self::refuse_bit_mix(&right)?;
@@ -3802,7 +3980,9 @@ impl Parser {
     fn parse_as_level(&mut self) -> Outcome<Expression> {
         let mut value = self.parse_postfix()?;
         while self.at_word("as") {
+            let first = self.position;
             self.advance();
+            self.check_operator(first);
             let target = self.parse_type()?;
             value = Expression {
                 span: value.span.to(target.span),
@@ -3838,7 +4018,9 @@ impl Parser {
     /// `??` sits level with `?`, and its right side is the next single value. (D132)
     /// trace: D132
     fn parse_fallback_on(&mut self, value: Expression) -> Outcome<Expression> {
+        let first = self.position;
         self.advance(); // `??`
+        self.check_operator(first);
         if self.at_symbol("-")
             && !matches!(
                 self.peek_at(1).lexeme,
@@ -4507,5 +4689,8 @@ static END_TOKEN: Token = Token {
     span: Span { start: 0, end: 0 },
     space_before: true,
     space_after: true,
+    gap_before: Gap::Line,
+    gap_after: Gap::Line,
+    text: String::new(),
     starts_a_line: true,
 };

@@ -1,0 +1,5 @@
+refused: d213_minus_spaced_on_one_side.cy:8:19, line 8 column 19
+ 8 |     let $b: i32 = $a -1;
+   |                   ^^^^^
+ fix:  `$a - 1`
+ why:  a binary operator, `=` and word operators included, has one space on each side, so `1<8` is refused (D23, D213)

@@ -1,0 +1,5 @@
+refused: d213_around_double_colon.cy:7:5, line 7 column 5
+ 7 |     std :: io::fmt_print("hi{newln}");
+   |     ^^^^^^^^^
+ fix:  `std::io`
+ why:  no space goes around `.`, `::`, `%`, `%%` or `@`, so every program reads the same (D213)

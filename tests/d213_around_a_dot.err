@@ -1,0 +1,5 @@
+refused: d213_around_a_dot.cy:7:24, line 7 column 24
+ 7 |     let $n: i32 = std::math . abs(1);
+   |                        ^^^^^^^^^^
+ fix:  `math.abs`
+ why:  no space goes around `.`, `::`, `%`, `%%` or `@`, so every program reads the same (D213)

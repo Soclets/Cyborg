@@ -1,5 +1,5 @@
-refused: d23_closing_bracket_space.cy:6:28, line 6 column 28
+refused: d23_closing_bracket_space.cy:6:24, line 6 column 24
  6 |     let $xs: std::list<i32 >[len.max: inf items] = empty;
-   |                            ^
- what: a closing `>` has no space before it
- why:  an opening `<` has no space after it, and a closing `>` has none before it (D23)
+   |                        ^^^^^
+ fix:  `i32>`
+ why:  a mark or a bracket touches what it goes with, so `( $x )`, `- $x` and `read() ?` are refused (D23, D213)

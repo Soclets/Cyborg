@@ -1,0 +1,5 @@
+refused: d213_after_dollar.cy:7:9, line 7 column 9
+ 7 |     let $ total: i32 = 1;
+   |         ^^^^^^^
+ fix:  `$total`
+ why:  a mark or a bracket touches what it goes with, so `( $x )`, `- $x` and `read() ?` are refused (D23, D213)
