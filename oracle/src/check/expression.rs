@@ -1165,7 +1165,7 @@ impl Checker<'_> {
             }
         }
         if bare.starts_with("std::") {
-            self.require_std(span)?;
+            self.require_std(bare.trim_start_matches("std::"), span)?;
             return Err(Report::not_designed(
                 span,
                 format!("`{bare}` as a value"),
@@ -1469,7 +1469,7 @@ impl Checker<'_> {
         let text = self.canonical(&path.text);
         self.refuse_limb_outside_shield(&text, path.span)?;
         if let Some(rest) = text.strip_prefix("std::") {
-            self.require_std(path.span)?;
+            self.require_std(rest, path.span)?;
             return self.check_std_call(rest, arguments, span, path.span);
         }
         let bare = match text.strip_prefix("my::") {
@@ -1851,6 +1851,15 @@ impl Checker<'_> {
                     "a default `std` fixes can't be written out, and stdout is the default (D195, D51)",
                 )
                 .fix("std::io::fmt_print"));
+            }
+            // trace: D196
+            after if after.starts_with("::") => {
+                return Err(Report::refused(
+                    path_span,
+                    "`::` is for paths, and a narrowing after a function is `.`",
+                    "`::` reaches into a path, which never runs anything, and a `.` after a function narrows it (D196)",
+                )
+                .fix(format!("std::io::fmt_print.{}", &after[2..])));
             }
             ".stored.stderr" | ".stderr.stored" => {
                 return Err(Report::not_designed(
@@ -2261,7 +2270,7 @@ impl Checker<'_> {
                 ));
             }
         }
-        self.require_std(span)?;
+        self.require_std(&format!("list.%{}", name.text), span)?;
         if name.text != "append" || !is_std_list_method {
             return Err(Report::not_designed(
                 name.span,

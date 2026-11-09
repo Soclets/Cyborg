@@ -3,7 +3,7 @@ import std;
 @config(default);
 
 fam.unit time:
-    time.minutes = 60 std::time.seconds;
+    time.minutes = 60 std::units::time.seconds;
 end fam.unit time
 
 fn.main [] -> void:

@@ -1,7 +1,7 @@
 // trace: D150
 import std;
 
-use std::time.seconds as seconds;
+use std::units::time.seconds as seconds;
 @config(default);
 
 fn.main [] -> void:

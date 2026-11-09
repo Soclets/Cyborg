@@ -1356,7 +1356,23 @@ impl Parser {
                         "`import pkg std;` brings in both halves, and `@` picks only the limb half (D188, D187)",
                     ));
                 }
-                let name = self.expect_name("what to import")?;
+                let mut name = self.expect_name("what to import")?;
+                // `import std::io::fmt_print;` names one thing. (D198)
+                // trace: D198
+                while self.at_symbol("::") {
+                    self.advance();
+                    let next = self.expect_name("what to import")?;
+                    name.text.push_str("::");
+                    name.text.push_str(&next.text);
+                    name.span = name.span.to(next.span);
+                }
+                if self.at_symbol(".") {
+                    return Err(Report::not_designed(
+                        self.span(),
+                        "importing one narrowing, since importing a thing brings all of them",
+                        "12.2",
+                    ));
+                }
                 self.expect_semicolon()?;
                 program.imports.push(Import { limb, whole, name });
             } else if self.at_word("package") && matches!(self.peek_at(1).lexeme, Lexeme::Word(_)) {

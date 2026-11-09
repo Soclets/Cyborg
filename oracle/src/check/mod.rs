@@ -264,6 +264,8 @@ pub struct Checker<'a> {
     imports: HashSet<String>,
     limb_imports: HashSet<String>,
     aliases: HashMap<String, String>,
+    /// What `import std::io::fmt_print;` brought in, without `std::`. (D198)
+    imported_things: Vec<String>,
     /// `%append` from `use std::list.%append as %append;`, with its type and real name. (D178)
     pub(super) method_aliases: HashMap<String, (String, String)>,
     structs: HashMap<String, StructInfo>,
@@ -298,6 +300,7 @@ pub fn check(source: &str, program: &Program) -> Outcome<Code> {
         imports: HashSet::new(),
         limb_imports: HashSet::new(),
         aliases: HashMap::new(),
+        imported_things: Vec::new(),
         method_aliases: HashMap::new(),
         structs: HashMap::new(),
         unions: HashMap::new(),
@@ -397,50 +400,75 @@ impl Checker<'_> {
             })
     }
 
-    fn read_imports(&mut self, program: &Program) -> Outcome<()> {
-        for import in &program.imports {
-            // trace: D188, D187
-            if import.whole {
-                match import.name.text.as_str() {
-                    "std" => {
-                        self.imports.insert("std".to_string());
-                        self.limb_imports.insert("std".to_string());
-                    }
-                    "csup" => {
-                        self.limb_imports.insert("csup".to_string());
-                    }
-                    other => {
-                        return Err(Report::not_designed(
-                            import.name.span,
-                            format!("how the package `{other}` is found"),
-                            "12.9",
-                        ));
-                    }
-                }
-                continue;
-            }
-            if import.limb {
-                match import.name.text.as_str() {
-                    "csup" | "std" => {
-                        self.limb_imports.insert(import.name.text.clone());
-                    }
-                    other => {
-                        return Err(Report::not_designed(
-                            import.name.span,
-                            format!("how the limb `@{other}` is found"),
-                            "12.9",
-                        ));
-                    }
-                }
-            } else if import.name.text == "std" {
-                self.imports.insert("std".to_string());
-            } else {
+    /// One `import` line: a package's half, both halves, or one thing. (D82, D187, D188, D198)
+    fn read_import(&mut self, import: &crate::ast::Import) -> Outcome<()> {
+        // trace: D198
+        if let Some((kit, thing)) = import.name.text.split_once("::") {
+            if import.limb || import.whole || kit != "std" {
                 return Err(Report::not_designed(
                     import.name.span,
-                    format!("how the kit `{}` is found", import.name.text),
-                    "12.9",
+                    "importing one thing with `@`, with `pkg`, or from a kit other than `std`",
+                    "12.2",
                 ));
             }
+            if !matches!(thing, "io::fmt_print" | "units::time") {
+                return Err(Report::not_designed(
+                    import.name.span,
+                    format!("`std::{thing}`, since `std`'s full contents aren't chosen"),
+                    "",
+                ));
+            }
+            self.imported_things.push(thing.to_string());
+            return Ok(());
+        }
+        // trace: D188, D187
+        if import.whole {
+            match import.name.text.as_str() {
+                "std" => {
+                    self.imports.insert("std".to_string());
+                    self.limb_imports.insert("std".to_string());
+                }
+                "csup" => {
+                    self.limb_imports.insert("csup".to_string());
+                }
+                other => {
+                    return Err(Report::not_designed(
+                        import.name.span,
+                        format!("how the package `{other}` is found"),
+                        "12.9",
+                    ));
+                }
+            }
+            return Ok(());
+        }
+        if import.limb {
+            match import.name.text.as_str() {
+                "csup" | "std" => {
+                    self.limb_imports.insert(import.name.text.clone());
+                }
+                other => {
+                    return Err(Report::not_designed(
+                        import.name.span,
+                        format!("how the limb `@{other}` is found"),
+                        "12.9",
+                    ));
+                }
+            }
+        } else if import.name.text == "std" {
+            self.imports.insert("std".to_string());
+        } else {
+            return Err(Report::not_designed(
+                import.name.span,
+                format!("how the kit `{}` is found", import.name.text),
+                "12.9",
+            ));
+        }
+        Ok(())
+    }
+
+    fn read_imports(&mut self, program: &Program) -> Outcome<()> {
+        for import in &program.imports {
+            self.read_import(import)?;
         }
         for declared in &program.uses {
             // A limb works the same way, and a file still has to import it.
@@ -498,6 +526,17 @@ impl Checker<'_> {
             // trace: D93
             self.aliases
                 .insert(declared.short.text.clone(), declared.path.text.clone());
+        }
+        // trace: D198
+        if !self.imported_things.is_empty() && self.imports.contains("std") {
+            return Err(Report::not_designed(
+                program
+                    .imports
+                    .first()
+                    .map_or(Span::new(0, 0), |import| import.name.span),
+                "importing one thing alongside `import std;`",
+                "12.2",
+            ));
         }
         Ok(())
     }
@@ -768,9 +807,30 @@ impl Checker<'_> {
     }
 
     /// trace: D82
-    fn require_std(&self, span: Span) -> Outcome<()> {
+    fn require_std(&self, rest: &str, span: Span) -> Outcome<()> {
         if self.imports.contains("std") {
             return Ok(());
+        }
+        // `import std::io::fmt_print;` imports only that, with its narrowings. (D198, D199)
+        // trace: D198, D199
+        if !self.imported_things.is_empty() {
+            let reached = self
+                .imported_things
+                .iter()
+                .any(|thing| rest == thing.as_str() || rest.starts_with(&format!("{thing}.")));
+            if reached {
+                return Ok(());
+            }
+            let things: Vec<String> = self
+                .imported_things
+                .iter()
+                .map(|thing| format!("`std::{thing}`"))
+                .collect();
+            return Err(Report::refused(
+                span,
+                format!("this file imports only {} from `std`", things.join(" and ")),
+                "importing one thing imports only that, with its narrowings, unlike `import std;` (D198, D199)",
+            ));
         }
         Err(Report::refused(
             span,
@@ -1659,9 +1719,18 @@ impl Checker<'_> {
         }
         let text = self.canonical(&path.text);
         if let Some(rest) = text.strip_prefix("std::") {
-            self.require_std(path.span)?;
-            if rest == "time.seconds" {
+            self.require_std(rest, path.span)?;
+            // trace: D199
+            if rest == "units::time.seconds" {
                 return Ok(text);
+            }
+            if let Some(old) = rest.strip_prefix("time.") {
+                return Err(Report::refused(
+                    path.span,
+                    format!("`std::{rest}` is in `std`'s `units` group"),
+                    "a unit family in `std` sits in the `units` group (D199, D196)",
+                )
+                .fix(format!("std::units::time.{old}")));
             }
             return Err(Report::not_designed(
                 path.span,
@@ -1979,7 +2048,7 @@ impl Checker<'_> {
             ));
         }
         if let Some(rest) = text.strip_prefix("std::") {
-            self.require_std(path.span)?;
+            self.require_std(rest, path.span)?;
             return self.resolve_std_type(rest, written, path, fill, describe);
         }
         // trace: D134

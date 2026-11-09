@@ -2,14 +2,14 @@
 import std;
 @config(default);
 
-fn wait [$t: i32.std::time.seconds] -> void:
-    labels [$t as for.std::time.seconds];
+fn wait [$t: i32.std::units::time.seconds] -> void:
+    labels [$t as for.std::units::time.seconds];
 
     std::io::fmt_print("{}{newln}", ($t as i32));
     return void;
 end fn wait
 
 fn.main [] -> void:
-    wait(for.std::time.seconds: 2);
+    wait(for.std::units::time.seconds: 2);
     return void;
 end fn.main
