@@ -90,17 +90,18 @@ refused: main.cy:1:15, line 1 column 15
 To find those, the checker applies the first error's `fix:` in memory and checks again. Any later error that disappears was caused by it. The ones still there are independent, and the same is done for the next one. An error with no single fix can't be applied, so the errors after it stay independent.
 
 ```
-refused: main.cy:4:20, line 4 column 20
-4 |     let $sum: i32 = totl(Lend $xs);
-  |                     ^^^^
- what: there's no function `totl`
- fix:  total
+refused: main.cy:4:21, line 4 column 21
+ 4 |     let $sum: i32 = totl(Lend $xs);
+   |                     ^^^^
+ fix:  `total`
+ why:  a name has to be declared before it's used (the sketch)
 
 refused: main.cy:9:5, line 9 column 5
-9 |     change $sum = $sum + $more;
-  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ 9 |     change $sum = $sum + $more;
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^
  what: `$sum` never got a value
- because: main.cy:4:20, line 4 column 20
+ why:  a variable is read only after it has one (D203)
+ because: main.cy:4:21, line 4 column 21
  4 |     let $sum: i32 = totl(Lend $xs);
    |                     ^^^^
      with `total` here, this error goes away
