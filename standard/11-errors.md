@@ -87,6 +87,8 @@ refused: main.cy:1:15, line 1 column 15
 
 **Rule:** building shows every error, not just the first, in the oracle and the compiler alike. A later error caused by an earlier one is shown with a `because:` pointing back at it.
 
+After an error, checking skips only that statement and goes on with the next. A skipped `let` or `decl` still creates its variable, with the type it wrote.
+
 To find those, the checker applies the first error's `fix:` in memory and checks again. Any later error that disappears was caused by it. The ones still there are independent, and the same is done for the next one. An error with no single fix can't be applied, so the errors after it stay independent.
 
 ```
@@ -109,4 +111,4 @@ refused: main.cy:9:5, line 9 column 5
 
 Cascades are defined this way, not guessed, so the oracle and the compiler agree byte for byte.
 
-**From:** D16, D207.
+**From:** D16, D207, D215.

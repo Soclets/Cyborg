@@ -903,6 +903,8 @@ a placeholder for a version that isn't correctly rounded. A float prints as the 
 
 **D214. A clashing name says `my::` everywhere, and `main` clashes.** A name that clashes is written `my::x` at its declaration, its closer and every use, as in `fn my::x […] -> i32:` and `end fn my::x`, so a search for `my::x` finds all of them, and the declaration shows the clash. `main` counts as a clashing name, so a plain `fn main` is refused with `fix: fn.main`, and a function really named `main` is `fn my::main`. This replaces D75's bare declaration. The owner pointed out that `fn main` is a real, ordinary function next to `fn.main`, proposed `fn my::main`, then asked "Maybe a clashing name shouldn't stay bare, even at decl?"; Claude proposed the rest; the owner chose: "yea". (Owner, 2026-11-09)
 
+**D215. Checking carries on line by line.** After an error, checking skips only that statement and goes on with the next, so building finds as many errors as it can (D207). A skipped `let` or `decl` still creates its variable, with the type it wrote, as in `let $x: i32 = totl(5);`, which leaves `$x` an `i32`. Cyborg always writes the type in a `let`, so nothing has to be guessed, and D207's fix-and-check-again rule still sorts out knock-on errors. Not settled here: an error in a block's opening line, like `if` or `for`, or in a function's header. Oracle claude asked; Claude proposed checking per item first, then this, when the owner asked "What's better?"; the owner chose: "yea". (Owner, 2026-11-09)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude
