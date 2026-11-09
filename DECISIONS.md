@@ -887,6 +887,8 @@ a placeholder for a version that isn't correctly rounded. A float prints as the 
 
 **D206. A doc comment can't trail code.** `let $t: i32 = 21; /// The temperature.` is refused, with a fix that moves the `///` to its own line above, so docs always sit above what they describe. A trailing `//` stays fine (D205). Oracle claude found the gap; Claude proposed it; the owner chose: "yea". (Owner, 2026-11-09)
 
+**D207. Every error, with cascades found by applying fixes.** Building shows every error, not just the first, in the oracle and the compiler alike. To find knock-on errors, the checker applies the first error's `fix:` in memory and checks again: any later error that disappears was caused by it, and is shown with a `because:` pointing back at it. The errors still there are independent, and the same is done for the next one. An error with no single fix (11.5) can't be applied, so the errors after it stay independent. Because cascades are defined this way rather than guessed, the oracle and the compiler agree byte for byte, and rule 5 needs no exception. Checking again costs time, which the compiler optimizes and the oracle doesn't. The owner asked "Do all errors show at once?", "don't we have `because`?", and "Why wouldn't the oracle show them all? And should we add a cascade removal tech? Like, run the correct version in the oracle before"; Claude proposed this; the owner chose: "yea". (Owner, 2026-11-09)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude

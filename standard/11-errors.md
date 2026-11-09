@@ -8,6 +8,7 @@
 | [11.4](#114-labels) | `what:`, `why:`, `when:` | What each line says |
 | [11.5](#115-fixes) | `fix:` | Only when there's exactly one |
 | [11.6](#116-because) | `because:` | What led here |
+| [11.7](#117-every-error) | Every error | Cascades found by applying fixes |
 
 These come from Radium's format, as its design session described it on 2026-11-04.
 
@@ -81,3 +82,23 @@ refused: main.cy:1:15, line 1 column 15
 **Rule:** `because:` links show earlier steps that led to the error, in the order they happened. One appears only when the compiler knows that step led here.
 
 **From:** D16.
+
+## 11.7 Every error
+
+**Rule:** building shows every error, not just the first, in the oracle and the compiler alike. A later error caused by an earlier one is shown with a `because:` pointing back at it.
+
+To find those, the checker applies the first error's `fix:` in memory and checks again. Any later error that disappears was caused by it. The ones still there are independent, and the same is done for the next one. An error with no single fix can't be applied, so the errors after it stay independent.
+
+```
+refused: no name `totl`
+  at main.cy:4
+  fix: total
+
+refused: `$sum` has no type
+  at main.cy:9
+  because: main.cy:4, `totl` has no type, so `$sum` couldn't get one
+```
+
+Cascades are defined this way, not guessed, so the oracle and the compiler agree byte for byte.
+
+**From:** D16, D207.
