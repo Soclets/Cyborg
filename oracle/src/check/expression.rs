@@ -1953,8 +1953,32 @@ impl Checker<'_> {
                 crate::ast::FormatPiece::Text(_) => None,
             })
             .collect();
-        let slots = Self::hole_slots(&holes, values.len(), format.value.span)?;
-        let (value_nodes, value_types) = self.check_print_values(values)?;
+        // A named hole prints its variable, and doesn't mix with the other kinds yet. (D210)
+        // trace: D210
+        let named = holes.iter().filter(|hole| hole.name.is_some()).count();
+        if named > 0 && named < holes.len() {
+            let other = holes.iter().find(|hole| hole.name.is_none());
+            return Err(Report::not_designed(
+                other.map_or(format.value.span, |hole| hole.span),
+                "named holes in one format with `{}` or numbered ones",
+                "12.2",
+            ));
+        }
+        let (slots, (value_nodes, value_types)) = if named > 0 {
+            if let Some(extra) = values.first() {
+                return Err(Report::refused(
+                    extra.value.span,
+                    "every hole in this format names its variable, so it takes no values",
+                    "a literal format is checked when building, including how many values it takes (D194, D210)",
+                ));
+            }
+            ((0..holes.len()).collect(), self.check_named_holes(&holes)?)
+        } else {
+            (
+                Self::hole_slots(&holes, values.len(), format.value.span)?,
+                self.check_print_values(values)?,
+            )
+        };
         let mut printed = Vec::new();
         let mut holes_seen = 0;
         for piece in pieces {
@@ -1992,6 +2016,24 @@ impl Checker<'_> {
             }],
             unnamed: None,
         })
+    }
+
+    /// The variables named holes print, read as values. (D210)
+    fn check_named_holes(
+        &mut self,
+        holes: &[&crate::ast::Hole],
+    ) -> Outcome<(Vec<Node>, Vec<TypedSpan>)> {
+        let named_values: Vec<Argument> = holes
+            .iter()
+            .map(|hole| Argument {
+                label: None,
+                value: Expression {
+                    span: hole.span,
+                    kind: ExpressionKind::Variable(hole.name.clone().unwrap_or_default()),
+                },
+            })
+            .collect();
+        self.check_print_values(&named_values)
     }
 
     /// A print reads its values, each in its readable form. (D194)

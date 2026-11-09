@@ -1,0 +1,5 @@
+NotDesignedYet: d210_named_with_shapes.cy:7:25, line 7 column 25
+ 7 |     std::io::fmt_print("{$t, places: 2}{newln}");
+   |                         ^^^^^^^^^^^^^^^
+ what: shapes on a named hole
+ why:  not decided yet (standard 12.2)

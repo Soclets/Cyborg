@@ -1,0 +1,5 @@
+refused: d210_named_hole_with_values.cy:7:47, line 7 column 47
+ 7 |     std::io::fmt_print("temp: {$t} C{newln}", $t);
+   |                                               ^^
+ what: every hole in this format names its variable, so it takes no values
+ why:  a literal format is checked when building, including how many values it takes (D194, D210)

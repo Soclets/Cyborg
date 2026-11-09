@@ -226,15 +226,42 @@ pub fn parse_format(raw: &str, start: usize) -> Outcome<Vec<FormatPiece>> {
     Ok(pieces)
 }
 
+/// `{$t}`, a hole naming its variable. (D210)
+/// trace: D210
+fn parse_named_hole(name: &str, span: Span) -> Outcome<Hole> {
+    let is_name = name.starts_with(is_word_start) && name.chars().all(is_word_part);
+    if is_name {
+        return Ok(Hole {
+            number: None,
+            name: Some(name.to_string()),
+            shapes: Shapes::default(),
+            span,
+        });
+    }
+    Err(Report::not_designed(
+        span,
+        if name.contains(',') {
+            "shapes on a named hole"
+        } else {
+            "a named hole that's more than a variable, like a field"
+        },
+        "12.2",
+    ))
+}
+
 /// What's inside a hole's `{ }`: nothing, a number, or its shapes. (D194)
 fn parse_hole(inner: &str, span: Span) -> Outcome<Hole> {
     let mut shapes = Shapes::default();
     if inner.is_empty() {
         return Ok(Hole {
             number: None,
+            name: None,
             shapes,
             span,
         });
+    }
+    if let Some(name) = inner.strip_prefix('$') {
+        return parse_named_hole(name, span);
     }
     if inner.chars().all(|c| c.is_ascii_digit()) {
         let number: usize = inner.parse().unwrap_or(usize::MAX);
@@ -248,6 +275,7 @@ fn parse_hole(inner: &str, span: Span) -> Outcome<Hole> {
         }
         return Ok(Hole {
             number: Some(number),
+            name: None,
             shapes,
             span,
         });
@@ -305,6 +333,7 @@ fn parse_hole(inner: &str, span: Span) -> Outcome<Hole> {
     }
     Ok(Hole {
         number: None,
+        name: None,
         shapes,
         span,
     })

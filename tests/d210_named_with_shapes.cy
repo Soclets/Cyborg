@@ -1,0 +1,9 @@
+// trace: D210
+@config(default);
+import std;
+
+fn.main [] -> void:
+    let $t: f64 = 2.5;
+    std::io::fmt_print("{$t, places: 2}{newln}");
+    return void;
+end fn.main

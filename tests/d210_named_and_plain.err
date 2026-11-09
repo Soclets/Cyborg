@@ -1,0 +1,5 @@
+NotDesignedYet: d210_named_and_plain.cy:7:30, line 7 column 30
+ 7 |     std::io::fmt_print("{$t} {}{newln}", 3);
+   |                              ^^
+ what: named holes in one format with `{}` or numbered ones
+ why:  not decided yet (standard 12.2)

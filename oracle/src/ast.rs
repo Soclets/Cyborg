@@ -621,6 +621,8 @@ pub enum FormatPiece {
 #[derive(Clone, Debug)]
 pub struct Hole {
     pub number: Option<usize>,
+    /// `{$t}`, a hole that prints a variable by its name. (D210)
+    pub name: Option<String>,
     pub shapes: Shapes,
     pub span: Span,
 }
