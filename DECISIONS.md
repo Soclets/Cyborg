@@ -899,6 +899,8 @@ a placeholder for a version that isn't correctly rounded. A float prints as the 
 
 **D212. Constants keep a single `$`.** `const $max: i32 = 100;` is used as `$max`, with no `$$`. Leaving it out hides no mistake, since `change $max` is refused for a `let` too, and in `%%` doubling means more power while a `$$` would mean less. `$$` is also a shell's process ID. The owner proposed `$$` for `const`; Claude proposed keeping `$`; the owner chose: "yea". (Owner, 2026-11-09)
 
+**D213. Spacing is part of the syntax.** No space goes around `.`, `::`, `%`, `%%` or `@`, so `fn . main` and `std :: io` are refused. No space follows `$`, a unary `-`, a `~` on a literal, or an opening `(`, `[` or `<`, and none comes before a closing bracket or a postfix `?`. A binary operator has one space on each side, including word operators like `at_least` and `and`, and `=`, so `1<8` and `$a+$b` are refused, extending D23's rule for `<`. A comma or a label's `:` is followed by one space. Each refusal shows the spaced version as its fix. So every program reads the same, and extra spaces can't be used to line things up. Not settled here: indentation, line length, and the space before an opening `[`, which `fn total [$xs: …]` has and `reading[celsius = 21]` doesn't. The owner said "We should be space sensitive, btw. Because `fn . main` fucking works, an `1<8` shouldn't work either"; Claude proposed the list; the owner chose: "yea". (Owner, 2026-11-09)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude

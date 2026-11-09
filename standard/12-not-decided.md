@@ -74,6 +74,7 @@ Waiting on the owner, most needed first. Each is `NotDesignedYet` unless it says
 - Whether lint rules are proven with Verus under rule 13 (D202).
 - `pub` (D200): whether a closer repeats it, and finer levels like Rust's `pub(crate)`.
 - Importing one thing (D198): alongside `import std;`, and with `@` or `pkg`.
+- Spacing (D213): indentation, line length, and the space before an opening `[`, which `fn total [$xs: …]` has and `reading[celsius = 21]` doesn't.
 - Named holes (D210): shapes on one, a field like `{$r.celsius}`, and mixing them with `{}` or numbered holes.
 - Print (D194): how the fill character is written, a per-value `form: stored`, whether `.stderr` and `.stored` combine, formatting to a `str` without printing, and what the output is on bare metal. `form: science` is how a float prints with an exponent.
 - How to check a float's sign.

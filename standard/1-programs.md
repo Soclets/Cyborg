@@ -10,6 +10,7 @@
 | [1.11](#111-short-names-use) | `use … as …;` | A shorter name for a path |
 | [1.12](#112-comments) | `//`, `///`, `comment` | Notes and documentation |
 | [1.13](#113-printing-stdiofmt_print) | `std::io::fmt_print` | The one print, a format print |
+| [1.14](#114-spacing) | Spaces | Part of the syntax |
 | [1.6](#16-narrowings-) | `.` | Makes the thing before it more specific |
 | [1.7](#17-bare-names) | Bare names | The obvious default, or nothing |
 | [1.8](#18-brackets) | `( )`, `[ ]`, `< >` | Runs, describes, fills in |
@@ -247,3 +248,21 @@ A literal format is checked when building.
 **Refused:** a bare `{` in the text, with `fix: \{`; `\n`, with `fix: {newln}`; `{0}`; mixing plain and numbered holes; more or fewer values than holes; a shape that doesn't apply, like `places:` on an integer; a width with no unit; `zeros` with no width; a shape written twice; an unknown escape; `std::io::fmt_print.stdout`, since stdout is the default, and `std::io::fmt_println`, with `fix: std::io::fmt_print`.
 
 **From:** D11, D50, D51, D122, D162, D165, D194, D195, D197, D210, and CyborgPL's format print.
+
+## 1.14 Spacing
+
+**Rule:** spacing is part of the syntax, so every program reads the same.
+
+| Where | Spaces | Example |
+|---|---|---|
+| Around `.`, `::`, `%`, `%%`, `@` | None | `fn.main`, `std::io::fmt_print`, `$p.%area()` |
+| After `$`, a unary `-`, a `~` on a literal, an opening `(`, `[`, `<` | None | `-$x`, `~0.1`, `total(Lend $xs)`, `std::list<i32>` |
+| Before a closing bracket, or a postfix `?` | None | `read()?` |
+| Around a binary operator, word operators and `=` included | One on each side | `1 < 8`, `$a + $b`, `$x at_least 0` |
+| After a comma, or a label's `:` | One | `range[from: 1, to: 3]` |
+
+**Refused:** `fn . main`, `std :: io`, `1<8`, `$a+$b`, `$a  +  $b`, and `( $x )`, each with the spaced version as its fix.
+
+Indentation, line length, and the space before an opening `[` aren't decided ([12.1](12-not-decided.md#121-problems-found-writing-this)).
+
+**From:** D23, D213.
