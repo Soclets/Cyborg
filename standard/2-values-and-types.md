@@ -20,6 +20,7 @@
 | [2.16](#216-units) | `3600 time.seconds` | A number says its unit |
 | [2.17](#217-getting-an-item) | `$xs[pos: 1]`, `$xs[offset.items: 0]` | Counting from 1, or from 0 |
 | [2.18](#218-naming-a-type) | `type.alias`, `type.new` | Another name, or a different type |
+| [2.19](#219-decl-and-assign) | `decl`, `assign` | A value given later, once |
 
 ## 2.1 `let`
 
@@ -359,3 +360,23 @@ let $m: i64 = $u as i64;
 A struct, list or string in a variable says what happens to it: `Give $r as wrapped`, or `Copy $r as wrapped`. A plain number or a fresh value needs no word.
 
 **From:** D134, D141, D149.
+
+## 2.19 `decl` and `assign`
+
+**Rule:** `decl` declares a variable with no value yet, and `assign` gives it its value, once on each path. Every path must `assign` before any read. After that it acts like a `let`, and `decl mut` lets it change later with `change`.
+
+```
+decl $x: i32;
+if $hot:
+    assign $x = 1;
+else:
+    assign $x = 2;
+end if
+std::io::fmt_print("{}{newln}", $x);
+```
+
+It isn't uninitialized memory, since nothing can read it empty, so it needs no shield.
+
+**Refused:** reading before every path has assigned it, assigning twice on one path, and `assign` on something that already has a value, with `fix: change`.
+
+**From:** D203.

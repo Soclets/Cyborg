@@ -879,6 +879,8 @@ a placeholder for a version that isn't correctly rounded. A float prints as the 
 
 **D202. The linter is part of the compiler.** The official lint rules are built into the compiler, not a limb, so every rule is always available and `@config` can name any of them, with one tool and one way to configure it. A limb can still add rules of its own, named by its path, as in `@tighten_config(@house_style::fn::name_length = refuse);`. This replaces D30's official linter limb. Claude suggested that lint rules sit outside rule 13's Verus proofs, since they're style rather than safety; that is not settled here. The owner asked "would we even want to make the linter a limb anymore"; Claude proposed this; the owner chose: "yea". (Owner, 2026-11-09)
 
+**D203. `decl` and `assign`.** `decl $x: i32;` declares a variable with no value yet, and `assign $x = 1;` gives it its value, once on each path. Every path must `assign` before any read, or it won't compile. After that, `$x` acts like a `let`, and `decl mut $x` lets it change later with `change`. `assign` on something that already has a value is refused, with `fix: change`. It isn't uninitialized memory: nothing can read it empty, so it needs no shield. Rust calls this definite initialization. The owner asked about uninitialized variables and Rust's, then proposed `decl` and `assign`; Claude proposed the rules; the owner chose: "yea". (Owner, 2026-11-09)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude
