@@ -28,10 +28,10 @@
 
 ## 10.2 No default
 
-**Rule:** there's no default build mode. You always say which.
+**Rule:** there's no default build mode. You always say which. The compiler is `OKAY\n`, typed `okay`.
 
 ```
-cyborg build --mode FinalSafe
+okay build --mode FinalSafe
 ```
 
 **From:** D26.
@@ -112,7 +112,7 @@ Everything else that exists to stop you doing something dumb is gone: ownership 
 **Rule:** building in `FinalShit` prints this. It's exempt from the one-fix rule in [11.5](11-errors.md#115-fixes).
 
 ```
-$ cyborg build --mode FinalShit
+$ okay build --mode FinalShit
 
 warning: you chose FinalShit
 what:  every contract is now a fucking promise nobody checked

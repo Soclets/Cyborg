@@ -917,6 +917,8 @@ a placeholder for a version that isn't correctly rounded. A float prints as the 
 
 **D221. `.stderr` and `.stored` combine.** One print can go to stderr and print floats exactly as stored. Their order is not settled here. Oracle claude found it open; the owner chose: "`stderr` and `stored` obviously have to be combinable". (Owner, 2026-11-09)
 
+**D222. The compiler is `OKAY\n`, typed `okay`.** A parody of CyborgPL's `KAYO\n`, with nearly the same letters, written the same way: `OKAY\n` as its name and `okay` to type, as in `okay build --mode FinalSafe`. This replaces the placeholder `cyborg build`. A compiler called okay that keeps saying `refused:` is on purpose. Claude pointed out that `ko` would clash with Google's tool of that name; the owner asked "What should the compiler be named? `KO\n`? Or `OKAY\n` (parody to `KAYO\n`)?", and chose: "It's `OKAY\n`, bro". (Owner, 2026-11-09)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude

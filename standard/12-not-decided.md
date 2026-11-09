@@ -152,7 +152,6 @@ These are inherited from Radium with D2:
 
 These have a working name, but aren't chosen:
 
-- The command `cyborg build`.
 - `key` and `val` in `std::map`.
 - `plus.wrap`.
 - `held` on a stored borrow.
