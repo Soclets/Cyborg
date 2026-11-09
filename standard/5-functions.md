@@ -5,7 +5,7 @@
 | [5.1](#51-declaring) | `fn name [ ] -> T:` | `[ ]` describes the parameters |
 | [5.2](#52-calling) | `name( )` | `( )` runs it |
 | [5.3](#53-return) | `return` | |
-| [5.4](#54-the-top-of-the-body) | `labels`, `defaults`, `requires`, `ensures`, `fails` | In that order, first in the body |
+| [5.4](#54-the-top-of-the-body) | `labels`, `defaults`, `requires`, `ensures` | In that order, first in the body |
 | [5.5](#55-contracts) | `requires`, `ensures` | When they're checked |
 | [5.6](#56-methods-) | `.%` | A function on a receiver |
 | [5.7](#57-builtins-) | `@bytes_of` | Bare `@` |
@@ -59,14 +59,13 @@ In `std`, the first argument, the thing being worked on, stays bare, and every o
 
 ## 5.4 The top of the body
 
-**Rule:** `labels`, `defaults`, `requires`, `ensures` and `fails` go first in the body, in that order, then the code. So the top of a body says how to call it, and what it promises.
+**Rule:** `labels`, `defaults`, `requires` and `ensures` go first in the body, in that order, then the code. So the top of a body says how to call it, and what it promises. `fails` goes in the header ([8.1](8-failures.md#81-fails)).
 
 ```
-fn first_word [$text: str, $limit: i32] -> str:
+fn first_word [$text: str, $limit: i32] -> str fails [too_long]:
     labels [$limit as limit];
     defaults [$limit = 40];
     requires $limit at_least 1;
-    fails [too_long];
 
     …
 end fn first_word
@@ -75,10 +74,9 @@ end fn first_word
 A fuller example of contracts:
 
 ```
-fn half [$n: i32] -> i32:
+fn half [$n: i32] -> i32 fails [odd]:
     requires $n at_least 0;
     ensures result at_least 0;
-    fails [odd];
 
     if $n mod.trunc 2 != 0:
         fail odd;
@@ -89,7 +87,7 @@ end fn half
 
 `result` is a placeholder.
 
-**From:** D52, D53, D84, D114.
+**From:** D52, D53, D84, D114, D209.
 
 ## 5.5 Contracts
 

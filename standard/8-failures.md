@@ -26,9 +26,9 @@ fn half [$n: i32] -> i32 fails [odd, negative[val: i32]]:
 end fn half
 ```
 
-**Refused:** `-> i32 or fail[…]`, the older spelling.
+**Refused:** `-> i32 or fail[…]`, the older spelling, and `fails` in the body, with the fix moving it into the header.
 
-**From:** D47, D52.
+**From:** D47, D52, D209.
 
 ## 8.2 `fail`
 
