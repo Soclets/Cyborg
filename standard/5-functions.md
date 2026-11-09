@@ -194,11 +194,11 @@ Safe means that if compile-time code passes the compiler, every program it can g
 
 It can pick a type by a condition, take any number of type parameters, and loop over a struct's fields, with each field's type fitting a bound. Generating a struct's fields and generating functions are goals, if the checking works out.
 
-Its syntax isn't designed ([12.5](12-not-decided.md#125-functions)).
+It has its own syntax, inside its own marked blocks, so it never looks like run-time code. That syntax isn't designed ([12.5](12-not-decided.md#125-functions)).
 
 **Refused:** generating arbitrary code from text.
 
-**From:** D85, D88, D89, D90.
+**From:** D85, D88, D89, D90, D217.
 
 ## 5.11 Baking
 
