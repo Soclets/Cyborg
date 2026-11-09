@@ -28,13 +28,15 @@
 
 ## 10.2 No default
 
-**Rule:** there's no default build mode. You always say which. The compiler is `OKAY\n`, typed `okay`.
+**Rule:** there's no default build mode. You always say which, as its own flag. The compiler is `OKAY\n`, typed `okay`: `okay comp` compiles, and `okay run` compiles and runs. `--max_cores=` takes a number, `max` or `min`, and is `max` when left out.
 
 ```
-okay build --mode FinalSafe
+okay comp --FinalSafe
 ```
 
-**From:** D26.
+**Refused:** `okay comp` with no mode flag, and `--mode FinalSafe`, with `fix: --FinalSafe`.
+
+**From:** D26, D222, D224.
 
 ## 10.3 What gets checked
 
@@ -112,7 +114,7 @@ Everything else that exists to stop you doing something dumb is gone: ownership 
 **Rule:** building in `FinalShit` prints this. It's exempt from the one-fix rule in [11.5](11-errors.md#115-fixes).
 
 ```
-$ okay build --mode FinalShit
+$ okay comp --FinalShit
 
 warning: you chose FinalShit
 what:  every contract is now a fucking promise nobody checked
