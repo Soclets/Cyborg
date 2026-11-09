@@ -658,7 +658,23 @@ fn lex(source: &str) -> Outcome<Vec<Token>> {
                 ));
             }
         }
+        // A `//` comment can trail code on its line, while a `///` attaches to what's below it.
+        // trace: D205
         if rest.starts_with("//") {
+            let line_start = source
+                .get(..position)
+                .and_then(|before| before.rfind('\n'))
+                .map_or(0, |at| at + 1);
+            let after_code = source
+                .get(line_start..position)
+                .is_some_and(|before| !before.trim().is_empty());
+            if after_code && rest.starts_with("///") {
+                return Err(Report::not_designed(
+                    Span::new(position, position + 3),
+                    "a `///` after code on its line, and what it attaches to",
+                    "",
+                ));
+            }
             position = skip_line_comment(source, position)?;
             continue;
         }

@@ -1,0 +1,5 @@
+NotDesignedYet: d205_trailing_doc_comment.cy:6:22, line 6 column 22
+ 6 |     let $x: i32 = 1; /// a doc
+   |                      ^^^
+ what: a `///` after code on its line, and what it attaches to
+ why:  not decided yet, and the standard doesn't say
