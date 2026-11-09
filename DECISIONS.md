@@ -925,6 +925,8 @@ a placeholder for a version that isn't correctly rounded. A float prints as the 
 
 **D225. `extern.c` is gone from the examples.** `@csup::extern.c` came from the owner's example in D93, after Rust's `extern "C"`, but it was never defined, and calls like `c("hi")` meant nothing. The standard now shows a limb's short name with `use @csup::union.untagged as untagged;`, which 9.6 already uses. How a C function is declared and called through `@csup` is not designed, and whether D220 covers a limb function's narrowing waits until it is. Oracle claude asked whether D220 applies to `use @csup::extern.c as c;`; the owner asked "What in the cursed fuck is `extern.c()`?"; Claude proposed dropping it; the owner chose: "yea". (Owner, 2026-11-09)
 
+**D226. Cyborg goes as manual as C, inside shields.** Inside a shield, Cyborg can do what C or Rust's `unsafe` can: raw pointers, with any address and pointer arithmetic; volatile reads and writes that the compiler can't skip or reorder, for hardware registers; exact struct layouts, with field order, packing and alignment fixed; your own allocator, or none at all on bare metal; and inline assembly. The first three join the list of what must live in a shield (D38), and containment (D39) still keeps raw pointers from leaving one. How each is spelled is not settled here. The owner asked "how manual should Cyborg be able to go?"; Claude proposed this; the owner chose: "Yea". (Owner, 2026-11-09)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude
