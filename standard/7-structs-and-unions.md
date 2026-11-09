@@ -61,12 +61,12 @@ change $r.celsius = 22;
 
 ```
 union.tagged status:
-    ok
-    failed[code: i32]
+    ok;
+    failed[code: i32];
 end union.tagged status
 ```
 
-**From:** D33.
+**From:** D33, D208.
 
 ## 7.6 Using a union
 

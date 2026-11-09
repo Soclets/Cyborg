@@ -158,7 +158,7 @@ fn open [$path: str] -> open_file:
 end fn open
 
 struct.must_Give log:
-    file: open_file
+    file: open_file;
 end struct.must_Give log
 ```
 
@@ -244,8 +244,8 @@ A `union.tagged` case can hold a borrow the same way:
 
 ```
 union.tagged lookup <`text`>:
-    found[item: Lend from `text` reading]
-    missing
+    found[item: Lend from `text` reading];
+    missing;
 end union.tagged lookup
 ```
 
