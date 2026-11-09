@@ -147,12 +147,12 @@ std::list<i32>[len.min: 1 items, len.max: 8 items]
 
 ## 1.10 Clashing names: `my::`
 
-**Rule:** your own names are bare, and any name is allowed. A name clashes when it's the same as a keyword, a word operator or a base type. The definition stays bare, and every use is written with `my::`.
+**Rule:** your own names are bare, and any name is allowed. A name clashes when it's the same as a keyword, a word operator, a base type, or `main`. It's written with `my::` everywhere: its declaration, its closer and every use.
 
 ```
-fn x [$a: i32, $b: i32] -> i32:
+fn my::x [$a: i32, $b: i32] -> i32:
     …
-end fn x
+end fn my::x
 
 let $area: i32 = $width x $height;
 let $mine: i32 = my::x($width, $height);
@@ -164,9 +164,9 @@ If Cyborg later adds a built-in with the same name, old code gets a compile erro
 
 `my` is a reserved kit prefix. `@my` isn't reserved.
 
-**Refused:** a bare `x(…)` when `x` is built in, with `fix: my::x(…)`.
+**Refused:** a bare `x(…)` when `x` is built in, with `fix: my::x(…)`, a bare `fn x` declaring one, with `fix: fn my::x`, and `fn main`, with `fix: fn.main`, since a plain function named `main` would sit one character away from the program's start. A function really named `main` is `fn my::main`.
 
-**From:** D75.
+**From:** D75, D214.
 
 ## 1.11 Short names: `use`
 
