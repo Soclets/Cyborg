@@ -1,9 +1,7 @@
 // trace: D139
 @config(default);
 
-fn f [] -> i32:
-    fails [a[val: i32], b];
-
+fn f [] -> i32 fails [a[val: i32], b]:
     return 1;
 end fn f
 

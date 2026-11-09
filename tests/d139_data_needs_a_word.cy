@@ -1,9 +1,7 @@
 // trace: D139, D3
 @config(default);
 
-fn f [] -> str:
-    fails [a[label: str]];
-
+fn f [] -> str fails [a[label: str]]:
     return "x";
 end fn f
 

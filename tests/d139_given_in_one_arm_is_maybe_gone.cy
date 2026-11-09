@@ -2,9 +2,7 @@
 // trace: D139, D2
 @config(default);
 
-fn f [] -> str:
-    fails [a];
-
+fn f [] -> str fails [a]:
     return "x";
 end fn f
 

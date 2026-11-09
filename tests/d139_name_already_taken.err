@@ -1,5 +1,5 @@
-NotDesignedYet: d139_name_already_taken.cy:14:16, line 14 column 16
-14 |         case a $x:
+NotDesignedYet: d139_name_already_taken.cy:12:16, line 12 column 16
+12 |         case a $x:
    |                ^^
  what: declaring `$x` again while the first is in scope
  why:  not decided yet, and the standard doesn't say

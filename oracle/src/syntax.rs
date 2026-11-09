@@ -1586,6 +1586,7 @@ impl Parser {
     }
 
     fn parse_function(&mut self) -> Outcome<Function> {
+        let header_first = self.position;
         let start = self.advance().span; // `fn`
         let mut narrowing = String::new();
         while self.at_symbol(".") {
@@ -1635,9 +1636,17 @@ impl Parser {
             return Err(Report::refused(
                 self.span(),
                 "`or fail[…]` is the older spelling",
-                "a function lists its failures in its body, with `fails` (D52)",
+                "a function lists its failures in its header, after its return type, with `fails` (D52, D209)",
             ));
         }
+        // A function's failures are listed after its return type. (D209)
+        // trace: D209
+        let header_fails = if self.at_word("fails") {
+            Some(self.parse_failure_list()?)
+        } else {
+            None
+        };
+        let header_last = self.position.saturating_sub(1);
         self.expect_symbol(":")?;
         let mut function = Function {
             kind,
@@ -1655,7 +1664,8 @@ impl Parser {
             body: Vec::new(),
             end_span: start,
         };
-        self.parse_top_of_body(&mut function)?;
+        function.fails = header_fails;
+        self.parse_top_of_body(&mut function, (header_first, header_last))?;
         function.body = self.parse_block()?;
         function.end_span = self.parse_function_closer(kind, &function.name.text)?;
         Ok(function)
@@ -1761,7 +1771,11 @@ impl Parser {
     }
 
     /// `labels`, `defaults`, `requires`, `ensures` and `fails` go first, in that order. (D114)
-    fn parse_top_of_body(&mut self, function: &mut Function) -> Outcome<()> {
+    fn parse_top_of_body(
+        &mut self,
+        function: &mut Function,
+        header: (usize, usize),
+    ) -> Outcome<()> {
         let mut phase = 0;
         loop {
             let (word_phase, word) = if self.at_word("labels") {
@@ -1782,14 +1796,14 @@ impl Parser {
                 return Err(Report::refused(
                     self.span(),
                     format!("`{word}` is out of order"),
-                    "the top of a body goes `labels`, `defaults`, `requires`, `ensures`, `fails`, then the code (D114)",
+                    "the top of a body goes `labels`, `defaults`, `requires`, `ensures`, then the code (D114, D209)",
                 ));
             }
             if word_phase == phase && word_phase != 3 && word_phase != 4 {
                 return Err(Report::refused(
                     self.span(),
                     format!("`{word}` is written once"),
-                    "the top of a body goes `labels`, `defaults`, `requires`, `ensures`, `fails`, then the code (D114)",
+                    "the top of a body goes `labels`, `defaults`, `requires`, `ensures`, then the code (D114, D209)",
                 ));
             }
             phase = word_phase;
@@ -1819,7 +1833,20 @@ impl Parser {
                     let contract = self.parse_contract()?;
                     function.ensures.push(contract);
                 }
-                _ => function.fails = Some(self.parse_fails()?),
+                // trace: D209
+                _ => {
+                    let at = self.span();
+                    let first = self.position;
+                    self.parse_fails()?;
+                    let listed = self.tokens_text(first, self.position.saturating_sub(2));
+                    let header_text = self.tokens_text(header.0, header.1);
+                    return Err(Report::refused(
+                        at,
+                        "`fails` goes in the header, after the return type",
+                        "the header says a function can fail, so its failures are listed there (D209)",
+                    )
+                    .fix(format!("{header_text} {listed}:")));
+                }
             }
         }
     }
@@ -1912,6 +1939,13 @@ impl Parser {
     }
 
     fn parse_fails(&mut self) -> Outcome<Vec<FailureEntry>> {
+        let entries = self.parse_failure_list()?;
+        self.expect_semicolon()?;
+        Ok(entries)
+    }
+
+    /// `fails [odd, negative[val: i32]]`. (D52, D209)
+    fn parse_failure_list(&mut self) -> Outcome<Vec<FailureEntry>> {
         self.advance(); // `fails`
         self.expect_symbol("[")?;
         let mut entries = Vec::new();
@@ -1922,7 +1956,6 @@ impl Parser {
             }
         }
         self.expect_symbol("]")?;
-        self.expect_semicolon()?;
         Ok(entries)
     }
 
@@ -2742,7 +2775,7 @@ impl Parser {
                     return Err(Report::refused(
                         start,
                         format!("`{word}` goes first in the body"),
-                        "the top of a body goes `labels`, `defaults`, `requires`, `ensures`, `fails`, then the code (D114)",
+                        "the top of a body goes `labels`, `defaults`, `requires`, `ensures`, then the code (D114, D209)",
                     ));
                 }
                 _ => {}

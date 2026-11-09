@@ -6,9 +6,7 @@ struct box:
     n: i32;
 end struct box
 
-fn make [] -> box:
-    fails [none];
-
+fn make [] -> box fails [none]:
     return box[n = 1];
 end fn make
 

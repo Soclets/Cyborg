@@ -2,9 +2,7 @@
 @config(default);
 import std;
 
-fn word [$bad: bool] -> str:
-    fails [too_long];
-
+fn word [$bad: bool] -> str fails [too_long]:
     if $bad:
         fail too_long;
     end if

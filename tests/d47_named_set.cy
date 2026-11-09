@@ -7,9 +7,7 @@ fam.failure file_failed:
     file_failed.denied;
 end fam.failure file_failed
 
-fn load [$which: i32] -> i32:
-    fails [file_failed, bad_syntax];
-
+fn load [$which: i32] -> i32 fails [file_failed, bad_syntax]:
     if $which == 1:
         fail file_failed.not_found;
     end if

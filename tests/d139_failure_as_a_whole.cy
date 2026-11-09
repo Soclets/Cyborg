@@ -3,9 +3,7 @@
 @config(default);
 import std;
 
-fn f [] -> void:
-    fails [a[val: i32]];
-
+fn f [] -> void fails [a[val: i32]]:
     return void;
 end fn f
 

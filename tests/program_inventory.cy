@@ -59,9 +59,7 @@ fn total_of [$a: line, $b: line] -> i32.stock.pieces:
     return $a.count + $b.count;
 end fn total_of
 
-fn order_size [$l: line] -> i32.stock.pieces:
-    fails [nothing_needed];
-
+fn order_size [$l: line] -> i32.stock.pieces fails [nothing_needed]:
     if $l.count at_least 10 stock.pieces:
         fail nothing_needed;
     end if

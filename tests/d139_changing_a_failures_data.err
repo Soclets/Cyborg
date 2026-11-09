@@ -1,5 +1,5 @@
-refused: d139_changing_a_failures_data.cy:13:20, line 13 column 20
-13 |             change $x.val = 2;
+refused: d139_changing_a_failures_data.cy:11:20, line 11 column 20
+11 |             change $x.val = 2;
    |                    ^^^^^^
  what: `$x` can't change, so neither can its field
  why:  a field or item can be changed if the whole variable is `let mut`, or the parameter `Lent.mut` (D125, D133)

@@ -2,18 +2,14 @@
 @config(default);
 import std;
 
-fn f [$which: i32] -> i32:
-    fails [a];
-
+fn f [$which: i32] -> i32 fails [a]:
     if $which > 0:
         fail a;
     end if
     return 1;
 end fn f
 
-fn g [] -> i32:
-    fails [b];
-
+fn g [] -> i32 fails [b]:
     let $n: i32 = f(1) otherwise:
         case a:
             fail b;

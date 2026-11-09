@@ -5,9 +5,7 @@ struct.must_Give open_file:
     fd: i32;
 end struct.must_Give open_file
 
-fn f [] -> i32:
-    fails [a];
-
+fn f [] -> i32 fails [a]:
     return 1;
 end fn f
 

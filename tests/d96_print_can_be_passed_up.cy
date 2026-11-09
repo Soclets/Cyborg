@@ -3,9 +3,7 @@
 @config(default);
 import std;
 
-fn say [] -> void:
-    fails [print_failed];
-
+fn say [] -> void fails [print_failed]:
     std::io::fmt_print("hi{newln}")?;
     return void;
 end fn say

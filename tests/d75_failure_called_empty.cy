@@ -3,9 +3,7 @@
 @config(default);
 import std;
 
-fn first_word [$bad: bool] -> void:
-    fails [too_long, empty];
-
+fn first_word [$bad: bool] -> void fails [too_long, empty]:
     if $bad:
         fail my::empty;
     end if

@@ -2,9 +2,7 @@
 // trace: D47
 @config(default);
 
-fn inner [] -> i32:
-    fails [odd];
-
+fn inner [] -> i32 fails [odd]:
     return 1;
 end fn inner
 

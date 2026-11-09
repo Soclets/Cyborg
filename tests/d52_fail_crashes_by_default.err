@@ -1,9 +1,9 @@
-check failed: d52_fail_crashes_by_default.cy:16:37, line 16 column 37
-16 |     std::io::fmt_print("{}{newln}", half(3));
+check failed: d52_fail_crashes_by_default.cy:14:37, line 14 column 37
+14 |     std::io::fmt_print("{}{newln}", half(3));
    |                                     ^^^^^^^
  what: `odd` failed, and nothing handled it
  why:  a failure nothing handles stops the program (D96)
- because: d52_fail_crashes_by_default.cy:9:9, line 9 column 9
- 9 |         fail odd;
+ because: d52_fail_crashes_by_default.cy:7:9, line 7 column 9
+ 7 |         fail odd;
    |         ^^^^^^^^^
      it was raised here

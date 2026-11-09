@@ -2,9 +2,7 @@
 @config(default);
 import std;
 
-fn half [$n: i32] -> i32:
-    fails [odd];
-
+fn half [$n: i32] -> i32 fails [odd]:
     if $n mod.trunc 2 != 0:
         fail odd;
     end if

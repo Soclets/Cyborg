@@ -1,9 +1,7 @@
 // trace: D139, D7
 @config(default);
 
-fn f [] -> i32:
-    fails [a];
-
+fn f [] -> i32 fails [a]:
     return 1;
 end fn f
 

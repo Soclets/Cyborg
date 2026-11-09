@@ -2,9 +2,7 @@
 @config(default);
 import std;
 
-fn half [$n: i32] -> i32:
-    fails [negative[val: i32], odd];
-
+fn half [$n: i32] -> i32 fails [negative[val: i32], odd]:
     if $n < 0:
         fail negative[val = $n];
     end if

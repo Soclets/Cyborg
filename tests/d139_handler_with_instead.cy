@@ -13,9 +13,7 @@ fam.handler word_failed:
     end word_failed.use_placeholder
 end fam.handler word_failed
 
-fn first_word [$which: i32] -> str:
-    fails [too_long, no_words[count: i32]];
-
+fn first_word [$which: i32] -> str fails [too_long, no_words[count: i32]]:
     if $which == 1:
         fail too_long;
     end if

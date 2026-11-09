@@ -2,9 +2,7 @@
 // trace: D132
 @config(default);
 
-fn read [] -> i32:
-    fails [none];
-
+fn read [] -> i32 fails [none]:
     return 1;
 end fn read
 

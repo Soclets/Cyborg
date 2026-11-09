@@ -2,9 +2,7 @@
 @config(default);
 import std;
 
-fn read [] -> i32:
-    fails [none];
-
+fn read [] -> i32 fails [none]:
     fail none;
 end fn read
 

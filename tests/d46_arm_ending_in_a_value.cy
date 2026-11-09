@@ -2,9 +2,7 @@
 // trace: D139, D45
 @config(default);
 
-fn first_word [] -> str:
-    fails [too_long];
-
+fn first_word [] -> str fails [too_long]:
     return "word";
 end fn first_word
 

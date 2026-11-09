@@ -1,5 +1,5 @@
-refused: d139_arm_says_nothing.cy:12:14, line 12 column 14
-12 |         case a:
+refused: d139_arm_says_nothing.cy:10:14, line 10 column 14
+10 |         case a:
    |              ^
  what: this arm can run off its end, and `i32` is needed here
  why:  an arm gives a value with `instead`, or can `return`, `break` or `fail` (D139)

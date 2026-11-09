@@ -3,15 +3,11 @@
 @config(default);
 import std;
 
-fn f [] -> i32:
-    fails [a];
-
+fn f [] -> i32 fails [a]:
     fail a;
 end fn f
 
-fn g [] -> i32:
-    fails [b];
-
+fn g [] -> i32 fails [b]:
     fail b;
 end fn g
 

@@ -1,9 +1,7 @@
 // trace: D139
 @config(default);
 
-fn f [] -> i32:
-    fails [odd];
-
+fn f [] -> i32 fails [odd]:
     return 1;
 end fn f
 

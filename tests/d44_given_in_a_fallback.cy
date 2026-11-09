@@ -2,9 +2,7 @@
 // trace: D44, D2
 @config(default);
 
-fn read [] -> str:
-    fails [none];
-
+fn read [] -> str fails [none]:
     return "a";
 end fn read
 

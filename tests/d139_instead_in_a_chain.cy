@@ -3,9 +3,7 @@
 @config(default);
 import std;
 
-fn f [] -> i32:
-    fails [a[val: i32]];
-
+fn f [] -> i32 fails [a[val: i32]]:
     fail a[val = 2];
 end fn f
 

@@ -1,0 +1,5 @@
+refused: d209_a_result_type_isnt_used.cy:5:22, line 5 column 22
+ 5 | fn half [$n: i32] -> result<i32, odd>:
+   |                      ^^^^^^
+ what: the type `result` isn't known
+ why:  a type is built in, or declared with `struct` or `union.tagged` (D33, D57)

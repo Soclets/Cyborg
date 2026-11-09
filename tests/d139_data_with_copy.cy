@@ -2,9 +2,7 @@
 @config(default);
 import std;
 
-fn f [] -> str:
-    fails [a[label: str]];
-
+fn f [] -> str fails [a[label: str]]:
     fail a[label = "from the failure"];
 end fn f
 

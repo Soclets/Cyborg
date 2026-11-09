@@ -10,9 +10,7 @@ fam.failure net_failed:
     net_failed.denied;
 end fam.failure net_failed
 
-fn load [] -> i32:
-    fails [file_failed.denied, net_failed.denied];
-
+fn load [] -> i32 fails [file_failed.denied, net_failed.denied]:
     fail net_failed.denied;
 end fn load
 

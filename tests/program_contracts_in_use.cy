@@ -13,12 +13,11 @@ fn.pure is_positive [$n: i32] -> bool:
     return $n > 0;
 end fn.pure is_positive
 
-fn per_day [$total: i32, $n: i32] -> i32:
+fn per_day [$total: i32, $n: i32] -> i32 fails [nothing_to_share]:
     labels [$n as days];
     defaults [$n = 7];
     requires is_positive($n);
     ensures result x $n at_most $total;
-    fails [nothing_to_share];
 
     if $total == 0:
         fail nothing_to_share;

@@ -1,5 +1,5 @@
-refused: d46_arm_missing.cy:11:19, line 11 column 19
-11 |     let $n: i32 = load() otherwise:
+refused: d46_arm_missing.cy:9:19, line 9 column 19
+ 9 |     let $n: i32 = load() otherwise:
    |                   ^^^^^^^^^^^^^^^^^
  what: this doesn't handle `b`
  why:  the arms must cover every failure still possible at that call (D46)

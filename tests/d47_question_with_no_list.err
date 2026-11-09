@@ -1,5 +1,5 @@
-NotDesignedYet: d47_question_with_no_list.cy:12:12, line 12 column 12
-12 |     return inner()?;
+NotDesignedYet: d47_question_with_no_list.cy:10:12, line 10 column 12
+10 |     return inner()?;
    |            ^^^^^^^^
  what: `?` in a function that lists no failures
  why:  not decided yet (standard 12.6)

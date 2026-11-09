@@ -2,9 +2,7 @@
 // trace: D86
 @config(default);
 
-fn.pure f [] -> i32:
-    fails [a];
-
+fn.pure f [] -> i32 fails [a]:
     return 1;
 end fn.pure f
 

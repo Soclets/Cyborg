@@ -1,9 +1,7 @@
 // trace: D139
 @config(default);
 
-fn f [] -> void:
-    fails [a];
-
+fn f [] -> void fails [a]:
     return void;
 end fn f
 

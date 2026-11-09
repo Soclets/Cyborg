@@ -2,9 +2,7 @@
 @config(default);
 import std;
 
-fn f [] -> i32[min: 0, max: 9]:
-    fails [a];
-
+fn f [] -> i32[min: 0, max: 9] fails [a]:
     fail a;
 end fn f
 

@@ -2,9 +2,7 @@
 @config(default);
 import std;
 
-fn read_port [$ok: bool] -> i32:
-    fails [no_port];
-
+fn read_port [$ok: bool] -> i32 fails [no_port]:
     if $ok:
         return 9000;
     end if

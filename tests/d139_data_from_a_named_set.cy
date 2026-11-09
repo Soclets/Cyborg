@@ -7,9 +7,7 @@ fam.failure file_failed:
     file_failed.disk_full[free: i32, label: str];
 end fam.failure file_failed
 
-fn save [] -> void:
-    fails [file_failed];
-
+fn save [] -> void fails [file_failed]:
     fail file_failed.disk_full[free = 7, label = "scratch"];
 end fn save
 

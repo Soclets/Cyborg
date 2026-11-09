@@ -1,9 +1,7 @@
 // trace: D46
 @config(default);
 
-fn load [] -> i32:
-    fails [a, b];
-
+fn load [] -> i32 fails [a, b]:
     return 0;
 end fn load
 

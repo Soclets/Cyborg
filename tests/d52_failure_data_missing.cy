@@ -1,9 +1,7 @@
 // trace: D52, D47
 @config(default);
 
-fn half [$n: i32] -> i32:
-    fails [negative[value: i32]];
-
+fn half [$n: i32] -> i32 fails [negative[value: i32]]:
     fail negative;
 end fn half
 
