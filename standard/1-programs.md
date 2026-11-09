@@ -28,14 +28,17 @@
 
 ```
 import std;
+use std::io::fmt_print as fmt_print;
 
 fn.main [] -> void:
-    std::io::fmt_print("hi{newln}");
+    fmt_print("Hello, World!{newln}");
     return void;
 end fn.main
 ```
 
-**From:** D11, D23, the sketch.
+This is the owner's hello world. The `use` line is on purpose.
+
+**From:** D11, D23, D93, D197, the sketch.
 
 ## 1.3 Blocks and statements
 
