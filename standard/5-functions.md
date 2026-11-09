@@ -11,7 +11,7 @@
 | [5.7](#57-builtins-) | `@bytes_of` | Bare `@` |
 | [5.8](#58-generics) | `<?T: ordered>` | C++ templates, but safer |
 | [5.9](#59-pure-functions) | `fn.pure` | Same input, same output, nothing else changes |
-| [5.10](#510-the-inline-compile-time-language) | Inline language | Templates, but more powerful and safe |
+| [5.10](#510-compile-time-features) | Compile-time features | Templates, but safe, one feature per job |
 | [5.11](#511-baking) | `bake`, `fn.pure.baked`, `const` | Compile-time values |
 
 ## 5.1 Declaring
@@ -181,28 +181,33 @@ Whether one may allocate or fail isn't decided ([12.5](12-not-decided.md#125-fun
 
 **From:** D86.
 
-## 5.10 The inline compile-time language
+## 5.10 Compile-time features
 
-**Rule:** Cyborg's equivalent of C++ templates is a separate compile-time language, written inline in Cyborg code, more powerful than templates and safe. [5.8](#58-generics) says what its generics must do.
+**Rule:** Cyborg has no separate compile-time language for now. Each compile-time job is its own feature:
 
-Safe means that if compile-time code passes the compiler, every program it can generate is valid Cyborg, with all of Cyborg's rules:
+| Job | Feature |
+|---|---|
+| Picking a type by a condition | A `match` on types inside a generic |
+| Any number of type parameters | Variadic generics |
+| Looping over a struct's fields | A built-in loop over a type's fields, each field's type fitting a bound |
+| Values known while compiling | `const`, `bake` and `fn.pure.baked` ([5.11](#511-baking)) |
+
+Each one is safe: if it passes the compiler, every program it can produce is valid Cyborg, with all of Cyborg's rules.
 
 - It's checked at the definition, not at a use.
-- Generated code follows ownership, `%`, shields and everything else.
+- Produced code follows ownership, `%`, shields and everything else.
 - It always finishes, such as through a step limit that gives `refused:`.
-- Errors point at real code, with `because:` leading back to the compile-time code.
+- Errors point at real code, with `because:` leading back to the feature.
 
-It can pick a type by a condition, take any number of type parameters, and loop over a struct's fields, with each field's type fitting a bound. Generating a struct's fields and generating functions are goals, if the checking works out.
-
-It has its own syntax, inside its own marked blocks, so it never looks like run-time code. That syntax isn't designed ([12.5](12-not-decided.md#125-functions)).
+Generating whole functions or structs waits. A separate compile-time language could come back later as a limb. Each feature's syntax isn't designed ([12.5](12-not-decided.md#125-functions)).
 
 **Refused:** generating arbitrary code from text.
 
-**From:** D85, D88, D89, D90, D217.
+**From:** D85, D88, D89, D90, D217, D218.
 
 ## 5.11 Baking
 
-**Rule:** all compile-time work belongs to the inline language ([5.10](#510-the-inline-compile-time-language)). A `const`'s value is inline-language code, and `bake` is the shortest piece of it. It can call normal functions marked `fn.pure.baked`, and only those, and they also run normally.
+**Rule:** a value known while compiling comes from `const` or `bake` ([5.10](#510-compile-time-features)). A `const`'s value is worked out while compiling, and `bake` works out one value in place. It can call normal functions marked `fn.pure.baked`, and only those, and they also run normally.
 
 ```
 fn.pure.baked seconds_in [$days: i32] -> i32:
@@ -216,4 +221,4 @@ let $n: i32 = seconds_in($d);
 
 **Refused:** baking a function that isn't `fn.pure.baked`, and a compile-time step limit being reached. An edit that stops a function being baked is refused on that function.
 
-**From:** D86, D89, D91.
+**From:** D86, D89, D91, D218.

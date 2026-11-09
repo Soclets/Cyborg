@@ -106,7 +106,7 @@ Waiting on the owner, most needed first. Each is `NotDesignedYet` unless it says
 
 - Generics (D85, D87): the spelling, including `?T` and declaring a bound, how a bound is defined, whether you can declare one for a type from someone else's kit, and how specialization and value parameters are written.
 - Whether a `fn.pure` may allocate or fail.
-- The inline compile-time language (D88 to D91): its syntax.
+- Compile-time features (D218): the syntax of a `match` on types, variadic generics, and the loop over a type's fields.
 - Whether every `void` function says `return void;`.
 - Naming rules, like capitals.
 
