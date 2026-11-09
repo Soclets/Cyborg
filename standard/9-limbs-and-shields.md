@@ -5,7 +5,7 @@
 | [9.1](#91-base-kits-and-limbs) | Base, kit, limb, package | Bare, a path, or `@` |
 | [9.2](#92--a-limb) | `@name::` | A limb provides this |
 | [9.3](#93-stds-two-parts) | `std::`, `@std::` | The kit part and the limb part |
-| [9.4](#94-inline-assembly) | `@std::inline.asm` | In `std`'s limb part |
+| [9.4](#94-inline-code-inline) | `inline.asm`, `inline.@limb::lang` | In the base language, and limbs add to it |
 | [9.5](#95-c-support-csup) | `@csup` | C support |
 | [9.6](#96-cs-union) | `@csup::union.untagged` | Inside a shield |
 | [9.7](#97-shields) | `shield` | Dangerous code, with a reason |
@@ -51,11 +51,21 @@ Packages are installed with CyJet, Cyborg's package manager, which shares only i
 
 **From:** D22, D28.
 
-## 9.4 Inline assembly
+## 9.4 Inline code: `inline`
 
-**Rule:** `@std::inline.asm` is in `std`'s limb part, and must be inside a shield.
+**Rule:** `inline` is a family in the base language. Inline assembly is `inline.asm`, written bare, with no import. A limb adds its own inline language to the family as `inline.@limb::lang`, so the `@` still marks it. All inline code must be inside a shield.
 
-**From:** D28, D35, D36, D38.
+```
+inline.asm
+inline.@llvm::ir
+use inline.@llvm::ir as ir;
+```
+
+This is the one place a path sits inside a narrowing, so every limb plugs into the same `inline` instead of declaring its own. How the code inside is written isn't decided.
+
+**Refused:** `@std::inline.asm`, with `fix: inline.asm`, and `inline.llvm::ir`, with no `@`.
+
+**From:** D28, D35, D36, D38, D227.
 
 ## 9.5 C support: `@csup`
 
@@ -98,7 +108,7 @@ end shield sensor_driver
 
 **Rule:**
 
-- `@std::inline.asm`
+- `inline.asm`, and any `inline.@limb::lang`
 - Raw pointers, with any address and pointer arithmetic
 - Volatile reads and writes, for hardware registers
 - Exact struct layouts, with field order, packing and alignment fixed

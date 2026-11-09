@@ -150,7 +150,7 @@ Even Grok wouldn't fucking joke about this
 | Kind | What it's for | How it's written |
 |---|---|---|
 | Purpose | Isolates one thing, and the result says what | As hard as it can, for that one thing |
-| Normal | How Cyborg does in everyday code | No `@std::inline.asm`, shields or hand-tuning |
+| Normal | How Cyborg does in everyday code | No `inline` code, shields or hand-tuning |
 | Ceil | How fast Cyborg can possibly go | Anything allowed |
 
 Other languages' versions follow the same rules.
