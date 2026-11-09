@@ -228,11 +228,11 @@ end comment why_sorted
 std::io::fmt_print("hi{newln}");
 std::io::fmt_print("{}: {} at ${places: 2}{newln}", $name, $count, $price);
 std::io::fmt_print("0x{base: hex.upper, zeros, width: 4 cols}{newln}", 255);
-std::io::fmt_print("[{align: right, width: 6 cols}] {form: science, places: 2}{newln}", 42, 12.5);
+std::io::fmt_print("[{align: right, width: 6 cols}] {form: science, places: 2}{newln}", 42, $price);
 std::io::fmt_print.stored("{}{newln}", $tenth);
 ```
 
-With `$name` as `"rope"`, `$count` as `3`, `$price` as `12.5` and `$tenth` as an `f64` holding `~0.1`, these print `hi`, `rope: 3 at $12.50`, `0x00FF`, `[    42] 1.25e1`, and `0.1000000000000000055511151231257827021181583404541015625`.
+With `$name` as `"rope"`, `$count` as `3`, `$price` as an `f64` holding `12.5`, and `$tenth` as an `f64` holding `~0.1`, these print `hi`, `rope: 3 at $12.50`, `0x00FF`, `[    42] 1.25e1`, and `0.1000000000000000055511151231257827021181583404541015625`.
 
 - **Holes:** `{}` takes the next value in its readable form. `{1}`, `{2}` are numbered, counting from 1, and can't be mixed with plain ones.
 - **Shapes are words:** `align: left`, `right` or `center`; `width:` with its unit, `cols`, `cols.east_asian`, `graphemes`, `points` or `bytes`; `places:`; `base: bin`, `oct`, `hex` or `hex.upper`; `form: science`; and bare `zeros` and `sign`.
