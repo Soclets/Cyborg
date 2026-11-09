@@ -703,6 +703,12 @@ impl Checker<'_> {
                 written_type,
             } => self.check_decl(*mutable, name, written_type)?,
             StatementKind::Assign { name, value } => self.check_assign(name, value, span)?,
+            StatementKind::Inferred {
+                constant,
+                mutable,
+                name,
+                value,
+            } => self.check_inferred(*constant, *mutable, name, value)?,
             StatementKind::Constant {
                 name,
                 written_type,
@@ -917,6 +923,120 @@ impl Checker<'_> {
             state.filled = super::Filled::Yes;
         }
         Ok(InstructionKind::Let { slot, value: node })
+    }
+
+    /// `let $y := $x + 1;` takes exactly the type of what's on the right. (D216)
+    /// trace: D216
+    fn check_inferred(
+        &mut self,
+        constant: bool,
+        mutable: bool,
+        name: &crate::ast::Name,
+        value: &Expression,
+    ) -> Outcome<InstructionKind> {
+        self.refuse_second_declaration(name)?;
+        let (node, held_type) = self.infer_value(value, constant)?;
+        if constant {
+            self.compile_time.push(node.clone());
+        }
+        let must_give = !constant && self.is_must_give(&held_type);
+        let slot = self.declare_variable(Variable {
+            name: name.text.clone(),
+            held_type,
+            mutable: mutable && !constant,
+            origin: if constant {
+                Origin::Constant
+            } else {
+                Origin::Owned
+            },
+            declared: name.span,
+            must_give,
+            constant: constant.then(|| node.clone()),
+            borrows: Vec::new(),
+            borrowed_path: Vec::new(),
+        });
+        Ok(InstructionKind::Let { slot, value: node })
+    }
+
+    /// The value on the right of `:=`, and its type, which the variable takes exactly. A bare
+    /// literal has no type of its own, so it says one. (D216, D50)
+    /// trace: D216
+    pub(super) fn infer_value(
+        &mut self,
+        value: &Expression,
+        constant: bool,
+    ) -> Outcome<(Node, Type)> {
+        let bare = is_number_literal(value)
+            || matches!(value.kind, ExpressionKind::Empty)
+            || matches!(&value.kind, ExpressionKind::Negate(inner) if is_number_literal(inner));
+        if bare {
+            let shown = self.text_of(value.span).to_string();
+            return Err(Report::refused(
+                value.span,
+                format!("`{shown}` has no type of its own, so this line says one, as in `: i32 = {shown}`"),
+                "a bare literal has no default type, so `:=` can't take one from it (D216, D50)",
+            ));
+        }
+        if constant {
+            self.refuse_if_not_constant(value)?;
+            self.context.in_constant += 1;
+        }
+        let result = self.infer_value_type(value);
+        if constant {
+            self.context.in_constant -= 1;
+        }
+        let (node, found) = result?;
+        if matches!(found, Type::Borrow { .. } | Type::Holding { .. }) {
+            return Err(Report::not_designed(
+                value.span,
+                "`:=` on a borrow, or on a struct that holds one",
+                "",
+            ));
+        }
+        Ok((node, found))
+    }
+
+    fn infer_value_type(&mut self, value: &Expression) -> Outcome<(Node, Type)> {
+        if let ExpressionKind::Hand { word, value: inner } = &value.kind {
+            let held = match word {
+                HandWord::Give => self.check_give(inner, value.span)?,
+                HandWord::Copy => self.check_copy(inner)?,
+                HandWord::Lend | HandWord::LendMut => {
+                    return Err(Report::not_designed(
+                        value.span,
+                        "`:=` on a borrow, or on a struct that holds one",
+                        "",
+                    ));
+                }
+            };
+            if held.value_type.is_always_copied() {
+                return Err(Self::word_on_a_copied_value(
+                    value,
+                    self.text_of(inner.span),
+                    &held.value_type,
+                ));
+            }
+            return Ok((held.node, held.value_type));
+        }
+        let is_place = matches!(
+            value.kind,
+            ExpressionKind::Variable(_)
+                | ExpressionKind::Field { .. }
+                | ExpressionKind::Item { .. }
+        ) && root_variable(value).is_some();
+        let (node, found) = self.check_expression(value, None)?;
+        // trace: D3
+        if is_place && !found.is_always_copied() {
+            return Err(Report::refused(
+                value.span,
+                format!(
+                    "`{}` is `{found}`, so this needs `Give` or `Copy`",
+                    self.text_of(value.span)
+                ),
+                "every hand-off shows on the page, including one into a name, a `return` or a field (D3)",
+            ));
+        }
+        Ok((node, found))
     }
 
     fn check_local_constant(

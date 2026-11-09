@@ -306,6 +306,13 @@ pub enum StatementKind {
         written_type: TypeExpression,
         value: Expression,
     },
+    /// `let $y := $x + 1;` or `const $max := 100 x 2;`, which leave the type out. (D216)
+    Inferred {
+        constant: bool,
+        mutable: bool,
+        name: Name,
+        value: Expression,
+    },
     /// `decl $x: i32;`, a variable with no value yet. (D203)
     Decl {
         mutable: bool,

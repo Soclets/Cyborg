@@ -1,0 +1,5 @@
+refused: d216_on_a_field.cy:6:13, line 6 column 13
+ 6 |     celsius := i32;
+   |             ^^
+ what: a struct field always writes its type
+ why:  `:=` leaves the type out only on a `let` or a `const`, not a parameter, a return type or a field (D216)

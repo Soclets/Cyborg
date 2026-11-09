@@ -1,4 +1,5 @@
-// trace: D83, D58
+// `:=` used to make a constant; D216 now gives it a new meaning, and a written type uses `=`.
+// trace: D83, D58, D216
 @config(default);
 
 fn.main [] -> void:

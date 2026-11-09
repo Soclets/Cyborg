@@ -462,7 +462,7 @@ impl Checker<'_> {
     }
 
     /// A `const`'s value must be fully known at compile time. (D83, D91)
-    fn refuse_if_not_constant(&self, value: &Expression) -> Outcome<()> {
+    pub(super) fn refuse_if_not_constant(&self, value: &Expression) -> Outcome<()> {
         const WHY: &str = "a `const`'s value must be fully known at compile time (D83, D91)";
         match &value.kind {
             ExpressionKind::Integer { .. }

@@ -1678,7 +1678,12 @@ impl Checker<'_> {
         let names: Vec<String> = pending
             .iter()
             .filter_map(|statement| match &statement.kind {
-                StatementKind::Constant { name, .. } => Some(name.text.clone()),
+                StatementKind::Constant { name, .. }
+                | StatementKind::Inferred {
+                    constant: true,
+                    name,
+                    ..
+                } => Some(name.text.clone()),
                 _ => None,
             })
             .collect();
@@ -1686,7 +1691,13 @@ impl Checker<'_> {
             let before = pending.len();
             let mut later = Vec::new();
             for statement in pending {
-                let StatementKind::Constant { value, .. } = &statement.kind else {
+                let (StatementKind::Constant { value, .. }
+                | StatementKind::Inferred {
+                    constant: true,
+                    value,
+                    ..
+                }) = &statement.kind
+                else {
                     continue;
                 };
                 let mut reads = Vec::new();
@@ -1716,17 +1727,30 @@ impl Checker<'_> {
     }
 
     fn check_global(&mut self, statement: &Statement) -> Outcome<()> {
-        let StatementKind::Constant {
-            name,
-            written_type,
-            value,
-        } = &statement.kind
-        else {
-            return Ok(());
+        let (name, value_type, node) = match &statement.kind {
+            StatementKind::Constant {
+                name,
+                written_type,
+                value,
+            } => {
+                let value_type = self.resolve_type(written_type)?;
+                self.context = FunctionContext::outside_any_function();
+                let node = self.check_constant_value(value, &value_type)?;
+                (name, value_type, node)
+            }
+            // trace: D216
+            StatementKind::Inferred {
+                constant: true,
+                name,
+                value,
+                ..
+            } => {
+                self.context = FunctionContext::outside_any_function();
+                let (node, value_type) = self.infer_value(value, true)?;
+                (name, value_type, node)
+            }
+            _ => return Ok(()),
         };
-        let value_type = self.resolve_type(written_type)?;
-        self.context = FunctionContext::outside_any_function();
-        let node = self.check_constant_value(value, &value_type)?;
         if self.globals.contains_key(&name.text) {
             return Err(Report::not_designed(
                 name.span,

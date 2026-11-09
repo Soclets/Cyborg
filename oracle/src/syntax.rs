@@ -1831,6 +1831,7 @@ impl Parser {
         let mut parameters = Vec::new();
         while !self.at_symbol("]") {
             let name = self.expect_variable("a parameter, starting with `$`")?;
+            Self::refuse_infer_here(self.at_symbol(":="), self.span(), "a parameter")?;
             self.expect_symbol(":")?;
             let word_span = self.span();
             let word = if self.at_word("Given") {
@@ -2119,6 +2120,7 @@ impl Parser {
         let mut fields = Vec::new();
         while !self.at_word("end") {
             let field_name = self.expect_name("a field, with no `$`")?;
+            Self::refuse_infer_here(self.at_symbol(":="), self.span(), "a struct field")?;
             self.expect_symbol(":")?;
             let written_type = self.parse_type()?;
             self.expect_semicolon()?;
@@ -2431,8 +2433,13 @@ impl Parser {
     fn parse_constant(&mut self) -> Outcome<Statement> {
         let start = self.advance().span; // `const`
         let name = self.expect_variable("the constant's name, starting with `$`")?;
+        // trace: D216
+        if self.eat_symbol(":=") {
+            return self.parse_inferred(start, true, false, name);
+        }
         self.expect_symbol(":")?;
         let written_type = self.parse_type()?;
+        Self::refuse_typed_infer(self.at_symbol(":="), self.span())?;
         self.expect_symbol("=")?;
         let value = self.parse_expression()?;
         let end = self.expect_semicolon()?;
@@ -2931,15 +2938,13 @@ impl Parser {
         let start = self.advance().span; // `let`
         let mutable = self.eat_word("mut");
         let name = self.expect_variable("the variable's name, starting with `$`")?;
+        // trace: D216
+        if self.eat_symbol(":=") {
+            return self.parse_inferred(start, false, mutable, name);
+        }
         self.expect_symbol(":")?;
         let written_type = self.parse_type()?;
-        if self.at_symbol(":=") {
-            return Err(Report::refused(
-                self.span(),
-                "`:=` is gone",
-                "a constant is `const`, with no `let` (D83)",
-            ));
-        }
+        Self::refuse_typed_infer(self.at_symbol(":="), self.span())?;
         self.expect_symbol("=")?;
         let value = self.parse_expression()?;
         let end = self.end_statement(&value)?;
@@ -2952,6 +2957,53 @@ impl Parser {
                 value,
             },
         })
+    }
+
+    /// The rest of `let $y := $x + 1;`, after the `:=`. (D216)
+    fn parse_inferred(
+        &mut self,
+        start: Span,
+        constant: bool,
+        mutable: bool,
+        name: Name,
+    ) -> Outcome<Statement> {
+        let value = self.parse_expression()?;
+        let end = self.end_statement(&value)?;
+        Ok(Statement {
+            span: start.to(end),
+            kind: StatementKind::Inferred {
+                constant,
+                mutable,
+                name,
+                value,
+            },
+        })
+    }
+
+    /// `:=` is for `let` and `const`, and a parameter or field always writes its type. (D216)
+    fn refuse_infer_here(found: bool, span: Span, what: &str) -> Outcome<()> {
+        if found {
+            return Err(Report::refused(
+                span,
+                format!("{what} always writes its type"),
+                "`:=` leaves the type out only on a `let` or a `const`, not a parameter, a return type or a field (D216)",
+            ));
+        }
+        Ok(())
+    }
+
+    /// `:=` leaves the type out, so a written type uses `=`. (D216)
+    /// trace: D216
+    fn refuse_typed_infer(found: bool, span: Span) -> Outcome<()> {
+        if found {
+            return Err(Report::refused(
+                span,
+                "this writes its type, so it uses `=`",
+                "`:=` leaves the type out, and a written type uses `=` (D216)",
+            )
+            .fix("="));
+        }
+        Ok(())
     }
 
     fn parse_change(&mut self) -> Outcome<Statement> {
