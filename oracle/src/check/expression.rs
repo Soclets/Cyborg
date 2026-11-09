@@ -243,7 +243,7 @@ fn holding_if_expected(found: Type, expected: Option<&Type>) -> Type {
 }
 
 /// Whether `text` in decimal is exactly what `value` holds. (D59)
-fn decimal_is_exact(text: &str, value: f64) -> bool {
+pub(super) fn decimal_is_exact(text: &str, value: f64) -> bool {
     // Formatting with this many places writes a binary float's value out in full.
     let full = format!("{:.1100}", value.abs());
     let normalize = |number: &str| -> (String, String) {

@@ -2,7 +2,7 @@
 
 use std::collections::HashMap;
 
-use super::expression::{is_number_literal, literal_number};
+use super::expression::{decimal_is_exact, is_number_literal, literal_number};
 use super::hand::UseKind;
 use super::{
     ArmInfo, Checker, Failure, FunctionContext, LoopInfo, Origin, Signature, Variable,
@@ -1105,9 +1105,15 @@ impl Checker<'_> {
             || matches!(&value.kind, ExpressionKind::Negate(inner) if is_number_literal(inner));
         if bare {
             let shown = self.text_of(value.span).to_string();
+            let what = match typed_example(value) {
+                Some(example) => format!(
+                    "`{shown}` has no type of its own, so this line says one, as in `{example}`"
+                ),
+                None => format!("`{shown}` has no type of its own, so this line says one"),
+            };
             return Err(Report::refused(
                 value.span,
-                format!("`{shown}` has no type of its own, so this line says one, as in `: i32 = {shown}`"),
+                what,
                 "a bare literal has no default type, so `:=` can't take one from it (D216, D50)",
             ));
         }
@@ -3473,4 +3479,44 @@ fn mentions(line: &str, name: &str) -> bool {
             .and_then(|rest| rest.chars().next())
             .is_some_and(|next| next.is_alphanumeric() || next == '_')
     })
+}
+
+/// A typed line that would hold this bare literal, for the `:=` refusal's example: `i32` for an
+/// integer and `f64` for a float, with D59's `~` when `f64` can't hold it exactly. `empty` has
+/// no such type, so it gets none. (D216, D59, D50)
+fn typed_example(value: &Expression) -> Option<String> {
+    let (inner, negated) = match &value.kind {
+        ExpressionKind::Negate(inner) => (inner.as_ref(), true),
+        _ => (value, false),
+    };
+    let inner = match &inner.kind {
+        ExpressionKind::Group(grouped) => grouped.as_ref(),
+        _ => inner,
+    };
+    match &inner.kind {
+        ExpressionKind::Integer { digits, negative } => {
+            let sign = if *negative || negated { "-" } else { "" };
+            Some(format!(": i32 = {sign}{digits}"))
+        }
+        ExpressionKind::Float {
+            digits,
+            negative,
+            exponent,
+            ..
+        } => {
+            let sign = if *negative || negated { "-" } else { "" };
+            let held: f64 = digits.parse().ok()?;
+            let mark = if decimal_is_exact(digits, held) {
+                ""
+            } else {
+                "~"
+            };
+            // An exponent literal keeps the way it was written. (D165)
+            Some(match exponent {
+                Some(written) => format!(": f64 = exponent {mark}{sign}{written}"),
+                None => format!(": f64 = {mark}{sign}{digits}"),
+            })
+        }
+        _ => None,
+    }
 }
