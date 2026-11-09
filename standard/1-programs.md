@@ -61,7 +61,7 @@ end if
 **Rule:** variables, parameters and constants start with `$`. Struct fields don't.
 
 ```
-let $r: reading = reading[celsius = 21, time = 3600 std::time.seconds];
+let $r: reading = reading[celsius = 21, time = 3600 std::units::time.seconds];
 std::io::fmt_print("{}{newln}", $r.celsius);
 ```
 
@@ -80,9 +80,9 @@ std::io::fmt_print("hi{newln}");
 
 A file imports the half of a package it uses: `import std;` for `std::`, and `import @std;` for `@std::`. `import pkg std;` brings in both.
 
-`import std::io::fmt_print;` imports only that one thing, and the file can reach nothing else from `std`. It still writes the full path, unless a `use` shortens it.
+`import std::io::fmt_print;` imports only that one thing, with its narrowings, like `.stderr`, and the file can reach nothing else from `std`. It still writes the full path, unless a `use` shortens it. `import std::units::time;` imports a whole unit family.
 
-**From:** D22, D56, D80, D81, D82, D92, D161, D183, D186, D187, D188, D191, D196, D198.
+**From:** D22, D56, D80, D81, D82, D92, D161, D183, D186, D187, D188, D191, D196, D198, D199.
 
 ## 1.6 Narrowings: `.`
 
@@ -171,7 +171,7 @@ If Cyborg later adds a built-in with the same name, old code gets a compile erro
 **Rule:** `use` gives a path a shorter name for that file, and `as` is always written. An unquoted name has to match the last word of the path, so it can't lie. A quoted name is your own choice, and the quotes only appear on this line.
 
 ```
-use std::time.seconds as seconds;
+use std::units::time.seconds as seconds;
 use std::io::fmt_print as "say";
 
 let $a: i32.seconds = 3600 seconds;
@@ -190,7 +190,7 @@ $xs.%append(val: 4);
 
 A method of your own with the same name on the same type in that file clashes, and is refused. A quoted name keeps the `%` outside the quotes, as in `use std::list.%append as %"push";`. A limb's short name has no `@`, since a bare `@name` is a builtin.
 
-**Refused:** `use std::list.%append as "push";` and `as "%push"`, with `fix: as %"push"`, `use std::time.seconds as minutes;`, `use @csup::extern.c as @c;`, because `@c` looks like a builtin, and a quoted name nothing could use, like `"my say"`, `""` or `"fn"`.
+**Refused:** `use std::list.%append as "push";` and `as "%push"`, with `fix: as %"push"`, `use std::units::time.seconds as minutes;`, `use @csup::extern.c as @c;`, because `@c` looks like a builtin, and a quoted name nothing could use, like `"my say"`, `""` or `"fn"`.
 
 **From:** D93, D150, D151, D155, D178, D179.
 

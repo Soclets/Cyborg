@@ -871,6 +871,8 @@ a placeholder for a version that isn't correctly rounded. A float prints as the 
 
 **D198. Importing one thing.** `import std::io::fmt_print;` imports only that one thing, so the file can reach nothing else from `std`, unlike `import std;`. It doesn't give a short name: the file still writes `std::io::fmt_print(…)`, or adds a `use`. Not settled here: whether a file may have both `import std;` and an import of one of its things, and how this works with `@` and `pkg`. The owner proposed it; Claude asked whether it also shortens the name; the owner chose: "It just imports that thing specifically, only. Unlike `import std;`". (Owner, 2026-11-09)
 
+**D199. Unit families live in `std::units`, and an import brings narrowings with it.** A unit family in `std` sits in the `units` group, as in `3600 std::units::time.seconds` and `i64.std::units::time.seconds`, and `use std::units::time.seconds as seconds;` shortens it. Importing a thing brings all its narrowings: `import std::units::time;` gives every unit in the family, since units only make sense with the ones they convert to, and `import std::io::fmt_print;` gives `.stored` and `.stderr`. `fmt_print` isn't a family, but both are spelled `path::thing.narrowing`. This moves the paths from D99 to D112 into D196's groups. The owner asked "what about units?" and "isn't `fmt_print` also a fam?"; Claude proposed this; the owner chose: "yea". (Owner, 2026-11-09)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude

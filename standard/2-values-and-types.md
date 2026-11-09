@@ -256,7 +256,7 @@ let $a: i32.time.seconds = 3600 time.seconds;
 let $b: i32.time.seconds = 5 time.seconds;
 let $c: i32.time.seconds = $a + $b;
 
-use std::time.seconds as seconds;
+use std::units::time.seconds as seconds;
 let $d: i32.seconds = 3600 seconds;
 ```
 
