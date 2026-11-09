@@ -74,6 +74,7 @@ Waiting on the owner, most needed first. Each is `NotDesignedYet` unless it says
 - Whether lint rules are proven with Verus under rule 13 (D202).
 - `pub` (D200): whether a closer repeats it, and finer levels like Rust's `pub(crate)`.
 - Importing one thing (D198): alongside `import std;`, and with `@` or `pkg`.
+- `:=` (D216): the spelling of Precog's rule, list items and struct fields in Precog's mode, and `:=` on a borrow.
 - Checking past an error (D215): an error in a block's opening line, like `if` or `for`, or in a function's header.
 - Spacing (D213): indentation, line length, and the space before an opening `[`, which `fn total [$xs: …]` has and `reading[celsius = 21]` doesn't.
 - Named holes (D210): shapes on one, a field like `{$r.celsius}`, and mixing them with `{}` or numbered holes.

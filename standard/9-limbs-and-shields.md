@@ -125,6 +125,8 @@ Using a limb doesn't need a shield by itself: `@` says it's a compiler extension
 
 **Rule:** Precog proves things about a program. Layers 1 and 2, known values and ranges, are in the core. Layer 3, Z3 and CVC5, is a limb. That limb adds invariants, `assert` hints, ghost code, lemmas, proofs that loops end and that stack and heap fit their budgets, proof levels, and a "prove everything or refuse" mode as an option. Anything Precog proves can drop its check safely, in any mode.
 
+With its rule on, the limb also picks the type for `:=` ([2.20](2-values-and-types.md#220--inference-or-precogs-pick)).
+
 **From:** D14, D29.
 
 ## 9.11 The linter

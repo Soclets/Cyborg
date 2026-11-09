@@ -21,6 +21,7 @@
 | [2.17](#217-getting-an-item) | `$xs[pos: 1]`, `$xs[offset.items: 0]` | Counting from 1, or from 0 |
 | [2.18](#218-naming-a-type) | `type.alias`, `type.new` | Another name, or a different type |
 | [2.19](#219-decl-and-assign) | `decl`, `assign` | A value given later, once |
+| [2.20](#220--inference-or-precogs-pick) | `:=` | The type left out |
 
 ## 2.1 `let`
 
@@ -380,3 +381,20 @@ It isn't uninitialized memory, since nothing can read it empty, so it needs no s
 **Refused:** reading before every path has assigned it, assigning twice on one path, and `assign` on something that already has a value, with `fix: change`.
 
 **From:** D203.
+
+## 2.20 `:=`: inference, or Precog's pick
+
+**Rule:** `:=` leaves the type out, and a written type uses `=`. Without the Precog limb, or with its rule off, the variable gets exactly the type of the right side. With `import @precog;` and its rule on in the file's rules, Precog picks the narrowest plain width that holds every value the variable ever holds.
+
+```
+let $total: i32 = 0;
+let $next := $total + 1;
+```
+
+`$next` is an `i32`, the type of `$total + 1`. Importing the limb alone never changes this. Only the rules line does.
+
+In Precog's mode, a bound it can't prove is a compile error, with no wide fallback, so you write the type there. The same program and target always get the same pick, and the build report lists each one.
+
+**Refused:** `let $x := 0;` without Precog's mode, since a bare literal has no default type, with a fix asking for one, and `:=` on a parameter, a return type or a struct field.
+
+**From:** D50, D201, D215, D216, and CyborgPL's `:=`.
