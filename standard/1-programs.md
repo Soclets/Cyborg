@@ -99,7 +99,18 @@ $r.celsius
 
 **Refused:** a narrowing that doesn't mean "this, made more specific" isn't one, so a decimal float is `d32`, not `f32.decimal`.
 
-**From:** D8, D54.
+With two or more narrowings, the strongest goes first: the one that changes the action most, or for safety words, the one that can do more harm. The order is fixed. Kinds so far, strongest first:
+
+| Thing | Order | Example |
+|---|---|---|
+| A print | What's printed, then where | `fmt_print.stored.stderr` |
+| A borrow | How it can be used, then how long | `Lend.mut.held` |
+
+Shapes in a format hole are labels, so they go in any order.
+
+**Refused:** narrowings out of order, as in `fmt_print.stderr.stored`, with the right order as the fix.
+
+**From:** D8, D54, D223.
 
 ## 1.7 Bare names
 
@@ -254,13 +265,13 @@ With `$name` as `"rope"`, `$count` as `3`, `$price` as an `f64` holding `12.5`, 
 - **Too wide:** a value wider than its width prints whole.
 - **`.stored`:** prints every float exactly as it's stored.
 - **`.stderr`:** prints to stderr instead of stdout, as in `std::io::fmt_print.stderr("failed{newln}");`.
-- **Both:** `.stderr` and `.stored` combine on one print. Their order isn't decided.
+- **Both:** `.stored` and `.stderr` combine on one print, strongest first ([1.6](#16-narrowings-)), as in `std::io::fmt_print.stored.stderr(…)`.
 
 A literal format is checked when building.
 
 **Refused:** a bare `{` in the text, with `fix: \{`; `\n`, with `fix: {newln}`; `{0}`; mixing plain and numbered holes; more or fewer values than holes; a shape that doesn't apply, like `places:` on an integer; a width with no unit; `zeros` with no width; a shape written twice; an unknown escape; `std::io::fmt_print.stdout`, since stdout is the default, and `std::io::fmt_println`, with `fix: std::io::fmt_print`.
 
-**From:** D11, D50, D51, D122, D162, D165, D194, D195, D197, D210, D221, and CyborgPL's format print.
+**From:** D11, D50, D51, D122, D162, D165, D194, D195, D197, D210, D221, D223, and CyborgPL's format print.
 
 ## 1.14 Spacing
 
