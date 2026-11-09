@@ -885,6 +885,8 @@ a placeholder for a version that isn't correctly rounded. A float prints as the 
 
 **D205. Comments can go anywhere.** A comment can come before a file's rules line, so D204's "first line" means the first line of code, and a `//` comment can trail code on the same line, as in `let $x: i32 = 1; // a note`. A `comment` block's lines still count only when alone on a line (D119), and a `///` doc comment still attaches to what's below it. Oracle claude asked; the owner chose: "Comments can be anywhere, even trailing". (Owner, 2026-11-09)
 
+**D206. A doc comment can't trail code.** `let $t: i32 = 21; /// The temperature.` is refused, with a fix that moves the `///` to its own line above, so docs always sit above what they describe. A trailing `//` stays fine (D205). Oracle claude found the gap; Claude proposed it; the owner chose: "yea". (Owner, 2026-11-09)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude

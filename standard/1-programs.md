@@ -216,9 +216,9 @@ comment why_sorted:
 end comment why_sorted
 ```
 
-**Refused:** `//text` with no space, a block with no name, a closer naming the wrong block, and a block that never closes.
+**Refused:** `//text` with no space, a `///` after code on the same line, with a fix that moves it above, a block with no name, a closer naming the wrong block, and a block that never closes.
 
-**From:** D118, D119, D205.
+**From:** D118, D119, D205, D206.
 
 ## 1.13 Printing: `std::io::fmt_print`
 
