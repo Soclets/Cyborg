@@ -1,9 +1,9 @@
 // trace: D75
 @config(default);
 
-fn x [$a: i32, $b: i32] -> i32:
+fn my::x [$a: i32, $b: i32] -> i32:
     return $a + $b;
-end fn x
+end fn my::x
 
 fn.main [] -> void:
     let $a: i32 = x(1, 2);

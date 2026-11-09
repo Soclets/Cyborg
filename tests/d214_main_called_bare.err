@@ -1,0 +1,5 @@
+refused: d214_main_called_bare.cy:9:19, line 9 column 19
+ 9 |     let $n: i32 = main();
+   |                   ^^^^^^
+ fix:  `my::main()`
+ why:  a name of yours that clashes is written with `my::` (D75)

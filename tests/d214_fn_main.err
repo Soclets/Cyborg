@@ -1,0 +1,5 @@
+refused: d214_fn_main.cy:4:4, line 4 column 4
+ 4 | fn main [] -> void:
+   |    ^^^^
+ fix:  `fn.main`
+ why:  `main` clashes, so a plain `fn main` is refused (D214, D11)

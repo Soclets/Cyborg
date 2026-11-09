@@ -1,9 +1,9 @@
 // trace: D139, D75
 @config(default);
 
-fn instead [] -> i32:
+fn my::instead [] -> i32:
     return 1;
-end fn instead
+end fn my::instead
 
 fn.main [] -> void:
     let $a: i32 = instead();

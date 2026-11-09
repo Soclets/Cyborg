@@ -14,6 +14,8 @@ use crate::report::{Outcome, Report, ReportExtra, Span};
 
 /// Words that clash with a name of yours, which is then written `my::name`. (D75)
 const CLASHING_WORDS: &[&str] = &[
+    // `fn.main` starts a program, so a function named `main` says `my::`. (D214)
+    "main",
     "fn",
     "end",
     "let",
@@ -1307,6 +1309,14 @@ impl Parser {
         };
         self.advance();
         let mut text = first;
+        // `end fn my::x`. (D214)
+        if text == "my" && self.at_symbol("::") {
+            if let Lexeme::Word(next) = self.peek_at(1).lexeme.clone() {
+                self.advance();
+                self.advance();
+                text = format!("my::{next}");
+            }
+        }
         while self.at_symbol(".") {
             if self.symbol_at(1, "%") {
                 // trace: D211
@@ -1664,7 +1674,7 @@ impl Parser {
         };
         let name = if kind == FunctionKind::Main {
             Name {
-                text: "main".to_string(),
+                text: "fn.main".to_string(),
                 span: start.to(self.previous_span()),
             }
         } else {
@@ -1716,7 +1726,55 @@ impl Parser {
     }
 
     /// A plain name, or a method's type and name, as in `reading.%warm_up`. (D130)
+    /// A declared name, written `my::x` when it clashes, there as everywhere. (D214, D75)
+    /// trace: D214
+    fn expect_declared_name(&mut self, keyword: &str, what: &str) -> Outcome<(Name, String)> {
+        if self.at_word("my") && self.symbol_at(1, "::") {
+            let start = self.advance().span;
+            self.advance();
+            let name = self.expect_name(what)?;
+            if !is_clashing(&name.text) {
+                return Err(Report::not_designed(
+                    start.to(name.span),
+                    format!("`my::` on `{}`, which doesn't clash", name.text),
+                    "",
+                ));
+            }
+            let written = format!("my::{}", name.text);
+            return Ok((
+                Name {
+                    text: name.text,
+                    span: start.to(name.span),
+                },
+                written,
+            ));
+        }
+        let name = self.expect_name(what)?;
+        if keyword == "fn" && name.text == "main" {
+            return Err(Report::refused(
+                name.span,
+                "a program starts at `fn.main`, and a function named `main` is `fn my::main`",
+                "`main` clashes, so a plain `fn main` is refused (D214, D11)",
+            )
+            .fix("fn.main"));
+        }
+        if is_clashing(&name.text) {
+            return Err(Report::refused(
+                name.span,
+                format!("`{}` clashes, so its declaration says `my::` too", name.text),
+                "a clashing name is written `my::x` everywhere, its declaration and closer included (D214, D75)",
+            )
+            .fix(format!("{keyword} my::{}", name.text)));
+        }
+        let written = name.text.clone();
+        Ok((name, written))
+    }
+
     fn parse_function_name(&mut self) -> Outcome<Name> {
+        if !self.symbol_at(1, ".") {
+            let (name, _) = self.expect_declared_name("fn", "the function's name")?;
+            return Ok(name);
+        }
         let name = self.expect_name("the function's name")?;
         if !self.at_symbol(".") {
             return Ok(name);
@@ -1752,6 +1810,13 @@ impl Parser {
     }
 
     fn parse_function_closer(&mut self, kind: FunctionKind, name: &str) -> Outcome<Span> {
+        // trace: D214
+        let written = if is_clashing(name) {
+            format!("my::{name}")
+        } else {
+            name.to_string()
+        };
+        let name = written.as_str();
         match kind {
             FunctionKind::Main => self.expect_closer(&["fn.main"]),
             FunctionKind::Plain => self.expect_closer(&["fn", name]),
@@ -2048,7 +2113,7 @@ impl Parser {
                 ));
             }
         }
-        let name = self.expect_name("the struct's name")?;
+        let (name, written) = self.expect_declared_name("struct", "the struct's name")?;
         let sources = self.parse_source_declarations()?;
         self.expect_symbol(":")?;
         let mut fields = Vec::new();
@@ -2063,9 +2128,9 @@ impl Parser {
             });
         }
         if must_give {
-            self.expect_closer(&["struct.must_Give", &name.text])?;
+            self.expect_closer(&["struct.must_Give", &written])?;
         } else {
-            self.expect_closer(&["struct", &name.text])?;
+            self.expect_closer(&["struct", &written])?;
         }
         Ok(StructDeclaration {
             must_give,
@@ -2106,7 +2171,7 @@ impl Parser {
                 ));
             }
         }
-        let name = self.expect_name("the union's name")?;
+        let (name, written) = self.expect_declared_name("union.tagged", "the union's name")?;
         let sources = self.parse_source_declarations()?;
         self.expect_symbol(":")?;
         let mut cases = Vec::new();
@@ -2125,7 +2190,7 @@ impl Parser {
                 fields,
             });
         }
-        self.expect_closer(&["union.tagged", &name.text])?;
+        self.expect_closer(&["union.tagged", &written])?;
         Ok(UnionDeclaration {
             name,
             sources,

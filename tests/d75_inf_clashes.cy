@@ -1,9 +1,9 @@
 // trace: D75
 @config(default);
 
-fn inf [] -> i32:
+fn my::inf [] -> i32:
     return 1;
-end fn inf
+end fn my::inf
 
 fn.main [] -> void:
     let $a: i32 = inf();

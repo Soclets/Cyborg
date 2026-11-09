@@ -1,9 +1,9 @@
 // trace: D134, D75
 @config(default);
 
-fn type [] -> i32:
+fn my::type [] -> i32:
     return 1;
-end fn type
+end fn my::type
 
 fn.main [] -> void:
     let $a: i32 = type();

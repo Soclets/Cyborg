@@ -2,10 +2,10 @@
 @config(default);
 import std;
 
-fn finish [] -> void:
+fn my::finish [] -> void:
     std::io::fmt_print("mine{newln}");
     return void;
-end fn finish
+end fn my::finish
 
 fn.main [] -> void:
     my::finish();

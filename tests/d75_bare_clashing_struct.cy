@@ -1,9 +1,9 @@
 // trace: D75
 @config(default);
 
-struct div:
+struct my::div:
     n: i32;
-end struct div
+end struct my::div
 
 fn.main [] -> void:
     let $thing: my::div = div[n = 9];

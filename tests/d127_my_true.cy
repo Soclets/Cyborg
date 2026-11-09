@@ -2,9 +2,9 @@
 @config(default);
 import std;
 
-fn true [] -> i32:
+fn my::true [] -> i32:
     return 1;
-end fn true
+end fn my::true
 
 fn.main [] -> void:
     let $a: i32 = my::true();

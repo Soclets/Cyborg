@@ -2,13 +2,13 @@
 @config(default);
 import std;
 
-fn x [$a: i32, $b: i32] -> i32:
+fn my::x [$a: i32, $b: i32] -> i32:
     return $a + $b;
-end fn x
+end fn my::x
 
-struct if:
+struct my::if:
     n: i32;
-end struct if
+end struct my::if
 
 fn.main [] -> void:
     let $width: i32 = 3;

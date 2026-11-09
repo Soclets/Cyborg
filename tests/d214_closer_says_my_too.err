@@ -1,0 +1,5 @@
+refused: d214_closer_says_my_too.cy:6:1, line 6 column 1
+ 6 | end fn x
+   | ^^^^^^^^
+ fix:  `end fn my::x`
+ why:  the closer repeats all of what it closes, including its narrowings and name (D33, D121)

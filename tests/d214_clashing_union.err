@@ -1,0 +1,5 @@
+refused: d214_clashing_union.cy:4:14, line 4 column 14
+ 4 | union.tagged if:
+   |              ^^
+ fix:  `union.tagged my::if`
+ why:  a clashing name is written `my::x` everywhere, its declaration and closer included (D214, D75)
