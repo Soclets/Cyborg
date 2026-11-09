@@ -897,6 +897,8 @@ a placeholder for a version that isn't correctly rounded. A float prints as the 
 
 **D211. `.%` lends read-only, `.%%` lends to change.** A method call says how its receiver is lent: `$p.%area();` lends it read-only, and `$room.%%warm_up(by: 3);` lends it to change, so the call alone shows whether the receiver might change. The declaration matches, as in `fn reading.%%warm_up [$r: Lent.mut reading, …]`, and a mismatch is refused. Since `%` only ever stood for `Lend` or `Lend.mut` (D5), nothing is unsaid anymore: `%` and `%%` are short forms of those two words. `use` keeps the mark, as in `use std::list.%%append as %%append;` and `as %%"push"`. This replaces `%` meaning unsaid ownership in D4 and D5. An outside review, through multifinity, pointed out that a `%` call hid whether the receiver changes; the owner asked "Or just drop `%`?", then proposed `%%`; the owner chose: "yea". (Owner, 2026-11-09)
 
+**D212. Constants keep a single `$`.** `const $max: i32 = 100;` is used as `$max`, with no `$$`. Leaving it out hides no mistake, since `change $max` is refused for a `let` too, and in `%%` doubling means more power while a `$$` would mean less. `$$` is also a shell's process ID. The owner proposed `$$` for `const`; Claude proposed keeping `$`; the owner chose: "yea". (Owner, 2026-11-09)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude
