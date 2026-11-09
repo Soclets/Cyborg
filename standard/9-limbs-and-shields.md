@@ -13,6 +13,7 @@
 | [9.9](#99-a-shields-walls) | Entry, exit, containment | The three walls |
 | [9.10](#910-precog) | Precog | Proving things |
 | [9.11](#911-the-linter) | The linter | An official limb |
+| [9.12](#912-pub) | `pub` | Seen outside its package |
 
 Bare `@`, with no `::`, is a compiler builtin instead ([5.7](5-functions.md#57-builtins-)).
 
@@ -130,3 +131,20 @@ Using a limb doesn't need a shield by itself: `@` says it's a compiler extension
 **Rule:** the linter is an official limb like Rust's Clippy. It ships with the compiler, and is configured in the project file. It can force comments, and can show the hidden checks in [2.5](2-values-and-types.md#25-bounded-integers). Linter strictness is separate from the build mode. Definite mistakes stay compiler errors. It can require handling failures that otherwise crash by default ([8.9](8-failures.md#89-crash-by-default)).
 
 **From:** D14, D21, D30, D96.
+
+## 9.12 `pub`
+
+**Rule:** anything a package declares is private to that package unless it starts with `pub`. `pub` is a separate word in front, not a narrowing, and it works on anything a package declares.
+
+```
+pub fn total [$xs: std::list<i32>[len.max: inf items]] -> i32:
+pub fn.pure area [$w: i32, $h: i32] -> i32:
+pub struct reading:
+pub const $max: i32 = 100;
+```
+
+`fn.main` needs no `pub`.
+
+**Refused:** `fn.pub`, with `fix: pub fn`.
+
+**From:** D186, D200.

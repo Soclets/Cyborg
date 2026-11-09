@@ -873,6 +873,8 @@ a placeholder for a version that isn't correctly rounded. A float prints as the 
 
 **D199. Unit families live in `std::units`, and an import brings narrowings with it.** A unit family in `std` sits in the `units` group, as in `3600 std::units::time.seconds` and `i64.std::units::time.seconds`, and `use std::units::time.seconds as seconds;` shortens it. Importing a thing brings all its narrowings: `import std::units::time;` gives every unit in the family, since units only make sense with the ones they convert to, and `import std::io::fmt_print;` gives `.stored` and `.stderr`. `fmt_print` isn't a family, but both are spelled `path::thing.narrowing`. This moves the paths from D99 to D112 into D196's groups. The owner asked "what about units?" and "isn't `fmt_print` also a fam?"; Claude proposed this; the owner chose: "yea". (Owner, 2026-11-09)
 
+**D200. `pub`, and private by default.** Anything a package declares is private to that package unless it starts with `pub`, a separate word in front: `pub fn total […] -> i32:`, `pub fn.pure area […]`, `pub struct reading:`, `pub const $max: i32 = 100;`. It's not a narrowing, since it says who can see a thing, not what kind of thing it is, and it applies to everything a package declares. `fn.main` needs no `pub`, since the compiler finds it by its narrowing. Whether a closer repeats `pub`, and finer levels like Rust's `pub(crate)`, are not settled here. The owner asked "is our `fn.main` pub?"; Claude proposed private by default with `fn.pub`; the owner said "Isn't `pub` a separate thing, not a `fn` thing", and chose: "Yeah". (Owner, 2026-11-09)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude
