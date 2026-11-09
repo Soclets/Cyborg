@@ -254,12 +254,13 @@ With `$name` as `"rope"`, `$count` as `3`, `$price` as an `f64` holding `12.5`, 
 - **Too wide:** a value wider than its width prints whole.
 - **`.stored`:** prints every float exactly as it's stored.
 - **`.stderr`:** prints to stderr instead of stdout, as in `std::io::fmt_print.stderr("failed{newln}");`.
+- **Both:** `.stderr` and `.stored` combine on one print. Their order isn't decided.
 
 A literal format is checked when building.
 
 **Refused:** a bare `{` in the text, with `fix: \{`; `\n`, with `fix: {newln}`; `{0}`; mixing plain and numbered holes; more or fewer values than holes; a shape that doesn't apply, like `places:` on an integer; a width with no unit; `zeros` with no width; a shape written twice; an unknown escape; `std::io::fmt_print.stdout`, since stdout is the default, and `std::io::fmt_println`, with `fix: std::io::fmt_print`.
 
-**From:** D11, D50, D51, D122, D162, D165, D194, D195, D197, D210, and CyborgPL's format print.
+**From:** D11, D50, D51, D122, D162, D165, D194, D195, D197, D210, D221, and CyborgPL's format print.
 
 ## 1.14 Spacing
 

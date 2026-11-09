@@ -915,6 +915,8 @@ a placeholder for a version that isn't correctly rounded. A float prints as the 
 
 **D220. A function's narrowing can't be shortened to its bare name.** `use std::io::fmt_print.stored as stored;` is refused, since `stored(…)` alone reads like it stores something: a function's narrowing only means something next to its function. The fix is `use std::io::fmt_print as fmt_print;`, then `fmt_print.stored(…)`, and a quoted name, as in `as "print_exact"`, is also allowed. Narrowings that aren't a function's, like units, keep D150, so `use std::units::time.seconds as seconds;` stays fine. An outside session in multifinity's chat found that `stored(…)` worked; the owner said "`stored()` is diabolically weird name" and asked "maybe, we refuse the other?"; Claude proposed keeping units; the owner chose: "yea". (Owner, 2026-11-09)
 
+**D221. `.stderr` and `.stored` combine.** One print can go to stderr and print floats exactly as stored. Their order is not settled here. Oracle claude found it open; the owner chose: "`stderr` and `stored` obviously have to be combinable". (Owner, 2026-11-09)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude
