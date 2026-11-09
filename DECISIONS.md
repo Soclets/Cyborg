@@ -883,6 +883,8 @@ a placeholder for a version that isn't correctly rounded. A float prints as the 
 
 **D204. A file's rules come first.** `@config(…);` or `@match_config(…);` is the first line of a file, before any `import` or `use`, and any `@tighten_config` or `@loosen_config` lines follow it straight away, before anything else. This settles where D201's lines go. The standard had put them after the imports, and oracle claude found the conflict with D201's "starts with". The owner chose: "configs are always first". (Owner, 2026-11-09)
 
+**D205. Comments can go anywhere.** A comment can come before a file's rules line, so D204's "first line" means the first line of code, and a `//` comment can trail code on the same line, as in `let $x: i32 = 1; // a note`. A `comment` block's lines still count only when alone on a line (D119), and a `///` doc comment still attaches to what's below it. Oracle claude asked; the owner chose: "Comments can be anywhere, even trailing". (Owner, 2026-11-09)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude

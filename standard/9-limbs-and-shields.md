@@ -152,7 +152,7 @@ pub const $max: i32 = 100;
 
 ## 9.13 A file's rules: `@config`
 
-**Rule:** every file's first line is `@config(…);`, which sets its first rules, or `@match_config(that file);`, which copies another file's. The compiler's defaults are `@config(default);`, since there's no unsaid default. Any `@tighten_config(…);`, which only makes rules stricter, or `@loosen_config(…);`, which only makes them looser, comes straight after it, before any `import` or `use`.
+**Rule:** every file's first line of code is `@config(…);`, with only comments allowed above it, which sets its first rules, or `@match_config(that file);`, which copies another file's. The compiler's defaults are `@config(default);`, since there's no unsaid default. Any `@tighten_config(…);`, which only makes rules stricter, or `@loosen_config(…);`, which only makes them looser, comes straight after it, before any `import` or `use`.
 
 ```
 @config(default);
@@ -170,4 +170,4 @@ A search for `@loosen_config` finds every file that weakens its rules. The manif
 
 **Refused:** a file with neither `@config` nor `@match_config`, either one anywhere but the first line, a tighten or loosen line after anything else, both in one file, loosening with `@tighten_config` or tightening with `@loosen_config`, a cycle of `@match_config`, and a matched file that's missing.
 
-**From:** D30, D56, D201, D204.
+**From:** D30, D56, D201, D204, D205.

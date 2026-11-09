@@ -197,7 +197,7 @@ A method of your own with the same name on the same type in that file clashes, a
 
 ## 1.12 Comments
 
-**Rule:** `//` is a line comment, a note for whoever reads the code. `///` is a doc comment, attached to what's below it, which tools can show and build documentation from.
+**Rule:** comments can go anywhere, including before a file's rules line. `//` is a line comment, a note for whoever reads the code, and it can trail code on the same line, as in `let $x: i32 = 1; // a note`. `///` is a doc comment, attached to what's below it, which tools can show and build documentation from.
 
 ```
 /// Adds up every item in the list.
@@ -218,7 +218,7 @@ end comment why_sorted
 
 **Refused:** `//text` with no space, a block with no name, a closer naming the wrong block, and a block that never closes.
 
-**From:** D118, D119.
+**From:** D118, D119, D205.
 
 ## 1.13 Printing: `std::io::fmt_print`
 
