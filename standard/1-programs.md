@@ -261,8 +261,19 @@ A literal format is checked when building.
 | Around a binary operator, word operators and `=` included | One on each side | `1 < 8`, `$a + $b`, `$x at_least 0` |
 | After a comma, or a label's `:` | One | `range[from: 1, to: 3]` |
 
-**Refused:** `fn . main`, `std :: io`, `1<8`, `$a+$b`, `$a  +  $b`, and `( $x )`, each with the spaced version as its fix.
+**Refused:** `fn . main`, `std :: io`, `1<8`, `$a+$b`, `$a  +  $b`, and `( $x )`, each with the spaced version as its fix, and a line break anywhere else, such as between `end` and `fn.main`, with a fix that joins the line.
+
+A line break inside a statement is allowed only after a comma, after an opening `(`, `[` or `<`, with the closing one then on its own line, and after a binary operator. Every block opener and closer stays on one line.
+
+```
+std::io::fmt_print(
+    "{}: {} at ${places: 2}{newln}",
+    $name,
+    $count,
+    $price
+);
+```
 
 Indentation, line length, and the space before an opening `[` aren't decided ([12.1](12-not-decided.md#121-problems-found-writing-this)).
 
-**From:** D23, D213.
+**From:** D23, D213, D219.
