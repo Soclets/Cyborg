@@ -34,6 +34,8 @@ pub struct Import {
 
 #[derive(Clone, Debug)]
 pub struct Use {
+    /// The whole line, from `use` to its `;`.
+    pub span: Span,
     pub path: Path,
     pub short: Name,
     /// Quoted names are your own choice, and unquoted ones match the path. (D150)

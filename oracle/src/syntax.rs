@@ -1,5 +1,7 @@
 //! How Cyborg is written: the one place that knows spelling, so a spelling change stays small.
 
+use std::collections::HashSet;
+
 use crate::ast::{Align, Base, FormatPiece, Hole, Shapes, WidthUnit};
 use crate::ast::{
     Argument, Arm, BinaryOperator, BorrowSources, CompareOperator, Contract, Describe, Expression,
@@ -523,8 +525,8 @@ enum Lexeme {
     End,
 }
 
-/// The whitespace between two tokens, which the spacing rules judge. A gap with a line break
-/// isn't judged, since how lines break and indent isn't decided. (D213)
+/// The whitespace between two tokens, which the spacing rules judge. A gap with a line break is
+/// judged by where a line can break instead, since indentation isn't decided. (D213, D219)
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 enum Gap {
     Touching,
@@ -1031,8 +1033,18 @@ pub fn parse(source: &str) -> (Option<Program>, Vec<Report>) {
         limb_short_names: Vec::new(),
         source_fills: Vec::new(),
         spacing: Vec::new(),
+        line_starts: HashSet::new(),
+        break_after: HashSet::new(),
+        type_brackets: Vec::new(),
     };
     let result = parser.parse_program();
+    // A parse that stopped judges only the breaks before what stopped it, so a break the stop
+    // explains isn't refused twice.
+    let limit = result
+        .as_ref()
+        .err()
+        .map_or(source.len() + 1, |report| report.span.start);
+    parser.check_line_breaks(limit);
     // Several spaces that a rule judges are that rule's refusal, so the `NotDesignedYet` saying
     // no rule covers them goes. (D213)
     let refusals: Vec<Span> = parser
@@ -1077,6 +1089,13 @@ struct Parser {
     source_fills: Vec<SourceFill>,
     /// Spacing errors, which don't stop the parse. (D213)
     spacing: Vec<Report>,
+    /// Tokens that start a line of their own: a statement, an item, a field, a closer. (D219)
+    line_starts: HashSet<usize>,
+    /// Tokens a line can break after, past the ones that always allow it: the last token of a
+    /// binary operator, and a type's opening `<`. (D219)
+    break_after: HashSet<usize>,
+    /// A type's `<` and `>`, by token, since a comparison's `<` is no bracket. (D219)
+    type_brackets: Vec<(usize, usize)>,
 }
 
 /// How deep brackets and blocks can nest here. Past this the oracle says so, instead of running
@@ -1135,7 +1154,10 @@ impl Parser {
             "(" | "[" | "~" => self.check_gaps(index, index, None, touching, SPACING_MARKS),
             ")" | "]" | "?" => self.check_gaps(index, index, touching, None, SPACING_MARKS),
             "," | ":" => self.check_gaps(index, index, None, one, SPACING_LISTS),
-            "=" | ":=" => self.check_gaps(index, index, one, one, SPACING_OPERATORS),
+            "=" | ":=" => {
+                self.break_after.insert(index);
+                self.check_gaps(index, index, one, one, SPACING_OPERATORS);
+            }
             _ => {}
         }
         self.check_uncovered(index, token);
@@ -1208,9 +1230,10 @@ impl Parser {
     }
 
     /// A binary operator from the token at `first` to the last one read, with one space on
-    /// each side. (D23, D213)
+    /// each side, and a line can break after it. (D23, D213, D219)
     fn check_operator(&mut self, first: usize) {
         let last = self.position.saturating_sub(1).max(first);
+        self.break_after.insert(last);
         self.check_gaps(
             first,
             last,
@@ -1218,6 +1241,97 @@ impl Parser {
             Some(Gap::One),
             SPACING_OPERATORS,
         );
+    }
+
+    /// The token about to be read starts a line of its own. (D219)
+    fn mark_line_start(&mut self) {
+        self.line_starts.insert(self.position);
+    }
+
+    /// A line breaks inside a statement only after a comma, an opening bracket or a binary
+    /// operator, and a bracket that breaks its line has its closing one on its own line.
+    /// Anywhere else the break is refused, with a fix that joins the line. Only breaks before
+    /// tokens starting before `limit` are judged.
+    /// trace: D219
+    fn check_line_breaks(&mut self, limit: usize) {
+        const WHY: &str = "a line breaks only after a comma, an opening bracket or a binary operator, so it visibly isn't finished (D219)";
+        const WHY_CLOSING: &str =
+            "a bracket that breaks its line has its closing one on its own line (D219)";
+        let read = self
+            .tokens
+            .iter()
+            .position(|token| token.span.start >= limit || matches!(token.lexeme, Lexeme::End))
+            .map_or(self.tokens.len(), |at| at.saturating_sub(1));
+        // Each `(` and `[` with its closing one, and each type's `< >`.
+        let mut pairs: Vec<(usize, usize)> = self.type_brackets.clone();
+        let mut open: Vec<usize> = Vec::new();
+        for (index, token) in self.tokens.iter().enumerate().take(read + 1) {
+            match token.lexeme {
+                Lexeme::Symbol("(" | "[") => open.push(index),
+                Lexeme::Symbol(")" | "]") => {
+                    if let Some(opening) = open.pop() {
+                        pairs.push((opening, index));
+                    }
+                }
+                _ => {}
+            }
+        }
+        let broken_closers: HashSet<usize> = pairs
+            .iter()
+            .filter(|(opening, _)| {
+                self.tokens
+                    .get(*opening)
+                    .is_some_and(|token| token.gap_after == Gap::Line)
+            })
+            .map(|(_, closing)| *closing)
+            .collect();
+        for index in 1..=read {
+            let (Some(previous), Some(token)) =
+                (self.tokens.get(index - 1), self.tokens.get(index))
+            else {
+                continue;
+            };
+            if matches!(token.lexeme, Lexeme::End) {
+                continue;
+            }
+            if broken_closers.contains(&index) {
+                if token.gap_before != Gap::Line {
+                    self.spacing.push(*Report::refused(
+                        token.span,
+                        format!(
+                            "this `{}` goes on its own line, since its opening bracket breaks the line",
+                            token.text
+                        ),
+                        WHY_CLOSING,
+                    ));
+                }
+                continue;
+            }
+            if token.gap_before != Gap::Line {
+                continue;
+            }
+            let allowed = self.line_starts.contains(&index)
+                || matches!(&token.lexeme, Lexeme::Word(word) if matches!(word.as_str(), "end" | "case" | "else"))
+                || matches!(previous.lexeme, Lexeme::Symbol(";" | "," | "(" | "["))
+                || self.break_after.contains(&(index - 1));
+            if allowed {
+                continue;
+            }
+            let joined = format!(
+                "{}{}{}",
+                previous.text,
+                join_gap(previous, token),
+                token.text
+            );
+            self.spacing.push(
+                *Report::refused(
+                    previous.span.to(token.span),
+                    "this line breaks where it can't",
+                    WHY,
+                )
+                .fix(joined),
+            );
+        }
     }
 
     fn at_word(&self, word: &str) -> bool {
@@ -1409,7 +1523,7 @@ impl Parser {
     }
 
     fn parse_use(&mut self) -> Outcome<Use> {
-        self.advance(); // `use`
+        let start = self.advance().span; // `use`
         let mut path = self.parse_path()?;
         // `std::list.%append`, a kit method named with its type. (D178)
         let mut method = false;
@@ -1466,6 +1580,7 @@ impl Parser {
                 .push((short.text.clone(), path.text.clone()));
         }
         Ok(Use {
+            span: start.to(self.previous_span()),
             path,
             short,
             quoted,
@@ -1598,6 +1713,7 @@ impl Parser {
         // trace: D201, D204
         let rules = self.parse_rules_block()?;
         while !matches!(self.peek().lexeme, Lexeme::End) {
+            self.mark_line_start();
             if self.at_symbol("@") && self.rules_word_ahead().is_some() {
                 return Err(self.rules_line_too_late(rules));
             }
@@ -1773,6 +1889,7 @@ impl Parser {
     }
 
     fn parse_item(&mut self) -> Outcome<Item> {
+        self.mark_line_start();
         if self.at_word("fn") {
             return Ok(Item::Function(self.parse_function()?));
         }
@@ -2099,6 +2216,7 @@ impl Parser {
     ) -> Outcome<()> {
         let mut phase = 0;
         loop {
+            self.mark_line_start();
             let (word_phase, word) = if self.at_word("labels") {
                 (1, "labels")
             } else if self.at_word("defaults") {
@@ -2327,6 +2445,7 @@ impl Parser {
         self.expect_symbol(":")?;
         let mut fields = Vec::new();
         while !self.at_word("end") {
+            self.mark_line_start();
             let field_name = self.expect_name("a field, with no `$`")?;
             Self::refuse_infer_here(self.at_symbol(":="), self.span(), "a struct field")?;
             self.expect_symbol(":")?;
@@ -2386,6 +2505,7 @@ impl Parser {
         self.expect_symbol(":")?;
         let mut cases = Vec::new();
         while !self.at_word("end") {
+            self.mark_line_start();
             let case_name = self.expect_name("a case")?;
             let fields = if self.at_symbol("[") {
                 self.parse_field_declarations_in_brackets()?
@@ -2483,6 +2603,7 @@ impl Parser {
         };
         let mut members = Vec::new();
         while !self.at_word("end") {
+            self.mark_line_start();
             if self.at_word("type") {
                 return Err(Report::refused(
                     self.span(),
@@ -2520,6 +2641,7 @@ impl Parser {
         self.expect_symbol(":")?;
         let mut members = Vec::new();
         while !self.at_word("end") {
+            self.mark_line_start();
             let entry = self.parse_failure_entry()?;
             Self::refuse_a_deep_family(&name, &entry.path)?;
             members.push(entry);
@@ -2534,6 +2656,7 @@ impl Parser {
         self.expect_symbol(":")?;
         let mut handlers = Vec::new();
         while !self.at_word("end") {
+            self.mark_line_start();
             let family = self.expect_name("the family")?;
             let member = if self.eat_symbol(".") {
                 self.expect_name("the handler's name")?
@@ -2580,6 +2703,7 @@ impl Parser {
         self.expect_symbol(":")?;
         let mut members = Vec::new();
         while !self.at_word("end") {
+            self.mark_line_start();
             let path = self.parse_path()?;
             Self::refuse_a_deep_family(&family, &path)?;
             let meaning = if self.eat_symbol(":") {
@@ -2666,6 +2790,7 @@ impl Parser {
         let name = self.expect_name("the shield's name")?;
         self.expect_symbol(":")?;
         let mut reason = None;
+        self.mark_line_start();
         if self.eat_word("reason") {
             if let Lexeme::Text(text) = self.peek().lexeme.clone() {
                 self.advance();
@@ -2681,6 +2806,7 @@ impl Parser {
         let (name, reason) = self.parse_shield_header()?;
         let mut items = Vec::new();
         while !self.at_word("end") {
+            self.mark_line_start();
             // A short name from `use` stands in for the limb's whole path, here as anywhere.
             // trace: D155
             let short_limb = match &self.peek().lexeme {
@@ -2704,6 +2830,7 @@ impl Parser {
                 self.expect_symbol(":")?;
                 // The fields are only read past: nothing can use them until C's layouts exist.
                 while !self.at_word("end") {
+                    self.mark_line_start();
                     self.expect_name("a field")?;
                     self.expect_symbol(":")?;
                     self.parse_type()?;
@@ -2832,9 +2959,10 @@ impl Parser {
     }
 
     fn parse_fill(&mut self) -> Outcome<Vec<Fill>> {
-        // trace: D23, D213
+        // trace: D23, D213, D219
         let open = self.position;
         self.advance(); // `<`
+        self.break_after.insert(open);
         self.check_gaps(open, open, None, Some(Gap::Touching), SPACING_MARKS);
         let mut fill = Vec::new();
         while !self.at_symbol(">") {
@@ -2881,6 +3009,7 @@ impl Parser {
         }
         let close = self.position;
         self.advance();
+        self.type_brackets.push((open, close));
         self.check_gaps(close, close, Some(Gap::Touching), None, SPACING_MARKS);
         Ok(fill)
     }
@@ -2975,6 +3104,7 @@ impl Parser {
 
     #[allow(clippy::too_many_lines)] // One arm per statement, read top to bottom.
     fn parse_statement(&mut self) -> Outcome<Statement> {
+        self.mark_line_start();
         let start = self.span();
         if let Lexeme::Word(word) = &self.peek().lexeme {
             match word.as_str() {
@@ -4715,3 +4845,21 @@ static END_TOKEN: Token = Token {
     text: String::new(),
     starts_a_line: true,
 };
+
+/// What goes between two tokens when a refused line break joins them: nothing where D213 says
+/// they touch, and one space everywhere else. (D213, D219)
+fn join_gap(previous: &Token, next: &Token) -> &'static str {
+    let touches_next = matches!(
+        next.lexeme,
+        Lexeme::Symbol("." | "::" | ")" | "]" | ">" | "?" | "," | ";" | ":" | "(")
+    );
+    let touches_previous = matches!(
+        previous.lexeme,
+        Lexeme::Symbol("(" | "[" | "<" | "." | "::" | "@" | "%" | "~" | "-")
+    );
+    if touches_next || touches_previous {
+        ""
+    } else {
+        " "
+    }
+}

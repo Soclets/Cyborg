@@ -564,6 +564,15 @@ impl Checker<'_> {
                         "the quotes only skip the check against the path, so a quoted name still has to be usable (D151)",
                     ));
                 }
+            } else if let Some(function) = narrowed_function(&declared.path.text) {
+                // trace: D220
+                let bare = function.rsplit("::").next().unwrap_or(function);
+                return Err(Report::refused(
+                    declared.span,
+                    format!("`{}` alone doesn't say it's `{function}`'s narrowing", declared.short.text),
+                    "a function's narrowing means something only next to its function, so it isn't shortened to its bare name, though a quoted name is your own choice (D220, D150)",
+                )
+                .fix(format!("use {function} as {bare};")));
             } else if declared.short.text != last_word {
                 return Err(Report::refused(
                     declared.short.span,
@@ -2858,4 +2867,14 @@ fn uses_source(found: &Type, source: &str) -> bool {
         Type::List { item, .. } | Type::Array { item, .. } => uses_source(item, source),
         _ => false,
     }
+}
+
+/// The function a `use` path narrows, as `std::io::fmt_print` in `std::io::fmt_print.stored`.
+/// A unit's narrowing, like `std::units::time.seconds`, isn't a function's, and keeps D150. The
+/// one function in `std` the oracle knows is the print (D194), and a limb's `use` keeps D155,
+/// as 1.9's `use @csup::extern.c as c;` shows.
+/// trace: D220
+fn narrowed_function(path: &str) -> Option<&str> {
+    let (function, _) = path.rsplit_once('.')?;
+    (function == "std::io::fmt_print").then_some(function)
 }

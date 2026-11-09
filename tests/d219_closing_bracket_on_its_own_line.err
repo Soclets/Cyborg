@@ -1,0 +1,5 @@
+refused: d219_closing_bracket_on_its_own_line.cy:10:10, line 10 column 10
+10 |         2);
+   |          ^
+ what: this `)` goes on its own line, since its opening bracket breaks the line
+ why:  a bracket that breaks its line has its closing one on its own line (D219)

@@ -1,0 +1,5 @@
+refused: d220_narrowing_shortened_bare.cy:6:1, line 6 column 1
+ 6 | use std::io::fmt_print.stored as stored;
+   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ fix:  `use std::io::fmt_print as fmt_print;`
+ why:  a function's narrowing means something only next to its function, so it isn't shortened to its bare name, though a quoted name is your own choice (D220, D150)
