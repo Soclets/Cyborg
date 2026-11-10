@@ -982,6 +982,8 @@ A `type_set` is a closed list of types that nothing can join later, as in `type_
 
 **D240. Only an interface gives operations.** A `type_set` only says which types are allowed, so a body can't use `+` or `<` on a `?item` whose requirement is only a set, even if every type in it has them. It needs an interface too, as in `<?item: whole and addable>`, which also tells a reader what the function does with them. `std` declares which interfaces its own types satisfy, like `addable` and `ordered`, and their names are not settled here. This is CyborgPL's rule, which the owner chose there on 2026-10-28. Oracle claude asked; Claude proposed it; the owner chose: "yea". (Owner, 2026-11-10)
 
+**D241. Where a type parameter comes from.** A call fills each type parameter from its arguments. When they're bare literals, which have no type of their own (D50), the type the result goes into fills it, so in `let $x: i32 = largest(3, 5);`, `?item` is `i32`, since that type is written on the same line. If nothing says a type, as in `let $x := largest(3, 5);`, it's refused, asking for one, as D216 refuses `let $x := 0;`. Naming a type parameter at the call is still not settled. Oracle claude asked; Claude proposed it; the owner chose: "yea". (Owner, 2026-11-10)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude

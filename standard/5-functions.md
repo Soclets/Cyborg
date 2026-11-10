@@ -162,7 +162,7 @@ end struct pair
 let $x: i32 = largest(3, 5);
 ```
 
-A type parameter is `?` and a lowercase name, declared in `< >` straight after the name, and always writes its requirement. `any` means it needs nothing, so the body can only store, move, copy and lend it.
+A type parameter is `?` and a lowercase name, declared in `< >` straight after the name, and always writes its requirement. A call fills each type parameter from its arguments, and when they're bare literals, from the type the result goes into, so `?item` above is `i32`. If nothing says a type, as in `let $x := largest(3, 5);`, it's refused. `any` means it needs nothing, so the body can only store, move, copy and lend it.
 
 A requirement is one of two kinds, never mixed. An `interface` lists operations a type must have, with no code, and can state laws, include another interface, and leave type slots. A `type_set` is a closed list of types:
 
@@ -189,7 +189,7 @@ Requirements combine with `and`. Only an interface gives operations, so a body c
 
 **Refused:** a type parameter with no requirement, with `fix: ?left: any`, a body that uses a `?item` in a way its requirement doesn't list, a type used where it hasn't said `satisfies`, a `satisfies` line written outside the type's package and the interface's package, and an interface and a type set mixed in one.
 
-**From:** D23, D85, D87, D89, D234, D235, D238, D239, D240, and Radium's generics.
+**From:** D23, D85, D87, D89, D234, D235, D238, D239, D240, D241, and Radium's generics.
 
 ## 5.9 Pure functions
 
