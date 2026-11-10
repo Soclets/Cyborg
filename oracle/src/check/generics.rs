@@ -578,7 +578,7 @@ impl Checker<'_> {
         let mut tables = Vec::new();
         for (name, requirement) in &signature.type_parameters {
             if self.requirement_is_unit(requirement) {
-                self.fill_unit(signature, name, requirement, expected, &mut filled, span)?;
+                Self::fill_unit(signature, name, requirement, expected, &mut filled, span)?;
                 tables.push(Vec::new());
                 continue;
             }
@@ -628,7 +628,6 @@ impl Checker<'_> {
     /// its requirement names, if it names one. (D243)
     /// trace: D243
     fn fill_unit(
-        &self,
         signature: &Signature,
         name: &str,
         requirement: &[String],

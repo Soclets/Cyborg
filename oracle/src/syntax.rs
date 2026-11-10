@@ -2961,7 +2961,8 @@ impl Parser {
         if self.at_symbol(".") && self.symbol_at(1, "?") {
             self.advance();
             let name = self.parse_parameter_name()?;
-            path.text.push_str(&format!(".?{}", name.text));
+            path.text.push_str(".?");
+            path.text.push_str(&name.text);
             path.span = path.span.to(name.span);
         }
         let mut fill = Vec::new();
