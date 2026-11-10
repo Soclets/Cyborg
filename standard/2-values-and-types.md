@@ -371,7 +371,22 @@ let $later: f64.celsius.point = $now + $rise;
 
 A point plus a span is a point, a point minus a point is a span, and spans add. Converting a point applies the offset, while converting a span only scales, so a rise of 10 °C is a rise of 10 K. `offset` is a placeholder, and how a conversion is otherwise written isn't decided ([12.2](12-not-decided.md#122-types)).
 
-**From:** D99, D100, D101, D108, D109, D110, D111, D112, D141, D144, D242, D243, D245, D249, D250.
+Logarithmic units, like decibels, use the same split. A level is a point and a gain is a span, and the conversion is a log, declared with the placeholder `decibels of`:
+
+```
+fam.unit power:
+    power.milliwatts: base;
+    power.dbm = decibels of 1 power.milliwatts;
+end fam.unit power
+
+let $input: f64.power.dbm.point = 10.0 power.dbm;
+let $gain: f64.power.dbm.span = 3.0 power.dbm;
+let $output: f64.power.dbm.point = $input + $gain;
+```
+
+Two levels can't be added, since in dB that would mean multiplying two powers, so you convert to watts, add, and convert back.
+
+**From:** D99, D100, D101, D108, D109, D110, D111, D112, D141, D144, D242, D243, D245, D249, D250, D251.
 
 ## 2.17 Getting an item
 
