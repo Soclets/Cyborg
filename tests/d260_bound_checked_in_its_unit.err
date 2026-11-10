@@ -1,0 +1,6 @@
+check failed: d260_bound_checked_in_its_unit.cy:13:92, line 13 column 92
+13 |     let $short: i32[unit: length.meters, min: 0 length.meters, max: 1 length.kilometers] = $walked;
+   |                                                                                            ^^^^^^^
+ what: `$walked` doesn't fit `i32[unit: length.meters, min: 0 length.meters, max: 1000 length.meters]`
+ why:  a plain `=`, `change` or argument checks a bound when the compiler can't see it fits (D20)
+ when: `$walked` is 1500

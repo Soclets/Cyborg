@@ -308,9 +308,15 @@ impl Checker<'_> {
         let (low, high) = (low.value(), high.value());
         if let Some(number) = node_float(&node) {
             if number < low || number > high {
+                // trace: D260
+                let shown = if matches!(expression.kind, ExpressionKind::WithUnit { .. }) {
+                    self.text_of(expression.span).to_string()
+                } else {
+                    show_float(*kind, number)
+                };
                 return Err(Report::refused(
                     expression.span,
-                    format!("`{}` doesn't fit `{target}`", show_float(*kind, number)),
+                    format!("`{shown}` doesn't fit `{target}`"),
                     "a literal that can't fit is a compile error (D20, D158)",
                 ));
             }
@@ -339,6 +345,17 @@ impl Checker<'_> {
                 shown,
             },
         })
+    }
+
+    /// An integer literal's value and how it's shown, with its unit when it's written with one,
+    /// since a bound on a unit type can now be checked against it. (D20, D260)
+    /// trace: D20, D260
+    fn integer_literal_shown(&self, expression: &Expression) -> Option<(i128, String)> {
+        match &expression.kind {
+            ExpressionKind::WithUnit { number, .. } => literal_integer(number)
+                .map(|value| (value, self.text_of(expression.span).to_string())),
+            _ => literal_integer(expression).map(|value| (value, value.to_string())),
+        }
     }
 
     /// Fits a value into its target, adding the runtime check a bound needs. (D20)
@@ -371,12 +388,11 @@ impl Checker<'_> {
                 let Some((low, high)) = target_bound else {
                     return Ok(node);
                 };
-                if let Some(value) = literal_integer(expression) {
-                    // trace: D20
+                if let Some((value, shown)) = self.integer_literal_shown(expression) {
                     if value < *low || value > *high {
                         return Err(Report::refused(
                             expression.span,
-                            format!("`{value}` doesn't fit `{target}`"),
+                            format!("`{shown}` doesn't fit `{target}`"),
                             "a literal that can't fit is a compile error (D20)",
                         ));
                     }

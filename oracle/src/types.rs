@@ -239,26 +239,29 @@ fn write_float(
     // trace: D257
     write!(formatter, "{}.{}", kind.word(), rules.word())?;
     let bound = bound.map(|(low, high)| {
-        format!(
-            "min: {}, max: {}",
+        (
             show_float(kind, low.value()),
-            show_float(kind, high.value())
+            show_float(kind, high.value()),
         )
     });
     write_brackets(formatter, unit, bound)
 }
 
-/// A number type's brackets: its unit first, then its bounds. (D258)
-/// trace: D258
+/// A number type's brackets: its unit first, then its bounds, which write the unit too.
+/// (D258, D260)
+/// trace: D258, D260
 fn write_brackets(
     formatter: &mut fmt::Formatter<'_>,
     unit: Option<&String>,
-    bound: Option<String>,
+    bound: Option<(String, String)>,
 ) -> fmt::Result {
     match (unit, bound) {
-        (Some(unit), Some(bound)) => write!(formatter, "[unit: {unit}, {bound}]"),
+        (Some(unit), Some((low, high))) => write!(
+            formatter,
+            "[unit: {unit}, min: {low} {unit}, max: {high} {unit}]"
+        ),
         (Some(unit), None) => write!(formatter, "[unit: {unit}]"),
-        (None, Some(bound)) => write!(formatter, "[{bound}]"),
+        (None, Some((low, high))) => write!(formatter, "[min: {low}, max: {high}]"),
         (None, None) => Ok(()),
     }
 }
@@ -276,7 +279,7 @@ impl fmt::Display for Type {
             Type::Str => write!(formatter, "str"),
             Type::Integer { kind, bound, unit } => {
                 write!(formatter, "{}", kind.word())?;
-                let bound = bound.map(|(low, high)| format!("min: {low}, max: {high}"));
+                let bound = bound.map(|(low, high)| (low.to_string(), high.to_string()));
                 write_brackets(formatter, unit.as_ref(), bound)
             }
             Type::Float {

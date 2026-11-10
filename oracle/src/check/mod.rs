@@ -2497,7 +2497,12 @@ impl Checker<'_> {
                 // A float says which kind it is, straight after its type, before a unit or
                 // bounds. (D257, D158)
                 // trace: D257, D158
+                let unit_written = describe
+                    .iter()
+                    .find(|entry| entry.label.text == "unit")
+                    .map(|entry| self.text_of(entry.value.span).to_string());
                 let (unit, describe) = self.unit_in_brackets(describe)?;
+                let unit = unit.map(|unit| (unit, unit_written.unwrap_or_default()));
                 if head.starts_with('f') {
                     let (first, unit_text) = match narrowing.map(|word| word.split_once('.')) {
                         Some(Some((first, rest))) => (Some(first), Some(rest)),
@@ -2519,7 +2524,7 @@ impl Checker<'_> {
                             written,
                         ));
                     }
-                    return Self::resolve_float_type(head, unit, rules, &describe, written);
+                    return self.resolve_float_type(head, unit, rules, &describe, written);
                 }
                 if let Some(unit_text) = narrowing {
                     // trace: D257, D158
@@ -2532,7 +2537,7 @@ impl Checker<'_> {
                     }
                     return Err(Self::unit_in_the_chain(head, unit_text, &describe, written));
                 }
-                return Self::resolve_number_type(head, unit, &describe, written);
+                return self.resolve_number_type(head, unit, &describe, written);
             }
             _ => {}
         }
@@ -2604,9 +2609,11 @@ impl Checker<'_> {
         ))
     }
 
+    /// A unit type's resolved unit, and the unit as it's written in its brackets.
     fn resolve_float_type(
+        &self,
         head: &str,
-        unit: Option<String>,
+        unit: Option<(String, String)>,
         rules: FloatRules,
         describe: &[Describe],
         written: &TypeExpression,
@@ -2616,20 +2623,79 @@ impl Checker<'_> {
         } else {
             FloatKind::F64
         };
-        let bound = Self::resolve_float_bound(kind, unit.as_ref(), rules, describe, written)?;
+        let bound = self.resolve_float_bound(kind, unit.as_ref(), rules, describe, written)?;
         Ok(Type::Float {
             kind,
             bound,
-            unit,
+            unit: unit.map(|(unit, _)| unit),
             rules,
         })
     }
 
-    /// `f64[min: -40.0, max: 125.0]`, whose numbers are ordinary float literals.
-    /// trace: D158, D59
+    /// A bound's number, and the unit it's written in when that isn't its type's. A bound on
+    /// a unit type writes its unit, like any value given to that type. (D260, D101)
+    /// trace: D260, D101
+    fn bound_number<'entry>(
+        &self,
+        entry: &'entry Describe,
+        unit: Option<&(String, String)>,
+    ) -> Outcome<(&'entry crate::ast::Expression, Option<String>)> {
+        let why = "a bound writes its unit like any value given to its type, as `min: 0.0 length.meters` (D260, D101)";
+        match (&entry.value.kind, unit) {
+            (crate::ast::ExpressionKind::WithUnit { number, unit: path }, Some((unit, _))) => {
+                let found = self.resolve_unit(path)?;
+                if self.same_unit(Some(&found), Some(unit)) {
+                    Ok((number, None))
+                } else {
+                    Ok((number, Some(found)))
+                }
+            }
+            (crate::ast::ExpressionKind::WithUnit { number, .. }, None) => Err(Report::refused(
+                entry.value.span,
+                "this type has no unit, so its bound doesn't say one",
+                why,
+            )
+            .fix(self.text_of(number.span).to_string())),
+            (_, Some((_, written))) if expression::is_number_literal(&entry.value) => {
+                let shown = self.text_of(entry.value.span);
+                Err(Report::refused(
+                    entry.value.span,
+                    format!(
+                        "this type has a unit, so its `{}:` says one",
+                        entry.label.text
+                    ),
+                    why,
+                )
+                .fix(format!("{shown} {written}")))
+            }
+            _ => Ok((&entry.value, None)),
+        }
+    }
+
+    /// A bound on a `.point` or `.span` type, which D260 left open.
+    fn refuse_split_bound(
+        unit: Option<&(String, String)>,
+        written: &TypeExpression,
+    ) -> Outcome<()> {
+        if let Some((unit, _)) = unit {
+            if let (_, Some(split)) = units::split_of(unit) {
+                return Err(Report::not_designed(
+                    written.span,
+                    format!("a bound on a `.{split}` type"),
+                    "",
+                ));
+            }
+        }
+        Ok(())
+    }
+
+    /// `f64[min: -40.0, max: 125.0]`, whose numbers are ordinary float literals, with the
+    /// type's unit when it has one. (D260)
+    /// trace: D158, D59, D260
     fn resolve_float_bound(
+        &self,
         kind: FloatKind,
-        unit: Option<&String>,
+        unit: Option<&(String, String)>,
         rules: FloatRules,
         describe: &[Describe],
         written: &TypeExpression,
@@ -2637,13 +2703,7 @@ impl Checker<'_> {
         if describe.is_empty() {
             return Ok(None);
         }
-        if unit.is_some() {
-            return Err(Report::not_designed(
-                written.span,
-                "a bound on a number with a unit",
-                "",
-            ));
-        }
+        Self::refuse_split_bound(unit, written)?;
         if rules != FloatRules::Plain {
             return Err(Report::not_designed(
                 written.span,
@@ -2671,21 +2731,25 @@ impl Checker<'_> {
                     ));
                 }
             };
-            if matches!(entry.value.kind, crate::ast::ExpressionKind::Integer { .. }) {
+            let (number, from) = self.bound_number(entry, unit)?;
+            if matches!(number.kind, crate::ast::ExpressionKind::Integer { .. }) {
                 return Err(Report::not_designed(
-                    entry.value.span,
+                    number.span,
                     "an integer literal where a float is needed",
                     "",
                 ));
             }
-            if !matches!(entry.value.kind, crate::ast::ExpressionKind::Float { .. }) {
+            if !matches!(number.kind, crate::ast::ExpressionKind::Float { .. }) {
                 return Err(Report::not_designed(
-                    entry.value.span,
+                    number.span,
                     "a bound that isn't a literal",
                     "",
                 ));
             }
-            let value = expression::float_literal_value(&entry.value, &plain)?;
+            let mut value = expression::float_literal_value(number, &plain)?;
+            if let (Some(from), Some((to, _))) = (from, unit) {
+                value = self.float_bound_in_unit(value, kind, &from, to, entry.value.span)?;
+            }
             *slot = Some(value);
         }
         match (low, high) {
@@ -2708,13 +2772,14 @@ impl Checker<'_> {
     }
 
     fn resolve_number_type(
+        &self,
         head: &str,
-        unit: Option<String>,
+        unit: Option<(String, String)>,
         describe: &[Describe],
         written: &TypeExpression,
     ) -> Outcome<Type> {
         if head == "f32" || head == "f64" {
-            return Self::resolve_float_type(head, unit, FloatRules::Plain, describe, written);
+            return self.resolve_float_type(head, unit, FloatRules::Plain, describe, written);
         }
         let kind = match head {
             "i64" => IntegerKind::I64,
@@ -2723,37 +2788,41 @@ impl Checker<'_> {
             "u64" => IntegerKind::U64,
             _ => IntegerKind::I32,
         };
-        let bound = Self::resolve_bound(kind, unit.as_ref(), describe, written)?;
-        Ok(Type::Integer { kind, bound, unit })
+        let bound = self.resolve_bound(kind, unit.as_ref(), describe, written)?;
+        Ok(Type::Integer {
+            kind,
+            bound,
+            unit: unit.map(|(unit, _)| unit),
+        })
     }
 
-    /// trace: D20
+    /// An integer's bounds, with the type's unit when it has one, converted exactly. (D260)
+    /// trace: D20, D260
     fn resolve_bound(
+        &self,
         kind: IntegerKind,
-        unit: Option<&String>,
+        unit: Option<&(String, String)>,
         describe: &[Describe],
         written: &TypeExpression,
     ) -> Outcome<Option<(i128, i128)>> {
         if describe.is_empty() {
             return Ok(None);
         }
-        if unit.is_some() {
-            return Err(Report::not_designed(
-                written.span,
-                "a bound on a number with a unit",
-                "",
-            ));
-        }
+        Self::refuse_split_bound(unit, written)?;
         let mut low = None;
         let mut high = None;
         for entry in describe {
-            let Some(value) = expression::literal_integer(&entry.value) else {
+            let (number, from) = self.bound_number(entry, unit)?;
+            let Some(mut value) = expression::literal_integer(number) else {
                 return Err(Report::not_designed(
-                    entry.value.span,
+                    number.span,
                     "a bound that isn't a literal",
                     "",
                 ));
             };
+            if let (Some(from), Some((to, _))) = (from, unit) {
+                value = self.integer_bound_in_unit(value, &from, to, entry.value.span)?;
+            }
             match entry.label.text.as_str() {
                 "min" => low = Some(value),
                 "max" => high = Some(value),

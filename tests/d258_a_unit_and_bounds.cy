@@ -1,5 +1,5 @@
-// Bounds next to a unit are written together, but a bound on a number with a unit isn't decided.
-// trace: D258
+// Bounds next to a unit are written together, in the type's brackets, and each says its unit.
+// trace: D258, D260
 @config(default);
 import std;
 
@@ -9,6 +9,7 @@ fam.unit length:
 end fam.unit length
 
 fn.main [] -> void:
-    let $d: f64.stable[unit: length.meters, min: 0.0, max: 9.0] = 5.0 length.meters;
+    let $d: f64.stable[unit: length.meters, min: 0.0 length.meters, max: 9.0 length.meters] = 5.0 length.meters;
+    std::io::fmt_print("{$d, unit}{newln}");
     return void;
 end fn.main

@@ -1,4 +1,4 @@
-// trace: D158
+// trace: D158, D260
 @config(default);
 
 fam.unit time:

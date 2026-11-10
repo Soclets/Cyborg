@@ -1,0 +1,5 @@
+refused: d260_float_literal_past_a_bound.cy:11:101, line 11 column 101
+11 |     let $far: f64.stable[unit: length.meters, min: 0.0 length.meters, max: 0.5 length.kilometers] = 500.5 length.meters;
+   |                                                                                                     ^^^^^^^^^^^^^^^^^^^
+ what: `500.5 length.meters` doesn't fit `f64.stable[unit: length.meters, min: 0.0 length.meters, max: 500.0 length.meters]`
+ why:  a literal that can't fit is a compile error (D20, D158)

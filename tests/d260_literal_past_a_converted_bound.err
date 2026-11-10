@@ -1,0 +1,5 @@
+refused: d260_literal_past_a_converted_bound.cy:11:90, line 11 column 90
+11 |     let $far: i32[unit: length.meters, min: 0 length.meters, max: 1 length.kilometers] = 1001 length.meters;
+   |                                                                                          ^^^^^^^^^^^^^^^^^^
+ what: `1001 length.meters` doesn't fit `i32[unit: length.meters, min: 0 length.meters, max: 1000 length.meters]`
+ why:  a literal that can't fit is a compile error (D20)

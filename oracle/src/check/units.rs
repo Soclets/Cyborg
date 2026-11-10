@@ -807,32 +807,7 @@ impl Checker<'_> {
         span: Span,
     ) -> Outcome<crate::ir::Node> {
         use crate::ir::{Arithmetic, Node, NodeKind, Number};
-        let mut ratio = Scale::Exact(1, 1);
-        for (link, upward) in up
-            .iter()
-            .map(|link| (link, true))
-            .chain(down.iter().map(|link| (link, false)))
-        {
-            let Link::Scale(scale @ Scale::Exact(..)) = link else {
-                return Err(Report::not_designed(
-                    span,
-                    "an integer conversion with an offset, a log or a scale written with `~`",
-                    "12.2",
-                ));
-            };
-            ratio = if upward {
-                ratio.over(&Scale::Exact(1, 1).over(scale, span)?, span)?
-            } else {
-                ratio.over(scale, span)?
-            };
-        }
-        let Scale::Exact(top, bottom) = ratio else {
-            return Err(Report::not_designed(
-                span,
-                "an integer conversion that isn't exact",
-                "12.2",
-            ));
-        };
+        let (top, bottom) = exact_ratio(up, down, span)?;
         let number = Number::Integer(kind);
         let step = |operator: Arithmetic, value: i128| Node {
             span,
@@ -883,6 +858,127 @@ impl Checker<'_> {
             }
         };
         Ok(step(Arithmetic::Divide(rounding), bottom))
+    }
+}
+
+/// How many of the end unit one of the start unit is, as a fraction, for an integer, which
+/// only takes exact scales. (D255)
+fn exact_ratio(up: &[Link], down: &[Link], span: Span) -> Outcome<(i128, i128)> {
+    let mut ratio = Scale::Exact(1, 1);
+    for (link, upward) in up
+        .iter()
+        .map(|link| (link, true))
+        .chain(down.iter().map(|link| (link, false)))
+    {
+        let Link::Scale(scale @ Scale::Exact(..)) = link else {
+            return Err(Report::not_designed(
+                span,
+                "an integer conversion with an offset, a log or a scale written with `~`",
+                "12.2",
+            ));
+        };
+        ratio = if upward {
+            ratio.over(&Scale::Exact(1, 1).over(scale, span)?, span)?
+        } else {
+            ratio.over(scale, span)?
+        };
+    }
+    match ratio {
+        Scale::Exact(top, bottom) => Ok((top, bottom)),
+        Scale::Inexact(_) => Err(Report::not_designed(
+            span,
+            "an integer conversion that isn't exact",
+            "12.2",
+        )),
+    }
+}
+
+const WHY_BOUND: &str = "a bound writes its unit like any value given to its type, in any unit with the same base, converted when compiling, and exactly for an integer type (D260)";
+
+impl Checker<'_> {
+    /// The links from a bound's unit to its type's, which have to share a base. (D260)
+    fn bound_links(&self, from: &str, to: &str, span: Span) -> Outcome<(Vec<Link>, Vec<Link>)> {
+        let (Some((up, start_base)), Some((down, end_base))) = (self.chain(from), self.chain(to))
+        else {
+            return Err(Report::not_designed(
+                span,
+                format!("a bound in `{from}` on a type in `{to}`, which a derived unit's conversion would do"),
+                "12.2",
+            ));
+        };
+        if start_base != end_base {
+            return Err(Report::refused(
+                span,
+                format!("`{from}` and `{to}` don't trace back to the same base"),
+                WHY_BOUND,
+            ));
+        }
+        Ok((up, down))
+    }
+
+    /// An integer bound in another unit, converted exactly to its type's, or refused rather
+    /// than rounded. (D260)
+    /// trace: D260
+    pub(super) fn integer_bound_in_unit(
+        &self,
+        value: i128,
+        from: &str,
+        to: &str,
+        span: Span,
+    ) -> Outcome<i128> {
+        let (up, down) = self.bound_links(from, to, span)?;
+        let (top, bottom) = exact_ratio(&up, &down, span)?;
+        let Some(scaled) = value.checked_mul(top) else {
+            return Err(Report::not_designed(
+                span,
+                "a bound too big for the oracle to convert",
+                "",
+            ));
+        };
+        if scaled % bottom != 0 {
+            return Err(Report::refused(
+                span,
+                format!("`{value} {from}` isn't a whole number of `{to}`, so this integer bound can't convert exactly"),
+                WHY_BOUND,
+            ));
+        }
+        Ok(scaled / bottom)
+    }
+
+    /// A float bound in another unit, converted to its type's the way `as` does, rounding at
+    /// each step. (D260, D255)
+    /// trace: D260, D255
+    pub(super) fn float_bound_in_unit(
+        &self,
+        value: f64,
+        kind: crate::types::FloatKind,
+        from: &str,
+        to: &str,
+        span: Span,
+    ) -> Outcome<f64> {
+        let (up, down) = self.bound_links(from, to, span)?;
+        #[allow(clippy::cast_possible_truncation)] // An `f32` rounds to the nearest.
+        let round = |value: f64| match kind {
+            crate::types::FloatKind::F32 => f64::from(value as f32),
+            crate::types::FloatKind::F64 => value,
+        };
+        let mut value = value;
+        for (link, upward) in up
+            .iter()
+            .map(|link| (link, true))
+            .chain(down.iter().rev().map(|link| (link, false)))
+        {
+            let Link::Scale(scale) = link else {
+                return Err(Report::not_designed(
+                    span,
+                    "a bound in a unit with an offset or a log",
+                    "",
+                ));
+            };
+            let scale = round(scale.float());
+            value = round(if upward { value * scale } else { value / scale });
+        }
+        Ok(value)
     }
 }
 

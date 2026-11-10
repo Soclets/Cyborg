@@ -1,0 +1,5 @@
+refused: d260_bound_in_another_base.cy:14:74, line 14 column 74
+14 |     let $d: f64.stable[unit: length.meters, min: 0.0 length.meters, max: 5.0 time.seconds] = 1.0 length.meters;
+   |                                                                          ^^^^^^^^^^^^^^^^
+ what: `time.seconds` and `length.meters` don't trace back to the same base
+ why:  a bound writes its unit like any value given to its type, in any unit with the same base, converted when compiling, and exactly for an integer type (D260)
