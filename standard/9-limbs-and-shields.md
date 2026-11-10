@@ -45,7 +45,7 @@ need json 1.2.0
 need csup 0.1.0 with headers
 ```
 
-`name` and `ver` are the project's own. `okay` is the compiler version it needs. Each package it uses has a `need` line with its version, and `with` adds features. A value is quoted only when it needs to be, and `//` starts a comment, as in Cyborg code.
+`name` and `ver` are the project's own. How a version number is written isn't decided, so `0.1.0` is a placeholder. `okay` is the compiler version it needs. Each package it uses has a `need` line with its version, and `with` adds features. A value is quoted only when it needs to be, and `//` starts a comment, as in Cyborg code.
 
 **Refused:** a line like Go's `package main`, and a `need` line with no version.
 
