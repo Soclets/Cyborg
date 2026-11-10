@@ -1,0 +1,5 @@
+refused: d233_outside_on_target.cy:11:9, line 11 column 9
+11 |         inline.asm:
+   |         ^^^^^^^^^^
+ what: an assembly block goes inside an `on.target` choice naming its chip
+ why:  assembly is for one chip, so it sits in an `on.target` branch that names it, and has no `target:` line (D233)

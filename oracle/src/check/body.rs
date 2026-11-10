@@ -891,6 +891,12 @@ impl Checker<'_> {
                 self.check_fail(path, data, span)?
             }
             StatementKind::Expression(value) => self.check_expression_statement(value)?,
+            StatementKind::OnTarget { body, other, .. } => {
+                let (kind, ends) = self.check_on_target(body, other.as_deref())?;
+                terminated = ends;
+                kind
+            }
+            StatementKind::Assembly(assembly) => self.check_assembly(assembly)?,
             StatementKind::Shield { name, reason, body } => {
                 // trace: D34
                 if reason.is_none() {
@@ -3518,5 +3524,87 @@ fn typed_example(value: &Expression) -> Option<String> {
             })
         }
         _ => None,
+    }
+}
+
+impl Checker<'_> {
+    /// `on.target` compiles a branch only when building for its chip. The oracle builds for no
+    /// chip, so it follows `else:`, as a build for a chip no branch names would, and its
+    /// statements belong to the block around it. The chip's branch is still checked, then set
+    /// aside. (D233)
+    /// trace: D233
+    fn check_on_target(
+        &mut self,
+        body: &[Statement],
+        other: Option<&[Statement]>,
+    ) -> Outcome<(InstructionKind, bool)> {
+        let state = self.context.state.clone();
+        let unknown = self.context.unknown.clone();
+        self.context.in_chip += 1;
+        let checked = self.check_block(body);
+        self.context.in_chip -= 1;
+        for (slot, saved) in state.into_iter().enumerate() {
+            if let Some(now) = self.context.state.get_mut(slot) {
+                *now = saved;
+            }
+        }
+        self.context.unknown = unknown;
+        checked?;
+        match other {
+            Some(statements) => {
+                let (code, ends) = self.check_statements(statements)?;
+                Ok((InstructionKind::Block(code), ends))
+            }
+            None => Ok((InstructionKind::Block(Vec::new()), false)),
+        }
+    }
+
+    /// An assembly block sits in a shield and in an `on.target` branch naming its chip. The
+    /// oracle checks what goes in, and declares what comes out, but can't read the assembly,
+    /// which the compiler hands to LLVM. A variable from `writes:` takes its register's width,
+    /// which only LLVM knows, so here its type is unknown. (D233, D38)
+    /// trace: D233, D38
+    fn check_assembly(&mut self, assembly: &crate::ast::Assembly) -> Outcome<InstructionKind> {
+        if self.context.in_chip == 0 {
+            return Err(Report::refused(
+                assembly.opener,
+                "an assembly block goes inside an `on.target` choice naming its chip",
+                "assembly is for one chip, so it sits in an `on.target` branch that names it, and has no `target:` line (D233)",
+            ));
+        }
+        if self.context.in_shield == 0 {
+            return Err(Report::refused(
+                assembly.opener,
+                "an assembly block must be inside a shield",
+                "a shield is the only place dangerous code may live (D34, D38, D233)",
+            ));
+        }
+        // 9.4's own example reads and writes `x0`, so that's allowed here, though D233 lists
+        // a register both read and written as not settled.
+        for (_, value) in &assembly.reads {
+            if matches!(value.kind, ExpressionKind::Hand { .. }) {
+                return Err(Report::not_designed(
+                    value.span,
+                    "lending an address into a register",
+                    "12.5",
+                ));
+            }
+            let (_, found) = self.check_expression(value, None)?;
+            if !matches!(
+                found,
+                Type::Integer { .. } | Type::Float { .. } | Type::Bool
+            ) {
+                return Err(Report::not_designed(
+                    value.span,
+                    format!("putting a `{found}` into a register"),
+                    "",
+                ));
+            }
+        }
+        for (_, variable) in &assembly.writes {
+            self.refuse_second_declaration(variable)?;
+            self.context.unknown.insert(variable.text.clone());
+        }
+        Ok(InstructionKind::Block(Vec::new()))
     }
 }

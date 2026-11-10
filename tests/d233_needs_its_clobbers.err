@@ -1,0 +1,5 @@
+refused: d233_needs_its_clobbers.cy:16:17, line 16 column 17
+16 |                 add x2, x0, x1
+   |                 ^^^^^^^^^^^^^^
+ what: expected `clobbers:`, but found a line of assembly
+ why:  `;` ends a statement, `:` opens a block, and `end` closes it (D33)

@@ -1,0 +1,5 @@
+refused: d233_not_a_call.cy:8:9, line 8 column 9
+ 8 |         inline.asm();
+   |         ^^^^^^^^^^
+ what: assembly is a block, `inline.asm:`, with its `reads:`, `writes:` and `clobbers:` lines
+ why:  an assembly block is a statement that says what goes in and out, then holds raw assembly (D233)

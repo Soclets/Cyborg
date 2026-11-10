@@ -1,5 +1,5 @@
-// `inline.asm` can have a short name too, matching its last word.
-// trace: D227
+// `use` doesn't work on the base language, so the fix removes the line.
+// trace: D232, D227
 @config(default);
 
 use inline.asm as asm;

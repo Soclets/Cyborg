@@ -3623,7 +3623,15 @@ impl Checker<'_> {
         if let Some(report) = inline_spelling(text, span) {
             return Some(report);
         }
-        if text != "inline.asm" && !text.starts_with("inline.@") {
+        // trace: D233
+        if text == "inline.asm" {
+            return Some(Report::refused(
+                span,
+                "assembly is a block, `inline.asm:`, with its `reads:`, `writes:` and `clobbers:` lines",
+                "an assembly block is a statement that says what goes in and out, then holds raw assembly (D233)",
+            ));
+        }
+        if !text.starts_with("inline.@") {
             return None;
         }
         if self.context.in_shield == 0 {
@@ -3633,20 +3641,14 @@ impl Checker<'_> {
                 "a shield is the only place dangerous code may live (D34, D38, D227)",
             ));
         }
-        Some(match text.strip_prefix("inline.@") {
-            Some(language) => Report::not_designed(
-                span,
-                format!(
-                    "how the limb `@{}` is found",
-                    language.split("::").next().unwrap_or(language)
-                ),
-                "12.9",
+        let language = text.strip_prefix("inline.@").unwrap_or(text);
+        Some(Report::not_designed(
+            span,
+            format!(
+                "how the limb `@{}` is found",
+                language.split("::").next().unwrap_or(language)
             ),
-            None => Report::not_designed(
-                span,
-                "how the code inside an `inline` block is written",
-                "12.5",
-            ),
-        })
+            "12.9",
+        ))
     }
 }

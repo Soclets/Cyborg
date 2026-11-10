@@ -2,7 +2,7 @@
 
 use std::collections::HashSet;
 
-use crate::ast::{Align, Base, FormatPiece, Hole, Shapes, WidthUnit};
+use crate::ast::{Align, Assembly, Base, FormatPiece, Hole, Shapes, WidthUnit};
 use crate::ast::{
     Argument, Arm, BinaryOperator, BorrowSources, CompareOperator, Contract, Describe, Expression,
     ExpressionKind, FailureEntry, FailureSet, FieldDeclaration, FieldValue, Fill, ForSource,
@@ -522,6 +522,8 @@ enum Lexeme {
     },
     Text(String),
     Symbol(&'static str),
+    /// One line of raw assembly inside an `inline.asm:` block, which LLVM reads. (D233)
+    Raw(String),
     End,
 }
 
@@ -697,6 +699,8 @@ fn lex(source: &str) -> Outcome<Vec<Token>> {
     let mut tokens: Vec<Token> = Vec::new();
     let mut position = 0;
     let mut at_line_start = true;
+    // Where an `inline.asm:` line opened a block whose raw lines haven't started yet. (D233)
+    let mut assembly: Option<Span> = None;
     while position < source.len() {
         let rest = source.get(position..).unwrap_or("");
         let Some(character) = rest.chars().next() else {
@@ -726,6 +730,26 @@ fn lex(source: &str) -> Outcome<Vec<Token>> {
                     format!("there's no open comment block for `end comment {name}` to close"),
                     "a closer names the block it closes (D119)",
                 ));
+            }
+            // An assembly block's lines after `reads:`, `writes:` and `clobbers:` are raw, up to
+            // `end inline.asm`, so they're read whole, as a comment block's are. (D233)
+            // trace: D233
+            let code = line.split(" //").next().unwrap_or(line).trim_end();
+            if let Some(opened) = assembly {
+                let header = ["reads:", "writes:", "clobbers:"]
+                    .iter()
+                    .any(|word| code.starts_with(word));
+                if !header {
+                    assembly = None;
+                    if code != "end inline.asm" {
+                        position = read_raw_lines(source, position, opened, &mut tokens)?;
+                        at_line_start = true;
+                        continue;
+                    }
+                }
+            }
+            if code == "inline.asm:" {
+                assembly = Some(trimmed_line_span(source, position, end));
             }
         }
         // A `//` comment can trail code on its line, while a `///` attaches to what's below it.
@@ -1375,6 +1399,7 @@ impl Parser {
             Lexeme::Source(name) => format!("the source `` `{name}` ``"),
             Lexeme::Text(_) => "a string".to_string(),
             Lexeme::Symbol(symbol) => format!("`{symbol}`"),
+            Lexeme::Raw(_) => "a line of assembly".to_string(),
             Lexeme::End => "the end of the file".to_string(),
         }
     }
@@ -3176,6 +3201,17 @@ impl Parser {
                 "for" => return self.parse_for(),
                 "while" => return self.parse_while(),
                 "forever" => return self.parse_forever(),
+                // trace: D233
+                "on" if self.symbol_at(1, ".") && self.word_at(2, "target") => {
+                    return self.parse_on_target();
+                }
+                "inline"
+                    if self.symbol_at(1, ".")
+                        && self.word_at(2, "asm")
+                        && self.symbol_at(3, ":") =>
+                {
+                    return self.parse_assembly();
+                }
                 "break" => return self.parse_break(),
                 "type" | "fam" if self.symbol_at(1, ".") => {
                     return Err(Report::not_designed(
@@ -3701,6 +3737,108 @@ impl Parser {
             span: start.to(end),
             kind: StatementKind::Break { name },
         })
+    }
+
+    /// `on.target aarch64:`, its branch, an optional `else:`, and `end on.target`. (D233)
+    /// trace: D233
+    fn parse_on_target(&mut self) -> Outcome<Statement> {
+        let start = self.advance().span; // `on`
+        self.advance(); // `.`
+        self.advance(); // `target`
+        if self.at_symbol(".") {
+            let narrowing = self.peek_at(1).text.clone();
+            return Err(Report::not_designed(
+                start.to(self.peek_at(1).span),
+                format!("`on.target.{narrowing}`, a narrowing of `on.target`"),
+                "12.5",
+            ));
+        }
+        let chip = self.expect_name("the chip's name")?;
+        self.expect_symbol(":")?;
+        let body = self.parse_block()?;
+        let other = if self.eat_word("else") {
+            if !self.at_symbol(":") {
+                return Err(Report::not_designed(
+                    self.span(),
+                    "a second chip after `else` in an `on.target` choice",
+                    "",
+                ));
+            }
+            self.advance();
+            Some(self.parse_block()?)
+        } else {
+            None
+        };
+        let end = self.expect_closer(&["on.target"])?;
+        Ok(Statement {
+            span: start.to(end),
+            kind: StatementKind::OnTarget { chip, body, other },
+        })
+    }
+
+    /// `inline.asm:`, its `reads:`, `writes:` and `clobbers:` lines in that order, its raw
+    /// lines, and `end inline.asm`. (D233)
+    /// trace: D233
+    fn parse_assembly(&mut self) -> Outcome<Statement> {
+        let start = self.span();
+        self.advance(); // `inline`
+        self.advance(); // `.`
+        let asm = self.advance().span; // `asm`
+        let opener = start.to(asm);
+        self.expect_symbol(":")?;
+        self.mark_line_start();
+        let reads = self.parse_registers("reads", |this| {
+            this.expect_symbol("=")?;
+            this.parse_expression()
+        })?;
+        self.mark_line_start();
+        let writes = self.parse_registers("writes", |this| {
+            this.expect_symbol("=>")?;
+            this.expect_variable("the variable it goes into, starting with `$`")
+        })?;
+        self.mark_line_start();
+        let clobbers = self.parse_registers("clobbers", |_| Ok(()))?;
+        let mut lines = Vec::new();
+        while let Lexeme::Raw(text) = self.peek().lexeme.clone() {
+            self.mark_line_start();
+            lines.push((text, self.advance().span));
+        }
+        let end = self.expect_closer(&["inline.asm"])?;
+        Ok(Statement {
+            span: start.to(end),
+            kind: StatementKind::Assembly(Box::new(Assembly {
+                opener,
+                reads,
+                writes,
+                clobbers: clobbers.into_iter().map(|(name, ())| name).collect(),
+                lines,
+            })),
+        })
+    }
+
+    /// `word: [register …, register …];`, with what follows each register read by `rest`.
+    fn parse_registers<T>(
+        &mut self,
+        word: &str,
+        mut rest: impl FnMut(&mut Self) -> Outcome<T>,
+    ) -> Outcome<Vec<(Name, T)>> {
+        if !self.at_word(word) {
+            return Err(self.expected(&format!("`{word}:`")));
+        }
+        self.advance();
+        self.expect_symbol(":")?;
+        self.expect_symbol("[")?;
+        let mut entries = Vec::new();
+        while !self.at_symbol("]") {
+            let register = self.expect_name("a register")?;
+            entries.push((register, rest(self)?));
+            if !self.eat_symbol(",") {
+                break;
+            }
+        }
+        self.expect_symbol("]")?;
+        self.expect_semicolon()?;
+        Ok(entries)
     }
 
     fn parse_shield_statement(&mut self) -> Outcome<Statement> {
@@ -4851,6 +4989,7 @@ impl Parser {
                 Lexeme::Word(word)
                 | Lexeme::Integer(word)
                 | Lexeme::Float(word)
+                | Lexeme::Raw(word)
                 | Lexeme::Exponent { written: word, .. } => {
                     text.push_str(word);
                 }
@@ -4903,5 +5042,52 @@ fn join_gap(previous: &Token, next: &Token) -> &'static str {
         ""
     } else {
         " "
+    }
+}
+
+/// Reads an assembly block's raw lines, one token each, from `position` up to the line that
+/// closes it, and gives where that line starts. Blank lines are left out. (D233)
+/// trace: D233
+fn read_raw_lines(
+    source: &str,
+    mut position: usize,
+    opened: Span,
+    tokens: &mut Vec<Token>,
+) -> Outcome<usize> {
+    loop {
+        let line_start = source
+            .get(..position)
+            .and_then(|before| before.rfind('\n'))
+            .map_or(0, |at| at + 1);
+        let end = line_end(source, line_start);
+        let line = source.get(line_start..end).unwrap_or("");
+        if line.trim() == "end inline.asm" {
+            return Ok(line_start);
+        }
+        if !line.trim().is_empty() {
+            let span = trimmed_line_span(source, line_start, end);
+            if let Some(last) = tokens.last_mut() {
+                last.gap_after = Gap::Line;
+            }
+            let text = line.trim().to_string();
+            tokens.push(Token {
+                lexeme: Lexeme::Raw(text.clone()),
+                span,
+                space_before: true,
+                space_after: true,
+                gap_before: Gap::Line,
+                gap_after: Gap::Line,
+                text,
+                starts_a_line: true,
+            });
+        }
+        if end >= source.len() {
+            return Err(Report::refused(
+                opened,
+                "this assembly block never closes",
+                "an assembly block holds raw assembly, one instruction per line, and closes with `end inline.asm` (D233)",
+            ));
+        }
+        position = end + 1;
     }
 }

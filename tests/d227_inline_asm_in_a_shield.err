@@ -1,5 +1,0 @@
-NotDesignedYet: d227_inline_asm_in_a_shield.cy:8:9, line 8 column 9
- 8 |         inline.asm();
-   |         ^^^^^^^^^^
- what: how the code inside an `inline` block is written
- why:  not decided yet (standard 12.5)

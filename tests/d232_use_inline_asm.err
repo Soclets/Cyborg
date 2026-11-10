@@ -1,0 +1,5 @@
+refused: d232_use_inline_asm.cy:5:1, line 5 column 1
+ 5 | use inline.asm as asm;
+   | ^^^^^^^^^^^^^^^^^^^^^^
+ fix:  ``
+ why:  `use` only shortens a path with `::` into a kit or limb, so every `inline.…` stays written in full (D232)

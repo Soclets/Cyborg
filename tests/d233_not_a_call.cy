@@ -1,5 +1,5 @@
-// Inline assembly needs no import, and how its code is written isn't designed.
-// trace: D227
+// Assembly is a block, `inline.asm:`, not a call.
+// trace: D233, D227
 @config(default);
 
 fn.main [] -> void:

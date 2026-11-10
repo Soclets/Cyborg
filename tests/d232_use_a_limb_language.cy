@@ -1,5 +1,5 @@
-// A short name for a limb's inline language matches its last word.
-// trace: D227
+// `use` doesn't work on the base language, so every `inline.…` stays in full, a limb's included.
+// trace: D232, D227
 @config(default);
 
 use inline.@llvm::ir as ir;

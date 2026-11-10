@@ -377,6 +377,31 @@ pub enum StatementKind {
         reason: Option<String>,
         body: Vec<Statement>,
     },
+    /// `on.target aarch64:`, compiled only when building for that chip, with `else:` for the
+    /// rest. (D233)
+    OnTarget {
+        /// The oracle builds for no chip, so it never reads which one this is.
+        #[allow(dead_code)]
+        chip: Name,
+        body: Vec<Statement>,
+        other: Option<Vec<Statement>>,
+    },
+    /// `inline.asm:` with what goes in and out, then raw assembly. (D233)
+    Assembly(Box<Assembly>),
+}
+
+/// An assembly block: registers to fill, registers to read back into new variables, the other
+/// registers it changes, and its raw lines. (D233)
+#[derive(Clone, Debug)]
+pub struct Assembly {
+    pub opener: Span,
+    pub reads: Vec<(Name, Expression)>,
+    pub writes: Vec<(Name, Name)>,
+    /// What the assembly changes and says, which LLVM reads and the oracle can't. (D233)
+    #[allow(dead_code)]
+    pub clobbers: Vec<Name>,
+    #[allow(dead_code)]
+    pub lines: Vec<(String, Span)>,
 }
 
 /// What a `for` goes through.

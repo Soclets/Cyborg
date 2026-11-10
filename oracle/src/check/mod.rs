@@ -202,6 +202,8 @@ struct FunctionContext {
     result_slot: usize,
     in_constant: usize,
     in_shield: usize,
+    /// How many `on.target` chip branches the code being checked is in. (D233)
+    in_chip: usize,
     call_span: Option<Span>,
     ensures_variables: Vec<(String, Span)>,
     /// The failure arms around the code being checked, innermost last.
@@ -259,6 +261,7 @@ impl FunctionContext {
             result_slot: 0,
             in_constant: 0,
             in_shield: 0,
+            in_chip: 0,
             call_span: None,
             ensures_variables: Vec::new(),
             arms: Vec::new(),
@@ -546,22 +549,21 @@ impl Checker<'_> {
         Ok(())
     }
 
-    /// A `use` of inline code: spelled right, and a limb's language waits on how limbs are
-    /// found. (D227)
-    /// trace: D227
+    /// `use` only shortens a path with `::` into a kit or limb, so nothing in the base language,
+    /// and no `inline.…`, has a short name. The fix removes the line. (D232, D227)
+    /// trace: D232, D227
     fn refuse_inline_use(declared: &crate::ast::Use) -> Outcome<()> {
         if let Some(report) = expression::inline_spelling(&declared.path.text, declared.path.span) {
             return Err(report);
         }
-        if let Some(language) = declared.path.text.strip_prefix("inline.@") {
-            return Err(Report::not_designed(
-                declared.path.span,
-                format!(
-                    "how the limb `@{}` is found",
-                    language.split("::").next().unwrap_or(language)
-                ),
-                "12.9",
-            ));
+        let text = &declared.path.text;
+        if text.starts_with("inline.") || !text.contains("::") {
+            return Err(Report::refused(
+                declared.span,
+                format!("`{text}` is in the base language, so it has no shorter name"),
+                "`use` only shortens a path with `::` into a kit or limb, so every `inline.…` stays written in full (D232)",
+            )
+            .fix(""));
         }
         Ok(())
     }
