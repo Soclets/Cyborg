@@ -1010,6 +1010,8 @@ A `type_set` is a closed list of types that nothing can join later, as in `type_
 
 **D254. The point and span split belongs to the whole family.** Every unit in a family that has the split needs `.point` or `.span`, including its base, so `kelvin` and `milliwatts` need one too, not only `celsius` and `dbm`. Adding two readings in kelvin is as meaningless as in Celsius, so the split is about the quantity, not about which unit has the offset. This was oracle claude's reading of D249; Claude recommended keeping it; the owner chose: "yea". (Owner, 2026-11-10)
 
+**D255. Converting units with `as`.** A value changes unit with `as`, as in `$km as f64.length.meters`. A float rounds to the nearest float, like every float operation (D164). An integer converting to a smaller unit, like kilometres to metres, is exact, so plain `as` works. An integer converting to a bigger unit can lose something, since 1500 m is 1.5 km, so it says how with a narrowing, like integer `div` (D48): `as.trunc`, `as.floor`, or `as.exact`, which fails if anything would be lost. A plain `as` there is refused. Points convert with their offset and spans only scale (D249). The full list of narrowings, and conversions between units whose ratio isn't whole, are not settled here. Claude proposed it; the owner asked "Wait, floats don't have to say how to round?", and chose: "yea". (Owner, 2026-11-10)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude

@@ -282,7 +282,7 @@ end fn draw
 draw(at.screen.pixels: 5);
 ```
 
-**Refused:** a point plus a point, a value with neither `.point` nor `.span` in a family that needs one, mixing units, as in `$a + 5 storage.bytes`, a missing unit, as in `let $b: i32.time.seconds = 3600;`, a bare `3600 seconds` with no `use`, and storing a value whose units don't match the declared unit, as in `let $s: f64.motion.speed = $time div $dist;`.
+**Refused:** a plain `as` from an integer to a bigger unit, a point plus a point, a value with neither `.point` nor `.span` in a family that needs one, mixing units, as in `$a + 5 storage.bytes`, a missing unit, as in `let $b: i32.time.seconds = 3600;`, a bare `3600 seconds` with no `use`, and storing a value whose units don't match the declared unit, as in `let $s: f64.motion.speed = $time div $dist;`.
 
 You define units in a collection. Every unit says what it is: `: base`, or `=` with a conversion, which can point at a unit in any family. Two units convert if they trace back to the same base, and otherwise they don't.
 
@@ -369,7 +369,16 @@ let $rise: f64.celsius.span = 10.0 celsius;
 let $later: f64.celsius.point = $now + $rise;
 ```
 
-A point plus a span is a point, a point minus a point is a span, and spans add. Converting a point applies the offset, while converting a span only scales, so a rise of 10 °C is a rise of 10 K. `offset` is a placeholder, and how a conversion is otherwise written isn't decided ([12.2](12-not-decided.md#122-types)).
+A point plus a span is a point, a point minus a point is a span, and spans add. Converting a point applies the offset, while converting a span only scales, so a rise of 10 °C is a rise of 10 K. `offset` is a placeholder.
+
+A value changes unit with `as`. A float rounds to the nearest, like any float maths. An integer converting to a smaller unit is exact, and to a bigger one says how with a narrowing:
+
+```
+let $m: f64.length.meters = $km as f64.length.meters;
+let $k: i32.length.kilometers = $big as.trunc i32.length.kilometers;
+```
+
+`as.trunc`, `as.floor` and `as.exact`, which fails if anything would be lost, follow integer `div` ([3.3](3-operators.md#33-division-div)).
 
 Logarithmic units, like decibels, use the same split. A level is a point and a gain is a span, and the conversion is a log, declared with the placeholder `decibels of`:
 
@@ -386,7 +395,7 @@ let $output: f64.power.dbm.point = $input + $gain;
 
 Two levels can't be added, since in dB that would mean multiplying two powers, so you convert to watts, add, and convert back.
 
-**From:** D99, D100, D101, D108, D109, D110, D111, D112, D141, D144, D242, D243, D245, D249, D250, D251, D254.
+**From:** D99, D100, D101, D108, D109, D110, D111, D112, D141, D144, D242, D243, D245, D249, D250, D251, D254, D255.
 
 ## 2.17 Getting an item
 

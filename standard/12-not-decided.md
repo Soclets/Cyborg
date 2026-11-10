@@ -66,7 +66,7 @@ Waiting on the owner, most needed first. Each is `NotDesignedYet` unless it says
 ## 12.2 Types
 
 - The full list of integer and float types.
-- Units (D99 to D111, D242, D243, D249, D251): amplitude decibels and other log scales, the spelling of `decibels of`, how a family says it has points and spans other than by an offset, the spelling of `offset`, storing a product or quotient of a unit parameter, powers written directly, a derived unit's conversions, how a conversion is written, what a lossy conversion does, and the full list of units `std` has.
+- Units (D99 to D111, D242, D243, D249, D251, D255): the full list of `as` narrowings, conversions whose ratio isn't whole, amplitude decibels and other log scales, the spelling of `decibels of`, how a family says it has points and spans other than by an offset, the spelling of `offset`, storing a product or quotient of a unit parameter, powers written directly, a derived unit's conversions, what a lossy conversion does, and the full list of units `std` has.
 - On floats: whether `div.trunc` and the other integer narrowings work, and what `mod` does.
 - Negative exponents, as in `exponent ~1.5e-3`, and exponents on integers.
 - Which groups `std` has (D196), besides `io` and `math`.
