@@ -157,8 +157,8 @@ end op <
 reading satisfies ordered;
 ```
 
-Which operators can be defined isn't decided ([12.3](12-not-decided.md#123-operators-and-conversion)).
+A type can define arithmetic, `+`, `-`, `x` and the `div` narrowings, and comparisons. Only `==` and `<` are written: `!=`, `>`, `at_least` and `at_most` follow from them, so they can never disagree.
 
-**Refused:** defining or changing an operator on a built-in type, like `i32`.
+**Refused:** defining or changing an operator on a built-in type, like `i32`, writing `!=`, `>`, `at_least` or `at_most` yourself, and defining `and`, `or`, `not`, `=`, `?`, `??` or `as`.
 
-**From:** D116, D117, D235, D236, and CyborgPL's `op`.
+**From:** D116, D117, D124, D235, D236, D237, and CyborgPL's `op`.
