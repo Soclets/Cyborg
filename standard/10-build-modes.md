@@ -28,7 +28,7 @@
 
 ## 10.2 No default
 
-**Rule:** there's no default build mode. You always say which, as its own flag. The compiler is `OKAY\n`, typed `okay`: `okay comp` compiles, and `okay run` compiles and runs. `--max_cores=` takes a number, `max` or `min`, and is `max` when left out.
+**Rule:** there's no default build mode. You always say which, as its own flag. The compiler is `OKAY\n`, typed `okay`: `okay comp` compiles, and `okay run` compiles and runs. `--max_cores=` takes a number, `max` or `min`, and is `max` when left out. `okay` links by itself, with nothing else installed, and cross-compiles with one flag, as in the placeholder `--target=arduino_uno_r4`.
 
 ```
 okay comp --FinalSafe
@@ -36,7 +36,7 @@ okay comp --FinalSafe
 
 **Refused:** `okay comp` with no mode flag, and `--mode FinalSafe`, with `fix: --FinalSafe`.
 
-**From:** D26, D222, D224.
+**From:** D26, D222, D224, D261.
 
 ## 10.3 What gets checked
 
