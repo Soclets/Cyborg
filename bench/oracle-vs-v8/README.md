@@ -11,7 +11,7 @@ Both print the same answers: 9227465 and 5000000050000000. Times are wall-clock,
 
 **Kind and mode (D77):** Normal kind, since nothing is hand-tuned. There's no build mode, because this is the oracle, not a compiled program. The oracle is a plain interpreter that checks everything every time, on purpose (rule 10), while V8 compiles JavaScript to machine code as it runs. So this says nothing about how fast Cyborg's compiler will be.
 
-**Versions:** the oracle at `4954c96`, built with `cargo build --release`. These `.cy` files still open with `@config(default);`, which that oracle needed. D265 removed it later, so they'll need that line taken out once the oracle catches up.
+**Versions:** timed on the oracle at `4954c96`, built with `cargo build --release`. The `.cy` files have since been updated for D265 and D267, and still print the same answers.
 
 To run it, from this folder:
 
