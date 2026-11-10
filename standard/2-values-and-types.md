@@ -296,6 +296,23 @@ fam.unit money:
 end fam.unit money
 ```
 
+Prefixes are declared once, and a unit opts in with `with`, which creates its prefixed units by joining the names:
+
+```
+fam.prefix metric:
+    metric.kilo = 1000;
+    metric.milli = 1 per 1000;
+end fam.prefix metric
+
+fam.unit length:
+    length.meters: base with metric;
+end fam.unit length
+
+let $road: f64.length.kilometers = 2.5 length.kilometers;
+```
+
+`std` ships `metric` and `binary`, as in `storage.bytes: base with binary;` giving `storage.kibibytes`. `fam.prefix` and `with` are placeholders.
+
 A family is only a group of related names that a generic can ask for. A unit from a kit is written with its path, `name::unit`.
 
 **Refused:** a unit that says neither `base` nor `=`, a loop of `=` lines, and converting between units with different bases.
@@ -354,7 +371,7 @@ let $later: f64.celsius.point = $now + $rise;
 
 A point plus a span is a point, a point minus a point is a span, and spans add. Converting a point applies the offset, while converting a span only scales, so a rise of 10 °C is a rise of 10 K. `offset` is a placeholder, and how a conversion is otherwise written isn't decided ([12.2](12-not-decided.md#122-types)).
 
-**From:** D99, D100, D101, D108, D109, D110, D111, D112, D141, D144, D242, D243, D245, D249.
+**From:** D99, D100, D101, D108, D109, D110, D111, D112, D141, D144, D242, D243, D245, D249, D250.
 
 ## 2.17 Getting an item
 
