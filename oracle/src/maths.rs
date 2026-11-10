@@ -1,0 +1,676 @@
+//! `std::math`'s functions, correctly rounded, computed by the oracle itself. (D256, D161)
+//!
+//! Correctly rounded means the exact result, rounded once to the nearest `f64`, ties to even.
+//! The oracle never uses CORE-MATH or any other maths library, so its answers can check the
+//! compiler's (rule 3), and it has no C in it (rule 1).
+//!
+//! Each function is worked out as an interval that's certain to hold the exact result, using
+//! big integers in fixed point, every step rounded outward. When both ends of the interval
+//! round to the same `f64`, that's the answer. When they don't, the work is done again with
+//! twice the bits. The exact result of `sin`, `cos` or `tan` of any nonzero `f64` is
+//! transcendental, so it's never exactly halfway between two `f64`s, and the loop always ends.
+
+use num_bigint::BigInt;
+use num_integer::Integer;
+use num_traits::{One, Signed, Zero};
+
+/// A function `std::math` has, correctly rounded. (D245, D256)
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Function {
+    Sin,
+    Cos,
+    Tan,
+}
+
+impl Function {
+    pub fn word(self) -> &'static str {
+        match self {
+            Function::Sin => "sin",
+            Function::Cos => "cos",
+            Function::Tan => "tan",
+        }
+    }
+}
+
+/// How many bits the first try uses, past what the argument itself needs.
+const FIRST_BITS: u64 = 128;
+
+/// Past this many bits the oracle says something's wrong, instead of running forever. No
+/// `f64` input comes near it.
+const MOST_BITS: u64 = 1 << 20;
+
+/// `function` of `x`, correctly rounded, and the bits the interval that settled it used. An
+/// error means the oracle got past `MOST_BITS`, which is a bug in it.
+/// trace: D256, D161
+pub fn correctly_rounded(function: Function, x: f64) -> Result<(f64, u64), String> {
+    if x == 0.0 {
+        // sin(±0) and tan(±0) are ±0 exactly, and cos(±0) is 1.
+        return Ok((
+            match function {
+                Function::Sin | Function::Tan => x,
+                Function::Cos => 1.0,
+            },
+            0,
+        ));
+    }
+    if !x.is_finite() {
+        return Err(format!(
+            "`{}` of `{x}`, which isn't a number",
+            function.word()
+        ));
+    }
+    let mut bits = FIRST_BITS;
+    while bits <= MOST_BITS {
+        if let Some(found) = settle(function, x, bits) {
+            return Ok((found, bits));
+        }
+        bits *= 2;
+    }
+    Err(format!(
+        "`{}` of `{x}` didn't settle within {MOST_BITS} bits",
+        function.word()
+    ))
+}
+
+/// One try at `bits` bits: the answer, or nothing when the interval straddles two `f64`s.
+fn settle(function: Function, x: f64, bits: u64) -> Option<f64> {
+    let (low, high, scale) = enclose(function, x, bits)?;
+    let low = round_to_f64(&low, scale);
+    let high = round_to_f64(&high, scale);
+    (low.to_bits() == high.to_bits()).then_some(low)
+}
+
+/// An interval holding `function(x)`, as two big integers over 2^scale, or nothing when this
+/// many bits isn't enough to work it out.
+pub(crate) fn enclose(function: Function, x: f64, bits: u64) -> Option<(BigInt, BigInt, u64)> {
+    let (mantissa, exponent) = exact_parts(x);
+    // Enough bits to hold `x` itself, and for range reduction to keep `bits` bits after
+    // taking a multiple of π/2 as big as `x` away.
+    let top = u64::try_from((exponent + 64).max(0)).ok()?;
+    let below = u64::try_from((-exponent).max(0)).ok()?;
+    let scale = (bits + top + 64).max(below);
+    let fixed = Fixed { scale };
+    let shift = u64::try_from(i64::from(exponent) + i64::try_from(scale).ok()?).ok()?;
+    let argument: BigInt = BigInt::from(mantissa) << shift;
+    let (quadrant, reduced) = fixed.reduce(&argument)?;
+    let found = match (function, quadrant) {
+        (Function::Sin, 0) | (Function::Cos, 3) => fixed.sin(&reduced)?,
+        (Function::Sin, 1) | (Function::Cos, 0) => fixed.cos(&reduced)?,
+        (Function::Sin, 2) | (Function::Cos, 1) => fixed.sin(&reduced)?.negate(),
+        (Function::Sin | Function::Cos, _) => fixed.cos(&reduced)?.negate(),
+        (Function::Tan, quadrant) => {
+            let sin = fixed.sin(&reduced)?;
+            let cos = fixed.cos(&reduced)?;
+            if quadrant % 2 == 0 {
+                fixed.divide(&sin, &cos)?
+            } else {
+                fixed.divide(&cos, &sin)?.negate()
+            }
+        }
+    };
+    Some((found.low, found.high, scale))
+}
+
+/// `x` as an odd integer times a power of two, with its sign on the integer.
+fn exact_parts(x: f64) -> (i64, i32) {
+    let bits = x.to_bits();
+    let negative = bits >> 63 == 1;
+    let biased = i32::try_from((bits >> 52) & 0x7ff).unwrap_or(0);
+    let fraction = bits & ((1 << 52) - 1);
+    let (mut mantissa, mut exponent) = if biased == 0 {
+        (fraction, -1074)
+    } else {
+        (fraction | (1 << 52), biased - 1075)
+    };
+    while mantissa != 0 && mantissa % 2 == 0 {
+        mantissa /= 2;
+        exponent += 1;
+    }
+    let mantissa = i64::try_from(mantissa).unwrap_or(0);
+    (if negative { -mantissa } else { mantissa }, exponent)
+}
+
+/// A closed interval of numbers, each a big integer over 2^scale.
+#[derive(Clone, Debug)]
+struct Interval {
+    low: BigInt,
+    high: BigInt,
+}
+
+impl Interval {
+    fn exact(value: BigInt) -> Self {
+        Self {
+            low: value.clone(),
+            high: value,
+        }
+    }
+
+    fn negate(self) -> Self {
+        Self {
+            low: -self.high,
+            high: -self.low,
+        }
+    }
+
+    fn add(&self, other: &Interval) -> Self {
+        Self {
+            low: &self.low + &other.low,
+            high: &self.high + &other.high,
+        }
+    }
+
+    fn subtract(&self, other: &Interval) -> Self {
+        Self {
+            low: &self.low - &other.high,
+            high: &self.high - &other.low,
+        }
+    }
+
+    /// Wider by `amount` on each side.
+    fn widen(&self, amount: &BigInt) -> Self {
+        Self {
+            low: &self.low - amount,
+            high: &self.high + amount,
+        }
+    }
+
+    /// The biggest size of anything in it.
+    fn magnitude(&self) -> BigInt {
+        self.low.abs().max(self.high.abs())
+    }
+
+    fn contains_zero(&self) -> bool {
+        !self.low.is_positive() && !self.high.is_negative()
+    }
+
+    /// Divided by a positive whole number, rounded outward.
+    fn over(&self, divisor: &BigInt) -> Self {
+        Self {
+            low: self.low.div_floor(divisor),
+            high: ceil_divide(&self.high, divisor),
+        }
+    }
+}
+
+/// `value / divisor`, rounded up.
+fn ceil_divide(value: &BigInt, divisor: &BigInt) -> BigInt {
+    -((-value).div_floor(divisor))
+}
+
+/// Interval arithmetic at one scale: each number is a big integer over 2^scale.
+struct Fixed {
+    scale: u64,
+}
+
+impl Fixed {
+    fn one(&self) -> BigInt {
+        BigInt::one() << self.scale
+    }
+
+    /// The product of two intervals, rounded outward.
+    fn multiply(&self, left: &Interval, right: &Interval) -> Interval {
+        let products = [
+            &left.low * &right.low,
+            &left.low * &right.high,
+            &left.high * &right.low,
+            &left.high * &right.high,
+        ];
+        let smallest = products.iter().min().cloned().unwrap_or_default();
+        let largest = products.iter().max().cloned().unwrap_or_default();
+        Interval {
+            low: smallest >> self.scale,
+            high: -((-largest) >> self.scale),
+        }
+    }
+
+    /// One interval over another that doesn't hold zero, rounded outward, or nothing when it
+    /// might.
+    fn divide(&self, top: &Interval, bottom: &Interval) -> Option<Interval> {
+        if bottom.contains_zero() {
+            return None;
+        }
+        let mut quotients = Vec::new();
+        for numerator in [&top.low, &top.high] {
+            let shifted: BigInt = numerator << self.scale;
+            for denominator in [&bottom.low, &bottom.high] {
+                quotients.push(shifted.div_floor(denominator));
+                quotients.push(ceil_divide(&shifted, denominator));
+            }
+        }
+        Some(Interval {
+            low: quotients.iter().min().cloned()?,
+            high: quotients.iter().max().cloned()?,
+        })
+    }
+
+    /// arctan(1/m), by its alternating series, with the rest bounded by the last term.
+    fn arctan_of_inverse(&self, m: u32) -> Interval {
+        let m = BigInt::from(m);
+        let m_squared = &m * &m;
+        let mut power = Interval::exact(self.one()).over(&m);
+        let mut sum = Interval::exact(BigInt::zero());
+        let mut n: u64 = 0;
+        loop {
+            let term = power.over(&BigInt::from(2 * n + 1));
+            sum = if n.is_multiple_of(2) {
+                sum.add(&term)
+            } else {
+                sum.subtract(&term)
+            };
+            // The terms shrink, so what's left is smaller than this one.
+            if term.magnitude() <= BigInt::one() {
+                return sum.widen(&BigInt::one());
+            }
+            power = power.over(&m_squared);
+            n += 1;
+        }
+    }
+
+    /// π/2, from Machin's formula: π = 16 arctan(1/5) - 4 arctan(1/239).
+    fn half_pi(&self) -> Interval {
+        let fifth = self.arctan_of_inverse(5);
+        let small = self.arctan_of_inverse(239);
+        let scaled = |interval: &Interval, by: i32| Interval {
+            low: &interval.low * by,
+            high: &interval.high * by,
+        };
+        scaled(&fifth, 8).subtract(&scaled(&small, 2))
+    }
+
+    /// `x` less the nearest multiple of π/2, and which quarter turn that multiple is, or
+    /// nothing when π isn't known well enough here to say.
+    fn reduce(&self, x: &BigInt) -> Option<(u8, Interval)> {
+        let half_pi = self.half_pi();
+        let middle: BigInt = (&half_pi.low + &half_pi.high) >> 1;
+        // The nearest whole number to x / (π/2).
+        let doubled: BigInt = x * 2 + &middle;
+        let turns = doubled.div_floor(&(&middle * 2));
+        let taken = if turns.is_negative() {
+            Interval {
+                low: &turns * &half_pi.high,
+                high: &turns * &half_pi.low,
+            }
+        } else {
+            Interval {
+                low: &turns * &half_pi.low,
+                high: &turns * &half_pi.high,
+            }
+        };
+        let reduced = Interval::exact(x.clone()).subtract(&taken);
+        // The series below need the reduced argument at most 1.
+        if reduced.magnitude() > self.one() {
+            return None;
+        }
+        let quadrant = turns.mod_floor(&BigInt::from(4));
+        let quadrant = u8::try_from(quadrant).ok()?;
+        Some((quadrant, reduced))
+    }
+
+    /// sin(r) for |r| ≤ 1, by its alternating series, with the rest bounded by the last term.
+    fn sin(&self, r: &Interval) -> Option<Interval> {
+        self.series(r.clone(), r, 1)
+    }
+
+    /// cos(r) for |r| ≤ 1, the same way.
+    fn cos(&self, r: &Interval) -> Option<Interval> {
+        self.series(Interval::exact(self.one()), r, 0)
+    }
+
+    /// Σ (-1)^n r^(2n+start) / (2n+start)!, from its first term.
+    fn series(&self, first: Interval, r: &Interval, start: u64) -> Option<Interval> {
+        let squared = self.multiply(r, r);
+        let mut term = first;
+        let mut sum = term.clone();
+        let mut n: u64 = 0;
+        loop {
+            if term.magnitude() <= BigInt::one() {
+                // With |r| ≤ 1 the terms shrink, so what's left is smaller than this one.
+                return Some(sum.widen(&BigInt::one()));
+            }
+            n += 1;
+            let index = 2 * n + start;
+            let divisor = BigInt::from(index.checked_mul(index - 1)?);
+            term = self.multiply(&term, &squared).over(&divisor).negate();
+            sum = sum.add(&term);
+        }
+    }
+}
+
+/// `value` over 2^scale, rounded to the nearest `f64`, ties to even. Subnormals round at
+/// their own spacing, and anything past the largest `f64` is infinity.
+pub(crate) fn round_to_f64(value: &BigInt, scale: u64) -> f64 {
+    let negative = value.is_negative();
+    let magnitude = value.abs();
+    if magnitude.is_zero() {
+        return if negative { -0.0 } else { 0.0 };
+    }
+    let length = i64::try_from(magnitude.bits()).unwrap_or(i64::MAX);
+    let scale = i64::try_from(scale).unwrap_or(i64::MAX);
+    // The value is in [2^top, 2^(top + 1)).
+    let top = length - 1 - scale;
+    // How many low bits go: down to 53 significant bits, or to 2^-1074 for a subnormal.
+    let dropped = if top >= -1022 {
+        length - 53
+    } else {
+        scale - 1074
+    };
+    let mut kept: BigInt = if dropped > 0 {
+        let dropped_bits = u64::try_from(dropped).unwrap_or(0);
+        let kept: BigInt = &magnitude >> dropped_bits;
+        let rest: BigInt = &magnitude - (&kept << dropped_bits);
+        let half: BigInt = BigInt::one() << (dropped_bits - 1);
+        if rest > half || (rest == half && kept.is_odd()) {
+            kept + 1
+        } else {
+            kept
+        }
+    } else {
+        magnitude << u64::try_from(-dropped).unwrap_or(0)
+    };
+    let mut exponent = dropped - scale;
+    if kept.bits() > 53 {
+        kept >>= 1;
+        exponent += 1;
+    }
+    let kept = u64::try_from(&kept).unwrap_or(0);
+    let bits = if kept < (1 << 52) {
+        // A subnormal, at 2^-1074 per step.
+        kept
+    } else {
+        let biased = exponent + 52 + 1023;
+        if biased >= 0x7ff {
+            0x7ff_u64 << 52
+        } else {
+            (u64::try_from(biased).unwrap_or(0) << 52) | (kept - (1 << 52))
+        }
+    };
+    let magnitude = f64::from_bits(bits);
+    if negative {
+        -magnitude
+    } else {
+        magnitude
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::Function::{Cos, Sin, Tan};
+    use super::{correctly_rounded, enclose, round_to_f64, Function};
+
+    /// The answer, checked again by one interval at far more bits than it settled at, which
+    /// has to round the same way.
+    fn checked(function: Function, x: f64) -> f64 {
+        let (found, bits) = correctly_rounded(function, x).unwrap_or((f64::NAN, 0));
+        assert!(!found.is_nan(), "{} of {x} didn't settle", function.word());
+        if x != 0.0 {
+            let (low, high, scale) = enclose(function, x, bits * 8 + 512).unwrap_or_default();
+            assert_eq!(round_to_f64(&low, scale).to_bits(), found.to_bits());
+            assert_eq!(round_to_f64(&high, scale).to_bits(), found.to_bits());
+        }
+        found
+    }
+
+    /// trace: D256
+    #[test]
+    fn exact_cases() {
+        assert_eq!(checked(Function::Sin, 0.0).to_bits(), 0.0_f64.to_bits());
+        assert_eq!(checked(Function::Sin, -0.0).to_bits(), (-0.0_f64).to_bits());
+        assert_eq!(checked(Function::Tan, -0.0).to_bits(), (-0.0_f64).to_bits());
+        assert_eq!(checked(Function::Cos, -0.0).to_bits(), 1.0_f64.to_bits());
+    }
+
+    /// Within two steps of the platform's own, which is close but not correctly rounded: its
+    /// `tan` of 7.23129999999994 is two steps low, where `bc` at 70 digits agrees with this.
+    /// trace: D256
+    #[test]
+    fn near_the_platform() {
+        let mut x: f64 = -40.0;
+        while x < 40.0 {
+            for function in [Function::Sin, Function::Cos, Function::Tan] {
+                let found = checked(function, x);
+                let platform = match function {
+                    Function::Sin => x.sin(),
+                    Function::Cos => x.cos(),
+                    Function::Tan => x.tan(),
+                };
+                let steps = found.to_bits().abs_diff(platform.to_bits());
+                assert!(
+                    steps <= 2,
+                    "{} of {x}: {found} and {platform}",
+                    function.word()
+                );
+            }
+            x += 0.371_9;
+        }
+    }
+
+    /// Rounding at the edges: the smallest subnormal, and a tie going to even.
+    /// trace: D256
+    #[test]
+    fn rounding_edges() {
+        use num_bigint::BigInt;
+        assert_eq!(round_to_f64(&BigInt::from(1), 1074).to_bits(), 1);
+        // 1 + 2^-53 is halfway between 1 and the next `f64`, and goes to 1, which is even.
+        let halfway = (BigInt::from(1) << 53) + 1;
+        assert_eq!(round_to_f64(&halfway, 53).to_bits(), 1.0_f64.to_bits());
+        let past = (BigInt::from(1) << 54) + 3;
+        assert_eq!(round_to_f64(&past, 54).to_bits(), 1.0_f64.to_bits() + 1);
+    }
+
+    /// A binary number written as the tables write it, like `1.0101` or `0.10101`, times
+    /// 2^exponent, with `up` adding one in its last place, as a round up does.
+    fn binary(digits: &str, exponent: i64, up: bool) -> f64 {
+        use num_bigint::BigInt;
+        let point = digits.find('.').unwrap_or(digits.len());
+        let below = i64::try_from(digits.len() - point).unwrap_or(1) - 1;
+        let whole: String = digits.chars().filter(|digit| *digit != '.').collect();
+        let mut value = BigInt::parse_bytes(whole.as_bytes(), 2).unwrap_or_default();
+        assert_eq!(value.bits(), 53, "{digits} isn't 53 bits");
+        if up {
+            value += 1;
+        }
+        round_to_f64(&value, u64::try_from(below - exponent).unwrap_or(0))
+    }
+
+    /// Lefèvre and Muller's published worst cases for correct rounding, from "Worst Cases for
+    /// Correct Rounding of the Elementary Functions in Double Precision", Tables 8, 10 and 12,
+    /// and section 2.3's cos(2^-26). Each is the input, the result's first 53 bits, and the bit
+    /// after them, which decides rounding to the nearest. Each is checked again at far more bits.
+    /// trace: D256
+    /// Each worst case: the function, its input and exponent, the result's first 53 bits and
+    /// exponent, and whether the bit after them rounds it up.
+    type WorstCase = (Function, &'static str, i64, &'static str, i64, bool);
+
+    const WORST_CASES: &[WorstCase] = &[
+        (
+            Sin,
+            "1.1110000000000000000000000000000000000000000111000010",
+            -20,
+            "1.1101111111111111111111111111111111111111000000101110",
+            -20,
+            false,
+        ),
+        (
+            Sin,
+            "1.0101100110001011101011101001111001100011001011110110",
+            -7,
+            "1.0101100110001010000010101110101001001000100110010110",
+            -7,
+            false,
+        ),
+        (
+            Sin,
+            "1.1111111001110110011101110011100111010000111101101101",
+            -2,
+            "1.1110100110010101000001110011000011000100011010010101",
+            -2,
+            true,
+        ),
+        (
+            Sin,
+            "1.1001001000011111101101010100010001000010110100011000",
+            0,
+            "0.11111111111111111111111111111111111111111111111111111",
+            0,
+            true,
+        ),
+        (
+            Sin,
+            "1.0110011101010110011101000101011101110000101001010001",
+            1,
+            "1.0100111111110011010100001110010000010010100000100001",
+            -2,
+            false,
+        ),
+        (
+            Cos,
+            "1.1000000000000000000000000000000000000000000000001001",
+            -23,
+            "0.11111111111111111111111111111111111111111111101110000",
+            0,
+            false,
+        ),
+        (
+            Cos,
+            "1.1000000000000000000000000000000000000000000000100100",
+            -22,
+            "0.11111111111111111111111111111111111111111110111000000",
+            0,
+            false,
+        ),
+        (
+            Cos,
+            "1.0010000000000000000000000000000000000000111100110000",
+            -18,
+            "0.11111111111111111111111111111111111101011110000000000",
+            0,
+            false,
+        ),
+        (
+            Cos,
+            "1.0000011010110101000001010101010100001110011010110010",
+            -9,
+            "0.11111111111111111101111001001101000111111101111111110",
+            0,
+            false,
+        ),
+        (
+            Cos,
+            "1.1001011111001100110100111101001011000100001110001111",
+            -6,
+            "0.11111111111010111011001101011101010000111000010101000",
+            0,
+            true,
+        ),
+        (
+            Cos,
+            "1.0110101110001010011000100111001111010111110000100001",
+            0,
+            "1.0011001101111111110001011011000001110010110001010010",
+            -3,
+            true,
+        ),
+        (
+            Cos,
+            "1.0000000000000000000000000000000000000000000000000000",
+            -26,
+            "0.11111111111111111111111111111111111111111111111111111",
+            0,
+            false,
+        ),
+        (
+            Tan,
+            "1.1101111111111111111111111111111111111111111100011111",
+            -22,
+            "1.1110000000000000000000000000000000000000000101010001",
+            -22,
+            false,
+        ),
+        (
+            Tan,
+            "1.0110011111111111111111111111111111111010000100010100",
+            -18,
+            "1.0110100000000000000000000000000000001000111001100001",
+            -18,
+            true,
+        ),
+        (
+            Tan,
+            "1.0101000001001000011010110010111110000111000000010100",
+            -5,
+            "1.0101000001111000110011101011111111111001110001110010",
+            -5,
+            true,
+        ),
+        (
+            Tan,
+            "0.10100011010101100001101110010001001000011010100110110",
+            0,
+            "0.10111101110100100100111110111001110011000001010011110",
+            0,
+            true,
+        ),
+    ];
+
+    #[test]
+    fn published_worst_cases() {
+        for (function, input, input_exponent, result, result_exponent, up) in WORST_CASES {
+            let x = binary(input, *input_exponent, false);
+            let wanted = binary(result, *result_exponent, *up);
+            let found = checked(*function, x);
+            assert_eq!(
+                found.to_bits(),
+                wanted.to_bits(),
+                "{} of {x:e}: {found:e}, where the table gives {wanted:e}",
+                function.word()
+            );
+        }
+    }
+
+    /// Big arguments, where taking away multiples of π/2 needs π to over a thousand bits:
+    /// the largest `f64`, 10^22, and the `f64` with the smallest cosine, 6381956970095103 ×
+    /// 2^797, whose cosine is about 4.7e-19 (Lefèvre and Muller, section 2.3).
+    /// trace: D256
+    #[test]
+    fn big_arguments() {
+        let smallest_cosine = 6_381_956_970_095_103.0 * 2_f64.powi(797);
+        for x in [f64::MAX, 1e22, -1e22, smallest_cosine, 1e300] {
+            for function in [Function::Sin, Function::Cos, Function::Tan] {
+                let found = checked(function, x);
+                let platform = match function {
+                    Function::Sin => x.sin(),
+                    Function::Cos => x.cos(),
+                    Function::Tan => x.tan(),
+                };
+                let steps = found.to_bits().abs_diff(platform.to_bits());
+                assert!(
+                    steps <= 2,
+                    "{} of {x:e}: {found:e} and {platform:e}",
+                    function.word()
+                );
+            }
+        }
+        let cosine = checked(Function::Cos, smallest_cosine);
+        assert!(
+            cosine.abs() > 4.6e-19 && cosine.abs() < 4.8e-19,
+            "{cosine:e}"
+        );
+        // sin(10^22), the classic test of range reduction.
+        assert_eq!(
+            checked(Function::Sin, 1e22).to_bits(),
+            (-0.852_200_849_767_188_8_f64).to_bits()
+        );
+    }
+
+    /// Tiny arguments, past what Lefèvre and Muller's Table 2 says rounds to the argument
+    /// itself or to 1, subnormals included.
+    /// trace: D256
+    #[test]
+    fn tiny_arguments() {
+        for x in [1e-10, -1e-10, 1e-200, 5e-324, -5e-324, 2.2e-308] {
+            assert_eq!(checked(Function::Sin, x).to_bits(), x.to_bits());
+            assert_eq!(checked(Function::Tan, x).to_bits(), x.to_bits());
+            assert_eq!(checked(Function::Cos, x).to_bits(), 1.0_f64.to_bits());
+        }
+    }
+}

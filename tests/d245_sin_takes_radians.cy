@@ -1,5 +1,5 @@
-// With radians, `sin` is right, though the oracle can't give its correctly rounded answer yet.
-// trace: D245
+// With radians, `sin` runs.
+// trace: D245, D256
 @config(default);
 import std;
 

@@ -861,6 +861,18 @@ impl<'c> Runner<'c> {
                 }
                 Ok(Value::Bool(true))
             }
+            // trace: D256
+            NodeKind::Maths { function, value } => {
+                let Value::F64(x) = self.evaluate(value, frame)? else {
+                    return Err(oracle_bug(
+                        span,
+                        "`std::math` of something that isn't an `f64`",
+                    ));
+                };
+                crate::maths::correctly_rounded(*function, x)
+                    .map(|(found, _)| Value::F64(found))
+                    .map_err(|problem| oracle_bug(span, &problem))
+            }
             NodeKind::Decibels {
                 value,
                 number,

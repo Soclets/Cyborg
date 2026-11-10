@@ -1,5 +1,0 @@
-NotDesignedYet: d245_sin_on_radians.cy:10:19, line 10 column 19
-10 |     let $s: f64 = std::math::sin($a);
-   |                   ^^^^^^^^^^^^^^
- what: `std::math::sin`, correctly rounded, which the oracle can't compute yet
- why:  not decided yet, and the standard doesn't say

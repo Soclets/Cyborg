@@ -6,5 +6,8 @@ description = "Runs and refuses Cyborg programs by following the design directly
 publish = false
 
 [dependencies]
+num-bigint = "0.5.1"
+num-integer = "0.1.47"
+num-traits = "0.2.19"
 unicode-segmentation = "1.13.3"
 unicode-width = "0.2.3"

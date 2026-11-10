@@ -8,6 +8,7 @@ mod cascade;
 mod check;
 mod ir;
 mod manifest;
+mod maths;
 mod print;
 mod report;
 mod run;

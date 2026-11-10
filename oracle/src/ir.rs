@@ -202,6 +202,11 @@ pub enum NodeKind {
         value: Box<Node>,
         arms: Vec<FailureArm>,
     },
+    /// `std::math::sin` and the rest, correctly rounded. (D256)
+    Maths {
+        function: crate::maths::Function,
+        value: Box<Node>,
+    },
     /// A unit's decibels of a reference, or back: `reference x 10^(value / 10)` when
     /// `to_amount`, and `10 x log10(value / reference)` when not. (D251, D255)
     Decibels {

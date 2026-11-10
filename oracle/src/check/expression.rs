@@ -1883,7 +1883,7 @@ impl Checker<'_> {
             .strip_prefix("math::")
             .filter(|function| matches!(*function, "sin" | "cos" | "tan"))
         {
-            return Err(self.check_trigonometry(function, arguments, path_span));
+            return self.check_trigonometry(function, arguments, span, path_span);
         }
         Self::refuse_old_prints(rest, path_span)?;
         let Some(narrowing) = rest.strip_prefix("io::fmt_print") else {
@@ -3818,52 +3818,83 @@ impl Checker<'_> {
 }
 
 impl Checker<'_> {
-    /// `std::math::sin` and the rest ask for an angle in radians, so a plain number is
-    /// refused, asking for one. With one, the oracle can't yet give the correctly rounded
-    /// answer `std` promises. (D245, D161)
-    /// trace: D245
+    /// `std::math::sin`, `cos` and `tan` ask for an angle in radians, so a plain number is
+    /// refused, asking for one, and their answer is correctly rounded. (D245, D256, D161)
+    /// trace: D245, D256
     fn check_trigonometry(
         &mut self,
         function: &str,
         arguments: &[Argument],
+        span: Span,
         path_span: Span,
-    ) -> Box<Report> {
+    ) -> Outcome<RawCall> {
         const RADIANS: &str = "std::units::angle.radians";
+        const WHY: &str = "trigonometry asks for an angle in radians, so a plain number is refused, and degrees are converted with `as` (D245)";
         let [argument] = arguments else {
-            return Report::refused(
+            return Err(Report::refused(
                 path_span,
                 format!("`std::math::{function}` takes one angle"),
                 "trigonometry asks for an angle in radians (D245)",
-            );
+            ));
         };
         if is_number_literal(&argument.value) {
-            return Report::refused(
+            return Err(Report::refused(
                 argument.value.span,
                 format!("this is a plain number, where an angle, `f64.{RADIANS}`, is needed"),
-                "trigonometry asks for an angle in radians, so a plain number is refused, and degrees are converted with `as` (D245)",
-            );
+                WHY,
+            ));
         }
-        let found = match self.check_expression(&argument.value, None) {
-            Ok((_, found)) => found,
-            Err(report) => return report,
-        };
-        let radians = matches!(
-            &found,
-            Type::Float { kind: FloatKind::F64, unit: Some(unit), .. } if unit == RADIANS
-        );
-        if !radians {
-            return Report::refused(
+        let (node, found) = self.check_expression(&argument.value, None)?;
+        let Type::Float {
+            kind: FloatKind::F64,
+            unit: Some(unit),
+            rules,
+            ..
+        } = &found
+        else {
+            return Err(Report::refused(
                 argument.value.span,
                 format!("this is `{found}`, where an angle, `f64.{RADIANS}`, is needed"),
-                "trigonometry asks for an angle in radians, so a plain number is refused, and degrees are converted with `as` (D245)",
-            );
+                WHY,
+            ));
+        };
+        if unit != RADIANS {
+            return Err(Report::refused(
+                argument.value.span,
+                format!("this is `{found}`, where an angle, `f64.{RADIANS}`, is needed"),
+                WHY,
+            ));
         }
-        Report::not_designed(
-            path_span,
-            format!(
-                "`std::math::{function}`, correctly rounded, which the oracle can't compute yet"
-            ),
-            "",
-        )
+        if *rules != FloatRules::Plain {
+            return Err(Report::not_designed(
+                argument.value.span,
+                format!("`std::math::{function}` of `{found}`"),
+                "",
+            ));
+        }
+        // Correctly rounded, worked out by the oracle itself. (D256, D161)
+        // trace: D256, D161
+        let function = match function {
+            "sin" => crate::maths::Function::Sin,
+            "cos" => crate::maths::Function::Cos,
+            _ => crate::maths::Function::Tan,
+        };
+        Ok(RawCall {
+            node: Node {
+                span,
+                kind: NodeKind::Maths {
+                    function,
+                    value: Box::new(node),
+                },
+            },
+            value_type: Type::Float {
+                kind: FloatKind::F64,
+                bound: None,
+                unit: None,
+                rules: FloatRules::Plain,
+            },
+            failures: Vec::new(),
+            unnamed: None,
+        })
     }
 }

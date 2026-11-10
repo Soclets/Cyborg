@@ -1,5 +1,5 @@
-// `sin` is correctly rounded, which the oracle can't compute yet, so nothing can say what this prints.
-// trace: D161, D196, D245
+// `sin` is correctly rounded, which the oracle works out itself.
+// trace: D161, D196, D245, D256
 @config(default);
 import std;
 
