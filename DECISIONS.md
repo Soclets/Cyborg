@@ -941,6 +941,8 @@ a placeholder for a version that isn't correctly rounded. A float prints as the 
 
 `name` and `ver` are the project's own, since it's a package (D189). `okay` is the compiler version it needs, since a limb plugs into the compiler. Each package it uses gets a `need` line, with its version always written, and `with` adds features. A value is quoted only when it needs to be, as for a space or a `#`. `#` starts a comment. Settings that would need nesting, like per-target options, would use a prefix, as in `target.arduino cores 1`, but none are designed. Not settled here: what features are, the lockfile, and versions as ranges. CyborgPL's CyJet.toml, its fixes, real TOML and Cyborg-style blocks were all shown; the owner asked for "a more no fluff, straight-forward syntax"; Claude proposed this; the owner chose: "yea". (Owner, 2026-11-10)
 
+**D229. The manifest is `CyJet.siml`.** The extension is `.siml`, short for simple, with ML, a markup language, inside it. This replaces D191's `.zml`. The owner chose: "It's called `.siml`. Simple, and also ML inside there". (Owner, 2026-11-10)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude

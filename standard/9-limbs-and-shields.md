@@ -33,7 +33,7 @@ The manifest lists packages. `std` is a package with both halves. Your own proje
 
 Packages are installed with CyJet, Cyborg's package manager, which shares only its name with CyborgPL's.
 
-The manifest, `CyJet.zml`, has one line per fact:
+The manifest, `CyJet.siml`, has one line per fact:
 
 ```
 name weather
@@ -49,7 +49,7 @@ need csup 0.1.0 with headers
 
 **Refused:** a line like Go's `package main`, and a `need` line with no version.
 
-**From:** D22, D28, D36, D56, D186, D189, D190, D228.
+**From:** D22, D28, D36, D56, D186, D189, D190, D228, D229.
 
 ## 9.2 `@`: a limb
 
