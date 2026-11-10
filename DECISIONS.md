@@ -990,6 +990,8 @@ A `type_set` is a closed list of types that nothing can join later, as in `type_
 
 **D244. A type parameter takes ownership words, like a struct.** Since a `?item` might be filled by a struct, generic code hands one off with `Give`, `Copy` or `Lend` written, and the word does nothing when it's filled by a plain number. So 5.8's `largest` returns `return Copy $a;`, and a bare `return $a;` on a lent `?item` is refused with a fix offering the word. Treating a type parameter as always copied would silently copy big structs. A `must_Give` type filling a type parameter is not settled here. This was oracle claude's reading, and is CyborgPL's rule; the owner chose: "yea". (Owner, 2026-11-10)
 
+**D245. `std` has angles, and trig asks for radians.** `std::units` has an `angle` family, with radians as the base, degrees as `~0.017453292519943295` radians, and turns as `~6.283185307179586` radians. `std::math::sin` and the other trigonometry functions ask for `f64.std::units::angle.radians`, so a plain number is refused, asking for an angle, and degrees have to be converted with `as`. What comes out of `sin` is a plain number. This makes "radians when you meant degrees" impossible. Not settled here: the rest of the family, and inverse functions like `asin` returning radians. Multifinity's Claude suggested it; Claude proposed this; the owner chose: "yea". (Owner, 2026-11-10)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude

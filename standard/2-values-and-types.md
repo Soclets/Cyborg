@@ -122,7 +122,7 @@ The first prints `0.1`, and the second prints every digit, with no limit: `0.100
 
 On `f64.ieee`, both print NaN and infinity as the words `NaN`, `inf` and `-inf`.
 
-`std::math::sin` and similar functions are correctly rounded, so they give the same bits on every machine. `std::math::sin.fast` is a placeholder for a version that isn't.
+`std::math::sin` and similar functions are correctly rounded, so they give the same bits on every machine. They ask for an angle in radians, `f64.std::units::angle.radians`, so a plain number is refused, and degrees are converted with `as` ([2.16](#216-units)). `std::math::sin.fast` is a placeholder for a version that isn't.
 
 **From:** D54, D59, D158, D159, D160, D161, D162, D163, D166, D167.
 
@@ -313,6 +313,18 @@ let $speed: f64.motion.speed = $dist div $time;
 let $accel: f64.motion.accel = $speed div $time;
 ```
 
+`std` has an `angle` family, with radians as the base, degrees and turns:
+
+```
+use std::units::angle.degrees as degrees;
+use std::units::angle.radians as radians;
+
+let $a: f64.degrees = 90.0 degrees;
+let $s: f64 = std::math::sin($a as f64.radians);
+```
+
+`std::math::sin` asks for radians, so `std::math::sin(90.0)` is refused, asking for an angle.
+
 A generic can work for any unit and keep it, with a unit parameter. `any.unit` means any unit, and a family's name, like `length`, means any unit in that family:
 
 ```
@@ -327,7 +339,7 @@ A unit parameter goes only where a unit goes, after a number type. A body can ad
 
 A conversion can be an offset, not only a multiple. A moment is kept apart from a length of time. How these are spelled, and how a conversion is written, aren't decided ([12.2](12-not-decided.md#122-types)).
 
-**From:** D99, D100, D101, D108, D109, D110, D111, D112, D141, D144, D242, D243.
+**From:** D99, D100, D101, D108, D109, D110, D111, D112, D141, D144, D242, D243, D245.
 
 ## 2.17 Getting an item
 
