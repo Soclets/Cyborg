@@ -149,9 +149,9 @@ A receiver that's `Given` is refused, because methods only borrow.
 ```
 fn largest<?item: ordered> [$a: ?item, $b: ?item] -> ?item:
     if $a > $b:
-        return $a;
+        return Copy $a;
     end if
-    return $b;
+    return Copy $b;
 end fn largest
 
 struct pair<?left: any.type, ?right: any.type>:
@@ -162,7 +162,7 @@ end struct pair
 let $x: i32 = largest(3, 5);
 ```
 
-A type parameter is `?` and a lowercase name, declared in `< >` straight after the name, and always writes its requirement. A call fills each type parameter from its arguments, and when they're bare literals, from the type the result goes into, so `?item` above is `i32`. If nothing says a type, as in `let $x := largest(3, 5);`, it's refused. `any.type` means it needs nothing, so the body can only store, move, copy and lend it. A unit parameter writes `any.unit`, or a family's name, and goes only where a unit goes ([2.16](2-values-and-types.md#216-units)).
+A type parameter is `?` and a lowercase name, declared in `< >` straight after the name, and always writes its requirement. A call fills each type parameter from its arguments, and when they're bare literals, from the type the result goes into, so `?item` above is `i32`. If nothing says a type, as in `let $x := largest(3, 5);`, it's refused. `any.type` means it needs nothing, so the body can only store, move, copy and lend it. A type parameter takes ownership words like a struct, since it might be filled by one, and they do nothing for a plain number. A unit parameter writes `any.unit`, or a family's name, and goes only where a unit goes ([2.16](2-values-and-types.md#216-units)).
 
 A requirement is one of two kinds, never mixed. An `interface` lists operations a type must have, with no code, and can state laws, include another interface, and leave type slots. A `type_set` is a closed list of types:
 
@@ -189,7 +189,7 @@ Requirements combine with `and`. Only an interface gives operations, so a body c
 
 **Refused:** a type parameter with no requirement, with `fix: ?left: any.type`, a bare `any`, asking which kind, a body that uses a `?item` in a way its requirement doesn't list, a type used where it hasn't said `satisfies`, a `satisfies` line written outside the type's package and the interface's package, and an interface and a type set mixed in one.
 
-**From:** D23, D85, D87, D89, D234, D235, D238, D239, D240, D241, D243, and Radium's generics.
+**From:** D23, D85, D87, D89, D234, D235, D238, D239, D240, D241, D243, D244, and Radium's generics.
 
 ## 5.9 Pure functions
 

@@ -111,6 +111,7 @@ Waiting on the owner, most needed first. Each is `NotDesignedYet` unless it says
 - Assembly blocks (D233): one variable going both in and out of the same register, like CyborgPL's `<->`, since reading one variable into a register and writing it out to another is already shown in 9.4, lending an address into a register, `on.target`'s narrowings like `.chip` and `.os`, and chips' names.
 - How a C function is declared and called through `@csup` (D225), and whether D220 covers a limb function's narrowing.
 - Which interfaces `std` declares for its own types, and their names, like `addable` and `ordered` (D240).
+- A `must_Give` type filling a type parameter (D244).
 - Requirements (D235): how laws are proven, how a type slot is written, and naming a type parameter at a call.
 - Compile-time features (D218): the syntax of a `match` on types, variadic generics, and the loop over a type's fields.
 - Whether every `void` function says `return void;`.
