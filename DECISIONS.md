@@ -962,6 +962,16 @@ a placeholder for a version that isn't correctly rounded. A float prints as the 
 
 **D234. A type parameter is `?` and a lowercase name.** A generic's type parameters are written like `?item`, declared in `< >` straight after the name with no space, as in `fn largest<?item: ordered> [$a: ?item, $b: ?item] -> ?item:` and `struct pair<?left, ?right>:`. The `?` marks a type not known yet, the way `$` marks a variable, so it can't be mistaken for a real type, and lowercase matches Cyborg's types, like `i32` and `reading`. A one-letter name like `?t` is fine when nothing better fits. Bounds, like `ordered`, are not settled here. Claude proposed it from the placeholder `?T`; the owner chose: "yea". (Owner, 2026-11-10)
 
+**D235. Requirements: interfaces and type sets, from Radium.** What a generic needs from its type parameter is a requirement, not a bound, since "bound" already means a value's min and max (D20). There are two kinds, never mixed. An `interface` lists the operations a type must have, as signatures with no code, and can state laws they obey, include another interface, and leave type slots to fill:
+
+    interface ordered<?self>:
+        includes equatable;
+        op < [$a: ?self, $b: ?self] -> bool;
+        law if $a < $b and $b < $c then $a < $c;
+    end interface ordered
+
+A `type_set` is a closed list of types that nothing can join later, as in `type_set whole: i32; i64; end type_set whole`. Requirements combine with `and`, as in `fn smaller<?item: whole and ordered> […]`. A type fits an interface only through an explicit line, `reading satisfies ordered;` (D87), which the compiler checks there, and only the type's package or the interface's package can write it. `reading .|. ordered;` means exactly the same, Radium's deliberate easter egg. A generic body may use on a `?item` only what its requirement lists, so `<` needs an interface with `op <`, and it's checked once, at the definition (D89). This is Radium's D69, D74, D138 and D149, which Radium's design claude says are designed but never built, plus the rule on who writes `satisfies`, which Radium never had. Not settled here: how laws are proven, which is Precog's job, how a type declares its own operators, the spellings of `op`, `law`, `includes` and type slots, whether a parameter with no requirement must write one, and naming a type parameter at a call. CyborgPL's automatic fitting was shown and not taken. The owner said "Try Radium's", then chose: "yea, with the easter egg". (Owner, 2026-11-10)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude

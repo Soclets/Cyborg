@@ -9,7 +9,7 @@
 | [5.5](#55-contracts) | `requires`, `ensures` | When they're checked |
 | [5.6](#56-methods-) | `.%` | A function on a receiver |
 | [5.7](#57-builtins-) | `@bytes_of` | Bare `@` |
-| [5.8](#58-generics) | `<?T: ordered>` | C++ templates, but safer |
+| [5.8](#58-generics) | `<?item: ordered>`, `interface`, `satisfies` | C++ templates, but safer |
 | [5.9](#59-pure-functions) | `fn.pure` | Same input, same output, nothing else changes |
 | [5.10](#510-compile-time-features) | Compile-time features | Templates, but safe, one feature per job |
 | [5.11](#511-baking) | `bake`, `fn.pure.baked`, `const` | Compile-time values |
@@ -144,7 +144,7 @@ A receiver that's `Given` is refused, because methods only borrow.
 
 ## 5.8 Generics
 
-**Rule:** a generic function or type makes a copy per type, which runs as fast as hand-written code. It says what it needs through a bound, and is checked once at its definition. It can take values as parameters, can be specialized for one type, and can be extended by outsiders through bounds.
+**Rule:** a generic function or type makes a copy per type, which runs as fast as hand-written code. What it needs from a type parameter is a requirement, and it's checked once, at its definition. It can take values as parameters, can be specialized for one type, and can be extended by outsiders through requirements.
 
 ```
 fn largest<?item: ordered> [$a: ?item, $b: ?item] -> ?item:
@@ -162,13 +162,34 @@ end struct pair
 let $x: i32 = largest(3, 5);
 ```
 
-A type parameter is `?` and a lowercase name, declared in `< >` straight after the name. `ordered` is a placeholder, and how bounds are spelled isn't decided ([12.5](12-not-decided.md#125-functions)).
+A type parameter is `?` and a lowercase name, declared in `< >` straight after the name.
 
-A type fits a bound only if it declares that it does, as in `reading is ordered`, which is a placeholder spelling.
+A requirement is one of two kinds, never mixed. An `interface` lists operations a type must have, with no code, and can state laws, include another interface, and leave type slots. A `type_set` is a closed list of types:
 
-**Refused:** a body that uses `?T` in a way its bound doesn't allow, and a type that hasn't declared the bound.
+```
+interface ordered<?self>:
+    includes equatable;
+    op < [$a: ?self, $b: ?self] -> bool;
+    law if $a < $b and $b < $c then $a < $c;
+end interface ordered
 
-**From:** D23, D85, D87, D234.
+type_set whole:
+    i32;
+    i64;
+end type_set whole
+
+reading satisfies ordered;
+
+fn smaller<?item: whole and ordered> [$a: ?item, $b: ?item] -> ?item:
+```
+
+Requirements combine with `and`. A type fits an interface only through a `satisfies` line, which only the type's package or the interface's package can write. `reading .|. ordered;` means exactly the same: an easter egg, on purpose.
+
+"Bound" means a value's min and max ([2.5](2-values-and-types.md#25-bounded-integers)), so these are requirements, not bounds. How laws are proven, how a type declares its own operators, and the spellings of `op`, `law`, `includes` and type slots aren't decided ([12.5](12-not-decided.md#125-functions)).
+
+**Refused:** a body that uses a `?item` in a way its requirement doesn't list, a type used where it hasn't said `satisfies`, a `satisfies` line written outside the type's package and the interface's package, and an interface and a type set mixed in one.
+
+**From:** D23, D85, D87, D89, D234, D235, and Radium's generics.
 
 ## 5.9 Pure functions
 
