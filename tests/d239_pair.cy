@@ -3,12 +3,12 @@
 @config(default);
 import std;
 
-struct pair<?left: any, ?right: any>:
+struct pair<?left: any.type, ?right: any.type>:
     first: ?left;
     second: ?right;
 end struct pair
 
-fn first_of<?left: any, ?right: any> [$p: Given pair<?left, ?right>] -> ?left:
+fn first_of<?left: any.type, ?right: any.type> [$p: Given pair<?left, ?right>] -> ?left:
     return Give $p.first;
 end fn first_of
 

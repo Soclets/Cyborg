@@ -16,11 +16,11 @@ type_set whole:
     i64;
 end type_set whole
 
-struct box<?item: any>:
+struct box<?item: any.type>:
     held: ?item;
 end struct box
 
-fn keep<?item: any> [$a: Given ?item] -> ?item:
+fn keep<?item: any.type> [$a: Given ?item] -> ?item:
     let $b: ?item = Give $a;
     return Give $b;
 end fn keep

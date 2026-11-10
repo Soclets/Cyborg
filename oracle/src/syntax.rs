@@ -2955,7 +2955,15 @@ impl Parser {
         if self.at_word("Lend") {
             return self.parse_stored_borrow();
         }
-        let path = self.parse_path()?;
+        let mut path = self.parse_path()?;
+        // `f64.?u`: a unit parameter, where a unit goes. (D243)
+        // trace: D243
+        if self.at_symbol(".") && self.symbol_at(1, "?") {
+            self.advance();
+            let name = self.parse_parameter_name()?;
+            path.text.push_str(&format!(".?{}", name.text));
+            path.span = path.span.to(name.span);
+        }
         let mut fill = Vec::new();
         let outer_fills = std::mem::take(&mut self.source_fills);
         if self.at_symbol("<") {
@@ -5277,7 +5285,7 @@ impl Parser {
 const WHY_PARAMETER: &str =
     "a type parameter is `?` and a lowercase name, declared in `< >` straight after the name (D234)";
 const WHY_REQUIREMENT: &str =
-    "every type parameter writes what it needs, `any` when it needs nothing (D239)";
+    "every type parameter writes what it needs, `any.type` when it needs nothing (D239, D243)";
 const WHY_NEVER_MIXED: &str = "an `interface` lists what a type can do, and a `type_set` lists types, and the two are never mixed (D235)";
 
 impl Parser {
@@ -5343,7 +5351,7 @@ impl Parser {
                     ),
                     WHY_REQUIREMENT,
                 )
-                .fix(format!("?{}: any", name.text)));
+                .fix(format!("?{}: any.type", name.text)));
             }
             self.advance(); // `:`
             let mut requirement = vec![self.parse_path()?];

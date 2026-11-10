@@ -16,7 +16,7 @@ type_set whole:
     i64;
 end type_set whole
 
-fn first <?item: any> [$a: Given ?item] -> ?item:
+fn first <?item: any.type> [$a: Given ?item] -> ?item:
     return Give $a;
 end fn first
 

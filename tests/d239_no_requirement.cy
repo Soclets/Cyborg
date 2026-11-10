@@ -1,8 +1,8 @@
-// Every type parameter says what it needs, `any` when it needs nothing.
+// Every type parameter says what it needs, `any.type` when it needs nothing.
 // trace: D239
 @config(default);
 
-struct pair<?left, ?right: any>:
+struct pair<?left, ?right: any.type>:
     first: ?left;
     second: ?right;
 end struct pair

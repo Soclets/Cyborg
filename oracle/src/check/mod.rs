@@ -1972,6 +1972,22 @@ impl Checker<'_> {
         if path.text == "items" {
             return Ok("items".to_string());
         }
+        // trace: D243
+        if let Some(name) = path.text.strip_prefix('?') {
+            return match self.is_unit_parameter(name) {
+                Some(true) => Ok(path.text.clone()),
+                Some(false) => Err(Report::refused(
+                    path.span,
+                    format!("`?{name}` is a type parameter, so it goes where a whole type goes"),
+                    "a unit parameter goes only where a unit goes, and a type parameter only where a type goes (D243)",
+                )),
+                None => Err(Report::refused(
+                    path.span,
+                    format!("`?{name}` isn't a type parameter here"),
+                    "a type parameter is declared in `< >` straight after its function's or struct's name (D234)",
+                )),
+            };
+        }
         let text = self.canonical(&path.text);
         if let Some(rest) = text.strip_prefix("std::") {
             self.require_std(rest, path.span)?;
@@ -2241,6 +2257,13 @@ impl Checker<'_> {
         let (path, fill, describe) = match &written.kind {
             // trace: D234
             TypeKind::Parameter(name) => {
+                if self.is_unit_parameter(&name.text) == Some(true) {
+                    return Err(Report::refused(
+                        name.span,
+                        format!("`?{}` is a unit parameter, so it goes after a number type, as in `f64.?{}`", name.text, name.text),
+                        "a unit parameter goes only where a unit goes, and a type parameter only where a type goes (D243)",
+                    ));
+                }
                 if self.generic.iter().any(|(found, _)| *found == name.text) {
                     return Ok(Type::Parameter(name.text.clone()));
                 }

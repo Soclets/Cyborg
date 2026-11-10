@@ -16,7 +16,7 @@ type_set whole:
     i64;
 end type_set whole
 
-fn larger<?item: any> [$a: ?item, $b: ?item] -> bool:
+fn larger<?item: any.type> [$a: ?item, $b: ?item] -> bool:
     return $a < $b;
 end fn larger
 

@@ -832,11 +832,23 @@ impl Checker<'_> {
             let (node, found) = self.check_expression(value, Some(target))?;
             // trace: D3
             if !found.is_always_copied() {
-                return Err(Report::refused(
+                let refused = Report::refused(
                     value.span,
                     format!("`{}` is `{found}`, so this needs `Give` or `Copy`", self.text_of(value.span)),
                     "every hand-off shows on the page, including one into a name, a `return` or a field (D3)",
-                ));
+                );
+                // Something lent can't be given away, so `Copy` is the one word that fits. (D244)
+                // trace: D244
+                let lent = root_variable(value)
+                    .and_then(|name| self.find_variable(&name))
+                    .and_then(|slot| self.context.variables.get(slot))
+                    .is_some_and(|variable| {
+                        matches!(variable.origin, Origin::LentParameter | Origin::ForItem)
+                    });
+                if lent {
+                    return Err(refused.fix(format!("Copy {}", self.text_of(value.span))));
+                }
+                return Err(refused);
             }
             return self.coerce(node, &found, target, value);
         }

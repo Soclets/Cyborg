@@ -401,6 +401,7 @@ impl Checker<'_> {
                 ));
             }
             let mut requirement = Vec::new();
+            let families = self.unit_families();
             for part in &parameter.requirement {
                 if part.text.contains("::") {
                     return Err(Report::not_designed(
@@ -409,17 +410,41 @@ impl Checker<'_> {
                         "12.5",
                     ));
                 }
-                if part.text != "any"
+                // trace: D243
+                if part.text == "any" {
+                    return Err(Report::refused(
+                        part.span,
+                        "`any` says which kind it is",
+                        "a type parameter that needs nothing is `any.type`, and a unit parameter `any.unit`, so a bare `any` would hide which (D243)",
+                    ));
+                }
+                if part.text != "any.type"
+                    && part.text != "any.unit"
+                    && !families.contains(&part.text)
                     && !self.interfaces.contains_key(&part.text)
                     && !self.type_sets.contains_key(&part.text)
                 {
                     return Err(Report::refused(
                         part.span,
-                        format!("there's no interface or type set `{}`", part.text),
-                        "a type parameter needs `any`, an interface or a type set, joined with `and` (D235, D239)",
+                        format!("there's no interface, type set or unit family `{}`", part.text),
+                        "a type parameter needs `any.type`, an interface or a type set, and a unit parameter `any.unit` or a family (D235, D243)",
                     ));
                 }
                 requirement.push(part.text.clone());
+            }
+            let units = requirement
+                .iter()
+                .filter(|part| *part == "any.unit" || families.contains(*part))
+                .count();
+            if units > 0 && requirement.len() > 1 {
+                return Err(Report::refused(
+                    parameter.name.span,
+                    format!(
+                        "`?{}` mixes a unit with something else",
+                        parameter.name.text
+                    ),
+                    "a unit parameter needs `any.unit` or one family, and nothing else (D243)",
+                ));
             }
             read.push((parameter.name.text.clone(), requirement));
         }
@@ -430,7 +455,7 @@ impl Checker<'_> {
     /// being checked meets what its own requirement says. (D235, D239, D240)
     fn meets(&self, found: &Type, requirement: &[String], span: Span) -> Outcome<()> {
         for part in requirement {
-            if part == "any" {
+            if part == "any.type" {
                 continue;
             }
             if let Type::Parameter(name) = found {
@@ -517,7 +542,7 @@ impl Checker<'_> {
         expected: Option<&Type>,
         span: Span,
     ) -> Outcome<(Signature, Vec<Table>)> {
-        let mut filled: HashMap<String, Type> = HashMap::new();
+        let mut filled = Filled::default();
         for (index, argument) in arguments.iter().enumerate() {
             let parameter = match &argument.label {
                 Some(label) => signature.parameters.iter().find(|parameter| {
@@ -529,19 +554,9 @@ impl Checker<'_> {
             let Some(parameter) = parameter else {
                 continue;
             };
-            let Type::Parameter(name) = &parameter.parameter_type else {
-                if mentions_a_parameter(&parameter.parameter_type) {
-                    return Err(Report::not_designed(
-                        argument.value.span,
-                        format!(
-                            "working out a type parameter from inside `{}`",
-                            parameter.parameter_type
-                        ),
-                        "",
-                    ));
-                }
+            if !mentions_a_parameter(&parameter.parameter_type) {
                 continue;
-            };
+            }
             let value = match &argument.value.kind {
                 ExpressionKind::Hand { value, .. } => value.as_ref(),
                 _ => &argument.value,
@@ -554,28 +569,23 @@ impl Checker<'_> {
             let Some(found) = self.type_from_form(value) else {
                 return Err(Report::not_designed(
                     argument.value.span,
-                    format!("working out `?{name}` from this argument"),
+                    "working out a type parameter from this argument",
                     "",
                 ));
             };
-            let found = unbounded(&found);
-            if let Some(earlier) = filled.get(name) {
-                if *earlier != found {
-                    return Err(Report::refused(
-                        argument.value.span,
-                        format!("`?{name}` is `{earlier}` from an earlier argument, and this is `{found}`"),
-                        "a call fills each type parameter with one type (D241)",
-                    ));
-                }
-            }
-            filled.insert(name.clone(), found);
+            filled.unify(&parameter.parameter_type, &found, argument.value.span)?;
         }
         let mut tables = Vec::new();
         for (name, requirement) in &signature.type_parameters {
-            if !filled.contains_key(name) {
+            if self.requirement_is_unit(requirement) {
+                self.fill_unit(signature, name, requirement, expected, &mut filled, span)?;
+                tables.push(Vec::new());
+                continue;
+            }
+            if !filled.types.contains_key(name) {
                 match (&signature.return_type, expected) {
                     (Type::Parameter(returned), Some(target)) if returned == name => {
-                        filled.insert(name.clone(), unbounded(target));
+                        filled.types.insert(name.clone(), unbounded(target));
                     }
                     _ => {
                         return Err(Report::refused(
@@ -586,7 +596,7 @@ impl Checker<'_> {
                     }
                 }
             }
-            let found = filled.get(name).cloned().unwrap_or(Type::Void);
+            let found = filled.types.get(name).cloned().unwrap_or(Type::Void);
             if self.is_must_give(&found) {
                 return Err(Report::not_designed(
                     span,
@@ -599,11 +609,65 @@ impl Checker<'_> {
         }
         let mut concrete = signature.clone();
         for parameter in &mut concrete.parameters {
-            parameter.parameter_type = fill(&parameter.parameter_type, &filled);
+            parameter.parameter_type = filled.put_into(&parameter.parameter_type);
         }
-        concrete.return_type = fill(&concrete.return_type, &filled);
+        concrete.return_type = filled.put_into(&concrete.return_type);
         concrete.type_parameters.clear();
         Ok((concrete, tables))
+    }
+
+    /// Whether a requirement makes a unit parameter: `any.unit`, or a family. (D243)
+    fn requirement_is_unit(&self, requirement: &[String]) -> bool {
+        let families = self.unit_families();
+        requirement
+            .iter()
+            .any(|part| part == "any.unit" || families.contains(part))
+    }
+
+    /// A unit parameter's unit, from the arguments or else the result's target, in the family
+    /// its requirement names, if it names one. (D243)
+    /// trace: D243
+    fn fill_unit(
+        &self,
+        signature: &Signature,
+        name: &str,
+        requirement: &[String],
+        expected: Option<&Type>,
+        filled: &mut Filled,
+        span: Span,
+    ) -> Outcome<()> {
+        if !filled.units.contains_key(name) {
+            let wanted = format!("?{name}");
+            match (unit_of(&signature.return_type), expected.and_then(unit_of)) {
+                (Some(returned), Some(target)) if *returned == wanted => {
+                    filled.units.insert(name.to_string(), target.clone());
+                }
+                _ => {
+                    return Err(Report::refused(
+                        span,
+                        format!("nothing here says which unit `?{name}` is"),
+                        "a call fills a unit parameter from its arguments, or from the type the result goes into (D241, D243)",
+                    ));
+                }
+            }
+        }
+        let unit = filled.units.get(name).cloned().unwrap_or_default();
+        for part in requirement {
+            if part == "any.unit" {
+                continue;
+            }
+            let family = unit
+                .rsplit_once('.')
+                .map_or(unit.as_str(), |(family, _)| family);
+            if family != part {
+                return Err(Report::refused(
+                    span,
+                    format!("`{unit}` isn't in the family `{part}`"),
+                    "a unit parameter that names a family takes any unit in that family, and only those (D243)",
+                ));
+            }
+        }
+        Ok(())
     }
 
     /// `$a < $b` or `$a + $b` on a `?item`: the operation its requirement lists, done at run
@@ -705,13 +769,166 @@ impl Checker<'_> {
     }
 }
 
-/// Whether a type has a type parameter inside it, like a list of `?item`.
+/// Whether a type has a type or unit parameter inside it, like a list of `f64.?u`.
 fn mentions_a_parameter(found: &Type) -> bool {
     match found {
         Type::Parameter(_) => true,
+        Type::Integer { unit, .. } | Type::Float { unit, .. } => {
+            unit.as_ref().is_some_and(|unit| unit.starts_with('?'))
+        }
         Type::List { item, .. } | Type::Array { item, .. } => mentions_a_parameter(item),
         Type::Borrow { inner, .. } => mentions_a_parameter(inner),
+        Type::Struct(name) => name.contains('?'),
         _ => false,
+    }
+}
+
+/// A number type's unit.
+fn unit_of(found: &Type) -> Option<&String> {
+    match found {
+        Type::Integer { unit, .. } | Type::Float { unit, .. } => unit.as_ref(),
+        _ => None,
+    }
+}
+
+/// What a call has filled each type and unit parameter with so far. (D241, D243)
+#[derive(Default)]
+struct Filled {
+    types: HashMap<String, Type>,
+    units: HashMap<String, String>,
+}
+
+impl Filled {
+    /// Matches a parameter's type against an argument's, filling what the parameter leaves
+    /// open: `?item` itself, the `?u` in `f64.?u`, and either inside a list or array.
+    fn unify(&mut self, pattern: &Type, found: &Type, span: Span) -> Outcome<()> {
+        match (pattern, found) {
+            (Type::Parameter(name), _) => {
+                let found = unbounded(found);
+                if let Some(earlier) = self.types.get(name) {
+                    if *earlier != found {
+                        return Err(Report::refused(
+                            span,
+                            format!("`?{name}` is `{earlier}` from an earlier argument, and this is `{found}`"),
+                            "a call fills each type parameter with one type (D241)",
+                        ));
+                    }
+                }
+                self.types.insert(name.clone(), found);
+                Ok(())
+            }
+            (
+                Type::Integer {
+                    unit: Some(wanted), ..
+                }
+                | Type::Float {
+                    unit: Some(wanted), ..
+                },
+                Type::Integer { unit, .. } | Type::Float { unit, .. },
+            ) if wanted.starts_with('?') => {
+                let name = wanted.trim_start_matches('?');
+                let Some(unit) = unit else {
+                    return Err(Report::refused(
+                        span,
+                        format!("`{wanted}` takes a unit, and this has none"),
+                        "a unit parameter goes where a unit goes, and a call fills it with one (D243)",
+                    ));
+                };
+                if let Some(earlier) = self.units.get(name) {
+                    if earlier != unit {
+                        return Err(Report::refused(
+                            span,
+                            format!("`{wanted}` is `{earlier}` from an earlier argument, and this is `{unit}`"),
+                            "a call fills each unit parameter with one unit (D241, D243)",
+                        ));
+                    }
+                }
+                self.units.insert(name.to_string(), unit.clone());
+                Ok(())
+            }
+            (Type::List { item, .. }, Type::List { item: found, .. })
+            | (Type::Array { item, .. }, Type::Array { item: found, .. })
+            | (Type::Borrow { inner: item, .. }, Type::Borrow { inner: found, .. }) => {
+                self.unify(item, found, span)
+            }
+            (Type::Borrow { inner, .. }, found) => self.unify(inner, found, span),
+            _ if mentions_a_parameter(pattern) => Err(Report::not_designed(
+                span,
+                format!("working out a type parameter from inside `{pattern}`"),
+                "",
+            )),
+            _ => Ok(()),
+        }
+    }
+
+    /// A type with what's filled put in.
+    fn put_into(&self, found: &Type) -> Type {
+        match found {
+            Type::Parameter(name) => self
+                .types
+                .get(name)
+                .cloned()
+                .unwrap_or_else(|| found.clone()),
+            Type::Integer { kind, bound, unit } => Type::Integer {
+                kind: *kind,
+                bound: *bound,
+                unit: self.unit(unit.as_ref()),
+            },
+            Type::Float {
+                kind,
+                bound,
+                unit,
+                rules,
+            } => Type::Float {
+                kind: *kind,
+                bound: *bound,
+                unit: self.unit(unit.as_ref()),
+                rules: *rules,
+            },
+            Type::List {
+                item,
+                min,
+                max,
+                len_type,
+            } => Type::List {
+                item: Box::new(self.put_into(item)),
+                min: *min,
+                max: *max,
+                len_type: *len_type,
+            },
+            Type::Array {
+                item,
+                len,
+                len_type,
+            } => Type::Array {
+                item: Box::new(self.put_into(item)),
+                len: *len,
+                len_type: *len_type,
+            },
+            Type::Borrow {
+                mutable,
+                sources,
+                inner,
+            } => Type::Borrow {
+                mutable: *mutable,
+                sources: sources.clone(),
+                inner: Box::new(self.put_into(inner)),
+            },
+            other => other.clone(),
+        }
+    }
+
+    fn unit(&self, unit: Option<&String>) -> Option<String> {
+        let unit = unit?;
+        match unit.strip_prefix('?') {
+            Some(name) => Some(
+                self.units
+                    .get(name)
+                    .cloned()
+                    .unwrap_or_else(|| unit.clone()),
+            ),
+            None => Some(unit.clone()),
+        }
     }
 }
 
@@ -852,5 +1069,27 @@ impl Checker<'_> {
                 "",
             )),
         }
+    }
+}
+
+impl Checker<'_> {
+    /// The families your own units are in, like `length`, which a unit parameter can need.
+    fn unit_families(&self) -> HashSet<String> {
+        self.units
+            .keys()
+            .filter_map(|name| name.split_once('.').map(|(family, _)| family.to_string()))
+            .collect()
+    }
+
+    /// Whether a type parameter in scope is a unit parameter, or nothing when it isn't one.
+    /// (D243)
+    pub(super) fn is_unit_parameter(&self, name: &str) -> Option<bool> {
+        let (_, requirement) = self.generic.iter().find(|(found, _)| found == name)?;
+        let families = self.unit_families();
+        Some(
+            requirement
+                .iter()
+                .any(|part| part == "any.unit" || families.contains(part)),
+        )
     }
 }
