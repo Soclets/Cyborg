@@ -1,5 +1,5 @@
-NotDesignedYet: d216_precog.cy:4:9, line 4 column 9
- 4 | import @precog;
+NotDesignedYet: d216_precog.cy:3:9, line 3 column 9
+ 3 | import @precog;
    |         ^^^^^^
  what: how the limb `@precog` is found
  why:  not decided yet (standard 12.9)

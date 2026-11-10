@@ -1,5 +1,4 @@
 // trace: D2
-@config(default);
 
 struct box:
     n: i32;
@@ -14,6 +13,6 @@ fn pass [$b: box] -> void:
     return void;
 end fn pass
 
-fn.main [] -> void:
+fn.main [none] -> void:
     return void;
 end fn.main

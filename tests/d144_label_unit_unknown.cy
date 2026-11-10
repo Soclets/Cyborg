@@ -1,5 +1,4 @@
 // trace: D144, D112
-@config(default);
 
 fn draw [$x: i32] -> void:
     labels [$x as at.nothing.here];
@@ -7,6 +6,6 @@ fn draw [$x: i32] -> void:
     return void;
 end fn draw
 
-fn.main [] -> void:
+fn.main [none] -> void:
     return void;
 end fn.main

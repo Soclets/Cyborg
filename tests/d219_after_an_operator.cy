@@ -1,9 +1,8 @@
 // A line can break after a binary operator, `=` included.
 // trace: D219
-@config(default);
 import std;
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let $a: i32 = 1;
     let $b: i32 = $a +
         2;

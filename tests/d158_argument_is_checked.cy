@@ -1,11 +1,10 @@
 // trace: D158, D20
-@config(default);
 
 fn use_ratio [$r: f64.stable[min: 0.0, max: 1.0]] -> void:
     return void;
 end fn use_ratio
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let $x: f64.stable = 1.5;
     use_ratio($x);
     return void;

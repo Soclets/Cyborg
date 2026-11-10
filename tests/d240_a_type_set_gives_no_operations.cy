@@ -1,6 +1,5 @@
 // Only an interface gives operations, so a type set alone allows no `+`.
 // trace: D240
-@config(default);
 import std;
 
 interface ordered<?self>:
@@ -20,6 +19,6 @@ fn total<?item: whole> [$a: ?item, $b: ?item] -> ?item:
     return $a + $b;
 end fn total
 
-fn.main [] -> void:
+fn.main [none] -> void:
     return void;
 end fn.main

@@ -1,5 +1,4 @@
 // trace: D174, D2
-@config(default);
 import std;
 
 struct reading:
@@ -11,7 +10,7 @@ fn replace [$r: Lent.mut reading] -> void:
     return void;
 end fn replace
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let mut $r: reading = reading[celsius = 21];
     let $b: Lend.mut from $r reading = Lend.mut $r;
     replace(Lend.mut $b);

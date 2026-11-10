@@ -1,8 +1,7 @@
 // trace: D138, D7
-@config(default);
 import std;
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let $h: std::map.hash<key: str, val: i32> = empty;
     let $o: std::map.ordered<key: str, val: i32> = Copy $h;
     return void;

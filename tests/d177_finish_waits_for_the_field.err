@@ -1,15 +1,15 @@
-refused: d177_finish_waits_for_the_field.cy:26:12, line 26 column 12
-26 |     finish $l;
+refused: d177_finish_waits_for_the_field.cy:25:12, line 25 column 12
+25 |     finish $l;
    |            ^^
  what: `$l.file` hasn't been given away, so `finish` waits for it
  why:  `finish` ends a value's own duty, after every `must_Give` value inside it is given away (D129, D177)
 
-refused: d177_finish_waits_for_the_field.cy:27:5, line 27 column 5
-27 |     return void;
+refused: d177_finish_waits_for_the_field.cy:26:5, line 26 column 5
+26 |     return void;
    |     ^^^^^^^^^^^^
  what: this leaves with `$l` never given away or finished
  why:  a `must_Give` value is handed off with `Give` exactly once, or `finish` ends it (D2, D129)
- because: d177_finish_waits_for_the_field.cy:25:9, line 25 column 9
-25 |     let $l: log = log[file = open(3)];
+ because: d177_finish_waits_for_the_field.cy:24:9, line 24 column 9
+24 |     let $l: log = log[file = open(3)];
    |         ^^
      `$l` was made here

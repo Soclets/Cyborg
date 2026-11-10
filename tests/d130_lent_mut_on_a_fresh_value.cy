@@ -1,5 +1,4 @@
 // trace: D130, D4
-@config(default);
 
 struct box:
     n: i32;
@@ -9,11 +8,11 @@ fn box.%%bump [$b: Lent.mut box] -> void:
     return void;
 end fn box.%%bump
 
-fn make [] -> box:
+fn make [none] -> box:
     return box[n = 1];
 end fn make
 
-fn.main [] -> void:
+fn.main [none] -> void:
     make().%%bump();
     return void;
 end fn.main

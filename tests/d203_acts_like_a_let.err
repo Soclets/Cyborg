@@ -1,5 +1,5 @@
-refused: d203_acts_like_a_let.cy:8:12, line 8 column 12
- 8 |     change $x = 2;
+refused: d203_acts_like_a_let.cy:7:12, line 7 column 12
+ 7 |     change $x = 2;
    |            ^^
  what: `$x` can't change
  why:  `let` declares a variable that can't change, and `let mut` one that can (D3)

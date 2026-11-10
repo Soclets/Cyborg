@@ -1,5 +1,5 @@
-NotDesignedYet: d178_other_kit_methods_arent_chosen.cy:9:10, line 9 column 10
- 9 |     $xs.%remove(pos: 1);
+NotDesignedYet: d178_other_kit_methods_arent_chosen.cy:8:10, line 8 column 10
+ 8 |     $xs.%remove(pos: 1);
    |          ^^^^^^
  what: the method `std::%remove`, since `std`'s full contents aren't chosen
  why:  not decided yet, and the standard doesn't say

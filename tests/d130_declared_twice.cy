@@ -1,5 +1,4 @@
 // trace: D130
-@config(default);
 
 struct box:
     n: i32;
@@ -13,6 +12,6 @@ fn box.%f [$b: box] -> i32:
     return $b.n;
 end fn box.%f
 
-fn.main [] -> void:
+fn.main [none] -> void:
     return void;
 end fn.main

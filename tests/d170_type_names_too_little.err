@@ -1,5 +1,5 @@
-refused: d170_type_names_too_little.cy:18:36, line 18 column 36
-18 |     let $w: Lend from $x reading = warmer(Lend $x, Lend $y);
+refused: d170_type_names_too_little.cy:17:36, line 17 column 36
+17 |     let $w: Lend from $x reading = warmer(Lend $x, Lend $y);
    |                                    ^^^^^^^^^^^^^^^^^^^^^^^^
  what: this borrows `$x, $y`, so the type names that
  why:  at the call, the result's sources become the arguments (D170)

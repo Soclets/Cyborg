@@ -1,5 +1,5 @@
-refused: d243_a_unit_with_something_else.cy:19:9, line 19 column 9
-19 | fn keep<?u: length and ordered> [$a: f64.stable[unit: ?u]] -> f64.stable[unit: ?u]:
+refused: d243_a_unit_with_something_else.cy:18:9, line 18 column 9
+18 | fn keep<?u: length and ordered> [$a: f64.stable[unit: ?u]] -> f64.stable[unit: ?u]:
    |         ^^
  what: `?u` mixes a unit with something else
  why:  a unit parameter needs `any.unit` or one family, and nothing else (D243)

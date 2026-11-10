@@ -1,11 +1,10 @@
 // trace: D160
-@config(default);
 
 struct pair:
     a: f64.stable;
 end struct pair
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let $x: pair = pair[a = 0.5];
     let $y: pair = pair[a = 0.5];
     if $x == $y:

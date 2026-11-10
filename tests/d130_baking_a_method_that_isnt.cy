@@ -1,5 +1,4 @@
 // trace: D130, D91
-@config(default);
 
 struct box:
     n: i32;
@@ -12,6 +11,6 @@ end fn.pure box.%twice
 const $b: box = box[n = 4];
 const $c: i32 = $b.%twice();
 
-fn.main [] -> void:
+fn.main [none] -> void:
     return void;
 end fn.main

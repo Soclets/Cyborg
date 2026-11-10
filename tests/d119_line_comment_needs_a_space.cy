@@ -1,6 +1,5 @@
-@config(default);
 
 //no space here
-fn.main [] -> void:
+fn.main [none] -> void:
     return void;
 end fn.main

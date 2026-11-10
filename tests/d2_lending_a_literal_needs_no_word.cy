@@ -1,5 +1,4 @@
 // trace: D2
-@config(default);
 import std;
 
 fn f [$s: str] -> void:
@@ -12,7 +11,7 @@ fn g [$s: Given str] -> void:
     return void;
 end fn g
 
-fn.main [] -> void:
+fn.main [none] -> void:
     f("fresh");
     g("fresh too");
     return void;

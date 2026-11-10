@@ -1,5 +1,5 @@
-NotDesignedYet: d158_test_on_another_width.cy:6:12, line 6 column 12
- 6 |     if $x: f64.stable[min: 0.0, max: 1.0]:
+NotDesignedYet: d158_test_on_another_width.cy:5:12, line 5 column 12
+ 5 |     if $x: f64.stable[min: 0.0, max: 1.0]:
    |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
  what: the test for `f64.stable[min: 0.0, max: 1.0]` on `f32.stable`
  why:  not decided yet (standard 12.2)

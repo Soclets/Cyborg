@@ -1,8 +1,7 @@
 // trace: D46
-@config(default);
 import std;
 
-fn.main [] -> void:
+fn.main [none] -> void:
     std::io::fmt_print("hi{newln}") otherwise say_failed.log;
     return void;
 end fn.main

@@ -1,5 +1,5 @@
-refused: d126_one_block_runs_on.cy:10:1, line 10 column 1
-10 | end fn sign
+refused: d126_one_block_runs_on.cy:9:1, line 9 column 1
+ 9 | end fn sign
    | ^^^^^^^^^^^
  what: `sign` can reach its end without a `return`
  why:  `return` hands back a value (D11)

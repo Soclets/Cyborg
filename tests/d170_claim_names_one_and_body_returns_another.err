@@ -1,5 +1,5 @@
-refused: d170_claim_names_one_and_body_returns_another.cy:9:12, line 9 column 12
- 9 |     return Lend $b;
+refused: d170_claim_names_one_and_body_returns_another.cy:8:12, line 8 column 12
+ 8 |     return Lend $b;
    |            ^^^^^^^
  what: this borrows `$b`, and the function says it's from `$a`
  why:  the body is checked against the claim (D170)

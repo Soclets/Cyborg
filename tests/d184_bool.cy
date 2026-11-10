@@ -1,5 +1,4 @@
 // trace: D184
-@config(default);
 import std;
 
 fn flip [$b: Lent.mut bool] -> void:
@@ -7,7 +6,7 @@ fn flip [$b: Lent.mut bool] -> void:
     return void;
 end fn flip
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let mut $on: bool = false;
     flip(Lend.mut $on);
     if $on:

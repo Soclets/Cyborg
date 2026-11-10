@@ -1,5 +1,4 @@
 // trace: D33
-@config(default);
 
-fn.main [] -> void:
+fn.main [none] -> void:
     return void;

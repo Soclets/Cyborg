@@ -1,5 +1,4 @@
 // trace: D180, D182
-@config(default);
 import std;
 
 struct.must_Give open_file:
@@ -12,7 +11,7 @@ fn close [$f: Given open_file] -> void:
     return void;
 end fn close
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let $files: std::list<open_file>[len.max: inf items] = [open_file[fd = 3], open_file[fd = 4]];
     for $f in $files:
         std::io::fmt_print("{}{newln}", $f.fd);

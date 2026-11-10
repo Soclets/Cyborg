@@ -1,5 +1,5 @@
-refused: d126_else_with_no_if.cy:5:5, line 5 column 5
- 5 |     else:
+refused: d126_else_with_no_if.cy:4:5, line 4 column 5
+ 4 |     else:
    |     ^^^^
  what: `else` continues an `if`, and there's none open here
  why:  `else if` and `else:` continue an `if`, and one `end if` closes the chain (D126)

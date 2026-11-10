@@ -1,7 +1,6 @@
 // trace: D159, D158
-@config(default);
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let $reading: f64.ieee = 0.5;
     if $reading: f64.stable[min: 0.0, max: 1.0]:
         return void;

@@ -1,5 +1,5 @@
-refused: d211_closer_keeps_the_mark.cy:11:1, line 11 column 1
-11 | end fn reading.%warm_up
+refused: d211_closer_keeps_the_mark.cy:10:1, line 10 column 1
+10 | end fn reading.%warm_up
    | ^^^^^^^^^^^^^^^^^^^^^^^
  fix:  `end fn reading.%%warm_up`
  why:  the closer repeats all of what it closes, including its narrowings and name (D33, D121)

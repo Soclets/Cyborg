@@ -1,5 +1,4 @@
 // trace: D130, D86
-@config(default);
 
 struct box:
     n: i32;
@@ -15,6 +14,6 @@ fn take [$b: box] -> i32:
     return $b.n;
 end fn take
 
-fn.main [] -> void:
+fn.main [none] -> void:
     return void;
 end fn.main

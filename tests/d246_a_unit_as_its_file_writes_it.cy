@@ -1,6 +1,5 @@
 // `unit` prints a value with its unit, by its short name when `use` gives one, and by its family otherwise.
 // trace: D246, D247
-@config(default);
 import std;
 
 fam.unit length:
@@ -10,7 +9,7 @@ end fam.unit length
 
 use my::length.feet as feet;
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let $m: i32[unit: length.meters] = 5 length.meters;
     let $f: f64.stable[unit: feet] = 2.5 feet;
     std::io::fmt_print("{$m, unit} and {$f, unit}{newln}");

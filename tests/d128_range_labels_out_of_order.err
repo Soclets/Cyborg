@@ -1,5 +1,5 @@
-refused: d128_range_labels_out_of_order.cy:5:28, line 5 column 28
- 5 |     for $i in range[to: 5, from: 1]:
+refused: d128_range_labels_out_of_order.cy:4:28, line 4 column 28
+ 4 |     for $i in range[to: 5, from: 1]:
    |                            ^^^^
  what: `from:` is out of order here
  why:  `from:` is required, `to:` or `before:` says where it ends, and `step_by:` comes after them, in that order (D128)

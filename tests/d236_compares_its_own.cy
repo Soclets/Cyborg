@@ -1,6 +1,5 @@
 // A struct defines `==` and `<` for itself, and the other comparisons follow from them.
 // trace: D236, D237
-@config(default);
 import std;
 
 struct reading:
@@ -22,7 +21,7 @@ fn shown [$yes: bool] -> str:
     return "no";
 end fn shown
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let $cold: reading = reading[celsius = 3];
     let $warm: reading = reading[celsius = 21];
     std::io::fmt_print("< {}{newln}", shown($cold < $warm));

@@ -1,10 +1,9 @@
 // `use` doesn't work on the base language, so the fix removes the line.
 // trace: D232, D227
-@config(default);
 
 use inline.asm as asm;
 
-fn.main [] -> void:
+fn.main [none] -> void:
     shield low:
         reason "talks to the chip"
         asm();

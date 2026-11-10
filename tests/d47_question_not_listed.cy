@@ -1,14 +1,13 @@
 // trace: D47
-@config(default);
 
-fn inner [] -> i32 fails [odd]:
+fn inner [none] -> i32 fails [odd]:
     return 1;
 end fn inner
 
-fn outer [] -> i32 fails [other]:
+fn outer [none] -> i32 fails [other]:
     return inner()?;
 end fn outer
 
-fn.main [] -> void:
+fn.main [none] -> void:
     return void;
 end fn.main

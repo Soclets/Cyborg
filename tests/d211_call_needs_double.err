@@ -1,5 +1,5 @@
-refused: d211_call_needs_double.cy:15:8, line 15 column 8
-15 |     $r.%warm_up(by: 3);
+refused: d211_call_needs_double.cy:14:8, line 14 column 8
+14 |     $r.%warm_up(by: 3);
    |        ^^^^^^^^
  fix:  `%%warm_up`
  why:  `.%` lends a receiver read-only and `.%%` lends it to change, so the call shows which (D211)

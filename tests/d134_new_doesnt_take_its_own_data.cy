@@ -1,5 +1,4 @@
 // trace: D134
-@config(default);
 
 type.new user_id = i64;
 
@@ -8,6 +7,6 @@ fn f [$n: i64] -> void:
     return void;
 end fn f
 
-fn.main [] -> void:
+fn.main [none] -> void:
     return void;
 end fn.main

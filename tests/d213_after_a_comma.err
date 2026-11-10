@@ -1,5 +1,5 @@
-refused: d213_after_a_comma.cy:7:41, line 7 column 41
- 7 |     std::io::fmt_print("{} {}{newln}", 1,2);
+refused: d213_after_a_comma.cy:6:41, line 6 column 41
+ 6 |     std::io::fmt_print("{} {}{newln}", 1,2);
    |                                         ^^
  fix:  `, 2`
  why:  a comma or a label's `:` is followed by one space (D213)

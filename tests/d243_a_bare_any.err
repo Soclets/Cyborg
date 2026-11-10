@@ -1,5 +1,5 @@
-refused: d243_a_bare_any.cy:15:16, line 15 column 16
-15 | fn keep<?item: any> [$a: Given ?item] -> ?item:
+refused: d243_a_bare_any.cy:14:16, line 14 column 16
+14 | fn keep<?item: any> [$a: Given ?item] -> ?item:
    |                ^^^
  what: `any` says which kind it is
  why:  a type parameter that needs nothing is `any.type`, and a unit parameter `any.unit`, so a bare `any` would hide which (D243)

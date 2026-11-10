@@ -1,9 +1,9 @@
-refused: d124_given_on_the_right_of_or_is_gone.cy:15:28, line 15 column 28
-15 |         let $c: box = Give $b;
+refused: d124_given_on_the_right_of_or_is_gone.cy:14:28, line 14 column 28
+14 |         let $c: box = Give $b;
    |                            ^^
  what: `$b` was already given away
  why:  a given value is dead afterwards (D2)
- because: d124_given_on_the_right_of_or_is_gone.cy:14:17, line 14 column 17
-14 |     if 1 < 2 or eat(Give $b):
+ because: d124_given_on_the_right_of_or_is_gone.cy:13:17, line 13 column 17
+13 |     if 1 < 2 or eat(Give $b):
    |                 ^^^^^^^^^^^^
      `$b` was given away here

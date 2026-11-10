@@ -1,5 +1,5 @@
-refused: d236_closer_repeats_it.cy:11:1, line 11 column 1
-11 | end op x
+refused: d236_closer_repeats_it.cy:10:1, line 10 column 1
+10 | end op x
    | ^^^^^^^^
  fix:  `end op +`
  why:  the closer repeats all of what it closes (D33, D121)

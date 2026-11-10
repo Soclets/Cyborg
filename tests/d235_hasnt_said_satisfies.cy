@@ -1,6 +1,5 @@
 // A type fits an interface only through a `satisfies` line.
 // trace: D235
-@config(default);
 import std;
 
 interface ordered<?self>:
@@ -20,7 +19,7 @@ fn larger<?item: ordered> [$a: ?item, $b: ?item] -> bool:
     return $a > $b;
 end fn larger
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let $a: i32 = 4;
     let $b: bool = larger($a, $a);
     return void;

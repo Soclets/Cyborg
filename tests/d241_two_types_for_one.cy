@@ -1,6 +1,5 @@
 // A call fills each type parameter with one type.
 // trace: D241
-@config(default);
 import std;
 
 interface ordered<?self>:
@@ -23,7 +22,7 @@ fn total<?item: whole and addable> [$a: ?item, $b: ?item] -> ?item:
     return $a + $b;
 end fn total
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let $a: i32 = 1;
     let $b: i64 = 2;
     let $c: i64 = total($a, $b);

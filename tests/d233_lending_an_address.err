@@ -1,5 +1,5 @@
-NotDesignedYet: d233_lending_an_address.cy:13:30, line 13 column 30
-13 |                 reads: [x1 = Lend $a];
+NotDesignedYet: d233_lending_an_address.cy:12:30, line 12 column 30
+12 |                 reads: [x1 = Lend $a];
    |                              ^^^^^^^
  what: lending an address into a register
  why:  not decided yet (standard 12.5)

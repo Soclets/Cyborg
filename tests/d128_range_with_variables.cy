@@ -1,8 +1,7 @@
 // trace: D128
-@config(default);
 import std;
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let $start: i64 = 2;
     let $stop: i64 = 4;
     for $i in range[from: $start, to: $stop]:

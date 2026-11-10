@@ -1,5 +1,4 @@
 // trace: D171
-@config(default);
 
 struct reading:
     celsius: i32;
@@ -17,6 +16,6 @@ fn build [$a: reading, $b: reading] -> void:
     return void;
 end fn build
 
-fn.main [] -> void:
+fn.main [none] -> void:
     return void;
 end fn.main

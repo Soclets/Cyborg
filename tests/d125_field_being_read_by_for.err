@@ -1,5 +1,5 @@
-refused: d125_field_being_read_by_for.cy:12:16, line 12 column 16
-12 |         change $b.items = [3, 4];
+refused: d125_field_being_read_by_for.cy:11:16, line 11 column 16
+11 |         change $b.items = [3, 4];
    |                ^^^^^^^^
  what: a `for` is reading `$b` in place here
  why:  `Lend.mut` means nothing else uses it meanwhile, and `for` is using it (D2)

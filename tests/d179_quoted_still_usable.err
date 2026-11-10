@@ -1,5 +1,5 @@
-refused: d179_quoted_still_usable.cy:5:29, line 5 column 29
- 5 | use std::list.%%append as %%"my push";
+refused: d179_quoted_still_usable.cy:4:29, line 4 column 29
+ 4 | use std::list.%%append as %%"my push";
    |                             ^^^^^^^^^
  what: nothing could use `"my push"` as a name
  why:  the quotes only skip the check against the path, so a quoted name still has to be usable (D151)

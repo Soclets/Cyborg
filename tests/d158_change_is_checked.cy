@@ -1,7 +1,6 @@
 // trace: D158, D20
-@config(default);
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let mut $t: f64.stable[min: 0.0, max: 1.0] = 0.5;
     let $x: f64.stable = 1.5;
     change $t = $x;

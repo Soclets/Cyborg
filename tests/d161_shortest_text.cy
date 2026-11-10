@@ -1,5 +1,4 @@
 // trace: D161
-@config(default);
 import std;
 
 fn show [$x: f64.stable] -> void:
@@ -7,7 +6,7 @@ fn show [$x: f64.stable] -> void:
     return void;
 end fn show
 
-fn.main [] -> void:
+fn.main [none] -> void:
     show(0.5);
     show(1.0);
     show(-1.5);

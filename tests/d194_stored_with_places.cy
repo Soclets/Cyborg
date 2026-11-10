@@ -1,8 +1,7 @@
 // trace: D194
-@config(default);
 import std;
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let $x: f64.stable = 0.5;
     std::io::fmt_print.stored("{places: 2}{newln}", $x);
     return void;

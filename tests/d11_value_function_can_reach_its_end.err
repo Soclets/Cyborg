@@ -1,5 +1,5 @@
-refused: d11_value_function_can_reach_its_end.cy:8:1, line 8 column 1
- 8 | end fn f
+refused: d11_value_function_can_reach_its_end.cy:7:1, line 7 column 1
+ 7 | end fn f
    | ^^^^^^^^
  what: `f` can reach its end without a `return`
  why:  `return` hands back a value (D11)

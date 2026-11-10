@@ -1,5 +1,5 @@
-refused: d43_maths_on_strings.cy:5:19, line 5 column 19
- 5 |     let $a: str = "a" + "b";
+refused: d43_maths_on_strings.cy:4:19, line 4 column 19
+ 4 |     let $a: str = "a" + "b";
    |                   ^^^^^^^^^
  what: maths needs numbers, and this has `str` and `str`
  why:  `:` doesn't convert, and `as` builds a new value of another type (D7)

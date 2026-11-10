@@ -1,5 +1,5 @@
-refused: d56_at_let.cy:5:5, line 5 column 5
- 5 |     @let();
+refused: d56_at_let.cy:4:5, line 4 column 5
+ 4 |     @let();
    |     ^^^^
  what: `@let` can't happen
  why:  a builtin looks like a function call and can't be written as a Cyborg function, so `let`, `+` and `as` aren't builtins (D56)

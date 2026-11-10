@@ -1,5 +1,5 @@
-refused: d155_limb_still_needs_its_import.cy:3:5, line 3 column 5
- 3 | use @csup::union.untagged as "ext";
+refused: d155_limb_still_needs_its_import.cy:2:5, line 2 column 5
+ 2 | use @csup::union.untagged as "ext";
    |     ^^^^^^^^^^^^^^^^^^^^^
  fix:  `import @csup;`
  why:  everything gets imported, including limbs (D82)

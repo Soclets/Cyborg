@@ -1,8 +1,7 @@
 // trace: D134
-@config(default);
 
 type.alias score = widget;
 
-fn.main [] -> void:
+fn.main [none] -> void:
     return void;
 end fn.main

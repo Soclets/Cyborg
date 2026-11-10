@@ -1,5 +1,4 @@
 // trace: D117, D124
-@config(default);
 import std;
 
 fn say [$n: i32] -> i32:
@@ -7,7 +6,7 @@ fn say [$n: i32] -> i32:
     return $n;
 end fn say
 
-fn.main [] -> void:
+fn.main [none] -> void:
     if say(1) < say(2) < say(3):
         std::io::fmt_print("in order{newln}");
     end if

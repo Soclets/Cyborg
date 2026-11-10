@@ -1,5 +1,4 @@
 // trace: D171
-@config(default);
 
 struct reading:
     celsius: i32;
@@ -9,6 +8,6 @@ struct editor <`text`>:
     words: Lend.mut from `text` reading;
 end struct editor
 
-fn.main [] -> void:
+fn.main [none] -> void:
     return void;
 end fn.main

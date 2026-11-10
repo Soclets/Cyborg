@@ -1,8 +1,7 @@
 // trace: D126
-@config(default);
 import std;
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let $n: i32 = 0;
     if $n > 0:
         std::io::fmt_print("positive{newln}");

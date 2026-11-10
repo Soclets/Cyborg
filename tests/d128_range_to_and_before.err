@@ -1,5 +1,5 @@
-refused: d128_range_to_and_before.cy:5:37, line 5 column 37
- 5 |     for $i in range[from: 1, to: 5, before: 5]:
+refused: d128_range_to_and_before.cy:4:37, line 4 column 37
+ 4 |     for $i in range[from: 1, to: 5, before: 5]:
    |                                     ^^^^^^
  what: `before:` is out of order here
  why:  `from:` is required, `to:` or `before:` says where it ends, and `step_by:` comes after them, in that order (D128)

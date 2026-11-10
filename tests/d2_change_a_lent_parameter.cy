@@ -1,6 +1,5 @@
 // A bare parameter is read-only.
 // trace: D2, D3
-@config(default);
 
 struct box:
     n: i32;
@@ -11,6 +10,6 @@ fn replace [$b: box] -> void:
     return void;
 end fn replace
 
-fn.main [] -> void:
+fn.main [none] -> void:
     return void;
 end fn.main

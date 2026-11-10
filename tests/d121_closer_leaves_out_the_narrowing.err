@@ -1,5 +1,5 @@
-refused: d121_closer_leaves_out_the_narrowing.cy:6:1, line 6 column 1
- 6 | end fn area
+refused: d121_closer_leaves_out_the_narrowing.cy:5:1, line 5 column 1
+ 5 | end fn area
    | ^^^^^^^^^^^
  fix:  `end fn.pure area`
  why:  the closer repeats all of what it closes, including its narrowings and name (D33, D121)

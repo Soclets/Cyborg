@@ -1,5 +1,4 @@
 // trace: D2
-@config(default);
 import std;
 
 struct open_data:
@@ -14,7 +13,7 @@ fn close [$f: Given open_data] -> void:
     return void;
 end fn close
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let $f: open_data = open_data[fd = 3];
     send(Give $f);
     close(Give $f);

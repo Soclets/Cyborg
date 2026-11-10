@@ -1,6 +1,5 @@
 // `satisfies` is checked where it's written, so the type needs every operation listed.
 // trace: D235, D236
-@config(default);
 import std;
 
 interface ordered<?self>:
@@ -22,6 +21,6 @@ end struct reading
 
 reading satisfies ordered;
 
-fn.main [] -> void:
+fn.main [none] -> void:
     return void;
 end fn.main

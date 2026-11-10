@@ -1,9 +1,9 @@
-refused: d126_given_by_a_later_test_is_gone_after.cy:15:24, line 15 column 24
-15 |     let $t: str = Give $s;
+refused: d126_given_by_a_later_test_is_gone_after.cy:14:24, line 14 column 24
+14 |     let $t: str = Give $s;
    |                        ^^
  what: `$s` was already given away
  why:  a given value is dead afterwards (D2)
- because: d126_given_by_a_later_test_is_gone_after.cy:12:13, line 12 column 13
-12 |     else if eat(Give $s):
+ because: d126_given_by_a_later_test_is_gone_after.cy:11:13, line 11 column 13
+11 |     else if eat(Give $s):
    |             ^^^^^^^^^^^^
      `$s` was given away here

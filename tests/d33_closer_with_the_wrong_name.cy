@@ -1,10 +1,9 @@
 // trace: D33
-@config(default);
 
-fn total [] -> i32:
+fn total [none] -> i32:
     return 1;
 end fn sum
 
-fn.main [] -> void:
+fn.main [none] -> void:
     return void;
 end fn.main

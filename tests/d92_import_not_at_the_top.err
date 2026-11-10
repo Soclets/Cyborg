@@ -1,5 +1,5 @@
-refused: d92_import_not_at_the_top.cy:8:1, line 8 column 1
- 8 | import std;
+refused: d92_import_not_at_the_top.cy:7:1, line 7 column 1
+ 7 | import std;
    | ^^^^^^
  what: imports go at the top of the file
  why:  imports go at the top, so a file's dependencies can be read without running anything (D92)

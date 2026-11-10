@@ -1,5 +1,5 @@
-refused: d86_pure_calls_impure.cy:9:12, line 9 column 12
- 9 |     return g();
+refused: d86_pure_calls_impure.cy:8:12, line 8 column 12
+ 8 |     return g();
    |            ^
  what: `g` isn't pure, so a pure function can't call it
  why:  a pure function refuses calling a function that isn't pure (D86)

@@ -1,5 +1,5 @@
-NotDesignedYet: d128_while_with_a_test.cy:11:15, line 11 column 15
-11 |     while $s: status.ok:
+NotDesignedYet: d128_while_with_a_test.cy:10:15, line 10 column 15
+10 |     while $s: status.ok:
    |               ^^^^^^^^^
  what: the test in a `while`
  why:  not decided yet (standard 12.4)

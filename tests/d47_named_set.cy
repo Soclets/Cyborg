@@ -1,5 +1,4 @@
 // trace: D47
-@config(default);
 import std;
 
 fam.failure file_failed:
@@ -36,7 +35,7 @@ fn name_of [$which: i32] -> void:
     return void;
 end fn name_of
 
-fn.main [] -> void:
+fn.main [none] -> void:
     name_of(1);
     name_of(2);
     name_of(3);

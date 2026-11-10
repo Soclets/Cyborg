@@ -1,5 +1,5 @@
-refused: d194_zeros_with_no_width.cy:6:25, line 6 column 25
- 6 |     std::io::fmt_print("{zeros}{newln}", 7);
+refused: d194_zeros_with_no_width.cy:5:25, line 5 column 25
+ 5 |     std::io::fmt_print("{zeros}{newln}", 7);
    |                         ^^^^^^^
  what: `zeros` needs a width to fill
  why:  `zeros` pads a value to its width (D194)

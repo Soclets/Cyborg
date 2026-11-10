@@ -1,5 +1,4 @@
 // trace: D2
-@config(default);
 import std;
 
 struct box:
@@ -12,7 +11,7 @@ fn replace [$s: Lent.mut str] -> void:
     return void;
 end fn replace
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let mut $b: box = box[s = "a", t = "b"];
     replace(Lend.mut $b.t);
     std::io::fmt_print("{}{}{newln}", $b.s, $b.t);

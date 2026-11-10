@@ -1,5 +1,5 @@
-refused: d144_label_value_in_another_unit.cy:16:28, line 16 column 28
-16 |     draw(at.screen.pixels: 5 screen.points);
+refused: d144_label_value_in_another_unit.cy:15:28, line 15 column 28
+15 |     draw(at.screen.pixels: 5 screen.points);
    |                            ^^^^^^^^^^^^^^^
  what: this is `i32[unit: screen.points]`, and the label asks for `i32[unit: screen.pixels]`
  why:  a label's unit takes a plain number or that unit, and a value in another is refused (D144)

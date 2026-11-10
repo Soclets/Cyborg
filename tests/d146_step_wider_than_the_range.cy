@@ -1,8 +1,7 @@
 // trace: D146
-@config(default);
 import std;
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let $by: i64 = 2;
     let $from: i32 = 1;
     let $to: i32 = 5;

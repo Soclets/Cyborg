@@ -1,5 +1,5 @@
-NotDesignedYet: d11_dropping_a_value.cy:10:5, line 10 column 5
-10 |     f();
+NotDesignedYet: d11_dropping_a_value.cy:9:5, line 9 column 5
+ 9 |     f();
    |     ^^^
  what: dropping a value of `i32` by not using it
  why:  not decided yet, and the standard doesn't say

@@ -1,5 +1,5 @@
-NotDesignedYet: d227_a_limb_language.cy:8:9, line 8 column 9
- 8 |         inline.@llvm::ir();
+NotDesignedYet: d227_a_limb_language.cy:7:9, line 7 column 9
+ 7 |         inline.@llvm::ir();
    |         ^^^^^^^^^^^^^^^^
  what: how the limb `@llvm` is found
  why:  not decided yet (standard 12.9)

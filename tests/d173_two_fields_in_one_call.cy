@@ -1,5 +1,4 @@
 // trace: D173
-@config(default);
 import std;
 
 struct inner:
@@ -17,7 +16,7 @@ fn adjust [$x: Lent.mut inner, $y: Lent.mut inner] -> void:
     return void;
 end fn adjust
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let mut $p: pair = pair[a = inner[n = 1], b = inner[n = 2]];
     adjust(Lend.mut $p.a, Lend.mut $p.b);
     std::io::fmt_print("{} {}{newln}", $p.a.n, $p.b.n);

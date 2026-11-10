@@ -1,12 +1,11 @@
 // trace: D128, D104
-@config(default);
 
 union.tagged status:
     ok;
     failed[code: i32];
 end union.tagged status
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let mut $s: status = status.failed[code = 1];
     let mut $n: i32 = 2;
     if $s: status.failed:

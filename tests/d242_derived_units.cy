@@ -1,6 +1,5 @@
 // A unit made of others is declared once with `per` and `x`, and maths makes any combination.
 // trace: D242
-@config(default);
 import std;
 
 fam.unit length:
@@ -18,7 +17,7 @@ fam.unit motion:
     motion.area = length.meters x length.meters;
 end fam.unit motion
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let $dist: f64.stable[unit: length.meters] = 100.0 length.meters;
     let $time: f64.stable[unit: time.seconds] = 8.0 time.seconds;
     let $speed: f64.stable[unit: motion.speed] = $dist div $time;

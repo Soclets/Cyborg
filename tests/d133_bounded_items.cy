@@ -1,8 +1,7 @@
 // trace: D133, D20
-@config(default);
 import std;
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let mut $a: std::array<i32[min: 0, max: 9]>[len: 1 items] = [1];
     let $big: i32 = 10;
     std::io::fmt_print("before{newln}");

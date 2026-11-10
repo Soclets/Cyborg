@@ -1,5 +1,4 @@
 // trace: D203
-@config(default);
 import std;
 
 fn pick [$hot: bool] -> void:
@@ -13,7 +12,7 @@ fn pick [$hot: bool] -> void:
     return void;
 end fn pick
 
-fn.main [] -> void:
+fn.main [none] -> void:
     pick(true);
     pick(false);
     return void;

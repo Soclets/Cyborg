@@ -1,5 +1,4 @@
 // trace: D119
-@config(default);
 
 comment one:
     comment two:
@@ -7,6 +6,6 @@ comment one:
     comment three:
 end comment three
 
-fn.main [] -> void:
+fn.main [none] -> void:
     return void;
 end fn.main

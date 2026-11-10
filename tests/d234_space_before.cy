@@ -1,6 +1,5 @@
 // Type parameters go straight after the name.
 // trace: D234
-@config(default);
 import std;
 
 interface ordered<?self>:
@@ -20,6 +19,6 @@ fn first <?item: any.type> [$a: Given ?item] -> ?item:
     return Give $a;
 end fn first
 
-fn.main [] -> void:
+fn.main [none] -> void:
     return void;
 end fn.main

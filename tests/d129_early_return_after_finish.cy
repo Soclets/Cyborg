@@ -1,5 +1,4 @@
 // trace: D129, D2
-@config(default);
 import std;
 
 struct.must_Give open_file:
@@ -17,7 +16,7 @@ fn f [$quick: bool] -> void:
     return void;
 end fn f
 
-fn.main [] -> void:
+fn.main [none] -> void:
     f(true);
     f(false);
     return void;

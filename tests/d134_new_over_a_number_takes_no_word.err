@@ -1,5 +1,5 @@
-refused: d134_new_over_a_number_takes_no_word.cy:11:14, line 11 column 14
-11 |     return g(Lend $u);
+refused: d134_new_over_a_number_takes_no_word.cy:10:14, line 10 column 14
+10 |     return g(Lend $u);
    |              ^^^^^^^
  fix:  `$u`
  why:  plain numbers and `bool` are always copied, and take no word (D2, D123)

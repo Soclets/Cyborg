@@ -1,9 +1,8 @@
 // Infinity minus infinity is NaN, and that's allowed here too.
 // trace: D159, D158
-@config(default);
 import std;
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let mut $x: f64.ieee = 2.0;
     for $i in range[from: 1, to: 10]:
         change $x = $x x $x;

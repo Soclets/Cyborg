@@ -1,14 +1,13 @@
 // trace: D86
-@config(default);
 
-fn g [] -> i32:
+fn g [none] -> i32:
     return 1;
 end fn g
 
-fn.pure f [] -> i32:
+fn.pure f [none] -> i32:
     return g();
 end fn.pure f
 
-fn.main [] -> void:
+fn.main [none] -> void:
     return void;
 end fn.main

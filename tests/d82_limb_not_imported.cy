@@ -1,7 +1,6 @@
 // trace: D82
-@config(default);
 
-fn.main [] -> void:
+fn.main [none] -> void:
     shield c_call:
         reason "calls libfoo"
         @csup::call();

@@ -1,8 +1,7 @@
 // trace: D133, D2
-@config(default);
 import std;
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let mut $a: std::array<i32>[len: 2 items] = [1, 2];
     for $x in $a:
         change $a[pos: 1] = $x;

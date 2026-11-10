@@ -1,6 +1,5 @@
 // An alias is fully interchangeable, so it builds, tests and matches too.
 // trace: D134, D9, D57
-@config(default);
 import std;
 
 struct reading:
@@ -15,7 +14,7 @@ end union.tagged status
 type.alias r = reading;
 type.alias s = status;
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let $a: r = r[celsius = 21];
     let $b: reading = Copy $a;
     std::io::fmt_print("{}{newln}", $b.celsius);

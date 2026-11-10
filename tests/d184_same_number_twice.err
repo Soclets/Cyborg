@@ -1,9 +1,9 @@
-refused: d184_same_number_twice.cy:10:23, line 10 column 23
-10 |     both(Lend.mut $n, Lend.mut $n);
+refused: d184_same_number_twice.cy:9:23, line 9 column 23
+ 9 |     both(Lend.mut $n, Lend.mut $n);
    |                       ^^^^^^^^^^^
  what: `$n` is already handed off with `Lend.mut` in this call
  why:  `Lend.mut` means nothing else uses it meanwhile, and `Give` means it's gone (D2)
- because: d184_same_number_twice.cy:10:10, line 10 column 10
-10 |     both(Lend.mut $n, Lend.mut $n);
+ because: d184_same_number_twice.cy:9:10, line 9 column 10
+ 9 |     both(Lend.mut $n, Lend.mut $n);
    |          ^^^^^^^^^^^
      that's here

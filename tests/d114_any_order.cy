@@ -1,5 +1,4 @@
 // trace: D114
-@config(default);
 import std;
 
 fn pair [$a: i32, $b: i32] -> i32:
@@ -8,7 +7,7 @@ fn pair [$a: i32, $b: i32] -> i32:
     return $a x 10 + $b;
 end fn pair
 
-fn.main [] -> void:
+fn.main [none] -> void:
     std::io::fmt_print("{}{newln}", pair(second: 1, first: 2));
     return void;
 end fn.main

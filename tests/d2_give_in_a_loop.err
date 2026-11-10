@@ -1,9 +1,9 @@
-refused: d2_give_in_a_loop.cy:18:9, line 18 column 9
-18 |         eat(Give $b);
+refused: d2_give_in_a_loop.cy:17:9, line 17 column 9
+17 |         eat(Give $b);
    |         ^^^^^^^^^^^^
  what: `$b` was already given away
  why:  a given value is dead afterwards (D2)
- because: d2_give_in_a_loop.cy:18:9, line 18 column 9
-18 |         eat(Give $b);
+ because: d2_give_in_a_loop.cy:17:9, line 17 column 9
+17 |         eat(Give $b);
    |         ^^^^^^^^^^^^
      `$b` was given away here

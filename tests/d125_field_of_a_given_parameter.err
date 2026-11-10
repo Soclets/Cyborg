@@ -1,5 +1,5 @@
-refused: d125_field_of_a_given_parameter.cy:10:12, line 10 column 12
-10 |     change $b.n = 2;
+refused: d125_field_of_a_given_parameter.cy:9:12, line 9 column 12
+ 9 |     change $b.n = 2;
    |            ^^^^
  what: `$b` can't change, so neither can its field
  why:  a field or item can be changed if the whole variable is `let mut`, or the parameter `Lent.mut` (D125, D133)

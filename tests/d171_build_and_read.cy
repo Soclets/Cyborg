@@ -1,5 +1,4 @@
 // trace: D171
-@config(default);
 import std;
 
 struct reading:
@@ -11,7 +10,7 @@ struct index <`text`, `table`: lasts_at_least `text`>:
     lookup: Lend from `table` reading;
 end struct index
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let $list: reading = reading[celsius = 2];
     let $article: reading = reading[celsius = 1];
     let $i: index<`text`: $article, `table`: $list> = index[words = Lend $article, lookup = Lend $list];

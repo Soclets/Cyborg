@@ -1,11 +1,10 @@
 // A name of yours that clashes stays bare where it's defined, and says `my::` where it's used.
 // trace: D134, D75
-@config(default);
 import std;
 
 type.alias str = i32;
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let $a: my::str = 5;
     let $b: str = "still a string";
     std::io::fmt_print("{}{newln}", $a);

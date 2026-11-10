@@ -1,9 +1,9 @@
-refused: d169_held_mut_stops_reads.cy:14:37, line 14 column 37
-14 |     std::io::fmt_print("{}{newln}", $r.celsius);
+refused: d169_held_mut_stops_reads.cy:13:37, line 13 column 37
+13 |     std::io::fmt_print("{}{newln}", $r.celsius);
    |                                     ^^
  what: `$lock` holds `$r` until the end of its block
  why:  `.held` means nobody touches what it borrows for the whole block (D169)
- because: d169_held_mut_stops_reads.cy:12:9, line 12 column 9
-12 |     let $lock: Lend.mut.held from $r reading = Lend.mut $r;
+ because: d169_held_mut_stops_reads.cy:11:9, line 11 column 9
+11 |     let $lock: Lend.mut.held from $r reading = Lend.mut $r;
    |         ^^^^^
      `$lock` holds it from here

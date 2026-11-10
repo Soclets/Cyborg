@@ -1,9 +1,8 @@
 // The standard's five prints, with their exact output.
 // trace: D194, D197, D162
-@config(default);
 import std;
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let $name: str = "rope";
     let $count: i32 = 3;
     let $price: f64.stable = 12.5;

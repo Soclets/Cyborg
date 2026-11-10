@@ -1,8 +1,7 @@
 // trace: D198, D199
-@config(default);
 import std::io::fmt_print;
 
-fn.main [] -> void:
+fn.main [none] -> void:
     std::io::fmt_print("only this{newln}");
     std::io::fmt_print.stderr("and its narrowings{newln}");
     return void;

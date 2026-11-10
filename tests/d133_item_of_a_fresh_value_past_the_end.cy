@@ -1,12 +1,11 @@
 // trace: D133, D26
-@config(default);
 import std;
 
-fn make [] -> std::array<i32>[len: 2 items]:
+fn make [none] -> std::array<i32>[len: 2 items]:
     return [4, 5];
 end fn make
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let $n: i32 = make()[pos: 3];
     return void;
 end fn.main

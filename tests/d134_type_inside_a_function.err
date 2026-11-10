@@ -1,5 +1,5 @@
-NotDesignedYet: d134_type_inside_a_function.cy:5:5, line 5 column 5
- 5 |     type.alias score = i32;
+NotDesignedYet: d134_type_inside_a_function.cy:4:5, line 4 column 5
+ 4 |     type.alias score = i32;
    |     ^^^^
  what: `type` inside a function
  why:  not decided yet, and the standard doesn't say

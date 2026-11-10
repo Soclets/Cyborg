@@ -1,5 +1,5 @@
-refused: d158_in_a_const.cy:5:29, line 5 column 29
- 5 | const $bigger: f32.stable = $big x 10.0;
+refused: d158_in_a_const.cy:4:29, line 4 column 29
+ 4 | const $bigger: f32.stable = $big x 10.0;
    |                             ^^^^^^^^^^^
  what: this makes infinity
  why:  a float can't be NaN or infinity, and making one is a failure (D158)

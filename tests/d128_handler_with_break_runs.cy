@@ -1,5 +1,4 @@
 // trace: D128, D46
-@config(default);
 import std;
 
 fam.handler say_failed:
@@ -9,7 +8,7 @@ fam.handler say_failed:
     end say_failed.stop
 end fam.handler say_failed
 
-fn.main [] -> void:
+fn.main [none] -> void:
     forever:
         std::io::fmt_print("hi{newln}") otherwise say_failed.*stop;
         break;

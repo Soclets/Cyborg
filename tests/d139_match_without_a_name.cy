@@ -1,13 +1,12 @@
 // A case's data is read through a name now, and nothing says the old way still works.
 // trace: D139, D9
-@config(default);
 
 union.tagged status:
     ok;
     failed[code: i32];
 end union.tagged status
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let $s: status = status.failed[code = 1];
     match $s:
         case status.failed:

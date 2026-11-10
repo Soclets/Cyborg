@@ -1,5 +1,4 @@
 // trace: D149, D2
-@config(default);
 
 struct reading:
     celsius: i32;
@@ -12,7 +11,7 @@ fn look [$r: reading] -> void:
     return void;
 end fn look
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let $a: reading = reading[celsius = 1];
     look(Lend $a);
     return void;

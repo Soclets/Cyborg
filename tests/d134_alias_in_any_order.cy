@@ -1,8 +1,7 @@
 // trace: D134, D120
-@config(default);
 import std;
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let $a: first = 3;
     std::io::fmt_print("{}{newln}", $a);
     return void;

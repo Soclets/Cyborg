@@ -1,5 +1,4 @@
 // trace: D182, D2
-@config(default);
 import std;
 
 struct reading:
@@ -10,6 +9,6 @@ fn show [$r: Lent reading] -> void:
     return void;
 end fn show
 
-fn.main [] -> void:
+fn.main [none] -> void:
     return void;
 end fn.main

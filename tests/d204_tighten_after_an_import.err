@@ -1,9 +1,0 @@
-refused: d204_tighten_after_an_import.cy:4:1, line 4 column 1
- 4 | @tighten_config(var::mut::never_changed = refuse);
-   | ^
- what: `@tighten_config` goes at the top, with the file's other rules
- why:  a file's rules come first, and tightening or loosening follows straight after (D204)
- because: d204_tighten_after_an_import.cy:2:1, line 2 column 1
- 2 | @config(default);
-   | ^^^^^^^^^^^^^^^^^
-     the file's rules are here

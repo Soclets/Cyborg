@@ -1,5 +1,4 @@
 // trace: D134, D135
-@config(default);
 import std;
 
 fam.type.alias sizes:
@@ -7,7 +6,7 @@ fam.type.alias sizes:
     sizes.large = i64;
 end fam.type.alias sizes
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let $a: sizes.small = 1;
     let $b: i32 = $a;
     let $c: sizes.large = 2;

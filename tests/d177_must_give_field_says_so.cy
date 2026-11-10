@@ -1,5 +1,4 @@
 // trace: D177, D2
-@config(default);
 
 struct.must_Give open_file:
     fd: i32;
@@ -9,6 +8,6 @@ struct holder:
     f: open_file;
 end struct holder
 
-fn.main [] -> void:
+fn.main [none] -> void:
     return void;
 end fn.main

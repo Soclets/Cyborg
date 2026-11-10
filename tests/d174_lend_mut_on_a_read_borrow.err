@@ -1,5 +1,5 @@
-refused: d174_lend_mut_on_a_read_borrow.cy:12:49, line 12 column 49
-12 |     let $n: Lend.mut from $r reading = Lend.mut $v;
+refused: d174_lend_mut_on_a_read_borrow.cy:11:49, line 11 column 49
+11 |     let $n: Lend.mut from $r reading = Lend.mut $v;
    |                                                 ^^
  what: `$v` only reads what it borrows, so it can't lend it with `Lend.mut`
  why:  a stored `Lend` can be lent on with `Lend` only (D174, D2)

@@ -1,5 +1,4 @@
 // trace: D139, D128, D52
-@config(default);
 import std;
 
 fn f [$which: i32] -> i32 fails [a]:
@@ -9,7 +8,7 @@ fn f [$which: i32] -> i32 fails [a]:
     return 1;
 end fn f
 
-fn g [] -> i32 fails [b]:
+fn g [none] -> i32 fails [b]:
     let $n: i32 = f(1) otherwise:
         case a:
             fail b;
@@ -17,7 +16,7 @@ fn g [] -> i32 fails [b]:
     return $n;
 end fn g
 
-fn h [] -> i32:
+fn h [none] -> i32:
     let $n: i32 = f(1) otherwise:
         case a:
             return 7;
@@ -25,7 +24,7 @@ fn h [] -> i32:
     return $n;
 end fn h
 
-fn.main [] -> void:
+fn.main [none] -> void:
     std::io::fmt_print("{}{newln}", (g() ?? 5));
     std::io::fmt_print("{}{newln}", h());
     forever:

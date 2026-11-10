@@ -1,5 +1,4 @@
 // trace: D173, D125, D2
-@config(default);
 
 struct inner:
     n: i32;
@@ -10,7 +9,7 @@ struct outer:
     b: inner;
 end struct outer
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let mut $o: outer = outer[a = inner[n = 1], b = inner[n = 2]];
     let $l: Lend from $o inner = Lend $o.a;
     change $o.b.n = 3;

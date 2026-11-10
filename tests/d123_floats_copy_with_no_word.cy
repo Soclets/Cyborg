@@ -1,12 +1,11 @@
 // trace: D123
-@config(default);
 import std;
 
 fn twice [$x: f64.stable] -> f64.stable:
     return $x + $x;
 end fn twice
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let $a: f64.stable = 0.5;
     let $b: f64.stable = $a;
     let $c: f64.stable = twice($a);

@@ -1,9 +1,8 @@
 // Each round has its own `$x`.
 // trace: D203, D128
-@config(default);
 import std;
 
-fn.main [] -> void:
+fn.main [none] -> void:
     for $i in range[from: 1, to: 3]:
         decl $x: i32;
         assign $x = $i x 10;

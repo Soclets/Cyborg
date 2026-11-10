@@ -1,5 +1,5 @@
-refused: d185_out_of_a_loop_item.cy:16:18, line 16 column 18
-16 |         eat(Give $b.s);
+refused: d185_out_of_a_loop_item.cy:15:18, line 15 column 18
+15 |         eat(Give $b.s);
    |                  ^^^^
  what: `$b` is only borrowed here, so a field can't be moved out of it
  why:  a field moves out only of something you own, a `Given` parameter or your own `let` (D185)

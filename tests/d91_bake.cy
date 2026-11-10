@@ -1,5 +1,4 @@
 // trace: D91
-@config(default);
 import std;
 
 fn.pure.baked seconds_in [$days: i32] -> i32:
@@ -8,7 +7,7 @@ end fn.pure.baked seconds_in
 
 const $week: i32 = seconds_in(7);
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let $day: i32 = bake seconds_in(1);
     let $d: i32 = 2;
     let $n: i32 = seconds_in($d);

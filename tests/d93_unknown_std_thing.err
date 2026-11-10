@@ -1,5 +1,5 @@
-NotDesignedYet: d93_unknown_std_thing.cy:9:5, line 9 column 5
- 9 |     readu();
+NotDesignedYet: d93_unknown_std_thing.cy:8:5, line 8 column 5
+ 8 |     readu();
    |     ^^^^^
  what: `std::io::read_line`, since `std`'s full contents aren't chosen
  why:  not decided yet, and the standard doesn't say

@@ -1,5 +1,4 @@
 // trace: D129, D2
-@config(default);
 
 struct.must_Give open_file:
     fd: i32;
@@ -10,6 +9,6 @@ fn sneaky [$f: Lent.mut open_file] -> void:
     return void;
 end fn sneaky
 
-fn.main [] -> void:
+fn.main [none] -> void:
     return void;
 end fn.main

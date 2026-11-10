@@ -1,6 +1,5 @@
 // A narrowing runs both sides, so this one always gives it away.
 // trace: D124, D2
-@config(default);
 
 struct.must_Give open_file:
     fd: i32;
@@ -11,7 +10,7 @@ fn close [$f: Given open_file] -> bool:
     return 1 < 2;
 end fn close
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let $f: open_file = open_file[fd = 3];
     if 2 < 1 and.both close(Give $f):
         return void;

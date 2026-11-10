@@ -1,6 +1,5 @@
 // A type set lists types, not operations.
 // trace: D235
-@config(default);
 import std;
 
 interface ordered<?self>:
@@ -21,6 +20,6 @@ type_set odd:
     op < [$a: i32, $b: i32] -> bool;
 end type_set odd
 
-fn.main [] -> void:
+fn.main [none] -> void:
     return void;
 end fn.main

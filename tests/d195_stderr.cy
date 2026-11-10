@@ -1,8 +1,7 @@
 // trace: D195
-@config(default);
 import std;
 
-fn.main [] -> void:
+fn.main [none] -> void:
     std::io::fmt_print("out{newln}");
     std::io::fmt_print.stderr("failed{newln}");
     std::io::fmt_print("out again{newln}");

@@ -1,5 +1,4 @@
 // trace: D130, D4, D5, D8
-@config(default);
 import std;
 
 struct reading:
@@ -21,11 +20,11 @@ fn.pure reading.%doubled [$r: reading] -> i32:
     return $r.celsius x 2;
 end fn.pure reading.%doubled
 
-fn make [] -> reading:
+fn make [none] -> reading:
     return reading[celsius = 5];
 end fn make
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let mut $r: reading = reading[celsius = 21];
     $r.%%warm_up(by: 2);
     $r.%show();

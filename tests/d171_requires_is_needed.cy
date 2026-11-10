@@ -1,6 +1,5 @@
 // Two parameters, and nothing says which lasts longer.
 // trace: D171
-@config(default);
 
 struct reading:
     celsius: i32;
@@ -15,6 +14,6 @@ fn build [$article: reading, $list: reading] -> index<`text`: $article, `table`:
     return index[words = Lend $article, lookup = Lend $list];
 end fn build
 
-fn.main [] -> void:
+fn.main [none] -> void:
     return void;
 end fn.main

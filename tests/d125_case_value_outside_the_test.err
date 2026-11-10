@@ -1,5 +1,5 @@
-refused: d125_case_value_outside_the_test.cy:11:12, line 11 column 12
-11 |     change $s.code = 1;
+refused: d125_case_value_outside_the_test.cy:10:12, line 10 column 12
+10 |     change $s.code = 1;
    |            ^^^^^^^
  what: `$s` isn't known to be `status.failed` here
  why:  inside `if $s: status.failed:` the compiler trusts it, and outside that's a compile error (D9)

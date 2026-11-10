@@ -1,5 +1,4 @@
 // trace: D130, D2
-@config(default);
 import std;
 
 struct bag:
@@ -10,7 +9,7 @@ fn bag.%%empty_out [$b: Lent.mut bag] -> void:
     return void;
 end fn bag.%%empty_out
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let mut $b: bag = bag[items = [1]];
     for $x in $b.items:
         $b.%%empty_out();

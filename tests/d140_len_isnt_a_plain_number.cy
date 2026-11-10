@@ -1,8 +1,7 @@
 // trace: D140, D101
-@config(default);
 import std;
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let $a: std::array<i32>[len: 1 items] = [1];
     let $n: u64 = $a.len;
     return void;

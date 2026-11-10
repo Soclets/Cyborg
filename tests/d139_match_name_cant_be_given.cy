@@ -1,5 +1,4 @@
 // trace: D139, D2
-@config(default);
 
 union.tagged status:
     ok;
@@ -10,7 +9,7 @@ fn eat [$s: Given status] -> void:
     return void;
 end fn eat
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let $s: status = status.failed[code = 1];
     match $s:
         case status.failed $f:

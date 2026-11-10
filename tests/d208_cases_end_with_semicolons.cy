@@ -1,5 +1,4 @@
 // trace: D208, D33
-@config(default);
 import std;
 
 union.tagged status:
@@ -7,7 +6,7 @@ union.tagged status:
     failed[code: i32];
 end union.tagged status
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let $s: status = status.failed[code = 3];
     match $s:
         case status.ok:

@@ -1,15 +1,14 @@
 // trace: D139, D2
-@config(default);
 
 struct.must_Give open_file:
     fd: i32;
 end struct.must_Give open_file
 
-fn f [] -> i32 fails [a]:
+fn f [none] -> i32 fails [a]:
     return 1;
 end fn f
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let $n: i32 = f() otherwise:
         case a:
             let $g: open_file = open_file[fd = 1];

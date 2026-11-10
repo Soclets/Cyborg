@@ -1,9 +1,8 @@
 // Knowing the range proves nothing here, since it goes past the array, so the check stays.
 // trace: D147
-@config(default);
 import std;
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let $xs: std::array<i32>[len: 2 items] = [4, 5];
     for $i in range[from: 1 items, to: 3 items]:
         std::io::fmt_print("{}{newln}", $xs[pos: $i]);

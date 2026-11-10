@@ -1,8 +1,7 @@
 // trace: D131
-@config(default);
 import std;
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let $b: bool = true;
     let $c: bool = false == (not $b);
     if $c:

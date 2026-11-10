@@ -1,5 +1,5 @@
-NotDesignedYet: d9_test_on_a_known_type.cy:6:12, line 6 column 12
- 6 |     if $b: bool:
+NotDesignedYet: d9_test_on_a_known_type.cy:5:12, line 5 column 12
+ 5 |     if $b: bool:
    |            ^^^^
  what: the test for `bool` on `bool`
  why:  not decided yet (standard 12.2)

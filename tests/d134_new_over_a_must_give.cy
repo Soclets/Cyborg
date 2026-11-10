@@ -1,5 +1,4 @@
 // trace: D134, D2
-@config(default);
 
 struct.must_Give open_file:
     fd: i32;
@@ -11,6 +10,6 @@ fn f [$l: Given log_file] -> void:
     return void;
 end fn f
 
-fn.main [] -> void:
+fn.main [none] -> void:
     return void;
 end fn.main

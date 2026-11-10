@@ -1,5 +1,5 @@
-refused: main.cy:4:8, line 4 column 8
- 4 | import std;
+refused: main.cy:3:8, line 3 column 8
+ 3 | import std;
    |        ^^^
  what: `std` has no `need` line in `CyJet.siml`
  why:  each package a program uses has a `need` line in its manifest, with its version (D183, D228)

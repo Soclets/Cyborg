@@ -1,5 +1,4 @@
 // trace: D177, D3
-@config(default);
 import std;
 
 struct.must_Give open_file:
@@ -20,6 +19,6 @@ struct log:
     file: open_file;
 end struct log
 
-fn.main [] -> void:
+fn.main [none] -> void:
     return void;
 end fn.main

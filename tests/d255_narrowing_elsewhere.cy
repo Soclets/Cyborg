@@ -1,6 +1,5 @@
 // The full list of `as` narrowings isn't decided, so one on anything but a change of unit isn't either.
 // trace: D255
-@config(default);
 import std;
 
 fam.unit length:
@@ -11,7 +10,7 @@ fam.unit length:
     length.feet = 12 length.inches;
 end fam.unit length
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let $n: i32 = 7;
     let $s: str = $n as.trunc str;
     return void;

@@ -1,5 +1,5 @@
-refused: d247_a_hole_never_runs_anything.cy:8:25, line 8 column 25
- 8 |     std::io::fmt_print("{$count + 1}{newln}");
+refused: d247_a_hole_never_runs_anything.cy:7:25, line 7 column 25
+ 7 |     std::io::fmt_print("{$count + 1}{newln}");
    |                         ^^^^^^^^^^^^
  what: `$count + 1` isn't a variable or a field of one
  why:  a named hole reads a variable or its field, never a call or maths, so it never runs anything (D247)

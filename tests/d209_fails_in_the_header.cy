@@ -1,5 +1,4 @@
 // trace: D209, D52
-@config(default);
 import std;
 
 fn half [$n: i32] -> i32 fails [odd, negative[val: i32]]:
@@ -13,7 +12,7 @@ fn half [$n: i32] -> i32 fails [odd, negative[val: i32]]:
     return $n div.trunc 2;
 end fn half
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let $h: i32 = half(8) ?? 0;
     std::io::fmt_print("{}{newln}", $h);
     return void;

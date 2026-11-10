@@ -1,8 +1,7 @@
 // How a shield's own entry and exit are written isn't decided.
 // trace: D37, D39
-@config(default);
 
-fn.main [] -> void:
+fn.main [none] -> void:
     shield sensor:
         reason "talks to the chip"
         requires 1 < 2;

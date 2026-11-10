@@ -1,6 +1,5 @@
 // `my::` is your own package's path, so `use` shortens your own types and functions too.
 // trace: D248, D150
-@config(default);
 import std;
 
 struct reading:
@@ -14,7 +13,7 @@ end fn total
 use my::reading as "r";
 use my::total as "sum";
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let $x: r = reading[celsius = 4];
     std::io::fmt_print("{} {}{newln}", $x.celsius, sum(2, 3));
     return void;

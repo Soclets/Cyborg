@@ -1,6 +1,5 @@
 // The owner's sketch, from design/sketch.md.
 // trace: D2, D4, D11, D13, D115
-@config(default);
 import std;
 
 fn total [$xs: std::list<i32>[len.max: inf items]] -> i32:
@@ -11,7 +10,7 @@ fn total [$xs: std::list<i32>[len.max: inf items]] -> i32:
     return $sum;
 end fn total
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let mut $xs: std::list<i32>[len.max: inf items] = empty;
     $xs.std::%%append(val: 4);
     $xs.std::%%append(val: 6);

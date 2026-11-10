@@ -1,6 +1,5 @@
 // The borrow's type names `$o`, the whole value it came from.
 // trace: D172
-@config(default);
 
 struct inner:
     n: i32;
@@ -10,7 +9,7 @@ struct outer:
     a: inner;
 end struct outer
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let $o: outer = outer[a = inner[n = 1]];
     let $l: Lend from $o inner = Lend $o.a;
     return void;

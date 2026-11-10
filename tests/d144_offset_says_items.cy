@@ -1,8 +1,7 @@
 // trace: D144, D143
-@config(default);
 import std;
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let $xs: std::array<i32>[len: 3 items] = [4, 5, 6];
     std::io::fmt_print("{}{newln}", $xs[offset.items: 0]);
     std::io::fmt_print("{}{newln}", $xs[offset.items: 1 items]);

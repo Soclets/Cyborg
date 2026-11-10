@@ -1,5 +1,5 @@
-refused: d171_field_borrowing_a_variable.cy:10:12, line 10 column 12
-10 |     other: Lend from $r reading;
+refused: d171_field_borrowing_a_variable.cy:9:12, line 9 column 12
+ 9 |     other: Lend from $r reading;
    |            ^^^^^^^^^^^^^^^^^^^^
  what: a borrow in a field names one of its type's sources, in backticks
  why:  a struct names the sources of its borrows, as in ``Lend from `text` reading`` (D171)

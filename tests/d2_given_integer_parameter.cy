@@ -1,10 +1,9 @@
 // trace: D2
-@config(default);
 
 fn f [$n: Given i32] -> i32:
     return $n;
 end fn f
 
-fn.main [] -> void:
+fn.main [none] -> void:
     return void;
 end fn.main

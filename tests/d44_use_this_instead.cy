@@ -1,5 +1,4 @@
 // trace: D44
-@config(default);
 import std;
 
 fn read_port [$ok: bool] -> i32 fails [no_port]:
@@ -9,7 +8,7 @@ fn read_port [$ok: bool] -> i32 fails [no_port]:
     fail no_port;
 end fn read_port
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let $a: i32 = read_port(1 < 2) ?? 8080;
     let $b: i32 = read_port(2 < 1) ?? 8080;
     std::io::fmt_print("{}{newln}", $a);

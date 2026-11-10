@@ -1,6 +1,5 @@
 // A point converts with its offset, and a span only scales.
 // trace: D255, D249, D254
-@config(default);
 import std;
 
 fam.unit temperature:
@@ -11,7 +10,7 @@ end fam.unit temperature
 use my::temperature.celsius as celsius;
 use my::temperature.kelvin as kelvin;
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let $freezing: f64.stable[unit: celsius.point] = 0.0 celsius;
     let $rise: f64.stable[unit: celsius.span] = 10.0 celsius;
     let $k: f64.stable[unit: kelvin.point] = $freezing as f64.stable[unit: kelvin.point];

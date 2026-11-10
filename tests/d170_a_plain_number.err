@@ -1,5 +1,5 @@
-refused: d170_a_plain_number.cy:8:29, line 8 column 29
- 8 | fn degrees [$a: reading] -> Lend from $a i32:
+refused: d170_a_plain_number.cy:7:29, line 7 column 29
+ 7 | fn degrees [$a: reading] -> Lend from $a i32:
    |                             ^^^^^^^^^^^^^^^^
  what: a borrow of `i32`, which is always copied
  why:  plain numbers and `bool` are always copied, so there's nothing to borrow (D170, D123)

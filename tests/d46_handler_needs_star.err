@@ -1,5 +1,5 @@
-refused: d46_handler_needs_star.cy:13:47, line 13 column 47
-13 |     std::io::fmt_print("hi{newln}") otherwise say_failed.bail;
+refused: d46_handler_needs_star.cy:12:47, line 12 column 47
+12 |     std::io::fmt_print("hi{newln}") otherwise say_failed.bail;
    |                                               ^^^^^^^^^^^^^^^
  fix:  `say_failed.*bail`
  why:  a handler that can `return` or `break` is marked `*` where it's used (D46, D128)

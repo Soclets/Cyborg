@@ -1,9 +1,8 @@
 // `%` hides `Lend.mut`, and the compiler still checks it.
 // trace: D4, D3
-@config(default);
 import std;
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let $xs: std::list<i32>[len.max: inf items] = empty;
     $xs.std::%%append(val: 1);
     return void;

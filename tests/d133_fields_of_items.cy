@@ -1,5 +1,4 @@
 // trace: D133, D125, D57
-@config(default);
 import std;
 
 struct box:
@@ -15,7 +14,7 @@ fn box.%%bump [$b: Lent.mut box] -> void:
     return void;
 end fn box.%%bump
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let mut $b: bag = bag[boxes = [box[n = 1], box[n = 2]]];
     std::io::fmt_print("{}{newln}", $b.boxes[pos: 2].n);
     change $b.boxes[pos: 1].n = 5;

@@ -1,11 +1,10 @@
 // Whether every `void` function says `return void;` isn't decided.
 // trace: D11
-@config(default);
 
-fn f [] -> void:
+fn f [none] -> void:
 end fn f
 
-fn.main [] -> void:
+fn.main [none] -> void:
     f();
     return void;
 end fn.main

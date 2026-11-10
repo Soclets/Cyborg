@@ -1,5 +1,4 @@
 // trace: D130, D9
-@config(default);
 import std;
 
 union.tagged status:
@@ -11,7 +10,7 @@ fn status.%label [$s: status] -> str:
     return "a status";
 end fn status.%label
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let $s: status = status.failed[code = 3];
     if $s: status.failed:
         std::io::fmt_print("{}{newln}", $s.%label());

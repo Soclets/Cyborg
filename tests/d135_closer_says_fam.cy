@@ -1,10 +1,9 @@
 // trace: D135, D33
-@config(default);
 
 fam.unit money:
     money.cents: base;
 end narrowings.unit money
 
-fn.main [] -> void:
+fn.main [none] -> void:
     return void;
 end fn.main

@@ -1,12 +1,11 @@
 // How a unit prints isn't decided.
 // trace: D122
-@config(default);
 
 fam.unit time:
     time.seconds: base;
 end fam.unit time
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let $a: i32[unit: time.seconds] = 1 time.seconds;
     let $s: str = $a as str.with_unit;
     return void;

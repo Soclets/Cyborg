@@ -1,7 +1,6 @@
 // trace: D23
-@config(default);
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let $a: i32 = nothing();
     return void;
 end fn.main

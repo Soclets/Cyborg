@@ -1,6 +1,5 @@
 // A handler narrowing is used at a call as if written there.
 // trace: D46
-@config(default);
 import std;
 
 fam.handler say_failed:
@@ -10,7 +9,7 @@ fam.handler say_failed:
     end say_failed.log
 end fam.handler say_failed
 
-fn.main [] -> void:
+fn.main [none] -> void:
     std::io::fmt_print("hi{newln}") otherwise say_failed.log;
     return void;
 end fn.main

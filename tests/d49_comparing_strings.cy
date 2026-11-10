@@ -1,7 +1,6 @@
 // trace: D49
-@config(default);
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let $a: str = "a";
     if $a == "a":
         return void;

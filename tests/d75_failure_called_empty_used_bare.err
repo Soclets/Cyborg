@@ -1,5 +1,5 @@
-refused: d75_failure_called_empty_used_bare.cy:5:10, line 5 column 10
- 5 |     fail empty;
+refused: d75_failure_called_empty_used_bare.cy:4:10, line 4 column 10
+ 4 |     fail empty;
    |          ^^^^^
  fix:  `my::empty`
  why:  a name of yours that clashes is written with `my::` (D75)

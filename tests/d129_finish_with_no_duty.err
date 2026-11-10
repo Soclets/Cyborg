@@ -1,5 +1,5 @@
-refused: d129_finish_with_no_duty.cy:10:12, line 10 column 12
-10 |     finish $b;
+refused: d129_finish_with_no_duty.cy:9:12, line 9 column 12
+ 9 |     finish $b;
    |            ^^
  what: `$b` is `box`, which has no duty to end
  why:  `finish` ends a `must_Give` duty (D129)

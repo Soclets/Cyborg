@@ -1,5 +1,5 @@
-refused: d128_going_through_a_number.cy:5:15, line 5 column 15
- 5 |     for $i in 5:
+refused: d128_going_through_a_number.cy:4:15, line 4 column 15
+ 4 |     for $i in 5:
    |               ^
  what: `for` goes through a collection or range, and this is `i32`
  why:  `for` goes through a collection or range, reading it in place (D2, D128)

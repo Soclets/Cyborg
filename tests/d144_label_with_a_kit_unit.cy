@@ -1,5 +1,4 @@
 // trace: D144, D112
-@config(default);
 import std;
 
 fn wait [$t: i32[unit: std::units::time.seconds.span]] -> void:
@@ -9,7 +8,7 @@ fn wait [$t: i32[unit: std::units::time.seconds.span]] -> void:
     return void;
 end fn wait
 
-fn.main [] -> void:
+fn.main [none] -> void:
     wait(for.std::units::time.seconds: 2);
     return void;
 end fn.main

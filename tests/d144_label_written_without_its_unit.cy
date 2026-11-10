@@ -1,6 +1,5 @@
 // So each function has one way to call it.
 // trace: D144, D113
-@config(default);
 
 fam.unit screen:
     screen.pixels: base;
@@ -12,7 +11,7 @@ fn draw [$x: i32[unit: screen.pixels]] -> void:
     return void;
 end fn draw
 
-fn.main [] -> void:
+fn.main [none] -> void:
     draw(at: 5);
     return void;
 end fn.main

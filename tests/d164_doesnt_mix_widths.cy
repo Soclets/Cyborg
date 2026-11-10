@@ -1,7 +1,6 @@
 // trace: D164
-@config(default);
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let $a: f64.stable = 1.5;
     let $b: f32.stable = 1.5;
     let $c: f64.stable = $a div $b;

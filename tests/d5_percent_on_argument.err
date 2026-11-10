@@ -1,5 +1,5 @@
-refused: d5_percent_on_argument.cy:10:7, line 10 column 7
-10 |     f(%$x);
+refused: d5_percent_on_argument.cy:9:7, line 9 column 7
+ 9 |     f(%$x);
    |       ^
  what: `%` goes only on a method call
  why:  `%` goes only on a method call, never on an argument (D5)

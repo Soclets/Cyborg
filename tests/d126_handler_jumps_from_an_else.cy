@@ -1,6 +1,5 @@
 // A `return` in any block of a chain makes a handler one that can jump.
 // trace: D126, D46
-@config(default);
 import std;
 
 fam.handler say_failed:
@@ -14,7 +13,7 @@ fam.handler say_failed:
     end say_failed.maybe
 end fam.handler say_failed
 
-fn.main [] -> void:
+fn.main [none] -> void:
     std::io::fmt_print("hi{newln}") otherwise say_failed.maybe;
     return void;
 end fn.main

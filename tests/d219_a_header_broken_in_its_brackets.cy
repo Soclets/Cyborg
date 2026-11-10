@@ -1,6 +1,5 @@
 // A function's header can break inside its `[ ]`, with the `]` on its own line.
 // trace: D219
-@config(default);
 import std;
 
 fn total [
@@ -10,7 +9,7 @@ fn total [
     return $a + $b;
 end fn total
 
-fn.main [] -> void:
+fn.main [none] -> void:
     std::io::fmt_print("{}{newln}", total(2, 3));
     return void;
 end fn.main

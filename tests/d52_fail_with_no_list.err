@@ -1,5 +1,5 @@
-refused: d52_fail_with_no_list.cy:5:10, line 5 column 10
- 5 |     fail odd;
+refused: d52_fail_with_no_list.cy:4:10, line 4 column 10
+ 4 |     fail odd;
    |          ^^^
  what: this function lists no failures, so it can't `fail odd`
  why:  a function that can fail lists its failures in its body (D52)

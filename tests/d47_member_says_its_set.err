@@ -1,5 +1,5 @@
-refused: d47_member_says_its_set.cy:5:5, line 5 column 5
- 5 |     denied;
+refused: d47_member_says_its_set.cy:4:5, line 4 column 5
+ 4 |     denied;
    |     ^^^^^^
  fix:  `file_failed.denied`
  why:  a named set's failures say the set's name (D47)

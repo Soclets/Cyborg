@@ -1,5 +1,4 @@
 // trace: D3
-@config(default);
 
 struct box:
     n: i32;
@@ -9,6 +8,6 @@ fn keep [$b: Given box] -> box:
     return $b;
 end fn keep
 
-fn.main [] -> void:
+fn.main [none] -> void:
     return void;
 end fn.main

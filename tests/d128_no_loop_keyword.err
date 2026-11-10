@@ -1,5 +1,5 @@
-refused: d128_no_loop_keyword.cy:5:5, line 5 column 5
- 5 |     loop:
+refused: d128_no_loop_keyword.cy:4:5, line 4 column 5
+ 4 |     loop:
    |     ^^^^
  fix:  `forever`
  why:  `forever` has no end unless you `break`, so one word finds every endless loop (D128)

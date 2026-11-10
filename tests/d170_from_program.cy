@@ -1,5 +1,4 @@
 // trace: D170
-@config(default);
 
 struct reading:
     celsius: i32;
@@ -9,6 +8,6 @@ fn pick [$a: reading] -> Lend from program reading:
     return Lend $a;
 end fn pick
 
-fn.main [] -> void:
+fn.main [none] -> void:
     return void;
 end fn.main

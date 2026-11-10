@@ -1,5 +1,5 @@
-NotDesignedYet: d197_a_bare_closing_brace.cy:6:25, line 6 column 25
- 6 |     std::io::fmt_print("}{newln}");
+NotDesignedYet: d197_a_bare_closing_brace.cy:5:25, line 5 column 25
+ 5 |     std::io::fmt_print("}{newln}");
    |                         ^
  what: a bare `}` in a format's text
  why:  not decided yet (standard 12.2)

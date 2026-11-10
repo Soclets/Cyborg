@@ -1,5 +1,4 @@
 // trace: D185
-@config(default);
 import std;
 
 struct.must_Give open_file:
@@ -23,7 +22,7 @@ fn keep [$l: Given log] -> void:
     return void;
 end fn keep
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let $l: log = log[file = open_file[fd = 4], lines = 7];
     close(Give $l.file);
     keep(Give $l);

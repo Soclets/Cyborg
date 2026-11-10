@@ -1,12 +1,11 @@
 // trace: D126, D9
-@config(default);
 
 union.tagged status:
     ok;
     failed[code: i32];
 end union.tagged status
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let $s: status = status.ok;
     if $s: status.failed:
         let $a: i32 = $s.code;

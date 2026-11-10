@@ -1,5 +1,4 @@
 // trace: D171
-@config(default);
 
 struct reading:
     celsius: i32;
@@ -13,6 +12,6 @@ fn words <`t`> [$v: view<`text`: `t`>] -> Lend from `t` reading:
     return Lend $v.words;
 end fn words
 
-fn.main [] -> void:
+fn.main [none] -> void:
     return void;
 end fn.main

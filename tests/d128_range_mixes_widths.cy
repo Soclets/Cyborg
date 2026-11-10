@@ -1,7 +1,6 @@
 // trace: D128, D7
-@config(default);
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let $a: i32 = 1;
     let $b: i64 = 2;
     for $i in range[from: $a, to: $b]:

@@ -1,11 +1,10 @@
 // With radians, `sin` runs.
 // trace: D245, D256
-@config(default);
 import std;
 
 use std::units::angle.radians as radians;
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let $a: f64.stable[unit: radians] = ~1.5707963267948966 radians;
     let $s: f64.stable = std::math::sin($a);
     return void;

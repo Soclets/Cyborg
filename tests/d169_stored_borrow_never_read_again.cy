@@ -1,6 +1,5 @@
 // `$b` isn't used after the read, so the borrow is over before `Give`.
 // trace: D169, D2
-@config(default);
 
 struct reading:
     celsius: i32;
@@ -10,7 +9,7 @@ fn eat [$r: Given reading] -> void:
     return void;
 end fn eat
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let $r: reading = reading[celsius = 21];
     let $b: Lend from $r reading = Lend $r;
     let $n: i32 = $b.celsius;

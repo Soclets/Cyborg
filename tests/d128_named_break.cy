@@ -1,8 +1,7 @@
 // trace: D128
-@config(default);
 import std;
 
-fn.main [] -> void:
+fn.main [none] -> void:
     for rows $a in range[from: 1, to: 3]:
         for $b in range[from: 1, to: 3]:
             if $a == 2 and $b == 2:

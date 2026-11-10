@@ -1,11 +1,10 @@
 // trace: D2
-@config(default);
 
 fn f [$b: bool] -> bool:
     return $b;
 end fn f
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let $b: bool = 1 < 2;
     let $c: bool = f(Lend $b);
     return void;

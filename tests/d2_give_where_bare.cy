@@ -1,6 +1,5 @@
 // A bare parameter takes `Lend`, so that's the one fix.
 // trace: D2, D16
-@config(default);
 
 struct box:
     n: i32;
@@ -10,7 +9,7 @@ fn read [$b: box] -> i32:
     return $b.n;
 end fn read
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let $b: box = box[n = 1];
     let $n: i32 = read(Give $b);
     return void;

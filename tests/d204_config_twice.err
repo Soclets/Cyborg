@@ -1,9 +1,0 @@
-refused: d204_config_twice.cy:4:1, line 4 column 1
- 4 | @config(default);
-   | ^
- what: `@config` goes at the top, with the file's other rules
- why:  a file's rules come first, and tightening or loosening follows straight after (D204)
- because: d204_config_twice.cy:3:1, line 3 column 1
- 3 | @config(default);
-   | ^^^^^^^^^^^^^^^^^
-     the file's rules are here

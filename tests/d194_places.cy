@@ -1,8 +1,7 @@
 // trace: D194
-@config(default);
 import std;
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let $a: f64.stable = 2.0;
     let $b: f64.stable = ~0.1;
     let $c: f64.stable = ~9.996;

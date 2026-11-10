@@ -1,5 +1,5 @@
-refused: d180_lend_mut_needs_let_mut.cy:7:24, line 7 column 24
- 7 |     for $n in Lend.mut $xs:
+refused: d180_lend_mut_needs_let_mut.cy:6:24, line 6 column 24
+ 6 |     for $n in Lend.mut $xs:
    |                        ^^^
  what: `$xs` can't change, so it can't be lent with `Lend.mut`
  why:  `let` declares a variable that can't change, and `let mut` one that can (D3)

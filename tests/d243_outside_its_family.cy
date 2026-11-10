@@ -1,6 +1,5 @@
 // A unit parameter that names a family takes only units in that family.
 // trace: D243
-@config(default);
 import std;
 
 fam.unit length:
@@ -19,7 +18,7 @@ fn larger<?u: length> [$a: f64.stable[unit: ?u], $b: f64.stable[unit: ?u]] -> f6
     return $b;
 end fn larger
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let $t: f64.stable[unit: time.seconds] = 3.0 time.seconds;
     let $u: f64.stable[unit: time.seconds] = larger($t, $t);
     return void;

@@ -1,5 +1,4 @@
 // trace: D130, D2
-@config(default);
 
 struct box:
     n: i32;
@@ -13,7 +12,7 @@ fn eat [$b: Given box] -> void:
     return void;
 end fn eat
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let $b: box = box[n = 1];
     eat(Give $b);
     let $n: i32 = $b.%read();

@@ -1,7 +1,6 @@
 // trace: D140, D42
-@config(default);
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let $a: u64 = 18446744073709551615;
     let $b: u64 = $a + 1;
     return void;

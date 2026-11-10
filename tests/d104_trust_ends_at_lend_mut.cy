@@ -1,5 +1,4 @@
 // trace: D104
-@config(default);
 
 union.tagged status:
     ok;
@@ -11,7 +10,7 @@ fn reset [$s: Lent.mut status] -> void:
     return void;
 end fn reset
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let mut $s: status = status.failed[code = 3];
     if $s: status.failed:
         reset(Lend.mut $s);

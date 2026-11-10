@@ -1,5 +1,4 @@
 // trace: D180, D2
-@config(default);
 import std;
 
 struct.must_Give open_file:
@@ -19,6 +18,6 @@ fn close_all [$files: std::list<open_file>[len.max: inf items]] -> void:
     return void;
 end fn close_all
 
-fn.main [] -> void:
+fn.main [none] -> void:
     return void;
 end fn.main

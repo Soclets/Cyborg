@@ -1,5 +1,5 @@
-refused: d130_receiver_of_the_wrong_type.cy:8:16, line 8 column 16
- 8 | fn box.%f [$n: i32] -> i32:
+refused: d130_receiver_of_the_wrong_type.cy:7:16, line 7 column 16
+ 7 | fn box.%f [$n: i32] -> i32:
    |                ^^^
  what: this method is on `box`, so its receiver is one
  why:  a method's first parameter is its receiver (D130)

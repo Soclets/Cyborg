@@ -1,5 +1,4 @@
 // trace: D170
-@config(default);
 
 struct other:
     n: i32;
@@ -13,7 +12,7 @@ fn first [$a: reading] -> Lend from $a reading:
     return Lend $a;
 end fn first
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let $x: reading = reading[celsius = 4];
     let $w: Lend from $x other = first(Lend $x);
     return void;

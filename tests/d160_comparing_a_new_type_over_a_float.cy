@@ -1,9 +1,8 @@
 // trace: D160, D134
-@config(default);
 
 type.new temperature = f64.stable;
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let $a: temperature = 1.5;
     let $b: temperature = 2.5;
     if $a == $b:

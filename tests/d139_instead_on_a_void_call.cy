@@ -1,11 +1,10 @@
 // trace: D139
-@config(default);
 
-fn f [] -> void fails [a]:
+fn f [none] -> void fails [a]:
     return void;
 end fn f
 
-fn.main [] -> void:
+fn.main [none] -> void:
     f() otherwise:
         case a:
             instead 1;

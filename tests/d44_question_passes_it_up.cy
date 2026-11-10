@@ -1,5 +1,4 @@
 // trace: D44, D47
-@config(default);
 import std;
 
 fn inner [$n: i32] -> i32 fails [odd]:
@@ -15,7 +14,7 @@ fn outer [$n: i32] -> i32 fails [odd]:
     return $m;
 end fn outer
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let $a: i32 = outer(2);
     let $b: i32 = outer(3);
     return void;

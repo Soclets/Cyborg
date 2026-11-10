@@ -1,15 +1,14 @@
 // An assembly block closes with `end inline.asm`.
 // trace: D233
-@config(default);
 
-fn.main [] -> void:
+fn.main [none] -> void:
     on.target aarch64:
         shield add:
             reason "one add"
             inline.asm:
-                reads: [];
-                writes: [];
-                clobbers: [];
+                reads: [none];
+                writes: [none];
+                clobbers: [none];
                 nop
         end shield add
     end on.target

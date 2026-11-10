@@ -1,5 +1,5 @@
-refused: d171_unknown_source_in_a_field.cy:9:22, line 9 column 22
- 9 |     words: Lend from `txt` reading;
+refused: d171_unknown_source_in_a_field.cy:8:22, line 8 column 22
+ 8 |     words: Lend from `txt` reading;
    |                      ^^^^^
  what: `txt` isn't a source here
  why:  a source is declared in backticks on the struct, union or function it belongs to (D171)

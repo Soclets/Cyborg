@@ -1,9 +1,9 @@
-refused: d2_give_used_after.cy:20:5, line 20 column 5
-20 |     close(Give $f);
+refused: d2_give_used_after.cy:19:5, line 19 column 5
+19 |     close(Give $f);
    |     ^^^^^^^^^^^^^^
  what: `$f` was already given away
  why:  a given value is dead afterwards (D2)
- because: d2_give_used_after.cy:19:5, line 19 column 5
-19 |     send(Give $f);
+ because: d2_give_used_after.cy:18:5, line 18 column 5
+18 |     send(Give $f);
    |     ^^^^^^^^^^^^^
      `$f` was given away here

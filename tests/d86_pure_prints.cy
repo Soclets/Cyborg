@@ -1,12 +1,11 @@
 // trace: D86
-@config(default);
 import std;
 
-fn.pure f [] -> i32:
+fn.pure f [none] -> i32:
     std::io::fmt_print("hi{newln}");
     return 1;
 end fn.pure f
 
-fn.main [] -> void:
+fn.main [none] -> void:
     return void;
 end fn.main

@@ -1,8 +1,7 @@
 // trace: D128, D75
-@config(default);
 import std;
 
-fn.main [] -> void:
+fn.main [none] -> void:
     for x $i in range[from: 1, to: 2]:
         std::io::fmt_print("{}{newln}", $i);
         break my::x;

@@ -1,8 +1,7 @@
 // trace: D203
-@config(default);
 import std;
 
-fn.main [] -> void:
+fn.main [none] -> void:
     assign $x = 1;
     return void;
 end fn.main

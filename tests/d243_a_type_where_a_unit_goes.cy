@@ -1,6 +1,5 @@
 // A type parameter goes only where a whole type goes.
 // trace: D243
-@config(default);
 import std;
 
 fam.unit length:
@@ -16,6 +15,6 @@ fn keep<?item: any.type> [$a: f64.stable[unit: ?item]] -> f64.stable:
     return 1.0;
 end fn keep
 
-fn.main [] -> void:
+fn.main [none] -> void:
     return void;
 end fn.main

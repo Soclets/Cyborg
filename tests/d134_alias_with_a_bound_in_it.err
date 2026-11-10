@@ -1,5 +1,5 @@
-check failed: d134_alias_with_a_bound_in_it.cy:11:23, line 11 column 23
-11 |     let $b: percent = $big;
+check failed: d134_alias_with_a_bound_in_it.cy:10:23, line 10 column 23
+10 |     let $b: percent = $big;
    |                       ^^^^
  what: `$big` doesn't fit `i32[min: 0, max: 100]`
  why:  a plain `=`, `change` or argument checks a bound when the compiler can't see it fits (D20)

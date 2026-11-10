@@ -1,5 +1,4 @@
 // trace: D130, D91
-@config(default);
 import std;
 
 struct box:
@@ -13,7 +12,7 @@ end fn.pure.baked box.%twice
 const $b: box = box[n = 4];
 const $c: i32 = $b.%twice();
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let $d: i32 = bake $b.%twice();
     std::io::fmt_print("{}{newln}", $c);
     std::io::fmt_print("{}{newln}", $d);

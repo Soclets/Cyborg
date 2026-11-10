@@ -1,9 +1,8 @@
 // A direct call to `@csup::extern.c` is NotDesignedYet too, even inside a shield.
 // trace: D225
-@config(default);
 import @csup;
 
-fn.main [] -> void:
+fn.main [none] -> void:
     shield talk:
         reason "calls C"
         @csup::extern.c("hi");

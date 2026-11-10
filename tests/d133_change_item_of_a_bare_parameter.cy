@@ -1,5 +1,4 @@
 // trace: D133, D125
-@config(default);
 import std;
 
 fn f [$a: std::array<i32>[len: 2 items]] -> void:
@@ -7,6 +6,6 @@ fn f [$a: std::array<i32>[len: 2 items]] -> void:
     return void;
 end fn f
 
-fn.main [] -> void:
+fn.main [none] -> void:
     return void;
 end fn.main

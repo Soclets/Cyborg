@@ -1,7 +1,6 @@
 // trace: D155
-@config(default);
 use @other::thing as thing;
 
-fn.main [] -> void:
+fn.main [none] -> void:
     return void;
 end fn.main

@@ -1,5 +1,5 @@
-refused: d128_item_cant_change.cy:6:16, line 6 column 16
- 6 |         change $i = 5;
+refused: d128_item_cant_change.cy:5:16, line 5 column 16
+ 5 |         change $i = 5;
    |                ^^
  what: `$i` can't change
  why:  `let` declares a variable that can't change, and `let mut` one that can (D3)

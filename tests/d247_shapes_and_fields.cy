@@ -1,13 +1,12 @@
 // Named holes take shapes after a comma and read fields, so values go straight in the text.
 // trace: D247, D210
-@config(default);
 import std;
 
 struct reading:
     celsius: i32;
 end struct reading
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let $name: str = "rope";
     let $count: i32 = 3;
     let $price: f64.stable = 12.5;

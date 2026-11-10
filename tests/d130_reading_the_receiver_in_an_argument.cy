@@ -1,6 +1,5 @@
 // `Lend.mut` means nothing else uses it meanwhile, though this read is over before the call.
 // trace: D130, D2
-@config(default);
 
 struct box:
     n: i32;
@@ -13,7 +12,7 @@ fn box.%%add [$b: Lent.mut box, $by: i32] -> void:
     return void;
 end fn box.%%add
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let mut $b: box = box[n = 1];
     $b.%%add(by: $b.n);
     return void;

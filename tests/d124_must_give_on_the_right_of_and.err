@@ -1,9 +1,9 @@
-refused: d124_must_give_on_the_right_of_and.cy:15:9, line 15 column 9
-15 |     let $f: open_file = open_file[fd = 3];
+refused: d124_must_give_on_the_right_of_and.cy:14:9, line 14 column 9
+14 |     let $f: open_file = open_file[fd = 3];
    |         ^^
  what: `$f` isn't given away or finished on every path
  why:  a `must_Give` value is handed off with `Give` exactly once, or `finish` ends it (D2, D129)
- because: d124_must_give_on_the_right_of_and.cy:16:18, line 16 column 18
-16 |     if 2 < 1 and close(Give $f):
+ because: d124_must_give_on_the_right_of_and.cy:15:18, line 15 column 18
+15 |     if 2 < 1 and close(Give $f):
    |                  ^^^^^^^^^^^^^^
      `$f` went here, on only one path

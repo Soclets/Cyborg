@@ -1,7 +1,7 @@
 // No space follows `@`.
 // trace: D213
-@ config(default);
+import @ std;
 
-fn.main [] -> void:
+fn.main [none] -> void:
     return void;
 end fn.main

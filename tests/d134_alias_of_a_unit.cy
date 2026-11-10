@@ -1,5 +1,4 @@
 // trace: D134, D100
-@config(default);
 import std;
 
 fam.unit time:
@@ -8,7 +7,7 @@ end fam.unit time
 
 type.alias secs = i32[unit: time.seconds];
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let $a: secs = 3 time.seconds;
     let $b: i32[unit: time.seconds] = $a + 1 time.seconds;
     std::io::fmt_print("{}{newln}", $b);

@@ -1,5 +1,5 @@
-refused: d134_type_clashes.cy:9:19, line 9 column 19
- 9 |     let $a: i32 = type();
+refused: d134_type_clashes.cy:8:19, line 8 column 19
+ 8 |     let $a: i32 = type();
    |                   ^^^^^^
  fix:  `my::type()`
  why:  a name of yours that clashes is written with `my::` (D75)

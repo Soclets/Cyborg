@@ -1,9 +1,9 @@
-refused: d210_named_dead_variable.cy:13:5, line 13 column 5
-13 |     std::io::fmt_print("{$s}{newln}");
+refused: d210_named_dead_variable.cy:12:5, line 12 column 5
+12 |     std::io::fmt_print("{$s}{newln}");
    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
  what: `$s` was already given away
  why:  a given value is dead afterwards (D2)
- because: d210_named_dead_variable.cy:12:5, line 12 column 5
-12 |     eat(Give $s);
+ because: d210_named_dead_variable.cy:11:5, line 11 column 5
+11 |     eat(Give $s);
    |     ^^^^^^^^^^^^
      `$s` was given away here

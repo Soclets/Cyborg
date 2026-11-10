@@ -1,5 +1,5 @@
-refused: d128_break_a_finished_loop.cy:9:9, line 9 column 9
- 9 |         break rows;
+refused: d128_break_a_finished_loop.cy:8:9, line 8 column 9
+ 8 |         break rows;
    |         ^^^^^^^^^^^
  what: there's no loop called `rows` around this
  why:  `break` with a loop's name stops it and every loop inside it (D128)

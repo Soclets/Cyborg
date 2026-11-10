@@ -1,5 +1,5 @@
-refused: d109_unknown_unit_in_a_conversion.cy:5:25, line 5 column 25
- 5 |     money.dollars = 100 money.cents;
+refused: d109_unknown_unit_in_a_conversion.cy:4:25, line 4 column 25
+ 4 |     money.dollars = 100 money.cents;
    |                         ^^^^^^^^^^^
  what: the unit `money.cents` isn't known
  why:  `=` points at a unit, in any family (D109)

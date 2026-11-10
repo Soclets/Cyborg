@@ -1,6 +1,5 @@
 // An interface lists operations, and a type set types, and the two are never mixed.
 // trace: D235
-@config(default);
 import std;
 
 interface ordered<?self>:
@@ -20,6 +19,6 @@ interface mixed<?self>:
     i32;
 end interface mixed
 
-fn.main [] -> void:
+fn.main [none] -> void:
     return void;
 end fn.main

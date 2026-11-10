@@ -1,9 +1,8 @@
 // Lists built up and read back, with bounds and recursion standing in for what isn't decided yet.
 // trace: D2, D4, D13, D20, D96, D115, D120
-@config(default);
 import std;
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let mut $xs: std::list<i32>[len.max: 8 items] = empty;
     fill(Lend.mut $xs, 5);
     std::io::fmt_print("sum {}{newln}", sum(Lend $xs));

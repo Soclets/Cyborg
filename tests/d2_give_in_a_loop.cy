@@ -1,6 +1,5 @@
 // The second time round, it's already gone.
 // trace: D2
-@config(default);
 import std;
 
 struct box:
@@ -11,7 +10,7 @@ fn eat [$b: Given box] -> void:
     return void;
 end fn eat
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let $xs: std::array<i32>[len: 2 items] = [1, 2];
     let $b: box = box[n = 1];
     for $x in $xs:

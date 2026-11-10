@@ -1,6 +1,5 @@
 // A derived unit can't be made of itself.
 // trace: D242, D109
-@config(default);
 import std;
 
 fam.unit length:
@@ -22,6 +21,6 @@ fam.unit odd:
     odd.loop = odd.loop per time.seconds;
 end fam.unit odd
 
-fn.main [] -> void:
+fn.main [none] -> void:
     return void;
 end fn.main

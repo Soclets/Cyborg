@@ -1,5 +1,4 @@
 // trace: D130, D86
-@config(default);
 import std;
 
 struct box:
@@ -16,7 +15,7 @@ fn take [$b: box] -> i32:
     return $b.n;
 end fn take
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let $ok: box = box[n = 1];
     std::io::fmt_print("{}{newln}", take(Lend $ok));
     let $bad: box = box[n = 0];

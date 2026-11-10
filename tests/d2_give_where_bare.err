@@ -1,5 +1,5 @@
-refused: d2_give_where_bare.cy:15:24, line 15 column 24
-15 |     let $n: i32 = read(Give $b);
+refused: d2_give_where_bare.cy:14:24, line 14 column 24
+14 |     let $n: i32 = read(Give $b);
    |                        ^^^^^^^
  fix:  `Lend $b`
  why:  the call and the parameter both say it, and they must match (D2)

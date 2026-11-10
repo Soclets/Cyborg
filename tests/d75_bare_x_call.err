@@ -1,5 +1,5 @@
-refused: d75_bare_x_call.cy:9:19, line 9 column 19
- 9 |     let $a: i32 = x(1, 2);
+refused: d75_bare_x_call.cy:8:19, line 8 column 19
+ 8 |     let $a: i32 = x(1, 2);
    |                   ^^^^^^^
  fix:  `my::x(1, 2)`
  why:  a name of yours that clashes is written with `my::` (D75)

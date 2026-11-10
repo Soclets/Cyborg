@@ -1,9 +1,8 @@
 // A block opener stays on one line.
 // trace: D219
-@config(default);
 import std;
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let $a: i32 = 1;
     if
         $a < 3:

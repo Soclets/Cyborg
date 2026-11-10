@@ -1,5 +1,4 @@
 // trace: D209
-@config(default);
 import std;
 
 fn check [$n: i32] -> void fails [negative]:
@@ -9,7 +8,7 @@ fn check [$n: i32] -> void fails [negative]:
     return void;
 end fn check
 
-fn.main [] -> void:
+fn.main [none] -> void:
     check(-1) otherwise:
         case negative:
             std::io::fmt_print("negative{newln}");

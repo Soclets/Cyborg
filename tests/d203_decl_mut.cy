@@ -1,8 +1,7 @@
 // trace: D203
-@config(default);
 import std;
 
-fn.main [] -> void:
+fn.main [none] -> void:
     decl mut $x: i32;
     assign $x = 1;
     change $x = $x + 41;

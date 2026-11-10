@@ -1,12 +1,11 @@
 // trace: D139, D20
-@config(default);
 import std;
 
-fn f [] -> i32[min: 0, max: 9] fails [a]:
+fn f [none] -> i32[min: 0, max: 9] fails [a]:
     fail a;
 end fn f
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let $big: i32 = 50;
     std::io::fmt_print("before{newln}");
     let $n: i32[min: 0, max: 9] = f() otherwise:

@@ -1,5 +1,4 @@
 // trace: D185
-@config(default);
 import std;
 
 struct.must_Give open_file:
@@ -17,7 +16,7 @@ struct.must_Give log:
     lines: i32;
 end struct.must_Give log
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let $l: log = log[file = open_file[fd = 4], lines = 1];
     close(Give $l.file);
     finish $l;

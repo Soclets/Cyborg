@@ -1,6 +1,5 @@
 // The writer picks this or a unit behind the number, and here a plain number has no label's unit.
 // trace: D144, D101
-@config(default);
 
 fam.unit screen:
     screen.pixels: base;
@@ -12,7 +11,7 @@ fn draw [$x: i32[unit: screen.pixels]] -> void:
     return void;
 end fn draw
 
-fn.main [] -> void:
+fn.main [none] -> void:
     draw(at: 5 screen.pixels);
     draw(at: 5);
     return void;

@@ -1,5 +1,5 @@
-refused: d179_quoted_without_a_percent.cy:5:27, line 5 column 27
- 5 | use std::list.%%append as "push";
+refused: d179_quoted_without_a_percent.cy:4:27, line 4 column 27
+ 4 | use std::list.%%append as "push";
    |                           ^^^^^^
  fix:  `%%"push"`
  why:  `%` lends a receiver read-only and `%%` lends it to change, so a short name keeps which (D178, D179, D211)

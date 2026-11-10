@@ -1,8 +1,7 @@
 // trace: D216
-@config(default);
 import std;
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let $x: i32 := 0;
     return void;
 end fn.main

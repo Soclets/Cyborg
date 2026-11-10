@@ -1,6 +1,5 @@
 // A borrow handed back by one call can be handed back again.
 // trace: D170
-@config(default);
 import std;
 
 struct reading:
@@ -18,7 +17,7 @@ fn warmest [$a: reading, $b: reading] -> Lend from <$a, $b> reading:
     return warmer(Lend $a, Lend $b);
 end fn warmest
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let $x: reading = reading[celsius = 21];
     let $y: reading = reading[celsius = 25];
     let $w: Lend from <$x, $y> reading = warmest(Lend $x, Lend $y);

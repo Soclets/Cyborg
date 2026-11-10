@@ -1,7 +1,6 @@
 // trace: D11
-@config(default);
 import std;
 
-fn.main [] -> void:
+fn.main [none] -> void:
     std::io::fmt_print("hi{newln}");
 end fn.main

@@ -1,8 +1,7 @@
 // trace: D102
-@config(default);
 import std;
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let $b: std::list<i32>[len.min: 3 items, len.max: 8 items] = [4, 6];
     return void;
 end fn.main

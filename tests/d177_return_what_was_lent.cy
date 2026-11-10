@@ -1,5 +1,4 @@
 // trace: D177, D2
-@config(default);
 import std;
 
 struct.must_Give open_file:
@@ -20,6 +19,6 @@ fn steal [$f: open_file] -> open_file:
     return Give $f;
 end fn steal
 
-fn.main [] -> void:
+fn.main [none] -> void:
     return void;
 end fn.main

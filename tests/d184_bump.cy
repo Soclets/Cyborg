@@ -1,5 +1,4 @@
 // trace: D184
-@config(default);
 import std;
 
 fn bump [$n: Lent.mut i32] -> void:
@@ -7,7 +6,7 @@ fn bump [$n: Lent.mut i32] -> void:
     return void;
 end fn bump
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let mut $count: i32 = 1;
     bump(Lend.mut $count);
     bump(Lend.mut $count);

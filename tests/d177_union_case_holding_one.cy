@@ -1,6 +1,5 @@
 // D177 is about structs, so a union case holding one is still open.
 // trace: D177
-@config(default);
 import std;
 
 struct.must_Give open_file:
@@ -22,6 +21,6 @@ union.tagged maybe_file:
     none;
 end union.tagged maybe_file
 
-fn.main [] -> void:
+fn.main [none] -> void:
     return void;
 end fn.main

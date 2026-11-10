@@ -1,5 +1,5 @@
-NotDesignedYet: d171_program_fill.cy:14:50, line 14 column 50
-14 |     let $v: view<`text`: program> = view[words = Lend $a];
+NotDesignedYet: d171_program_fill.cy:13:50, line 13 column 50
+13 |     let $v: view<`text`: program> = view[words = Lend $a];
    |                                                  ^^^^^^^
  what: building a borrow whose source is filled with `program`
  why:  not decided yet, and the standard doesn't say

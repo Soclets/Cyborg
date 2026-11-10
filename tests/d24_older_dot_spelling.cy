@@ -1,8 +1,7 @@
 // trace: D24, D8
-@config(default);
 import std;
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let $xs: std::list.i32[len.max: inf items] = empty;
     return void;
 end fn.main

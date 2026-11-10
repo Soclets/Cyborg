@@ -1,5 +1,4 @@
 // trace: D139
-@config(default);
 import std;
 
 fn word [$bad: bool] -> str fails [too_long]:
@@ -9,7 +8,7 @@ fn word [$bad: bool] -> str fails [too_long]:
     return "fine";
 end fn word
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let $a: str = word(false) otherwise:
         case too_long:
             instead "…";

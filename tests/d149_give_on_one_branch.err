@@ -1,9 +1,9 @@
-refused: d149_give_on_one_branch.cy:16:28, line 16 column 28
-16 |     let $v: wrapped = Copy $r as wrapped;
+refused: d149_give_on_one_branch.cy:15:28, line 15 column 28
+15 |     let $v: wrapped = Copy $r as wrapped;
    |                            ^^
  what: `$r` was already given away
  why:  a given value is dead afterwards (D2)
- because: d149_give_on_one_branch.cy:14:27, line 14 column 27
-14 |         let $w: wrapped = Give $r as wrapped;
+ because: d149_give_on_one_branch.cy:13:27, line 13 column 27
+13 |         let $w: wrapped = Give $r as wrapped;
    |                           ^^^^^^^
      `$r` was given away here

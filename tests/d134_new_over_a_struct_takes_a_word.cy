@@ -1,5 +1,4 @@
 // trace: D134, D3
-@config(default);
 
 struct reading:
     celsius: i32;
@@ -11,6 +10,6 @@ fn f [$w: Given wrapped] -> wrapped:
     return $w;
 end fn f
 
-fn.main [] -> void:
+fn.main [none] -> void:
     return void;
 end fn.main

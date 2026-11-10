@@ -1,10 +1,9 @@
 // trace: D11
-@config(default);
 
-fn f [] -> void:
+fn f [none] -> void:
     return 1;
 end fn f
 
-fn.main [] -> void:
+fn.main [none] -> void:
     return void;
 end fn.main

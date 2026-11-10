@@ -1,5 +1,4 @@
 // trace: D180, D2
-@config(default);
 import std;
 
 struct reading:
@@ -13,7 +12,7 @@ fn warm_all [$rs: Lent.mut std::list<reading>[len.max: inf items]] -> void:
     return void;
 end fn warm_all
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let mut $readings: std::list<reading>[len.max: inf items] = [reading[celsius = 1]];
     warm_all(Lend.mut $readings);
     for $r in $readings:

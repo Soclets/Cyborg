@@ -1,5 +1,5 @@
-NotDesignedYet: d233_writes_a_name_in_use.cy:15:32, line 15 column 32
-15 |                 writes: [x2 => $c];
+NotDesignedYet: d233_writes_a_name_in_use.cy:14:32, line 14 column 32
+14 |                 writes: [x2 => $c];
    |                                ^^
  what: declaring `$c` again while the first is in scope
  why:  not decided yet, and the standard doesn't say

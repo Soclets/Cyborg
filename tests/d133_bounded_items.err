@@ -1,5 +1,5 @@
-check failed: d133_bounded_items.cy:9:25, line 9 column 25
- 9 |     change $a[pos: 1] = $big;
+check failed: d133_bounded_items.cy:8:25, line 8 column 25
+ 8 |     change $a[pos: 1] = $big;
    |                         ^^^^
  what: `$big` doesn't fit `i32[min: 0, max: 9]`
  why:  a plain `=`, `change` or argument checks a bound when the compiler can't see it fits (D20)

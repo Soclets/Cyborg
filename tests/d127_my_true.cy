@@ -1,12 +1,11 @@
 // trace: D127, D75
-@config(default);
 import std;
 
-fn my::true [] -> i32:
+fn my::true [none] -> i32:
     return 1;
 end fn my::true
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let $a: i32 = my::true();
     let $b: bool = true;
     std::io::fmt_print("{}{newln}", $a);

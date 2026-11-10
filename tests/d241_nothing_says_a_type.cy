@@ -1,6 +1,5 @@
 // With bare literals and nowhere for the result to go, nothing says the type.
 // trace: D241, D50
-@config(default);
 import std;
 
 interface ordered<?self>:
@@ -22,7 +21,7 @@ fn total<?item: whole and addable> [$a: ?item, $b: ?item] -> ?item:
     return $a + $b;
 end fn total
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let $x := total(1, 2);
     return void;
 end fn.main

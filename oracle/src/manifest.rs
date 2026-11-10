@@ -183,6 +183,14 @@ fn read_fact(words: &[Word], seen: &mut Vec<String>) -> Outcome<Option<String>> 
             seen.push(fact.to_string());
         }
         "need" => {}
+        // trace: D265
+        "rule" => {
+            return Err(Report::not_designed(
+                line_span,
+                "a `rule` line, since rule names and the words `rule`, `refuse`, `allow` and `in` are placeholders",
+                "12.9",
+            ));
+        }
         // A file doesn't say which package it belongs to, like Go's `package main`. (D228)
         // trace: D228
         _ => {

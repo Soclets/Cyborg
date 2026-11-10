@@ -1,5 +1,4 @@
 // trace: D211, D121
-@config(default);
 import std;
 
 struct reading:
@@ -10,6 +9,6 @@ fn reading.%%warm_up [$r: Lent.mut reading] -> void:
     return void;
 end fn reading.%warm_up
 
-fn.main [] -> void:
+fn.main [none] -> void:
     return void;
 end fn.main

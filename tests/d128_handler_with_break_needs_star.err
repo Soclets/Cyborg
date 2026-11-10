@@ -1,5 +1,5 @@
-refused: d128_handler_with_break_needs_star.cy:14:51, line 14 column 51
-14 |         std::io::fmt_print("hi{newln}") otherwise say_failed.stop;
+refused: d128_handler_with_break_needs_star.cy:13:51, line 13 column 51
+13 |         std::io::fmt_print("hi{newln}") otherwise say_failed.stop;
    |                                                   ^^^^^^^^^^^^^^^
  fix:  `say_failed.*stop`
  why:  a handler that can `return` or `break` is marked `*` where it's used (D46, D128)

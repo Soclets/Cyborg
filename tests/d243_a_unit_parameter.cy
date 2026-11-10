@@ -1,6 +1,5 @@
 // A unit parameter keeps whatever unit a call fills it with, from a value or from inside a list.
 // trace: D243, D241
-@config(default);
 import std;
 
 fam.unit length:
@@ -23,7 +22,7 @@ fn how_many<?u: length> [$xs: std::list<f64.stable[unit: ?u]>[len.max: 9 items]]
     return $xs.len;
 end fn how_many
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let $a: f64.stable[unit: length.meters] = 2.5 length.meters;
     let $b: f64.stable[unit: length.meters] = 4.0 length.meters;
     let $t: f64.stable[unit: time.seconds] = 3.0 time.seconds;

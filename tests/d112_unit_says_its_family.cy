@@ -1,5 +1,4 @@
 // trace: D99, D112, D109
-@config(default);
 import std;
 
 fam.unit time:
@@ -7,7 +6,7 @@ fam.unit time:
     time.minutes = 60 time.seconds;
 end fam.unit time
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let $a: i32[unit: time.seconds] = 3600 time.seconds;
     let $b: i32[unit: time.seconds] = 5 time.seconds;
     let $c: i32[unit: time.seconds] = $a + $b;

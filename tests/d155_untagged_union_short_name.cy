@@ -1,5 +1,4 @@
 // trace: D155, D38, D257
-@config(default);
 import @csup;
 
 use @csup::union.untagged as untagged;
@@ -12,6 +11,6 @@ shield c_number:
     end untagged number
 end shield c_number
 
-fn.main [] -> void:
+fn.main [none] -> void:
     return void;
 end fn.main

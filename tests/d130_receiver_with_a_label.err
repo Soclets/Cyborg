@@ -1,5 +1,5 @@
-refused: d130_receiver_with_a_label.cy:8:12, line 8 column 12
- 8 | fn box.%f [$b: box] -> i32:
+refused: d130_receiver_with_a_label.cy:7:12, line 7 column 12
+ 7 | fn box.%f [$b: box] -> i32:
    |            ^^
  what: a method's receiver is written before `.%`, so it has no label or default
  why:  a method's first parameter is its receiver (D130)

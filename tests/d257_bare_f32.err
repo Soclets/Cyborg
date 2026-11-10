@@ -1,5 +1,5 @@
-refused: d257_bare_f32.cy:6:14, line 6 column 14
- 6 | fn half [$x: f32] -> f32.stable:
+refused: d257_bare_f32.cy:5:14, line 5 column 14
+ 5 | fn half [$x: f32] -> f32.stable:
    |              ^^^
  what: `f32` says which kind of float it is: `.stable`, `.fast` or `.ieee`
  why:  a float always says its kind straight after its type, since floats differ between machines in nearly every other language (D257)

@@ -1,5 +1,4 @@
 // trace: D126
-@config(default);
 import std;
 
 fn size [$n: i32] -> void:
@@ -13,7 +12,7 @@ fn size [$n: i32] -> void:
     return void;
 end fn size
 
-fn.main [] -> void:
+fn.main [none] -> void:
     size(101);
     size(1);
     size(0);

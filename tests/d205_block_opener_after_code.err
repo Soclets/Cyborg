@@ -1,5 +1,5 @@
-refused: d205_block_opener_after_code.cy:6:22, line 6 column 22
- 6 |     let $x: i32 = 1; comment note:
+refused: d205_block_opener_after_code.cy:5:22, line 5 column 22
+ 5 |     let $x: i32 = 1; comment note:
    |                      ^^^^^^^
  what: expected `;` after this, but found `note`
  why:  `;` ends a statement, `:` opens a block, and `end` closes it (D33)

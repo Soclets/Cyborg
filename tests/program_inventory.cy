@@ -1,6 +1,5 @@
 // A real program: stock levels, a report, and a failure handled at the call.
 // trace: D2, D9, D13, D20, D45, D57, D115, D120
-@config(default);
 import std;
 
 fam.unit stock:
@@ -18,7 +17,7 @@ struct line:
     count: i32[unit: stock.pieces];
 end struct line
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let $bolts: line = line[name = "bolts", count = 40 stock.pieces];
     let $nuts: line = line[name = "nuts", count = 3 stock.pieces];
     let $pins: line = line[name = "pins", count = 0 stock.pieces];

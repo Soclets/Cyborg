@@ -1,9 +1,8 @@
 // trace: D149, D123
-@config(default);
 
 type.new flag = bool;
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let $b: bool = true;
     let $f: flag = $b as flag;
     let $g: flag = Copy $b as flag;

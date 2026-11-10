@@ -1,12 +1,11 @@
 // trace: D83
-@config(default);
 
-fn read [] -> i32:
+fn read [none] -> i32:
     return 1;
 end fn read
 
 const $a: i32 = read();
 
-fn.main [] -> void:
+fn.main [none] -> void:
     return void;
 end fn.main

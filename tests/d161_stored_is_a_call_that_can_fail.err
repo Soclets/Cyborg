@@ -1,5 +1,5 @@
-refused: d161_stored_is_a_call_that_can_fail.cy:6:5, line 6 column 5
- 6 |     std::io::fmt_print.stored("{}{newln}", $x);
+refused: d161_stored_is_a_call_that_can_fail.cy:5:5, line 5 column 5
+ 5 |     std::io::fmt_print.stored("{}{newln}", $x);
    |     ^^^^^^^^^^^^^^^^^^^^^^^^^
  what: printing is I/O, which a pure function refuses
  why:  a pure function refuses I/O, and contracts can only call pure functions (D86)

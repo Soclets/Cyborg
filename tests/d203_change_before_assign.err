@@ -1,9 +1,9 @@
-refused: d203_change_before_assign.cy:7:12, line 7 column 12
- 7 |     change $x = 2;
+refused: d203_change_before_assign.cy:6:12, line 6 column 12
+ 6 |     change $x = 2;
    |            ^^
  what: `$x` has no value yet
  why:  every path has to `assign` a `decl` before reading it (D203)
- because: d203_change_before_assign.cy:6:14, line 6 column 14
- 6 |     decl mut $x: i32;
+ because: d203_change_before_assign.cy:5:14, line 5 column 14
+ 5 |     decl mut $x: i32;
    |              ^^
      `$x` is declared here

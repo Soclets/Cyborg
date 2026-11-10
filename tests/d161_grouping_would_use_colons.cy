@@ -1,8 +1,7 @@
 // trace: D161, D245
-@config(default);
 import std;
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let $x: f64.stable = 0.5;
     let $y: f64.stable = std::math::sin($x);
     return void;

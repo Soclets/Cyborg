@@ -1,5 +1,4 @@
 // trace: D177, D2
-@config(default);
 import std;
 
 struct.must_Give open_file:
@@ -16,7 +15,7 @@ fn open [$fd: i32] -> open_file:
     return open_file[fd = $fd];
 end fn open
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let $f: open_file = open(3);
     return void;
 end fn.main

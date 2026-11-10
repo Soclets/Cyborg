@@ -1,5 +1,4 @@
 // trace: D130, D104
-@config(default);
 
 union.tagged status:
     ok;
@@ -11,7 +10,7 @@ fn status.%%reset [$s: Lent.mut status] -> void:
     return void;
 end fn status.%%reset
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let mut $s: status = status.failed[code = 3];
     if $s: status.failed:
         $s.%%reset();

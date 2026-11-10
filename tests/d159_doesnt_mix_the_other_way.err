@@ -1,5 +1,5 @@
-refused: d159_doesnt_mix_the_other_way.cy:6:30, line 6 column 30
- 6 |     let $reading: f64.ieee = $x;
+refused: d159_doesnt_mix_the_other_way.cy:5:30, line 5 column 30
+ 5 |     let $reading: f64.ieee = $x;
    |                              ^^
  what: this is `f64.stable`, where `f64.ieee` is needed
  why:  `f64.ieee` is a different type from `f64`, and `as` is the wall between them (D159)

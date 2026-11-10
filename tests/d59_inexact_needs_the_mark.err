@@ -1,5 +1,5 @@
-refused: d59_inexact_needs_the_mark.cy:5:26, line 5 column 26
- 5 |     let $b: f64.stable = 0.1;
+refused: d59_inexact_needs_the_mark.cy:4:26, line 4 column 26
+ 4 |     let $b: f64.stable = 0.1;
    |                          ^^^
  fix:  `~0.1`
  why:  f64 can't hold 0.1 exactly (D59)

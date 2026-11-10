@@ -1,7 +1,6 @@
 // trace: D3
-@config(default);
 
-fn.main [] -> void:
+fn.main [none] -> void:
     change $a = 2;
     return void;
 end fn.main

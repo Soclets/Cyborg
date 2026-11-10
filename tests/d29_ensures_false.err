@@ -1,10 +1,10 @@
-check failed: d29_ensures_false.cy:5:13, line 5 column 13
- 5 |     ensures result at_least $n;
+check failed: d29_ensures_false.cy:4:13, line 4 column 13
+ 4 |     ensures result at_least $n;
    |             ^^^^^^^^^^^^^^^^^^
  what: this `ensures` is false
  why:  contracts are checked at runtime, and a false one stops the program (D29)
  when: `$n` is 5, `result` is 4
- because: d29_ensures_false.cy:7:5, line 7 column 5
- 7 |     return $n - 1;
+ because: d29_ensures_false.cy:6:5, line 6 column 5
+ 6 |     return $n - 1;
    |     ^^^^^^^^^^^^^^
      this `return` led here

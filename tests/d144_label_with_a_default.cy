@@ -1,5 +1,4 @@
 // trace: D144, D114
-@config(default);
 import std;
 
 fam.unit screen:
@@ -14,7 +13,7 @@ fn draw [$x: i32[unit: screen.pixels]] -> void:
     return void;
 end fn draw
 
-fn.main [] -> void:
+fn.main [none] -> void:
     draw();
     draw(at.screen.pixels: 4);
     return void;

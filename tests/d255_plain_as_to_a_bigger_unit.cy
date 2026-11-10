@@ -1,6 +1,5 @@
 // A plain `as` from an integer to a bigger unit is refused.
 // trace: D255
-@config(default);
 import std;
 
 fam.unit length:
@@ -11,7 +10,7 @@ fam.unit length:
     length.feet = 12 length.inches;
 end fam.unit length
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let $m: i32[unit: length.meters] = 1500 length.meters;
     let $k: i32[unit: length.kilometers] = $m as i32[unit: length.kilometers];
     return void;

@@ -1,5 +1,5 @@
-refused: d2_append_while_going_through.cy:9:9, line 9 column 9
- 9 |         $xs.std::%%append(val: $x);
+refused: d2_append_while_going_through.cy:8:9, line 8 column 9
+ 8 |         $xs.std::%%append(val: $x);
    |         ^^^
  what: a `for` is reading `$xs` in place here
  why:  `Lend.mut` means nothing else uses it meanwhile, and `for` is using it (D2)

@@ -1,5 +1,5 @@
-NotDesignedYet: d7_conversion_isnt_decided.cy:6:19, line 6 column 19
- 6 |     let $b: i64 = $a as i64;
+NotDesignedYet: d7_conversion_isnt_decided.cy:5:19, line 5 column 19
+ 5 |     let $b: i64 = $a as i64;
    |                   ^^^^^^^^^
  what: converting `i32` to `i64` with `as`
  why:  not decided yet (standard 12.3)

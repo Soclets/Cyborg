@@ -1,11 +1,10 @@
 // trace: D9
-@config(default);
 
 union.tagged status:
     ok;
 end union.tagged status
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let $n: i32 = 1;
     if $n: status.ok:
         return void;

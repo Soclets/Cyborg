@@ -1,5 +1,5 @@
-refused: d213_before_a_closing_parenthesis.cy:8:20, line 8 column 20
- 8 |     let $y: i32 = ($x ) + 1;
+refused: d213_before_a_closing_parenthesis.cy:7:20, line 7 column 20
+ 7 |     let $y: i32 = ($x ) + 1;
    |                    ^^^^
  fix:  `$x)`
  why:  a mark or a bracket touches what it goes with, so `( $x )`, `- $x` and `read() ?` are refused (D23, D213)

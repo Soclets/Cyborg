@@ -1,5 +1,5 @@
-refused: d144_no_bare_offset.cy:7:23, line 7 column 23
- 7 |     let $n: i32 = $xs[offset: 1];
+refused: d144_no_bare_offset.cy:6:23, line 6 column 23
+ 6 |     let $n: i32 = $xs[offset: 1];
    |                       ^^^^^^
  fix:  `offset.items`
  why:  an offset could read as bytes, so there's no bare `offset:` (D143, D144)

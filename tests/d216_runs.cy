@@ -1,8 +1,7 @@
 // trace: D216
-@config(default);
 import std;
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let $total: i32 = 41;
     let mut $next := $total + 1;
     change $next = $next x 2;

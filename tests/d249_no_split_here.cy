@@ -1,6 +1,5 @@
 // A family without an offset has no points and spans.
 // trace: D249
-@config(default);
 import std;
 
 fam.unit temperature:
@@ -14,7 +13,7 @@ fam.unit length:
     length.meters: base;
 end fam.unit length
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let $a: f64.stable[unit: length.meters.point] = 2.0 length.meters;
     return void;
 end fn.main

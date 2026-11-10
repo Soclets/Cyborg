@@ -1,13 +1,12 @@
 // `instead` can be anywhere in its arm, and each way through has to end somewhere.
 // trace: D139, D126
-@config(default);
 import std;
 
-fn f [] -> i32 fails [a[val: i32]]:
+fn f [none] -> i32 fails [a[val: i32]]:
     fail a[val = 2];
 end fn f
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let $n: i32 = f() otherwise:
         case a $x:
             if $x.val > 1:

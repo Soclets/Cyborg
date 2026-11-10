@@ -1,9 +1,8 @@
 // trace: D134
-@config(default);
 
 type.alias a = b;
 type.alias b = a;
 
-fn.main [] -> void:
+fn.main [none] -> void:
     return void;
 end fn.main

@@ -1,0 +1,5 @@
+refused: d267_empty_parameters.cy:3:9, line 3 column 9
+ 3 | fn.main [] -> void:
+   |         ^^
+ fix:  `[none]`
+ why:  `[none]` means there's nothing at all, while `empty` is a real value with nothing in it yet (D267, D269)

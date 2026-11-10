@@ -1,8 +1,7 @@
 // trace: D161
-@config(default);
 import std;
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let $x: f32.stable = ~0.1;
     std::io::fmt_print("{}{newln}", $x);
     return void;

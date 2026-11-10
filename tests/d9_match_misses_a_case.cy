@@ -1,5 +1,4 @@
 // trace: D9
-@config(default);
 
 union.tagged status:
     ok;
@@ -7,7 +6,7 @@ union.tagged status:
     lost;
 end union.tagged status
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let $s: status = status.ok;
     match $s:
         case status.ok:

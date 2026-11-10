@@ -1,10 +1,9 @@
 // trace: D141
-@config(default);
 import std;
 
 type.new user_id = i64;
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let $n: i64 = 5;
     let $u: user_id = $n as user_id;
     let $m: i64 = $u as i64;

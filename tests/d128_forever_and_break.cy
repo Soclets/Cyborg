@@ -1,8 +1,7 @@
 // trace: D128
-@config(default);
 import std;
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let mut $n: i32 = 0;
     forever:
         change $n = $n + 1;

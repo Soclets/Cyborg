@@ -1,8 +1,7 @@
 // trace: D134
-@config(default);
 
 type score = i32;
 
-fn.main [] -> void:
+fn.main [none] -> void:
     return void;
 end fn.main

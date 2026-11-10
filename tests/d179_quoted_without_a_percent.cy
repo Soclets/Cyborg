@@ -1,9 +1,8 @@
 // trace: D179
-@config(default);
 import std;
 
 use std::list.%%append as "push";
 
-fn.main [] -> void:
+fn.main [none] -> void:
     return void;
 end fn.main

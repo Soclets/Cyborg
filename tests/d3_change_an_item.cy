@@ -1,8 +1,7 @@
 // trace: D3
-@config(default);
 import std;
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let $xs: std::array<i32>[len: 1 items] = [1];
     for $x in $xs:
         change $x = 2;

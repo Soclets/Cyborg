@@ -1,5 +1,5 @@
-refused: d114_labels_keep_order.cy:11:35, line 11 column 35
-11 |     let $n: i32 = pair(second: 1, first: 2);
+refused: d114_labels_keep_order.cy:10:35, line 10 column 35
+10 |     let $n: i32 = pair(second: 1, first: 2);
    |                                   ^^^^^
  what: `first` is out of order
  why:  labels keep their declared order, unless declared `labels.any_order` (D114)

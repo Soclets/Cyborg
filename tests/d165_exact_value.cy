@@ -1,8 +1,7 @@
 // trace: D165
-@config(default);
 import std;
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let $a: f64.stable = exponent 1.5e3;
     let $b: f64.stable = exponent 0.0001e4;
     let $c: f64.stable = exponent 2.5e0;

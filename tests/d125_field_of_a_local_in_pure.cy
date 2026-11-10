@@ -1,6 +1,5 @@
 // A pure function changes nothing outside itself, and its own variable isn't outside.
 // trace: D125, D86
-@config(default);
 import std;
 
 struct box:
@@ -13,7 +12,7 @@ fn.pure bumped [$start: i32] -> i32:
     return $b.n;
 end fn.pure bumped
 
-fn.main [] -> void:
+fn.main [none] -> void:
     std::io::fmt_print("{}{newln}", bumped(1));
     return void;
 end fn.main

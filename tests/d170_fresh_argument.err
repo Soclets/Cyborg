@@ -1,5 +1,5 @@
-refused: d170_fresh_argument.cy:14:42, line 14 column 42
-14 |     let $w: Lend from $x reading = first(reading[celsius = 1]);
+refused: d170_fresh_argument.cy:13:42, line 13 column 42
+13 |     let $w: Lend from $x reading = first(reading[celsius = 1]);
    |                                          ^^^^^^^^^^^^^^^^^^^^
  what: the result borrows from this, so it has to be a named value
  why:  a returned borrow's sources become the arguments, and a fresh one would end with the call (D170)

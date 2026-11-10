@@ -1,6 +1,5 @@
 // An `any` parameter can be stored, moved, copied and lent, and nothing more.
 // trace: D239
-@config(default);
 import std;
 
 interface ordered<?self>:
@@ -25,7 +24,7 @@ fn keep<?item: any.type> [$a: Given ?item] -> ?item:
     return Give $b;
 end fn keep
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let $text: str = "kept";
     let $k: str = keep(Give $text);
     let $b: box<i32> = box[held = 5];

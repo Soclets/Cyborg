@@ -1,5 +1,5 @@
-refused: d86_contract_calls_impure.cy:9:14, line 9 column 14
- 9 |     requires check($n);
+refused: d86_contract_calls_impure.cy:8:14, line 8 column 14
+ 8 |     requires check($n);
    |              ^^^^^
  what: `check` isn't pure, so a contract can't call it
  why:  contracts can only call pure functions (D86)

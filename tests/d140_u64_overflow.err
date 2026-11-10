@@ -1,5 +1,5 @@
-check failed: d140_u64_overflow.cy:6:19, line 6 column 19
- 6 |     let $b: u64 = $a + 1;
+check failed: d140_u64_overflow.cy:5:19, line 5 column 19
+ 5 |     let $b: u64 = $a + 1;
    |                   ^^^^^^
  what: this `+` overflows `u64`
  why:  a plain `+` that overflows traps in `Working` (D42)

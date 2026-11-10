@@ -1,6 +1,5 @@
 // Every hand-off shows, and a fresh value needs no word.
 // trace: D3, D2
-@config(default);
 import std;
 
 struct name_tag:
@@ -12,7 +11,7 @@ fn make [$s: Given str] -> name_tag:
     return Give $t;
 end fn make
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let $s: str = "hello";
     let $k: str = Copy $s;
     let $t: name_tag = make(Give $s);

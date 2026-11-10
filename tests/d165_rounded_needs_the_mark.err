@@ -1,5 +1,5 @@
-refused: d165_rounded_needs_the_mark.cy:5:26, line 5 column 26
- 5 |     let $a: f64.stable = exponent 6.02214076e23;
+refused: d165_rounded_needs_the_mark.cy:4:26, line 4 column 26
+ 4 |     let $a: f64.stable = exponent 6.02214076e23;
    |                          ^^^^^^^^^^^^^^^^^^^^^^
  fix:  `exponent ~6.02214076e23`
  why:  f64 can't hold 6.02214076e23 exactly (D59)

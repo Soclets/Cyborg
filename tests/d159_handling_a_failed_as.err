@@ -1,5 +1,5 @@
-NotDesignedYet: d159_handling_a_failed_as.cy:7:30, line 7 column 30
- 7 |     let $clean: f64.stable = ($x as f64.stable)?;
+NotDesignedYet: d159_handling_a_failed_as.cy:6:30, line 6 column 30
+ 6 |     let $clean: f64.stable = ($x as f64.stable)?;
    |                              ^^^^^^^^^^^^^^^^^^^
  what: what a failed `as` is called
  why:  not decided yet (standard 12.3)

@@ -1,8 +1,7 @@
 // trace: D216, D103
-@config(default);
 import std;
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let $x := empty;
     return void;
 end fn.main

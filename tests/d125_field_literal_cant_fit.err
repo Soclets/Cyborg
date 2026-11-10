@@ -1,5 +1,5 @@
-refused: d125_field_literal_cant_fit.cy:10:19, line 10 column 19
-10 |     change $b.n = 11;
+refused: d125_field_literal_cant_fit.cy:9:19, line 9 column 19
+ 9 |     change $b.n = 11;
    |                   ^^
  what: `11` doesn't fit `i32[min: 0, max: 10]`
  why:  a literal that can't fit is a compile error (D20)

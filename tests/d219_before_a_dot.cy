@@ -1,6 +1,5 @@
 // A line can't break before a `.`.
 // trace: D219
-@config(default);
 import std;
 
 struct reading:
@@ -11,7 +10,7 @@ fn reading.%shown [$r: reading] -> i32:
     return $r.celsius;
 end fn reading.%shown
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let $r: reading = reading[celsius = 1];
     let $n: i32 = $r
         .%shown();

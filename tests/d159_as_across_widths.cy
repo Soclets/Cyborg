@@ -1,7 +1,6 @@
 // trace: D159
-@config(default);
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let $reading: f32.ieee = 0.5;
     let $clean: f64.stable = $reading as f64.stable;
     return void;

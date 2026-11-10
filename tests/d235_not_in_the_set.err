@@ -1,5 +1,5 @@
-refused: d235_not_in_the_set.cy:27:18, line 27 column 18
-27 |     let $b: u8 = total($a, $a);
+refused: d235_not_in_the_set.cy:26:18, line 26 column 18
+26 |     let $b: u8 = total($a, $a);
    |                  ^^^^^^^^^^^^^
  what: `u8` isn't in the type set `whole`
  why:  a type set is a closed list of the types it allows (D235)

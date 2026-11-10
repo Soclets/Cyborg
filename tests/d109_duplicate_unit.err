@@ -1,5 +1,5 @@
-refused: d109_duplicate_unit.cy:6:5, line 6 column 5
- 6 |     money.cents: base;
+refused: d109_duplicate_unit.cy:5:5, line 5 column 5
+ 5 |     money.cents: base;
    |     ^^^^^^^^^^^
  what: `money.cents` is declared twice
  why:  every unit says what it is, once (D109)

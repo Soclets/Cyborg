@@ -1,9 +1,9 @@
-refused: d173_lend_mut_whole_waits_for_a_field.cy:22:37, line 22 column 37
-22 |     std::io::fmt_print("{}{newln}", $l.n);
+refused: d173_lend_mut_whole_waits_for_a_field.cy:21:37, line 21 column 37
+21 |     std::io::fmt_print("{}{newln}", $l.n);
    |                                     ^^
  what: `$l` can't be used after what it borrows was used
  why:  a stored `Lend.mut` means nothing else uses it meanwhile, and a `Lend` means it can't change (D2)
- because: d173_lend_mut_whole_waits_for_a_field.cy:21:20, line 21 column 20
-21 |     reset(Lend.mut $p);
+ because: d173_lend_mut_whole_waits_for_a_field.cy:20:20, line 20 column 20
+20 |     reset(Lend.mut $p);
    |                    ^^
      what it borrows was used here

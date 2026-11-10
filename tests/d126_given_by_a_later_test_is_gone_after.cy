@@ -1,11 +1,10 @@
 // trace: D126, D2
-@config(default);
 
 fn eat [$s: Given str] -> bool:
     return 1 < 2;
 end fn eat
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let $s: str = "a";
     if 1 < 2:
         return void;

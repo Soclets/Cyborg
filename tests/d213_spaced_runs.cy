@@ -1,6 +1,5 @@
 // Everything spaced the one way.
 // trace: D213
-@config(default);
 import std;
 
 struct reading:
@@ -11,7 +10,7 @@ fn reading.%shown [$r: reading] -> i32:
     return $r.celsius;
 end fn reading.%shown
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let $a: i32 = -3;
     let $b: i32 = ($a + 10) x 2;
     let $r: reading = reading[celsius = $b];

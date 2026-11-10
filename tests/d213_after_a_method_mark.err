@@ -1,5 +1,5 @@
-refused: d213_after_a_method_mark.cy:16:22, line 16 column 22
-16 |     let $n: i32 = $r.% shown();
+refused: d213_after_a_method_mark.cy:15:22, line 15 column 22
+15 |     let $n: i32 = $r.% shown();
    |                      ^^^^^^^
  fix:  `%shown`
  why:  no space goes around `.`, `::`, `%`, `%%` or `@`, so every program reads the same (D213)

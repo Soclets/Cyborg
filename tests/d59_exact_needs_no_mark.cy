@@ -1,10 +1,9 @@
 // trace: D59, D54
-@config(default);
 import std;
 
 const $pi: f64.stable = ~3.14159265358979323846;
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let $a: f64.stable = 0.5;
     let $b: f64.stable = ~0.1;
     let $c: f64.stable = ~-0.1;

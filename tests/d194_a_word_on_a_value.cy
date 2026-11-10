@@ -1,8 +1,7 @@
 // trace: D194
-@config(default);
 import std;
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let $s: str = "a";
     std::io::fmt_print("{}{newln}", Lend $s);
     return void;

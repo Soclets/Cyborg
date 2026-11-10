@@ -1,12 +1,11 @@
 // A `match` arm isn't a failure's arm.
 // trace: D139
-@config(default);
 
 union.tagged status:
     ok;
 end union.tagged status
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let $s: status = status.ok;
     match $s:
         case status.ok:

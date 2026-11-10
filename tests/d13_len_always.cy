@@ -1,8 +1,7 @@
 // trace: D13
-@config(default);
 import std;
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let $xs: std::array<i32>[len.always: 3 items] = [1, 2, 3];
     return void;
 end fn.main

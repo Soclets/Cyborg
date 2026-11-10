@@ -1,5 +1,5 @@
-refused: d249_says_neither.cy:14:30, line 14 column 30
-14 |     let $a: f64.stable[unit: celsius] = 20.0 celsius;
+refused: d249_says_neither.cy:13:30, line 13 column 30
+13 |     let $a: f64.stable[unit: celsius] = 20.0 celsius;
    |                              ^^^^^^^
  what: `temperature.celsius` says whether it's a `.point` or a `.span`
  why:  in a family with an offset or a log unit, and in `std`'s `time`, every value says whether it's a point or a span (D249, D251)

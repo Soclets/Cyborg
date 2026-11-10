@@ -1,8 +1,7 @@
 // trace: D117
-@config(default);
 import std;
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let $x: i32 = 3;
     if 1 < $x < 5:
         std::io::fmt_print("between{newln}");

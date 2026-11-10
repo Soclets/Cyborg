@@ -1,5 +1,4 @@
 // trace: D170
-@config(default);
 
 struct reading:
     celsius: i32;
@@ -12,7 +11,7 @@ fn warmer [$a: reading, $b: reading] -> Lend from <$a, $b> reading:
     return Lend $b;
 end fn warmer
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let $x: reading = reading[celsius = 21];
     let $y: reading = reading[celsius = 25];
     let $w: Lend from $x reading = warmer(Lend $x, Lend $y);

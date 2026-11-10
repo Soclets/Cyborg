@@ -1,12 +1,11 @@
 // trace: D130, D115
-@config(default);
 import std;
 
 struct box:
     n: i32;
 end struct box
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let $b: box = box[n = 1];
     $b.std::%read();
     return void;

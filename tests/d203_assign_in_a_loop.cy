@@ -1,9 +1,8 @@
 // Going round again would assign it a second time.
 // trace: D203, D128
-@config(default);
 import std;
 
-fn.main [] -> void:
+fn.main [none] -> void:
     decl $x: i32;
     for $i in range[from: 1, to: 3]:
         assign $x = $i;

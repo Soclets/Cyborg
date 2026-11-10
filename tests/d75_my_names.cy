@@ -1,5 +1,4 @@
 // trace: D75
-@config(default);
 import std;
 
 fn my::x [$a: i32, $b: i32] -> i32:
@@ -10,7 +9,7 @@ struct my::if:
     n: i32;
 end struct my::if
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let $width: i32 = 3;
     let $height: i32 = 4;
     let $area: i32 = $width x $height;

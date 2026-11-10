@@ -1,11 +1,10 @@
 // trace: D2
-@config(default);
 
 fn f [$s: Lent.mut str] -> void:
     return void;
 end fn f
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let mut $s: str = "a";
     f(Lent.mut $s);
     return void;

@@ -1,8 +1,7 @@
 // trace: D140
-@config(default);
 import std;
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let mut $xs: std::list<i32>[len.max: inf items] = [1, 2, 3];
     let $n: u64[unit: items] = $xs.len;
     std::io::fmt_print("{}{newln}", $n);

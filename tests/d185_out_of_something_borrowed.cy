@@ -1,5 +1,4 @@
 // trace: D185
-@config(default);
 import std;
 
 struct.must_Give open_file:
@@ -22,6 +21,6 @@ fn peek [$l: log] -> void:
     return void;
 end fn peek
 
-fn.main [] -> void:
+fn.main [none] -> void:
     return void;
 end fn.main

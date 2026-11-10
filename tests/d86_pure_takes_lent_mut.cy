@@ -1,5 +1,4 @@
 // trace: D86
-@config(default);
 
 struct box:
     n: i32;
@@ -9,6 +8,6 @@ fn.pure f [$b: Lent.mut box] -> i32:
     return 1;
 end fn.pure f
 
-fn.main [] -> void:
+fn.main [none] -> void:
     return void;
 end fn.main

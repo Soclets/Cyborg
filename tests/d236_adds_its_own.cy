@@ -1,6 +1,5 @@
 // A struct defines `+`, `x` and a `div` narrowing for itself, keeping their usual precedence.
 // trace: D236, D237, D116
-@config(default);
 import std;
 
 struct money:
@@ -19,7 +18,7 @@ op div.floor [$a: money, $b: i64] -> money:
     return money[cents = $a.cents div.floor $b];
 end op div.floor
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let $price: money = money[cents = 250];
     let $fee: money = money[cents = 30];
     let $count: i64 = 3;

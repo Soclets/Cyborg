@@ -1,5 +1,4 @@
 // trace: D130
-@config(default);
 import std;
 
 struct a:
@@ -25,7 +24,7 @@ fn show [$n: i32] -> void:
     return void;
 end fn show
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let $x: a = a[n = 1];
     let $y: b = b[n = 2];
     $x.%show();

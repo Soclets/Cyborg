@@ -1,12 +1,11 @@
 // trace: D122
-@config(default);
 import std;
 
 fam.unit time:
     time.seconds: base;
 end fam.unit time
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let $a: i64 = 9000000000;
     let $b: u8 = 200;
     let $c: i32[unit: time.seconds] = 3 time.seconds;

@@ -1,7 +1,6 @@
 // Building and lending one works, but nothing can end its duty yet: `finish` waits for the file,
 // and giving one field away is still open.
 // trace: D177, D129
-@config(default);
 import std;
 
 struct.must_Give open_file:
@@ -27,7 +26,7 @@ fn read_log [$l: log] -> i32:
     return $l.file.fd + $l.lines;
 end fn read_log
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let $f: open_file = open(3);
     let $l: log = log[file = Give $f, lines = 10];
     std::io::fmt_print("{}{newln}", read_log(Lend $l));

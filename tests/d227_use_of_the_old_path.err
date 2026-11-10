@@ -1,5 +1,5 @@
-refused: d227_use_of_the_old_path.cy:6:5, line 6 column 5
- 6 | use @std::inline.asm as asm;
+refused: d227_use_of_the_old_path.cy:5:5, line 5 column 5
+ 5 | use @std::inline.asm as asm;
    |     ^^^^^^^^^^^^^^^^
  fix:  `inline.asm`
  why:  inline code is `inline.asm`, in the base language, or a limb's own language as `inline.@limb::lang` (D227)

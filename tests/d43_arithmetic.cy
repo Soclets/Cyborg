@@ -1,8 +1,7 @@
 // trace: D43, D116
-@config(default);
 import std;
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let $a: i32 = 2 + 3 x 4;
     let $b: i32 = (2 + 3) x 4;
     let $c: i32 = 10 - 3 - 2;

@@ -1,8 +1,7 @@
 // trace: D160
-@config(default);
 import std;
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let $n: f64.stable = -0.0;
     let $p: f64.stable = 0.0;
     if $n == $p:

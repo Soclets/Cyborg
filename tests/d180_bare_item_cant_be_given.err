@@ -1,15 +1,15 @@
-refused: d180_bare_item_cant_be_given.cy:18:20, line 18 column 20
-18 |         close(Give $f);
+refused: d180_bare_item_cant_be_given.cy:17:20, line 17 column 20
+17 |         close(Give $f);
    |                    ^^
  what: `$f` is only lent here, so it can't be given away
  why:  `Lend` is temporary access, and the caller keeps it (D2)
 
-refused: d180_bare_item_cant_be_given.cy:20:5, line 20 column 5
-20 |     return void;
+refused: d180_bare_item_cant_be_given.cy:19:5, line 19 column 5
+19 |     return void;
    |     ^^^^^^^^^^^^
  what: this leaves with `$files` never given away or finished
  why:  a `must_Give` value is handed off with `Give` exactly once, or `finish` ends it (D2, D129)
- because: d180_bare_item_cant_be_given.cy:16:9, line 16 column 9
-16 |     let $files: std::list<open_file>[len.max: inf items] = [open_file[fd = 3], open_file[fd = 4]];
+ because: d180_bare_item_cant_be_given.cy:15:9, line 15 column 9
+15 |     let $files: std::list<open_file>[len.max: inf items] = [open_file[fd = 3], open_file[fd = 4]];
    |         ^^^^^^
      `$files` was made here

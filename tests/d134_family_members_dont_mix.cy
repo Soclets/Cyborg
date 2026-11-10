@@ -1,5 +1,4 @@
 // trace: D134, D135
-@config(default);
 
 fam.type.new ids:
     ids.user = i64;
@@ -11,6 +10,6 @@ fn f [$u: ids.user] -> void:
     return void;
 end fn f
 
-fn.main [] -> void:
+fn.main [none] -> void:
     return void;
 end fn.main

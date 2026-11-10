@@ -1,12 +1,11 @@
 // trace: D140
-@config(default);
 import std;
 
 fn total [$xs: std::list<i32>[len.max: inf items, len.type: u32]] -> u32[unit: items]:
     return $xs.len;
 end fn total
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let mut $xs: std::list<i32>[len.max: inf items, len.type: u32] = empty;
     $xs.std::%%append(val: 1);
     let $n: u32[unit: items] = $xs.len;

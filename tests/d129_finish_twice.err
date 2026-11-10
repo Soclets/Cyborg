@@ -1,9 +1,9 @@
-refused: d129_finish_twice.cy:11:5, line 11 column 5
-11 |     finish $f;
+refused: d129_finish_twice.cy:10:5, line 10 column 5
+10 |     finish $f;
    |     ^^^^^^^^^^
  what: `$f` was already finished
  why:  a `must_Give` duty ends once (D2, D129)
- because: d129_finish_twice.cy:10:5, line 10 column 5
-10 |     finish $f;
+ because: d129_finish_twice.cy:9:5, line 9 column 5
+ 9 |     finish $f;
    |     ^^^^^^^^^^
      `$f` was finished here

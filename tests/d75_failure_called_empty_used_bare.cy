@@ -1,10 +1,9 @@
 // trace: D47, D75
-@config(default);
 
-fn first_word [] -> void fails [empty]:
+fn first_word [none] -> void fails [empty]:
     fail empty;
 end fn first_word
 
-fn.main [] -> void:
+fn.main [none] -> void:
     return void;
 end fn.main

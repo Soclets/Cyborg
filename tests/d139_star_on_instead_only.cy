@@ -1,5 +1,4 @@
 // trace: D139, D46
-@config(default);
 
 fam.handler word_failed:
     word_failed.use_placeholder:
@@ -8,11 +7,11 @@ fam.handler word_failed:
     end word_failed.use_placeholder
 end fam.handler word_failed
 
-fn first_word [] -> str fails [too_long]:
+fn first_word [none] -> str fails [too_long]:
     return "word";
 end fn first_word
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let $a: str = first_word() otherwise word_failed.*use_placeholder;
     return void;
 end fn.main

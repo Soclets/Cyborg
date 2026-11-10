@@ -1,5 +1,4 @@
 // trace: D4, D3
-@config(default);
 import std;
 
 fn add [$xs: std::list<i32>[len.max: inf items]] -> void:
@@ -7,6 +6,6 @@ fn add [$xs: std::list<i32>[len.max: inf items]] -> void:
     return void;
 end fn add
 
-fn.main [] -> void:
+fn.main [none] -> void:
     return void;
 end fn.main

@@ -1,5 +1,5 @@
-refused: d227_a_limb_language_without_its_mark.cy:8:9, line 8 column 9
- 8 |         inline.llvm::ir();
+refused: d227_a_limb_language_without_its_mark.cy:7:9, line 7 column 9
+ 7 |         inline.llvm::ir();
    |         ^^^^^^^^^^^^^^^
  fix:  `inline.@llvm::ir`
  why:  inline code is `inline.asm`, in the base language, or a limb's own language as `inline.@limb::lang` (D227)

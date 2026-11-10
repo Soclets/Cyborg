@@ -1,5 +1,5 @@
-NotDesignedYet: d194_width_in_points.cy:6:25, line 6 column 25
- 6 |     std::io::fmt_print("{align: left, width: 8 points}{newln}", "a");
+NotDesignedYet: d194_width_in_points.cy:5:25, line 5 column 25
+ 5 |     std::io::fmt_print("{align: left, width: 8 points}{newln}", "a");
    |                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
  what: what a point is, for a width in a print
  why:  not decided yet (standard 12.2)

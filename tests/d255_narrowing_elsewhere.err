@@ -1,5 +1,5 @@
-NotDesignedYet: d255_narrowing_elsewhere.cy:16:25, line 16 column 25
-16 |     let $s: str = $n as.trunc str;
+NotDesignedYet: d255_narrowing_elsewhere.cy:15:25, line 15 column 25
+15 |     let $s: str = $n as.trunc str;
    |                         ^^^^^
  what: `as.trunc` on anything but a change of unit
  why:  not decided yet (standard 12.2)

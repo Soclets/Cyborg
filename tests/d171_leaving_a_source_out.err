@@ -1,5 +1,5 @@
-refused: d171_leaving_a_source_out.cy:15:13, line 15 column 13
-15 |     let $i: index<`text`: $article> = index[words = Lend $article, lookup = Lend $article];
+refused: d171_leaving_a_source_out.cy:14:13, line 14 column 13
+14 |     let $i: index<`text`: $article> = index[words = Lend $article, lookup = Lend $article];
    |             ^^^^^^^^^^^^^^^^^^^^^^^
  what: `index` has the sources `text`, then `table`, and this leaves out `table`
  why:  a type fills every source, in the declared order, and leaving one out is refused (D171)

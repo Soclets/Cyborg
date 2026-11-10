@@ -1,5 +1,4 @@
 // trace: D133, D125
-@config(default);
 import std;
 
 fn set_first [$xs: Lent.mut std::array<i32>[len: 2 items], $to: i32] -> void:
@@ -7,7 +6,7 @@ fn set_first [$xs: Lent.mut std::array<i32>[len: 2 items], $to: i32] -> void:
     return void;
 end fn set_first
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let mut $a: std::array<i32>[len: 2 items] = [1, 2];
     change $a[pos: 2] = 9;
     std::io::fmt_print("{}{newln}", $a[offset.items: 1]);

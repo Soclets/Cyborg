@@ -1,8 +1,7 @@
 // trace: D194
-@config(default);
 import std;
 
-fn.main [] -> void:
+fn.main [none] -> void:
     std::io::fmt_print("{0}{newln}", 1);
     return void;
 end fn.main

@@ -1,5 +1,5 @@
-refused: d208_case_without_a_semicolon.cy:5:5, line 5 column 5
- 5 |     ok
+refused: d208_case_without_a_semicolon.cy:4:5, line 4 column 5
+ 4 |     ok
    |     ^^
  what: expected `;` after this, but found `failed`
  why:  `;` ends a statement, `:` opens a block, and `end` closes it (D33)

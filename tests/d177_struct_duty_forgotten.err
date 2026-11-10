@@ -1,9 +1,9 @@
-refused: d177_struct_duty_forgotten.cy:25:5, line 25 column 5
-25 |     return void;
+refused: d177_struct_duty_forgotten.cy:24:5, line 24 column 5
+24 |     return void;
    |     ^^^^^^^^^^^^
  what: this leaves with `$l` never given away or finished
  why:  a `must_Give` value is handed off with `Give` exactly once, or `finish` ends it (D2, D129)
- because: d177_struct_duty_forgotten.cy:24:9, line 24 column 9
-24 |     let $l: log = log[file = open(3)];
+ because: d177_struct_duty_forgotten.cy:23:9, line 23 column 9
+23 |     let $l: log = log[file = open(3)];
    |         ^^
      `$l` was made here

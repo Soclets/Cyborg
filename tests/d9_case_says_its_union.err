@@ -1,5 +1,5 @@
-refused: d9_case_says_its_union.cy:11:14, line 11 column 14
-11 |         case ok:
+refused: d9_case_says_its_union.cy:10:14, line 10 column 14
+10 |         case ok:
    |              ^^
  fix:  `status.ok`
  why:  a union's cases are narrowings, such as `status.failed` (D9, D33)

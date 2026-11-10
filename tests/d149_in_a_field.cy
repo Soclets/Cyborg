@@ -1,5 +1,4 @@
 // trace: D149
-@config(default);
 import std;
 
 struct reading:
@@ -12,7 +11,7 @@ struct holder:
     inner: wrapped;
 end struct holder
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let $a: reading = reading[celsius = 1];
     let $h: holder = holder[inner = Give $a as wrapped];
     std::io::fmt_print("ok{newln}");

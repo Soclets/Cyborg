@@ -1,5 +1,4 @@
 // trace: D144
-@config(default);
 
 fam.unit screen:
     screen.pixels: base;
@@ -12,7 +11,7 @@ fn draw [$x: i32[unit: screen.pixels]] -> void:
     return void;
 end fn draw
 
-fn.main [] -> void:
+fn.main [none] -> void:
     draw(at.screen.pixels: 5 screen.points);
     return void;
 end fn.main

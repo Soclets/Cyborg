@@ -1,6 +1,5 @@
 // A handler is used as if written there, and `instead` isn't a jump.
 // trace: D139, D46
-@config(default);
 import std;
 
 fam.handler word_failed:
@@ -23,7 +22,7 @@ fn first_word [$which: i32] -> str fails [too_long, no_words[count: i32]]:
     return "word";
 end fn first_word
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let $a: str = first_word(1) otherwise word_failed.use_placeholder;
     let $b: str = first_word(2) otherwise word_failed.use_placeholder;
     let $c: str = first_word(3) otherwise word_failed.use_placeholder;

@@ -1,5 +1,5 @@
-refused: d148_type_bound_inside_a_range.cy:6:33, line 6 column 33
- 6 |     for $i in range[from: $start: i32[min: 1, max: 3], to: 5]:
+refused: d148_type_bound_inside_a_range.cy:5:33, line 5 column 33
+ 5 |     for $i in range[from: $start: i32[min: 1, max: 3], to: 5]:
    |                                 ^
  what: expected `]`, but found `:`
  why:  `;` ends a statement, `:` opens a block, and `end` closes it (D33)

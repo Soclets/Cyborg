@@ -1,11 +1,10 @@
 // trace: D129
-@config(default);
 
 struct box:
     n: i32;
 end struct box
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let $b: box = box[n = 1];
     finish $b;
     return void;

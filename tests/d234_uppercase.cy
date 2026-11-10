@@ -1,6 +1,5 @@
 // A type parameter is `?` and a lowercase name.
 // trace: D234
-@config(default);
 import std;
 
 interface ordered<?self>:
@@ -20,6 +19,6 @@ fn first<?T: any> [$a: Given ?T] -> ?T:
     return Give $a;
 end fn first
 
-fn.main [] -> void:
+fn.main [none] -> void:
     return void;
 end fn.main

@@ -1,5 +1,5 @@
-refused: d22_at_on_a_kit_thing.cy:6:5, line 6 column 5
- 6 |     @std::io::fmt_print("hi{newln}");
+refused: d22_at_on_a_kit_thing.cy:5:5, line 5 column 5
+ 5 |     @std::io::fmt_print("hi{newln}");
    |     ^^^^^^^^^^^^^^^^^^^
  fix:  `std::io::fmt_print`
  why:  `@` goes only on things a limb provides (D22)

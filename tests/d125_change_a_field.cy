@@ -1,5 +1,4 @@
 // trace: D125
-@config(default);
 import std;
 
 fam.unit time:
@@ -22,7 +21,7 @@ fn warm [$r: Lent.mut reading] -> void:
     return void;
 end fn warm
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let mut $r: reading = reading[celsius = 21, label = "a", at = 1 time.seconds, deep = inner[n = 1]];
     change $r.celsius = 22;
     warm(Lend.mut $r);

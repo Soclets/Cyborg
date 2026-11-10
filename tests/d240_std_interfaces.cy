@@ -1,6 +1,5 @@
 // Which interfaces `std` declares for its own types, and their names, aren't decided.
 // trace: D240
-@config(default);
 import std;
 
 interface ordered<?self>:
@@ -20,6 +19,6 @@ fn larger<?item: std::ordered> [$a: ?item, $b: ?item] -> bool:
     return true;
 end fn larger
 
-fn.main [] -> void:
+fn.main [none] -> void:
     return void;
 end fn.main

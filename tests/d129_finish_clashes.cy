@@ -1,11 +1,10 @@
 // trace: D129, D75
-@config(default);
 
-fn my::finish [] -> void:
+fn my::finish [none] -> void:
     return void;
 end fn my::finish
 
-fn.main [] -> void:
+fn.main [none] -> void:
     finish();
     return void;
 end fn.main

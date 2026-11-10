@@ -1,6 +1,5 @@
 // `$n` isn't used after its change, so `$m` is free again.
 // trace: D174, D169
-@config(default);
 import std;
 
 struct reading:
@@ -8,7 +7,7 @@ struct reading:
     time: i32;
 end struct reading
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let mut $r: reading = reading[celsius = 21, time = 3600];
     let $m: Lend.mut from $r reading = Lend.mut $r;
     let $n: Lend.mut from $r reading = Lend.mut $m;

@@ -1,7 +1,6 @@
 // trace: D128, D75
-@config(default);
 
-fn.main [] -> void:
+fn.main [none] -> void:
     for x $i in range[from: 1, to: 2]:
         break x;
     end for x

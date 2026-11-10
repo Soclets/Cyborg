@@ -1,0 +1,5 @@
+refused: d265_tighten_is_gone.cy:4:1, line 4 column 1
+ 4 | @tighten_config(var.mut.never_changed);
+   | ^^^^^^^^^^^^^^^
+ what: `@tighten_config` is gone, and a project's rules are `rule` lines in `CyJet.siml`
+ why:  rules live in the manifest, so code gets straight to the point, and a project with no `rule` lines gets the compiler's defaults (D265)

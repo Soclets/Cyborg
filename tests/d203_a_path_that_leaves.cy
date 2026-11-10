@@ -1,6 +1,5 @@
 // The path that doesn't assign returns, so every path that reaches the read has assigned.
 // trace: D203
-@config(default);
 import std;
 
 fn pick [$hot: bool] -> void:
@@ -14,7 +13,7 @@ fn pick [$hot: bool] -> void:
     return void;
 end fn pick
 
-fn.main [] -> void:
+fn.main [none] -> void:
     pick(true);
     return void;
 end fn.main

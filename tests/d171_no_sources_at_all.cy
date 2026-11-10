@@ -1,5 +1,4 @@
 // trace: D171
-@config(default);
 
 struct reading:
     celsius: i32;
@@ -14,6 +13,6 @@ fn take [$i: index] -> void:
     return void;
 end fn take
 
-fn.main [] -> void:
+fn.main [none] -> void:
     return void;
 end fn.main

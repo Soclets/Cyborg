@@ -1,6 +1,5 @@
 // A type set is closed, so nothing joins it with `satisfies`.
 // trace: D235
-@config(default);
 import std;
 
 interface ordered<?self>:
@@ -18,6 +17,6 @@ end type_set whole
 
 u8 satisfies whole;
 
-fn.main [] -> void:
+fn.main [none] -> void:
     return void;
 end fn.main

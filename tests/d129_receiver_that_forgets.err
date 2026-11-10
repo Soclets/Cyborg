@@ -1,9 +1,9 @@
-refused: d129_receiver_that_forgets.cy:10:5, line 10 column 5
-10 |     return void;
+refused: d129_receiver_that_forgets.cy:9:5, line 9 column 5
+ 9 |     return void;
    |     ^^^^^^^^^^^^
  what: this leaves with `$f` never given away or finished
  why:  a `must_Give` value is handed off with `Give` exactly once, or `finish` ends it (D2, D129)
- because: d129_receiver_that_forgets.cy:9:11, line 9 column 11
- 9 | fn close [$f: Given open_file] -> void:
+ because: d129_receiver_that_forgets.cy:8:11, line 8 column 11
+ 8 | fn close [$f: Given open_file] -> void:
    |           ^^
      `$f` was given to this function here

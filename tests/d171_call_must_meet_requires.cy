@@ -1,6 +1,5 @@
 // `$list` is in an inner block, so it ends before `$article` does.
 // trace: D171
-@config(default);
 
 struct reading:
     celsius: i32;
@@ -16,7 +15,7 @@ fn build [$article: reading, $list: reading] -> index<`text`: $article, `table`:
     return index[words = Lend $article, lookup = Lend $list];
 end fn build
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let $article: reading = reading[celsius = 1];
     if $article.celsius > 0:
         let $list: reading = reading[celsius = 2];

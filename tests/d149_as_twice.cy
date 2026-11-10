@@ -1,6 +1,5 @@
 // The word is on the whole value, so the second `as` is on something fresh.
 // trace: D149
-@config(default);
 import std;
 
 struct reading:
@@ -11,7 +10,7 @@ type.new wrapped = reading;
 
 type.new rewrapped = wrapped;
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let $r: reading = reading[celsius = 1];
     let $w: rewrapped = Give $r as wrapped as rewrapped;
     std::io::fmt_print("ok{newln}");

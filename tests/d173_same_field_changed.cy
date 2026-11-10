@@ -1,5 +1,4 @@
 // trace: D173
-@config(default);
 import std;
 
 struct inner:
@@ -11,7 +10,7 @@ struct pair:
     b: inner;
 end struct pair
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let mut $p: pair = pair[a = inner[n = 1], b = inner[n = 2]];
     let $l: Lend from $p inner = Lend $p.a;
     change $p.a.n = 3;

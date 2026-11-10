@@ -1,5 +1,5 @@
-refused: d233_never_closes.cy:9:13, line 9 column 13
- 9 |             inline.asm:
+refused: d233_never_closes.cy:8:13, line 8 column 13
+ 8 |             inline.asm:
    |             ^^^^^^^^^^^
  what: this assembly block never closes
  why:  an assembly block holds raw assembly, one instruction per line, and closes with `end inline.asm` (D233)

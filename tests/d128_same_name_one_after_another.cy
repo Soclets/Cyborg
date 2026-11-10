@@ -1,8 +1,7 @@
 // trace: D128
-@config(default);
 import std;
 
-fn.main [] -> void:
+fn.main [none] -> void:
     for rows $i in range[from: 1, to: 2]:
         break rows;
     end for rows

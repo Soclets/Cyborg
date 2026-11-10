@@ -1,5 +1,4 @@
 // trace: D171
-@config(default);
 
 struct reading:
     celsius: i32;
@@ -13,6 +12,6 @@ fn shown <`t`> [$v: view<`text`: `u`>] -> i32:
     return 0;
 end fn shown
 
-fn.main [] -> void:
+fn.main [none] -> void:
     return void;
 end fn.main

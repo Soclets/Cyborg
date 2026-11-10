@@ -1,5 +1,5 @@
-NotDesignedYet: d198_with_a_mark.cy:3:9, line 3 column 9
- 3 | import @std::inline;
+NotDesignedYet: d198_with_a_mark.cy:2:9, line 2 column 9
+ 2 | import @std::inline;
    |         ^^^^^^^^^^^
  what: importing one thing with `@`, with `pkg`, or from a kit other than `std`
  why:  not decided yet (standard 12.2)

@@ -1,5 +1,5 @@
-NotDesignedYet: d203_a_must_give.cy:10:14, line 10 column 14
-10 |     decl $f: open_file;
+NotDesignedYet: d203_a_must_give.cy:9:14, line 9 column 14
+ 9 |     decl $f: open_file;
    |              ^^^^^^^^^
  what: `decl` of `open_file`, which has a duty or a borrow
  why:  not decided yet, and the standard doesn't say

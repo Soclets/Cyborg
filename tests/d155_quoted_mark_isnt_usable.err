@@ -1,5 +1,5 @@
-refused: d155_quoted_mark_isnt_usable.cy:5:30, line 5 column 30
- 5 | use @csup::union.untagged as "@c";
+refused: d155_quoted_mark_isnt_usable.cy:4:30, line 4 column 30
+ 4 | use @csup::union.untagged as "@c";
    |                              ^^^^
  what: nothing could use `"@c"` as a name
  why:  the quotes only skip the check against the path, so a quoted name still has to be usable (D151)

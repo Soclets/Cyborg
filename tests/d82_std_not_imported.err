@@ -1,5 +1,5 @@
-refused: d82_std_not_imported.cy:5:5, line 5 column 5
- 5 |     std::io::fmt_print("hi{newln}");
+refused: d82_std_not_imported.cy:4:5, line 4 column 5
+ 4 |     std::io::fmt_print("hi{newln}");
    |     ^^^^^^^^^^^^^^^^^^
  fix:  `import std;`
  why:  everything gets imported, including `std` (D82)

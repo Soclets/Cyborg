@@ -1,6 +1,5 @@
 // D173's example, which D184 made writable: two number fields, each lent to change.
 // trace: D184, D173
-@config(default);
 import std;
 
 struct reading:
@@ -14,7 +13,7 @@ fn adjust [$c: Lent.mut i32, $t: Lent.mut i32] -> void:
     return void;
 end fn adjust
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let mut $r: reading = reading[celsius = 21, time = 3600];
     adjust(Lend.mut $r.celsius, Lend.mut $r.time);
     std::io::fmt_print("{} {}{newln}", $r.celsius, $r.time);

@@ -1,5 +1,5 @@
-refused: d128_range_without_from.cy:5:15, line 5 column 15
- 5 |     for $i in range[to: 5]:
+refused: d128_range_without_from.cy:4:15, line 4 column 15
+ 4 |     for $i in range[to: 5]:
    |               ^^^^^^^^^^^^
  what: a range needs `from:`
  why:  `from:` is required, `to:` or `before:` says where it ends, and `step_by:` comes after them, in that order (D128)

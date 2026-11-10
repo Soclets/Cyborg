@@ -1,7 +1,6 @@
 // trace: D128
-@config(default);
 
-fn.main [] -> void:
+fn.main [none] -> void:
     break;
     return void;
 end fn.main

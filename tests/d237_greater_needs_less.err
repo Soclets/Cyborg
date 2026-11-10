@@ -1,5 +1,5 @@
-refused: d237_greater_needs_less.cy:16:20, line 16 column 20
-16 |     let $c: bool = $a > $b;
+refused: d237_greater_needs_less.cy:15:20, line 15 column 20
+15 |     let $c: bool = $a > $b;
    |                    ^^^^^^^
  what: there's no `op <` for `money` and `money`, which `>` follows from
  why:  a struct or union gets an operator by defining it with `op`, and it applies only where its values' types match (D236, D237)

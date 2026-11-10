@@ -1,5 +1,4 @@
 // trace: D2
-@config(default);
 
 struct box:
     n: i32;
@@ -9,6 +8,6 @@ fn f [$b: Lent box] -> i32:
     return $b.n;
 end fn f
 
-fn.main [] -> void:
+fn.main [none] -> void:
     return void;
 end fn.main

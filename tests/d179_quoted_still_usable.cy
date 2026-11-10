@@ -1,9 +1,8 @@
 // trace: D179, D151
-@config(default);
 import std;
 
 use std::list.%%append as %%"my push";
 
-fn.main [] -> void:
+fn.main [none] -> void:
     return void;
 end fn.main

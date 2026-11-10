@@ -1,5 +1,4 @@
 // trace: D175
-@config(default);
 
 struct reading:
     celsius: i32;
@@ -10,6 +9,6 @@ fn warm [$v: Lend.mut from $r reading] -> void:
     return void;
 end fn warm
 
-fn.main [] -> void:
+fn.main [none] -> void:
     return void;
 end fn.main

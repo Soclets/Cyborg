@@ -1,9 +1,8 @@
 // `( $x )` is refused.
 // trace: D213
-@config(default);
 import std;
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let $x: i32 = 1;
     let $y: i32 = ( $x ) + 1;
     return void;

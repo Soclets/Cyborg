@@ -1,6 +1,5 @@
 // An integer going to a bigger unit says how it rounds, as integer `div` does.
 // trace: D255, D48
-@config(default);
 import std;
 
 fam.unit length:
@@ -11,7 +10,7 @@ fam.unit length:
     length.feet = 12 length.inches;
 end fam.unit length
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let $up: i32[unit: length.meters] = 1500 length.meters;
     let $down: i32[unit: length.meters] = -1500 length.meters;
     let $a: i32[unit: length.kilometers] = $up as.trunc i32[unit: length.kilometers];

@@ -1,7 +1,6 @@
 // trace: D7
-@config(default);
 
-fn.main [] -> void:
+fn.main [none] -> void:
     if 1:
         return void;
     end if

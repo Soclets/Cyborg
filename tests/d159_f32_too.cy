@@ -1,8 +1,7 @@
 // trace: D159, D158
-@config(default);
 import std;
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let $reading: f32.ieee = 0.5;
     let $clean: f32.stable = $reading as f32.stable;
     if $clean: f32.stable[min: 0.5, max: 0.5]:

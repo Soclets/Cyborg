@@ -1,5 +1,4 @@
 // trace: D176
-@config(default);
 import std;
 
 struct reading:
@@ -11,7 +10,7 @@ union.tagged lookup <`text`>:
     missing;
 end union.tagged lookup
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let $a: reading = reading[celsius = 4];
     let $l: lookup<`text`: $a> = lookup.found[item = Lend $a];
     let $m: lookup<`text`: $a> = lookup.missing;

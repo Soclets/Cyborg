@@ -1,9 +1,8 @@
 // 9.4's example. The oracle builds for no chip, so it follows `else:`, as a build for a chip no branch names would.
 // trace: D233
-@config(default);
 import std;
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let $a: i64 = 6;
     let $b: i64 = 7;
     let $c: i64 = 8;
@@ -13,7 +12,7 @@ fn.main [] -> void:
             inline.asm:
                 reads: [x0 = $a, x1 = $b, x2 = $c];
                 writes: [x0 => $r];
-                clobbers: [];
+                clobbers: [none];
                 madd x0, x0, x1, x2
             end inline.asm
         end shield mul_add

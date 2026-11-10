@@ -1,9 +1,9 @@
-refused: d128_must_give_inside_a_break.cy:11:9, line 11 column 9
-11 |         break;
+refused: d128_must_give_inside_a_break.cy:10:9, line 10 column 9
+10 |         break;
    |         ^^^^^^
  what: this leaves with `$f` never given away or finished
  why:  a `must_Give` value is handed off with `Give` exactly once, or `finish` ends it (D2, D129)
- because: d128_must_give_inside_a_break.cy:10:13, line 10 column 13
-10 |         let $f: open_file = open_file[fd = 3];
+ because: d128_must_give_inside_a_break.cy:9:13, line 9 column 13
+ 9 |         let $f: open_file = open_file[fd = 3];
    |             ^^
      `$f` was made here

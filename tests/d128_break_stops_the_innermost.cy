@@ -1,8 +1,7 @@
 // trace: D128
-@config(default);
 import std;
 
-fn.main [] -> void:
+fn.main [none] -> void:
     for $a in range[from: 1, to: 2]:
         for $b in range[from: 1, to: 3]:
             if $b == 2:

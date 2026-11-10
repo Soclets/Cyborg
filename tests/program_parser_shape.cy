@@ -1,6 +1,5 @@
 // The shape of a small tokenizer step: a union of tokens, passed around and given away.
 // trace: D2, D3, D9, D33, D57, D104
-@config(default);
 import std;
 
 union.tagged token:
@@ -24,7 +23,7 @@ fn make_word [$text: Given str] -> token:
     return token.word[text = Give $text];
 end fn make_word
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let $name: str = "hello";
     std::io::fmt_print("{}{newln}", describe(token.number[value = 42]));
     std::io::fmt_print("{}{newln}", describe(make_word(Give $name)));

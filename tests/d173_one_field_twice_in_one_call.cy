@@ -1,5 +1,4 @@
 // trace: D173, D2
-@config(default);
 
 struct inner:
     n: i32;
@@ -14,7 +13,7 @@ fn adjust [$x: Lent.mut inner, $y: Lent.mut inner] -> void:
     return void;
 end fn adjust
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let mut $p: pair = pair[a = inner[n = 1], b = inner[n = 2]];
     adjust(Lend.mut $p.a, Lend.mut $p.a);
     return void;

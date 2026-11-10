@@ -1,5 +1,4 @@
 // trace: D171, D170
-@config(default);
 import std;
 
 struct reading:
@@ -16,7 +15,7 @@ fn build [$article: reading, $list: reading] -> index<`text`: $article, `table`:
     return index[words = Lend $article, lookup = Lend $list];
 end fn build
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let $list: reading = reading[celsius = 2];
     let $article: reading = reading[celsius = 1];
     let $i: index<`text`: $article, `table`: $list> = build(Lend $article, Lend $list);

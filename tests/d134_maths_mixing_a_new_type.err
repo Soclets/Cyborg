@@ -1,5 +1,5 @@
-refused: d134_maths_mixing_a_new_type.cy:7:19, line 7 column 19
- 7 |     let $v: i64 = $u + $n;
+refused: d134_maths_mixing_a_new_type.cy:6:19, line 6 column 19
+ 6 |     let $v: i64 = $u + $n;
    |                   ^^^^^^^
  what: this is `i64`, where `user_id` is needed
  why:  a `type.new` is a different type, so it doesn't mix with another, or with what it's made from (D134)

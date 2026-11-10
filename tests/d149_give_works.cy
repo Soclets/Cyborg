@@ -1,5 +1,4 @@
 // trace: D149
-@config(default);
 import std;
 
 struct reading:
@@ -8,7 +7,7 @@ end struct reading
 
 type.new wrapped = reading;
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let $r: reading = reading[celsius = 7];
     let $w: wrapped = Give $r as wrapped;
     let $back: reading = Give $w as reading;

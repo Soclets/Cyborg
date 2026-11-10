@@ -1,7 +1,6 @@
 // trace: D83
-@config(default);
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let $a: i32 = 1;
     const $b: i32 = $a;
     return void;

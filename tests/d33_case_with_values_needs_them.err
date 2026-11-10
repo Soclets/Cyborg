@@ -1,5 +1,5 @@
-refused: d33_case_with_values_needs_them.cy:10:22, line 10 column 22
-10 |     let $s: status = status.failed;
+refused: d33_case_with_values_needs_them.cy:9:22, line 9 column 22
+ 9 |     let $s: status = status.failed;
    |                      ^^^^^^^^^^^^^
  what: `status.failed` has values, which go in `[ ]`
  why:  a case's values go in `[ ]` (D33)

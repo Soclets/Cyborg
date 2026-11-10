@@ -1,12 +1,11 @@
 // trace: D214
-@config(default);
 import std;
 
-fn my::main [] -> i32:
+fn my::main [none] -> i32:
     return 7;
 end fn my::main
 
-fn.main [] -> void:
+fn.main [none] -> void:
     std::io::fmt_print("{}{newln}", my::main());
     return void;
 end fn.main

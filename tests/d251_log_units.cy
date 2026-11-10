@@ -1,6 +1,5 @@
 // A log unit has points and spans: a level plus a gain is a level, and gains add.
 // trace: D251, D249
-@config(default);
 import std;
 
 fam.unit power:
@@ -8,7 +7,7 @@ fam.unit power:
     power.dbm = decibels of 1 power.milliwatts;
 end fam.unit power
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let $input: f64.stable[unit: power.dbm.point] = 10.0 power.dbm;
     let $gain: f64.stable[unit: power.dbm.span] = 3.0 power.dbm;
     let $output: f64.stable[unit: power.dbm.point] = $input + $gain;

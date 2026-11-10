@@ -1,5 +1,4 @@
 // trace: D134
-@config(default);
 
 struct score:
     n: i32;
@@ -7,6 +6,6 @@ end struct score
 
 type.alias score = i32;
 
-fn.main [] -> void:
+fn.main [none] -> void:
     return void;
 end fn.main

@@ -1,9 +1,8 @@
 // A step of 0 never ends, so it's a failure, and a `for` has nothing to handle it.
 // trace: D145
-@config(default);
 import std;
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let $by: i32 = 0;
     std::io::fmt_print("before{newln}");
     for $i in range[from: 1, to: 5, step_by: $by]:

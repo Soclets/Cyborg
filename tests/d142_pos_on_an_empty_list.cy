@@ -1,8 +1,7 @@
 // trace: D142, D26
-@config(default);
 import std;
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let $xs: std::list<i32>[len.max: 8 items] = empty;
     let $n: i32 = $xs[pos: $xs.len];
     return void;

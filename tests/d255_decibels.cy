@@ -1,6 +1,5 @@
 // A level in dBm converts to milliwatts and back, so two levels are added by way of watts.
 // trace: D255, D251
-@config(default);
 import std;
 
 fam.unit power:
@@ -8,7 +7,7 @@ fam.unit power:
     power.dbm = decibels of 1 power.milliwatts;
 end fam.unit power
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let $a: f64.stable[unit: power.dbm.point] = 10.0 power.dbm;
     let $b: f64.stable[unit: power.dbm.point] = 20.0 power.dbm;
     let $a_mw: f64.stable[unit: power.milliwatts.point] = $a as f64.stable[unit: power.milliwatts.point];

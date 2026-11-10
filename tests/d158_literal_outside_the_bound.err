@@ -1,5 +1,5 @@
-refused: d158_literal_outside_the_bound.cy:5:50, line 5 column 50
- 5 |     let $t: f64.stable[min: -40.0, max: 125.0] = 125.5;
+refused: d158_literal_outside_the_bound.cy:4:50, line 4 column 50
+ 4 |     let $t: f64.stable[min: -40.0, max: 125.0] = 125.5;
    |                                                  ^^^^^
  what: `125.5` doesn't fit `f64.stable[min: -40.0, max: 125.0]`
  why:  a literal that can't fit is a compile error (D20, D158)

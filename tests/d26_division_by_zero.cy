@@ -1,8 +1,7 @@
 // trace: D26
-@config(default);
 import std;
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let $z: i32 = 0;
     std::io::fmt_print("before{newln}");
     let $a: i32 = 1 div.trunc $z;

@@ -1,0 +1,5 @@
+refused: d269_clobbers_nothing.cy:16:27, line 16 column 27
+16 |                 clobbers: [];
+   |                           ^^
+ fix:  `[none]`
+ why:  `[none]` means there's nothing at all, while `empty` is a real value with nothing in it yet (D267, D269)

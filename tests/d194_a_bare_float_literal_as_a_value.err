@@ -1,5 +1,5 @@
-NotDesignedYet: d194_a_bare_float_literal_as_a_value.cy:7:61, line 7 column 61
- 7 |     std::io::fmt_print("{form: science, places: 2}{newln}", 12.5);
+NotDesignedYet: d194_a_bare_float_literal_as_a_value.cy:6:61, line 6 column 61
+ 6 |     std::io::fmt_print("{form: science, places: 2}{newln}", 12.5);
    |                                                             ^^^^
  what: which float type a literal has when nothing around it says
  why:  not decided yet, and the standard doesn't say

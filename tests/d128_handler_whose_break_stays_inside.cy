@@ -1,6 +1,5 @@
 // That `break` stops a loop inside the arm, so the handler can't jump.
 // trace: D128, D46
-@config(default);
 import std;
 
 fam.handler say_failed:
@@ -12,7 +11,7 @@ fam.handler say_failed:
     end say_failed.tries
 end fam.handler say_failed
 
-fn.main [] -> void:
+fn.main [none] -> void:
     std::io::fmt_print("hi{newln}") otherwise say_failed.tries;
     return void;
 end fn.main

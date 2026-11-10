@@ -1,5 +1,4 @@
 // trace: D149, D3
-@config(default);
 import std;
 
 struct reading:
@@ -8,7 +7,7 @@ end struct reading
 
 type.new wrapped = reading;
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let $r: reading = reading[celsius = 1];
     let $w: wrapped = Copy $r as wrapped;
     std::io::fmt_print("{}{newln}", $r.celsius);

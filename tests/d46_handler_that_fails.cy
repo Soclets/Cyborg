@@ -1,7 +1,6 @@
 // `fail` leaves the function like `return` does, though D46 lists only `return`, `break` and
 // `continue` as what needs a `*`. Reported to the design session.
 // trace: D46, D52
-@config(default);
 import std;
 
 fam.handler say_failed:
@@ -11,12 +10,12 @@ fam.handler say_failed:
     end say_failed.up
 end fam.handler say_failed
 
-fn say [] -> void fails [lost]:
+fn say [none] -> void fails [lost]:
     std::io::fmt_print("hi{newln}") otherwise say_failed.up;
     return void;
 end fn say
 
-fn.main [] -> void:
+fn.main [none] -> void:
     say();
     return void;
 end fn.main

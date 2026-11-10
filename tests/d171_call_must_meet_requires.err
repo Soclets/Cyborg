@@ -1,5 +1,5 @@
-refused: d171_call_must_meet_requires.cy:23:17, line 23 column 17
-23 |         let $i: index<`text`: $article, `table`: $list> = build(Lend $article, Lend $list);
+refused: d171_call_must_meet_requires.cy:22:17, line 22 column 17
+22 |         let $i: index<`text`: $article, `table`: $list> = build(Lend $article, Lend $list);
    |                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
  what: `$list` doesn't last as long as `$article`, and `index` says `table` lasts at least as long as `text`
  why:  a struct's `lasts_at_least` fact holds for every type that fills it in (D171)

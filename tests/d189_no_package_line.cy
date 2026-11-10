@@ -1,8 +1,7 @@
 // trace: D189
-@config(default);
 
 package main;
 
-fn.main [] -> void:
+fn.main [none] -> void:
     return void;
 end fn.main

@@ -1,5 +1,4 @@
 // trace: D177, D2
-@config(default);
 import std;
 
 struct.must_Give open_file:
@@ -20,7 +19,7 @@ fn pass [$f: Given open_file] -> open_file:
     return Give $f;
 end fn pass
 
-fn.main [] -> void:
+fn.main [none] -> void:
     close(pass(open(5)));
     return void;
 end fn.main

@@ -1,9 +1,8 @@
 // Lending an address into a register isn't designed.
 // trace: D233
-@config(default);
 import std;
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let $a: i64 = 6;
     let $b: i64 = 7;
     on.target aarch64:
@@ -12,7 +11,7 @@ fn.main [] -> void:
             inline.asm:
                 reads: [x1 = Lend $a];
                 writes: [x2 => $r];
-                clobbers: [];
+                clobbers: [none];
                 ldr x2, [x1]
             end inline.asm
         end shield load

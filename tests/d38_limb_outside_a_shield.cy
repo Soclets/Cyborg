@@ -1,8 +1,7 @@
 // trace: D38
-@config(default);
 import @csup;
 
-fn.main [] -> void:
+fn.main [none] -> void:
     @csup::call();
     return void;
 end fn.main

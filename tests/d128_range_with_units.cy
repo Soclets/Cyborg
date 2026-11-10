@@ -1,11 +1,10 @@
 // trace: D128, D100
-@config(default);
 
 fam.unit time:
     time.seconds: base;
 end fam.unit time
 
-fn.main [] -> void:
+fn.main [none] -> void:
     for $i in range[from: 1 time.seconds, to: 5 time.seconds]:
         return void;
     end for

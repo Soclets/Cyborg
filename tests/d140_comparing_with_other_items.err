@@ -1,5 +1,5 @@
-refused: d140_comparing_with_other_items.cy:8:8, line 8 column 8
- 8 |     if $a.len == $n:
+refused: d140_comparing_with_other_items.cy:7:8, line 7 column 8
+ 7 |     if $a.len == $n:
    |        ^^^^^^^^^^^^
  what: this compares `u64[unit: items]` and `i32[unit: items]`
  why:  `:` doesn't convert, and `as` builds a new value of another type (D7)

@@ -1,5 +1,5 @@
-refused: d4_percent_on_your_own_method.cy:11:9, line 11 column 9
-11 |     $p.%area();
+refused: d4_percent_on_your_own_method.cy:10:9, line 10 column 9
+10 |     $p.%area();
    |         ^^^^
  what: `point` has no method `area`
  why:  a method is declared with its type in the name (D130)

@@ -1,8 +1,7 @@
 // trace: D102, D103
-@config(default);
 import std;
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let $b: std::list<i32>[len.min: 1 items, len.max: 8 items] = empty;
     return void;
 end fn.main

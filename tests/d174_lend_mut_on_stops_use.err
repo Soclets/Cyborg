@@ -1,9 +1,9 @@
-refused: d174_lend_mut_on_stops_use.cy:15:12, line 15 column 12
-15 |     change $n.celsius = 2;
+refused: d174_lend_mut_on_stops_use.cy:14:12, line 14 column 12
+14 |     change $n.celsius = 2;
    |            ^^
  what: `$n` can't be used after what it borrows was used
  why:  a stored `Lend.mut` means nothing else uses it meanwhile, and a `Lend` means it can't change (D2)
- because: d174_lend_mut_on_stops_use.cy:14:37, line 14 column 37
-14 |     std::io::fmt_print("{}{newln}", $m.celsius);
+ because: d174_lend_mut_on_stops_use.cy:13:37, line 13 column 37
+13 |     std::io::fmt_print("{}{newln}", $m.celsius);
    |                                     ^^
      what it borrows was used here

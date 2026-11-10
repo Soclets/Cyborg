@@ -1,5 +1,5 @@
-refused: d133_word_on_a_number_item.cy:11:7, line 11 column 7
-11 |     f(Lend $a[pos: 1]);
+refused: d133_word_on_a_number_item.cy:10:7, line 10 column 7
+10 |     f(Lend $a[pos: 1]);
    |       ^^^^^^^^^^^^^^^
  fix:  `$a[pos: 1]`
  why:  plain numbers and `bool` are always copied, and take no word (D2, D123)

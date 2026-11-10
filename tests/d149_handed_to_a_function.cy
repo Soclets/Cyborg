@@ -1,5 +1,4 @@
 // trace: D149
-@config(default);
 import std;
 
 struct reading:
@@ -18,7 +17,7 @@ fn make [$r: Given reading] -> wrapped:
     return Give $r as wrapped;
 end fn make
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let $a: reading = reading[celsius = 1];
     let $b: reading = reading[celsius = 2];
     take(Give $a as wrapped);

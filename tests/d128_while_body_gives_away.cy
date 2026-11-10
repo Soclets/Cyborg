@@ -1,11 +1,10 @@
 // trace: D128, D2
-@config(default);
 
 fn eat [$s: Given str] -> void:
     return void;
 end fn eat
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let $s: str = "a";
     let mut $n: i32 = 2;
     while $n > 0:

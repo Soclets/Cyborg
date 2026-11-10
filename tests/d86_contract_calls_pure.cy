@@ -1,5 +1,4 @@
 // trace: D86
-@config(default);
 import std;
 
 fn.pure positive [$n: i32] -> bool:
@@ -12,7 +11,7 @@ fn f [$n: i32] -> i32:
     return $n;
 end fn f
 
-fn.main [] -> void:
+fn.main [none] -> void:
     std::io::fmt_print("{}{newln}", f(1));
     return void;
 end fn.main

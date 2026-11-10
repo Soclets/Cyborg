@@ -1,15 +1,14 @@
 // trace: D170
-@config(default);
 
 struct reading:
     celsius: i32;
 end struct reading
 
-fn make [] -> Lend from $r reading:
+fn make [none] -> Lend from $r reading:
     let $r: reading = reading[celsius = 1];
     return Lend $r;
 end fn make
 
-fn.main [] -> void:
+fn.main [none] -> void:
     return void;
 end fn.main

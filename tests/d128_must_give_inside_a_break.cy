@@ -1,11 +1,10 @@
 // trace: D128, D2
-@config(default);
 
 struct.must_Give open_file:
     fd: i32;
 end struct.must_Give open_file
 
-fn.main [] -> void:
+fn.main [none] -> void:
     forever:
         let $f: open_file = open_file[fd = 3];
         break;

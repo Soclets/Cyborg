@@ -1,5 +1,5 @@
-refused: d219_before_an_operator.cy:8:19, line 8 column 19
- 8 |     let $b: i32 = $a
+refused: d219_before_an_operator.cy:7:19, line 7 column 19
+ 7 |     let $b: i32 = $a
    |                   ^^
  fix:  `$a +`
  why:  a line breaks only after a comma, an opening bracket or a binary operator, so it visibly isn't finished (D219)

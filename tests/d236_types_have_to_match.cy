@@ -1,6 +1,5 @@
 // An operator applies only where its values' types match.
 // trace: D236
-@config(default);
 
 struct money:
     cents: i64;
@@ -10,7 +9,7 @@ op + [$a: money, $b: money] -> money:
     return money[cents = $a.cents + $b.cents];
 end op +
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let $a: money = money[cents = 1];
     let $n: i64 = 2;
     let $c: money = $a + $n;

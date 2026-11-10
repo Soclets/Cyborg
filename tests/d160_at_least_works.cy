@@ -1,8 +1,7 @@
 // trace: D160
-@config(default);
 import std;
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let $a: f64.stable = 0.5;
     if $a at_least 0.25:
         std::io::fmt_print("at least{newln}");

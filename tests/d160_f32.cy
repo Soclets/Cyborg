@@ -1,8 +1,7 @@
 // trace: D160
-@config(default);
 import std;
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let $a: f32.stable = ~0.1;
     let $b: f32.stable = ~0.1;
     if $a == $b:

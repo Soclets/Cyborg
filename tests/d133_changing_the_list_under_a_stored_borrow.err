@@ -1,9 +1,9 @@
-refused: d133_changing_the_list_under_a_stored_borrow.cy:9:24, line 9 column 24
- 9 |     let $k: str = Copy $l;
+refused: d133_changing_the_list_under_a_stored_borrow.cy:8:24, line 8 column 24
+ 8 |     let $k: str = Copy $l;
    |                        ^^
  what: `$l` can't be used after what it borrows was used
  why:  a stored `Lend.mut` means nothing else uses it meanwhile, and a `Lend` means it can't change (D2)
- because: d133_changing_the_list_under_a_stored_borrow.cy:8:12, line 8 column 12
- 8 |     change $xs = ["c", "d"];
+ because: d133_changing_the_list_under_a_stored_borrow.cy:7:12, line 7 column 12
+ 7 |     change $xs = ["c", "d"];
    |            ^^^
      what it borrows was used here

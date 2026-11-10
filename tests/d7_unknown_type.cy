@@ -1,7 +1,6 @@
 // trace: D7
-@config(default);
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let $a: widget = 5;
     return void;
 end fn.main

@@ -1,8 +1,7 @@
 // trace: D49, D116
-@config(default);
 import std;
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let $a: i32 = 6;
     std::io::fmt_print("{}{newln}", ($a bit_and 3));
     std::io::fmt_print("{}{newln}", ($a bit_or 1));

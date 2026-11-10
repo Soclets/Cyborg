@@ -1,9 +1,9 @@
-refused: d173_same_field_changed.cy:18:37, line 18 column 37
-18 |     std::io::fmt_print("{}{newln}", $l.n);
+refused: d173_same_field_changed.cy:17:37, line 17 column 37
+17 |     std::io::fmt_print("{}{newln}", $l.n);
    |                                     ^^
  what: `$l` can't be used after what it borrows was used
  why:  a stored `Lend.mut` means nothing else uses it meanwhile, and a `Lend` means it can't change (D2)
- because: d173_same_field_changed.cy:17:12, line 17 column 12
-17 |     change $p.a.n = 3;
+ because: d173_same_field_changed.cy:16:12, line 16 column 12
+16 |     change $p.a.n = 3;
    |            ^^^^^^
      what it borrows was used here

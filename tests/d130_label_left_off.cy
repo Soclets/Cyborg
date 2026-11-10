@@ -1,5 +1,4 @@
 // trace: D130, D113
-@config(default);
 
 struct box:
     n: i32;
@@ -11,7 +10,7 @@ fn box.%plus [$b: box, $by: i32] -> i32:
     return $b.n + $by;
 end fn box.%plus
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let $b: box = box[n = 1];
     let $n: i32 = $b.%plus(1);
     return void;

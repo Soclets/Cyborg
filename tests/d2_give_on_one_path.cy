@@ -1,6 +1,5 @@
 // A value given on one path can't be used after, on any path.
 // trace: D2
-@config(default);
 
 struct box:
     n: i32;
@@ -14,7 +13,7 @@ fn read [$b: box] -> i32:
     return $b.n;
 end fn read
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let $b: box = box[n = 1];
     if 1 < 2:
         eat(Give $b);

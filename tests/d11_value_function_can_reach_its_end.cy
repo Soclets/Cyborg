@@ -1,5 +1,4 @@
 // trace: D11
-@config(default);
 
 fn f [$n: i32] -> i32:
     if $n at_least 1:
@@ -7,6 +6,6 @@ fn f [$n: i32] -> i32:
     end if
 end fn f
 
-fn.main [] -> void:
+fn.main [none] -> void:
     return void;
 end fn.main

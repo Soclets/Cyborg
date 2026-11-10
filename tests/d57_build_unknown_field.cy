@@ -1,11 +1,10 @@
 // trace: D57
-@config(default);
 
 struct reading:
     celsius: i32;
 end struct reading
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let $r: reading = reading[celsius = 21, kelvin = 300];
     return void;
 end fn.main

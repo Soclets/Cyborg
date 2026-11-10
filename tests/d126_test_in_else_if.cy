@@ -1,5 +1,4 @@
 // trace: D126, D9, D20
-@config(default);
 import std;
 
 union.tagged status:
@@ -30,7 +29,7 @@ fn grade [$n: i32] -> void:
     return void;
 end fn grade
 
-fn.main [] -> void:
+fn.main [none] -> void:
     show(status.failed[code = 1]);
     show(status.lost[where = 2]);
     show(status.ok);

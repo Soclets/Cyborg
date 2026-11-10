@@ -1,8 +1,7 @@
 // trace: D133, D128
-@config(default);
 import std;
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let $a: std::array<i32>[len: 3 items] = [1, 2, 3];
     let mut $total: i32 = 0;
     for $i in range[from: 1, to: 3]:

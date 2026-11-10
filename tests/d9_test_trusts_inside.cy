@@ -1,5 +1,4 @@
 // trace: D9
-@config(default);
 import std;
 
 union.tagged status:
@@ -14,7 +13,7 @@ fn show [$s: status] -> void:
     return void;
 end fn show
 
-fn.main [] -> void:
+fn.main [none] -> void:
     show(status.failed[code = 3]);
     show(status.ok);
     return void;

@@ -1,5 +1,5 @@
-refused: d126_handler_jumps_from_an_else.cy:18:47, line 18 column 47
-18 |     std::io::fmt_print("hi{newln}") otherwise say_failed.maybe;
+refused: d126_handler_jumps_from_an_else.cy:17:47, line 17 column 47
+17 |     std::io::fmt_print("hi{newln}") otherwise say_failed.maybe;
    |                                               ^^^^^^^^^^^^^^^^
  fix:  `say_failed.*maybe`
  why:  a handler that can `return` or `break` is marked `*` where it's used (D46, D128)

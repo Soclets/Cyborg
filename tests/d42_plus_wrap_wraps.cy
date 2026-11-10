@@ -1,8 +1,7 @@
 // trace: D42
-@config(default);
 import std;
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let $a: i32 = 2147483647;
     let $b: i32 = $a plus.wrap 1;
     let $c: u8 = 255;

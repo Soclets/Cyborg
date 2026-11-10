@@ -1,5 +1,4 @@
 // trace: D171
-@config(default);
 
 struct reading:
     celsius: i32;
@@ -10,6 +9,6 @@ struct view <`text`>:
     other: Lend from $r reading;
 end struct view
 
-fn.main [] -> void:
+fn.main [none] -> void:
     return void;
 end fn.main

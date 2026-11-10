@@ -1,6 +1,5 @@
 // A unit parameter needs `any.unit` or one family, and nothing else.
 // trace: D243
-@config(default);
 import std;
 
 fam.unit length:
@@ -20,6 +19,6 @@ fn keep<?u: length and ordered> [$a: f64.stable[unit: ?u]] -> f64.stable[unit: ?
     return $a;
 end fn keep
 
-fn.main [] -> void:
+fn.main [none] -> void:
     return void;
 end fn.main

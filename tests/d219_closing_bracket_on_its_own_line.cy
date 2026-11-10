@@ -1,9 +1,8 @@
 // A bracket that breaks its line has its closing one on its own line.
 // trace: D219
-@config(default);
 import std;
 
-fn.main [] -> void:
+fn.main [none] -> void:
     std::io::fmt_print(
         "{} {}{newln}",
         1,

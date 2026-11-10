@@ -1,5 +1,0 @@
-NotDesignedYet: d201_match_config.cy:2:15, line 2 column 15
- 2 | @match_config(other.cy);
-   |               ^^^^^
- what: how `@match_config` names the file it copies
- why:  not decided yet (standard 12.2)

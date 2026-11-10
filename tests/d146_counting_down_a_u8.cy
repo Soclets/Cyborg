@@ -1,9 +1,8 @@
 // A `u8` can't hold -1, and a step isn't stored, so it doesn't have to.
 // trace: D146
-@config(default);
 import std;
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let $from: u8 = 3;
     let $to: u8 = 0;
     for $i in range[from: $from, to: $to, step_by: -1]:

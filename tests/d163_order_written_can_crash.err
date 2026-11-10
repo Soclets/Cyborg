@@ -1,5 +1,5 @@
-check failed: d163_order_written_can_crash.cy:8:24, line 8 column 24
- 8 |     let $y: f32.fast = $big x 10.0 x ~0.1;
+check failed: d163_order_written_can_crash.cy:7:24, line 7 column 24
+ 7 |     let $y: f32.fast = $big x 10.0 x ~0.1;
    |                        ^^^^^^^^^^^
  what: this makes infinity
  why:  a float can't be NaN or infinity, and making one is a failure (D158)

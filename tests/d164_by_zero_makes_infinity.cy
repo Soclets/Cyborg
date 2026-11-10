@@ -1,8 +1,7 @@
 // trace: D164, D158
-@config(default);
 import std;
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let $zero: f64.stable = 0.0;
     std::io::fmt_print("before{newln}");
     let $a: f64.stable = 1.0 div $zero;

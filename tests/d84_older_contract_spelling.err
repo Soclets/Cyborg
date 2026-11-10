@@ -1,5 +1,5 @@
-refused: d84_older_contract_spelling.cy:5:5, line 5 column 5
- 5 |     precond => $n at_least 0;
+refused: d84_older_contract_spelling.cy:4:5, line 4 column 5
+ 4 |     precond => $n at_least 0;
    |     ^^^^^^^^^^
  fix:  `requires`
  why:  contracts are `requires` and `ensures`, with no `=>` (D84)

@@ -1,5 +1,4 @@
 // trace: D176, D171
-@config(default);
 
 struct reading:
     celsius: i32;
@@ -10,7 +9,7 @@ union.tagged lookup <`text`>:
     missing;
 end union.tagged lookup
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let mut $a: reading = reading[celsius = 4];
     let $l: lookup<`text`: $a> = lookup.found[item = Lend $a];
     change $a.celsius = 1;

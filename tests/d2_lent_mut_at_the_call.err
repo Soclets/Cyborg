@@ -1,5 +1,5 @@
-refused: d2_lent_mut_at_the_call.cy:10:7, line 10 column 7
-10 |     f(Lent.mut $s);
+refused: d2_lent_mut_at_the_call.cy:9:7, line 9 column 7
+ 9 |     f(Lent.mut $s);
    |       ^^^^^^^^
  fix:  `Lend.mut`
  why:  the call and the parameter each have their own word (D2)

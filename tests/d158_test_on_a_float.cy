@@ -1,5 +1,4 @@
 // trace: D158, D20
-@config(default);
 import std;
 
 fn pick [$x: f64.stable] -> void:
@@ -11,7 +10,7 @@ fn pick [$x: f64.stable] -> void:
     return void;
 end fn pick
 
-fn.main [] -> void:
+fn.main [none] -> void:
     pick(150.5);
     pick(99.5);
     pick(200.0);

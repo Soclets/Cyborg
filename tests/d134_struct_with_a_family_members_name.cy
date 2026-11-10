@@ -1,6 +1,5 @@
 // `small` is its own struct here, so the family's `sizes.small` doesn't come into it.
 // trace: D134, D57
-@config(default);
 import std;
 
 struct small:
@@ -11,7 +10,7 @@ fam.type.alias sizes:
     sizes.small = i32;
 end fam.type.alias sizes
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let $a: small = small[n = 1];
     std::io::fmt_print("{}{newln}", $a.n);
     return void;

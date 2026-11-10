@@ -1,5 +1,4 @@
 // trace: D126
-@config(default);
 import std;
 
 fn say [$n: i32] -> bool:
@@ -7,7 +6,7 @@ fn say [$n: i32] -> bool:
     return $n == 2;
 end fn say
 
-fn.main [] -> void:
+fn.main [none] -> void:
     if say(1):
         std::io::fmt_print("one{newln}");
     else if say(2):

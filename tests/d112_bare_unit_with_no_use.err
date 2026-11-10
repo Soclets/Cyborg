@@ -1,5 +1,5 @@
-refused: d112_bare_unit_with_no_use.cy:9:44, line 9 column 44
- 9 |     let $a: i32[unit: time.seconds] = 3600 seconds;
+refused: d112_bare_unit_with_no_use.cy:8:44, line 8 column 44
+ 8 |     let $a: i32[unit: time.seconds] = 3600 seconds;
    |                                            ^^^^^^^
  what: the bare unit `seconds` doesn't say its family
  why:  a unit always says its family, or its path from a kit, unless `use` shortens it (D112)

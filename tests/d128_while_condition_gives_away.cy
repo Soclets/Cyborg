@@ -1,12 +1,11 @@
 // The test runs again each time round.
 // trace: D128, D2
-@config(default);
 
 fn eat [$s: Given str] -> bool:
     return false;
 end fn eat
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let $s: str = "a";
     while eat(Give $s):
         let $n: i32 = 1;

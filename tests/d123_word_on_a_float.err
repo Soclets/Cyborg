@@ -1,5 +1,5 @@
-refused: d123_word_on_a_float.cy:10:28, line 10 column 28
-10 |     let $b: f64.stable = f(Lend $a);
+refused: d123_word_on_a_float.cy:9:28, line 9 column 28
+ 9 |     let $b: f64.stable = f(Lend $a);
    |                            ^^^^^^^
  fix:  `$a`
  why:  plain numbers and `bool` are always copied, and take no word (D2, D123)

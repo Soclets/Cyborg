@@ -1,5 +1,4 @@
 // trace: D113
-@config(default);
 import std;
 
 struct box:
@@ -12,7 +11,7 @@ fn eat [$b: Given box] -> i32:
     return $b.n;
 end fn eat
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let $r: box = box[n = 5];
     std::io::fmt_print("{}{newln}", eat(val: Give $r));
     let mut $xs: std::list<box>[len.max: inf items] = empty;

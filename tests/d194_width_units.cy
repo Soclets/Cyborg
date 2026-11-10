@@ -1,9 +1,8 @@
 // `é` is one column and two bytes, `日` two columns, and the flag one grapheme of two characters.
 // trace: D194
-@config(default);
 import std;
 
-fn.main [] -> void:
+fn.main [none] -> void:
     std::io::fmt_print("[{align: left, width: 4 cols}]{newln}", "é");
     std::io::fmt_print("[{align: left, width: 4 bytes}]{newln}", "é");
     std::io::fmt_print("[{align: left, width: 4 cols}]{newln}", "日");

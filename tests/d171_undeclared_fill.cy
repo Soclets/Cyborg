@@ -1,5 +1,4 @@
 // trace: D171
-@config(default);
 
 struct reading:
     celsius: i32;
@@ -9,7 +8,7 @@ struct view <`text`>:
     words: Lend from `text` reading;
 end struct view
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let $a: reading = reading[celsius = 1];
     let $v: view<`text`: $b> = view[words = Lend $a];
     return void;

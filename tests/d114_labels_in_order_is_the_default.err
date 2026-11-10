@@ -1,5 +1,5 @@
-refused: d114_labels_in_order_is_the_default.cy:5:5, line 5 column 5
- 5 |     labels.in_order [$a as first];
+refused: d114_labels_in_order_is_the_default.cy:4:5, line 4 column 5
+ 4 |     labels.in_order [$a as first];
    |     ^^^^^^^^^^^^^^^
  fix:  `labels`
  why:  a default the language fixes can't be written out (D51, D114)

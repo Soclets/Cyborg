@@ -1,9 +1,9 @@
-refused: d129_fail_with_a_duty_open.cy:11:5, line 11 column 5
-11 |     fail nope;
+refused: d129_fail_with_a_duty_open.cy:10:5, line 10 column 5
+10 |     fail nope;
    |     ^^^^^^^^^^
  what: this leaves with `$g` never given away or finished
  why:  a `must_Give` value is handed off with `Give` exactly once, or `finish` ends it (D2, D129)
- because: d129_fail_with_a_duty_open.cy:10:9, line 10 column 9
-10 |     let $g: open_file = open_file[fd = 3];
+ because: d129_fail_with_a_duty_open.cy:9:9, line 9 column 9
+ 9 |     let $g: open_file = open_file[fd = 3];
    |         ^^
      `$g` was made here

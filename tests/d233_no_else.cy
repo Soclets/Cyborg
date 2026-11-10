@@ -1,9 +1,8 @@
 // With no `else:`, a build for another chip, like the oracle's, gets nothing from the choice.
 // trace: D233
-@config(default);
 import std;
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let $a: i64 = 6;
     let $b: i64 = 7;
     on.target aarch64:
@@ -12,7 +11,7 @@ fn.main [] -> void:
             inline.asm:
                 reads: [x0 = $a, x1 = $b];
                 writes: [x2 => $r];
-                clobbers: [];
+                clobbers: [none];
                 add x2, x0, x1
             end inline.asm
         end shield add

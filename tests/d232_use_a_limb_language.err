@@ -1,5 +1,5 @@
-refused: d232_use_a_limb_language.cy:5:1, line 5 column 1
- 5 | use inline.@llvm::ir as ir;
+refused: d232_use_a_limb_language.cy:4:1, line 4 column 1
+ 4 | use inline.@llvm::ir as ir;
    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^
  fix:  ``
  why:  `use` only shortens a path with `::` into a kit or limb, so every `inline.…` stays written in full (D232)

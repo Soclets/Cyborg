@@ -1,5 +1,4 @@
 // trace: D139, D2
-@config(default);
 import std;
 
 union.tagged status:
@@ -19,7 +18,7 @@ fn keep [$s: Given status] -> void:
     return void;
 end fn keep
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let $s: status = status.failed[code = 1];
     match $s:
         case status.failed $f:

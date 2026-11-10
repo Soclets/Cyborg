@@ -1,6 +1,5 @@
 // `as` changes a unit: a float rounds to the nearest, and an integer to a smaller unit is exact.
 // trace: D255
-@config(default);
 import std;
 
 fam.unit length:
@@ -11,7 +10,7 @@ fam.unit length:
     length.feet = 12 length.inches;
 end fam.unit length
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let $km: f64.stable[unit: length.kilometers] = 2.5 length.kilometers;
     let $m: f64.stable[unit: length.meters] = $km as f64.stable[unit: length.meters];
     let $whole: i32[unit: length.kilometers] = 3 length.kilometers;

@@ -1,5 +1,4 @@
 // trace: D139, D47
-@config(default);
 import std;
 
 fam.failure file_failed:
@@ -7,11 +6,11 @@ fam.failure file_failed:
     file_failed.disk_full[free: i32, label: str];
 end fam.failure file_failed
 
-fn save [] -> void fails [file_failed]:
+fn save [none] -> void fails [file_failed]:
     fail file_failed.disk_full[free = 7, label = "scratch"];
 end fn save
 
-fn.main [] -> void:
+fn.main [none] -> void:
     save() otherwise:
         case not_found:
             std::io::fmt_print("not found{newln}");

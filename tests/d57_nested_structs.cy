@@ -1,5 +1,4 @@
 // trace: D57
-@config(default);
 import std;
 
 struct inner:
@@ -15,7 +14,7 @@ fn read [$i: inner] -> i32:
     return $i.n;
 end fn read
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let $first: inner = inner[n = 1];
     let $o: outer = outer[a = Give $first, b = inner[n = 2]];
     std::io::fmt_print("{}{newln}", $o.a.n);

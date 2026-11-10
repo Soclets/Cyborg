@@ -1,5 +1,5 @@
-refused: d134_alias_loop.cy:4:12, line 4 column 12
- 4 | type.alias a = b;
+refused: d134_alias_loop.cy:3:12, line 3 column 12
+ 3 | type.alias a = b;
    |            ^
  what: `a` leads back to itself
  why:  `type.alias` gives a type another name, so it has to end at a type (D134)

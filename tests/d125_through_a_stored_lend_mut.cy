@@ -1,6 +1,5 @@
 // `Lend.mut` may change the value, so its field can change too. Reported as a reading.
 // trace: D125, D2
-@config(default);
 import std;
 
 struct box:
@@ -12,7 +11,7 @@ fn show [$b: box] -> void:
     return void;
 end fn show
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let mut $b: box = box[n = 1];
     let $l: Lend.mut from $b box = Lend.mut $b;
     change $l.n = 2;

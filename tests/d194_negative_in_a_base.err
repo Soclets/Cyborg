@@ -1,5 +1,5 @@
-NotDesignedYet: d194_negative_in_a_base.cy:7:25, line 7 column 25
- 7 |     std::io::fmt_print("{base: hex}{newln}", $n);
+NotDesignedYet: d194_negative_in_a_base.cy:6:25, line 6 column 25
+ 6 |     std::io::fmt_print("{base: hex}{newln}", $n);
    |                         ^^^^^^^^^^^
  what: how a negative number prints with `base:`
  why:  not decided yet, and the standard doesn't say

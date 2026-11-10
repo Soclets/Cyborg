@@ -1,9 +1,8 @@
 // `$a -1` is a binary `-` spaced on one side.
 // trace: D213
-@config(default);
 import std;
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let $a: i32 = 1;
     let $b: i32 = $a -1;
     return void;

@@ -1,9 +1,9 @@
-refused: d128_given_before_a_break_is_maybe_gone.cy:16:5, line 16 column 5
-16 |     eat(Give $s);
+refused: d128_given_before_a_break_is_maybe_gone.cy:15:5, line 15 column 5
+15 |     eat(Give $s);
    |     ^^^^^^^^^^^^
  what: `$s` was already given away
  why:  a given value is dead afterwards (D2)
- because: d128_given_before_a_break_is_maybe_gone.cy:13:9, line 13 column 9
-13 |         eat(Give $s);
+ because: d128_given_before_a_break_is_maybe_gone.cy:12:9, line 12 column 9
+12 |         eat(Give $s);
    |         ^^^^^^^^^^^^
      `$s` was given away here

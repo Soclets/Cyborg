@@ -1,5 +1,4 @@
 // trace: D2
-@config(default);
 import std;
 
 struct reading:
@@ -10,7 +9,7 @@ fn read [$r: reading] -> i32:
     return $r.celsius;
 end fn read
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let $r: reading = reading[celsius = 21];
     let $b: Lend from $r reading = Lend $r;
     std::io::fmt_print("{}{newln}", $b.celsius);

@@ -1,5 +1,5 @@
-refused: d130_pure_closer.cy:10:1, line 10 column 1
-10 | end fn box.%f
+refused: d130_pure_closer.cy:9:1, line 9 column 1
+ 9 | end fn box.%f
    | ^^^^^^^^^^^^^
  fix:  `end fn.pure box.%f`
  why:  the closer repeats all of what it closes, including its narrowings and name (D33, D121)

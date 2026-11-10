@@ -1,5 +1,0 @@
-NotDesignedYet: d201_a_rule_isnt_spelled_yet.cy:2:9, line 2 column 9
- 2 | @config(var::mut::never_changed = refuse);
-   |         ^^^
- what: how a rule is spelled, and the list of rules
- why:  not decided yet (standard 12.2)

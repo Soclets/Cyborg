@@ -1,6 +1,5 @@
 // 2.16's example: a point plus a span is a point, a point minus a point is a span.
 // trace: D249, D248, D246
-@config(default);
 import std;
 
 fam.unit temperature:
@@ -10,7 +9,7 @@ end fam.unit temperature
 
 use my::temperature.celsius as celsius;
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let $now: f64.stable[unit: celsius.point] = 20.0 celsius;
     let $rise: f64.stable[unit: celsius.span] = 10.0 celsius;
     let $later: f64.stable[unit: celsius.point] = $now + $rise;

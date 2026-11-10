@@ -1,9 +1,9 @@
-refused: d173_one_field_twice_in_one_call.cy:19:27, line 19 column 27
-19 |     adjust(Lend.mut $p.a, Lend.mut $p.a);
+refused: d173_one_field_twice_in_one_call.cy:18:27, line 18 column 27
+18 |     adjust(Lend.mut $p.a, Lend.mut $p.a);
    |                           ^^^^^^^^^^^^^
  what: `$p` is already handed off with `Lend.mut` in this call
  why:  `Lend.mut` means nothing else uses it meanwhile, and `Give` means it's gone (D2)
- because: d173_one_field_twice_in_one_call.cy:19:12, line 19 column 12
-19 |     adjust(Lend.mut $p.a, Lend.mut $p.a);
+ because: d173_one_field_twice_in_one_call.cy:18:12, line 18 column 12
+18 |     adjust(Lend.mut $p.a, Lend.mut $p.a);
    |            ^^^^^^^^^^^^^
      that's here

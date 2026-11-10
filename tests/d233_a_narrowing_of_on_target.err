@@ -1,5 +1,5 @@
-NotDesignedYet: d233_a_narrowing_of_on_target.cy:9:5, line 9 column 5
- 9 |     on.target.os linux:
+NotDesignedYet: d233_a_narrowing_of_on_target.cy:8:5, line 8 column 5
+ 8 |     on.target.os linux:
    |     ^^^^^^^^^^^^
  what: `on.target.os`, a narrowing of `on.target`
  why:  not decided yet (standard 12.5)

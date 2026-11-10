@@ -1,5 +1,5 @@
-refused: d126_closer_is_end_if.cy:9:5, line 9 column 5
- 9 |     end else
+refused: d126_closer_is_end_if.cy:8:5, line 8 column 5
+ 8 |     end else
    |     ^^^^^^^^
  fix:  `end if`
  why:  the closer repeats all of what it closes, including its narrowings and name (D33, D121)

@@ -1,9 +1,9 @@
-refused: d44_given_in_a_fallback.cy:12:24, line 12 column 24
-12 |     let $u: str = Give $s;
+refused: d44_given_in_a_fallback.cy:11:24, line 11 column 24
+11 |     let $u: str = Give $s;
    |                        ^^
  what: `$s` was already given away
  why:  a given value is dead afterwards (D2)
- because: d44_given_in_a_fallback.cy:11:29, line 11 column 29
-11 |     let $t: str = read() ?? Give $s;
+ because: d44_given_in_a_fallback.cy:10:29, line 10 column 29
+10 |     let $t: str = read() ?? Give $s;
    |                             ^^^^^^^
      `$s` was given away here

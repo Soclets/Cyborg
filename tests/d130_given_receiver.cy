@@ -1,5 +1,4 @@
 // trace: D130, D8
-@config(default);
 
 struct.must_Give open_file:
     fd: i32;
@@ -10,6 +9,6 @@ fn open_file.%close [$f: Given open_file] -> void:
     return void;
 end fn open_file.%close
 
-fn.main [] -> void:
+fn.main [none] -> void:
     return void;
 end fn.main

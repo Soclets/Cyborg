@@ -1,5 +1,5 @@
-refused: d3_whole_struct_passed_with_no_word.cy:14:24, line 14 column 24
-14 |     let $n: i32 = read($b);
+refused: d3_whole_struct_passed_with_no_word.cy:13:24, line 13 column 24
+13 |     let $n: i32 = read($b);
    |                        ^^
  fix:  `Lend $b`
  why:  every hand-off shows on the page (D3)

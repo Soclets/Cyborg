@@ -1,5 +1,4 @@
 // trace: D86
-@config(default);
 
 fn check [$n: i32] -> bool:
     return $n at_least 0;
@@ -11,6 +10,6 @@ fn f [$n: i32] -> i32:
     return $n;
 end fn f
 
-fn.main [] -> void:
+fn.main [none] -> void:
     return void;
 end fn.main

@@ -1,5 +1,4 @@
 // trace: D144, D130
-@config(default);
 import std;
 
 fam.unit screen:
@@ -17,7 +16,7 @@ fn cursor.%%move [$c: Lent.mut cursor, $by: i32[unit: screen.pixels]] -> void:
     return void;
 end fn cursor.%%move
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let mut $c: cursor = cursor[x = 1 screen.pixels];
     $c.%%move(by.screen.pixels: 2);
     std::io::fmt_print("{}{newln}", ($c.x as i32));

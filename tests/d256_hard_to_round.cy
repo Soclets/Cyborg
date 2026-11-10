@@ -1,12 +1,11 @@
 // Published worst cases: sin of the `f64` nearest π/2 rounds up to 1, and cos(2^-26) just misses it.
 // trace: D256
-@config(default);
 import std;
 
 use std::units::angle.radians as radians;
 use std::units::angle.degrees as degrees;
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let $near: f64.stable[unit: radians] = ~1.5707963267948966 radians;
     let $tiny: f64.stable[unit: radians] = 0.0000000149011611938476562500 radians;
     std::io::fmt_print("{} {}{newln}", std::math::sin($near), std::math::cos($tiny));

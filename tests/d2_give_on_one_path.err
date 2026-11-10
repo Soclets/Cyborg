@@ -1,9 +1,9 @@
-refused: d2_give_on_one_path.cy:22:19, line 22 column 19
-22 |     let $n: i32 = read(Lend $b);
+refused: d2_give_on_one_path.cy:21:19, line 21 column 19
+21 |     let $n: i32 = read(Lend $b);
    |                   ^^^^^^^^^^^^^
  what: `$b` was already given away
  why:  a given value is dead afterwards (D2)
- because: d2_give_on_one_path.cy:20:9, line 20 column 9
-20 |         eat(Give $b);
+ because: d2_give_on_one_path.cy:19:9, line 19 column 9
+19 |         eat(Give $b);
    |         ^^^^^^^^^^^^
      `$b` was given away here

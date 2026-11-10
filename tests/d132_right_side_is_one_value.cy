@@ -1,12 +1,11 @@
 // trace: D132
-@config(default);
 import std;
 
-fn read [] -> i32 fails [none]:
+fn read [none] -> i32 fails [none]:
     fail none;
 end fn read
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let $x: i32 = 5;
     std::io::fmt_print("{}{newln}", (read() ?? -1));
     std::io::fmt_print("{}{newln}", (read() ?? $x));

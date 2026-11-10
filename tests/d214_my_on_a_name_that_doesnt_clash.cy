@@ -1,10 +1,9 @@
 // trace: D214, D75
-@config(default);
 
-fn my::total [] -> i32:
+fn my::total [none] -> i32:
     return 1;
 end fn my::total
 
-fn.main [] -> void:
+fn.main [none] -> void:
     return void;
 end fn.main

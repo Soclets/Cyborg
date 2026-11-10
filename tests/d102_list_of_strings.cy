@@ -1,9 +1,8 @@
 // Items that aren't plain numbers show their hand-off too.
 // trace: D102, D3
-@config(default);
 import std;
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let $a: str = "a";
     let $b: str = "b";
     let $xs: std::list<str>[len.max: 8 items] = [Give $a, Copy $b, "c"];

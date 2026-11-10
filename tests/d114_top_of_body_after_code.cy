@@ -1,5 +1,4 @@
 // trace: D114
-@config(default);
 
 fn half [$n: i32] -> i32:
     let $m: i32 = $n;
@@ -8,6 +7,6 @@ fn half [$n: i32] -> i32:
     return $m;
 end fn half
 
-fn.main [] -> void:
+fn.main [none] -> void:
     return void;
 end fn.main

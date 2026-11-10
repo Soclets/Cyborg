@@ -1,6 +1,5 @@
 // `Given` takes `Give` or `Copy`, so no one fix can be shown.
 // trace: D2, D16
-@config(default);
 
 struct box:
     n: i32;
@@ -10,7 +9,7 @@ fn eat [$b: Given box] -> void:
     return void;
 end fn eat
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let $b: box = box[n = 1];
     eat(Lend $b);
     return void;

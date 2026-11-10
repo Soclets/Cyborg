@@ -1,6 +1,5 @@
 // The borrow points at `$y` itself, so changing through it changes `$y`.
 // trace: D170
-@config(default);
 import std;
 
 struct reading:
@@ -14,7 +13,7 @@ fn colder [$a: Lent.mut reading, $b: Lent.mut reading] -> Lend.mut from <$a, $b>
     return Lend.mut $b;
 end fn colder
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let mut $x: reading = reading[celsius = 21];
     let mut $y: reading = reading[celsius = 5];
     let $c: Lend.mut from <$x, $y> reading = colder(Lend.mut $x, Lend.mut $y);

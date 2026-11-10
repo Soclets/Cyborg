@@ -1,8 +1,7 @@
 // trace: D131
-@config(default);
 import std;
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let $a: i32 = 1;
     let $b: i32 = 2;
     if not $a < 3:

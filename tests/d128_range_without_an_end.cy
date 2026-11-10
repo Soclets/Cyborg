@@ -1,8 +1,7 @@
 // An endless loop says `forever`.
 // trace: D128
-@config(default);
 
-fn.main [] -> void:
+fn.main [none] -> void:
     for $i in range[from: 1]:
         return void;
     end for

@@ -1,6 +1,5 @@
 // A body uses on a `?item` only what its requirement lists.
 // trace: D235, D239
-@config(default);
 import std;
 
 interface ordered<?self>:
@@ -20,6 +19,6 @@ fn larger<?item: any.type> [$a: ?item, $b: ?item] -> bool:
     return $a < $b;
 end fn larger
 
-fn.main [] -> void:
+fn.main [none] -> void:
     return void;
 end fn.main

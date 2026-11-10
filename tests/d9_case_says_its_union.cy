@@ -1,11 +1,10 @@
 // trace: D9, D33
-@config(default);
 
 union.tagged status:
     ok;
 end union.tagged status
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let $s: status = status.ok;
     match $s:
         case ok:

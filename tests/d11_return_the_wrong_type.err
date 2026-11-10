@@ -1,5 +1,5 @@
-refused: d11_return_the_wrong_type.cy:5:12, line 5 column 12
- 5 |     return "x";
+refused: d11_return_the_wrong_type.cy:4:12, line 4 column 12
+ 4 |     return "x";
    |            ^^^
  what: this is `str`, where `i32` is needed
  why:  `:` doesn't convert, and `as` builds a new value of another type (D7)

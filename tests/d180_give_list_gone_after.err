@@ -1,9 +1,9 @@
-refused: d180_give_list_gone_after.cy:20:5, line 20 column 5
-20 |     std::io::fmt_print("{}{newln}", $files.len);
+refused: d180_give_list_gone_after.cy:19:5, line 19 column 5
+19 |     std::io::fmt_print("{}{newln}", $files.len);
    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
  what: `$files` was already given away
  why:  a given value is dead afterwards (D2)
- because: d180_give_list_gone_after.cy:17:15, line 17 column 15
-17 |     for $f in Give $files:
+ because: d180_give_list_gone_after.cy:16:15, line 16 column 15
+16 |     for $f in Give $files:
    |               ^^^^^^^^^^^
      `$files` was given away here

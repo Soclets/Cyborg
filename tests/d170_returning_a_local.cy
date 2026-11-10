@@ -1,5 +1,4 @@
 // trace: D170
-@config(default);
 
 struct reading:
     celsius: i32;
@@ -10,6 +9,6 @@ fn make [$a: reading] -> Lend from $a reading:
     return Lend $r;
 end fn make
 
-fn.main [] -> void:
+fn.main [none] -> void:
     return void;
 end fn.main

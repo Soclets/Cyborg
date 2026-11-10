@@ -1,5 +1,4 @@
 // trace: D125
-@config(default);
 import std;
 
 union.tagged status:
@@ -11,7 +10,7 @@ struct job:
     state: status;
 end struct job
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let mut $j: job = job[state = status.ok];
     change $j.state = status.failed[code = 7];
     match $j.state:

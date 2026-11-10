@@ -1,6 +1,5 @@
 // A block's own names mustn't throw off what's known about names declared after it.
 // trace: D2
-@config(default);
 
 struct box:
     n: i32;
@@ -10,7 +9,7 @@ fn eat [$b: Given box] -> void:
     return void;
 end fn eat
 
-fn.main [] -> void:
+fn.main [none] -> void:
     if 1 < 2:
         let $inner: i32 = 1;
     end if

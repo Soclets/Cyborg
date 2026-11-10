@@ -1,8 +1,7 @@
 // trace: D166, D159
-@config(default);
 import std;
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let $zero: f32.ieee = 0.0;
     let $inf: f32.ieee = 1.0 div $zero;
     std::io::fmt_print("{}{newln}", $inf);

@@ -1,5 +1,5 @@
-refused: d139_instead_in_a_match_arm_alone.cy:13:13, line 13 column 13
-13 |             instead 0;
+refused: d139_instead_in_a_match_arm_alone.cy:12:13, line 12 column 13
+12 |             instead 0;
    |             ^^^^^^^^^^
  what: `instead` goes in a failure's `case`, and there's none around this
  why:  `instead` gives the value used in place of a failed call (D139)

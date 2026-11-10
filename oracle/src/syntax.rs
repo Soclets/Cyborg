@@ -436,10 +436,8 @@ fn parse_shape(
     Ok(())
 }
 
-/// The builtins that set a file's rules, and the line that asks for the compiler's defaults.
-/// (D201)
+/// The builtins that set a file's rules before D265 moved them to the manifest.
 const RULES_WORDS: &[&str] = &["config", "match_config", "tighten_config", "loosen_config"];
-const RULES_DEFAULT: &str = "@config(default)";
 
 /// The word in front of a declaration that others can see. (D200)
 const PUB_WORD: &str = "pub";
@@ -1775,13 +1773,11 @@ impl Parser {
             uses: Vec::new(),
             items: Vec::new(),
         };
-        // A file's rules come first, then any tightening or loosening, then everything else.
-        // trace: D201, D204
-        let rules = self.parse_rules_block()?;
         while !matches!(self.peek().lexeme, Lexeme::End) {
             self.mark_line_start();
+            // trace: D265
             if self.at_symbol("@") && self.rules_word_ahead().is_some() {
-                return Err(self.rules_line_too_late(rules));
+                return Err(self.refuse_rules_line());
             }
             if self.at_word("import") {
                 let span = self.span();
@@ -1867,14 +1863,15 @@ impl Parser {
         Ok(())
     }
 
-    /// Every file sets its rules first, and there's no unsaid default. (D201)
-    fn no_rules_line(span: Span) -> Box<Report> {
+    /// `@config` and its kin are gone: a project's rules are `rule` lines in its manifest. (D265)
+    /// trace: D265
+    fn refuse_rules_line(&self) -> Box<Report> {
+        let word = self.rules_word_ahead().unwrap_or("config");
         Report::refused(
-            span,
-            "this file doesn't say its rules",
-            "every file's first line is `@config(…);` or `@match_config(…);`, and the compiler's defaults are `@config(default);` (D201, D204)",
+            self.span().to(self.peek_at(1).span),
+            format!("`@{word}` is gone, and a project's rules are `rule` lines in `CyJet.siml`"),
+            "rules live in the manifest, so code gets straight to the point, and a project with no `rule` lines gets the compiler's defaults (D265)",
         )
-        .fix_elsewhere(format!("{RULES_DEFAULT};"))
     }
 
     /// `@config`, `@match_config`, `@tighten_config` or `@loosen_config`, when one is next.
@@ -1883,75 +1880,6 @@ impl Parser {
             return None;
         };
         RULES_WORDS.iter().copied().find(|found| found == word)
-    }
-
-    /// The file's first line, `@config(default);`, and any tightening or loosening straight after.
-    /// Only `@config(default);` has settled contents. (D201, D204)
-    /// trace: D201, D204
-    fn parse_rules_block(&mut self) -> Outcome<(Span, &'static str)> {
-        let first = self.rules_word_ahead().filter(|_| self.at_symbol("@"));
-        let Some(word @ ("config" | "match_config")) = first else {
-            return Err(Self::no_rules_line(self.span()));
-        };
-        let start = self.span();
-        self.advance(); // `@`
-        self.advance(); // the word
-        self.expect_symbol("(")?;
-        let inside = self.span();
-        if word == "match_config" {
-            return Err(Report::not_designed(
-                inside,
-                "how `@match_config` names the file it copies",
-                "12.2",
-            ));
-        }
-        if !(self.at_word("default") && self.symbol_at(1, ")")) {
-            return Err(Report::not_designed(
-                inside,
-                "how a rule is spelled, and the list of rules",
-                "12.2",
-            ));
-        }
-        self.advance(); // `default`
-        self.expect_symbol(")")?;
-        self.expect_semicolon()?;
-        let rules = (start.to(self.previous_span()), word);
-        if self.at_symbol("@")
-            && matches!(
-                self.rules_word_ahead(),
-                Some("tighten_config" | "loosen_config")
-            )
-        {
-            self.advance(); // `@`
-            self.advance(); // the word
-            self.expect_symbol("(")?;
-            return Err(Report::not_designed(
-                self.span(),
-                "how a rule is spelled, and the list of rules",
-                "12.2",
-            ));
-        }
-        Ok(rules)
-    }
-
-    /// A rules line anywhere but the top. (D204, D201)
-    fn rules_line_too_late(&self, rules: (Span, &'static str)) -> Box<Report> {
-        let word = self.rules_word_ahead().unwrap_or("config");
-        let (earlier, earlier_word) = rules;
-        if matches!(word, "config" | "match_config") && word != earlier_word {
-            return Report::refused(
-                self.span(),
-                "a file sets its first rules with `@config` or `@match_config`, not both",
-                "every file starts with one of the two (D201)",
-            )
-            .because(earlier, "they're set here");
-        }
-        Report::refused(
-            self.span(),
-            format!("`@{word}` goes at the top, with the file's other rules"),
-            "a file's rules come first, and tightening or loosening follows straight after (D204)",
-        )
-        .because(earlier, "the file's rules are here")
     }
 
     fn parse_item(&mut self) -> Outcome<Item> {
@@ -2245,6 +2173,9 @@ impl Parser {
     }
 
     fn parse_parameters(&mut self) -> Outcome<Vec<Parameter>> {
+        if self.none_list()? {
+            return Ok(Vec::new());
+        }
         self.expect_symbol("[")?;
         let mut parameters = Vec::new();
         while !self.at_symbol("]") {
@@ -3897,6 +3828,10 @@ impl Parser {
         }
         self.advance();
         self.expect_symbol(":")?;
+        if self.none_list()? {
+            self.expect_semicolon()?;
+            return Ok(Vec::new());
+        }
         self.expect_symbol("[")?;
         let mut entries = Vec::new();
         while !self.at_symbol("]") {
@@ -3909,6 +3844,27 @@ impl Parser {
         self.expect_symbol("]")?;
         self.expect_semicolon()?;
         Ok(entries)
+    }
+
+    /// `[none]`, a declaration list with nothing in it, read whole. A bare `[]` there is
+    /// refused, since no parameters or registers isn't an empty value. (D267, D269)
+    /// trace: D267, D269
+    fn none_list(&mut self) -> Outcome<bool> {
+        if self.at_symbol("[") && self.symbol_at(1, "]") {
+            return Err(Report::refused(
+                self.span().to(self.peek_at(1).span),
+                "a declaration that lists nothing says `[none]`",
+                "`[none]` means there's nothing at all, while `empty` is a real value with nothing in it yet (D267, D269)",
+            )
+            .fix("[none]"));
+        }
+        if self.at_symbol("[") && self.word_at(1, "none") && self.symbol_at(2, "]") {
+            self.advance();
+            self.advance();
+            self.advance();
+            return Ok(true);
+        }
+        Ok(false)
     }
 
     fn parse_shield_statement(&mut self) -> Outcome<Statement> {

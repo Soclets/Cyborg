@@ -1,9 +1,8 @@
 // The language has no exponent to write, so the text is all digits, however big.
 // trace: D161
-@config(default);
 import std;
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let mut $x: f64.stable = 2.0;
     for $i in range[from: 1, to: 9]:
         change $x = $x x $x;

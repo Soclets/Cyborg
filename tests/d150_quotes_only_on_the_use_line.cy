@@ -1,10 +1,9 @@
 // trace: D150
-@config(default);
 import std;
 
 use std::io::fmt_print as "say";
 
-fn.main [] -> void:
+fn.main [none] -> void:
     "say"("hi");
     return void;
 end fn.main

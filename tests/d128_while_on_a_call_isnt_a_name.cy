@@ -1,12 +1,11 @@
 // trace: D128
-@config(default);
 import std;
 
-fn.pure again [] -> bool:
+fn.pure again [none] -> bool:
     return false;
 end fn.pure again
 
-fn.main [] -> void:
+fn.main [none] -> void:
     while again():
         return void;
     end while

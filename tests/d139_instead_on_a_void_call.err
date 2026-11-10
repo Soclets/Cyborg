@@ -1,5 +1,5 @@
-refused: d139_instead_on_a_void_call.cy:11:13, line 11 column 13
-11 |             instead 1;
+refused: d139_instead_on_a_void_call.cy:10:13, line 10 column 13
+10 |             instead 1;
    |             ^^^^^^^^^^
  what: this call gives back nothing, so there's nothing to use instead
  why:  `instead` gives the value used in place of a failed call (D139)

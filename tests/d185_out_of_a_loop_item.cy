@@ -1,5 +1,4 @@
 // trace: D185, D180
-@config(default);
 import std;
 
 struct box:
@@ -10,7 +9,7 @@ fn eat [$s: Given str] -> void:
     return void;
 end fn eat
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let $xs: std::list<box>[len.max: inf items] = [box[s = "a"]];
     for $b in $xs:
         eat(Give $b.s);

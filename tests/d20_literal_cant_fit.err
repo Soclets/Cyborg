@@ -1,5 +1,5 @@
-refused: d20_literal_cant_fit.cy:5:37, line 5 column 37
- 5 |     let $a: i32[min: 0, max: 100] = 150;
+refused: d20_literal_cant_fit.cy:4:37, line 4 column 37
+ 4 |     let $a: i32[min: 0, max: 100] = 150;
    |                                     ^^^
  what: `150` doesn't fit `i32[min: 0, max: 100]`
  why:  a literal that can't fit is a compile error (D20)

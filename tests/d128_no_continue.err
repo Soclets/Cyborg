@@ -1,5 +1,5 @@
-refused: d128_no_continue.cy:6:9, line 6 column 9
- 6 |         continue;
+refused: d128_no_continue.cy:5:9, line 5 column 9
+ 5 |         continue;
    |         ^^^^^^^^
  what: there is no `continue`, so wrap the work in an `if`
  why:  each loop says how it ends, and there is no `continue` (D128)

@@ -1,11 +1,10 @@
 // trace: D139, D128
-@config(default);
 
-fn f [] -> i32 fails [a]:
+fn f [none] -> i32 fails [a]:
     return 1;
 end fn f
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let $n: i32 = f() otherwise:
         case a:
             for $i in range[from: 1, to: 2]:

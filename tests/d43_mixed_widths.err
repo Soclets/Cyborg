@@ -1,5 +1,5 @@
-refused: d43_mixed_widths.cy:7:19, line 7 column 19
- 7 |     let $c: i32 = $a + $b;
+refused: d43_mixed_widths.cy:6:19, line 6 column 19
+ 6 |     let $c: i32 = $a + $b;
    |                   ^^^^^^^
  what: this mixes `i32` and `i64`
  why:  `:` doesn't convert, and `as` builds a new value of another type (D7)

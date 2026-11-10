@@ -1,5 +1,4 @@
 // trace: D141, D134
-@config(default);
 import std;
 
 type.new user_id = i64;
@@ -12,7 +11,7 @@ fam.type.new ids:
     ids.order = i64;
 end fam.type.new ids
 
-fn first_user [] -> user_id:
+fn first_user [none] -> user_id:
     return 5;
 end fn first_user
 
@@ -20,7 +19,7 @@ fn same [$u: user_id] -> user_id:
     return $u;
 end fn same
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let $u: user_id = 5;
     let $l: label = "x";
     let $f: flag = true;

@@ -1,5 +1,5 @@
-refused: d258_the_old_float_spelling.cy:12:13, line 12 column 13
-12 |     let $d: f64.stable.length.meters = 5.0 length.meters;
+refused: d258_the_old_float_spelling.cy:11:13, line 11 column 13
+11 |     let $d: f64.stable.length.meters = 5.0 length.meters;
    |             ^^^^^^^^^^^^^^^^^^^^^^^^
  fix:  `f64.stable[unit: length.meters]`
  why:  a type's unit is a `unit:` label in its brackets, next to any bounds (D258)

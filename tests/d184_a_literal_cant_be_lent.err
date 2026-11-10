@@ -1,5 +1,5 @@
-refused: d184_a_literal_cant_be_lent.cy:10:10, line 10 column 10
-10 |     bump(5);
+refused: d184_a_literal_cant_be_lent.cy:9:10, line 9 column 10
+ 9 |     bump(5);
    |          ^
  what: `$n` changes this, so it says `Lend.mut`
  why:  a number lent to change says `Lend.mut`, and it's the one word a number takes (D184, D3)

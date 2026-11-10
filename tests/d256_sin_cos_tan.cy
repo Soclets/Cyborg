@@ -1,12 +1,11 @@
 // `sin`, `cos` and `tan` of radians, correctly rounded: the exact result rounded once to the nearest `f64`.
 // trace: D256, D245, D161
-@config(default);
 import std;
 
 use std::units::angle.radians as radians;
 use std::units::angle.degrees as degrees;
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let $one: f64.stable[unit: radians] = 1.0 radians;
     let $half: f64.stable[unit: radians] = 0.5 radians;
     let $back: f64.stable[unit: radians] = -2.0 radians;

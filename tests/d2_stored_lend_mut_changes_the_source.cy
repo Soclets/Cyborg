@@ -1,5 +1,4 @@
 // trace: D2
-@config(default);
 import std;
 
 struct reading:
@@ -11,7 +10,7 @@ fn show [$r: reading] -> void:
     return void;
 end fn show
 
-fn change_it [] -> void:
+fn change_it [none] -> void:
     let mut $r: reading = reading[celsius = 21];
     let $b: Lend.mut from $r reading = Lend.mut $r;
     change $b = reading[celsius = 22];
@@ -19,7 +18,7 @@ fn change_it [] -> void:
     return void;
 end fn change_it
 
-fn.main [] -> void:
+fn.main [none] -> void:
     change_it();
     return void;
 end fn.main

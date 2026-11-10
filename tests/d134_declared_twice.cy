@@ -1,9 +1,8 @@
 // trace: D134
-@config(default);
 
 type.alias score = i32;
 type.alias score = i64;
 
-fn.main [] -> void:
+fn.main [none] -> void:
     return void;
 end fn.main

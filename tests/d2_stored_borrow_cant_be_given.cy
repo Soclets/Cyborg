@@ -1,5 +1,4 @@
 // trace: D2
-@config(default);
 
 struct reading:
     celsius: i32;
@@ -9,7 +8,7 @@ fn eat [$r: Given reading] -> void:
     return void;
 end fn eat
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let $r: reading = reading[celsius = 21];
     let $b: Lend from $r reading = Lend $r;
     eat(Give $b);

@@ -1,7 +1,6 @@
 // trace: D139
-@config(default);
 
-fn.main [] -> void:
+fn.main [none] -> void:
     instead 0;
     return void;
 end fn.main

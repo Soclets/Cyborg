@@ -1,5 +1,5 @@
-refused: d142_pos_in_another_unit.cy:11:28, line 11 column 28
-11 |     let $n: i32 = $xs[pos: 1 time.seconds];
+refused: d142_pos_in_another_unit.cy:10:28, line 10 column 28
+10 |     let $n: i32 = $xs[pos: 1 time.seconds];
    |                            ^^^^^^^^^^^^^^
  what: a position is plain or in `items`, and this is in `time.seconds`
  why:  `pos:` and `offset.items:` take a plain number or one in `items` (D142, D144)

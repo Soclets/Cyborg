@@ -1,6 +1,5 @@
 // It can be handed on, and as with any `struct.must_Give`, nothing can end its duty yet.
 // trace: D177, D2
-@config(default);
 import std;
 
 struct.must_Give open_file:
@@ -25,7 +24,7 @@ fn keep [$l: Given log] -> log:
     return Give $l;
 end fn keep
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let $l: log = keep(log[file = open(3)]);
     let $m: log = Give $l;
     std::io::fmt_print("{}{newln}", $m.file.fd);

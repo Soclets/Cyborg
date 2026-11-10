@@ -1,5 +1,4 @@
 // trace: D180, D2
-@config(default);
 import std;
 
 fn change_all [$xs: std::array<i32>[len: 2 items]] -> void:
@@ -9,7 +8,7 @@ fn change_all [$xs: std::array<i32>[len: 2 items]] -> void:
     return void;
 end fn change_all
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let $xs: std::array<i32>[len: 2 items] = [1, 2];
     change_all(Lend $xs);
     return void;

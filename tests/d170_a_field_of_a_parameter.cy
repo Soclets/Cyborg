@@ -1,5 +1,4 @@
 // trace: D170, D172
-@config(default);
 import std;
 
 struct inner:
@@ -14,7 +13,7 @@ fn part [$o: outer] -> Lend from $o inner:
     return Lend $o.a;
 end fn part
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let $o: outer = outer[a = inner[n = 7]];
     let $p: Lend from $o inner = part(Lend $o);
     std::io::fmt_print("{}{newln}", $p.n);

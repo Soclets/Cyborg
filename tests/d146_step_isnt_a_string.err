@@ -1,5 +1,5 @@
-refused: d146_step_isnt_a_string.cy:6:46, line 6 column 46
- 6 |     for $i in range[from: 1, to: 5, step_by: $by]:
+refused: d146_step_isnt_a_string.cy:5:46, line 5 column 46
+ 5 |     for $i in range[from: 1, to: 5, step_by: $by]:
    |                                              ^^^
  what: a range is a sequence of numbers, and this is `str`
  why:  a range is a sequence of numbers (D128)

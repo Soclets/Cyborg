@@ -1,5 +1,5 @@
-refused: d227_not_an_inline_language.cy:8:9, line 8 column 9
- 8 |         inline.c();
+refused: d227_not_an_inline_language.cy:7:9, line 7 column 9
+ 7 |         inline.c();
    |         ^^^^^^^^
  what: `inline.c` isn't an inline language
  why:  inline code is `inline.asm`, in the base language, or a limb's own language as `inline.@limb::lang` (D227)

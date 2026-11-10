@@ -1,0 +1,5 @@
+refused: d265_config_is_gone.cy:3:1, line 3 column 1
+ 3 | @config(default);
+   | ^^^^^^^
+ what: `@config` is gone, and a project's rules are `rule` lines in `CyJet.siml`
+ why:  rules live in the manifest, so code gets straight to the point, and a project with no `rule` lines gets the compiler's defaults (D265)

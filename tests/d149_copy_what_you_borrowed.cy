@@ -1,5 +1,4 @@
 // trace: D149
-@config(default);
 import std;
 
 struct reading:
@@ -14,7 +13,7 @@ fn look [$r: reading] -> void:
     return void;
 end fn look
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let $a: reading = reading[celsius = 5];
     look(Lend $a);
     return void;

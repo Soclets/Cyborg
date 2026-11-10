@@ -1,5 +1,5 @@
-refused: d101_adding_a_plain_number.cy:10:44, line 10 column 44
-10 |     let $b: i32[unit: time.seconds] = $a + 5;
+refused: d101_adding_a_plain_number.cy:9:44, line 9 column 44
+ 9 |     let $b: i32[unit: time.seconds] = $a + 5;
    |                                            ^
  fix:  `5 time.seconds`
  why:  the compiler checks units, and a unit is required where the type asks for one (D100, D101)

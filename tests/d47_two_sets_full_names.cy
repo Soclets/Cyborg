@@ -1,5 +1,4 @@
 // trace: D47
-@config(default);
 import std;
 
 fam.failure file_failed:
@@ -10,11 +9,11 @@ fam.failure net_failed:
     net_failed.denied;
 end fam.failure net_failed
 
-fn load [] -> i32 fails [file_failed.denied, net_failed.denied]:
+fn load [none] -> i32 fails [file_failed.denied, net_failed.denied]:
     fail net_failed.denied;
 end fn load
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let $n: i32 = load() otherwise:
         case file_failed.denied:
             std::io::fmt_print("file{newln}");

@@ -1,7 +1,6 @@
 // trace: D7
-@config(default);
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let $a: i32 = 1;
     let $b: i64 = $a as i64;
     return void;

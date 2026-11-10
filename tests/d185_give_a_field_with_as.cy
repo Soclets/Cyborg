@@ -1,6 +1,5 @@
 // A field moves out of what you own, and `as` crosses it like any whole value.
 // trace: D185, D149
-@config(default);
 
 struct reading:
     celsius: i32;
@@ -12,7 +11,7 @@ struct holder:
     inner: reading;
 end struct holder
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let $h: holder = holder[inner = reading[celsius = 1]];
     let $w: wrapped = Give $h.inner as wrapped;
     return void;

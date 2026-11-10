@@ -1,5 +1,5 @@
-NotDesignedYet: d134_new_type_holding_itself.cy:5:10, line 5 column 10
- 5 | type.new tree = std::list<tree>[len.max: inf items];
+NotDesignedYet: d134_new_type_holding_itself.cy:4:10, line 4 column 10
+ 4 | type.new tree = std::list<tree>[len.max: inf items];
    |          ^^^^
  what: a `type.new` that holds itself, as `tree` does
  why:  not decided yet, and the standard doesn't say

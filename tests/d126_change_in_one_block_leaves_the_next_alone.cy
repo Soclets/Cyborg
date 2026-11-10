@@ -1,6 +1,5 @@
 // The next test runs only if this block didn't, so its `change` can't reach there.
 // trace: D126, D104
-@config(default);
 import std;
 
 union.tagged status:
@@ -8,7 +7,7 @@ union.tagged status:
     failed[code: i32];
 end union.tagged status
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let mut $s: status = status.failed[code = 3];
     if $s: status.ok:
         change $s = status.failed[code = 4];

@@ -1,7 +1,6 @@
 // trace: D124
-@config(default);
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let $n: i32 = 0;
     if $n != 0 and.both 10 div.trunc $n > 1:
         return void;

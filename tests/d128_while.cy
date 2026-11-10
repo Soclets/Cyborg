@@ -1,8 +1,7 @@
 // trace: D128
-@config(default);
 import std;
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let mut $n: i32 = 3;
     while $n > 0:
         std::io::fmt_print("{}{newln}", $n);

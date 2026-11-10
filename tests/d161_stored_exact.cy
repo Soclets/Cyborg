@@ -1,9 +1,8 @@
 // Everything here fits in the digits the standard shows.
 // trace: D161
-@config(default);
 import std;
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let $a: f64.stable = 0.5;
     let $b: f64.stable = 1.0;
     let $c: f64.stable = -0.25;

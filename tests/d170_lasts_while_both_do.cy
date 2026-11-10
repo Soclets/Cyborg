@@ -1,6 +1,5 @@
 // `$y` changes while `$w` may still point at it.
 // trace: D170, D169
-@config(default);
 import std;
 
 struct reading:
@@ -14,7 +13,7 @@ fn warmer [$a: reading, $b: reading] -> Lend from <$a, $b> reading:
     return Lend $b;
 end fn warmer
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let $x: reading = reading[celsius = 21];
     let mut $y: reading = reading[celsius = 25];
     let $w: Lend from <$x, $y> reading = warmer(Lend $x, Lend $y);

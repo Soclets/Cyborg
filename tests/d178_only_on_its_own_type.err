@@ -1,5 +1,5 @@
-NotDesignedYet: d178_only_on_its_own_type.cy:10:5, line 10 column 5
-10 |     $a.%%append(val: 4);
+NotDesignedYet: d178_only_on_its_own_type.cy:9:5, line 9 column 5
+ 9 |     $a.%%append(val: 4);
    |     ^^^^^^^^^^^^^^^^^^^
  what: a method of your own on `std::array<i32>[len: 2 items]`
  why:  not decided yet, and the standard doesn't say

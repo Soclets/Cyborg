@@ -1,5 +1,5 @@
-refused: d57_undeclared_variable.cy:5:19, line 5 column 19
- 5 |     let $a: i32 = $b;
+refused: d57_undeclared_variable.cy:4:19, line 4 column 19
+ 4 |     let $a: i32 = $b;
    |                   ^^
  what: `$b` isn't declared
  why:  `let` and `const` declare a variable with its type and value (D57, D83)

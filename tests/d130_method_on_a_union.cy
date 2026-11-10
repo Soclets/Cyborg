@@ -1,5 +1,4 @@
 // trace: D130, D33
-@config(default);
 import std;
 
 union.tagged status:
@@ -14,7 +13,7 @@ fn status.%code_or_zero [$s: status] -> i32:
     return 0;
 end fn status.%code_or_zero
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let $a: status = status.failed[code = 7];
     let $b: status = status.ok;
     std::io::fmt_print("{}{newln}", $a.%code_or_zero());

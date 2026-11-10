@@ -1,8 +1,7 @@
 // How its string literals work isn't decided.
 // trace: D48
-@config(default);
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let $a: str.utf16 = "hi";
     return void;
 end fn.main

@@ -1,9 +1,8 @@
 // No space follows a unary `-`.
 // trace: D213
-@config(default);
 import std;
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let $x: i32 = 3;
     let $y: i32 = - $x;
     return void;

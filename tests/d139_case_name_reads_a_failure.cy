@@ -1,5 +1,4 @@
 // trace: D139, D47
-@config(default);
 import std;
 
 fn half [$n: i32] -> i32 fails [negative[val: i32], odd]:
@@ -24,7 +23,7 @@ fn show [$n: i32] -> void:
     return void;
 end fn show
 
-fn.main [] -> void:
+fn.main [none] -> void:
     show(4);
     show(-3);
     show(3);

@@ -1,5 +1,4 @@
 // trace: D176, D171
-@config(default);
 
 struct reading:
     celsius: i32;
@@ -10,6 +9,6 @@ union.tagged lookup <`text`>:
     missing;
 end union.tagged lookup
 
-fn.main [] -> void:
+fn.main [none] -> void:
     return void;
 end fn.main

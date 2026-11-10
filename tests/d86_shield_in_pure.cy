@@ -1,13 +1,12 @@
 // trace: D86
-@config(default);
 
-fn.pure f [] -> i32:
+fn.pure f [none] -> i32:
     shield sensor:
         reason "talks to the chip"
         return 1;
     end shield sensor
 end fn.pure f
 
-fn.main [] -> void:
+fn.main [none] -> void:
     return void;
 end fn.main

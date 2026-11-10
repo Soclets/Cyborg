@@ -1,5 +1,4 @@
 // trace: D133, D2
-@config(default);
 import std;
 
 fn show [$s: str] -> void:
@@ -16,7 +15,7 @@ fn replace [$s: Lent.mut str] -> void:
     return void;
 end fn replace
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let mut $a: std::array<str>[len: 2 items] = ["one", "two"];
     show(Lend $a[pos: 1]);
     let $k: str = keep(Copy $a[pos: 2]);

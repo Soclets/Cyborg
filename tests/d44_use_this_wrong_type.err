@@ -1,5 +1,5 @@
-refused: d44_use_this_wrong_type.cy:9:34, line 9 column 34
- 9 |     let $a: i32 = read_port() ?? "none";
+refused: d44_use_this_wrong_type.cy:8:34, line 8 column 34
+ 8 |     let $a: i32 = read_port() ?? "none";
    |                                  ^^^^^^
  what: this is `str`, where `i32` is needed
  why:  `:` doesn't convert, and `as` builds a new value of another type (D7)

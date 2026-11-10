@@ -1,6 +1,5 @@
 // `Given` isn't `let mut` or `Lent.mut`, so the standard's rule doesn't reach it.
 // trace: D125
-@config(default);
 
 struct box:
     n: i32;
@@ -11,6 +10,6 @@ fn f [$b: Given box] -> void:
     return void;
 end fn f
 
-fn.main [] -> void:
+fn.main [none] -> void:
     return void;
 end fn.main

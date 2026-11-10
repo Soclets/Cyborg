@@ -1,5 +1,5 @@
-refused: d148_no_bounds_inside_a_range.cy:7:41, line 7 column 41
- 7 |     for $i in range[from: 1, to: $xs.len[min: 100]]:
+refused: d148_no_bounds_inside_a_range.cy:6:41, line 6 column 41
+ 6 |     for $i in range[from: 1, to: $xs.len[min: 100]]:
    |                                         ^
  what: getting an item says `pos:` or `offset.items:`
  why:  `pos:` counts from 1, and `offset.items:` counts from 0, so the word says which you mean (D133, D144)

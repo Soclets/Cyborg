@@ -1,5 +1,4 @@
 // trace: D170
-@config(default);
 
 struct reading:
     celsius: i32;
@@ -9,6 +8,6 @@ fn keep [$a: Given reading] -> Lend from $a reading:
     return Lend $a;
 end fn keep
 
-fn.main [] -> void:
+fn.main [none] -> void:
     return void;
 end fn.main

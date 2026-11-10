@@ -1,10 +1,9 @@
 // trace: D150
-@config(default);
 import std;
 
 use std::units::time.seconds as "secs";
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let $a: i32[unit: secs.span] = 3600 secs;
     return void;
 end fn.main

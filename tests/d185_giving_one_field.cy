@@ -1,5 +1,4 @@
 // trace: D185, D2
-@config(default);
 
 struct box:
     s: str;
@@ -9,7 +8,7 @@ fn eat [$s: Given str] -> void:
     return void;
 end fn eat
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let $b: box = box[s = "a"];
     eat(Give $b.s);
     return void;

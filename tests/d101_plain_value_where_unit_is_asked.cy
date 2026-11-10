@@ -1,11 +1,10 @@
 // trace: D101, D100
-@config(default);
 
 fam.unit time:
     time.seconds: base;
 end fam.unit time
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let $x: i32 = 3600;
     let $b: i32[unit: time.seconds] = $x;
     return void;

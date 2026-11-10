@@ -1,8 +1,7 @@
 // trace: D164, D159
-@config(default);
 import std;
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let $zero: f64.ieee = 0.0;
     let $inf: f64.ieee = 1.0 div $zero;
     let $nan: f64.ieee = $zero div $zero;

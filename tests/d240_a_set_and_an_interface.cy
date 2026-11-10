@@ -1,6 +1,5 @@
 // A type set and an interface together: the set says which types, the interface what they do.
 // trace: D240, D235
-@config(default);
 import std;
 
 interface ordered<?self>:
@@ -23,7 +22,7 @@ fn total<?item: whole and addable> [$a: ?item, $b: ?item] -> ?item:
     return $a + $b;
 end fn total
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let $a: i64 = 40;
     let $b: i64 = 2;
     std::io::fmt_print("{} {}{newln}", total($a, $b), total($b, $a));

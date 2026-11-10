@@ -1,5 +1,4 @@
 // trace: D134
-@config(default);
 import std;
 
 type.alias score = i32;
@@ -13,7 +12,7 @@ fn total [$xs: numbers] -> score:
     return $sum;
 end fn total
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let $a: score = 5;
     let $b: i32 = $a;
     let $c: score = $b + 1;

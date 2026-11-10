@@ -1,5 +1,5 @@
-refused: d160_comparing_mixed_widths_still_refused.cy:7:8, line 7 column 8
- 7 |     if $a == $b:
+refused: d160_comparing_mixed_widths_still_refused.cy:6:8, line 6 column 8
+ 6 |     if $a == $b:
    |        ^^^^^^^^
  what: this compares `f64.stable` and `f32.stable`
  why:  `:` doesn't convert, and `as` builds a new value of another type (D7)

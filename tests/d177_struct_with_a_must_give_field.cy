@@ -1,6 +1,5 @@
 // A struct holding a `must_Give` field says so, and then it's fine.
 // trace: D177, D129
-@config(default);
 
 struct.must_Give open_file:
     fd: i32;
@@ -10,6 +9,6 @@ struct.must_Give pair:
     a: open_file;
 end struct.must_Give pair
 
-fn.main [] -> void:
+fn.main [none] -> void:
     return void;
 end fn.main

@@ -1,5 +1,4 @@
 // trace: D161, D95
-@config(default);
 import std;
 
 fn.pure p [$x: f64.stable] -> f64.stable:
@@ -7,6 +6,6 @@ fn.pure p [$x: f64.stable] -> f64.stable:
     return $x;
 end fn.pure p
 
-fn.main [] -> void:
+fn.main [none] -> void:
     return void;
 end fn.main

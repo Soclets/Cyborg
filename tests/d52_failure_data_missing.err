@@ -1,5 +1,5 @@
-refused: d52_failure_data_missing.cy:5:5, line 5 column 5
- 5 |     fail negative;
+refused: d52_failure_data_missing.cy:4:5, line 4 column 5
+ 4 |     fail negative;
    |     ^^^^^^^^^^^^^^
  what: `negative` needs `value`
  why:  a failure can carry data in `[ ]` (D47)

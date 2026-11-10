@@ -1,6 +1,5 @@
 // An integer conversion whose ratio isn't whole, like feet to 9-inch spans, 4 per 3, isn't decided.
 // trace: D255
-@config(default);
 
 fam.unit length:
     length.inches: base;
@@ -8,7 +7,7 @@ fam.unit length:
     length.spans = 9 length.inches;
 end fam.unit length
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let $f: i32[unit: length.feet] = 3 length.feet;
     let $s: i32[unit: length.spans] = $f as.trunc i32[unit: length.spans];
     return void;

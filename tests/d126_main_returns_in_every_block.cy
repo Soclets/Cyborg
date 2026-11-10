@@ -1,8 +1,7 @@
 // trace: D126, D11
-@config(default);
 import std;
 
-fn.main [] -> void:
+fn.main [none] -> void:
     if 1 < 2:
         std::io::fmt_print("yes{newln}");
         return void;

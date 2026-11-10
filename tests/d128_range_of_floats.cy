@@ -1,7 +1,6 @@
 // trace: D128
-@config(default);
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let $a: f64.stable = 0.5;
     for $i in range[from: $a, to: 1.5]:
         return void;

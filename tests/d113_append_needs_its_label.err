@@ -1,5 +1,5 @@
-refused: d113_append_needs_its_label.cy:7:23, line 7 column 23
- 7 |     $xs.std::%%append(4);
+refused: d113_append_needs_its_label.cy:6:23, line 6 column 23
+ 6 |     $xs.std::%%append(4);
    |                       ^
  fix:  `val: 4`
  why:  a declared label must be written, and a parameter with no label is called without one (D113, D114)

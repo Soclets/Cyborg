@@ -1,5 +1,4 @@
 // trace: D130, D44, D96
-@config(default);
 import std;
 
 struct box:
@@ -13,7 +12,7 @@ fn box.%half [$b: box] -> i32 fails [odd]:
     return $b.n div.trunc 2;
 end fn box.%half
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let $even: box = box[n = 4];
     let $odd: box = box[n = 3];
     std::io::fmt_print("{}{newln}", $even.%half());

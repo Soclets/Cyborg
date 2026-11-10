@@ -1,5 +1,4 @@
 // trace: D139, D9
-@config(default);
 import std;
 
 union.tagged status:
@@ -20,11 +19,11 @@ fn show [$s: status] -> void:
     return void;
 end fn show
 
-fn make [] -> status:
+fn make [none] -> status:
     return status.failed[code = 8];
 end fn make
 
-fn.main [] -> void:
+fn.main [none] -> void:
     show(status.failed[code = 7]);
     show(status.lost[where = "home"]);
     show(status.ok);

@@ -1,9 +1,9 @@
-refused: d139_instead_with_a_duty_open.cy:16:13, line 16 column 13
-16 |             instead 0;
+refused: d139_instead_with_a_duty_open.cy:15:13, line 15 column 13
+15 |             instead 0;
    |             ^^^^^^^^^^
  what: this leaves with `$g` never given away or finished
  why:  a `must_Give` value is handed off with `Give` exactly once, or `finish` ends it (D2, D129)
- because: d139_instead_with_a_duty_open.cy:15:17, line 15 column 17
-15 |             let $g: open_file = open_file[fd = 1];
+ because: d139_instead_with_a_duty_open.cy:14:17, line 14 column 17
+14 |             let $g: open_file = open_file[fd = 1];
    |                 ^^
      `$g` was made here

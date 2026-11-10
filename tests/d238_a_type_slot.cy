@@ -1,6 +1,5 @@
 // How a type slot is written isn't decided.
 // trace: D238
-@config(default);
 import std;
 
 interface ordered<?self>:
@@ -20,6 +19,6 @@ interface container<?self, ?item>:
     op + [$a: ?self, $b: ?self] -> ?self;
 end interface container
 
-fn.main [] -> void:
+fn.main [none] -> void:
     return void;
 end fn.main

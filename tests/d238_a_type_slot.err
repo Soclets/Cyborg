@@ -1,5 +1,5 @@
-NotDesignedYet: d238_a_type_slot.cy:19:26, line 19 column 26
-19 | interface container<?self, ?item>:
+NotDesignedYet: d238_a_type_slot.cy:18:26, line 18 column 26
+18 | interface container<?self, ?item>:
    |                          ^
  what: how a type slot is written
  why:  not decided yet (standard 12.5)

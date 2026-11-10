@@ -1,8 +1,7 @@
 // trace: D160, D159
-@config(default);
 import std;
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let $a: f64.ieee = 1.5;
     let $b: f64.ieee = 2.5;
     if $a at_most $b:

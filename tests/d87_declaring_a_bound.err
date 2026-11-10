@@ -1,5 +1,5 @@
-refused: d87_declaring_a_bound.cy:9:9, line 9 column 9
- 9 | reading is ordered;
+refused: d87_declaring_a_bound.cy:8:9, line 8 column 9
+ 8 | reading is ordered;
    |         ^^
  fix:  `satisfies`
  why:  a type fits an interface only through a `satisfies` line (D235, D87)

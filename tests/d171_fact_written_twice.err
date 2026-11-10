@@ -1,5 +1,5 @@
-refused: d171_fact_written_twice.cy:16:5, line 16 column 5
-16 |     requires $a lasts_at_least $b;
+refused: d171_fact_written_twice.cy:15:5, line 15 column 5
+15 |     requires $a lasts_at_least $b;
    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
  what: `$a` lasts at least as long as `$b` is already known
  why:  the same `lasts_at_least` fact isn't written twice (D171)

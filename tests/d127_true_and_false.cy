@@ -1,5 +1,4 @@
 // trace: D127
-@config(default);
 import std;
 
 struct flags:
@@ -24,7 +23,7 @@ end fn pick
 
 const $always: bool = true;
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let $a: bool = true;
     let mut $b: bool = false;
     yes_or_no($a);

@@ -1,5 +1,5 @@
-refused: d251_two_levels.cy:13:49, line 13 column 49
-13 |     let $c: f64.stable[unit: power.dbm.point] = $a + $b;
+refused: d251_two_levels.cy:12:49, line 12 column 49
+12 |     let $c: f64.stable[unit: power.dbm.point] = $a + $b;
    |                                                 ^^^^^^^
  what: this adds a point to a point
  why:  a point plus a span is a point, a point minus a point is a span, and spans add, while a point plus a point is refused (D249, D251)

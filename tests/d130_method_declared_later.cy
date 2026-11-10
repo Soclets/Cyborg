@@ -1,8 +1,7 @@
 // trace: D130, D120
-@config(default);
 import std;
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let $b: box = box[n = 1];
     std::io::fmt_print("{}{newln}", $b.%read());
     return void;

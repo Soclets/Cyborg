@@ -1,9 +1,8 @@
 // The oracle has no C in it.
 // trace: D38, D34
-@config(default);
 import @csup;
 
-fn.main [] -> void:
+fn.main [none] -> void:
     shield c_call:
         reason "calls libfoo"
         @csup::call();

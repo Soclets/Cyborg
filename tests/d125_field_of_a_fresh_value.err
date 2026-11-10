@@ -1,5 +1,5 @@
-refused: d125_field_of_a_fresh_value.cy:13:12, line 13 column 12
-13 |     change make().n = 2;
+refused: d125_field_of_a_fresh_value.cy:12:12, line 12 column 12
+12 |     change make().n = 2;
    |            ^^^^^^^^
  what: `change` works on a variable, or a field of one
  why:  `change` reassigns a variable or one field of it (D3, D125)

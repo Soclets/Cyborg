@@ -1,9 +1,8 @@
 // An assembly block says `reads:`, `writes:` and `clobbers:`, in that order.
 // trace: D233
-@config(default);
 import std;
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let $a: i64 = 6;
     let $b: i64 = 7;
     let $c: i64 = 8;

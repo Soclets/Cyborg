@@ -1,8 +1,7 @@
 // trace: D142, D143
-@config(default);
 import std;
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let mut $xs: std::list<i32>[len.max: 8 items] = [10, 20, 30];
     std::io::fmt_print("{}{newln}", $xs[pos: $xs.len]);
     std::io::fmt_print("{}{newln}", $xs[pos: 3]);

@@ -1,6 +1,5 @@
 // Only one block runs, so each may give it away, and it's dead after.
 // trace: D126, D2
-@config(default);
 import std;
 
 fn eat [$s: Given str] -> void:
@@ -17,7 +16,7 @@ fn pick [$s: Given str, $first: bool] -> void:
     return void;
 end fn pick
 
-fn.main [] -> void:
+fn.main [none] -> void:
     pick("one", 1 < 2);
     pick("two", 2 < 1);
     return void;

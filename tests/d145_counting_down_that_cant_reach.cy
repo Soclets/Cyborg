@@ -1,8 +1,7 @@
 // trace: D145
-@config(default);
 import std;
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let $start: i32 = 1;
     for $i in range[from: $start, to: 5, step_by: -1]:
         std::io::fmt_print("inside{newln}");

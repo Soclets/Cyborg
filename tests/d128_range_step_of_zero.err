@@ -1,5 +1,5 @@
-refused: d128_range_step_of_zero.cy:5:15, line 5 column 15
- 5 |     for $i in range[from: 1, to: 5, step_by: 0]:
+refused: d128_range_step_of_zero.cy:4:15, line 4 column 15
+ 4 |     for $i in range[from: 1, to: 5, step_by: 0]:
    |               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
  what: this range can never reach its end
  why:  a range that can never reach its end is refused, and a negative `step_by:` counts down (D128)

@@ -1,6 +1,5 @@
 // `-0.0` and `0.0` stop in the same place, so these are the same type.
 // trace: D160, D158
-@config(default);
 import std;
 
 fn take [$x: f64.stable[min: 0.0, max: 1.0]] -> void:
@@ -8,7 +7,7 @@ fn take [$x: f64.stable[min: 0.0, max: 1.0]] -> void:
     return void;
 end fn take
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let $t: f64.stable[min: -0.0, max: 1.0] = 0.5;
     take($t);
     return void;

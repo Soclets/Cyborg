@@ -1,5 +1,4 @@
 // trace: D177, D2
-@config(default);
 import std;
 
 struct.must_Give open_file:
@@ -20,7 +19,7 @@ struct.must_Give log:
     file: open_file;
 end struct.must_Give log
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let $l: log = log[file = open(3)];
     return void;
 end fn.main

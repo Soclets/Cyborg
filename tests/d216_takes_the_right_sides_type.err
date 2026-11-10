@@ -1,5 +1,5 @@
-refused: d216_takes_the_right_sides_type.cy:9:23, line 9 column 23
- 9 |     let $wrong: i64 = $next;
+refused: d216_takes_the_right_sides_type.cy:8:23, line 8 column 23
+ 8 |     let $wrong: i64 = $next;
    |                       ^^^^^
  what: this is `i32`, where `i64` is needed
  why:  `:` doesn't convert, and `as` builds a new value of another type (D7)

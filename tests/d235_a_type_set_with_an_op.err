@@ -1,5 +1,5 @@
-refused: d235_a_type_set_with_an_op.cy:21:5, line 21 column 5
-21 |     op < [$a: i32, $b: i32] -> bool;
+refused: d235_a_type_set_with_an_op.cy:20:5, line 20 column 5
+20 |     op < [$a: i32, $b: i32] -> bool;
    |     ^^
  what: a type set lists types, not operations
  why:  an `interface` lists what a type can do, and a `type_set` lists types, and the two are never mixed (D235)

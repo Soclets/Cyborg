@@ -1,5 +1,5 @@
-refused: d213_plus_with_two_spaces.cy:8:19, line 8 column 19
- 8 |     let $b: i32 = $a  +  $a;
+refused: d213_plus_with_two_spaces.cy:7:19, line 7 column 19
+ 7 |     let $b: i32 = $a  +  $a;
    |                   ^^^^^^^^^
  fix:  `$a + $a`
  why:  a binary operator, `=` and word operators included, has one space on each side, so `1<8` is refused (D23, D213)

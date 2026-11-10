@@ -1,5 +1,4 @@
 // trace: D129, D2, D126
-@config(default);
 import std;
 
 struct.must_Give open_file:
@@ -21,7 +20,7 @@ fn end_it [$f: Given open_file, $quick: bool] -> void:
     return void;
 end fn end_it
 
-fn.main [] -> void:
+fn.main [none] -> void:
     end_it(open_file[fd = 1], true);
     end_it(open_file[fd = 2], false);
     return void;

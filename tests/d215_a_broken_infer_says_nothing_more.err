@@ -1,11 +1,11 @@
-refused: d215_a_broken_infer_says_nothing_more.cy:7:15, line 7 column 15
- 7 |     let $a := 0;
+refused: d215_a_broken_infer_says_nothing_more.cy:6:15, line 6 column 15
+ 6 |     let $a := 0;
    |               ^
  what: `0` has no type of its own, so this line says one, as in `: i32 = 0`
  why:  a bare literal has no default type, so `:=` can't take one from it (D216, D50)
 
-refused: d215_a_broken_infer_says_nothing_more.cy:10:19, line 10 column 19
-10 |     let $d: i64 = $c;
+refused: d215_a_broken_infer_says_nothing_more.cy:9:19, line 9 column 19
+ 9 |     let $d: i64 = $c;
    |                   ^^
  what: this is `i32`, where `i64` is needed
  why:  `:` doesn't convert, and `as` builds a new value of another type (D7)

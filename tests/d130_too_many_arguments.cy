@@ -1,5 +1,4 @@
 // trace: D130, D113
-@config(default);
 
 struct box:
     n: i32;
@@ -9,7 +8,7 @@ fn box.%read [$b: box] -> i32:
     return $b.n;
 end fn box.%read
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let $b: box = box[n = 1];
     let $n: i32 = $b.%read(1);
     return void;

@@ -1,5 +1,5 @@
-NotDesignedYet: d134_narrowing_an_alias.cy:11:13, line 11 column 13
-11 |     let $a: score.time.seconds = 1 time.seconds;
+NotDesignedYet: d134_narrowing_an_alias.cy:10:13, line 10 column 13
+10 |     let $a: score.time.seconds = 1 time.seconds;
    |             ^^^^^^^^^^^^^^^^^^
  what: a narrowing on `score`, a name from `type`
  why:  not decided yet, and the standard doesn't say

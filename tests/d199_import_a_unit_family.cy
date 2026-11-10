@@ -1,9 +1,8 @@
 // `import std::units::time;` gives every unit in the family, and nothing else from `std`.
 // trace: D199, D198
-@config(default);
 import std::units::time;
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let $a: i32[unit: std::units::time.seconds.span] = 60 std::units::time.seconds;
     return void;
 end fn.main

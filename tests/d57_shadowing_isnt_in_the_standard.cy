@@ -1,7 +1,6 @@
 // trace: D57
-@config(default);
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let $a: i32 = 1;
     if 1 < 2:
         let $a: i32 = 2;

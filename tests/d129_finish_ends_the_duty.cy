@@ -1,6 +1,5 @@
 // A whole `must_Give` program: made, lent, handed on, and finished.
 // trace: D129, D2, D57
-@config(default);
 import std;
 
 struct.must_Give open_file:
@@ -22,7 +21,7 @@ fn close [$f: Given open_file] -> void:
     return void;
 end fn close
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let $f: open_file = open_file[fd = 3];
     std::io::fmt_print("{}{newln}", read_from(Lend $f));
     pass_on(Give $f);

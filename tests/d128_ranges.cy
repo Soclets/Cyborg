@@ -1,5 +1,4 @@
 // trace: D128
-@config(default);
 import std;
 
 fn show [$label: str, $n: i32] -> void:
@@ -7,7 +6,7 @@ fn show [$label: str, $n: i32] -> void:
     return void;
 end fn show
 
-fn.main [] -> void:
+fn.main [none] -> void:
     for $i in range[from: 1, to: 3]:
         show("to ", $i);
     end for

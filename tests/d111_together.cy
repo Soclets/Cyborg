@@ -1,6 +1,5 @@
 // `together` lines are gone, replaced by a unit declared once with `per` and `x`.
 // trace: D111, D242
-@config(default);
 import std;
 
 fam.unit length:
@@ -17,7 +16,7 @@ end fam.unit speed
 
 together length.meters / time.seconds = speed.meters_per_second;
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let $d: i32[unit: length.meters] = 100 length.meters;
     let $t: i32[unit: time.seconds] = 8 time.seconds;
     let $v: i32[unit: speed.meters_per_second] = $d div.trunc $t;

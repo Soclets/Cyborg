@@ -1,6 +1,5 @@
 // The test is how to handle a bad value yourself.
 // trace: D20, D9
-@config(default);
 import std;
 
 fn use_score [$s: i32[min: 0, max: 100]] -> void:
@@ -15,7 +14,7 @@ fn try [$n: i32] -> void:
     return void;
 end fn try
 
-fn.main [] -> void:
+fn.main [none] -> void:
     try(50);
     try(150);
     return void;

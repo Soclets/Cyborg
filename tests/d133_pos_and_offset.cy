@@ -1,8 +1,7 @@
 // trace: D133
-@config(default);
 import std;
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let $xs: std::list<i32>[len.max: 8 items] = [10, 20, 30];
     let $a: std::array<i32>[len: 2 items] = [7, 8];
     std::io::fmt_print("{}{newln}", $xs[pos: 1]);

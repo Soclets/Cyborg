@@ -1,6 +1,5 @@
 // Every way out of this `forever` gave it away.
 // trace: D128, D2
-@config(default);
 
 struct.must_Give open_file:
     fd: i32;
@@ -11,7 +10,7 @@ fn close [$f: Given open_file] -> void:
     return void;
 end fn close
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let $f: open_file = open_file[fd = 3];
     forever:
         close(Give $f);

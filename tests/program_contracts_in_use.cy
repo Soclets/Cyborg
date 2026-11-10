@@ -1,6 +1,5 @@
 // Contracts, a pure function and baked constants working together.
 // trace: D29, D53, D84, D86, D91
-@config(default);
 import std;
 
 const $week: i32 = days(7);
@@ -25,7 +24,7 @@ fn per_day [$total: i32, $n: i32] -> i32 fails [nothing_to_share]:
     return $total div.trunc $n;
 end fn per_day
 
-fn.main [] -> void:
+fn.main [none] -> void:
     std::io::fmt_print("{}{newln}", $week);
     std::io::fmt_print("{}{newln}", per_day($week));
     std::io::fmt_print("{}{newln}", per_day($week, days: 2));

@@ -1,18 +1,17 @@
 // trace: D120
-@config(default);
 import std;
 
-fn.main [] -> void:
+fn.main [none] -> void:
     std::io::fmt_print("{}{newln}", first());
     std::io::fmt_print("{}{newln}", $later);
     return void;
 end fn.main
 
-fn first [] -> i32:
+fn first [none] -> i32:
     return second() + 1;
 end fn first
 
-fn second [] -> i32:
+fn second [none] -> i32:
     return 41;
 end fn second
 

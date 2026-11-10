@@ -1,5 +1,5 @@
-refused: d130_given_receiver.cy:8:26, line 8 column 26
- 8 | fn open_file.%close [$f: Given open_file] -> void:
+refused: d130_given_receiver.cy:7:26, line 7 column 26
+ 7 | fn open_file.%close [$f: Given open_file] -> void:
    |                          ^^^^^
  what: a method's receiver can't be `Given`
  why:  methods only borrow, and anything that consumes its value is a plain function (D8, D130)

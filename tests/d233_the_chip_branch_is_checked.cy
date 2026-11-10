@@ -1,9 +1,8 @@
 // A chip's branch is checked, though the oracle doesn't follow it.
 // trace: D233
-@config(default);
 import std;
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let $a: i64 = 6;
     let $b: i64 = 7;
     on.target aarch64:

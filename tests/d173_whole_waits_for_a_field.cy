@@ -1,5 +1,4 @@
 // trace: D173
-@config(default);
 import std;
 
 struct inner:
@@ -15,7 +14,7 @@ fn eat [$p: Given pair] -> void:
     return void;
 end fn eat
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let $p: pair = pair[a = inner[n = 1], b = inner[n = 2]];
     let $l: Lend from $p inner = Lend $p.a;
     eat(Give $p);

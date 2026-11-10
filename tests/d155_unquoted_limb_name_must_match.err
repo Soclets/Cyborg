@@ -1,5 +1,5 @@
-refused: d155_unquoted_limb_name_must_match.cy:5:30, line 5 column 30
- 5 | use @csup::union.untagged as ext;
+refused: d155_unquoted_limb_name_must_match.cy:4:30, line 4 column 30
+ 4 | use @csup::union.untagged as ext;
    |                              ^^^
  what: `ext` doesn't match `untagged`, the end of this path
  why:  an unquoted name has to match the last word of its path, and a quoted one is your own choice (D150)

@@ -1,7 +1,6 @@
 // trace: D56
-@config(default);
 
-fn.main [] -> void:
+fn.main [none] -> void:
     @let();
     return void;
 end fn.main

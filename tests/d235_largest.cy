@@ -1,7 +1,6 @@
 // 5.8's `largest`, checked once, then called with `i32` and with a struct of your own. Its
 // `return` says `Copy`, since a type parameter is handed off like a struct is.
 // trace: D234, D235, D238, D241, D236
-@config(default);
 import std;
 
 interface equatable<?self>:
@@ -36,7 +35,7 @@ fn largest<?item: ordered> [$a: ?item, $b: ?item] -> ?item:
     return Copy $b;
 end fn largest
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let $x: i32 = largest(3, 5);
     let $y: i32 = 9;
     let $z: i32 = 4;

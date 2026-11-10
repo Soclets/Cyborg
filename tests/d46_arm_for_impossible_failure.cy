@@ -1,11 +1,10 @@
 // trace: D46
-@config(default);
 
-fn load [] -> i32 fails [a]:
+fn load [none] -> i32 fails [a]:
     return 0;
 end fn load
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let $n: i32 = load() otherwise:
         case a:
             return void;

@@ -1,5 +1,5 @@
-refused: d134_family_members_dont_mix.cy:10:25, line 10 column 25
-10 |     let $o: ids.order = $u;
+refused: d134_family_members_dont_mix.cy:9:25, line 9 column 25
+ 9 |     let $o: ids.order = $u;
    |                         ^^
  what: this is `ids.user`, where `ids.order` is needed
  why:  a `type.new` is a different type, so it doesn't mix with another, or with what it's made from (D134)

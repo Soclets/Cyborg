@@ -1,5 +1,5 @@
-refused: d196_narrowing_after_a_function.cy:7:5, line 7 column 5
- 7 |     std::io::fmt_print::stderr("x{newln}");
+refused: d196_narrowing_after_a_function.cy:6:5, line 6 column 5
+ 6 |     std::io::fmt_print::stderr("x{newln}");
    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^
  fix:  `std::io::fmt_print.stderr`
  why:  `::` reaches into a path, which never runs anything, and a `.` after a function narrows it (D196)

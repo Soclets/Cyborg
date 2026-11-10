@@ -1,12 +1,11 @@
 // trace: D141, D140
-@config(default);
 import std;
 
 fam.unit time:
     time.seconds: base;
 end fam.unit time
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let $xs: std::array<i32>[len: 3 items] = [1, 2, 3];
     let $plain: u64 = $xs.len as u64;
     let $doubled: u64 = $plain x 2;

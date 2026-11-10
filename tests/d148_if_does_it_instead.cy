@@ -1,8 +1,7 @@
 // trace: D148, D20
-@config(default);
 import std;
 
-fn.main [] -> void:
+fn.main [none] -> void:
     let $start: i32 = 150;
     if $start: i32[min: 100, max: 200]:
         for $i in range[from: $start, to: 151]:
