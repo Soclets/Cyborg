@@ -943,6 +943,8 @@ a placeholder for a version that isn't correctly rounded. A float prints as the 
 
 **D229. The manifest is `CyJet.siml`.** The extension is `.siml`, short for simple, with ML, a markup language, inside it. This replaces D191's `.zml`. The owner chose: "It's called `.siml`. Simple, and also ML inside there". (Owner, 2026-11-10)
 
+**D230. Comments in `CyJet.siml` are `//`.** The same as in Cyborg code (D118), so a project has one comment style, and `#` in a manifest needs no quotes. This replaces `#` in D228. Claude had sketched `#`, after TOML; the owner chose: "`//`". (Owner, 2026-11-10)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude
