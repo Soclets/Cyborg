@@ -1,10 +1,6 @@
 # Cyborg
 
-General sys lang that prioritizes safety & repro over perf.
-
-A coding language, in design. [The standard](standard/README.md) says what it does now, and [`DECISIONS.md`](DECISIONS.md) says why. The oracle in `oracle/` runs and refuses programs by following the standard. There's no compiler yet.
-
-Unlike what GAIM said about C++'s no cost abstractions, we have both costed abstractions and negative cost abstractions. But of course, EEL can have either, if imported (ifykyk)
+Syslang that has safety & repro over perf.
 
 ## Licences
 
