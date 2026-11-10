@@ -263,6 +263,7 @@ With `$name` as `"rope"`, `$count` as `3`, `$price` as an `f64` holding `12.5`, 
 - **Shapes are words:** `align: left`, `right` or `center`; `width:` with its unit, `cols`, `cols.east_asian`, `graphemes`, `points` or `bytes`; `places:`; `base: bin`, `oct`, `hex` or `hex.upper`; `form: science`; and bare `zeros` and `sign`.
 - **Escapes in the text:** `\\`, `\"`, `\'`, `\r`, `\0`, `\xHH`, `\uHHHH`, `\UHHHHHHHH`, and `\{` and `\}` for a brace.
 - **Too wide:** a value wider than its width prints whole.
+- **`unit`:** prints the value and its unit, the way its own file writes it, so with `use std::units::time.seconds as seconds;`, `{unit}` prints `3600 seconds`. The package path is left off.
 - **`.stored`:** prints every float exactly as it's stored.
 - **`.stderr`:** prints to stderr instead of stdout, as in `std::io::fmt_print.stderr("failed{newln}");`.
 - **Both:** `.stored` and `.stderr` combine on one print, strongest first ([1.6](#16-narrowings-)), as in `std::io::fmt_print.stored.stderr(…)`.
@@ -271,7 +272,7 @@ A literal format is checked when building.
 
 **Refused:** a bare `{` in the text, with `fix: \{`; `\n`, with `fix: {newln}`; `{0}`; mixing plain and numbered holes; more or fewer values than holes; a shape that doesn't apply, like `places:` on an integer; a width with no unit; `zeros` with no width; a shape written twice; an unknown escape; `std::io::fmt_print.stdout`, since stdout is the default, and `std::io::fmt_println`, with `fix: std::io::fmt_print`.
 
-**From:** D11, D50, D51, D122, D162, D165, D194, D195, D197, D210, D221, D223, and CyborgPL's format print.
+**From:** D11, D50, D51, D122, D162, D165, D194, D195, D197, D210, D221, D223, D246, and CyborgPL's format print.
 
 ## 1.14 Spacing
 

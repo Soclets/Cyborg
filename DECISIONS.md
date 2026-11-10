@@ -992,6 +992,8 @@ A `type_set` is a closed list of types that nothing can join later, as in `type_
 
 **D245. `std` has angles, and trig asks for radians.** `std::units` has an `angle` family, with radians as the base, degrees as `~0.017453292519943295` radians, and turns as `~6.283185307179586` radians. `std::math::sin` and the other trigonometry functions ask for `f64.std::units::angle.radians`, so a plain number is refused, asking for an angle, and degrees have to be converted with `as`. What comes out of `sin` is a plain number. This makes "radians when you meant degrees" impossible. Not settled here: the rest of the family, and inverse functions like `asin` returning radians. Multifinity's Claude suggested it; Claude proposed this; the owner chose: "yea". (Owner, 2026-11-10)
 
+**D246. `{unit}` prints a value with its unit.** In `std::io::fmt_print`, the bare shape word `unit` prints a value followed by its unit, written the way its own file writes it: with `use std::units::time.seconds as seconds;`, `{unit}` prints `3600 seconds`, and with no `use`, `3600 time.seconds`, with the package path left off. So output matches the code next to it, and the same value can print differently from two files. D122's `as str.with_unit` gives the same text, still as a placeholder spelling. Multifinity's Claude suggested printing with units; Claude proposed it; the owner asked "Where's `use`", and chose: "yea". (Owner, 2026-11-10)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude

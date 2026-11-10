@@ -96,7 +96,6 @@ Waiting on the owner, most needed first. Each is `NotDesignedYet` unless it says
 - The full list of `div` narrowings, and what `div.exact` does in each mode.
 - Shifting by too much.
 - What can convert to what with `as`.
-- How a unit prints with `as str.with_unit`.
 - Operators for your own types (D237): bit operators, unary `-`, `mod`, and a generic operator.
 
 ## 12.4 Control flow
