@@ -142,6 +142,9 @@ pub struct FailureEntry {
 #[derive(Clone, Debug)]
 pub struct Function {
     pub kind: FunctionKind,
+    /// `op <`'s `<`, for a type's own operator, whose name then says its operator and its
+    /// parameters' types, as in `op < [reading, reading]`. (D236)
+    pub operator: Option<String>,
     pub name: Name,
     pub span: Span,
     pub parameters: Vec<Parameter>,

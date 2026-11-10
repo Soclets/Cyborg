@@ -1,0 +1,5 @@
+refused: d237_defines_as.cy:9:4, line 9 column 4
+ 9 | op as [$a: money, $b: money] -> money:
+   |    ^^
+ what: `as` can't be defined for a type
+ why:  `and`, `or` and `not` stop early, which an operator couldn't promise, and `=`, `?`, `??` and `as` are part of the language, not maths (D237, D124)

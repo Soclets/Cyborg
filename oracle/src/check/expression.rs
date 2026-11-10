@@ -3084,6 +3084,12 @@ impl Checker<'_> {
         ) {
             return self.check_logic(operator, left, right, span);
         }
+        // trace: D236
+        if self.sides_are_own(left, right) {
+            if let Some(word) = super::operators::arithmetic_word(operator) {
+                return self.own_arithmetic(word, left, right, span);
+            }
+        }
         let ((left_node, left_type), (right_node, right_type)) =
             self.check_operands(left, right, expected)?;
         let arithmetic = match operator {
@@ -3382,6 +3388,16 @@ impl Checker<'_> {
         rest: &[(CompareOperator, Expression)],
         span: Span,
     ) -> Outcome<(Node, Type)> {
+        // Whether a struct has `==` without writing `op ==` isn't decided, so with no `op ==`
+        // that stays as it was. (D237)
+        // trace: D237
+        if rest.first().is_some_and(|(operator, right)| {
+            self.sides_are_own(first, right)
+                && (!matches!(operator, CompareOperator::Equal | CompareOperator::NotEqual)
+                    || self.has_operator("==", first, right))
+        }) {
+            return self.own_comparison_chain(first, rest, span);
+        }
         let mut nodes = Vec::new();
         let mut previous: Option<Type> = None;
         let mut first_node = None;

@@ -4,6 +4,7 @@
 mod body;
 mod expression;
 mod hand;
+mod operators;
 
 use std::collections::{HashMap, HashSet};
 
@@ -53,6 +54,17 @@ struct ParameterInfo {
     default: Option<crate::ast::Expression>,
     /// The label says a unit, as in `at.screen.pixels`, so a plain number takes it. (D144)
     label_has_unit: bool,
+}
+
+/// `op <` for `reading` and `reading`, done by the function named `op < [reading, reading]`.
+/// (D236)
+#[derive(Clone, Debug)]
+pub(super) struct OperatorInfo {
+    pub(super) operator: String,
+    pub(super) left: Type,
+    pub(super) right: Type,
+    pub(super) function: String,
+    pub(super) result: Type,
 }
 
 #[derive(Clone, Debug)]
@@ -308,6 +320,8 @@ pub struct Checker<'a> {
     global_nodes: Vec<Node>,
     compile_time: Vec<Node>,
     context: FunctionContext,
+    /// Each type's own operators: which, for which types, and the function that does it. (D236)
+    operators: Vec<OperatorInfo>,
     /// Every error found so far, since checking carries on past one. (D207, D215)
     errors: Vec<Report>,
     /// Set when an error sits where how to carry on isn't decided, like an `if`'s line or a
@@ -351,6 +365,7 @@ pub fn check(
         global_nodes: Vec::new(),
         compile_time: Vec::new(),
         context: FunctionContext::outside_any_function(),
+        operators: Vec::new(),
         errors: Vec::new(),
         stopped: false,
         needs: needs.map(<[String]>::to_vec),
@@ -1629,6 +1644,9 @@ impl Checker<'_> {
             };
             if function.kind == FunctionKind::Main {
                 Self::check_main_signature(function, &return_type, !failures.is_empty())?;
+            }
+            if let Some(operator) = &function.operator {
+                self.declare_operator(function, operator, &parameters, &return_type)?;
             }
             self.signatures.insert(
                 function.name.text.clone(),
@@ -2932,4 +2950,63 @@ fn uses_source(found: &Type, source: &str) -> bool {
 fn narrowed_function(path: &str) -> Option<&str> {
     let (function, _) = path.rsplit_once('.')?;
     (function == "std::io::fmt_print").then_some(function)
+}
+
+impl Checker<'_> {
+    /// A type's own operator takes two values, at least one of them a struct or union, since
+    /// an operator is never defined for built-in types. Its values are lent, as the operator
+    /// shows no word. `==` and `<` give a `bool`, which the others follow from. (D236, D237)
+    /// trace: D236, D237
+    fn declare_operator(
+        &mut self,
+        function: &crate::ast::Function,
+        operator: &str,
+        parameters: &[ParameterInfo],
+        return_type: &Type,
+    ) -> Outcome<()> {
+        let [left, right] = parameters else {
+            return Err(Report::refused(
+                function.name.span,
+                format!("`op {operator}` takes two values"),
+                "a type's own operator is a function named by it, taking the values on each side (D236)",
+            ));
+        };
+        let own = |found: &Type| matches!(found, Type::Struct(_) | Type::Union(_));
+        if !own(&left.parameter_type) && !own(&right.parameter_type) {
+            return Err(Report::refused(
+                function.name.span,
+                format!(
+                    "`op {operator}` here is for `{}` and `{}`, which are built in",
+                    left.parameter_type, right.parameter_type
+                ),
+                "a struct or union can define an operator for itself, but an operator is never defined for, or changed on, built-in types (D236)",
+            ));
+        }
+        if let Some(parameter) = function
+            .parameters
+            .iter()
+            .find(|parameter| parameter.word != ParameterWord::Bare)
+        {
+            return Err(Report::not_designed(
+                parameter.word_span,
+                "an operator's value that's `Given` or `Lent.mut`, since the operator shows no word",
+                "",
+            ));
+        }
+        if matches!(operator, "==" | "<") && *return_type != Type::Bool {
+            return Err(Report::refused(
+                function.return_type.span,
+                format!("`op {operator}` gives a `bool`"),
+                "`!=`, `>`, `at_least` and `at_most` follow from `==` and `<`, so those compare and give a `bool` (D237)",
+            ));
+        }
+        self.operators.push(OperatorInfo {
+            operator: operator.to_string(),
+            left: left.parameter_type.clone(),
+            right: right.parameter_type.clone(),
+            function: function.name.text.clone(),
+            result: return_type.clone(),
+        });
+        Ok(())
+    }
 }

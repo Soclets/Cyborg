@@ -1938,6 +1938,10 @@ impl Parser {
 
     fn parse_item(&mut self) -> Outcome<Item> {
         self.mark_line_start();
+        // trace: D236
+        if self.at_word("op") {
+            return Ok(Item::Function(self.parse_operator()?));
+        }
         if self.at_word("fn") {
             return Ok(Item::Function(self.parse_function()?));
         }
@@ -2085,6 +2089,7 @@ impl Parser {
         self.expect_symbol(":")?;
         let mut function = Function {
             kind,
+            operator: None,
             span: start.to(header_end),
             name,
             parameters,
@@ -5089,5 +5094,159 @@ fn read_raw_lines(
             ));
         }
         position = end + 1;
+    }
+}
+
+impl Parser {
+    /// `op < [$a: reading, $b: reading] -> bool:`, its body, and `end op <`: a type's own
+    /// operator, written as a function named by it. (D236, D237)
+    /// trace: D236, D237
+    fn parse_operator(&mut self) -> Outcome<Function> {
+        let start = self.advance().span; // `op`
+        let (operator, operator_span) = self.parse_operator_word()?;
+        let parameters = self.parse_parameters()?;
+        // trace: D237
+        if operator == "-" && parameters.len() == 1 {
+            return Err(Report::not_designed(
+                start.to(operator_span),
+                "a type's own unary `-`",
+                "12.3",
+            ));
+        }
+        self.expect_symbol("->")?;
+        let return_type = self.parse_type()?;
+        let header_end = self.previous_span();
+        self.expect_symbol(":")?;
+        let types: Vec<String> = parameters
+            .iter()
+            .map(|parameter| self.text_of_span(parameter.written_type.span))
+            .collect();
+        let body = self.parse_block()?;
+        let end_span = self.parse_operator_closer(&operator)?;
+        Ok(Function {
+            kind: FunctionKind::Plain,
+            operator: Some(operator.clone()),
+            name: Name {
+                text: format!("op {operator} [{}]", types.join(", ")),
+                span: start.to(operator_span),
+            },
+            span: start.to(header_end),
+            parameters,
+            return_type,
+            labels: None,
+            defaults: Vec::new(),
+            requires: Vec::new(),
+            lasts: Vec::new(),
+            sources: Vec::new(),
+            ensures: Vec::new(),
+            fails: None,
+            body,
+            end_span,
+        })
+    }
+
+    /// The operator after `op`: arithmetic, the `div` narrowings, `==` or `<`. The comparisons
+    /// that follow from those two, and what isn't maths, are refused. (D237)
+    /// trace: D237
+    fn parse_operator_word(&mut self) -> Outcome<(String, Span)> {
+        const WHY_FOLLOWS: &str = "`!=`, `>`, `at_least` and `at_most` follow from `==` and `<`, so they can never disagree, and aren't written (D237)";
+        const WHY_LANGUAGE: &str = "`and`, `or` and `not` stop early, which an operator couldn't promise, and `=`, `?`, `??` and `as` are part of the language, not maths (D237, D124)";
+        let token = self.peek().clone();
+        let text = token.text.clone();
+        let refused = |what: String, why: &str| Err(Report::refused(token.span, what, why));
+        match text.as_str() {
+            "+" | "-" | "<" | "==" | "x" => {
+                self.advance();
+                Ok((text, token.span))
+            }
+            "div" => {
+                self.advance();
+                if !self.eat_symbol(".") {
+                    return Err(Report::not_designed(
+                        token.span,
+                        "a type's own bare `div`",
+                        "12.3",
+                    ));
+                }
+                let narrowing = self.expect_name("a narrowing of `div`")?;
+                if !matches!(narrowing.text.as_str(), "trunc" | "floor" | "exact") {
+                    return Err(Report::not_designed(
+                        token.span.to(narrowing.span),
+                        format!("`div.{}`", narrowing.text),
+                        "12.3",
+                    ));
+                }
+                Ok((
+                    format!("div.{}", narrowing.text),
+                    token.span.to(narrowing.span),
+                ))
+            }
+            "!=" | ">" | "at_least" | "at_most" => refused(
+                format!("`{text}` follows from `==` and `<`, so a type doesn't write it"),
+                WHY_FOLLOWS,
+            ),
+            "and" | "or" | "not" | "=" | "?" | "??" | "as" => refused(
+                format!("`{text}` can't be defined for a type"),
+                WHY_LANGUAGE,
+            ),
+            "<=" | ">=" => refused(
+                format!("there's no `{text}`"),
+                "`at_least` and `at_most` are words, and there is no `<=` or `>=` (D49)",
+            ),
+            "bit_and" | "bit_or" | "bit_xor" | "bit_not" | "shl" | "shr" | "mod" | "plus"
+            | "minus" | "times" => Err(Report::not_designed(
+                token.span,
+                format!("a type's own `{text}`"),
+                "12.3",
+            )),
+            _ => refused(
+                format!("`{text}` isn't an operator a type can define"),
+                "a type can define `+`, `-`, `x`, the `div` narrowings, `==` and `<` (D237)",
+            ),
+        }
+    }
+
+    /// `end op <`, repeating the operator.
+    fn parse_operator_closer(&mut self, operator: &str) -> Outcome<Span> {
+        let start = self.span();
+        if !self.eat_word("end") || !self.eat_word("op") {
+            return Err(Report::refused(
+                start,
+                format!("expected `end op {operator}`"),
+                BLOCK_WHY,
+            ));
+        }
+        let mut written = String::new();
+        let mut end = self.previous_span();
+        while !self.peek().starts_a_line && !matches!(self.peek().lexeme, Lexeme::End) {
+            written.push_str(&self.peek().text);
+            end = self.advance().span;
+        }
+        if written != operator {
+            return Err(Report::refused(
+                start.to(end),
+                format!("this closes `op {written}`, but the open one is `op {operator}`"),
+                "the closer repeats all of what it closes (D33, D121)",
+            )
+            .fix(format!("end op {operator}")));
+        }
+        Ok(start.to(end))
+    }
+
+    /// The source text a span covers, as tokens wrote it.
+    fn text_of_span(&self, span: Span) -> String {
+        let pieces: Vec<&Token> = self
+            .tokens
+            .iter()
+            .filter(|token| token.span.start >= span.start && token.span.end <= span.end)
+            .collect();
+        let mut text = String::new();
+        for (index, token) in pieces.iter().enumerate() {
+            if index > 0 && token.gap_before != Gap::Touching {
+                text.push(' ');
+            }
+            text.push_str(&token.text);
+        }
+        text
     }
 }
