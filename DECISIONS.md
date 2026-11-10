@@ -1020,6 +1020,8 @@ A `type_set` is a closed list of types that nothing can join later, as in `type_
 
 **D259. A type's labels go unit, then min, then max.** In a type's brackets, `unit:` comes first, then `min:`, then `max:`, as in `f64.stable[unit: length.meters, min: 0.0, max: 100.0]`, and another order is refused with the right one as its fix. That matches labels in calls, which go in declared order by default (5.4), and makes every type read as what it measures, then its range, which is in that unit. A format hole's shapes still go in any order, since they're independent settings. Oracle claude flagged the order as open; Claude proposed this; the owner chose: "yea". (Owner, 2026-11-10)
 
+**D260. A bound on a unit type writes its unit.** A bound in a type with a unit says its unit, the same as any value given to that type, as in `f64.stable[unit: length.meters, min: 0.0 length.meters, max: 1.0 length.kilometers]`. The unit can be any with the same base (D101), and is converted to the type's unit when compiling, while a bound in another base, like seconds on a distance, is refused. For an integer type, that conversion must be exact, so a bound of 1500 metres on `i32[unit: length.kilometers]` is refused rather than rounded. A plain number as a bound is refused, as `let $b: i32[unit: time.seconds] = 3600;` is. Oracle claude found bounds with units still open; Claude proposed plain numbers in the type's unit, then both; the owner said "We have to see first if we can use other units there", then "if we allow both, don't we have to must type? Since, behind `=` must type because of that too", and chose: "yea". (Owner, 2026-11-10)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude
