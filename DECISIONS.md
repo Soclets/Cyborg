@@ -1036,6 +1036,8 @@ A `type_set` is a closed list of types that nothing can join later, as in `type_
 
 **D267. A function with no parameters says `[none]`.** `fn.main [none] -> void:`. An empty `[]` is refused, with `fix: [none]`, the same way D103 refuses `[]` for a list. It's `none`, not `empty`, because an empty string or list is a real value with nothing in it yet, while no parameters means there's no value at all. Calls stay `main()`, since `( )` runs something. The owner said "Kinda want empty params to say `[none]`, though C says `void`", then asked whether an empty string or list is the same as no parameters, and chose: "yea". (Owner, 2026-11-10)
 
+**D268. `--FeelLucky` picks a build mode at random.** A nod to Google's "I'm Feeling Lucky": `okay comp --FeelLucky` builds in one of the five modes, `FinalShit` included, chosen at random. It always prints which mode it picked first, as in `feeling lucky: FinalShit`, followed by the curse if that's what came up. It counts as choosing a mode, so D26's "no default build mode" still holds. In a language that prioritizes reproducibility, a flag that makes every build different is the joke. The owner said "`--FeelLucky` is a Google nod, it randomizes the build mode"; Claude proposed the details; the owner chose: "yes". (Owner, 2026-11-10)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude

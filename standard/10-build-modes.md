@@ -34,9 +34,18 @@
 okay comp --FinalSafe
 ```
 
+`--FeelLucky` picks one of the five modes at random, `FinalShit` included, and always prints which one first:
+
+```
+$ okay comp --FeelLucky
+feeling lucky: FinalShit
+```
+
+It counts as choosing a mode. In a language about reproducibility, a build that's different every time is the joke.
+
 **Refused:** `okay comp` with no mode flag, and `--mode FinalSafe`, with `fix: --FinalSafe`.
 
-**From:** D26, D222, D224, D261.
+**From:** D26, D222, D224, D261, D268.
 
 ## 10.3 What gets checked
 
