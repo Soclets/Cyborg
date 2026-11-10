@@ -66,7 +66,7 @@ Waiting on the owner, most needed first. Each is `NotDesignedYet` unless it says
 ## 12.2 Types
 
 - The full list of integer and float types.
-- Units (D99 to D111, D242): powers written directly, a derived unit's conversions, offsets, moments, how a conversion is written, what a lossy conversion does, and the full list of units `std` has.
+- Units (D99 to D111, D242, D243): storing a product or quotient of a unit parameter, powers written directly, a derived unit's conversions, offsets, moments, how a conversion is written, what a lossy conversion does, and the full list of units `std` has.
 - On floats: whether `div.trunc` and the other integer narrowings work, and what `mod` does.
 - Negative exponents, as in `exponent ~1.5e-3`, and exponents on integers.
 - Which groups `std` has (D196), besides `io` and `math`.

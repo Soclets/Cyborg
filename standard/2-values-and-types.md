@@ -313,9 +313,21 @@ let $speed: f64.motion.speed = $dist div $time;
 let $accel: f64.motion.accel = $speed div $time;
 ```
 
+A generic can work for any unit and keep it, with a unit parameter. `any.unit` means any unit, and a family's name, like `length`, means any unit in that family:
+
+```
+fn average<?u: any.unit> [$xs: std::list<f64.?u>[len.min: 1 items]] -> f64.?u:
+    …
+end fn average
+
+let $t: f64.time.seconds = average($times);
+```
+
+A unit parameter goes only where a unit goes, after a number type. A body can add and compare values of the same `?u`.
+
 A conversion can be an offset, not only a multiple. A moment is kept apart from a length of time. How these are spelled, and how a conversion is written, aren't decided ([12.2](12-not-decided.md#122-types)).
 
-**From:** D99, D100, D101, D108, D109, D110, D111, D112, D141, D144, D242.
+**From:** D99, D100, D101, D108, D109, D110, D111, D112, D141, D144, D242, D243.
 
 ## 2.17 Getting an item
 
