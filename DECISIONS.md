@@ -1006,6 +1006,8 @@ A `type_set` is a closed list of types that nothing can join later, as in `type_
 
 **D252. The Arduino milestone starts with a blink.** The real-board milestone from D192 and D193 is an Arduino Uno R4 Minima, an ARM Cortex-M4 with hardware floats and a debug header. Its first step is blinking the built-in LED on pin 13, which needs only a volatile register write inside a shield (D226) and a delay, with no serial or output design. Its second step stays `std::io::fmt_print` over serial. The owner asked "What Arduino to get?" and "Does it come with LED? Maybe make that flash instead"; Claude proposed blinking first and printing second; the owner chose: "yea". (Owner, 2026-11-10)
 
+**D253. The milestone board is the Uno R4 WiFi.** The owner bought an official Arduino Uno R4 WiFi for 1,400 THB, so D252's milestones run on it instead of the Minima. It has the same Renesas RA4M1 ARM chip and the LED on pin 13, so blinking and then printing over serial stay the steps. It has no easy debug header, so debugging is by blink patterns or serial. The owner: "Bought the official Arduino Uno R4 Wifi for 1.4k THB". (Owner, 2026-11-10)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude
