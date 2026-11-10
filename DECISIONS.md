@@ -978,6 +978,8 @@ A `type_set` is a closed list of types that nothing can join later, as in `type_
 
 **D238. An interface's words are decided.** `op`, `includes` and `law`, written inside an `interface` as in D235's example, are decided, along with `<?self>`. D235's note that their spellings were open came from Radium, where they were provisional, and was Claude's mistake, since the owner had chosen the example as shown. Only how a type slot is written stays open. Oracle claude found that read strictly, every interface would be NotDesignedYet; the owner chose: "yes". (Owner, 2026-11-10)
 
+**D239. Every type parameter writes its requirement, `any` included.** A type parameter that needs nothing says so: `struct pair<?left: any, ?right: any>:`. A body can only store, move, copy and lend an `any` parameter. A bare `?left` is refused, with `fix: ?left: any`, so a reader never wonders whether a requirement was forgotten. This matches the owner's "Don't default to allow all" in CyborgPL. Oracle claude found 5.8's `pair` writing none; Claude proposed allowing it bare; the owner asked "Why doesn't it say so", Claude proposed `any`, and the owner chose: "yea". (Owner, 2026-11-10)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude

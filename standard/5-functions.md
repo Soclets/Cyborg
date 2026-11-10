@@ -154,7 +154,7 @@ fn largest<?item: ordered> [$a: ?item, $b: ?item] -> ?item:
     return $b;
 end fn largest
 
-struct pair<?left, ?right>:
+struct pair<?left: any, ?right: any>:
     first: ?left;
     second: ?right;
 end struct pair
@@ -162,7 +162,7 @@ end struct pair
 let $x: i32 = largest(3, 5);
 ```
 
-A type parameter is `?` and a lowercase name, declared in `< >` straight after the name.
+A type parameter is `?` and a lowercase name, declared in `< >` straight after the name, and always writes its requirement. `any` means it needs nothing, so the body can only store, move, copy and lend it.
 
 A requirement is one of two kinds, never mixed. An `interface` lists operations a type must have, with no code, and can state laws, include another interface, and leave type slots. A `type_set` is a closed list of types:
 
@@ -187,9 +187,9 @@ Requirements combine with `and`. A type fits an interface only through a `satisf
 
 "Bound" means a value's min and max ([2.5](2-values-and-types.md#25-bounded-integers)), so these are requirements, not bounds. How laws are proven, and how a type slot is written, aren't decided ([12.5](12-not-decided.md#125-functions)). A type's own operators are in [3.10](3-operators.md#310-operators-for-your-own-types-op).
 
-**Refused:** a body that uses a `?item` in a way its requirement doesn't list, a type used where it hasn't said `satisfies`, a `satisfies` line written outside the type's package and the interface's package, and an interface and a type set mixed in one.
+**Refused:** a type parameter with no requirement, with `fix: ?left: any`, a body that uses a `?item` in a way its requirement doesn't list, a type used where it hasn't said `satisfies`, a `satisfies` line written outside the type's package and the interface's package, and an interface and a type set mixed in one.
 
-**From:** D23, D85, D87, D89, D234, D235, D238, and Radium's generics.
+**From:** D23, D85, D87, D89, D234, D235, D238, D239, and Radium's generics.
 
 ## 5.9 Pure functions
 
