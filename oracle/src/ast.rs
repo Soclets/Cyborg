@@ -60,6 +60,7 @@ pub enum Item {
     Interface(InterfaceDeclaration),
     TypeSet(TypeSetDeclaration),
     Satisfies(Satisfies),
+    PrefixSet(PrefixSet),
 }
 
 /// `?item: whole and ordered`: a type parameter, and every part of what it needs, which is
@@ -259,7 +260,22 @@ pub struct HandlerSet {
 #[derive(Clone, Debug)]
 pub enum UnitMeaning {
     Base,
-    Conversion { unit: Path },
+    Conversion {
+        unit: Path,
+    },
+    /// `length.meters per time.seconds`: what a unit is made of, each part after the first
+    /// marked `true` when it divides. (D242)
+    Derived {
+        parts: Vec<(bool, Path)>,
+    },
+    /// `temperature.kelvin offset ~-273.15`, a placeholder spelling. (D249)
+    Offset {
+        unit: Path,
+    },
+    /// `decibels of 1 power.milliwatts`, a placeholder spelling. (D251)
+    Log {
+        reference: Path,
+    },
     Unsaid,
 }
 
@@ -267,6 +283,15 @@ pub enum UnitMeaning {
 pub struct UnitMember {
     pub path: Path,
     pub meaning: UnitMeaning,
+    /// `with metric`: a prefix family whose prefixes make more units from this one. (D250)
+    pub prefixes: Option<Name>,
+}
+
+/// `fam.prefix metric:` and its prefixes, each a scale, like `metric.kilo = 1000;`. (D250)
+#[derive(Clone, Debug)]
+pub struct PrefixSet {
+    pub family: Name,
+    pub members: Vec<Path>,
 }
 
 #[derive(Clone, Debug)]
@@ -275,18 +300,10 @@ pub struct UnitSet {
     pub members: Vec<UnitMember>,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum TogetherOperator {
-    Multiply,
-    Divide,
-}
-
 #[derive(Clone, Debug)]
+/// A `together` line, which D242 replaced, so it's only read to be refused.
 pub struct Together {
-    pub left: Path,
-    pub operator: TogetherOperator,
-    pub right: Path,
-    pub result: Path,
+    pub span: Span,
 }
 
 #[derive(Clone, Debug)]

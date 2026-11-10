@@ -352,6 +352,7 @@ impl Checker<'_> {
         if found == target {
             return Ok(node);
         }
+        self.refuse_unstorable_unit(found, target, expression)?;
         if let (
             Type::Integer {
                 kind,
@@ -365,7 +366,7 @@ impl Checker<'_> {
             },
         ) = (found, target)
         {
-            if kind == target_kind && unit == target_unit {
+            if kind == target_kind && self.same_unit(unit.as_ref(), target_unit.as_ref()) {
                 // A bounded value goes into a plain `i32` with no check. (D20)
                 let Some((low, high)) = target_bound else {
                     return Ok(node);
@@ -433,7 +434,10 @@ impl Checker<'_> {
             },
         ) = (found, target)
         {
-            if kind == target_kind && (rules != target_rules || found_unit == target_unit) {
+            if kind == target_kind
+                && (rules != target_rules
+                    || self.same_unit(found_unit.as_ref(), target_unit.as_ref()))
+            {
                 return self.fit_float(node, found, target, expression);
             }
             if kind == target_kind && found_unit != target_unit {
@@ -611,7 +615,17 @@ impl Checker<'_> {
                         "a list writes `inf` for unbounded (D11)",
                     ));
                 }
-                let resolved = self.resolve_unit(unit)?;
+                // A literal can't say point or span, so it takes either from where it lands.
+                // (D249)
+                // trace: D249
+                let resolved = self.resolve_unit_name(unit)?;
+                let resolved = match expected.and_then(|target| match target {
+                    Type::Integer { unit, .. } | Type::Float { unit, .. } => unit.as_ref(),
+                    _ => None,
+                }) {
+                    Some(target) if super::units::split_of(target).0 == resolved => target.clone(),
+                    _ => resolved,
+                };
                 if matches!(number.kind, ExpressionKind::Float { .. }) {
                     Self::check_float_literal(number, expected, Some(resolved))
                 } else {
@@ -1857,6 +1871,12 @@ impl Checker<'_> {
             )
             .fix("std::math::sin"));
         }
+        if let Some(function) = rest
+            .strip_prefix("math::")
+            .filter(|function| matches!(*function, "sin" | "cos" | "tan"))
+        {
+            return Err(self.check_trigonometry(function, arguments, path_span));
+        }
         Self::refuse_old_prints(rest, path_span)?;
         let Some(narrowing) = rest.strip_prefix("io::fmt_print") else {
             return Err(Report::not_designed(
@@ -3101,6 +3121,19 @@ impl Checker<'_> {
                 return self.own_arithmetic(word, left, right, span);
             }
         }
+        // trace: D249
+        for side in [left, right] {
+            if self.literal_with_a_split(side) {
+                return Err(Report::not_designed(
+                    side.span,
+                    format!(
+                        "whether `{}` in maths is a point or a span",
+                        self.text_of(side.span)
+                    ),
+                    "12.2",
+                ));
+            }
+        }
         let ((left_node, left_type), (right_node, right_type)) =
             self.check_operands(left, right, expected)?;
         let arithmetic = match operator {
@@ -3301,7 +3334,12 @@ impl Checker<'_> {
     ) -> Outcome<Option<String>> {
         match operator {
             Arithmetic::Add | Arithmetic::Subtract | Arithmetic::PlusWrap => {
-                if left_unit == right_unit {
+                if let Some(result) =
+                    Self::point_and_span(operator, left_unit, right_unit, left, right, span)?
+                {
+                    return Ok(Some(result));
+                }
+                if self.same_unit(left_unit, right_unit) {
                     return Ok(left_unit.cloned());
                 }
                 // trace: D101
@@ -3324,7 +3362,7 @@ impl Checker<'_> {
                 ))
             }
             Arithmetic::Multiply | Arithmetic::Divide(_) | Arithmetic::Remainder(_) => {
-                let (Some(left_name), Some(right_name)) = (left_unit, right_unit) else {
+                if left_unit.is_none() || right_unit.is_none() {
                     if left_unit.is_none() && right_unit.is_none() {
                         return Ok(None);
                     }
@@ -3333,25 +3371,19 @@ impl Checker<'_> {
                         "scaling a unit by a plain number, and what unit comes back",
                         "",
                     ));
-                };
+                }
                 if matches!(operator, Arithmetic::Remainder(_)) {
                     return Err(Report::not_designed(span, "a remainder of two units", ""));
                 }
-                let multiply = operator == Arithmetic::Multiply;
-                // trace: D111
-                let found = self.together.iter().find(|line| {
-                    line.multiply == multiply
-                        && line.left == *left_name
-                        && line.right == *right_name
-                });
-                match found {
-                    Some(line) => Ok(Some(line.result.clone())),
-                    None => Err(Report::refused(
-                        span,
-                        format!("no `together` line says what `{left_name}` and `{right_name}` make"),
-                        "multiplying or dividing two units only works where a `together` line declares it (D111)",
-                    )),
-                }
+                // Units multiply and divide as powers, and storing needs a declared unit
+                // whose powers match. (D242)
+                // trace: D242
+                self.combined_unit(
+                    left_unit,
+                    right_unit,
+                    operator != Arithmetic::Multiply,
+                    span,
+                )
             }
             _ => {
                 if left_unit.is_none() && right_unit.is_none() {
@@ -3700,6 +3732,8 @@ impl Checker<'_> {
                 "(D246)",
             ));
         };
+        // A point or span prints its unit alone, as `20.0 celsius`. (D249)
+        let unit = &super::units::split_of(unit).0.to_string();
         let mut shortened: Vec<&String> = self
             .aliases
             .iter()
@@ -3752,5 +3786,56 @@ impl Checker<'_> {
             }
         }
         Ok(printed)
+    }
+}
+
+impl Checker<'_> {
+    /// `std::math::sin` and the rest ask for an angle in radians, so a plain number is
+    /// refused, asking for one. With one, the oracle can't yet give the correctly rounded
+    /// answer `std` promises. (D245, D161)
+    /// trace: D245
+    fn check_trigonometry(
+        &mut self,
+        function: &str,
+        arguments: &[Argument],
+        path_span: Span,
+    ) -> Box<Report> {
+        const RADIANS: &str = "std::units::angle.radians";
+        let [argument] = arguments else {
+            return Report::refused(
+                path_span,
+                format!("`std::math::{function}` takes one angle"),
+                "trigonometry asks for an angle in radians (D245)",
+            );
+        };
+        if is_number_literal(&argument.value) {
+            return Report::refused(
+                argument.value.span,
+                format!("this is a plain number, where an angle, `f64.{RADIANS}`, is needed"),
+                "trigonometry asks for an angle in radians, so a plain number is refused, and degrees are converted with `as` (D245)",
+            );
+        }
+        let found = match self.check_expression(&argument.value, None) {
+            Ok((_, found)) => found,
+            Err(report) => return report,
+        };
+        let radians = matches!(
+            &found,
+            Type::Float { kind: FloatKind::F64, unit: Some(unit), .. } if unit == RADIANS
+        );
+        if !radians {
+            return Report::refused(
+                argument.value.span,
+                format!("this is `{found}`, where an angle, `f64.{RADIANS}`, is needed"),
+                "trigonometry asks for an angle in radians, so a plain number is refused, and degrees are converted with `as` (D245)",
+            );
+        }
+        Report::not_designed(
+            path_span,
+            format!(
+                "`std::math::{function}`, correctly rounded, which the oracle can't compute yet"
+            ),
+            "",
+        )
     }
 }

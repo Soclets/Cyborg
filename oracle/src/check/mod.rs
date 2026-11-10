@@ -6,6 +6,7 @@ mod expression;
 mod generics;
 mod hand;
 mod operators;
+mod units;
 
 use std::collections::{HashMap, HashSet};
 
@@ -94,6 +95,9 @@ struct UnitInfo {
     base: Option<String>,
     target: Option<(String, Span)>,
     span: Span,
+    /// What a derived unit is made of, each part after the first `true` when it divides.
+    /// (D242)
+    made_of: Option<Vec<(bool, Path)>>,
 }
 
 #[derive(Clone, Debug)]
@@ -101,14 +105,6 @@ struct GlobalInfo {
     index: usize,
     value_type: Type,
     node: Node,
-}
-
-#[derive(Clone, Debug)]
-struct TogetherInfo {
-    left: String,
-    multiply: bool,
-    right: String,
-    result: String,
 }
 
 /// What ownership knows about a variable at one point in the code.
@@ -320,7 +316,8 @@ pub struct Checker<'a> {
     failure_sets: HashMap<String, Vec<Failure>>,
     handlers: HashMap<(String, String), Vec<crate::ast::Arm>>,
     units: HashMap<String, UnitInfo>,
-    together: Vec<TogetherInfo>,
+    /// Unit families whose values say `.point` or `.span`. (D249)
+    split_families: HashSet<String>,
     signatures: HashMap<String, Signature>,
     /// What `type.alias` and `type.new` names stand for.
     named: HashMap<String, Type>,
@@ -374,7 +371,7 @@ pub fn check(
         failure_sets: HashMap::new(),
         handlers: HashMap::new(),
         units: HashMap::new(),
-        together: Vec::new(),
+        split_families: HashSet::new(),
         signatures: HashMap::new(),
         named: HashMap::new(),
         globals: HashMap::new(),
@@ -1087,6 +1084,7 @@ impl Checker<'_> {
 
     /// trace: D109
     fn declare_units(&mut self, items: &[&Item]) -> Outcome<()> {
+        let prefixes = Self::read_prefix_sets(items)?;
         for item in items {
             let Item::UnitSet(set) = item else { continue };
             for member in &set.members {
@@ -1107,10 +1105,22 @@ impl Checker<'_> {
                         "every unit says what it is, once (D109)",
                     ));
                 }
+                let mut made_of = None;
                 let (base, target) = match &member.meaning {
                     UnitMeaning::Base => (Some(member.path.text.clone()), None),
                     UnitMeaning::Conversion { unit } => {
                         (None, Some((unit.text.clone(), unit.span)))
+                    }
+                    // A family with an offset or a log has points and spans. (D249, D251)
+                    // trace: D249, D251
+                    UnitMeaning::Offset { unit } | UnitMeaning::Log { reference: unit } => {
+                        self.split_families.insert(set.family.text.clone());
+                        (None, Some((unit.text.clone(), unit.span)))
+                    }
+                    // trace: D242
+                    UnitMeaning::Derived { parts } => {
+                        made_of = Some(parts.clone());
+                        (None, None)
                     }
                     UnitMeaning::Unsaid => {
                         return Err(Report::refused(
@@ -1126,23 +1136,25 @@ impl Checker<'_> {
                         base,
                         target,
                         span: member.path.span,
+                        made_of,
                     },
                 );
+                if let Some(family) = &member.prefixes {
+                    self.add_prefixed_units(&member.path, family, &prefixes)?;
+                }
             }
         }
         self.trace_units_to_their_bases()?;
+        self.check_derived_units()?;
+        // A unit made of others is declared once in its family, with `per` and `x`. (D242)
+        // trace: D242
         for item in items {
             if let Item::Together(line) = item {
-                let left = self.resolve_unit(&line.left)?;
-                let right = self.resolve_unit(&line.right)?;
-                let result = self.resolve_unit(&line.result)?;
-                // trace: D111
-                self.together.push(TogetherInfo {
-                    left,
-                    multiply: line.operator == crate::ast::TogetherOperator::Multiply,
-                    right,
-                    result,
-                });
+                return Err(Report::refused(
+                    line.span,
+                    "`together` lines are gone",
+                    "a unit made of others is declared once, inside a family, with `per` and `x`, as in `motion.speed = length.meters per time.seconds;` (D242)",
+                ));
             }
         }
         Ok(())
@@ -1173,7 +1185,7 @@ impl Checker<'_> {
                 let target = self.canonical(&target);
                 // trace: D109
                 if target.starts_with("std::") {
-                    let resolved = self.resolve_unit(&Path {
+                    let resolved = self.resolve_unit_name(&Path {
                         text: target,
                         span: target_span,
                     })?;
@@ -1617,7 +1629,7 @@ impl Checker<'_> {
                     };
                     // trace: D144
                     if let Some((_, unit_text)) = label.text.split_once('.') {
-                        let unit = self.resolve_unit(&Path {
+                        let unit = self.resolve_unit_name(&Path {
                             text: unit_text.to_string(),
                             span: label.span,
                         })?;
@@ -1625,7 +1637,10 @@ impl Checker<'_> {
                             Type::Integer { unit, .. } | Type::Float { unit, .. } => unit.as_ref(),
                             _ => None,
                         };
-                        if parameter_unit != Some(&unit) {
+                        // A label names a unit, not whether it's a point or a span. (D249)
+                        if parameter_unit.map(|found| units::split_of(found).0)
+                            != Some(unit.as_str())
+                        {
                             return Err(Report::refused(
                                 label.span,
                                 format!(
@@ -1975,7 +1990,35 @@ impl Checker<'_> {
     }
 
     /// Resolves a unit to its one written form, such as `money.cents`. (D112)
+    /// A value type's unit: in a family with points and spans it says which, and elsewhere it
+    /// doesn't. (D249)
+    /// trace: D249
     fn resolve_unit(&self, path: &Path) -> Outcome<String> {
+        let text = self.canonical(&path.text);
+        let (bare, split) = units::split_of(&text);
+        let found = self.resolve_unit_name(&Path {
+            text: bare.to_string(),
+            span: path.span,
+        })?;
+        match (self.needs_a_split(&found), split) {
+            (true, Some(word)) => Ok(format!("{found}.{word}")),
+            (true, None) => Err(Report::refused(
+                path.span,
+                format!("`{found}` says whether it's a `.point` or a `.span`"),
+                "in a family with an offset or a log unit, and in `std`'s `time`, every value says whether it's a point or a span (D249, D251)",
+            )),
+            (false, Some(word)) => Err(Report::refused(
+                path.span,
+                format!("`{found}` has no points and spans, so it takes no `.{word}`"),
+                "only a family with an offset or a log unit, and `std`'s `time`, has points and spans (D249)",
+            )),
+            (false, None) => Ok(found),
+        }
+    }
+
+    /// A unit by its name, as a literal, a conversion or a derived unit writes it, without
+    /// saying point or span.
+    fn resolve_unit_name(&self, path: &Path) -> Outcome<String> {
         if path.text == "items" {
             return Ok("items".to_string());
         }
@@ -1998,8 +2041,14 @@ impl Checker<'_> {
         let text = self.canonical(&path.text);
         if let Some(rest) = text.strip_prefix("std::") {
             self.require_std(rest, path.span)?;
-            // trace: D199
-            if rest == "units::time.seconds" {
+            // trace: D199, D245
+            if matches!(
+                rest,
+                "units::time.seconds"
+                    | "units::angle.radians"
+                    | "units::angle.degrees"
+                    | "units::angle.turns"
+            ) {
                 return Ok(text);
             }
             if let Some(old) = rest.strip_prefix("time.") {

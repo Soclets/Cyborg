@@ -1,0 +1,5 @@
+refused: d251_two_levels.cy:13:35, line 13 column 35
+13 |     let $c: f64.power.dbm.point = $a + $b;
+   |                                   ^^^^^^^
+ what: this adds a point to a point
+ why:  a point plus a span is a point, a point minus a point is a span, and spans add, while a point plus a point is refused (D249, D251)

@@ -1,4 +1,5 @@
-// trace: D111
+// `together` lines are gone, replaced by a unit declared once with `per` and `x`.
+// trace: D111, D242
 @config(default);
 import std;
 

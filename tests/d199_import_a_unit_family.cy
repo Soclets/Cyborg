@@ -4,6 +4,6 @@
 import std::units::time;
 
 fn.main [] -> void:
-    let $a: i32.std::units::time.seconds = 60 std::units::time.seconds;
+    let $a: i32.std::units::time.seconds.span = 60 std::units::time.seconds;
     return void;
 end fn.main

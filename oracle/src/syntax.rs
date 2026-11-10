@@ -8,11 +8,10 @@ use crate::ast::{
     ExpressionKind, FailureEntry, FailureSet, FieldDeclaration, FieldValue, Fill, ForSource,
     Function, FunctionKind, HandWord, Handler, HandlerSet, Handling, IfLink, IfTest, Import,
     InterfaceDeclaration, InterfaceOperator, Item, LabelLine, LastsAtLeast, Name, Narrowing,
-    Parameter, ParameterWord, Path, Program, RangeEnd, RangeExpression, Satisfies, ShieldContent,
-    ShieldItem, SourceDeclaration, SourceFill, SourceValue, Statement, StatementKind,
-    StructDeclaration, Together, TogetherOperator, TypeExpression, TypeKind, TypeName,
-    TypeParameter, TypeSetDeclaration, UnionCase, UnionDeclaration, UnitMeaning, UnitMember,
-    UnitSet, Use,
+    Parameter, ParameterWord, Path, PrefixSet, Program, RangeEnd, RangeExpression, Satisfies,
+    ShieldContent, ShieldItem, SourceDeclaration, SourceFill, SourceValue, Statement,
+    StatementKind, StructDeclaration, Together, TypeExpression, TypeKind, TypeName, TypeParameter,
+    TypeSetDeclaration, UnionCase, UnionDeclaration, UnitMeaning, UnitMember, UnitSet, Use,
 };
 use crate::report::{Kind, Outcome, Report, ReportExtra, Span};
 
@@ -2637,6 +2636,8 @@ impl Parser {
             "failure" => self.parse_failure_set(),
             "handler" => self.parse_handler_set(),
             "unit" => self.parse_unit_set(),
+            // trace: D250
+            "prefix" => self.parse_prefix_set(),
             "type" => {
                 let new = self.parse_type_kind(start)?;
                 self.parse_type_family(new)
@@ -2802,13 +2803,20 @@ impl Parser {
             self.mark_line_start();
             let path = self.parse_path()?;
             Self::refuse_a_deep_family(&family, &path)?;
+            let mut prefixes = None;
             let meaning = if self.eat_symbol(":") {
                 if self.eat_word("base") {
+                    // trace: D250
+                    if self.eat_word("with") {
+                        prefixes = Some(self.expect_name("a prefix family")?);
+                    }
                     UnitMeaning::Base
                 } else {
                     return Err(self.expected("`base`"));
                 }
-            } else if self.eat_symbol("=") {
+            } else if self.eat_symbol("=") && !self.number_follows() {
+                self.parse_unit_made_of()?
+            } else if self.previous_is("=") {
                 let start = self.span();
                 self.parse_primary_number()?;
                 let Some(unit) = self.parse_unit_after_number()? else {
@@ -2830,31 +2838,26 @@ impl Parser {
                 UnitMeaning::Unsaid
             };
             self.expect_semicolon()?;
-            members.push(UnitMember { path, meaning });
+            members.push(UnitMember {
+                path,
+                meaning,
+                prefixes,
+            });
         }
         self.expect_closer(&["fam.unit", &family.text])?;
         Ok(Item::UnitSet(UnitSet { family, members }))
     }
 
+    /// `together length.meters / time.seconds = speed.mps;`, read to its `;` to be refused,
+    /// since D242 replaced it. (D111, D242)
     fn parse_together(&mut self) -> Outcome<Together> {
-        self.advance(); // `together`
-        let left = self.parse_path()?;
-        let operator = if self.eat_symbol("/") {
-            TogetherOperator::Divide
-        } else if self.eat_word("x") {
-            TogetherOperator::Multiply
-        } else {
-            return Err(self.expected("`/` or `x`"));
-        };
-        let right = self.parse_path()?;
-        self.expect_symbol("=")?;
-        let result = self.parse_path()?;
-        self.expect_semicolon()?;
+        let start = self.advance().span; // `together`
+        while !self.at_symbol(";") && !matches!(self.peek().lexeme, Lexeme::End) {
+            self.advance();
+        }
+        let end = self.expect_semicolon()?;
         Ok(Together {
-            left,
-            operator,
-            right,
-            result,
+            span: start.to(end),
         })
     }
 
@@ -5504,5 +5507,105 @@ impl Parser {
             written_type,
             interface,
         })
+    }
+}
+
+impl Parser {
+    /// Whether a number comes next, as in `= 100 money.cents`.
+    fn number_follows(&self) -> bool {
+        matches!(
+            self.peek().lexeme,
+            Lexeme::Integer(_) | Lexeme::Float(_) | Lexeme::Symbol("~" | "-")
+        )
+    }
+
+    /// Whether the token just read is this symbol.
+    fn previous_is(&self, symbol: &str) -> bool {
+        self.position
+            .checked_sub(1)
+            .and_then(|at| self.tokens.get(at))
+            .is_some_and(|token| matches!(token.lexeme, Lexeme::Symbol(found) if found == symbol))
+    }
+
+    /// What a unit is made of, after its `=`: other units joined by `per` and `x`, a unit and
+    /// an `offset`, or `decibels of` a reference. `offset` and `decibels of` are placeholder
+    /// spellings. (D242, D249, D251)
+    /// trace: D242, D249, D251
+    fn parse_unit_made_of(&mut self) -> Outcome<UnitMeaning> {
+        if self.at_word("decibels") && self.word_at(1, "of") {
+            self.advance();
+            self.advance();
+            let start = self.span();
+            if !self.number_follows() {
+                return Err(
+                    self.expected("the reference's amount, as in `decibels of 1 power.milliwatts`")
+                );
+            }
+            self.parse_primary_number()?;
+            let Some(reference) = self.parse_unit_after_number()? else {
+                return Err(Report::refused(
+                    start,
+                    "`decibels of` names a reference with its unit",
+                    "a log unit is declared against a reference, as in `decibels of 1 power.milliwatts` (D251)",
+                ));
+            };
+            return Ok(UnitMeaning::Log { reference });
+        }
+        let first = self.parse_path()?;
+        if self.eat_word("offset") {
+            if !self.number_follows() {
+                return Err(self.expected("the offset, as in `offset ~-273.15`"));
+            }
+            self.parse_primary_number()?;
+            return Ok(UnitMeaning::Offset { unit: first });
+        }
+        let mut parts = vec![(false, first)];
+        loop {
+            let divides = if self.eat_word("per") {
+                true
+            } else if self.eat_word("x") {
+                false
+            } else {
+                break;
+            };
+            parts.push((divides, self.parse_path()?));
+        }
+        if parts.len() == 1 {
+            return Err(Report::not_designed(
+                self.span(),
+                "a unit that's another unit, with no number, `per` or `x`",
+                "12.2",
+            ));
+        }
+        Ok(UnitMeaning::Derived { parts })
+    }
+
+    /// `fam.prefix metric:`, each prefix with its scale, and its closer. `fam.prefix` is a
+    /// placeholder spelling. (D250)
+    /// trace: D250
+    fn parse_prefix_set(&mut self) -> Outcome<Item> {
+        let family = self.expect_name("the prefix family's name")?;
+        self.expect_symbol(":")?;
+        let mut members = Vec::new();
+        while !self.at_word("end") {
+            self.mark_line_start();
+            let path = self.parse_path()?;
+            Self::refuse_a_deep_family(&family, &path)?;
+            self.expect_symbol("=")?;
+            if !self.number_follows() {
+                return Err(self.expected("the prefix's scale, as in `1000` or `1 per 1000`"));
+            }
+            self.parse_primary_number()?;
+            if self.eat_word("per") {
+                if !self.number_follows() {
+                    return Err(self.expected("a number after `per`"));
+                }
+                self.parse_primary_number()?;
+            }
+            self.expect_semicolon()?;
+            members.push(path);
+        }
+        self.expect_closer(&["fam.prefix", &family.text])?;
+        Ok(Item::PrefixSet(PrefixSet { family, members }))
     }
 }

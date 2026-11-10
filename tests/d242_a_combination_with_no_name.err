@@ -1,0 +1,5 @@
+refused: d242_a_combination_with_no_name.cy:24:21, line 24 column 21
+24 |     let $odd: f64 = $dist x $time;
+   |                     ^^^^^^^^^^^^^
+ what: this is `f64.length.meters x time.seconds`, where `f64` is needed
+ why:  storing a value needs a declared unit whose powers match (D242)

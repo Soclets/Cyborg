@@ -2,7 +2,7 @@
 @config(default);
 import std;
 
-fn wait [$t: i32.std::units::time.seconds] -> void:
+fn wait [$t: i32.std::units::time.seconds.span] -> void:
     labels [$t as for.std::units::time.seconds];
 
     std::io::fmt_print("{}{newln}", ($t as i32));

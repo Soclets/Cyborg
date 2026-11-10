@@ -1,5 +1,0 @@
-refused: d164_two_units.cy:11:19, line 11 column 19
-11 |     let $c: f64 = $a div $b;
-   |                   ^^^^^^^^^
- what: no `together` line says what `time.seconds` and `time.seconds` make
- why:  multiplying or dividing two units only works where a `together` line declares it (D111)

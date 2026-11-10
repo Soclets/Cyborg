@@ -1,4 +1,5 @@
-// trace: D164, D111
+// Seconds divided by seconds is a plain number, since units are tracked as powers.
+// trace: D164, D242
 @config(default);
 
 fam.unit time:

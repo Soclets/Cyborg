@@ -1,4 +1,4 @@
-// trace: D161
+// trace: D161, D245
 @config(default);
 import std;
 

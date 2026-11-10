@@ -6,6 +6,6 @@ import std;
 use std::units::time.seconds as seconds;
 
 fn.main [] -> void:
-    let $t: i32.seconds = 5 seconds;
+    let $t: i32.seconds.span = 5 seconds;
     return void;
 end fn.main

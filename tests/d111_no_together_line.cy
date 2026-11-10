@@ -1,4 +1,5 @@
-// trace: D111
+// Two units with no declared unit for their product can't be stored.
+// trace: D111, D242
 @config(default);
 
 fam.unit length:

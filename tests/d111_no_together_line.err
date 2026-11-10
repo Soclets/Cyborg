@@ -1,5 +1,5 @@
-refused: d111_no_together_line.cy:15:19, line 15 column 19
-15 |     let $v: i32 = $d x $m;
+refused: d111_no_together_line.cy:16:19, line 16 column 19
+16 |     let $v: i32 = $d x $m;
    |                   ^^^^^^^
- what: no `together` line says what `length.meters` and `money.dollars` make
- why:  multiplying or dividing two units only works where a `together` line declares it (D111)
+ what: this is `i32.length.meters x money.dollars`, where `i32` is needed
+ why:  storing a value needs a declared unit whose powers match (D242)
