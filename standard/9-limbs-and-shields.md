@@ -74,11 +74,36 @@ inline.asm
 inline.@llvm::ir
 ```
 
-This is the one place a path sits inside a narrowing, so every limb plugs into the same `inline` instead of declaring its own. How the code inside is written isn't decided.
+This is the one place a path sits inside a narrowing, so every limb plugs into the same `inline` instead of declaring its own.
 
-**Refused:** `@std::inline.asm`, with `fix: inline.asm`, `inline.llvm::ir`, with no `@`, and any `use` of an `inline.…`, since `use` doesn't work on the base language.
+An assembly block says in words what goes in and out, then holds raw assembly, one instruction per line, which LLVM's assembler reads. It's a statement, and must be inside a shield and inside an `on.target` choice naming the chip:
 
-**From:** D28, D35, D36, D38, D227, D232.
+```
+on.target aarch64:
+    shield mul_add:
+        reason "one madd instruction computes a times b plus c"
+        inline.asm:
+            reads: [x0 = $a, x1 = $b, x2 = $c];
+            writes: [x0 => $r];
+            clobbers: [];
+            madd x0, x0, x1, x2
+        end inline.asm
+    end shield mul_add
+else:
+    let $r: i64 = $a x $b + $c;
+end on.target
+```
+
+- **`reads:`** puts values into registers before it runs.
+- **`writes:`** takes registers into variables after, declaring them as a `let` would.
+- **`clobbers:`** lists every other register the code changes.
+- **`on.target`** compiles a branch only when building for that chip, with `else:` for the rest.
+
+The compiler reads the text through LLVM and refuses any register the code writes that isn't in `writes:` or `clobbers:`. A value narrower than its register needs an `as`.
+
+**Refused:** an `inline.asm` block outside an `on.target` choice or outside a shield, a register written but not declared, a narrow value with no `as`, `@std::inline.asm`, with `fix: inline.asm`, `inline.llvm::ir`, with no `@`, and any `use` of an `inline.…`, since `use` doesn't work on the base language.
+
+**From:** D28, D35, D36, D38, D227, D232, D233, and CyborgPL's `on.target`.
 
 ## 9.5 C support: `@csup`
 

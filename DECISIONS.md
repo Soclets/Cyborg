@@ -949,6 +949,17 @@ a placeholder for a version that isn't correctly rounded. A float prints as the 
 
 **D232. `use` doesn't work on the base language.** `use` only shortens a path with `::` into a kit or limb. Anything in the base language has no path to shorten, so `use inline.asm as asm;` is refused, with a fix that removes the line, since `asm` would look like your own name or an import. Every `inline.…` stays written in full, `inline.@llvm::ir` included, so all inline code reads `inline.` first. This replaces D227's `use inline.@llvm::ir as ir;`. Oracle claude had allowed `use inline.asm as asm;` as a reading; the owner asked "isn't `inline.asm` the base's. Why would you `use` it?"; Claude proposed refusing every base name and every `inline.…`; the owner chose: "yea". (Owner, 2026-11-10)
 
+**D233. How an assembly block looks.** An `inline.asm:` block says in words what goes in and out, then holds raw assembly, one instruction per line, read by LLVM's assembler, and closes with `end inline.asm`:
+
+    inline.asm:
+        reads: [x0 = $a, x1 = $b, x2 = $c];
+        writes: [x0 => $r];
+        clobbers: [];
+        madd x0, x0, x1, x2
+    end inline.asm
+
+`reads:` puts values into registers before it runs, `writes:` takes registers into variables after, which declares them as a `let` would, and `clobbers:` lists every other register the code changes. It's a statement, not a value. It must be inside a shield, and inside an `on.target` choice that names the chip it's for, so a bare one is refused and there's no `target:` line on the block. `on.target aarch64:` compiles its branch only when building for that chip, with `else:` for the rest, closed with `end on.target`, taken from CyborgPL. The compiler reads the text through LLVM and refuses any register the code writes that isn't in `writes:` or `clobbers:`, and a value narrower than its register needs an `as`, so nothing is widened silently. These close the two gaps CyborgPL's design claude found in CyborgPL's version. Not settled here: a register that's both read and written, lending an address into a register, the narrowings of `on.target` like `.chip` and `.os`, and chips' names. The style is the sketch Radium's design claude wrote for early Cyborg, never ruled on there. The owner asked "Should our ASM be like Radium's or CyborgPL's", then said "I think that I like Radium's more? But we could use CyborgPL's code `on.machine` or whatever it's called"; Claude proposed this; the owner chose: "yea". (Owner, 2026-11-10)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude
