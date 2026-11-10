@@ -2497,6 +2497,7 @@ impl Checker<'_> {
                 // A float says which kind it is, straight after its type, before a unit or
                 // bounds. (D257, D158)
                 // trace: D257, D158
+                let (unit, describe) = self.unit_in_brackets(describe)?;
                 if head.starts_with('f') {
                     let (first, unit_text) = match narrowing.map(|word| word.split_once('.')) {
                         Some(Some((first, rest))) => (Some(first), Some(rest)),
@@ -2510,23 +2511,28 @@ impl Checker<'_> {
                             "a float always says its kind straight after its type, since floats differ between machines in nearly every other language (D257)",
                         ));
                     };
-                    let unit = match unit_text {
-                        Some(unit_text) => Some(self.resolve_unit(&Path {
-                            text: unit_text.to_string(),
-                            span: path.span,
-                        })?),
-                        None => None,
-                    };
-                    return Self::resolve_float_type(head, unit, rules, describe, written);
+                    if let Some(unit_text) = unit_text {
+                        return Err(Self::unit_in_the_chain(
+                            &format!("{head}.{}", rules.word()),
+                            unit_text,
+                            &describe,
+                            written,
+                        ));
+                    }
+                    return Self::resolve_float_type(head, unit, rules, &describe, written);
                 }
-                let unit = match narrowing {
-                    Some(unit_text) => Some(self.resolve_unit(&Path {
-                        text: unit_text.to_string(),
-                        span: path.span,
-                    })?),
-                    None => None,
-                };
-                return Self::resolve_number_type(head, unit, describe, written);
+                if let Some(unit_text) = narrowing {
+                    // trace: D257, D158
+                    if FloatRules::from_narrowing(unit_text).is_some() {
+                        return Err(Report::refused(
+                            path.span,
+                            format!("`{head}` is an integer, and only a float says `.{unit_text}`"),
+                            "a float says whether it's `.stable`, `.fast` or `.ieee`, and an integer has no such kind (D257, D158)",
+                        ));
+                    }
+                    return Err(Self::unit_in_the_chain(head, unit_text, &describe, written));
+                }
+                return Self::resolve_number_type(head, unit, &describe, written);
             }
             _ => {}
         }

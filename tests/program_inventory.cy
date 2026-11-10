@@ -9,13 +9,13 @@ end fam.unit stock
 
 union.tagged level:
     plenty;
-    low[left: i32.stock.pieces];
+    low[left: i32[unit: stock.pieces]];
     out;
 end union.tagged level
 
 struct line:
     name: str;
-    count: i32.stock.pieces;
+    count: i32[unit: stock.pieces];
 end struct line
 
 fn.main [] -> void:
@@ -55,11 +55,11 @@ fn report [$l: line] -> void:
     return void;
 end fn report
 
-fn total_of [$a: line, $b: line] -> i32.stock.pieces:
+fn total_of [$a: line, $b: line] -> i32[unit: stock.pieces]:
     return $a.count + $b.count;
 end fn total_of
 
-fn order_size [$l: line] -> i32.stock.pieces fails [nothing_needed]:
+fn order_size [$l: line] -> i32[unit: stock.pieces] fails [nothing_needed]:
     if $l.count at_least 10 stock.pieces:
         fail nothing_needed;
     end if
@@ -67,7 +67,7 @@ fn order_size [$l: line] -> i32.stock.pieces fails [nothing_needed]:
 end fn order_size
 
 fn show_restock [$l: line] -> void:
-    let $n: i32.stock.pieces = order_size(Lend $l) otherwise:
+    let $n: i32[unit: stock.pieces] = order_size(Lend $l) otherwise:
         case nothing_needed:
             std::io::fmt_print("{}: no order{newln}", $l.name);
             return void;

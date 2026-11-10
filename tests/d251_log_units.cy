@@ -9,9 +9,9 @@ fam.unit power:
 end fam.unit power
 
 fn.main [] -> void:
-    let $input: f64.stable.power.dbm.point = 10.0 power.dbm;
-    let $gain: f64.stable.power.dbm.span = 3.0 power.dbm;
-    let $output: f64.stable.power.dbm.point = $input + $gain;
+    let $input: f64.stable[unit: power.dbm.point] = 10.0 power.dbm;
+    let $gain: f64.stable[unit: power.dbm.span] = 3.0 power.dbm;
+    let $output: f64.stable[unit: power.dbm.point] = $input + $gain;
     std::io::fmt_print("{$output, unit}{newln}");
     return void;
 end fn.main

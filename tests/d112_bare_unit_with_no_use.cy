@@ -6,6 +6,6 @@ fam.unit time:
 end fam.unit time
 
 fn.main [] -> void:
-    let $a: i32.time.seconds = 3600 seconds;
+    let $a: i32[unit: time.seconds] = 3600 seconds;
     return void;
 end fn.main

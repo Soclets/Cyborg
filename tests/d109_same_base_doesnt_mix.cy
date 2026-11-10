@@ -8,7 +8,7 @@ fam.unit money:
 end fam.unit money
 
 fn.main [] -> void:
-    let $a: i32.money.dollars = 2 money.dollars;
-    let $b: i32.money.dollars = $a + 1 money.cents;
+    let $a: i32[unit: money.dollars] = 2 money.dollars;
+    let $b: i32[unit: money.dollars] = $a + 1 money.cents;
     return void;
 end fn.main

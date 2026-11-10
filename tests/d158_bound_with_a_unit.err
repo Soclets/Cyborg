@@ -1,5 +1,5 @@
 NotDesignedYet: d158_bound_with_a_unit.cy:9:13, line 9 column 13
- 9 |     let $t: f64.stable.time.seconds[min: 0.0, max: 1.0] = 0.5 time.seconds;
-   |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ 9 |     let $t: f64.stable[unit: time.seconds, min: 0.0, max: 1.0] = 0.5 time.seconds;
+   |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
  what: a bound on a number with a unit
  why:  not decided yet, and the standard doesn't say

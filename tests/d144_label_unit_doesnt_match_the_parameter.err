@@ -1,5 +1,5 @@
 refused: d144_label_unit_doesnt_match_the_parameter.cy:10:19, line 10 column 19
 10 |     labels [$x as at.screen.points];
    |                   ^^^^^^^^^^^^^^^^
- what: this label says `screen.points`, and `$x` is `i32.screen.pixels`
+ what: this label says `screen.points`, and `$x` is `i32[unit: screen.pixels]`
  why:  a label can carry the unit its parameter has (D144)

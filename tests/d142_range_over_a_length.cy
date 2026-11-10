@@ -11,7 +11,7 @@ fn.main [] -> void:
         std::io::fmt_print("{}{newln}", $i);
     end for
     for $i in range[from: 1 items, to: 2 items]:
-        let $kept: i32.items = $i;
+        let $kept: i32[unit: items] = $i;
         std::io::fmt_print("{}{newln}", $kept);
     end for
     return void;

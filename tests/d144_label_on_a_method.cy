@@ -7,10 +7,10 @@ fam.unit screen:
 end fam.unit screen
 
 struct cursor:
-    x: i32.screen.pixels;
+    x: i32[unit: screen.pixels];
 end struct cursor
 
-fn cursor.%%move [$c: Lent.mut cursor, $by: i32.screen.pixels] -> void:
+fn cursor.%%move [$c: Lent.mut cursor, $by: i32[unit: screen.pixels]] -> void:
     labels [$by as by.screen.pixels];
 
     change $c.x = $c.x + $by;

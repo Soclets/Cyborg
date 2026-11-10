@@ -1,5 +1,5 @@
-refused: d140_len_isnt_i32_items.cy:7:25, line 7 column 25
- 7 |     let $n: i32.items = $a.len;
-   |                         ^^^^^^
- what: this is `u64.items`, where `i32.items` is needed
+refused: d140_len_isnt_i32_items.cy:7:32, line 7 column 32
+ 7 |     let $n: i32[unit: items] = $a.len;
+   |                                ^^^^^^
+ what: this is `u64[unit: items]`, where `i32[unit: items]` is needed
  why:  `:` doesn't convert, and `as` builds a new value of another type (D7)

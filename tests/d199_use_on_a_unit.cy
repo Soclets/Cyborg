@@ -4,7 +4,7 @@ import std;
 use std::units::time.seconds as seconds;
 
 fn.main [] -> void:
-    let $a: i32.seconds.span = 60 seconds;
+    let $a: i32[unit: seconds.span] = 60 seconds;
     std::io::fmt_print("{}{newln}", $a);
     return void;
 end fn.main

@@ -13,7 +13,7 @@ fam.unit cash:
 end fam.unit cash
 
 fn.main [] -> void:
-    let $a: i32.cash.dollars = 2 cash.dollars;
+    let $a: i32[unit: cash.dollars] = 2 cash.dollars;
     std::io::fmt_print("{}{newln}", $a);
     return void;
 end fn.main

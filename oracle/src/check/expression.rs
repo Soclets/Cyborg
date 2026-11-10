@@ -3841,7 +3841,7 @@ impl Checker<'_> {
             return Err(Report::refused(
                 argument.value.span,
                 format!(
-                    "this is a plain number, where an angle, `f64.stable.{RADIANS}`, is needed"
+                    "this is a plain number, where an angle, `f64.stable[unit: {RADIANS}]`, is needed"
                 ),
                 WHY,
             ));
@@ -3856,14 +3856,18 @@ impl Checker<'_> {
         else {
             return Err(Report::refused(
                 argument.value.span,
-                format!("this is `{found}`, where an angle, `f64.stable.{RADIANS}`, is needed"),
+                format!(
+                    "this is `{found}`, where an angle, `f64.stable[unit: {RADIANS}]`, is needed"
+                ),
                 WHY,
             ));
         };
         if unit != RADIANS {
             return Err(Report::refused(
                 argument.value.span,
-                format!("this is `{found}`, where an angle, `f64.stable.{RADIANS}`, is needed"),
+                format!(
+                    "this is `{found}`, where an angle, `f64.stable[unit: {RADIANS}]`, is needed"
+                ),
                 WHY,
             ));
         }

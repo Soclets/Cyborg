@@ -6,7 +6,7 @@ fam.unit screen:
     screen.pixels: base;
 end fam.unit screen
 
-fn draw [$x: i32.screen.pixels] -> void:
+fn draw [$x: i32[unit: screen.pixels]] -> void:
     labels [$x as at.screen.pixels];
 
     std::io::fmt_print("{}{newln}", ($x as i32));
@@ -18,7 +18,7 @@ fn.main [] -> void:
     draw(at.screen.pixels: 6 screen.pixels);
     let $n: i32 = 7;
     draw(at.screen.pixels: $n);
-    let $p: i32.screen.pixels = 8 screen.pixels;
+    let $p: i32[unit: screen.pixels] = 8 screen.pixels;
     draw(at.screen.pixels: $p);
     return void;
 end fn.main

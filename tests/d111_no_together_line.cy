@@ -11,8 +11,8 @@ fam.unit money:
 end fam.unit money
 
 fn.main [] -> void:
-    let $d: i32.length.meters = 100 length.meters;
-    let $m: i32.money.dollars = 8 money.dollars;
+    let $d: i32[unit: length.meters] = 100 length.meters;
+    let $m: i32[unit: money.dollars] = 8 money.dollars;
     let $v: i32 = $d x $m;
     return void;
 end fn.main

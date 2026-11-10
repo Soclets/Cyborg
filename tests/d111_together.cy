@@ -18,9 +18,9 @@ end fam.unit speed
 together length.meters / time.seconds = speed.meters_per_second;
 
 fn.main [] -> void:
-    let $d: i32.length.meters = 100 length.meters;
-    let $t: i32.time.seconds = 8 time.seconds;
-    let $v: i32.speed.meters_per_second = $d div.trunc $t;
+    let $d: i32[unit: length.meters] = 100 length.meters;
+    let $t: i32[unit: time.seconds] = 8 time.seconds;
+    let $v: i32[unit: speed.meters_per_second] = $d div.trunc $t;
     std::io::fmt_print("{}{newln}", $v);
     return void;
 end fn.main

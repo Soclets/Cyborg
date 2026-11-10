@@ -3003,7 +3003,25 @@ impl Parser {
                     ));
                 }
                 self.expect_symbol(":")?;
-                let value = self.parse_compare()?;
+                // `unit: time.seconds`, or a unit parameter, `unit: ?u`. (D258, D243)
+                // trace: D258
+                let value = if label.text == "unit" {
+                    let path = if self.at_symbol("?") {
+                        let name = self.parse_parameter_name()?;
+                        Path {
+                            text: format!("?{}", name.text),
+                            span: name.span,
+                        }
+                    } else {
+                        self.parse_path()?
+                    };
+                    Expression {
+                        span: path.span,
+                        kind: ExpressionKind::Path(path),
+                    }
+                } else {
+                    self.parse_compare()?
+                };
                 describe.push(Describe { label, value });
                 if !self.eat_symbol(",") {
                     break;

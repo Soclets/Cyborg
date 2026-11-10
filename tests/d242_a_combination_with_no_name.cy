@@ -19,8 +19,8 @@ fam.unit motion:
 end fam.unit motion
 
 fn.main [] -> void:
-    let $dist: f64.stable.length.meters = 100.0 length.meters;
-    let $time: f64.stable.time.seconds = 8.0 time.seconds;
+    let $dist: f64.stable[unit: length.meters] = 100.0 length.meters;
+    let $time: f64.stable[unit: time.seconds] = 8.0 time.seconds;
     let $odd: f64.stable = $dist x $time;
     return void;
 end fn.main

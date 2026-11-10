@@ -1,5 +1,5 @@
 refused: d161_grouping_would_use_colons.cy:7:41, line 7 column 41
  7 |     let $y: f64.stable = std::math::sin($x);
    |                                         ^^
- what: this is `f64.stable`, where an angle, `f64.stable.std::units::angle.radians`, is needed
+ what: this is `f64.stable`, where an angle, `f64.stable[unit: std::units::angle.radians]`, is needed
  why:  trigonometry asks for an angle in radians, so a plain number is refused, and degrees are converted with `as` (D245)

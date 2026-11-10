@@ -6,7 +6,7 @@ fam.unit length:
 end fam.unit length
 
 fn.main [] -> void:
-    let $by: i32.length.meters = 2 length.meters;
+    let $by: i32[unit: length.meters] = 2 length.meters;
     for $i in range[from: 1, to: 5, step_by: $by]:
         return void;
     end for

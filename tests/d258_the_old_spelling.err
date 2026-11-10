@@ -1,0 +1,5 @@
+refused: d258_the_old_spelling.cy:12:13, line 12 column 13
+12 |     let $d: i32.length.meters = 5 length.meters;
+   |             ^^^^^^^^^^^^^^^^^
+ fix:  `i32[unit: length.meters]`
+ why:  a type's unit is a `unit:` label in its brackets, next to any bounds (D258)

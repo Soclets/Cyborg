@@ -9,7 +9,7 @@ use std::collections::{BTreeMap, HashMap};
 
 use super::{Checker, UnitInfo};
 use crate::ast::{Item, Name, Path};
-use crate::report::{Outcome, Report, Span};
+use crate::report::{Outcome, Report, ReportExtra, Span};
 
 /// Powers of the units a unit is made of, by name.
 pub(super) type Powers = BTreeMap<String, i32>;
@@ -883,5 +883,61 @@ impl Checker<'_> {
             }
         };
         Ok(step(Arithmetic::Divide(rounding), bottom))
+    }
+}
+
+impl Checker<'_> {
+    /// The `unit:` in a number type's brackets, resolved, and the brackets' other labels.
+    /// Which order the labels go in isn't decided, so any is read. (D258)
+    /// trace: D258
+    pub(super) fn unit_in_brackets(
+        &self,
+        describe: &[crate::ast::Describe],
+    ) -> Outcome<(Option<String>, Vec<crate::ast::Describe>)> {
+        let mut unit = None;
+        let mut rest = Vec::new();
+        for entry in describe {
+            if entry.label.text != "unit" {
+                rest.push(entry.clone());
+                continue;
+            }
+            let crate::ast::ExpressionKind::Path(path) = &entry.value.kind else {
+                return Err(Report::refused(
+                    entry.value.span,
+                    "`unit:` names a unit",
+                    "a type's unit is a `unit:` label in its brackets (D258)",
+                ));
+            };
+            if unit.is_some() {
+                return Err(Report::refused(
+                    entry.label.span,
+                    "this type says `unit:` twice",
+                    "a type's unit is a `unit:` label in its brackets (D258)",
+                ));
+            }
+            unit = Some(self.resolve_unit(path)?);
+        }
+        Ok((unit, rest))
+    }
+
+    /// `i32.time.seconds`, the old spelling, refused with the bracket form as its fix when
+    /// the brackets hold nothing else. (D258)
+    /// trace: D258
+    pub(super) fn unit_in_the_chain(
+        head: &str,
+        unit: &str,
+        describe: &[crate::ast::Describe],
+        written: &crate::ast::TypeExpression,
+    ) -> Box<Report> {
+        let refused = Report::refused(
+            written.span,
+            format!("`{unit}` is a unit, so it goes in the type's brackets as `unit:`"),
+            "a type's unit is a `unit:` label in its brackets, next to any bounds (D258)",
+        );
+        if describe.is_empty() {
+            refused.fix(format!("{head}[unit: {unit}]"))
+        } else {
+            refused
+        }
     }
 }

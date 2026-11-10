@@ -13,7 +13,7 @@ end struct inner
 struct reading:
     celsius: i32[min: -50, max: 50];
     label: str;
-    at: i32.time.seconds;
+    at: i32[unit: time.seconds];
     deep: inner;
 end struct reading
 

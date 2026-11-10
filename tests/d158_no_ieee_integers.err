@@ -1,5 +1,5 @@
 refused: d158_no_ieee_integers.cy:5:13, line 5 column 13
  5 |     let $a: i32.ieee = 5;
    |             ^^^^^^^^
- what: the bare unit `ieee` doesn't say its family
- why:  a unit always says its family, or its path from a kit, unless `use` shortens it (D112)
+ what: `i32` is an integer, and only a float says `.ieee`
+ why:  a float says whether it's `.stable`, `.fast` or `.ieee`, and an integer has no such kind (D257, D158)

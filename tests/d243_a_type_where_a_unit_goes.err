@@ -1,5 +1,5 @@
-refused: d243_a_type_where_a_unit_goes.cy:15:31, line 15 column 31
-15 | fn keep<?item: any.type> [$a: f64.stable.?item] -> f64.stable:
-   |                               ^^^^^^^^^^^^^^^^
+refused: d243_a_type_where_a_unit_goes.cy:15:48, line 15 column 48
+15 | fn keep<?item: any.type> [$a: f64.stable[unit: ?item]] -> f64.stable:
+   |                                                ^^^^^
  what: `?item` is a type parameter, so it goes where a whole type goes
  why:  a unit parameter goes only where a unit goes, and a type parameter only where a type goes (D243)

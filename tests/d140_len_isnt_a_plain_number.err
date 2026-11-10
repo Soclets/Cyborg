@@ -1,5 +1,5 @@
 refused: d140_len_isnt_a_plain_number.cy:7:19, line 7 column 19
  7 |     let $n: u64 = $a.len;
    |                   ^^^^^^
- what: this is `u64.items`, where `u64` is needed
+ what: this is `u64[unit: items]`, where `u64` is needed
  why:  the compiler checks units, and mixing them is refused (D100, D101)

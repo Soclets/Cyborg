@@ -9,7 +9,7 @@ fn.main [] -> void:
     std::io::fmt_print("{}{newln}", $xs[pos: 3 items]);
     change $xs[pos: $xs.len] = 99;
     std::io::fmt_print("{}{newln}", $xs[pos: 3]);
-    let $i: u64.items = 2 items;
+    let $i: u64[unit: items] = 2 items;
     std::io::fmt_print("{}{newln}", $xs[pos: $i]);
     return void;
 end fn.main

@@ -1,5 +1,5 @@
-refused: d100_mixing_units.cy:14:32, line 14 column 32
-14 |     let $b: i32.time.seconds = $a + 5 storage.bytes;
-   |                                ^^^^^^^^^^^^^^^^^^^^
- what: this mixes `i32.time.seconds` and `i32.storage.bytes`
+refused: d100_mixing_units.cy:14:39, line 14 column 39
+14 |     let $b: i32[unit: time.seconds] = $a + 5 storage.bytes;
+   |                                       ^^^^^^^^^^^^^^^^^^^^
+ what: this mixes `i32[unit: time.seconds]` and `i32[unit: storage.bytes]`
  why:  the same units can add and compare, and mixing them is refused (D100)

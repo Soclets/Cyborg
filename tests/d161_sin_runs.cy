@@ -4,7 +4,7 @@
 import std;
 
 fn.main [] -> void:
-    let $x: f64.stable.std::units::angle.radians = 0.5 std::units::angle.radians;
+    let $x: f64.stable[unit: std::units::angle.radians] = 0.5 std::units::angle.radians;
     let $y: f64.stable = std::math::sin($x);
     return void;
 end fn.main

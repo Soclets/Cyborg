@@ -11,13 +11,13 @@ fn.main [] -> void:
     let $plain: u64 = $xs.len as u64;
     let $doubled: u64 = $plain x 2;
     std::io::fmt_print("{}{newln}", $doubled);
-    let $back: u64.items = $doubled as u64.items;
+    let $back: u64[unit: items] = $doubled as u64[unit: items];
     std::io::fmt_print("{}{newln}", $back);
-    let $t: i32.time.seconds = 3 time.seconds;
+    let $t: i32[unit: time.seconds] = 3 time.seconds;
     let $n: i32 = $t as i32;
     std::io::fmt_print("{}{newln}", ($n x 2));
     let $f: f64.stable = 0.5;
-    let $g: f64.stable.time.seconds = $f as f64.stable.time.seconds;
+    let $g: f64.stable[unit: time.seconds] = $f as f64.stable[unit: time.seconds];
     let $h: f64.stable = $g as f64.stable;
     if $h: f64.stable[min: 0.5, max: 0.5]:
         std::io::fmt_print("float too{newln}");

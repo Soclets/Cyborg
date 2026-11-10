@@ -1,6 +1,6 @@
-NotDesignedYet: d140_subtracting_lengths.cy:8:25, line 8 column 25
- 8 |     let $n: u64.items = $a.len - 2 items;
-   |                         ^^^^^^^^^^^^^^^^
+NotDesignedYet: d140_subtracting_lengths.cy:8:32, line 8 column 32
+ 8 |     let $n: u64[unit: items] = $a.len - 2 items;
+   |                                ^^^^^^^^^^^^^^^^
  what: what happens when `-` overflows
  why:  not decided yet (standard 12.3)
  when: `1` and `2` in `u64`

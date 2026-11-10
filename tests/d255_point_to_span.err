@@ -1,5 +1,5 @@
-refused: d255_point_to_span.cy:12:50, line 12 column 50
-12 |     let $k: f64.stable.temperature.kelvin.span = $now as f64.stable.temperature.kelvin.span;
-   |                                                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+refused: d255_point_to_span.cy:12:57, line 12 column 57
+12 |     let $k: f64.stable[unit: temperature.kelvin.span] = $now as f64.stable[unit: temperature.kelvin.span];
+   |                                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
  what: `temperature.celsius.point` and `temperature.kelvin.span` aren't both points or both spans
  why:  a point converts to a point and a span to a span, since a point applies offsets and a span only scales (D249, D255)

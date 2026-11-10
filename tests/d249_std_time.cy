@@ -13,9 +13,9 @@ use my::temperature.celsius as celsius;
 use std::units::time.seconds as seconds;
 
 fn.main [] -> void:
-    let $start: i64.seconds.point = 1000 seconds;
-    let $wait: i64.seconds.span = 30 seconds;
-    let $end: i64.seconds.point = $start + $wait;
+    let $start: i64[unit: seconds.point] = 1000 seconds;
+    let $wait: i64[unit: seconds.span] = 30 seconds;
+    let $end: i64[unit: seconds.point] = $start + $wait;
     std::io::fmt_print("{$end, unit}{newln}");
     return void;
 end fn.main

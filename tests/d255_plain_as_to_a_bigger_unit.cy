@@ -12,7 +12,7 @@ fam.unit length:
 end fam.unit length
 
 fn.main [] -> void:
-    let $m: i32.length.meters = 1500 length.meters;
-    let $k: i32.length.kilometers = $m as i32.length.kilometers;
+    let $m: i32[unit: length.meters] = 1500 length.meters;
+    let $k: i32[unit: length.kilometers] = $m as i32[unit: length.kilometers];
     return void;
 end fn.main

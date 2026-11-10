@@ -1,0 +1,5 @@
+NotDesignedYet: d258_a_unit_and_bounds.cy:12:13, line 12 column 13
+12 |     let $d: f64.stable[unit: length.meters, min: 0.0, max: 9.0] = 5.0 length.meters;
+   |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ what: a bound on a number with a unit
+ why:  not decided yet, and the standard doesn't say

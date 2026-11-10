@@ -8,9 +8,9 @@ fam.unit time:
 end fam.unit time
 
 fn.main [] -> void:
-    let $a: i32.time.seconds = 3600 time.seconds;
-    let $b: i32.time.seconds = 5 time.seconds;
-    let $c: i32.time.seconds = $a + $b;
+    let $a: i32[unit: time.seconds] = 3600 time.seconds;
+    let $b: i32[unit: time.seconds] = 5 time.seconds;
+    let $c: i32[unit: time.seconds] = $a + $b;
     std::io::fmt_print("{}{newln}", $c);
     if $c > $a:
         std::io::fmt_print("more{newln}");

@@ -7,7 +7,7 @@ fam.unit time:
 end fam.unit time
 
 fn.main [] -> void:
-    let $a: i32.time.seconds = 1 time.seconds;
+    let $a: i32[unit: time.seconds] = 1 time.seconds;
     let $s: str = $a as str.with_unit;
     return void;
 end fn.main
