@@ -1,0 +1,5 @@
+refused: d257_bare_f64.cy:7:13, line 7 column 13
+ 7 |     let $x: f64 = 0.5;
+   |             ^^^
+ what: `f64` says which kind of float it is: `.stable`, `.fast` or `.ieee`
+ why:  a float always says its kind straight after its type, since floats differ between machines in nearly every other language (D257)

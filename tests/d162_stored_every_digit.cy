@@ -3,7 +3,7 @@
 import std;
 
 fn.main [] -> void:
-    let $x: f64 = ~0.1;
+    let $x: f64.stable = ~0.1;
     std::io::fmt_print("{}{newln}", $x);
     std::io::fmt_print.stored("{}{newln}", $x);
     return void;

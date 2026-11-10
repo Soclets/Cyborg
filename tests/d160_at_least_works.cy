@@ -3,7 +3,7 @@
 import std;
 
 fn.main [] -> void:
-    let $a: f64 = 0.5;
+    let $a: f64.stable = 0.5;
     if $a at_least 0.25:
         std::io::fmt_print("at least{newln}");
     end if

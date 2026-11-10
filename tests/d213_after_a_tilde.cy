@@ -4,6 +4,6 @@
 import std;
 
 fn.main [] -> void:
-    let $x: f64 = ~ 0.1;
+    let $x: f64.stable = ~ 0.1;
     return void;
 end fn.main

@@ -8,8 +8,8 @@ fam.unit power:
 end fam.unit power
 
 fn.main [] -> void:
-    let $a: f64.power.dbm.point = 10.0 power.dbm;
-    let $b: f64.power.dbm.point = 10.0 power.dbm;
-    let $c: f64.power.dbm.point = $a + $b;
+    let $a: f64.stable.power.dbm.point = 10.0 power.dbm;
+    let $b: f64.stable.power.dbm.point = 10.0 power.dbm;
+    let $c: f64.stable.power.dbm.point = $a + $b;
     return void;
 end fn.main

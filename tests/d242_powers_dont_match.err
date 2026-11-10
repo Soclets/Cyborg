@@ -1,5 +1,5 @@
-refused: d242_powers_dont_match.cy:24:36, line 24 column 36
-24 |     let $speed: f64.motion.speed = $time div $dist;
-   |                                    ^^^^^^^^^^^^^^^
- what: this is `f64.time.seconds per length.meters`, where `f64.motion.speed` is needed
+refused: d242_powers_dont_match.cy:24:43, line 24 column 43
+24 |     let $speed: f64.stable.motion.speed = $time div $dist;
+   |                                           ^^^^^^^^^^^^^^^
+ what: this is `f64.stable.time.seconds per length.meters`, where `f64.stable.motion.speed` is needed
  why:  storing a value needs a declared unit whose powers match (D242)

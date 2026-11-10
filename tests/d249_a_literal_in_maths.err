@@ -1,5 +1,5 @@
-NotDesignedYet: d249_a_literal_in_maths.cy:15:44, line 15 column 44
-15 |     let $later: f64.celsius.point = $now + 10.0 celsius;
-   |                                            ^^^^^^^^^^^^
+NotDesignedYet: d249_a_literal_in_maths.cy:15:51, line 15 column 51
+15 |     let $later: f64.stable.celsius.point = $now + 10.0 celsius;
+   |                                                   ^^^^^^^^^^^^
  what: whether `10.0 celsius` in maths is a point or a span
  why:  not decided yet (standard 12.2)

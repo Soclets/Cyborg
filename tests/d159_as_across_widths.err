@@ -1,5 +1,5 @@
-NotDesignedYet: d159_as_across_widths.cy:6:23, line 6 column 23
- 6 |     let $clean: f64 = $reading as f64;
-   |                       ^^^^^^^^^^^^^^^
- what: converting `f32.ieee` to `f64` with `as`
+NotDesignedYet: d159_as_across_widths.cy:6:30, line 6 column 30
+ 6 |     let $clean: f64.stable = $reading as f64.stable;
+   |                              ^^^^^^^^^^^^^^^^^^^^^^
+ what: converting `f32.ieee` to `f64.stable` with `as`
  why:  not decided yet (standard 12.3)

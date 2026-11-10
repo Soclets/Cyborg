@@ -2,8 +2,8 @@
 @config(default);
 
 fn.main [] -> void:
-    let $a: f64 = 0.5;
-    let $b: f32 = 0.5;
+    let $a: f64.stable = 0.5;
+    let $b: f32.stable = 0.5;
     if $a == $b:
         return void;
     end if

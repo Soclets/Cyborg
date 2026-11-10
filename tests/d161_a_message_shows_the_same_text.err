@@ -4,7 +4,7 @@ check failed: d161_a_message_shows_the_same_text.cy:5:14, line 5 column 14
  what: this `requires` is false
  why:  contracts are checked at runtime, and a false one stops the program (D29)
  when: `$x` is 1.0
- because: d161_a_message_shows_the_same_text.cy:10:19, line 10 column 19
-10 |     let $h: f64 = half(1.0);
-   |                   ^^^^^^^^^
+ because: d161_a_message_shows_the_same_text.cy:10:26, line 10 column 26
+10 |     let $h: f64.stable = half(1.0);
+   |                          ^^^^^^^^^
      called here

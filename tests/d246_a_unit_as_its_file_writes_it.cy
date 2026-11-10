@@ -12,7 +12,7 @@ use my::length.feet as feet;
 
 fn.main [] -> void:
     let $m: i32.length.meters = 5 length.meters;
-    let $f: f64.feet = 2.5 feet;
+    let $f: f64.stable.feet = 2.5 feet;
     std::io::fmt_print("{$m, unit} and {$f, unit}{newln}");
     std::io::fmt_print("{unit}{newln}", $m);
     return void;

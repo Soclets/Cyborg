@@ -1,7 +1,7 @@
 // trace: D160, D134
 @config(default);
 
-type.new temperature = f64;
+type.new temperature = f64.stable;
 
 fn.main [] -> void:
     let $a: temperature = 1.5;

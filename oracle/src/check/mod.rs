@@ -2494,21 +2494,30 @@ impl Checker<'_> {
                         "a narrowing means \"this, made more specific\", so a decimal float is `d32`, not `f32.decimal` (D54)",
                     ));
                 }
-                // trace: D158
+                // A float says which kind it is, straight after its type, before a unit or
+                // bounds. (D257, D158)
+                // trace: D257, D158
                 if head.starts_with('f') {
-                    if let Some(word) = narrowing {
-                        let first = word.split('.').next().unwrap_or(word);
-                        if let Some(rules) = FloatRules::from_narrowing(first) {
-                            if first != word {
-                                return Err(Report::not_designed(
-                                    path.span,
-                                    format!("`{first}` together with another narrowing"),
-                                    "12.2",
-                                ));
-                            }
-                            return Self::resolve_float_type(head, None, rules, describe, written);
-                        }
-                    }
+                    let (first, unit_text) = match narrowing.map(|word| word.split_once('.')) {
+                        Some(Some((first, rest))) => (Some(first), Some(rest)),
+                        Some(None) => (narrowing, None),
+                        None => (None, None),
+                    };
+                    let Some(rules) = first.and_then(FloatRules::from_narrowing) else {
+                        return Err(Report::refused(
+                            path.span,
+                            format!("`{head}` says which kind of float it is: `.stable`, `.fast` or `.ieee`"),
+                            "a float always says its kind straight after its type, since floats differ between machines in nearly every other language (D257)",
+                        ));
+                    };
+                    let unit = match unit_text {
+                        Some(unit_text) => Some(self.resolve_unit(&Path {
+                            text: unit_text.to_string(),
+                            span: path.span,
+                        })?),
+                        None => None,
+                    };
+                    return Self::resolve_float_type(head, unit, rules, describe, written);
                 }
                 let unit = match narrowing {
                     Some(unit_text) => Some(self.resolve_unit(&Path {
@@ -2629,10 +2638,10 @@ impl Checker<'_> {
                 "",
             ));
         }
-        if let Some(word) = rules.word() {
+        if rules != FloatRules::Plain {
             return Err(Report::not_designed(
                 written.span,
-                format!("a bound on `{}.{word}`", kind.word()),
+                format!("a bound on `{}.{}`", kind.word(), rules.word()),
                 "12.2",
             ));
         }
@@ -2970,11 +2979,15 @@ impl Checker<'_> {
             "u8" => Ok(IntegerKind::U8),
             "u32" => Ok(IntegerKind::U32),
             "u64" => Ok(IntegerKind::U64),
-            "str" | "bool" | "void" | "f32" | "f64" => Err(Report::refused(
-                value.span,
-                format!("`{}` can't count a length", path.text),
-                "a list can choose its length's type with `len.type` (D140)",
-            )),
+            text if matches!(text, "str" | "bool" | "void")
+                || matches!(text.split('.').next(), Some("f32" | "f64")) =>
+            {
+                Err(Report::refused(
+                    value.span,
+                    format!("`{}` can't count a length", path.text),
+                    "a list can choose its length's type with `len.type` (D140)",
+                ))
+            }
             other => Err(Report::not_designed(
                 value.span,
                 format!("`len.type: {other}`"),

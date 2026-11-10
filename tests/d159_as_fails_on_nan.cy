@@ -7,6 +7,6 @@ fn.main [] -> void:
         change $x = $x x $x;
     end for
     let $nan: f64.ieee = $x - $x;
-    let $clean: f64 = $nan as f64;
+    let $clean: f64.stable = $nan as f64.stable;
     return void;
 end fn.main

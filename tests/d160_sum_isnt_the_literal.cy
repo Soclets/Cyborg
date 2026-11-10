@@ -4,9 +4,9 @@
 import std;
 
 fn.main [] -> void:
-    let $a: f64 = ~0.1;
-    let $b: f64 = ~0.2;
-    let $c: f64 = $a + $b;
+    let $a: f64.stable = ~0.1;
+    let $b: f64.stable = ~0.2;
+    let $c: f64.stable = $a + $b;
     if $c == ~0.3:
         std::io::fmt_print("equal{newln}");
     else:

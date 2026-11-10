@@ -8,7 +8,7 @@ fam.unit temperature:
 end fam.unit temperature
 
 fn.main [] -> void:
-    let $now: f64.temperature.celsius.point = 20.0 temperature.celsius;
-    let $k: f64.temperature.kelvin.span = $now as f64.temperature.kelvin.span;
+    let $now: f64.stable.temperature.celsius.point = 20.0 temperature.celsius;
+    let $k: f64.stable.temperature.kelvin.span = $now as f64.stable.temperature.kelvin.span;
     return void;
 end fn.main

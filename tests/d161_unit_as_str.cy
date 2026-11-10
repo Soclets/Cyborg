@@ -7,7 +7,7 @@ fam.unit time:
 end fam.unit time
 
 fn.main [] -> void:
-    let $t: f64.time.seconds = 1.5 time.seconds;
+    let $t: f64.stable.time.seconds = 1.5 time.seconds;
     std::io::fmt_print("{}{newln}", $t);
     return void;
 end fn.main

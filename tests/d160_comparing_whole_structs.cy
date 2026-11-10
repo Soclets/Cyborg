@@ -2,7 +2,7 @@
 @config(default);
 
 struct pair:
-    a: f64;
+    a: f64.stable;
 end struct pair
 
 fn.main [] -> void:

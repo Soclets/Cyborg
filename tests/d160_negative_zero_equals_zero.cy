@@ -3,8 +3,8 @@
 import std;
 
 fn.main [] -> void:
-    let $n: f64 = -0.0;
-    let $p: f64 = 0.0;
+    let $n: f64.stable = -0.0;
+    let $p: f64.stable = 0.0;
     if $n == $p:
         std::io::fmt_print("equal{newln}");
     end if

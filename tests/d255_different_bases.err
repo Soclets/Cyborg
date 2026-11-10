@@ -1,5 +1,5 @@
-refused: d255_different_bases.cy:16:33, line 16 column 33
-16 |     let $i: f64.length.inches = $m as f64.length.inches;
-   |                                 ^^^^^^^^^^^^^^^^^^^^^^^
+refused: d255_different_bases.cy:16:40, line 16 column 40
+16 |     let $i: f64.stable.length.inches = $m as f64.stable.length.inches;
+   |                                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
  what: `length.meters` and `length.inches` don't trace back to the same base
  why:  two units convert if they trace back to the same base, and otherwise they don't (D109)

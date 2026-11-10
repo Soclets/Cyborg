@@ -3,6 +3,6 @@
 
 fn.main [] -> void:
     let $reading: f64.ieee = 1.5;
-    let $x: f64 = $reading;
+    let $x: f64.stable = $reading;
     return void;
 end fn.main

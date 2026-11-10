@@ -6,7 +6,7 @@ import std;
 use std::io::fmt_print as fmt_print;
 
 fn.main [] -> void:
-    let $x: f64 = 0.5;
+    let $x: f64.stable = 0.5;
     fmt_print.stored("{}{newln}", $x);
     return void;
 end fn.main

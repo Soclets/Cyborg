@@ -1,5 +1,5 @@
-refused: d164_bare_mod_on_floats.cy:6:22, line 6 column 22
- 6 |     let $b: f64 = $a mod 2.0;
-   |                      ^^^
+refused: d164_bare_mod_on_floats.cy:6:29, line 6 column 29
+ 6 |     let $b: f64.stable = $a mod 2.0;
+   |                             ^^^
  what: there's no bare `mod`, so pick a narrowing
  why:  `mod` has no single right answer, so you pick one (D97)

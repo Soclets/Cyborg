@@ -4,7 +4,7 @@
 import std;
 
 fn.main [] -> void:
-    let $x: f64 = 0.125;
+    let $x: f64.stable = 0.125;
     std::io::fmt_print("{places: 2}{newln}", $x);
     return void;
 end fn.main

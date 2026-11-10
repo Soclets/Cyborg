@@ -1,5 +1,5 @@
-refused: d213_after_a_tilde.cy:7:19, line 7 column 19
- 7 |     let $x: f64 = ~ 0.1;
-   |                   ^^^^^
+refused: d213_after_a_tilde.cy:7:26, line 7 column 26
+ 7 |     let $x: f64.stable = ~ 0.1;
+   |                          ^^^^^
  fix:  `~0.1`
  why:  a mark or a bracket touches what it goes with, so `( $x )`, `- $x` and `read() ?` are refused (D23, D213)

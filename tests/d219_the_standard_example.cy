@@ -6,7 +6,7 @@ import std;
 fn.main [] -> void:
     let $name: str = "rope";
     let $count: i32 = 3;
-    let $price: f64 = 12.5;
+    let $price: f64.stable = 12.5;
     std::io::fmt_print(
         "{}: {} at ${places: 2}{newln}",
         $name,

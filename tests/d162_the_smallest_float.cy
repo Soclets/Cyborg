@@ -4,7 +4,7 @@
 import std;
 
 fn.main [] -> void:
-    let mut $x: f64 = 1.0;
+    let mut $x: f64.stable = 1.0;
     for $i in range[from: 1, to: 1074]:
         change $x = $x div 2.0;
     end for

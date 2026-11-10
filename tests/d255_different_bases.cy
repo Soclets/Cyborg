@@ -12,7 +12,7 @@ fam.unit length:
 end fam.unit length
 
 fn.main [] -> void:
-    let $m: f64.length.meters = 1.0 length.meters;
-    let $i: f64.length.inches = $m as f64.length.inches;
+    let $m: f64.stable.length.meters = 1.0 length.meters;
+    let $i: f64.stable.length.inches = $m as f64.stable.length.inches;
     return void;
 end fn.main

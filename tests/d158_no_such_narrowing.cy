@@ -1,4 +1,4 @@
-// trace: D158, D54
+// trace: D158, D54, D257
 @config(default);
 
 fn.main [] -> void:

@@ -13,8 +13,8 @@ fam.unit length:
 end fam.unit length
 
 fn.main [] -> void:
-    let $road: f64.length.kilometers = 2.5 length.kilometers;
-    let $hair: f64.length.millimeters = 0.5 length.millimeters;
+    let $road: f64.stable.length.kilometers = 2.5 length.kilometers;
+    let $hair: f64.stable.length.millimeters = 0.5 length.millimeters;
     std::io::fmt_print("{$road, unit} {$hair, unit}{newln}");
     return void;
 end fn.main

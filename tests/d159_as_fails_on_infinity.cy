@@ -8,7 +8,7 @@ fn.main [] -> void:
         change $x = $x x $x;
     end for
     std::io::fmt_print("before{newln}");
-    let $clean: f64 = $x as f64;
+    let $clean: f64.stable = $x as f64.stable;
     std::io::fmt_print("after{newln}");
     return void;
 end fn.main

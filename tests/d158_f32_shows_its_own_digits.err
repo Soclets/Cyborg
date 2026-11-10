@@ -1,6 +1,6 @@
-check failed: d158_f32_shows_its_own_digits.cy:6:40, line 6 column 40
- 6 |     let $y: f32[min: ~0.1, max: 0.5] = $x;
-   |                                        ^^
- what: `$x` doesn't fit `f32[min: 0.1, max: 0.5]`
+check failed: d158_f32_shows_its_own_digits.cy:6:47, line 6 column 47
+ 6 |     let $y: f32.stable[min: ~0.1, max: 0.5] = $x;
+   |                                               ^^
+ what: `$x` doesn't fit `f32.stable[min: 0.1, max: 0.5]`
  why:  a plain `=`, `change` or argument checks a bound when the compiler can't see it fits (D20, D158)
  when: `$x` is 0.75

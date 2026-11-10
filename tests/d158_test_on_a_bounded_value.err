@@ -1,5 +1,5 @@
 NotDesignedYet: d158_test_on_a_bounded_value.cy:7:12, line 7 column 12
- 7 |     if $t: f64[min: 0.0, max: 25.0]:
-   |            ^^^^^^^^^^^^^^^^^^^^^^^^
- what: the test for `f64[min: 0.0, max: 25.0]` on `f64[min: -40.0, max: 125.0]`
+ 7 |     if $t: f64.stable[min: 0.0, max: 25.0]:
+   |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ what: the test for `f64.stable[min: 0.0, max: 25.0]` on `f64.stable[min: -40.0, max: 125.0]`
  why:  not decided yet (standard 12.2)

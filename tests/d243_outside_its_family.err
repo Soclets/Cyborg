@@ -1,5 +1,5 @@
-refused: d243_outside_its_family.cy:24:32, line 24 column 32
-24 |     let $u: f64.time.seconds = larger($t, $t);
-   |                                ^^^^^^^^^^^^^^
+refused: d243_outside_its_family.cy:24:39, line 24 column 39
+24 |     let $u: f64.stable.time.seconds = larger($t, $t);
+   |                                       ^^^^^^^^^^^^^^
  what: `time.seconds` isn't in the family `length`
  why:  a unit parameter that names a family takes any unit in that family, and only those (D243)

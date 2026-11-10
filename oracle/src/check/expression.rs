@@ -3840,7 +3840,9 @@ impl Checker<'_> {
         if is_number_literal(&argument.value) {
             return Err(Report::refused(
                 argument.value.span,
-                format!("this is a plain number, where an angle, `f64.{RADIANS}`, is needed"),
+                format!(
+                    "this is a plain number, where an angle, `f64.stable.{RADIANS}`, is needed"
+                ),
                 WHY,
             ));
         }
@@ -3854,14 +3856,14 @@ impl Checker<'_> {
         else {
             return Err(Report::refused(
                 argument.value.span,
-                format!("this is `{found}`, where an angle, `f64.{RADIANS}`, is needed"),
+                format!("this is `{found}`, where an angle, `f64.stable.{RADIANS}`, is needed"),
                 WHY,
             ));
         };
         if unit != RADIANS {
             return Err(Report::refused(
                 argument.value.span,
-                format!("this is `{found}`, where an angle, `f64.{RADIANS}`, is needed"),
+                format!("this is `{found}`, where an angle, `f64.stable.{RADIANS}`, is needed"),
                 WHY,
             ));
         }

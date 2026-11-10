@@ -1,5 +1,5 @@
-NotDesignedYet: d165_plus_exponent.cy:5:28, line 5 column 28
- 5 |     let $a: f64 = exponent 1.5e+3;
-   |                            ^^^^^^
+NotDesignedYet: d165_plus_exponent.cy:5:35, line 5 column 35
+ 5 |     let $a: f64.stable = exponent 1.5e+3;
+   |                                   ^^^^^^
  what: an exponent written with `+`
  why:  not decided yet (standard 12.2)

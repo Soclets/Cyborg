@@ -1,5 +1,5 @@
-refused: d164_doesnt_mix_widths.cy:7:19, line 7 column 19
- 7 |     let $c: f64 = $a div $b;
-   |                   ^^^^^^^^^
- what: this mixes `f64` and `f32`
+refused: d164_doesnt_mix_widths.cy:7:26, line 7 column 26
+ 7 |     let $c: f64.stable = $a div $b;
+   |                          ^^^^^^^^^
+ what: this mixes `f64.stable` and `f32.stable`
  why:  `:` doesn't convert, and `as` builds a new value of another type (D7)

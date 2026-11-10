@@ -6,8 +6,8 @@ import std;
 fn.main [] -> void:
     let $name: str = "rope";
     let $count: i32 = 3;
-    let $price: f64 = 12.5;
-    let $tenth: f64 = ~0.1;
+    let $price: f64.stable = 12.5;
+    let $tenth: f64.stable = ~0.1;
     std::io::fmt_print("hi{newln}");
     std::io::fmt_print("{}: {} at ${places: 2}{newln}", $name, $count, $price);
     std::io::fmt_print("0x{base: hex.upper, zeros, width: 4 cols}{newln}", 255);

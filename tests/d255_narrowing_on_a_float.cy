@@ -12,7 +12,7 @@ fam.unit length:
 end fam.unit length
 
 fn.main [] -> void:
-    let $m: f64.length.meters = 1500.0 length.meters;
-    let $k: f64.length.kilometers = $m as.trunc f64.length.kilometers;
+    let $m: f64.stable.length.meters = 1500.0 length.meters;
+    let $k: f64.stable.length.kilometers = $m as.trunc f64.stable.length.kilometers;
     return void;
 end fn.main

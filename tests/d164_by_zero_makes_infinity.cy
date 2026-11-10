@@ -3,9 +3,9 @@
 import std;
 
 fn.main [] -> void:
-    let $zero: f64 = 0.0;
+    let $zero: f64.stable = 0.0;
     std::io::fmt_print("before{newln}");
-    let $a: f64 = 1.0 div $zero;
+    let $a: f64.stable = 1.0 div $zero;
     std::io::fmt_print("after{newln}");
     return void;
 end fn.main

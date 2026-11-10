@@ -3,7 +3,7 @@
 @config(default);
 
 fn.main [] -> void:
-    let $a: f64 = 16777217.0;
-    let $b: f32 = 16777217.0;
+    let $a: f64.stable = 16777217.0;
+    let $b: f32.stable = 16777217.0;
     return void;
 end fn.main

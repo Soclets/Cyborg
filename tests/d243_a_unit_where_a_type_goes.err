@@ -1,5 +1,5 @@
 refused: d243_a_unit_where_a_type_goes.cy:15:28, line 15 column 28
-15 | fn keep<?u: any.unit> [$a: ?u] -> f64:
+15 | fn keep<?u: any.unit> [$a: ?u] -> f64.stable:
    |                            ^^
  what: `?u` is a unit parameter, so it goes after a number type, as in `f64.?u`
  why:  a unit parameter goes only where a unit goes, and a type parameter only where a type goes (D243)

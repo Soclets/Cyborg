@@ -12,7 +12,7 @@ fam.unit time:
     time.seconds: base;
 end fam.unit time
 
-fn larger<?u: length> [$a: f64.?u, $b: f64.?u] -> f64.?u:
+fn larger<?u: length> [$a: f64.stable.?u, $b: f64.stable.?u] -> f64.stable.?u:
     if $a > $b:
         return $a;
     end if
@@ -20,7 +20,7 @@ fn larger<?u: length> [$a: f64.?u, $b: f64.?u] -> f64.?u:
 end fn larger
 
 fn.main [] -> void:
-    let $t: f64.time.seconds = 3.0 time.seconds;
-    let $u: f64.time.seconds = larger($t, $t);
+    let $t: f64.stable.time.seconds = 3.0 time.seconds;
+    let $u: f64.stable.time.seconds = larger($t, $t);
     return void;
 end fn.main

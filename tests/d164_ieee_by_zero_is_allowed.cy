@@ -7,6 +7,6 @@ fn.main [] -> void:
     let $inf: f64.ieee = 1.0 div $zero;
     let $nan: f64.ieee = $zero div $zero;
     std::io::fmt_print("still running{newln}");
-    let $clean: f64 = $nan as f64;
+    let $clean: f64.stable = $nan as f64.stable;
     return void;
 end fn.main

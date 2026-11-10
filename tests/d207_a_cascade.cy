@@ -4,7 +4,7 @@
 import std;
 
 fn.main [] -> void:
-    let $a: f64 = 0.1;
-    let $b: f64 = $a;
+    let $a: f64.stable = 0.1;
+    let $b: f64.stable = $a;
     return void;
 end fn.main

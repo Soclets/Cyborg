@@ -2,7 +2,7 @@
 @config(default);
 import std;
 
-fn show [$x: f64] -> void:
+fn show [$x: f64.stable] -> void:
     std::io::fmt_print("{}{newln}", $x);
     return void;
 end fn show

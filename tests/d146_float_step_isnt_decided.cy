@@ -3,7 +3,7 @@
 @config(default);
 
 fn.main [] -> void:
-    let $by: f64 = 1.5;
+    let $by: f64.stable = 1.5;
     for $i in range[from: 1, to: 5, step_by: $by]:
         return void;
     end for

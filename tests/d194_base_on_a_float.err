@@ -1,5 +1,5 @@
 refused: d194_base_on_a_float.cy:7:25, line 7 column 25
  7 |     std::io::fmt_print("{base: hex}{newln}", $x);
    |                         ^^^^^^^^^^^
- what: `base:` doesn't apply to `f64`
+ what: `base:` doesn't apply to `f64.stable`
  why:  a literal format is checked when building, including a shape that doesn't apply (D194)

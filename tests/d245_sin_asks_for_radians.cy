@@ -4,6 +4,6 @@
 import std;
 
 fn.main [] -> void:
-    let $s: f64 = std::math::sin(90.0);
+    let $s: f64.stable = std::math::sin(90.0);
     return void;
 end fn.main

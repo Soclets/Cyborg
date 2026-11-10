@@ -5,6 +5,6 @@ import std;
 
 fn.main [] -> void:
     std::io::fmt_print("hi{newln}");
-    let $a: f64 = 0.1;
+    let $a: f64.stable = 0.1;
     return void;
 end fn.main

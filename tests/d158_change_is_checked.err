@@ -1,6 +1,6 @@
 check failed: d158_change_is_checked.cy:7:17, line 7 column 17
  7 |     change $t = $x;
    |                 ^^
- what: `$x` doesn't fit `f64[min: 0.0, max: 1.0]`
+ what: `$x` doesn't fit `f64.stable[min: 0.0, max: 1.0]`
  why:  a plain `=`, `change` or argument checks a bound when the compiler can't see it fits (D20, D158)
  when: `$x` is 1.5

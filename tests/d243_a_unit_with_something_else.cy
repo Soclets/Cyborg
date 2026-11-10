@@ -16,7 +16,7 @@ interface ordered<?self>:
     op < [$a: ?self, $b: ?self] -> bool;
 end interface ordered
 
-fn keep<?u: length and ordered> [$a: f64.?u] -> f64.?u:
+fn keep<?u: length and ordered> [$a: f64.stable.?u] -> f64.stable.?u:
     return $a;
 end fn keep
 

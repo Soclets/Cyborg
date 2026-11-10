@@ -1,5 +1,5 @@
-NotDesignedYet: d158_fast_as_plain.cy:6:19, line 6 column 19
- 6 |     let $b: f64 = $a as f64;
-   |                   ^^^^^^^^^
- what: converting `f64.fast` to `f64` with `as`
+NotDesignedYet: d158_fast_as_plain.cy:6:26, line 6 column 26
+ 6 |     let $b: f64.stable = $a as f64.stable;
+   |                          ^^^^^^^^^^^^^^^^
+ what: converting `f64.fast` to `f64.stable` with `as`
  why:  not decided yet (standard 12.3)

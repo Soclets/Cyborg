@@ -16,7 +16,7 @@ fn.main [] -> void:
     let $b: i32 = ($a + 10) x 2;
     let $r: reading = reading[celsius = $b];
     let $near: bool = $r.%shown() at_least 0 and $a < 8;
-    let $tenth: f64 = ~0.1;
+    let $tenth: f64.stable = ~0.1;
     if $near:
         std::io::fmt_print("{} {}{newln}", $r.%shown(), $b div.trunc 4);
     end if

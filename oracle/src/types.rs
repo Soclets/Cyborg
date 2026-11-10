@@ -76,19 +76,21 @@ pub enum FloatRules {
 
 impl FloatRules {
     /// The narrowing that asks for these rules. This is the one place that spells them.
+    /// The kind a float says straight after its type. (D257)
     pub fn from_narrowing(word: &str) -> Option<FloatRules> {
         match word {
+            "stable" => Some(FloatRules::Plain),
             "ieee" => Some(FloatRules::Ieee),
             "fast" => Some(FloatRules::Fast),
             _ => None,
         }
     }
 
-    pub fn word(self) -> Option<&'static str> {
+    pub fn word(self) -> &'static str {
         match self {
-            FloatRules::Plain => None,
-            FloatRules::Ieee => Some("ieee"),
-            FloatRules::Fast => Some("fast"),
+            FloatRules::Plain => "stable",
+            FloatRules::Ieee => "ieee",
+            FloatRules::Fast => "fast",
         }
     }
 }
@@ -234,10 +236,8 @@ fn write_float(
     unit: Option<&String>,
     rules: FloatRules,
 ) -> fmt::Result {
-    write!(formatter, "{}", kind.word())?;
-    if let Some(word) = rules.word() {
-        write!(formatter, ".{word}")?;
-    }
+    // trace: D257
+    write!(formatter, "{}.{}", kind.word(), rules.word())?;
     if let Some(unit) = unit {
         write!(formatter, ".{unit}")?;
     }

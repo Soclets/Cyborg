@@ -4,8 +4,8 @@
 import std;
 
 fn.main [] -> void:
-    let $x: f64 = ~0.1;
-    let $y: f64 = 0.5;
+    let $x: f64.stable = ~0.1;
+    let $y: f64.stable = 0.5;
     std::io::fmt_print.stored("{} and {}{newln}", $x, $y);
     return void;
 end fn.main

@@ -12,7 +12,7 @@ fam.unit time:
     time.seconds: base;
 end fam.unit time
 
-fn keep<?u: any.unit> [$a: ?u] -> f64:
+fn keep<?u: any.unit> [$a: ?u] -> f64.stable:
     return 1.0;
 end fn keep
 

@@ -19,13 +19,13 @@ fam.unit motion:
 end fam.unit motion
 
 fn.main [] -> void:
-    let $dist: f64.length.meters = 100.0 length.meters;
-    let $time: f64.time.seconds = 8.0 time.seconds;
-    let $speed: f64.motion.speed = $dist div $time;
-    let $accel: f64.motion.accel = $speed div $time;
-    let $area: f64.motion.area = $dist x $dist;
-    let $back: f64.length.meters = $speed x $time;
-    let $ratio: f64 = $time div $time;
+    let $dist: f64.stable.length.meters = 100.0 length.meters;
+    let $time: f64.stable.time.seconds = 8.0 time.seconds;
+    let $speed: f64.stable.motion.speed = $dist div $time;
+    let $accel: f64.stable.motion.accel = $speed div $time;
+    let $area: f64.stable.motion.area = $dist x $dist;
+    let $back: f64.stable.length.meters = $speed x $time;
+    let $ratio: f64.stable = $time div $time;
     std::io::fmt_print("{} {} {} {} {}{newln}", $speed, $accel, $area, $back, $ratio);
     return void;
 end fn.main

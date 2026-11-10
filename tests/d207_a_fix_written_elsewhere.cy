@@ -3,8 +3,8 @@
 @config(default);
 fn.main [] -> void:
     std::io::fmt_print("hi{newln}");
-    let $a: f64 = 0.1;
-    let $b: f64 = $a;
+    let $a: f64.stable = 0.1;
+    let $b: f64.stable = $a;
     let $c: i32 = 1;
     let $d: i64 = $c;
     return void;

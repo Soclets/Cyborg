@@ -1,5 +1,5 @@
-refused: d158_widths_dont_mix.cy:6:39, line 6 column 39
- 6 |     let $y: f64[min: 0.0, max: 1.0] = $x;
-   |                                       ^^
- what: this is `f32`, where `f64[min: 0.0, max: 1.0]` is needed
+refused: d158_widths_dont_mix.cy:6:46, line 6 column 46
+ 6 |     let $y: f64.stable[min: 0.0, max: 1.0] = $x;
+   |                                              ^^
+ what: this is `f32.stable`, where `f64.stable[min: 0.0, max: 1.0]` is needed
  why:  `:` doesn't convert, and `as` builds a new value of another type (D7)

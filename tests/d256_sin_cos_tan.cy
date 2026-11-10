@@ -7,9 +7,9 @@ use std::units::angle.radians as radians;
 use std::units::angle.degrees as degrees;
 
 fn.main [] -> void:
-    let $one: f64.radians = 1.0 radians;
-    let $half: f64.radians = 0.5 radians;
-    let $back: f64.radians = -2.0 radians;
+    let $one: f64.stable.radians = 1.0 radians;
+    let $half: f64.stable.radians = 0.5 radians;
+    let $back: f64.stable.radians = -2.0 radians;
     std::io::fmt_print("{} {} {}{newln}", std::math::sin($one), std::math::cos($one), std::math::tan($one));
     std::io::fmt_print("{} {} {}{newln}", std::math::sin($half), std::math::cos($half), std::math::tan($half));
     std::io::fmt_print("{} {} {}{newln}", std::math::sin($back), std::math::cos($back), std::math::tan($back));

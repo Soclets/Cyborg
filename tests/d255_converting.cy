@@ -12,11 +12,11 @@ fam.unit length:
 end fam.unit length
 
 fn.main [] -> void:
-    let $km: f64.length.kilometers = 2.5 length.kilometers;
-    let $m: f64.length.meters = $km as f64.length.meters;
+    let $km: f64.stable.length.kilometers = 2.5 length.kilometers;
+    let $m: f64.stable.length.meters = $km as f64.stable.length.meters;
     let $whole: i32.length.kilometers = 3 length.kilometers;
     let $exact: i32.length.meters = $whole as i32.length.meters;
-    let $back: f64.length.kilometers = $m as f64.length.kilometers;
+    let $back: f64.stable.length.kilometers = $m as f64.stable.length.kilometers;
     std::io::fmt_print("{$m, unit} {$exact, unit} {$back, unit}{newln}");
     return void;
 end fn.main

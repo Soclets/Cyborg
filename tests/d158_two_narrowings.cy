@@ -1,4 +1,5 @@
-// trace: D158
+// A kind and then a unit is how a float type is written.
+// trace: D158, D257
 @config(default);
 
 fam.unit time:

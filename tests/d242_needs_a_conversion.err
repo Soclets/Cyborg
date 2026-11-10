@@ -1,5 +1,5 @@
-NotDesignedYet: d242_needs_a_conversion.cy:24:36, line 24 column 36
-24 |     let $speed: f64.motion.speed = $dist div $time;
-   |                                    ^^^^^^^^^^^^^^^
+NotDesignedYet: d242_needs_a_conversion.cy:24:43, line 24 column 43
+24 |     let $speed: f64.stable.motion.speed = $dist div $time;
+   |                                           ^^^^^^^^^^^^^^^
  what: converting `length.kilometers per time.seconds` to `motion.speed`, which a derived unit's conversion would do
  why:  not decided yet (standard 12.2)

@@ -2,8 +2,8 @@
 @config(default);
 import std;
 
-fn pick [$x: f64] -> void:
-    if $x: f64[min: 100.0, max: 200.0]:
+fn pick [$x: f64.stable] -> void:
+    if $x: f64.stable[min: 100.0, max: 200.0]:
         std::io::fmt_print("inside{newln}");
     else:
         std::io::fmt_print("outside{newln}");

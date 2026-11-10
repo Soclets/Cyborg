@@ -4,8 +4,8 @@ refused: CyJet.siml:5:24, line 5 column 24
  what: a `need` line ends before this
  why:  a manifest has one line per fact, starting with what it is: `name`, `ver`, `okay` or `need` (D228, D229)
 
-refused: main.cy:8:19, line 8 column 19
- 8 |     let $a: f64 = 0.1;
-   |                   ^^^
+refused: main.cy:8:26, line 8 column 26
+ 8 |     let $a: f64.stable = 0.1;
+   |                          ^^^
  fix:  `~0.1`
  why:  f64 can't hold 0.1 exactly (D59)

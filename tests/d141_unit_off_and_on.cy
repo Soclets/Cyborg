@@ -16,10 +16,10 @@ fn.main [] -> void:
     let $t: i32.time.seconds = 3 time.seconds;
     let $n: i32 = $t as i32;
     std::io::fmt_print("{}{newln}", ($n x 2));
-    let $f: f64 = 0.5;
-    let $g: f64.time.seconds = $f as f64.time.seconds;
-    let $h: f64 = $g as f64;
-    if $h: f64[min: 0.5, max: 0.5]:
+    let $f: f64.stable = 0.5;
+    let $g: f64.stable.time.seconds = $f as f64.stable.time.seconds;
+    let $h: f64.stable = $g as f64.stable;
+    if $h: f64.stable[min: 0.5, max: 0.5]:
         std::io::fmt_print("float too{newln}");
     end if
     return void;

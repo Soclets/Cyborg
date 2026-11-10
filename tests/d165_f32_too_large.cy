@@ -2,6 +2,6 @@
 @config(default);
 
 fn.main [] -> void:
-    let $a: f32 = exponent ~3.5e38;
+    let $a: f32.stable = exponent ~3.5e38;
     return void;
 end fn.main

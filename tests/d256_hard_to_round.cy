@@ -7,8 +7,8 @@ use std::units::angle.radians as radians;
 use std::units::angle.degrees as degrees;
 
 fn.main [] -> void:
-    let $near: f64.radians = ~1.5707963267948966 radians;
-    let $tiny: f64.radians = 0.0000000149011611938476562500 radians;
+    let $near: f64.stable.radians = ~1.5707963267948966 radians;
+    let $tiny: f64.stable.radians = 0.0000000149011611938476562500 radians;
     std::io::fmt_print("{} {}{newln}", std::math::sin($near), std::math::cos($tiny));
     std::io::fmt_print.stored("{}{newln}", std::math::cos($tiny));
     return void;

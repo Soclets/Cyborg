@@ -4,7 +4,7 @@
 import std;
 
 fn.main [] -> void:
-    let mut $x: f64 = 2.0;
+    let mut $x: f64.stable = 2.0;
     for $i in range[from: 1, to: 9]:
         change $x = $x x $x;
     end for

@@ -15,6 +15,6 @@ fam.unit length:
 end fam.unit length
 
 fn.main [] -> void:
-    let $a: f64.length.meters.point = 2.0 length.meters;
+    let $a: f64.stable.length.meters.point = 2.0 length.meters;
     return void;
 end fn.main

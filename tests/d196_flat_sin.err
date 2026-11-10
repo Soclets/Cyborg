@@ -1,5 +1,5 @@
-refused: d196_flat_sin.cy:7:19, line 7 column 19
- 7 |     let $y: f64 = std::sin($x);
-   |                   ^^^^^^^^
+refused: d196_flat_sin.cy:7:26, line 7 column 26
+ 7 |     let $y: f64.stable = std::sin($x);
+   |                          ^^^^^^^^
  fix:  `std::math::sin`
  why:  `std` is grouped with `::` (D196, D197)

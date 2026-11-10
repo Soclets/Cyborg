@@ -1,5 +1,5 @@
 refused: d158_new_type_refuses_a_literal_outside.cy:7:21, line 7 column 21
  7 |     let $r: ratio = 1.5;
    |                     ^^^
- what: `1.5` doesn't fit `f64[min: 0.0, max: 1.0]`
+ what: `1.5` doesn't fit `f64.stable[min: 0.0, max: 1.0]`
  why:  a literal that can't fit is a compile error (D20, D158)

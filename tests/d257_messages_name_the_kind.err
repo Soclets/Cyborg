@@ -1,0 +1,5 @@
+refused: d257_messages_name_the_kind.cy:8:19, line 8 column 19
+ 8 |     let $y: i32 = $x;
+   |                   ^^
+ what: this is `f64.stable`, where `i32` is needed
+ why:  `:` doesn't convert, and `as` builds a new value of another type (D7)
