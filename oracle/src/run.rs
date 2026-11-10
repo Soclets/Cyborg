@@ -861,6 +861,15 @@ impl<'c> Runner<'c> {
                 }
                 Ok(Value::Bool(true))
             }
+            NodeKind::Decibels {
+                value,
+                number,
+                reference,
+                to_amount,
+            } => {
+                let value = self.evaluate(value, frame)?;
+                decibels(&value, *number, *reference, *to_amount, span)
+            }
             NodeKind::Generic {
                 parameter,
                 operator,
@@ -1542,4 +1551,39 @@ impl Runner<'_> {
             }
         }
     }
+}
+
+/// A level in decibels of a reference, or an amount from one: `reference x 10^(value / 10)`
+/// when `to_amount`, and `10 x log10(value / reference)` when not. An amount at or below zero
+/// has no level, and that's a failed check. (D251, D255)
+/// trace: D251, D255
+fn decibels(
+    value: &Value,
+    number: Number,
+    reference: f64,
+    to_amount: bool,
+    span: Span,
+) -> Result<Value, Stop> {
+    let given = match value {
+        Value::F64(value) => *value,
+        Value::F32(value) => f64::from(*value),
+        _ => return Err(oracle_bug(span, "decibels of something that isn't a float")),
+    };
+    let result = if to_amount {
+        reference * 10_f64.powf(given / 10.0)
+    } else {
+        10.0 * (given / reference).log10()
+    };
+    if !result.is_finite() {
+        return Err(Stop::Report(Report::check_failed(
+            span,
+            format!("`{given}` has no level in decibels"),
+            "a level in decibels is of an amount above zero (D251)",
+        )));
+    }
+    Ok(match number {
+        #[allow(clippy::cast_possible_truncation)] // An `f32` rounds to the nearest. (D255)
+        Number::Float(crate::types::FloatKind::F32, _) => Value::F32(result as f32),
+        _ => Value::F64(result),
+    })
 }

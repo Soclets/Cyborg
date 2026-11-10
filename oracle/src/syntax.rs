@@ -2818,7 +2818,7 @@ impl Parser {
                 self.parse_unit_made_of()?
             } else if self.previous_is("=") {
                 let start = self.span();
-                self.parse_primary_number()?;
+                let amount = self.parse_primary_number()?;
                 let Some(unit) = self.parse_unit_after_number()? else {
                     return Err(Report::not_designed(
                         start.to(self.previous_span()),
@@ -2833,7 +2833,7 @@ impl Parser {
                         "12.2",
                     ));
                 }
-                UnitMeaning::Conversion { unit }
+                UnitMeaning::Conversion { unit, amount }
             } else {
                 UnitMeaning::Unsaid
             };
@@ -4365,6 +4365,14 @@ impl Parser {
         while self.at_word("as") {
             let first = self.position;
             self.advance();
+            // `as.trunc`: how an integer going to a bigger unit rounds. (D255)
+            // trace: D255
+            let narrowing = if self.at_symbol(".") {
+                self.advance();
+                Some(self.expect_name("how `as` rounds, as in `as.trunc`")?)
+            } else {
+                None
+            };
             self.check_operator(first);
             let target = self.parse_type()?;
             value = Expression {
@@ -4372,6 +4380,7 @@ impl Parser {
                 kind: ExpressionKind::As {
                     value: Box::new(value),
                     target,
+                    narrowing,
                 },
             };
             value = self.parse_question_marks(value);
@@ -5541,7 +5550,7 @@ impl Parser {
                     self.expected("the reference's amount, as in `decibels of 1 power.milliwatts`")
                 );
             }
-            self.parse_primary_number()?;
+            let amount = self.parse_primary_number()?;
             let Some(reference) = self.parse_unit_after_number()? else {
                 return Err(Report::refused(
                     start,
@@ -5549,15 +5558,18 @@ impl Parser {
                     "a log unit is declared against a reference, as in `decibels of 1 power.milliwatts` (D251)",
                 ));
             };
-            return Ok(UnitMeaning::Log { reference });
+            return Ok(UnitMeaning::Log { reference, amount });
         }
         let first = self.parse_path()?;
         if self.eat_word("offset") {
             if !self.number_follows() {
                 return Err(self.expected("the offset, as in `offset ~-273.15`"));
             }
-            self.parse_primary_number()?;
-            return Ok(UnitMeaning::Offset { unit: first });
+            let offset = self.parse_primary_number()?;
+            return Ok(UnitMeaning::Offset {
+                unit: first,
+                offset,
+            });
         }
         let mut parts = vec![(false, first)];
         loop {
@@ -5595,15 +5607,17 @@ impl Parser {
             if !self.number_follows() {
                 return Err(self.expected("the prefix's scale, as in `1000` or `1 per 1000`"));
             }
-            self.parse_primary_number()?;
-            if self.eat_word("per") {
+            let scale = self.parse_primary_number()?;
+            let per = if self.eat_word("per") {
                 if !self.number_follows() {
                     return Err(self.expected("a number after `per`"));
                 }
-                self.parse_primary_number()?;
-            }
+                Some(self.parse_primary_number()?)
+            } else {
+                None
+            };
             self.expect_semicolon()?;
-            members.push(path);
+            members.push((path, scale, per));
         }
         self.expect_closer(&["fam.prefix", &family.text])?;
         Ok(Item::PrefixSet(PrefixSet { family, members }))

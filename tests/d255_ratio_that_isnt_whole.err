@@ -1,0 +1,5 @@
+NotDesignedYet: d255_ratio_that_isnt_whole.cy:13:32, line 13 column 32
+13 |     let $s: i32.length.spans = $f as.trunc i32.length.spans;
+   |                                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ what: an integer conversion whose ratio, 4 per 3, isn't whole
+ why:  not decided yet (standard 12.2)

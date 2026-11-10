@@ -1,0 +1,6 @@
+NotDesignedYet: d255_exact_that_loses.cy:16:37, line 16 column 37
+16 |     let $k: i32.length.kilometers = $m as.exact i32.length.kilometers;
+   |                                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ what: what `div.exact` does when it isn't exact
+ why:  not decided yet (standard 12.3)
+ when: `1500 div.exact 1000`

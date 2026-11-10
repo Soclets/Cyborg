@@ -782,8 +782,12 @@ impl Checker<'_> {
                 ))
             }
             ExpressionKind::Compare { first, rest } => self.check_compare(first, rest, span),
-            ExpressionKind::As { value, target } => {
-                let raw = self.check_as(value, target, span)?;
+            ExpressionKind::As {
+                value,
+                target,
+                narrowing,
+            } => {
+                let raw = self.check_as(value, target, narrowing.as_ref(), span)?;
                 Ok(Self::crash_if_it_fails(raw, span))
             }
             ExpressionKind::Try(inner) => self.check_try(inner, span),
@@ -1436,7 +1440,11 @@ impl Checker<'_> {
                 arguments,
                 span,
             ),
-            ExpressionKind::As { value, target } => self.check_as(value, target, span),
+            ExpressionKind::As {
+                value,
+                target,
+                narrowing,
+            } => self.check_as(value, target, narrowing.as_ref(), span),
             _ => Err(Report::not_designed(
                 span,
                 "what `?`, `??` or `otherwise` catches on anything but one call",
@@ -2651,6 +2659,7 @@ impl Checker<'_> {
         &mut self,
         value: &Expression,
         target: &crate::ast::TypeExpression,
+        narrowing: Option<&crate::ast::Name>,
         span: Span,
     ) -> Outcome<RawCall> {
         // trace: D116
@@ -2715,7 +2724,7 @@ impl Checker<'_> {
                 unnamed: None,
             });
         }
-        self.check_real_as(node, &found, target_type, span)
+        self.check_real_as(node, &found, target_type, narrowing, span)
     }
 
     /// `as` when it isn't only crossing, so it builds a new value and can fail.
@@ -2724,6 +2733,7 @@ impl Checker<'_> {
         node: Node,
         found: &Type,
         target_type: Type,
+        narrowing: Option<&crate::ast::Name>,
         span: Span,
     ) -> Outcome<RawCall> {
         // trace: D83
@@ -2768,6 +2778,24 @@ impl Checker<'_> {
                 failures: Vec::new(),
                 unnamed: Some(("what a failed `as` is called", "12.3")),
             });
+        }
+        // trace: D255
+        if self.is_unit_conversion(found, &target_type) {
+            let (node, value_type) =
+                self.convert_unit(node, found, &target_type, narrowing, span)?;
+            return Ok(RawCall {
+                node,
+                value_type,
+                failures: Vec::new(),
+                unnamed: None,
+            });
+        }
+        if let Some(narrowing) = narrowing {
+            return Err(Report::not_designed(
+                narrowing.span,
+                format!("`as.{}` on anything but a change of unit", narrowing.text),
+                "12.2",
+            ));
         }
         let converts = target_type == Type::Str && matches!(found, Type::Integer { .. });
         if !converts {

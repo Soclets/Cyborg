@@ -1,0 +1,5 @@
+refused: d255_narrowing_on_a_float.cy:16:43, line 16 column 43
+16 |     let $k: f64.length.kilometers = $m as.trunc f64.length.kilometers;
+   |                                           ^^^^^
+ what: a float rounds to the nearest, so its `as` says no narrowing
+ why:  a value changes unit with `as`: a float rounds to the nearest, an integer going to a smaller unit is exact, and one going to a bigger unit says how it rounds with `as.trunc`, `as.floor` or `as.exact` (D255)

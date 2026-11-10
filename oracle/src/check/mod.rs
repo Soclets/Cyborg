@@ -98,6 +98,8 @@ struct UnitInfo {
     /// What a derived unit is made of, each part after the first `true` when it divides.
     /// (D242)
     made_of: Option<Vec<(bool, Path)>>,
+    /// How it relates to the unit it's declared from. (D255)
+    link: Option<units::Link>,
 }
 
 #[derive(Clone, Debug)]
@@ -1106,16 +1108,24 @@ impl Checker<'_> {
                     ));
                 }
                 let mut made_of = None;
+                let mut link = None;
                 let (base, target) = match &member.meaning {
                     UnitMeaning::Base => (Some(member.path.text.clone()), None),
-                    UnitMeaning::Conversion { unit } => {
+                    UnitMeaning::Conversion { unit, amount } => {
+                        link = Some(units::Link::Scale(units::scale_of(amount)?));
                         (None, Some((unit.text.clone(), unit.span)))
                     }
                     // A family with an offset or a log has points and spans. (D249, D251)
                     // trace: D249, D251
-                    UnitMeaning::Offset { unit } | UnitMeaning::Log { reference: unit } => {
+                    UnitMeaning::Offset { unit, offset } => {
                         self.split_families.insert(set.family.text.clone());
+                        link = Some(units::Link::Offset(units::float_of(offset)));
                         (None, Some((unit.text.clone(), unit.span)))
+                    }
+                    UnitMeaning::Log { reference, amount } => {
+                        self.split_families.insert(set.family.text.clone());
+                        link = Some(units::Link::Log(units::float_of(amount)));
+                        (None, Some((reference.text.clone(), reference.span)))
                     }
                     // trace: D242
                     UnitMeaning::Derived { parts } => {
@@ -1137,6 +1147,7 @@ impl Checker<'_> {
                         target,
                         span: member.path.span,
                         made_of,
+                        link,
                     },
                 );
                 if let Some(family) = &member.prefixes {

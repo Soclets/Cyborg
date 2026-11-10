@@ -76,8 +76,10 @@ pub(super) fn split_of(unit: &str) -> (&str, Option<&str>) {
 impl Checker<'_> {
     /// Each `fam.prefix` family and its prefixes' words, as `metric` with `kilo` and `milli`.
     /// (D250)
-    pub(super) fn read_prefix_sets(items: &[&Item]) -> Outcome<HashMap<String, Vec<String>>> {
-        let mut sets: HashMap<String, Vec<String>> = HashMap::new();
+    pub(super) fn read_prefix_sets(
+        items: &[&Item],
+    ) -> Outcome<HashMap<String, Vec<(String, Scale)>>> {
+        let mut sets: HashMap<String, Vec<(String, Scale)>> = HashMap::new();
         for item in items {
             let Item::PrefixSet(set) = item else {
                 continue;
@@ -89,21 +91,25 @@ impl Checker<'_> {
                     "",
                 ));
             }
-            let mut words: Vec<String> = Vec::new();
-            for member in &set.members {
+            let mut words: Vec<(String, Scale)> = Vec::new();
+            for (member, scale, per) in &set.members {
                 let word = member
                     .text
                     .rsplit_once('.')
                     .map_or(member.text.as_str(), |(_, word)| word)
                     .to_string();
-                if words.contains(&word) {
+                if words.iter().any(|(found, _)| *found == word) {
                     return Err(Report::refused(
                         member.span,
                         format!("`{}` is declared twice", member.text),
                         "every prefix says its scale, once (D250, D109)",
                     ));
                 }
-                words.push(word);
+                let scale = match per {
+                    Some(per) => scale_of(scale)?.over(&scale_of(per)?, member.span)?,
+                    None => scale_of(scale)?,
+                };
+                words.push((word, scale));
             }
             sets.insert(set.family.text.clone(), words);
         }
@@ -118,7 +124,7 @@ impl Checker<'_> {
         &mut self,
         unit: &Path,
         family: &Name,
-        sets: &HashMap<String, Vec<String>>,
+        sets: &HashMap<String, Vec<(String, Scale)>>,
     ) -> Outcome<()> {
         let Some(prefixes) = sets.get(&family.text) else {
             if matches!(family.text.as_str(), "metric" | "binary") {
@@ -137,7 +143,7 @@ impl Checker<'_> {
         let Some((unit_family, word)) = unit.text.split_once('.') else {
             return Ok(());
         };
-        for prefix in prefixes {
+        for (prefix, scale) in prefixes {
             let name = format!("{unit_family}.{prefix}{word}");
             if self.units.contains_key(&name) {
                 return Err(Report::refused(
@@ -153,6 +159,7 @@ impl Checker<'_> {
                     target: Some((unit.text.clone(), unit.span)),
                     span: family.span,
                     made_of: None,
+                    link: Some(Link::Scale(scale.clone())),
                 },
             );
         }
@@ -414,5 +421,467 @@ impl Checker<'_> {
         };
         self.resolve_unit_name(unit)
             .is_ok_and(|unit| self.needs_a_split(&unit))
+    }
+}
+
+/// How a unit relates to the unit it's declared from. (D109, D249, D251, D255)
+#[derive(Clone, Debug)]
+pub(super) enum Link {
+    /// One of this unit is this many of the other.
+    Scale(Scale),
+    /// A point here is a point there, less this offset; a span only scales. (D249)
+    Offset(f64),
+    /// Decibels of this amount of the other, for a point. (D251)
+    Log(f64),
+}
+
+/// A unit's scale: an exact fraction, as `100` or `1 per 1000`, or a float written with `~`.
+#[derive(Clone, Debug)]
+pub(super) enum Scale {
+    Exact(i128, i128),
+    Inexact(f64),
+}
+
+impl Scale {
+    /// This scale divided by another, as `1 per 1000`.
+    pub(super) fn over(&self, other: &Scale, span: Span) -> Outcome<Scale> {
+        match (self, other) {
+            (Scale::Exact(top, bottom), Scale::Exact(other_top, other_bottom)) => fraction(
+                top.checked_mul(*other_bottom),
+                bottom.checked_mul(*other_top),
+                span,
+            ),
+            _ => Ok(Scale::Inexact(self.float() / other.float())),
+        }
+    }
+
+    fn float(&self) -> f64 {
+        match self {
+            #[allow(clippy::cast_precision_loss)] // A float rounds to the nearest. (D255)
+            Scale::Exact(top, bottom) => *top as f64 / *bottom as f64,
+            Scale::Inexact(value) => *value,
+        }
+    }
+}
+
+/// A fraction in lowest terms, or the oracle saying it's too big to hold.
+fn fraction(top: Option<i128>, bottom: Option<i128>, span: Span) -> Outcome<Scale> {
+    let (Some(top), Some(bottom)) = (top, bottom) else {
+        return Err(Report::not_designed(
+            span,
+            "a unit scale too big for the oracle to hold exactly",
+            "",
+        ));
+    };
+    if bottom == 0 || top == 0 {
+        return Err(Report::refused(
+            span,
+            "a unit's scale is never zero",
+            "every unit says what it is, with a conversion to another (D109)",
+        ));
+    }
+    let divisor = greatest_divisor(top.abs(), bottom.abs());
+    let sign = if bottom < 0 { -1 } else { 1 };
+    Ok(Scale::Exact(sign * top / divisor, sign * bottom / divisor))
+}
+
+fn greatest_divisor(mut left: i128, mut right: i128) -> i128 {
+    while right != 0 {
+        (left, right) = (right, left % right);
+    }
+    left.max(1)
+}
+
+/// A conversion's amount as a scale: exact for an integer or a decimal written without `~`,
+/// and a float for one written with it. (D59)
+pub(super) fn scale_of(amount: &crate::ast::Expression) -> Outcome<Scale> {
+    use crate::ast::ExpressionKind;
+    match &amount.kind {
+        ExpressionKind::Integer { digits, negative } => {
+            let value: Option<i128> = digits.parse().ok();
+            fraction(
+                value.map(|value| if *negative { -value } else { value }),
+                Some(1),
+                amount.span,
+            )
+        }
+        ExpressionKind::Float {
+            digits,
+            negative,
+            inexact: false,
+            exponent: None,
+        } => {
+            let (whole, part) = digits.split_once('.').unwrap_or((digits, ""));
+            let top: Option<i128> = format!("{whole}{part}").parse().ok();
+            let bottom = u32::try_from(part.len())
+                .ok()
+                .and_then(|places| 10_i128.checked_pow(places));
+            fraction(
+                top.map(|top| if *negative { -top } else { top }),
+                bottom,
+                amount.span,
+            )
+        }
+        _ => Ok(Scale::Inexact(float_of(amount))),
+    }
+}
+
+/// A number as a float, for an offset or a reference.
+pub(super) fn float_of(amount: &crate::ast::Expression) -> f64 {
+    use crate::ast::ExpressionKind;
+    match &amount.kind {
+        ExpressionKind::Integer { digits, negative }
+        | ExpressionKind::Float {
+            digits, negative, ..
+        } => {
+            let value: f64 = digits.parse().unwrap_or(0.0);
+            if *negative {
+                -value
+            } else {
+                value
+            }
+        }
+        ExpressionKind::Negate(inner) => -float_of(inner),
+        _ => 0.0,
+    }
+}
+
+impl Checker<'_> {
+    /// The links from a unit up to its base, and the base. `std`'s units are known here too.
+    /// Nothing for a derived unit, or one made of a combination. (D255, D245)
+    fn chain(&self, unit: &str) -> Option<(Vec<Link>, String)> {
+        match unit {
+            "std::units::time.seconds" | "std::units::angle.radians" => {
+                return Some((Vec::new(), unit.to_string()));
+            }
+            "std::units::angle.degrees" => {
+                return Some((
+                    vec![Link::Scale(Scale::Inexact(0.017_453_292_519_943_295))],
+                    "std::units::angle.radians".to_string(),
+                ));
+            }
+            "std::units::angle.turns" => {
+                return Some((
+                    vec![Link::Scale(Scale::Inexact(std::f64::consts::TAU))],
+                    "std::units::angle.radians".to_string(),
+                ));
+            }
+            _ => {}
+        }
+        let mut links = Vec::new();
+        let mut current = unit.to_string();
+        for _ in 0..DEPTH_LIMIT {
+            let info = self.units.get(&current)?;
+            if info.made_of.is_some() {
+                return None;
+            }
+            match (&info.link, &info.target) {
+                (Some(link), Some((target, _))) => {
+                    links.push(link.clone());
+                    current = self.canonical(target);
+                }
+                _ => return Some((links, current)),
+            }
+        }
+        None
+    }
+}
+
+const WHY_CONVERT: &str = "a value changes unit with `as`: a float rounds to the nearest, an integer going to a smaller unit is exact, and one going to a bigger unit says how it rounds with `as.trunc`, `as.floor` or `as.exact` (D255)";
+
+impl Checker<'_> {
+    /// Whether an `as` changes a number's unit to another of the same kind of number.
+    pub(super) fn is_unit_conversion(
+        &self,
+        found: &crate::types::Type,
+        target: &crate::types::Type,
+    ) -> bool {
+        use crate::types::Type;
+        match (found, target) {
+            (
+                Type::Integer {
+                    unit: Some(from), ..
+                },
+                Type::Integer { unit: Some(to), .. },
+            )
+            | (
+                Type::Float {
+                    unit: Some(from), ..
+                },
+                Type::Float { unit: Some(to), .. },
+            ) => !self.same_unit(Some(from), Some(to)),
+            _ => false,
+        }
+    }
+
+    /// `$km as f64.length.meters`: up the chain from one unit to their shared base, then down
+    /// to the other. A point applies offsets and logs, and a span only scales. A float rounds
+    /// at each step. An integer only takes exact scales: a whole ratio multiplies, and one over
+    /// a whole number divides, rounding as its narrowing says. (D255, D249, D251)
+    /// trace: D255, D249, D251
+    pub(super) fn convert_unit(
+        &self,
+        node: crate::ir::Node,
+        found: &crate::types::Type,
+        target: &crate::types::Type,
+        narrowing: Option<&Name>,
+        span: Span,
+    ) -> Outcome<(crate::ir::Node, crate::types::Type)> {
+        use crate::types::Type;
+        let (Type::Integer {
+            unit: Some(from), ..
+        }
+        | Type::Float {
+            unit: Some(from), ..
+        }) = found
+        else {
+            return Err(Report::refused(span, "this has no unit", WHY_CONVERT));
+        };
+        let (Type::Integer { unit: Some(to), .. } | Type::Float { unit: Some(to), .. }) = target
+        else {
+            return Err(Report::refused(span, "this has no unit", WHY_CONVERT));
+        };
+        let (from_bare, from_split) = split_of(from);
+        let (to_bare, to_split) = split_of(to);
+        if from_split != to_split {
+            return Err(Report::refused(
+                span,
+                format!("`{from}` and `{to}` aren't both points or both spans"),
+                "a point converts to a point and a span to a span, since a point applies offsets and a span only scales (D249, D255)",
+            ));
+        }
+        let point = from_split == Some("point");
+        let (Some((up, start_base)), Some((down, end_base))) =
+            (self.chain(from_bare), self.chain(to_bare))
+        else {
+            return Err(Report::not_designed(
+                span,
+                format!(
+                    "converting `{from}` to `{to}`, which a derived unit's conversion would do"
+                ),
+                "12.2",
+            ));
+        };
+        if start_base != end_base {
+            return Err(Report::refused(
+                span,
+                format!("`{from}` and `{to}` don't trace back to the same base"),
+                "two units convert if they trace back to the same base, and otherwise they don't (D109)",
+            ));
+        }
+        let converted = match (found, target) {
+            (Type::Integer { kind, .. }, Type::Integer { kind: to_kind, .. }) => {
+                if kind != to_kind {
+                    return Err(Report::not_designed(
+                        span,
+                        "changing a number's width and its unit in one `as`",
+                        "",
+                    ));
+                }
+                Self::convert_integer(&node, *kind, &up, &down, narrowing, span)?
+            }
+            (
+                Type::Float { kind, rules, .. },
+                Type::Float {
+                    kind: to_kind,
+                    rules: to_rules,
+                    ..
+                },
+            ) => {
+                if kind != to_kind || rules != to_rules {
+                    return Err(Report::not_designed(
+                        span,
+                        "changing a float's kind and its unit in one `as`",
+                        "",
+                    ));
+                }
+                if let Some(narrowing) = narrowing {
+                    return Err(Report::refused(
+                        narrowing.span,
+                        "a float rounds to the nearest, so its `as` says no narrowing",
+                        WHY_CONVERT,
+                    ));
+                }
+                let number = crate::ir::Number::Float(*kind, *rules);
+                Self::convert_float(node, number, &up, &down, point, span)?
+            }
+            _ => {
+                return Err(Report::refused(
+                    span,
+                    "this changes more than a unit",
+                    WHY_CONVERT,
+                ))
+            }
+        };
+        Ok((converted, target.clone()))
+    }
+
+    fn convert_float(
+        node: crate::ir::Node,
+        number: crate::ir::Number,
+        up: &[Link],
+        down: &[Link],
+        point: bool,
+        span: Span,
+    ) -> Outcome<crate::ir::Node> {
+        use crate::ir::{Arithmetic, Node, NodeKind};
+        let constant = |value: f64| {
+            let value = match number {
+                #[allow(clippy::cast_possible_truncation)] // An `f32` rounds to the nearest.
+                crate::ir::Number::Float(crate::types::FloatKind::F32, _) => {
+                    crate::types::Value::F32(value as f32)
+                }
+                _ => crate::types::Value::F64(value),
+            };
+            Box::new(Node {
+                span,
+                kind: NodeKind::Constant(value),
+            })
+        };
+        let step = |node: Node, operator: Arithmetic, value: f64| Node {
+            span,
+            kind: NodeKind::Arithmetic {
+                operator,
+                number,
+                left: Box::new(node),
+                right: constant(value),
+            },
+        };
+        let divide = Arithmetic::Divide(crate::ast::Narrowing::Bare(span));
+        let mut node = node;
+        for link in up {
+            node = match link {
+                Link::Scale(scale) => step(node, Arithmetic::Multiply, scale.float()),
+                Link::Offset(offset) if point => step(node, Arithmetic::Subtract, *offset),
+                Link::Offset(_) => node,
+                Link::Log(reference) => {
+                    Self::decibels(node, number, *reference, true, point, span)?
+                }
+            };
+        }
+        for link in down.iter().rev() {
+            node = match link {
+                Link::Scale(scale) => step(node, divide, scale.float()),
+                Link::Offset(offset) if point => step(node, Arithmetic::Add, *offset),
+                Link::Offset(_) => node,
+                Link::Log(reference) => {
+                    Self::decibels(node, number, *reference, false, point, span)?
+                }
+            };
+        }
+        Ok(node)
+    }
+
+    fn decibels(
+        node: crate::ir::Node,
+        number: crate::ir::Number,
+        reference: f64,
+        to_amount: bool,
+        point: bool,
+        span: Span,
+    ) -> Outcome<crate::ir::Node> {
+        if !point {
+            return Err(Report::not_designed(
+                span,
+                "converting a gain in decibels, a span, to another unit",
+                "12.2",
+            ));
+        }
+        Ok(crate::ir::Node {
+            span,
+            kind: crate::ir::NodeKind::Decibels {
+                value: Box::new(node),
+                number,
+                reference,
+                to_amount,
+            },
+        })
+    }
+
+    fn convert_integer(
+        node: &crate::ir::Node,
+        kind: crate::types::IntegerKind,
+        up: &[Link],
+        down: &[Link],
+        narrowing: Option<&Name>,
+        span: Span,
+    ) -> Outcome<crate::ir::Node> {
+        use crate::ir::{Arithmetic, Node, NodeKind, Number};
+        let mut ratio = Scale::Exact(1, 1);
+        for (link, upward) in up
+            .iter()
+            .map(|link| (link, true))
+            .chain(down.iter().map(|link| (link, false)))
+        {
+            let Link::Scale(scale @ Scale::Exact(..)) = link else {
+                return Err(Report::not_designed(
+                    span,
+                    "an integer conversion with an offset, a log or a scale written with `~`",
+                    "12.2",
+                ));
+            };
+            ratio = if upward {
+                ratio.over(&Scale::Exact(1, 1).over(scale, span)?, span)?
+            } else {
+                ratio.over(scale, span)?
+            };
+        }
+        let Scale::Exact(top, bottom) = ratio else {
+            return Err(Report::not_designed(
+                span,
+                "an integer conversion that isn't exact",
+                "12.2",
+            ));
+        };
+        let number = Number::Integer(kind);
+        let step = |operator: Arithmetic, value: i128| Node {
+            span,
+            kind: NodeKind::Arithmetic {
+                operator,
+                number,
+                left: Box::new(node.clone()),
+                right: Box::new(Node {
+                    span,
+                    kind: NodeKind::Constant(crate::types::Value::Integer(value)),
+                }),
+            },
+        };
+        if bottom == 1 {
+            if let Some(narrowing) = narrowing {
+                return Err(Report::refused(
+                    narrowing.span,
+                    "this goes to a smaller unit, which is exact, so its `as` says no narrowing",
+                    WHY_CONVERT,
+                ));
+            }
+            return Ok(step(Arithmetic::Multiply, top));
+        }
+        if top != 1 {
+            return Err(Report::not_designed(
+                span,
+                format!("an integer conversion whose ratio, {top} per {bottom}, isn't whole"),
+                "12.2",
+            ));
+        }
+        let Some(narrowing) = narrowing else {
+            return Err(Report::refused(
+                span,
+                format!("this goes to a unit {bottom} times bigger, which can lose something, so `as` says how it rounds"),
+                WHY_CONVERT,
+            ));
+        };
+        let rounding = match narrowing.text.as_str() {
+            "trunc" => crate::ast::Narrowing::Trunc,
+            "floor" => crate::ast::Narrowing::Floor,
+            "exact" => crate::ast::Narrowing::Exact,
+            other => {
+                return Err(Report::not_designed(
+                    narrowing.span,
+                    format!("`as.{other}`, since the full list of `as` narrowings isn't chosen"),
+                    "12.2",
+                ));
+            }
+        };
+        Ok(step(Arithmetic::Divide(rounding), bottom))
     }
 }

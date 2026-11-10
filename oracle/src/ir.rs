@@ -202,6 +202,14 @@ pub enum NodeKind {
         value: Box<Node>,
         arms: Vec<FailureArm>,
     },
+    /// A unit's decibels of a reference, or back: `reference x 10^(value / 10)` when
+    /// `to_amount`, and `10 x log10(value / reference)` when not. (D251, D255)
+    Decibels {
+        value: Box<Node>,
+        number: Number,
+        reference: f64,
+        to_amount: bool,
+    },
     /// The same for a float. (D158)
     FitFloat {
         value: Box<Node>,

@@ -260,8 +260,10 @@ pub struct HandlerSet {
 #[derive(Clone, Debug)]
 pub enum UnitMeaning {
     Base,
+    /// `= 100 money.cents`, with its amount.
     Conversion {
         unit: Path,
+        amount: Expression,
     },
     /// `length.meters per time.seconds`: what a unit is made of, each part after the first
     /// marked `true` when it divides. (D242)
@@ -271,10 +273,12 @@ pub enum UnitMeaning {
     /// `temperature.kelvin offset ~-273.15`, a placeholder spelling. (D249)
     Offset {
         unit: Path,
+        offset: Expression,
     },
     /// `decibels of 1 power.milliwatts`, a placeholder spelling. (D251)
     Log {
         reference: Path,
+        amount: Expression,
     },
     Unsaid,
 }
@@ -291,7 +295,8 @@ pub struct UnitMember {
 #[derive(Clone, Debug)]
 pub struct PrefixSet {
     pub family: Name,
-    pub members: Vec<Path>,
+    /// Each prefix, with its scale: a number, or one number `per` another.
+    pub members: Vec<(Path, Expression, Option<Expression>)>,
 }
 
 #[derive(Clone, Debug)]
@@ -682,6 +687,9 @@ pub enum ExpressionKind {
     As {
         value: Box<Expression>,
         target: TypeExpression,
+        /// `as.trunc`, `as.floor` or `as.exact`: how an integer going to a bigger unit
+        /// rounds. (D255)
+        narrowing: Option<Name>,
     },
     Try(Box<Expression>),
     Fallback {

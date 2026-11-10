@@ -1,4 +1,5 @@
-// trace: D109, D108
+// Conversions are spelled with `as` now, and dollars to cents is an exact `x 100`.
+// trace: D109, D108, D255
 @config(default);
 
 fam.unit money:
