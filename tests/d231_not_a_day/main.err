@@ -1,0 +1,5 @@
+refused: CyJet.siml:5:10, line 5 column 10
+ 5 | need std 2026y-02m-30d
+   |          ^^^^^^^^^^^^^
+ what: `2026y-02m-30d` isn't a day on the calendar
+ why:  a version is a labelled date, biggest first, as in `2026y-11m-14d`, with `.2` for a second release that day (D231)

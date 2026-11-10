@@ -310,6 +310,8 @@ pub struct Checker<'a> {
     /// Set when an error sits where how to carry on isn't decided, like an `if`'s line or a
     /// function's header. Checking stops there, and what's still unwinding is already counted.
     stopped: bool,
+    /// The packages the manifest needs, when there is a manifest. (D183)
+    needs: Option<Vec<String>>,
 }
 
 /// Compile-time work's limit, standing in for D89's "such as through a step limit".
@@ -321,7 +323,11 @@ const ITEM_LIMIT: i128 = 16_000_000;
 
 /// Checks the whole program, and gives every error it finds, in the order they appear.
 /// trace: D72, D207, D215
-pub fn check(source: &str, program: &Program) -> Result<Code, Vec<Report>> {
+pub fn check(
+    source: &str,
+    program: &Program,
+    needs: Option<&[String]>,
+) -> Result<Code, Vec<Report>> {
     let mut checker = Checker {
         source,
         imports: HashSet::new(),
@@ -344,6 +350,7 @@ pub fn check(source: &str, program: &Program) -> Result<Code, Vec<Report>> {
         context: FunctionContext::outside_any_function(),
         errors: Vec::new(),
         stopped: false,
+        needs: needs.map(<[String]>::to_vec),
     };
     let result = checker.check_program(program);
     let stopped = checker.stopped;
@@ -458,6 +465,23 @@ impl Checker<'_> {
 
     /// One `import` line: a package's half, both halves, or one thing. (D82, D187, D188, D198)
     fn read_import(&mut self, import: &crate::ast::Import) -> Outcome<()> {
+        // Each package a program uses has a `need` line in its manifest. (D183, D186, D228)
+        // trace: D183, D228
+        let package = import
+            .name
+            .text
+            .split("::")
+            .next()
+            .unwrap_or(&import.name.text);
+        if let Some(needs) = &self.needs {
+            if matches!(package, "std" | "csup") && !needs.iter().any(|need| need == package) {
+                return Err(Report::refused(
+                    import.name.span,
+                    format!("`{package}` has no `need` line in `CyJet.siml`"),
+                    "each package a program uses has a `need` line in its manifest, with its version (D183, D228)",
+                ));
+            }
+        }
         // trace: D198
         if let Some((kit, thing)) = import.name.text.split_once("::") {
             if import.limb || import.whole || kit != "std" {

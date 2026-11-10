@@ -1,0 +1,5 @@
+refused: CyJet.siml:2:1, line 2 column 1
+ 2 | ver 2026y-11m-14d
+   | ^^^^^^^^^^^^^^^^^
+ what: a release says whether it `breaks` anything or stays the `same`
+ why:  a release's version is its date plus whether it breaks (D231)

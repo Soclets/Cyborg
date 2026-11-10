@@ -1,0 +1,5 @@
+refused: main.cy:1:1, line 1 column 1
+ 1 | // Every program has a manifest, hello world included.
+   | ^
+ what: there's no `CyJet.siml` next to this program
+ why:  every program has a manifest, hello world included (D183, D229)

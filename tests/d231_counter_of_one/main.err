@@ -1,0 +1,5 @@
+refused: CyJet.siml:2:5, line 2 column 5
+ 2 | ver 2026y-11m-14d.1 same
+   |     ^^^^^^^^^^^^^^^
+ what: `.1` isn't a counter for a second release or later
+ why:  the first release on a day has no counter, and a second adds `.2` (D231)

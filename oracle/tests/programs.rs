@@ -1,7 +1,9 @@
-//! Runs every program in the repository's `tests/` folder, and compares its output byte for byte.
-//! `name.cy` is the program, `name.out` its exact standard output, and `name.err` its exact error.
-//! A missing file means that stream stays empty, and an `.err` means the oracle must exit with 1,
-//! unless `name.exit` gives the code, as for a program that prints to stderr and ends well. (D195)
+//! Runs every program in the repository's `tests/` folder, and in each folder inside it, and
+//! compares its output byte for byte. `name.cy` is the program, `name.out` its exact standard
+//! output, and `name.err` its exact error. A missing file means that stream stays empty, and an
+//! `.err` means the oracle must exit with 1, unless `name.exit` gives the code, as for a program
+//! that prints to stderr and ends well. (D195) A folder is one project with one manifest, so a
+//! test of the manifest itself has a folder of its own. (D183)
 #![forbid(unsafe_code)]
 #![deny(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
 #![warn(clippy::pedantic)]
@@ -57,10 +59,9 @@ fn run_one(folder: &Path, stem: &str) -> Result<(), String> {
     }
 }
 
-#[test]
-fn every_program_matches_byte_for_byte() {
-    let folder = Path::new(env!("CARGO_MANIFEST_DIR")).join("../tests");
-    let mut stems: Vec<String> = std::fs::read_dir(&folder)
+/// The programs in one folder, by name without `.cy`, in order.
+fn programs_in(folder: &Path) -> Vec<String> {
+    let mut stems: Vec<String> = std::fs::read_dir(folder)
         .map(|entries| {
             entries
                 .filter_map(Result::ok)
@@ -70,20 +71,48 @@ fn every_program_matches_byte_for_byte() {
         })
         .unwrap_or_default();
     stems.sort();
-    assert!(
-        !stems.is_empty(),
-        "no programs found in {}",
-        folder.display()
-    );
-    let failures: Vec<String> = stems
-        .iter()
-        .filter_map(|stem| run_one(&folder, stem).err())
-        .collect();
+    stems
+}
+
+#[test]
+fn every_program_matches_byte_for_byte() {
+    let tests = Path::new(env!("CARGO_MANIFEST_DIR")).join("../tests");
+    let mut folders = vec![tests.clone()];
+    let mut inside: Vec<_> = std::fs::read_dir(&tests)
+        .map(|entries| {
+            entries
+                .filter_map(Result::ok)
+                .map(|entry| entry.path())
+                .filter(|path| path.is_dir())
+                .collect()
+        })
+        .unwrap_or_default();
+    inside.sort();
+    folders.extend(inside);
+    let mut count = 0;
+    let mut failures: Vec<String> = Vec::new();
+    for folder in &folders {
+        let shown = folder
+            .strip_prefix(&tests)
+            .map(|relative| relative.to_string_lossy().into_owned())
+            .unwrap_or_default();
+        for stem in programs_in(folder) {
+            count += 1;
+            if let Err(problem) = run_one(folder, &stem) {
+                failures.push(if shown.is_empty() {
+                    problem
+                } else {
+                    format!("{shown}/{problem}")
+                });
+            }
+        }
+    }
+    assert!(count > 0, "no programs found in {}", tests.display());
     assert!(
         failures.is_empty(),
         "{} of {} programs differ:\n\n{}",
         failures.len(),
-        stems.len(),
+        count,
         failures.join("\n\n")
     );
 }

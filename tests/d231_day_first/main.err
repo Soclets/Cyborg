@@ -1,0 +1,5 @@
+refused: CyJet.siml:2:5, line 2 column 5
+ 2 | ver 14d-11m-2026y breaks
+   |     ^^^^^^^^^^^^^
+ fix:  `2026y-11m-14d`
+ why:  a version is a labelled date, biggest first, as in `2026y-11m-14d`, with `.2` for a second release that day (D231)

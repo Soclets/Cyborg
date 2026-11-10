@@ -1,0 +1,5 @@
+refused: CyJet.siml:5:1, line 5 column 1
+ 5 | need std
+   | ^^^^^^^^
+ what: `need std` says no version
+ why:  each package a program uses has a `need` line with its version (D228, D231)

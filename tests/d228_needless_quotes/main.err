@@ -1,0 +1,5 @@
+refused: CyJet.siml:1:6, line 1 column 6
+ 1 | name "weather"
+   |      ^^^^^^^^^
+ fix:  `weather`
+ why:  a manifest's value is quoted only when it needs to be (D228)
