@@ -134,7 +134,7 @@ These are inherited from Radium with D2:
 ## 12.9 Limbs and projects
 
 - Modules, and how files see each other.
-- The format inside `CyJet.zml`. D30, D35, D81 and D183 rely on it.
+- The manifest (D228): what features are, the lockfile, versions as ranges, and per-target settings.
 - How the manifest says which compiler a package's limb half works with.
 - Whether the mark goes only at the path's start.
 - Whether other limbs have a kit part like `std`.

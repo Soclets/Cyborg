@@ -33,9 +33,23 @@ The manifest lists packages. `std` is a package with both halves. Your own proje
 
 Packages are installed with CyJet, Cyborg's package manager, which shares only its name with CyborgPL's.
 
-**Refused:** a line like Go's `package main`.
+The manifest, `CyJet.zml`, has one line per fact:
 
-**From:** D22, D28, D36, D56, D186, D189, D190.
+```
+name weather
+ver 0.1.0
+okay 0.4.0
+
+need std 0.4.0
+need json 1.2.0
+need csup 0.1.0 with headers
+```
+
+`name` and `ver` are the project's own. `okay` is the compiler version it needs. Each package it uses has a `need` line with its version, and `with` adds features. A value is quoted only when it needs to be, and `#` starts a comment.
+
+**Refused:** a line like Go's `package main`, and a `need` line with no version.
+
+**From:** D22, D28, D36, D56, D186, D189, D190, D228.
 
 ## 9.2 `@`: a limb
 

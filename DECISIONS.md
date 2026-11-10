@@ -929,6 +929,18 @@ a placeholder for a version that isn't correctly rounded. A float prints as the 
 
 **D227. `inline` is in the base language, and limbs add to it.** Inline assembly is part of the base language, written bare as `inline.asm`, and still only allowed inside a shield, so a bare-metal program needs no import for it. This replaces `@std::inline.asm` from D28. `inline` is one family, and a limb adds its own inline language to it as `inline.@limb::lang`, as in `inline.@llvm::ir`, so all inline code reads `inline.` first and the `@` still marks the limb (D36). This is the one place a path sits inside a narrowing, rather than first as D196 has it, so that limbs plug into one `inline` instead of each declaring its own. A short name matches the last word, as in `use inline.@llvm::ir as ir;`. How the code inside an inline block is written is not settled here. The owner asked "Should ASM be in base? And then if a limb adds to it, it would be `inline.limb::lang`"; Claude proposed `@llvm::inline.ir`; the owner asked "Shouldn't it be `inline.@llvm::ir`?", said "every limb with inline lang would add their own inline", and chose: "yes". (Owner, 2026-11-09)
 
+**D228. What `CyJet.zml` looks like.** One line per fact, starting with what it is, with no sections, closers, `=` or `;`:
+
+    name weather
+    ver 0.1.0
+    okay 0.4.0
+
+    need std 0.4.0
+    need json 1.2.0
+    need csup 0.1.0 with headers
+
+`name` and `ver` are the project's own, since it's a package (D189). `okay` is the compiler version it needs, since a limb plugs into the compiler. Each package it uses gets a `need` line, with its version always written, and `with` adds features. A value is quoted only when it needs to be, as for a space or a `#`. `#` starts a comment. Settings that would need nesting, like per-target options, would use a prefix, as in `target.arduino cores 1`, but none are designed. Not settled here: what features are, the lockfile, and versions as ranges. CyborgPL's CyJet.toml, its fixes, real TOML and Cyborg-style blocks were all shown; the owner asked for "a more no fluff, straight-forward syntax"; Claude proposed this; the owner chose: "yea". (Owner, 2026-11-10)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude
