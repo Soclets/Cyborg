@@ -996,6 +996,8 @@ A `type_set` is a closed list of types that nothing can join later, as in `type_
 
 **D247. Named holes take shapes and fields.** A named hole can take shapes after a comma, as in `{$price, places: 2, unit}`, and read a field, as in `{$r.celsius}`, so variables go straight in the text: `fmt_print("{$name}: {$count} at ${$price, places: 2}{newln}");`. A hole only reads a value, never a call or maths, so it never runs anything. Named holes can't be mixed with `{}` or numbered holes in one format. This settles what D210 left open. The owner said "can we put var in the holes, this shit is so fucking hard to read"; Claude proposed this; the owner chose: "yea". (Owner, 2026-11-10)
 
+**D248. `use my::…` shortens your own declarations.** Your own package's path is `my::` (D75), so `use my::temperature.celsius as celsius;` shortens a unit you declared, and the same works for your own types and functions. It's still a path with `::`, so D232 holds: `use` shortens paths and never the base language. D150's matching name and D220's rule on a function's narrowing apply as for any other path. Claude had said a family in your own file couldn't be shortened; the owner said "You're gonna fucking die reading `temperature.celsius` 5000 fucking times"; Claude proposed `my::`; the owner chose: "yea". (Owner, 2026-11-10)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude
