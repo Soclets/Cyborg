@@ -162,4 +162,4 @@ These have a working name, but aren't chosen:
 - `held` on a stored borrow.
 - `exponent` in front of a literal.
 - `result`.
-- The repository's name, and the license.
+- The repository's name.

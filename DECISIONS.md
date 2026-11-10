@@ -1024,6 +1024,8 @@ A `type_set` is a closed list of types that nothing can join later, as in `type_
 
 **D261. `okay` links by itself, like Zig.** Building for any supported target needs nothing else installed: no outside linker, linker script or startup code. `okay` links with lld built in, which Lyftar would embed as a library under rule 1, and ships the startup code and linker scripts for each target it supports, starting with macOS on Apple Silicon, Linux on ARM and the Arduino Uno R4. Cross-compiling is one flag, with a placeholder spelling like `--target=arduino_uno_r4`. Until Lyftar embeds lld, the compiler may call the installed `ld.lld` as a stopgap. Lyftar's design session hasn't agreed to embed lld yet. The owner asked "Does Lyftar support lld?" and said "I kinda want Zig's ease of linking"; Claude proposed this; the owner chose: "yea". (Owner, 2026-11-10)
 
+**D262. Cyborg's licences.** The code is under Apache-2.0 WITH LLVM-exception, so programs compiled with Cyborg owe nothing, even though `std` ends up inside them. The writing, meaning the Markdown files, `DECISIONS.md`, `IMPLEMENTATION.md`, `standard/` and `design/`, is under CC BY 4.0, credited as "Cyborg GitHub repo text: https://github.com/Soclets/Cyborg". These are the same licences as CyborgPL's and Lyftar's, copied from CyborgPL. The repository had been public with no licence since D79. CORE-MATH stays under its own MIT licence, in its own folder (D161). The owner said "Oh fuck, Cyborg isn't licensed", then asked "doesn't CyborgPL (not Cyborg) already use exactly that?"; Claude proposed copying it; the owner chose: "yup". (Owner, 2026-11-10)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude
