@@ -994,6 +994,8 @@ A `type_set` is a closed list of types that nothing can join later, as in `type_
 
 **D246. `{unit}` prints a value with its unit.** In `std::io::fmt_print`, the bare shape word `unit` prints a value followed by its unit, written the way its own file writes it: with `use std::units::time.seconds as seconds;`, `{unit}` prints `3600 seconds`, and with no `use`, `3600 time.seconds`, with the package path left off. So output matches the code next to it, and the same value can print differently from two files. D122's `as str.with_unit` gives the same text, still as a placeholder spelling. Multifinity's Claude suggested printing with units; Claude proposed it; the owner asked "Where's `use`", and chose: "yea". (Owner, 2026-11-10)
 
+**D247. Named holes take shapes and fields.** A named hole can take shapes after a comma, as in `{$price, places: 2, unit}`, and read a field, as in `{$r.celsius}`, so variables go straight in the text: `fmt_print("{$name}: {$count} at ${$price, places: 2}{newln}");`. A hole only reads a value, never a call or maths, so it never runs anything. Named holes can't be mixed with `{}` or numbered holes in one format. This settles what D210 left open. The owner said "can we put var in the holes, this shit is so fucking hard to read"; Claude proposed this; the owner chose: "yea". (Owner, 2026-11-10)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude

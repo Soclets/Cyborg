@@ -77,7 +77,6 @@ Waiting on the owner, most needed first. Each is `NotDesignedYet` unless it says
 - `:=` (D216): the spelling of Precog's rule, list items and struct fields in Precog's mode, and `:=` on a borrow.
 - Checking past an error (D215): an error in a block's opening line, like `if` or `for`, or in a function's header.
 - Spacing (D213): indentation, line length, and the space before an opening `[`, which `fn total [$xs: …]` has and `reading[celsius = 21]` doesn't.
-- Named holes (D210): shapes on one, a field like `{$r.celsius}`, and mixing them with `{}` or numbered holes.
 - Print (D194): how the fill character is written, a per-value `form: stored`, formatting to a `str` without printing, and what the output is on bare metal. `form: science` is how a float prints with an exponent.
 - How to check a float's sign.
 - Raw pointers' spelling, though D38 puts them in shields.
