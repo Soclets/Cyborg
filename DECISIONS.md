@@ -1026,6 +1026,8 @@ A `type_set` is a closed list of types that nothing can join later, as in `type_
 
 **D262. Cyborg's licences.** The code is under Apache-2.0 WITH LLVM-exception, so programs compiled with Cyborg owe nothing, even though `std` ends up inside them. The writing, meaning the Markdown files, `DECISIONS.md`, `IMPLEMENTATION.md`, `standard/` and `design/`, is under CC BY 4.0, credited as "Cyborg GitHub repo text: https://github.com/Soclets/Cyborg". These are the same licences as CyborgPL's and Lyftar's, copied from CyborgPL. The repository had been public with no licence since D79. CORE-MATH stays under its own MIT licence, in its own folder (D161). The owner said "Oh fuck, Cyborg isn't licensed", then asked "doesn't CyborgPL (not Cyborg) already use exactly that?"; Claude proposed copying it; the owner chose: "yup". (Owner, 2026-11-10)
 
+**D263. The pitch, third time.** "General sys lang that prioritizes safety & repro over perf." It's the README's first line and the GitHub description. "Repro" means reproducible: the same program gives the same results on every machine, as D158 and D257's stable floats promise. This replaces D157's "loses a little perf for safety". It doesn't mean Cyborg is slow: performance still matters, and the line says only which wins when they conflict. The owner: "Kinda wanna change GH description to "General sys lang that prioritizes safety & repro over perf."", then "yea", and "that doesn't mean shit perf, I actually love perf, I just know it isn't everything". (Owner, 2026-11-10)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude
