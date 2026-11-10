@@ -187,7 +187,7 @@ If Cyborg later adds a built-in with the same name, old code gets a compile erro
 use std::units::time.seconds as seconds;
 use std::io::fmt_print as "say";
 
-let $a: i32.seconds = 3600 seconds;
+let $a: i32[unit: seconds] = 3600 seconds;
 say("hi{newln}");
 ```
 

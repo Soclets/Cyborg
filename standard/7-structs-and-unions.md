@@ -17,7 +17,7 @@
 ```
 struct reading:
     celsius: i32;
-    time: i64.std::units::time.seconds;
+    time: i64[unit: std::units::time.seconds];
 end struct reading
 ```
 

@@ -122,7 +122,7 @@ The first prints `0.1`, and the second prints every digit, with no limit: `0.100
 
 On `f64.ieee`, both print NaN and infinity as the words `NaN`, `inf` and `-inf`.
 
-`std::math::sin` and similar functions are correctly rounded, so they give the same bits on every machine. They come from CORE-MATH, third-party C kept in `std` under rule 1's exception (D161). Its license is MIT, checked in its repository's LICENSE file on 2026-11-10. They ask for an angle in radians, `f64.stable.std::units::angle.radians`, so a plain number is refused, and degrees are converted with `as` ([2.16](#216-units)). `std::math::sin.fast` is a placeholder for a version that isn't.
+`std::math::sin` and similar functions are correctly rounded, so they give the same bits on every machine. They come from CORE-MATH, third-party C kept in `std` under rule 1's exception (D161). Its license is MIT, checked in its repository's LICENSE file on 2026-11-10. They ask for an angle in radians, `f64.stable[unit: std::units::angle.radians]`, so a plain number is refused, and degrees are converted with `as` ([2.16](#216-units)). `std::math::sin.fast` is a placeholder for a version that isn't.
 
 **From:** D54, D59, D158, D159, D160, D161, D162, D163, D166, D167, D257.
 
@@ -176,7 +176,7 @@ let mut $ys: std::list<i32>[len.max: 8 items] = empty;
 std::list<i32>[len.min: 1 items, len.max: 8 items]
 ```
 
-`$xs.len` is `u64.items`. A list can choose another type with `len.type`, which also changes how it stores its length:
+`$xs.len` is `u64[unit: items]`. A list can choose another type with `len.type`, which also changes how it stores its length:
 
 ```
 std::list<i32>[len.max: inf items, len.type: u32]
@@ -251,30 +251,30 @@ A number converts bare, with no unit, so `$xs.len as str` gives `3`. A narrowing
 
 These examples assume `time` and `storage` are declared with `fam.unit`, further down. Nothing is built in except `items`.
 
-**Rule:** a number says its unit, behind it where possible. Where the unit can't go behind, it goes in front. A unit always says its family, or its path from a kit, and `items` is base language, so it stays bare. The compiler checks units: a unit is part of the type, carried by a narrowing. The same units can add and compare.
+**Rule:** a number says its unit, behind it where possible. Where the unit can't go behind, it goes in front. A unit always says its family, or its path from a kit, and `items` is base language, so it stays bare. The compiler checks units: a unit is part of the type, written as a label in its brackets, next to any bounds, as in `i32[unit: time.seconds]` and `f64.stable[unit: length.meters, min: 0.0]`. The same units can add and compare.
 
 ```
-let $a: i32.time.seconds = 3600 time.seconds;
-let $b: i32.time.seconds = 5 time.seconds;
-let $c: i32.time.seconds = $a + $b;
+let $a: i32[unit: time.seconds] = 3600 time.seconds;
+let $b: i32[unit: time.seconds] = 5 time.seconds;
+let $c: i32[unit: time.seconds] = $a + $b;
 
 use std::units::time.seconds as seconds;
-let $d: i32.seconds = 3600 seconds;
+let $d: i32[unit: seconds] = 3600 seconds;
 ```
 
-A unit is required only where the type asks for one. A plain `i32` means just a number. The language and `std` ask for units on things that have them, like lengths, sizes and durations, and your own code opts in with a type like `i32.time.seconds`.
+A unit is required only where the type asks for one. A plain `i32` means just a number. The language and `std` ask for units on things that have them, like lengths, sizes and durations, and your own code opts in with a type like `i32[unit: time.seconds]`.
 
 ```
 std::array<u8>[len: 4096 items]
 let $x: i32 = 3600;
 ```
 
-`as` takes a unit off a value, or puts one on: `$xs.len as u64`, `$n as u64.items`.
+`as` takes a unit off a value, or puts one on: `$xs.len as u64`, `$n as u64[unit: items]`.
 
 A label can carry the unit instead, when the writer declares it that way. A plain number takes the label's unit, and a value in another unit is refused.
 
 ```
-fn draw [$x: i32.screen.pixels] -> void:
+fn draw [$x: i32[unit: screen.pixels]] -> void:
     labels [$x as at.screen.pixels];
     …
 end fn draw
@@ -282,7 +282,7 @@ end fn draw
 draw(at.screen.pixels: 5);
 ```
 
-**Refused:** a plain `as` from an integer to a bigger unit, a point plus a point, a value with neither `.point` nor `.span` in a family that needs one, mixing units, as in `$a + 5 storage.bytes`, a missing unit, as in `let $b: i32.time.seconds = 3600;`, a bare `3600 seconds` with no `use`, and storing a value whose units don't match the declared unit, as in `let $s: f64.stable.motion.speed = $time div $dist;`.
+**Refused:** a plain `as` from an integer to a bigger unit, a point plus a point, a value with neither `.point` nor `.span` in a family that needs one, mixing units, as in `$a + 5 storage.bytes`, a missing unit, as in `let $b: i32[unit: time.seconds] = 3600;`, a bare `3600 seconds` with no `use`, and storing a value whose units don't match the declared unit, as in `let $s: f64.stable[unit: motion.speed] = $time div $dist;`.
 
 You define units in a collection. Every unit says what it is: `: base`, or `=` with a conversion, which can point at a unit in any family. Two units convert if they trace back to the same base, and otherwise they don't.
 
@@ -308,7 +308,7 @@ fam.unit length:
     length.meters: base with metric;
 end fam.unit length
 
-let $road: f64.stable.length.kilometers = 2.5 length.kilometers;
+let $road: f64.stable[unit: length.kilometers] = 2.5 length.kilometers;
 ```
 
 `std` ships `metric` and `binary`, as in `storage.bytes: base with binary;` giving `storage.kibibytes`. `fam.prefix` and `with` are placeholders.
@@ -326,8 +326,8 @@ fam.unit motion:
     motion.area = length.meters x length.meters;
 end fam.unit motion
 
-let $speed: f64.stable.motion.speed = $dist div $time;
-let $accel: f64.stable.motion.accel = $speed div $time;
+let $speed: f64.stable[unit: motion.speed] = $dist div $time;
+let $accel: f64.stable[unit: motion.accel] = $speed div $time;
 ```
 
 `std` has an `angle` family, with radians as the base, degrees and turns:
@@ -336,8 +336,8 @@ let $accel: f64.stable.motion.accel = $speed div $time;
 use std::units::angle.degrees as degrees;
 use std::units::angle.radians as radians;
 
-let $a: f64.stable.degrees = 90.0 degrees;
-let $s: f64.stable = std::math::sin($a as f64.stable.radians);
+let $a: f64.stable[unit: degrees] = 90.0 degrees;
+let $s: f64.stable = std::math::sin($a as f64.stable[unit: radians]);
 ```
 
 `std::math::sin` asks for radians, so `std::math::sin(90.0)` is refused, asking for an angle.
@@ -345,11 +345,11 @@ let $s: f64.stable = std::math::sin($a as f64.stable.radians);
 A generic can work for any unit and keep it, with a unit parameter. `any.unit` means any unit, and a family's name, like `length`, means any unit in that family:
 
 ```
-fn average<?u: any.unit> [$xs: std::list<f64.stable.?u>[len.min: 1 items]] -> f64.stable.?u:
+fn average<?u: any.unit> [$xs: std::list<f64.stable[unit: ?u]>[len.min: 1 items]] -> f64.stable[unit: ?u]:
     …
 end fn average
 
-let $t: f64.stable.time.seconds = average($times);
+let $t: f64.stable[unit: time.seconds] = average($times);
 ```
 
 A unit parameter goes only where a unit goes, after a number type. A body can add and compare values of the same `?u`.
@@ -364,9 +364,9 @@ end fam.unit temperature
 
 use my::temperature.celsius as celsius;
 
-let $now: f64.stable.celsius.point = 20.0 celsius;
-let $rise: f64.stable.celsius.span = 10.0 celsius;
-let $later: f64.stable.celsius.point = $now + $rise;
+let $now: f64.stable[unit: celsius.point] = 20.0 celsius;
+let $rise: f64.stable[unit: celsius.span] = 10.0 celsius;
+let $later: f64.stable[unit: celsius.point] = $now + $rise;
 ```
 
 A point plus a span is a point, a point minus a point is a span, and spans add. Converting a point applies the offset, while converting a span only scales, so a rise of 10 °C is a rise of 10 K. `offset` is a placeholder.
@@ -374,8 +374,8 @@ A point plus a span is a point, a point minus a point is a span, and spans add. 
 A value changes unit with `as`. A float rounds to the nearest, like any float maths. An integer converting to a smaller unit is exact, and to a bigger one says how with a narrowing:
 
 ```
-let $m: f64.stable.length.meters = $km as f64.stable.length.meters;
-let $k: i32.length.kilometers = $big as.trunc i32.length.kilometers;
+let $m: f64.stable[unit: length.meters] = $km as f64.stable[unit: length.meters];
+let $k: i32[unit: length.kilometers] = $big as.trunc i32[unit: length.kilometers];
 ```
 
 `as.trunc`, `as.floor` and `as.exact`, which fails if anything would be lost, follow integer `div` ([3.3](3-operators.md#33-division-div)).
@@ -388,14 +388,14 @@ fam.unit power:
     power.dbm = decibels of 1 power.milliwatts;
 end fam.unit power
 
-let $input: f64.stable.power.dbm.point = 10.0 power.dbm;
-let $gain: f64.stable.power.dbm.span = 3.0 power.dbm;
-let $output: f64.stable.power.dbm.point = $input + $gain;
+let $input: f64.stable[unit: power.dbm.point] = 10.0 power.dbm;
+let $gain: f64.stable[unit: power.dbm.span] = 3.0 power.dbm;
+let $output: f64.stable[unit: power.dbm.point] = $input + $gain;
 ```
 
 Two levels can't be added, since in dB that would mean multiplying two powers, so you convert to watts, add, and convert back.
 
-**From:** D99, D100, D101, D108, D109, D110, D111, D112, D141, D144, D242, D243, D245, D249, D250, D251, D254, D255.
+**From:** D99, D100, D101, D108, D109, D110, D111, D112, D141, D144, D242, D243, D245, D249, D250, D251, D254, D255, D258.
 
 ## 2.17 Getting an item
 
