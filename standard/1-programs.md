@@ -181,7 +181,7 @@ If Cyborg later adds a built-in with the same name, old code gets a compile erro
 
 ## 1.11 Short names: `use`
 
-**Rule:** `use` gives a path a shorter name for that file, and `as` is always written. An unquoted name has to match the last word of the path, so it can't lie. A quoted name is your own choice, and the quotes only appear on this line.
+**Rule:** `use` gives a path into a kit or limb a shorter name for that file, and `as` is always written. Anything in the base language, like `inline.asm`, has no path to shorten, so `use` refuses it. An unquoted name has to match the last word of the path, so it can't lie. A quoted name is your own choice, and the quotes only appear on this line.
 
 ```
 use std::units::time.seconds as seconds;
@@ -217,7 +217,7 @@ Units keep the matching name, as in `use std::units::time.seconds as seconds;`.
 
 **Refused:** `use std::io::fmt_print.stored as stored;`, with `fix: use std::io::fmt_print as fmt_print;`, `use std::list.%%append as "push";` and `as "%%push"`, with `fix: as %%"push"`, `as %append`, which drops a `%`, `use std::units::time.seconds as minutes;`, `use @csup::union.untagged as @untagged;`, because `@untagged` looks like a builtin, and a quoted name nothing could use, like `"my say"`, `""` or `"fn"`.
 
-**From:** D93, D150, D151, D155, D178, D179, D220, D225.
+**From:** D93, D150, D151, D155, D178, D179, D220, D225, D232.
 
 ## 1.12 Comments
 

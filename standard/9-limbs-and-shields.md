@@ -72,14 +72,13 @@ need csup 2026y-09m-30d with headers
 ```
 inline.asm
 inline.@llvm::ir
-use inline.@llvm::ir as ir;
 ```
 
 This is the one place a path sits inside a narrowing, so every limb plugs into the same `inline` instead of declaring its own. How the code inside is written isn't decided.
 
-**Refused:** `@std::inline.asm`, with `fix: inline.asm`, and `inline.llvm::ir`, with no `@`.
+**Refused:** `@std::inline.asm`, with `fix: inline.asm`, `inline.llvm::ir`, with no `@`, and any `use` of an `inline.…`, since `use` doesn't work on the base language.
 
-**From:** D28, D35, D36, D38, D227.
+**From:** D28, D35, D36, D38, D227, D232.
 
 ## 9.5 C support: `@csup`
 
