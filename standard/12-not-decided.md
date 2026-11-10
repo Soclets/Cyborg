@@ -107,7 +107,7 @@ Waiting on the owner, most needed first. Each is `NotDesignedYet` unless it says
 - Generics (D85, D87): the spelling, including `?T` and declaring a bound, how a bound is defined, whether you can declare one for a type from someone else's kit, and how specialization and value parameters are written.
 - Whether a `fn.pure` may allocate or fail.
 - How raw pointers, volatile memory, exact layouts and allocators are spelled (D226).
-- Assembly blocks (D233): a register both read and written, lending an address into a register, `on.target`'s narrowings like `.chip` and `.os`, and chips' names.
+- Assembly blocks (D233): one variable going both in and out of the same register, like CyborgPL's `<->`, since reading one variable into a register and writing it out to another is already shown in 9.4, lending an address into a register, `on.target`'s narrowings like `.chip` and `.os`, and chips' names.
 - How a C function is declared and called through `@csup` (D225), and whether D220 covers a limb function's narrowing.
 - Compile-time features (D218): the syntax of a `match` on types, variadic generics, and the loop over a type's fields.
 - Whether every `void` function says `return void;`.
