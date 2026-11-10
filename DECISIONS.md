@@ -1028,6 +1028,8 @@ A `type_set` is a closed list of types that nothing can join later, as in `type_
 
 **D263. The pitch, third time.** "General sys lang that prioritizes safety & repro over perf." It's the README's first line and the GitHub description. "Repro" means reproducible: the same program gives the same results on every machine, as D158 and D257's stable floats promise. This replaces D157's "loses a little perf for safety". It doesn't mean Cyborg is slow: performance still matters, and the line says only which wins when they conflict. The owner: "Kinda wanna change GH description to "General sys lang that prioritizes safety & repro over perf."", then "yea", and "that doesn't mean shit perf, I actually love perf, I just know it isn't everything". (Owner, 2026-11-10)
 
+**D264. The pitch's wording.** "Syslang that has safety & repro over perf." The owner rewrote D263's line in the README themselves, and it's the GitHub description too. D263's meaning stands: safety and reproducibility win when they conflict with performance, which still matters. The owner: "Bro, I changed README, change GH description yourself". (Owner, 2026-11-10)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude
