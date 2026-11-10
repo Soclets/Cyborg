@@ -183,13 +183,13 @@ reading satisfies ordered;
 fn smaller<?item: whole and ordered> [$a: ?item, $b: ?item] -> ?item:
 ```
 
-Requirements combine with `and`. A type fits an interface only through a `satisfies` line, which only the type's package or the interface's package can write. `reading .|. ordered;` means exactly the same: an easter egg, on purpose.
+Requirements combine with `and`. Only an interface gives operations, so a body can't use `+` on a `?item` whose requirement is only a type set: it writes `<?item: whole and addable>`. `std` declares which interfaces its own types satisfy. A type fits an interface only through a `satisfies` line, which only the type's package or the interface's package can write. `reading .|. ordered;` means exactly the same: an easter egg, on purpose.
 
 "Bound" means a value's min and max ([2.5](2-values-and-types.md#25-bounded-integers)), so these are requirements, not bounds. How laws are proven, and how a type slot is written, aren't decided ([12.5](12-not-decided.md#125-functions)). A type's own operators are in [3.10](3-operators.md#310-operators-for-your-own-types-op).
 
 **Refused:** a type parameter with no requirement, with `fix: ?left: any`, a body that uses a `?item` in a way its requirement doesn't list, a type used where it hasn't said `satisfies`, a `satisfies` line written outside the type's package and the interface's package, and an interface and a type set mixed in one.
 
-**From:** D23, D85, D87, D89, D234, D235, D238, D239, and Radium's generics.
+**From:** D23, D85, D87, D89, D234, D235, D238, D239, D240, and Radium's generics.
 
 ## 5.9 Pure functions
 

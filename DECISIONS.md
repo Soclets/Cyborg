@@ -980,6 +980,8 @@ A `type_set` is a closed list of types that nothing can join later, as in `type_
 
 **D239. Every type parameter writes its requirement, `any` included.** A type parameter that needs nothing says so: `struct pair<?left: any, ?right: any>:`. A body can only store, move, copy and lend an `any` parameter. A bare `?left` is refused, with `fix: ?left: any`, so a reader never wonders whether a requirement was forgotten. This matches the owner's "Don't default to allow all" in CyborgPL. Oracle claude found 5.8's `pair` writing none; Claude proposed allowing it bare; the owner asked "Why doesn't it say so", Claude proposed `any`, and the owner chose: "yea". (Owner, 2026-11-10)
 
+**D240. Only an interface gives operations.** A `type_set` only says which types are allowed, so a body can't use `+` or `<` on a `?item` whose requirement is only a set, even if every type in it has them. It needs an interface too, as in `<?item: whole and addable>`, which also tells a reader what the function does with them. `std` declares which interfaces its own types satisfy, like `addable` and `ordered`, and their names are not settled here. This is CyborgPL's rule, which the owner chose there on 2026-10-28. Oracle claude asked; Claude proposed it; the owner chose: "yea". (Owner, 2026-11-10)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude
