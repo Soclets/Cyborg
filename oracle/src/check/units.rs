@@ -894,6 +894,7 @@ impl Checker<'_> {
         &self,
         describe: &[crate::ast::Describe],
     ) -> Outcome<(Option<String>, Vec<crate::ast::Describe>)> {
+        self.refuse_bracket_order(describe)?;
         let mut unit = None;
         let mut rest = Vec::new();
         for entry in describe {
@@ -939,5 +940,51 @@ impl Checker<'_> {
         } else {
             refused
         }
+    }
+}
+
+impl Checker<'_> {
+    /// A number type's labels go `unit:`, then `min:`, then `max:`, and another order is
+    /// refused with the right one as its fix. (D259)
+    /// trace: D259
+    fn refuse_bracket_order(&self, describe: &[crate::ast::Describe]) -> Outcome<()> {
+        let rank = |label: &str| match label {
+            "unit" => Some(0),
+            "min" => Some(1),
+            "max" => Some(2),
+            _ => None,
+        };
+        let ranks: Vec<Option<u8>> = describe
+            .iter()
+            .map(|entry| rank(&entry.label.text))
+            .collect();
+        let known: Vec<u8> = ranks.iter().flatten().copied().collect();
+        // A label written twice is refused for that, where it's read.
+        let twice = known
+            .iter()
+            .enumerate()
+            .any(|(at, rank)| known.iter().skip(at + 1).any(|later| later == rank));
+        if twice || known.windows(2).all(|pair| pair[0] < pair[1]) {
+            return Ok(());
+        }
+        let (Some(first), Some(last)) = (describe.first(), describe.last()) else {
+            return Ok(());
+        };
+        let span = first.label.span.to(last.value.span);
+        let refused = Report::refused(
+            span,
+            "a type's labels go `unit:`, then `min:`, then `max:`",
+            "a type reads as what it measures, then its range in that unit, so its labels go `unit:`, `min:`, `max:` (D259)",
+        );
+        if ranks.iter().any(Option::is_none) {
+            return Err(refused);
+        }
+        let mut ordered: Vec<&crate::ast::Describe> = describe.iter().collect();
+        ordered.sort_by_key(|entry| rank(&entry.label.text));
+        let written: Vec<String> = ordered
+            .iter()
+            .map(|entry| format!("{}: {}", entry.label.text, self.text_of(entry.value.span)))
+            .collect();
+        Err(refused.fix(written.join(", ")))
     }
 }

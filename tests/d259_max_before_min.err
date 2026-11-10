@@ -1,0 +1,5 @@
+refused: d259_max_before_min.cy:6:17, line 6 column 17
+ 6 |     let $n: i32[max: 9, min: 0] = 3;
+   |                 ^^^^^^^^^^^^^^
+ fix:  `min: 0, max: 9`
+ why:  a type reads as what it measures, then its range in that unit, so its labels go `unit:`, `min:`, `max:` (D259)
