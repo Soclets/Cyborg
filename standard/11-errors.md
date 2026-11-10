@@ -69,10 +69,10 @@ There are no error codes. A `^` run sits under exactly the part in question.
 
 ```
 refused: main.cy:1:15, line 1 column 15
- 1 | let $a: f64 = 0.1;
+ 1 | let $a: f64.stable = 0.1;
    |               ^^^
  fix:  `~0.1`
- why:  f64 can't hold 0.1 exactly (D59)
+ why:  f64.stable can't hold 0.1 exactly (D59)
 ```
 
 **From:** D16, D59.

@@ -52,7 +52,7 @@ change $sum = $sum + $x;
 
 ```
 const $b: i32 = 60 x 60;
-const $pi: f64 = ~3.14159265358979323846;
+const $pi: f64.stable = ~3.14159265358979323846;
 ```
 
 It can call `fn.pure.baked` functions ([5.11](5-functions.md#511-baking)).
@@ -91,20 +91,20 @@ use_score($n);
 
 ## 2.6 Floats
 
-**Rule:** a 32-bit binary float is `f32`, and `f64` is 64-bit. A float can have bounds, like an integer. It can't be NaN or infinity: making one is a failure, a runtime check in `FinalSafe`. It gives the same bits on every machine.
+**Rule:** a 32-bit binary float is `f32`, and `f64` is 64-bit. Every float type says which kind it is, straight after the type: `.stable` gives the same bits on every machine, `.fast` allows merged and reordered maths, and `.ieee` allows NaN and infinity. A bare `f64` is refused, asking which. A float can have bounds, like an integer. A `.stable` or `.fast` float can't be NaN or infinity: making one is a failure, a runtime check in `FinalSafe`. It gives the same bits on every machine.
 
 ```
-let $t: f64[min: -40.0, max: 125.0] = 21.5;
+let $t: f64.stable[min: -40.0, max: 125.0] = 21.5;
 ```
 
 Narrowings opt out, with placeholder names: `f64.ieee` allows NaN and infinity, and `f64.fast` allows merged and reordered maths. Merged maths can change an answer slightly, or whether a program crashes, and that isn't a bug. `f64.ieee` needs no shield, since it's a different type, and `as` is the wall:
 
 ```
 let $reading: f64.ieee = read_sensor();
-let $clean: f64 = $reading as f64;
+let $clean: f64.stable = $reading as f64.stable;
 ```
 
-**Refused:** `let $x: f64 = $reading;`.
+**Refused:** `let $x: f64.stable = $reading;`.
 
 Comparing works as usual, and `-0.0 == 0.0` is true. The linter can flag comparing floats with `==`.
 
@@ -113,7 +113,7 @@ IEEE 754 is the authority on how `f64.ieee` behaves, including comparing, arithm
 A float prints as the shortest text that means its value, and `std::io::fmt_print.stored` prints what's actually in memory:
 
 ```
-let $x: f64 = ~0.1;
+let $x: f64.stable = ~0.1;
 std::io::fmt_print("{}{newln}", $x);
 std::io::fmt_print.stored("{}{newln}", $x);
 ```
@@ -122,26 +122,26 @@ The first prints `0.1`, and the second prints every digit, with no limit: `0.100
 
 On `f64.ieee`, both print NaN and infinity as the words `NaN`, `inf` and `-inf`.
 
-`std::math::sin` and similar functions are correctly rounded, so they give the same bits on every machine. They come from CORE-MATH, third-party C kept in `std` under rule 1's exception (D161). Its license is MIT, checked in its repository's LICENSE file on 2026-11-10. They ask for an angle in radians, `f64.std::units::angle.radians`, so a plain number is refused, and degrees are converted with `as` ([2.16](#216-units)). `std::math::sin.fast` is a placeholder for a version that isn't.
+`std::math::sin` and similar functions are correctly rounded, so they give the same bits on every machine. They come from CORE-MATH, third-party C kept in `std` under rule 1's exception (D161). Its license is MIT, checked in its repository's LICENSE file on 2026-11-10. They ask for an angle in radians, `f64.stable.std::units::angle.radians`, so a plain number is refused, and degrees are converted with `as` ([2.16](#216-units)). `std::math::sin.fast` is a placeholder for a version that isn't.
 
-**From:** D54, D59, D158, D159, D160, D161, D162, D163, D166, D167.
+**From:** D54, D59, D158, D159, D160, D161, D162, D163, D166, D167, D257.
 
 ## 2.7 Inexact literals: `~`
 
 **Rule:** a float literal the type can't hold exactly must say so with `~`. An exact one has no mark. A negative is `~-0.1`. There's no limit on digits. `~` covers literals only, not arithmetic.
 
 ```
-let $a: f64 = 0.5;
-let $b: f64 = ~0.1;
+let $a: f64.stable = 0.5;
+let $b: f64.stable = ~0.1;
 ```
 
 A literal with an exponent says so in front of the value, with `exponent` as a placeholder name. It's still a plain float, and it doesn't remember how it was written, so it prints as plain digits, however long.
 
 ```
-let $avogadro: f64 = exponent ~6.02214076e23;
+let $avogadro: f64.stable = exponent ~6.02214076e23;
 ```
 
-**Refused:** `let $b: f64 = 0.1;` and `let $a: f64 = ~0.5;`, each with the fix shown, and `~6.02214076e23` without `exponent`.
+**Refused:** `let $b: f64.stable = 0.1;` and `let $a: f64.stable = ~0.5;`, each with the fix shown, and `~6.02214076e23` without `exponent`.
 
 **From:** D59, D165.
 
@@ -282,7 +282,7 @@ end fn draw
 draw(at.screen.pixels: 5);
 ```
 
-**Refused:** a plain `as` from an integer to a bigger unit, a point plus a point, a value with neither `.point` nor `.span` in a family that needs one, mixing units, as in `$a + 5 storage.bytes`, a missing unit, as in `let $b: i32.time.seconds = 3600;`, a bare `3600 seconds` with no `use`, and storing a value whose units don't match the declared unit, as in `let $s: f64.motion.speed = $time div $dist;`.
+**Refused:** a plain `as` from an integer to a bigger unit, a point plus a point, a value with neither `.point` nor `.span` in a family that needs one, mixing units, as in `$a + 5 storage.bytes`, a missing unit, as in `let $b: i32.time.seconds = 3600;`, a bare `3600 seconds` with no `use`, and storing a value whose units don't match the declared unit, as in `let $s: f64.stable.motion.speed = $time div $dist;`.
 
 You define units in a collection. Every unit says what it is: `: base`, or `=` with a conversion, which can point at a unit in any family. Two units convert if they trace back to the same base, and otherwise they don't.
 
@@ -308,7 +308,7 @@ fam.unit length:
     length.meters: base with metric;
 end fam.unit length
 
-let $road: f64.length.kilometers = 2.5 length.kilometers;
+let $road: f64.stable.length.kilometers = 2.5 length.kilometers;
 ```
 
 `std` ships `metric` and `binary`, as in `storage.bytes: base with binary;` giving `storage.kibibytes`. `fam.prefix` and `with` are placeholders.
@@ -326,8 +326,8 @@ fam.unit motion:
     motion.area = length.meters x length.meters;
 end fam.unit motion
 
-let $speed: f64.motion.speed = $dist div $time;
-let $accel: f64.motion.accel = $speed div $time;
+let $speed: f64.stable.motion.speed = $dist div $time;
+let $accel: f64.stable.motion.accel = $speed div $time;
 ```
 
 `std` has an `angle` family, with radians as the base, degrees and turns:
@@ -336,8 +336,8 @@ let $accel: f64.motion.accel = $speed div $time;
 use std::units::angle.degrees as degrees;
 use std::units::angle.radians as radians;
 
-let $a: f64.degrees = 90.0 degrees;
-let $s: f64 = std::math::sin($a as f64.radians);
+let $a: f64.stable.degrees = 90.0 degrees;
+let $s: f64.stable = std::math::sin($a as f64.stable.radians);
 ```
 
 `std::math::sin` asks for radians, so `std::math::sin(90.0)` is refused, asking for an angle.
@@ -345,11 +345,11 @@ let $s: f64 = std::math::sin($a as f64.radians);
 A generic can work for any unit and keep it, with a unit parameter. `any.unit` means any unit, and a family's name, like `length`, means any unit in that family:
 
 ```
-fn average<?u: any.unit> [$xs: std::list<f64.?u>[len.min: 1 items]] -> f64.?u:
+fn average<?u: any.unit> [$xs: std::list<f64.stable.?u>[len.min: 1 items]] -> f64.stable.?u:
     …
 end fn average
 
-let $t: f64.time.seconds = average($times);
+let $t: f64.stable.time.seconds = average($times);
 ```
 
 A unit parameter goes only where a unit goes, after a number type. A body can add and compare values of the same `?u`.
@@ -364,9 +364,9 @@ end fam.unit temperature
 
 use my::temperature.celsius as celsius;
 
-let $now: f64.celsius.point = 20.0 celsius;
-let $rise: f64.celsius.span = 10.0 celsius;
-let $later: f64.celsius.point = $now + $rise;
+let $now: f64.stable.celsius.point = 20.0 celsius;
+let $rise: f64.stable.celsius.span = 10.0 celsius;
+let $later: f64.stable.celsius.point = $now + $rise;
 ```
 
 A point plus a span is a point, a point minus a point is a span, and spans add. Converting a point applies the offset, while converting a span only scales, so a rise of 10 °C is a rise of 10 K. `offset` is a placeholder.
@@ -374,7 +374,7 @@ A point plus a span is a point, a point minus a point is a span, and spans add. 
 A value changes unit with `as`. A float rounds to the nearest, like any float maths. An integer converting to a smaller unit is exact, and to a bigger one says how with a narrowing:
 
 ```
-let $m: f64.length.meters = $km as f64.length.meters;
+let $m: f64.stable.length.meters = $km as f64.stable.length.meters;
 let $k: i32.length.kilometers = $big as.trunc i32.length.kilometers;
 ```
 
@@ -388,9 +388,9 @@ fam.unit power:
     power.dbm = decibels of 1 power.milliwatts;
 end fam.unit power
 
-let $input: f64.power.dbm.point = 10.0 power.dbm;
-let $gain: f64.power.dbm.span = 3.0 power.dbm;
-let $output: f64.power.dbm.point = $input + $gain;
+let $input: f64.stable.power.dbm.point = 10.0 power.dbm;
+let $gain: f64.stable.power.dbm.span = 3.0 power.dbm;
+let $output: f64.stable.power.dbm.point = $input + $gain;
 ```
 
 Two levels can't be added, since in dB that would mean multiplying two powers, so you convert to watts, add, and convert back.
