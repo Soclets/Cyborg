@@ -147,23 +147,28 @@ A receiver that's `Given` is refused, because methods only borrow.
 **Rule:** a generic function or type makes a copy per type, which runs as fast as hand-written code. It says what it needs through a bound, and is checked once at its definition. It can take values as parameters, can be specialized for one type, and can be extended by outsiders through bounds.
 
 ```
-fn largest <?T: ordered> [$a: ?T, $b: ?T] -> ?T:
+fn largest<?item: ordered> [$a: ?item, $b: ?item] -> ?item:
     if $a > $b:
         return $a;
     end if
     return $b;
 end fn largest
 
+struct pair<?left, ?right>:
+    first: ?left;
+    second: ?right;
+end struct pair
+
 let $x: i32 = largest(3, 5);
 ```
 
-`?T` and `ordered` are placeholders. How much of this is spelled isn't decided ([12.5](12-not-decided.md#125-functions)).
+A type parameter is `?` and a lowercase name, declared in `< >` straight after the name. `ordered` is a placeholder, and how bounds are spelled isn't decided ([12.5](12-not-decided.md#125-functions)).
 
 A type fits a bound only if it declares that it does, as in `reading is ordered`, which is a placeholder spelling.
 
 **Refused:** a body that uses `?T` in a way its bound doesn't allow, and a type that hasn't declared the bound.
 
-**From:** D23, D85, D87.
+**From:** D23, D85, D87, D234.
 
 ## 5.9 Pure functions
 
