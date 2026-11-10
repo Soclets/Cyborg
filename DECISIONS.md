@@ -1012,6 +1012,8 @@ A `type_set` is a closed list of types that nothing can join later, as in `type_
 
 **D255. Converting units with `as`.** A value changes unit with `as`, as in `$km as f64.length.meters`. A float rounds to the nearest float, like every float operation (D164). An integer converting to a smaller unit, like kilometres to metres, is exact, so plain `as` works. An integer converting to a bigger unit can lose something, since 1500 m is 1.5 km, so it says how with a narrowing, like integer `div` (D48): `as.trunc`, `as.floor`, or `as.exact`, which fails if anything would be lost. A plain `as` there is refused. Points convert with their offset and spans only scale (D249). The full list of narrowings, and conversions between units whose ratio isn't whole, are not settled here. Claude proposed it; the owner asked "Wait, floats don't have to say how to round?", and chose: "yea". (Owner, 2026-11-10)
 
+**D256. The oracle computes maths functions on its own.** The oracle gets correctly rounded results for `std::math::sin` and the rest independently, at very high precision in pure Rust, rounding once at the end, and never uses CORE-MATH or a wrapper of it like the `core-math` crate. That keeps C out of the oracle (rule 1), and keeps the oracle and the compiler from sharing one maths library, whose bugs would then agree (rule 3). The compiler's `std` uses CORE-MATH, which is MIT-licensed, and its answers must match the oracle's bit for bit. Which Rust library or method the oracle uses is its own choice under rule 15. Claude checked CORE-MATH's license and proposed this; the owner chose: "yea". (Owner, 2026-11-10)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude
