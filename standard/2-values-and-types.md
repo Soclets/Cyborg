@@ -282,7 +282,7 @@ end fn draw
 draw(at.screen.pixels: 5);
 ```
 
-**Refused:** mixing units, as in `$a + 5 storage.bytes`, a missing unit, as in `let $b: i32.time.seconds = 3600;`, a bare `3600 seconds` with no `use`, and storing a value whose units don't match the declared unit, as in `let $s: f64.motion.speed = $time div $dist;`.
+**Refused:** a point plus a point, a value with neither `.point` nor `.span` in a family that needs one, mixing units, as in `$a + 5 storage.bytes`, a missing unit, as in `let $b: i32.time.seconds = 3600;`, a bare `3600 seconds` with no `use`, and storing a value whose units don't match the declared unit, as in `let $s: f64.motion.speed = $time div $dist;`.
 
 You define units in a collection. Every unit says what it is: `: base`, or `=` with a conversion, which can point at a unit in any family. Two units convert if they trace back to the same base, and otherwise they don't.
 
@@ -337,9 +337,24 @@ let $t: f64.time.seconds = average($times);
 
 A unit parameter goes only where a unit goes, after a number type. A body can add and compare values of the same `?u`.
 
-A conversion can be an offset, not only a multiple. A moment is kept apart from a length of time. How these are spelled, and how a conversion is written, aren't decided ([12.2](12-not-decided.md#122-types)).
+In a family with an offset, like temperature, and in `std`'s `time`, every value says whether it's a point, a spot on the scale, or a span, the distance between two spots:
 
-**From:** D99, D100, D101, D108, D109, D110, D111, D112, D141, D144, D242, D243, D245.
+```
+fam.unit temperature:
+    temperature.kelvin: base;
+    temperature.celsius = temperature.kelvin offset ~-273.15;
+end fam.unit temperature
+
+use my::temperature.celsius as celsius;
+
+let $now: f64.celsius.point = 20.0 celsius;
+let $rise: f64.celsius.span = 10.0 celsius;
+let $later: f64.celsius.point = $now + $rise;
+```
+
+A point plus a span is a point, a point minus a point is a span, and spans add. Converting a point applies the offset, while converting a span only scales, so a rise of 10 °C is a rise of 10 K. `offset` is a placeholder, and how a conversion is otherwise written isn't decided ([12.2](12-not-decided.md#122-types)).
+
+**From:** D99, D100, D101, D108, D109, D110, D111, D112, D141, D144, D242, D243, D245, D249.
 
 ## 2.17 Getting an item
 
