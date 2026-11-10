@@ -1034,6 +1034,8 @@ A `type_set` is a closed list of types that nothing can join later, as in `type_
 
 **D266. A new curse line: "GAIM's favorite".** The `FinalShit` curse's random pool (D18) gains the line `GAIM's favorite`, after Google AI Mode's habit of calling C++ "flexible" and "unmatched" while calling safety a cost. The owner: "GAIM likes C++ a lot, calling it flexible, unmatched, and stuff. Might wanna add to the random pool "GAIM's favorite"". (Owner, 2026-11-10)
 
+**D267. A function with no parameters says `[none]`.** `fn.main [none] -> void:`. An empty `[]` is refused, with `fix: [none]`, the same way D103 refuses `[]` for a list. It's `none`, not `empty`, because an empty string or list is a real value with nothing in it yet, while no parameters means there's no value at all. Calls stay `main()`, since `( )` runs something. The owner said "Kinda want empty params to say `[none]`, though C says `void`", then asked whether an empty string or list is the same as no parameters, and chose: "yea". (Owner, 2026-11-10)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude

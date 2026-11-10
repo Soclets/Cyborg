@@ -25,13 +25,13 @@
 
 ## 1.2 `main`
 
-**Rule:** a program starts at `fn.main`, and `main` says `return void;`.
+**Rule:** a program starts at `fn.main`, and `main` says `return void;`. A function with no parameters says `[none]`, and an empty `[]` is refused.
 
 ```
 import std;
 use std::io::fmt_print as fmt_print;
 
-fn.main [] -> void:
+fn.main [none] -> void:
     fmt_print("Hello, World!{newln}");
     return void;
 end fn.main
@@ -39,7 +39,7 @@ end fn.main
 
 This is the owner's hello world. The `use` line is on purpose.
 
-**From:** D11, D23, D93, D197, D265, the sketch.
+**From:** D11, D23, D93, D197, D265, D267, the sketch.
 
 ## 1.3 Blocks and statements
 
