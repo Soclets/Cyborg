@@ -976,6 +976,8 @@ A `type_set` is a closed list of types that nothing can join later, as in `type_
 
 **D237. Which operators a type can define.** A type can define arithmetic, `+`, `-`, `x` and the `div` narrowings, and comparisons, but only `==` and `<` are written: `!=`, `>`, `at_least` and `at_most` follow from them, so they can never disagree. Writing one of those four yourself is refused. `and`, `or` and `not` can't be defined, since they stop early (D124) and an overload couldn't keep that promise, and neither can `=`, `?`, `??` and `as`, which are part of the language, not maths. Not settled here: bit operators, unary `-`, `mod`, and a generic operator. Claude proposed it; the owner chose: "yea". (Owner, 2026-11-10)
 
+**D238. An interface's words are decided.** `op`, `includes` and `law`, written inside an `interface` as in D235's example, are decided, along with `<?self>`. D235's note that their spellings were open came from Radium, where they were provisional, and was Claude's mistake, since the owner had chosen the example as shown. Only how a type slot is written stays open. Oracle claude found that read strictly, every interface would be NotDesignedYet; the owner chose: "yes". (Owner, 2026-11-10)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude
