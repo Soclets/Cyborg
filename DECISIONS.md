@@ -945,6 +945,8 @@ a placeholder for a version that isn't correctly rounded. A float prints as the 
 
 **D230. Comments in `CyJet.siml` are `//`.** The same as in Cyborg code (D118), so a project has one comment style, and `#` in a manifest needs no quotes. This replaces `#` in D228. Claude had sketched `#`, after TOML; the owner chose: "`//`". (Owner, 2026-11-10)
 
+**D231. A version is a labelled date and whether it breaks.** A release's version is its date, labelled and biggest first, plus a flag saying whether it breaks anything: `ver 2026y-11m-14d breaks`. The labels mean a day can't be read as a month, and biggest first sorts correctly as plain text, matches ISO dates and follows D223's strongest first. A second release on the same day adds a counter, as in `2026y-11m-14d.2`. The publisher writes the flag, and CyJet checks it against what changed in the `pub` items, refusing a release that changes or removes one but says it doesn't break. A `need` line names a date, as in `need json 2026y-11m-14d`, and CyJet may update it to any later release up to the next one that breaks. The word for "doesn't break" is a placeholder, `same`. This replaces the placeholder `0.1.0` in D228. Claude proposed semantic versioning; the owner asked "Maybe `[date, break or not]`?" and "`ver 14d-11m-2026y breaks`?"; Claude proposed biggest first; the owner chose: "yea". (Owner, 2026-11-10)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude

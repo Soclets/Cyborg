@@ -37,19 +37,19 @@ The manifest, `CyJet.siml`, has one line per fact:
 
 ```
 name weather
-ver 0.1.0
-okay 0.4.0
+ver 2026y-11m-14d same
+okay 2026y-11m-01d
 
-need std 0.4.0
-need json 1.2.0
-need csup 0.1.0 with headers
+need std 2026y-11m-01d
+need json 2026y-10m-20d
+need csup 2026y-09m-30d with headers
 ```
 
-`name` and `ver` are the project's own. How a version number is written isn't decided, so `0.1.0` is a placeholder. `okay` is the compiler version it needs. Each package it uses has a `need` line with its version, and `with` adds features. A value is quoted only when it needs to be, and `//` starts a comment, as in Cyborg code.
+`name` and `ver` are the project's own. A version is a labelled date, biggest first, and a release says whether it `breaks` anything or stays the `same`, a placeholder word. CyJet checks that flag against what changed in the `pub` items. A `need` line names a date, and CyJet may update it to any later release up to the next one that breaks. A second release on one day adds a counter, as in `2026y-11m-14d.2`. `okay` is the compiler version it needs. Each package it uses has a `need` line with its version, and `with` adds features. A value is quoted only when it needs to be, and `//` starts a comment, as in Cyborg code.
 
-**Refused:** a line like Go's `package main`, and a `need` line with no version.
+**Refused:** a line like Go's `package main`, a `need` line with no version, and a release that changes or removes a `pub` item while saying it doesn't break.
 
-**From:** D22, D28, D36, D56, D186, D189, D190, D228, D229, D230.
+**From:** D22, D28, D36, D56, D186, D189, D190, D228, D229, D230, D231.
 
 ## 9.2 `@`: a limb
 
