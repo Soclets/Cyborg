@@ -85,7 +85,7 @@ on.target aarch64:
         inline.asm:
             reads: [x0 = $a, x1 = $b, x2 = $c];
             writes: [x0 => $r];
-            clobbers: [];
+            clobbers: [none];
             madd x0, x0, x1, x2
         end inline.asm
     end shield mul_add
@@ -97,13 +97,14 @@ end on.target
 - **`reads:`** puts values into registers before it runs.
 - **`writes:`** takes registers into variables after, declaring them as a `let` would.
 - **`clobbers:`** lists every other register the code changes.
+- **An empty list** in any of the three is `[none]`, as in `clobbers: [none];`.
 - **`on.target`** compiles a branch only when building for that chip, with `else:` for the rest.
 
 The compiler reads the text through LLVM and refuses any register the code writes that isn't in `writes:` or `clobbers:`. A value narrower than its register needs an `as`.
 
 **Refused:** an `inline.asm` block outside an `on.target` choice or outside a shield, a register written but not declared, a narrow value with no `as`, `@std::inline.asm`, with `fix: inline.asm`, `inline.llvm::ir`, with no `@`, and any `use` of an `inline.…`, since `use` doesn't work on the base language.
 
-**From:** D28, D35, D36, D38, D227, D232, D233, and CyborgPL's `on.target`.
+**From:** D28, D35, D36, D38, D227, D232, D233, D269, and CyborgPL's `on.target`.
 
 ## 9.5 C support: `@csup`
 

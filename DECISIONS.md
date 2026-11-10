@@ -1038,6 +1038,8 @@ A `type_set` is a closed list of types that nothing can join later, as in `type_
 
 **D268. `--FeelLucky` picks a build mode at random.** A nod to Google's "I'm Feeling Lucky": `okay comp --FeelLucky` builds in one of the five modes, `FinalShit` included, chosen at random. It always prints which mode it picked first, as in `feeling lucky: FinalShit`, followed by the curse if that's what came up. It counts as choosing a mode, so D26's "no default build mode" still holds. In a language that prioritizes reproducibility, a flag that makes every build different is the joke. The owner said "`--FeelLucky` is a Google nod, it randomizes the build mode"; Claude proposed the details; the owner chose: "yes". (Owner, 2026-11-10)
 
+**D269. An empty declaration list says `[none]`.** Every bracket list in a declaration that lists nothing says `[none]`, the same as a function with no parameters (D267): an assembly block that clobbers nothing says `clobbers: [none];`, and the same goes for `reads:` and `writes:`. These describe what something takes or touches, rather than being values in memory, so `empty` stays for real values, like lists and strings (D103). A bare `[]` there is refused, with `fix: [none]`. Claude found D233's `clobbers: [];`; Claude recommended `[none]`; the owner chose: "yes". (Owner, 2026-11-10)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude
