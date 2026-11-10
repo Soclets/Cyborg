@@ -14,7 +14,7 @@
 | [9.10](#910-precog) | Precog | Proving things |
 | [9.11](#911-the-linter) | The linter | Part of the compiler |
 | [9.12](#912-pub) | `pub` | Seen outside its package |
-| [9.13](#913-a-files-rules-config) | `@config` | The rules a file is held to |
+| [9.13](#913-rules-rule) | `rule` | The rules code is held to, in the manifest |
 
 Bare `@`, with no `::`, is a compiler builtin instead ([5.7](5-functions.md#57-builtins-)).
 
@@ -184,7 +184,7 @@ With its rule on, the limb also picks the type for `:=` ([2.20](2-values-and-typ
 
 ## 9.11 The linter
 
-**Rule:** the linter is part of the compiler, not a limb, and its rules are set with a file's rules ([9.13](#913-a-files-rules-config)). A limb can add rules of its own, named by its path, as in `@house_style::fn::name_length`. It can force comments, and can show the hidden checks in [2.5](2-values-and-types.md#25-bounded-integers). Linter strictness is separate from the build mode. Definite mistakes stay compiler errors. It can require handling failures that otherwise crash by default ([8.9](8-failures.md#89-crash-by-default)).
+**Rule:** the linter is part of the compiler, not a limb, and its rules are set with `rule` lines in the manifest ([9.13](#913-rules-rule)). A limb can add rules of its own, named by its path, as in `@house_style::fn::name_length`. It can force comments, and can show the hidden checks in [2.5](2-values-and-types.md#25-bounded-integers). Linter strictness is separate from the build mode. Definite mistakes stay compiler errors. It can require handling failures that otherwise crash by default ([8.9](8-failures.md#89-crash-by-default)).
 
 **From:** D14, D21, D30, D96, D201, D202.
 
@@ -205,24 +205,25 @@ pub const $max: i32 = 100;
 
 **From:** D186, D200.
 
-## 9.13 A file's rules: `@config`
+## 9.13 Rules: `rule`
 
-**Rule:** every file's first line of code is `@config(…);`, with only comments allowed above it, which sets its first rules, or `@match_config(that file);`, which copies another file's. The compiler's defaults are `@config(default);`, since there's no unsaid default. Any `@tighten_config(…);`, which only makes rules stricter, or `@loosen_config(…);`, which only makes them looser, comes straight after it, before any `import` or `use`.
+**Rule:** the rules the compiler and its linter hold code to are `rule` lines in `CyJet.siml`. They apply to every file in the project, and with no `rule` lines, the compiler's defaults apply. An exception for one file names the file:
 
 ```
-@config(default);
-@tighten_config(var::mut::never_changed = refuse);
+name weather
+ver 2026y-11m-14d same
+okay 2026y-11m-01d
 
-fn.main [] -> void:
-    let mut $x: i32 = 1000;
-    return void;
-end fn.main
+need std 2026y-11m-01d
+
+rule var.mut.never_changed refuse
+rule var.mut.never_changed allow in drivers/raw.cy
 ```
 
-The `let mut` is refused, since `$x` never changes. The spelling of a rule is a sketch.
+So a `let mut` that never changes is refused everywhere except `drivers/raw.cy`. Every exception is listed in the manifest. `rule`, `refuse`, `allow` and `in` are placeholders, and how a rule's name is spelled isn't decided.
 
-A search for `@loosen_config` finds every file that weakens its rules. The manifest only handles packages.
+Code has no rules lines of its own.
 
-**Refused:** a file with neither `@config` nor `@match_config`, either one anywhere but the first line, a tighten or loosen line after anything else, both in one file, loosening with `@tighten_config` or tightening with `@loosen_config`, a cycle of `@match_config`, and a matched file that's missing.
+**Refused:** `@config`, `@match_config`, `@tighten_config` and `@loosen_config`.
 
-**From:** D30, D56, D201, D204, D205.
+**From:** D30, D56, D201, D202, D204, D265.

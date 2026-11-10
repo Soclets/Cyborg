@@ -471,14 +471,14 @@ It isn't uninitialized memory, since nothing can read it empty, so it needs no s
 
 ## 2.20 `:=`: inference, or Precog's pick
 
-**Rule:** `:=` leaves the type out, and a written type uses `=`. Without the Precog limb, or with its rule off, the variable gets exactly the type of the right side. With `import @precog;` and its rule on in the file's rules, Precog picks the narrowest plain width that holds every value the variable ever holds.
+**Rule:** `:=` leaves the type out, and a written type uses `=`. Without the Precog limb, or with its rule off, the variable gets exactly the type of the right side. With `import @precog;` and its rule on in the manifest, Precog picks the narrowest plain width that holds every value the variable ever holds.
 
 ```
 let $total: i32 = 0;
 let $next := $total + 1;
 ```
 
-`$next` is an `i32`, the type of `$total + 1`. Importing the limb alone never changes this. Only the rules line does.
+`$next` is an `i32`, the type of `$total + 1`. Importing the limb alone never changes this. Only a `rule` line in the manifest does.
 
 In Precog's mode, a bound it can't prove is a compile error, with no wide fallback, so you write the type there. The same program and target always get the same pick, and the build report lists each one.
 

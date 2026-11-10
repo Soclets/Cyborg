@@ -28,7 +28,6 @@
 **Rule:** a program starts at `fn.main`, and `main` says `return void;`.
 
 ```
-@config(default);
 import std;
 use std::io::fmt_print as fmt_print;
 
@@ -40,7 +39,7 @@ end fn.main
 
 This is the owner's hello world. The `use` line is on purpose.
 
-**From:** D11, D23, D93, D197, D201, D204, the sketch.
+**From:** D11, D23, D93, D197, D265, the sketch.
 
 ## 1.3 Blocks and statements
 
@@ -221,7 +220,7 @@ Units keep the matching name, as in `use std::units::time.seconds as seconds;`.
 
 ## 1.12 Comments
 
-**Rule:** comments can go anywhere, including before a file's rules line. `//` is a line comment, a note for whoever reads the code, and it can trail code on the same line, as in `let $x: i32 = 1; // a note`. `///` is a doc comment, attached to what's below it, which tools can show and build documentation from.
+**Rule:** comments can go anywhere. `//` is a line comment, a note for whoever reads the code, and it can trail code on the same line, as in `let $x: i32 = 1; // a note`. `///` is a doc comment, attached to what's below it, which tools can show and build documentation from.
 
 ```
 /// Adds up every item in the list.

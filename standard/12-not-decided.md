@@ -70,7 +70,7 @@ Waiting on the owner, most needed first. Each is `NotDesignedYet` unless it says
 - On floats: whether `div.trunc` and the other integer narrowings work, and what `mod` does.
 - Negative exponents, as in `exponent ~1.5e-3`, and exponents on integers.
 - Which groups `std` has (D196), besides `io` and `math`.
-- A file's rules (D201): how a rule is spelled, and the list of rules.
+- Rules (D265): how a rule's name is spelled, the words `rule`, `refuse`, `allow` and `in`, and the list of rules.
 - Whether lint rules are proven with Verus under rule 13 (D202).
 - `pub` (D200): whether a closer repeats it, and finer levels like Rust's `pub(crate)`.
 - Importing one thing (D198): alongside `import std;`, and with `@` or `pkg`.
