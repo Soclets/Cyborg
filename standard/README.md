@@ -81,4 +81,4 @@ What Cyborg does now, in one place. The oracle, the compiler and check claude fo
 | `all` | [2.11](2-values-and-types.md#211-arrays) | | `pos:`, `offset:` | [2.17](2-values-and-types.md#217-getting-an-item) |
 | precedence | [3.9](3-operators.md#39-grouping-and-precedence) | | `//`, `///`, `comment` | [1.12](1-programs.md#112-comments) |
 | `type.alias`, `type.new` | [2.18](2-values-and-types.md#218-naming-a-type) | | | |
-| `together` | [2.16](2-values-and-types.md#216-units) | | `fam.unit` | [2.16](2-values-and-types.md#216-units) |
+| `per` | [2.16](2-values-and-types.md#216-units) | | `fam.unit` | [2.16](2-values-and-types.md#216-units) |

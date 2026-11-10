@@ -282,7 +282,7 @@ end fn draw
 draw(at.screen.pixels: 5);
 ```
 
-**Refused:** mixing units, as in `$a + 5 storage.bytes`, a missing unit, as in `let $b: i32.time.seconds = 3600;`, a bare `3600 seconds` with no `use`, and unit maths with no `together` line.
+**Refused:** mixing units, as in `$a + 5 storage.bytes`, a missing unit, as in `let $b: i32.time.seconds = 3600;`, a bare `3600 seconds` with no `use`, and storing a value whose units don't match the declared unit, as in `let $s: f64.motion.speed = $time div $dist;`.
 
 You define units in a collection. Every unit says what it is: `: base`, or `=` with a conversion, which can point at a unit in any family. Two units convert if they trace back to the same base, and otherwise they don't.
 
@@ -300,15 +300,22 @@ A family is only a group of related names that a generic can ask for. A unit fro
 
 **Refused:** a unit that says neither `base` nor `=`, a loop of `=` lines, and converting between units with different bases.
 
-Multiplying or dividing two units only works where a `together` line declares it, and the line names the result. The spelling is a placeholder.
+A unit made of others is declared once, with `per` and `x`, which describe what it's made of rather than calculate anything. The compiler tracks every unit as powers of its bases, so maths can make any combination, but storing a value needs a declared unit whose powers match.
 
 ```
-together length.meters / time.seconds = speed.meters_per_second;
+fam.unit motion:
+    motion.speed = length.meters per time.seconds;
+    motion.accel = motion.speed per time.seconds;
+    motion.area = length.meters x length.meters;
+end fam.unit motion
+
+let $speed: f64.motion.speed = $dist div $time;
+let $accel: f64.motion.accel = $speed div $time;
 ```
 
 A conversion can be an offset, not only a multiple. A moment is kept apart from a length of time. How these are spelled, and how a conversion is written, aren't decided ([12.2](12-not-decided.md#122-types)).
 
-**From:** D99, D100, D101, D108, D109, D110, D111, D112, D141, D144.
+**From:** D99, D100, D101, D108, D109, D110, D111, D112, D141, D144, D242.
 
 ## 2.17 Getting an item
 
