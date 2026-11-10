@@ -1483,6 +1483,9 @@ impl Checker<'_> {
         // Only the call itself may hand back a borrow, and not one nested inside it.
         let borrow_wanted = std::mem::take(&mut self.context.borrow_result_wanted);
         let text = self.canonical(&path.text);
+        if let Some(report) = self.inline_call(&text, path.span) {
+            return Err(report);
+        }
         self.refuse_limb_outside_shield(&text, path.span)?;
         if let Some(rest) = text.strip_prefix("std::") {
             self.require_std(rest, path.span)?;
@@ -3583,4 +3586,67 @@ fn statements_jump(statements: &[crate::ast::Statement], loops: &[Option<&str>])
         }
         _ => false,
     })
+}
+
+/// What's wrong with how an `inline` path is written, if anything, and its fix. Inline assembly
+/// is base, as `inline.asm`, and a limb's language is `inline.@limb::lang`. (D227)
+/// trace: D227
+pub(super) fn inline_spelling(text: &str, span: Span) -> Option<Box<Report>> {
+    const WHY: &str = "inline code is `inline.asm`, in the base language, or a limb's own language as `inline.@limb::lang` (D227)";
+    if text == "@std::inline.asm" {
+        return Some(
+            Report::refused(span, "inline assembly is in the base language", WHY).fix("inline.asm"),
+        );
+    }
+    let language = text.strip_prefix("inline.")?;
+    if language == "asm" || language.starts_with('@') {
+        return None;
+    }
+    if language.contains("::") {
+        return Some(
+            Report::refused(span, "a limb's inline language says its limb with `@`", WHY)
+                .fix(format!("inline.@{language}")),
+        );
+    }
+    Some(Report::refused(
+        span,
+        format!("`{text}` isn't an inline language"),
+        WHY,
+    ))
+}
+
+impl Checker<'_> {
+    /// An `inline` call: spelled right, inside a shield, and then not designed, since how the
+    /// code inside is written isn't. (D227, D38)
+    /// trace: D227, D38
+    fn inline_call(&self, text: &str, span: Span) -> Option<Box<Report>> {
+        if let Some(report) = inline_spelling(text, span) {
+            return Some(report);
+        }
+        if text != "inline.asm" && !text.starts_with("inline.@") {
+            return None;
+        }
+        if self.context.in_shield == 0 {
+            return Some(Report::refused(
+                span,
+                format!("`{text}` must be inside a shield"),
+                "a shield is the only place dangerous code may live (D34, D38, D227)",
+            ));
+        }
+        Some(match text.strip_prefix("inline.@") {
+            Some(language) => Report::not_designed(
+                span,
+                format!(
+                    "how the limb `@{}` is found",
+                    language.split("::").next().unwrap_or(language)
+                ),
+                "12.9",
+            ),
+            None => Report::not_designed(
+                span,
+                "how the code inside an `inline` block is written",
+                "12.5",
+            ),
+        })
+    }
 }

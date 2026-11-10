@@ -1,0 +1,5 @@
+NotDesignedYet: d227_use_inline_asm.cy:10:9, line 10 column 9
+10 |         asm();
+   |         ^^^
+ what: how the code inside an `inline` block is written
+ why:  not decided yet (standard 12.5)

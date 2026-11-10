@@ -546,11 +546,32 @@ impl Checker<'_> {
         Ok(())
     }
 
+    /// A `use` of inline code: spelled right, and a limb's language waits on how limbs are
+    /// found. (D227)
+    /// trace: D227
+    fn refuse_inline_use(declared: &crate::ast::Use) -> Outcome<()> {
+        if let Some(report) = expression::inline_spelling(&declared.path.text, declared.path.span) {
+            return Err(report);
+        }
+        if let Some(language) = declared.path.text.strip_prefix("inline.@") {
+            return Err(Report::not_designed(
+                declared.path.span,
+                format!(
+                    "how the limb `@{}` is found",
+                    language.split("::").next().unwrap_or(language)
+                ),
+                "12.9",
+            ));
+        }
+        Ok(())
+    }
+
     fn read_imports(&mut self, program: &Program) -> Outcome<()> {
         for import in &program.imports {
             self.read_import(import)?;
         }
         for declared in &program.uses {
+            Self::refuse_inline_use(declared)?;
             // A limb works the same way, and a file still has to import it.
             // trace: D155, D82
             if let Some(rest) = declared.path.text.strip_prefix('@') {

@@ -1694,6 +1694,20 @@ impl Parser {
             } else {
                 break;
             };
+            // `inline.@llvm::ir`: a limb's inline language, the one place a path sits inside a
+            // narrowing. (D227)
+            // trace: D227
+            if text == "inline" && separator == "." && self.symbol_at(1, "@") {
+                let Lexeme::Word(limb) = self.peek_at(2).lexeme.clone() else {
+                    break;
+                };
+                self.advance();
+                self.advance();
+                end = self.advance().span;
+                text.push_str(".@");
+                text.push_str(&limb);
+                continue;
+            }
             let Lexeme::Word(next) = self.peek_at(1).lexeme.clone() else {
                 break;
             };
