@@ -1,0 +1,5 @@
+refused: d235_satisfies_a_type_set.cy:19:14, line 19 column 14
+19 | u8 satisfies whole;
+   |              ^^^^^
+ what: `whole` is a type set, which nothing joins later
+ why:  a type set is a closed list of types, and only an interface is satisfied (D235)

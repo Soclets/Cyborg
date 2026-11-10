@@ -1,4 +1,5 @@
-// trace: D87
+// A type fits an interface with `satisfies`, not `is`.
+// trace: D87, D235
 @config(default);
 
 struct reading:

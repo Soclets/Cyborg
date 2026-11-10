@@ -1,0 +1,5 @@
+refused: d239_no_requirement.cy:5:13, line 5 column 13
+ 5 | struct pair<?left, ?right: any>:
+   |             ^^^^^
+ fix:  `?left: any`
+ why:  every type parameter writes what it needs, `any` when it needs nothing (D239)

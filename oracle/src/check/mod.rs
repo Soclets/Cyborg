@@ -3,6 +3,7 @@
 
 mod body;
 mod expression;
+mod generics;
 mod hand;
 mod operators;
 
@@ -23,6 +24,8 @@ type SourceList = (Vec<String>, Vec<(String, String)>);
 #[derive(Clone, Debug)]
 struct StructInfo {
     must_give: bool,
+    /// A generic struct's type parameters, each with what it needs. (D234)
+    type_parameters: Vec<(String, Vec<String>)>,
     fields: Vec<(String, Type)>,
     /// Its sources in backticks, and which lasts at least as long as which. (D171)
     sources: Vec<String>,
@@ -72,6 +75,8 @@ struct Signature {
     index: usize,
     name: String,
     kind: FunctionKind,
+    /// A generic's type parameters, each with what it needs. (D234, D235)
+    type_parameters: Vec<(String, Vec<String>)>,
     parameters: Vec<ParameterInfo>,
     any_order: bool,
     return_type: Type,
@@ -248,6 +253,8 @@ struct FunctionContext {
     unknown: HashSet<String>,
     /// Whether a skipped statement was one that leaves, like `return`. (D215)
     skipped_exit: bool,
+    /// The type a call.s result goes into, which can fill a generic.s type parameter. (D241)
+    call_expected: Option<Type>,
 }
 
 /// What a returned borrow borrows at the call: the original values, and the names it went
@@ -291,6 +298,7 @@ impl FunctionContext {
             skipped: HashSet::new(),
             unknown: HashSet::new(),
             skipped_exit: false,
+            call_expected: None,
         }
     }
 }
@@ -320,6 +328,14 @@ pub struct Checker<'a> {
     global_nodes: Vec<Node>,
     compile_time: Vec<Node>,
     context: FunctionContext,
+    /// The type parameters in scope, with what each needs, while a generic is read. (D234)
+    generic: Vec<(String, Vec<String>)>,
+    /// A generic struct's instances, like `pair<i32, str>`, made as types name them. (D234)
+    instances: std::cell::RefCell<HashMap<String, StructInfo>>,
+    /// Interfaces, type sets, and which types satisfy which interface. (D235)
+    interfaces: HashMap<String, generics::InterfaceInfo>,
+    type_sets: HashMap<String, Vec<Type>>,
+    satisfied: Vec<(Type, String)>,
     /// Each type's own operators: which, for which types, and the function that does it. (D236)
     operators: Vec<OperatorInfo>,
     /// Every error found so far, since checking carries on past one. (D207, D215)
@@ -365,6 +381,11 @@ pub fn check(
         global_nodes: Vec::new(),
         compile_time: Vec::new(),
         context: FunctionContext::outside_any_function(),
+        generic: Vec::new(),
+        instances: std::cell::RefCell::new(HashMap::new()),
+        interfaces: HashMap::new(),
+        type_sets: HashMap::new(),
+        satisfied: Vec::new(),
         operators: Vec::new(),
         errors: Vec::new(),
         stopped: false,
@@ -418,11 +439,13 @@ impl Checker<'_> {
         self.declare_type_names(&items)?;
         self.declare_units(&items)?;
         self.declare_named_types(&items)?;
+        self.declare_requirements(&items)?;
         self.declare_type_contents(&items)?;
         self.declare_failures(&items)?;
         self.declare_handlers(&items);
         let functions = Self::functions_of(&items);
         self.declare_signatures(&functions)?;
+        self.declare_satisfies(&items)?;
         self.refuse_short_names_that_clash(program)?;
         self.check_globals(&items)?;
 
@@ -810,13 +833,20 @@ impl Checker<'_> {
         Self::check_borrow_claim(&claim, parameters, span)
     }
 
+    /// A struct's declaration, or a generic struct's instance, like `pair<i32, str>`. (D234)
+    fn struct_info(&self, name: &str) -> Option<StructInfo> {
+        self.structs
+            .get(name)
+            .cloned()
+            .or_else(|| self.instances.borrow().get(name).cloned())
+    }
+
     /// The sources a struct or union declares, by its name.
     pub(super) fn sources_of(&self, base: &Type) -> (Vec<String>, Vec<(String, String)>) {
         match base {
             Type::Struct(name) => self
-                .structs
-                .get(name)
-                .map(|info| (info.sources.clone(), info.facts.clone()))
+                .struct_info(name)
+                .map(|info| (info.sources, info.facts))
                 .unwrap_or_default(),
             Type::Union(name) => self
                 .unions
@@ -1024,6 +1054,7 @@ impl Checker<'_> {
                         name.text.clone(),
                         StructInfo {
                             must_give: declaration.must_give,
+                            type_parameters: Vec::new(),
                             fields: Vec::new(),
                             sources,
                             facts,
@@ -1173,6 +1204,10 @@ impl Checker<'_> {
                     let (sources, _) =
                         self.sources_of(&Type::Struct(declaration.name.text.clone()));
                     self.allowed_sources.borrow_mut().clone_from(&sources);
+                    // trace: D234, D239
+                    let type_parameters =
+                        self.read_type_parameters(&declaration.type_parameters)?;
+                    self.generic.clone_from(&type_parameters);
                     let mut fields: Vec<(String, Type)> = Vec::new();
                     for field in &declaration.fields {
                         // trace: D57
@@ -1186,7 +1221,14 @@ impl Checker<'_> {
                                 "a field read is a plain `.`, so a field's name says which (D57)",
                             ));
                         }
-                        let field_type = self.resolve_type(&field.written_type)?;
+                        let field_type = self.resolve_type(&field.written_type);
+                        let field_type = match field_type {
+                            Ok(found) => found,
+                            Err(report) => {
+                                self.generic.clear();
+                                return Err(report);
+                            }
+                        };
                         // A struct holding a `must_Give` value is one too, and says so.
                         // trace: D177, D3
                         if self.is_must_give(&field_type) {
@@ -1210,8 +1252,10 @@ impl Checker<'_> {
                     self.allowed_sources.borrow_mut().clear();
                     let types: Vec<&Type> = fields.iter().map(|(_, found)| found).collect();
                     Self::refuse_unused_sources(&sources, &types, &declaration.sources)?;
+                    self.generic.clear();
                     if let Some(info) = self.structs.get_mut(&declaration.name.text) {
                         info.fields = fields;
+                        info.type_parameters = type_parameters;
                     }
                 }
                 Item::Union(declaration) => {
@@ -1331,7 +1375,7 @@ impl Checker<'_> {
         let mut stack = vec![declaration.name.text.clone()];
         let mut seen = HashSet::new();
         while let Some(name) = stack.pop() {
-            let Some(info) = self.structs.get(&name) else {
+            let Some(info) = self.struct_info(&name) else {
                 continue;
             };
             for (_, field_type) in &info.fields {
@@ -1480,6 +1524,9 @@ impl Checker<'_> {
                     "",
                 ));
             }
+            // trace: D234
+            let type_parameters = self.read_type_parameters(&function.type_parameters)?;
+            self.generic.clone_from(&type_parameters);
             // trace: D171
             let (function_sources, function_facts) =
                 Self::read_source_declarations(&function.sources)?;
@@ -1505,7 +1552,7 @@ impl Checker<'_> {
                 if let Type::Borrow { mutable, .. } = &parameter_type {
                     let inner_text = match &parameter.written_type.kind {
                         TypeKind::StoredBorrow { inner, .. } => self.text_of(inner.span),
-                        TypeKind::Named { .. } => "",
+                        TypeKind::Named { .. } | TypeKind::Parameter(_) => "",
                     };
                     let fix = if *mutable {
                         format!("Lent.mut {inner_text}")
@@ -1648,12 +1695,14 @@ impl Checker<'_> {
             if let Some(operator) = &function.operator {
                 self.declare_operator(function, operator, &parameters, &return_type)?;
             }
+            self.generic.clear();
             self.signatures.insert(
                 function.name.text.clone(),
                 Signature {
                     index,
                     name: function.name.text.clone(),
                     kind: function.kind,
+                    type_parameters,
                     parameters,
                     any_order,
                     return_type,
@@ -1910,7 +1959,7 @@ impl Checker<'_> {
 
     fn is_must_give(&self, value_type: &Type) -> bool {
         match value_type {
-            Type::Struct(name) => self.structs.get(name).is_some_and(|info| info.must_give),
+            Type::Struct(name) => self.struct_info(name).is_some_and(|info| info.must_give),
             Type::Holding { base, .. } => self.is_must_give(base),
             Type::List { item, .. } | Type::Array { item, .. } => self.is_must_give(item),
             Type::New { underlying, .. } => self.is_must_give(underlying),
@@ -2078,6 +2127,7 @@ impl Checker<'_> {
                 }
             }
             TypeKind::StoredBorrow { inner, .. } => self.collect_type_names(inner, out),
+            TypeKind::Parameter(_) => {}
         }
     }
 
@@ -2189,6 +2239,17 @@ impl Checker<'_> {
     #[allow(clippy::too_many_lines)] // One arm per way a type can be spelled.
     fn resolve_plain_type(&self, written: &TypeExpression) -> Outcome<Type> {
         let (path, fill, describe) = match &written.kind {
+            // trace: D234
+            TypeKind::Parameter(name) => {
+                if self.generic.iter().any(|(found, _)| *found == name.text) {
+                    return Ok(Type::Parameter(name.text.clone()));
+                }
+                return Err(Report::refused(
+                    name.span,
+                    format!("`?{}` isn't a type parameter here", name.text),
+                    "a type parameter is declared in `< >` straight after its function's or struct's name (D234)",
+                ));
+            }
             TypeKind::StoredBorrow {
                 mutable,
                 held,
@@ -2371,6 +2432,21 @@ impl Checker<'_> {
             _ => {}
         }
         if narrowing.is_none() {
+            // trace: D234
+            if self
+                .structs
+                .get(head)
+                .is_some_and(|info| !info.type_parameters.is_empty())
+            {
+                if !describe.is_empty() {
+                    return Err(Report::not_designed(
+                        written.span,
+                        format!("describing `{head}`, a generic struct"),
+                        "",
+                    ));
+                }
+                return self.struct_instance(head, fill, written.span);
+            }
             if let Some(found) = self.resolve_user_type(head) {
                 if !fill.is_empty() || !describe.is_empty() {
                     return Err(Report::not_designed(

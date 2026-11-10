@@ -1,0 +1,5 @@
+refused: d234_uppercase.cy:19:10, line 19 column 10
+19 | fn first<?T: any> [$a: Given ?T] -> ?T:
+   |          ^^
+ fix:  `?t`
+ why:  a type parameter is `?` and a lowercase name, declared in `< >` straight after the name (D234)

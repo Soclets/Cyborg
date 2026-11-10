@@ -57,6 +57,51 @@ pub enum Item {
     Shield(ShieldItem),
     TypeName(TypeName),
     TypeFamily(Vec<TypeName>),
+    Interface(InterfaceDeclaration),
+    TypeSet(TypeSetDeclaration),
+    Satisfies(Satisfies),
+}
+
+/// `?item: whole and ordered`: a type parameter, and every part of what it needs, which is
+/// `any` when it needs nothing. (D234, D235, D239)
+#[derive(Clone, Debug)]
+pub struct TypeParameter {
+    pub name: Name,
+    pub requirement: Vec<Path>,
+}
+
+/// `interface ordered<?self>:` with its `includes`, `op` and `law` lines. (D235, D238)
+#[derive(Clone, Debug)]
+pub struct InterfaceDeclaration {
+    pub name: Name,
+    /// The `?self` its lines are written in terms of.
+    pub own: Name,
+    pub includes: Vec<Name>,
+    pub operators: Vec<InterfaceOperator>,
+}
+
+/// `op < [$a: ?self, $b: ?self] -> bool;`, an operation a type must have. (D235, D238)
+#[derive(Clone, Debug)]
+pub struct InterfaceOperator {
+    pub operator: String,
+    pub span: Span,
+    pub parameters: Vec<Parameter>,
+    pub return_type: TypeExpression,
+}
+
+/// `type_set whole:` and the types it allows, which nothing joins later. (D235)
+#[derive(Clone, Debug)]
+pub struct TypeSetDeclaration {
+    pub name: Name,
+    pub members: Vec<TypeExpression>,
+}
+
+/// `reading satisfies ordered;`, or `reading .|. ordered;`, which means the same. (D235)
+#[derive(Clone, Debug)]
+pub struct Satisfies {
+    pub span: Span,
+    pub written_type: TypeExpression,
+    pub interface: Name,
 }
 
 /// `type.alias score = i32;`, or `type.new user_id = i64;` when `new` is true.
@@ -146,6 +191,8 @@ pub struct Function {
     /// parameters' types, as in `op < [reading, reading]`. (D236)
     pub operator: Option<String>,
     pub name: Name,
+    /// `fn largest<?item: ordered>`. (D234)
+    pub type_parameters: Vec<TypeParameter>,
     pub span: Span,
     pub parameters: Vec<Parameter>,
     pub return_type: TypeExpression,
@@ -172,6 +219,8 @@ pub struct FieldDeclaration {
 pub struct StructDeclaration {
     pub must_give: bool,
     pub name: Name,
+    /// `struct pair<?left: any, ?right: any>:`. (D234)
+    pub type_parameters: Vec<TypeParameter>,
     pub sources: Vec<SourceDeclaration>,
     pub fields: Vec<FieldDeclaration>,
 }
@@ -261,6 +310,8 @@ pub struct TypeExpression {
 
 #[derive(Clone, Debug)]
 pub enum TypeKind {
+    /// `?item`, a type parameter. (D234)
+    Parameter(Name),
     Named {
         path: Path,
         fill: Vec<Fill>,

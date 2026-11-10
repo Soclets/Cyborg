@@ -430,9 +430,8 @@ impl Checker<'_> {
             }
             Type::Struct(struct_name) => {
                 let fields = self
-                    .structs
-                    .get(struct_name)
-                    .map(|info| info.fields.as_slice())
+                    .struct_info(struct_name)
+                    .map(|info| info.fields)
                     .unwrap_or_default();
                 fields
                     .iter()

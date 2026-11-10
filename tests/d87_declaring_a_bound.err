@@ -1,5 +1,5 @@
-NotDesignedYet: d87_declaring_a_bound.cy:8:1, line 8 column 1
- 8 | reading is ordered;
-   | ^^^^^^^
- what: declaring that a type fits a bound
- why:  not decided yet (standard 12.5)
+refused: d87_declaring_a_bound.cy:9:9, line 9 column 9
+ 9 | reading is ordered;
+   |         ^^
+ fix:  `satisfies`
+ why:  a type fits an interface only through a `satisfies` line (D235, D87)

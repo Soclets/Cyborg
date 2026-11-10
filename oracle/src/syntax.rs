@@ -6,11 +6,13 @@ use crate::ast::{Align, Assembly, Base, FormatPiece, Hole, Shapes, WidthUnit};
 use crate::ast::{
     Argument, Arm, BinaryOperator, BorrowSources, CompareOperator, Contract, Describe, Expression,
     ExpressionKind, FailureEntry, FailureSet, FieldDeclaration, FieldValue, Fill, ForSource,
-    Function, FunctionKind, HandWord, Handler, HandlerSet, Handling, IfLink, IfTest, Import, Item,
-    LabelLine, LastsAtLeast, Name, Narrowing, Parameter, ParameterWord, Path, Program, RangeEnd,
-    RangeExpression, ShieldContent, ShieldItem, SourceDeclaration, SourceFill, SourceValue,
-    Statement, StatementKind, StructDeclaration, Together, TogetherOperator, TypeExpression,
-    TypeKind, TypeName, UnionCase, UnionDeclaration, UnitMeaning, UnitMember, UnitSet, Use,
+    Function, FunctionKind, HandWord, Handler, HandlerSet, Handling, IfLink, IfTest, Import,
+    InterfaceDeclaration, InterfaceOperator, Item, LabelLine, LastsAtLeast, Name, Narrowing,
+    Parameter, ParameterWord, Path, Program, RangeEnd, RangeExpression, Satisfies, ShieldContent,
+    ShieldItem, SourceDeclaration, SourceFill, SourceValue, Statement, StatementKind,
+    StructDeclaration, Together, TogetherOperator, TypeExpression, TypeKind, TypeName,
+    TypeParameter, TypeSetDeclaration, UnionCase, UnionDeclaration, UnitMeaning, UnitMember,
+    UnitSet, Use,
 };
 use crate::report::{Kind, Outcome, Report, ReportExtra, Span};
 
@@ -576,8 +578,8 @@ struct Token {
 
 /// Longest first, so `??` isn't read as two `?`.
 const SYMBOLS: &[&str] = &[
-    "::", "->", "==", "!=", "??", "<=", ">=", ":=", "=>", "//", ".", ":", ";", ",", "(", ")", "[",
-    "]", "<", ">", "=", "+", "-", "~", "?", "%", "@", "*", "/",
+    ".|.", "::", "->", "==", "!=", "??", "<=", ">=", ":=", "=>", "//", ".", ":", ";", ",", "(",
+    ")", "[", "]", "<", ">", "=", "+", "-", "~", "?", "%", "@", "*", "/",
 ];
 
 fn is_word_start(character: char) -> bool {
@@ -1176,7 +1178,8 @@ impl Parser {
             "." | "::" => self.check_gaps(index, index, touching, touching, SPACING_JOINS),
             "@" | "%" => self.check_gaps(index, index, None, touching, SPACING_JOINS),
             "(" | "[" | "~" => self.check_gaps(index, index, None, touching, SPACING_MARKS),
-            ")" | "]" | "?" => self.check_gaps(index, index, touching, None, SPACING_MARKS),
+            // A postfix `?` is checked where it's read, since `?item` starts with one. (D234)
+            ")" | "]" => self.check_gaps(index, index, touching, None, SPACING_MARKS),
             "," | ":" => self.check_gaps(index, index, None, one, SPACING_LISTS),
             "=" | ":=" => {
                 self.break_after.insert(index);
@@ -1980,12 +1983,23 @@ impl Parser {
         if self.at_word("shield") {
             return Ok(Item::Shield(self.parse_shield_item()?));
         }
+        // trace: D235
+        if self.at_word("interface") {
+            return Ok(Item::Interface(self.parse_interface()?));
+        }
+        if self.at_word("type_set") {
+            return Ok(Item::TypeSet(self.parse_type_set()?));
+        }
+        if self.word_at(1, "satisfies") || self.symbol_at(1, ".|.") {
+            return Ok(Item::Satisfies(self.parse_satisfies()?));
+        }
         if self.word_at(1, "is") {
-            return Err(Report::not_designed(
-                self.span(),
-                "declaring that a type fits a bound",
-                "12.5",
-            ));
+            return Err(Report::refused(
+                self.peek_at(1).span,
+                "a type fits an interface with `satisfies`",
+                "a type fits an interface only through a `satisfies` line (D235, D87)",
+            )
+            .fix("satisfies"));
         }
         // trace: D56
         if self.at_symbol("@") && self.word_at(1, "import") {
@@ -2065,6 +2079,7 @@ impl Parser {
         } else {
             self.parse_function_name()?
         };
+        let type_parameters = self.parse_type_parameters()?;
         let sources = self.parse_source_declarations()?;
         let parameters = self.parse_parameters()?;
         self.expect_symbol("->")?;
@@ -2090,6 +2105,7 @@ impl Parser {
         let mut function = Function {
             kind,
             operator: None,
+            type_parameters,
             span: start.to(header_end),
             name,
             parameters,
@@ -2503,6 +2519,7 @@ impl Parser {
             }
         }
         let (name, written) = self.expect_declared_name("struct", "the struct's name")?;
+        let type_parameters = self.parse_type_parameters()?;
         let sources = self.parse_source_declarations()?;
         self.expect_symbol(":")?;
         let mut fields = Vec::new();
@@ -2526,6 +2543,7 @@ impl Parser {
         Ok(StructDeclaration {
             must_give,
             name,
+            type_parameters,
             sources,
             fields,
         })
@@ -2926,12 +2944,13 @@ impl Parser {
 
     fn parse_type_inner(&mut self) -> Outcome<TypeExpression> {
         let start = self.span();
+        // trace: D234
         if self.at_symbol("?") {
-            return Err(Report::not_designed(
-                start,
-                "the spelling of generics",
-                "12.5",
-            ));
+            let name = self.parse_parameter_name()?;
+            return Ok(TypeExpression {
+                span: name.span,
+                kind: TypeKind::Parameter(name),
+            });
         }
         if self.at_word("Lend") {
             return self.parse_stored_borrow();
@@ -4381,7 +4400,10 @@ impl Parser {
 
     fn parse_question_marks(&mut self, mut value: Expression) -> Expression {
         while self.at_symbol("?") {
+            let mark = self.position;
             let end = self.advance().span;
+            // trace: D213
+            self.check_gaps(mark, mark, Some(Gap::Touching), None, SPACING_MARKS);
             value = Expression {
                 span: value.span.to(end),
                 kind: ExpressionKind::Try(Box::new(value)),
@@ -5126,6 +5148,7 @@ impl Parser {
         Ok(Function {
             kind: FunctionKind::Plain,
             operator: Some(operator.clone()),
+            type_parameters: Vec::new(),
             name: Name {
                 text: format!("op {operator} [{}]", types.join(", ")),
                 span: start.to(operator_span),
@@ -5248,5 +5271,213 @@ impl Parser {
             text.push_str(&token.text);
         }
         text
+    }
+}
+
+const WHY_PARAMETER: &str =
+    "a type parameter is `?` and a lowercase name, declared in `< >` straight after the name (D234)";
+const WHY_REQUIREMENT: &str =
+    "every type parameter writes what it needs, `any` when it needs nothing (D239)";
+const WHY_NEVER_MIXED: &str = "an `interface` lists what a type can do, and a `type_set` lists types, and the two are never mixed (D235)";
+
+impl Parser {
+    /// `?item`: a `?` and a lowercase name, touching. (D234)
+    /// trace: D234
+    fn parse_parameter_name(&mut self) -> Outcome<Name> {
+        let mark = self.position;
+        let start = self.advance().span; // `?`
+        self.check_gaps(mark, mark, None, Some(Gap::Touching), SPACING_MARKS);
+        let name = self.expect_name("a type parameter's name")?;
+        let span = start.to(name.span);
+        if name.text.chars().any(char::is_uppercase) {
+            return Err(Report::refused(
+                span,
+                format!("`?{}` is written in lowercase", name.text),
+                WHY_PARAMETER,
+            )
+            .fix(format!("?{}", name.text.to_lowercase())));
+        }
+        Ok(Name {
+            text: name.text,
+            span,
+        })
+    }
+
+    /// `<?item: whole and ordered, ?other: any>` straight after a function's or struct's name,
+    /// or nothing when there's none. (D234, D235, D239)
+    /// trace: D234, D235, D239
+    fn parse_type_parameters(&mut self) -> Outcome<Vec<TypeParameter>> {
+        if !(self.at_symbol("<") && self.symbol_at(1, "?")) {
+            return Ok(Vec::new());
+        }
+        let open = self.position;
+        if self.peek().gap_before != Gap::Touching {
+            let previous = open
+                .checked_sub(1)
+                .and_then(|at| self.tokens.get(at))
+                .cloned();
+            if let Some(previous) = previous {
+                return Err(Report::refused(
+                    previous.span.to(self.span()),
+                    "type parameters go straight after the name",
+                    WHY_PARAMETER,
+                )
+                .fix(format!("{}<", previous.text)));
+            }
+        }
+        self.advance(); // `<`
+        self.break_after.insert(open);
+        self.check_gaps(open, open, None, Some(Gap::Touching), SPACING_MARKS);
+        let mut parameters = Vec::new();
+        loop {
+            if !self.at_symbol("?") {
+                return Err(self.expected("`?` and a type parameter's name"));
+            }
+            let name = self.parse_parameter_name()?;
+            if !self.at_symbol(":") {
+                return Err(Report::refused(
+                    name.span,
+                    format!(
+                        "`{}` doesn't say what it needs",
+                        self.text_of_span(name.span)
+                    ),
+                    WHY_REQUIREMENT,
+                )
+                .fix(format!("?{}: any", name.text)));
+            }
+            self.advance(); // `:`
+            let mut requirement = vec![self.parse_path()?];
+            while self.eat_word("and") {
+                requirement.push(self.parse_path()?);
+            }
+            parameters.push(TypeParameter { name, requirement });
+            if !self.eat_symbol(",") {
+                break;
+            }
+        }
+        let close = self.position;
+        self.expect_symbol(">")?;
+        self.type_brackets.push((open, close));
+        self.check_gaps(close, close, Some(Gap::Touching), None, SPACING_MARKS);
+        Ok(parameters)
+    }
+
+    /// `interface ordered<?self>:` with `includes`, `op` and `law` lines, and its closer. How a
+    /// type slot is written isn't decided, so a second `?` in its `< >` isn't either. How laws
+    /// are proven isn't decided, so a law is read past. (D235, D238)
+    /// trace: D235, D238
+    fn parse_interface(&mut self) -> Outcome<InterfaceDeclaration> {
+        let start = self.advance().span; // `interface`
+        let name = self.expect_name("the interface's name")?;
+        if !(self.at_symbol("<") && self.symbol_at(1, "?")) {
+            return Err(Report::not_designed(
+                start.to(name.span),
+                "an interface with no `<?self>`",
+                "12.5",
+            ));
+        }
+        let open = self.position;
+        self.advance(); // `<`
+        let own = self.parse_parameter_name()?;
+        if self.at_symbol(",") || self.at_symbol(":") {
+            return Err(Report::not_designed(
+                self.span(),
+                "how a type slot is written",
+                "12.5",
+            ));
+        }
+        let close = self.position;
+        self.expect_symbol(">")?;
+        self.type_brackets.push((open, close));
+        self.expect_symbol(":")?;
+        let mut includes = Vec::new();
+        let mut operators = Vec::new();
+        while !self.at_word("end") {
+            self.mark_line_start();
+            if self.eat_word("includes") {
+                includes.push(self.expect_name("the interface it includes")?);
+                self.expect_semicolon()?;
+            } else if self.at_word("op") {
+                let op_start = self.advance().span;
+                let (operator, operator_span) = self.parse_operator_word()?;
+                let parameters = self.parse_parameters()?;
+                self.expect_symbol("->")?;
+                let return_type = self.parse_type()?;
+                self.expect_semicolon()?;
+                operators.push(InterfaceOperator {
+                    operator,
+                    span: op_start.to(operator_span),
+                    parameters,
+                    return_type,
+                });
+            } else if self.eat_word("law") {
+                while !self.at_symbol(";") && !matches!(self.peek().lexeme, Lexeme::End) {
+                    self.advance();
+                }
+                self.expect_semicolon()?;
+            } else {
+                let line = self.span();
+                let looks_like_a_type = self.symbol_at(1, ";");
+                return Err(Report::refused(
+                    line,
+                    if looks_like_a_type {
+                        "an interface lists operations, not types".to_string()
+                    } else {
+                        format!(
+                            "an interface holds `includes`, `op` and `law` lines, and found {}",
+                            self.describe_here()
+                        )
+                    },
+                    WHY_NEVER_MIXED,
+                ));
+            }
+        }
+        self.expect_closer(&["interface", &name.text])?;
+        Ok(InterfaceDeclaration {
+            name,
+            own,
+            includes,
+            operators,
+        })
+    }
+
+    /// `type_set whole:`, a type per line, and its closer. (D235)
+    /// trace: D235
+    fn parse_type_set(&mut self) -> Outcome<TypeSetDeclaration> {
+        self.advance(); // `type_set`
+        let name = self.expect_name("the type set's name")?;
+        self.expect_symbol(":")?;
+        let mut members = Vec::new();
+        while !self.at_word("end") {
+            self.mark_line_start();
+            if self.at_word("op") || self.at_word("includes") || self.at_word("law") {
+                return Err(Report::refused(
+                    self.span(),
+                    "a type set lists types, not operations",
+                    WHY_NEVER_MIXED,
+                ));
+            }
+            members.push(self.parse_type()?);
+            self.expect_semicolon()?;
+        }
+        self.expect_closer(&["type_set", &name.text])?;
+        Ok(TypeSetDeclaration { name, members })
+    }
+
+    /// `reading satisfies ordered;`, or `reading .|. ordered;`. (D235)
+    /// trace: D235
+    fn parse_satisfies(&mut self) -> Outcome<Satisfies> {
+        let start = self.span();
+        let written_type = self.parse_type()?;
+        if !self.eat_word("satisfies") && !self.eat_symbol(".|.") {
+            return Err(self.expected("`satisfies`"));
+        }
+        let interface = self.expect_name("the interface")?;
+        let end = self.expect_semicolon()?;
+        Ok(Satisfies {
+            span: start.to(end),
+            written_type,
+            interface,
+        })
     }
 }

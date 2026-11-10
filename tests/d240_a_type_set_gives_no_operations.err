@@ -1,0 +1,5 @@
+refused: d240_a_type_set_gives_no_operations.cy:20:12, line 20 column 12
+20 |     return $a + $b;
+   |            ^^^^^^^
+ what: `?item` needs `whole`, which doesn't list `op +`
+ why:  a generic body may use on a `?item` only what its requirement lists, and only an interface gives operations (D235, D240)

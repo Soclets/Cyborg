@@ -1,0 +1,5 @@
+refused: d241_nothing_says_a_type.cy:26:15, line 26 column 15
+26 |     let $x := total(1, 2);
+   |               ^^^^^^^^^^^
+ what: nothing here says which type `?item` is, so this line says one, as in `: i32 =`
+ why:  a call fills a type parameter from its arguments, and bare literals from the type the result goes into (D241, D50)

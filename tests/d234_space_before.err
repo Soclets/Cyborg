@@ -1,0 +1,5 @@
+refused: d234_space_before.cy:19:4, line 19 column 4
+19 | fn first <?item: any> [$a: Given ?item] -> ?item:
+   |    ^^^^^^^
+ fix:  `first<`
+ why:  a type parameter is `?` and a lowercase name, declared in `< >` straight after the name (D234)

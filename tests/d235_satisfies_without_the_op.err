@@ -1,0 +1,5 @@
+refused: d235_satisfies_without_the_op.cy:23:1, line 23 column 1
+23 | reading satisfies ordered;
+   | ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ what: `reading` has no `op <` for `reading` and `reading`, which `ordered` lists
+ why:  a type fits an interface only through a `satisfies` line, which the compiler checks there (D235)

@@ -8,8 +8,8 @@ use std::rc::Rc;
 use crate::ast::{CompareOperator, Narrowing};
 use crate::ir::Alias;
 use crate::ir::{
-    Argument, Arithmetic, Code, Contract, Function, Instruction, InstructionKind, Node, NodeKind,
-    Number, Place, Position, RangeCode, Step, Test,
+    Argument, Arithmetic, Code, Contract, Function, Implementation, Instruction, InstructionKind,
+    Node, NodeKind, Number, Place, Position, RangeCode, Step, Table, Test,
 };
 use crate::report::{Kind, Outcome, Report, ReportExtra, Span};
 use crate::types::{show_float, FloatKind, FloatRules, IntegerKind, Value};
@@ -123,6 +123,8 @@ fn walk_mut<'v>(value: &'v mut Value, path: &[usize]) -> Option<&'v mut Value> {
 
 struct Frame {
     slots: Vec<Option<Binding>>,
+    /// For a generic, how the types filling its type parameters do each operation. (D235)
+    tables: Vec<Table>,
 }
 
 struct Runner<'c> {
@@ -154,7 +156,10 @@ fn oracle_bug(span: Span, what: &str) -> Stop {
 /// Works out what `bake` and `const` need while building, and refuses if that can't finish. (D91)
 pub fn check_compile_time(code: &Code) -> Outcome<()> {
     let mut runner = Runner::new(code, Some(COMPILE_TIME_STEP_LIMIT));
-    let mut frame = Frame { slots: Vec::new() };
+    let mut frame = Frame {
+        slots: Vec::new(),
+        tables: Vec::new(),
+    };
     let mut globals_done = 0;
     for node in &code.compile_time {
         let result = runner.evaluate(node, &mut frame);
@@ -200,7 +205,10 @@ pub fn check_compile_time(code: &Code) -> Outcome<()> {
 /// Runs the program from `fn.main`.
 pub fn run(code: &Code) -> Outcome<()> {
     let mut runner = Runner::new(code, None);
-    let mut frame = Frame { slots: Vec::new() };
+    let mut frame = Frame {
+        slots: Vec::new(),
+        tables: Vec::new(),
+    };
     for node in &code.globals {
         match runner.evaluate(node, &mut frame) {
             Ok(value) => runner.globals.push(value),
@@ -208,7 +216,7 @@ pub fn run(code: &Code) -> Outcome<()> {
             Err(_) => return Ok(()),
         }
     }
-    let result = runner.call(code.main, Vec::new(), Span::new(0, 0));
+    let result = runner.call(code.main, Vec::new(), Vec::new(), Span::new(0, 0));
     let flushed = runner.out.flush();
     match result {
         Ok(_) => flushed.map_err(|error| {
@@ -246,6 +254,7 @@ impl<'c> Runner<'c> {
         &mut self,
         function: usize,
         arguments: Vec<(usize, Binding)>,
+        tables: Vec<Table>,
         call_span: Span,
     ) -> Result<Binding, Stop> {
         let code = self.code;
@@ -270,6 +279,7 @@ impl<'c> Runner<'c> {
         }
         let mut frame = Frame {
             slots: vec![None; function.slot_count],
+            tables,
         };
         for (parameter, binding) in arguments {
             if let Some(slot) = frame.slots.get_mut(parameter) {
@@ -364,6 +374,7 @@ impl<'c> Runner<'c> {
         let NodeKind::Call {
             function,
             arguments,
+            tables,
         } = &node.kind
         else {
             return Err(oracle_bug(
@@ -379,7 +390,8 @@ impl<'c> Runner<'c> {
             };
             bindings.push((*parameter, binding));
         }
-        self.call(*function, bindings, node.span)
+        let tables = Self::resolve_tables(tables, frame, node.span)?;
+        self.call(*function, bindings, tables, node.span)
     }
 
     fn binding_of(
@@ -848,6 +860,16 @@ impl<'c> Runner<'c> {
                     left = right;
                 }
                 Ok(Value::Bool(true))
+            }
+            NodeKind::Generic {
+                parameter,
+                operator,
+                left,
+                right,
+            } => {
+                let left = self.evaluate(left, frame)?;
+                let right = self.evaluate(right, frame)?;
+                self.generic(*parameter, operator, left, right, frame, span)
             }
             NodeKind::Call { .. } => {
                 let binding = self.call_binding(node, frame)?;
@@ -1448,4 +1470,76 @@ fn print_failed(span: Span) -> Stop {
         data: Vec::new(),
         span,
     })
+}
+
+impl Runner<'_> {
+    /// The tables a call passes on, with anything forwarded from this frame's own looked up,
+    /// so a generic calling a generic hands on what it was told. (D235)
+    fn resolve_tables(tables: &[Table], frame: &Frame, span: Span) -> Result<Vec<Table>, Stop> {
+        let mut resolved = Vec::with_capacity(tables.len());
+        for table in tables {
+            let mut entries = Vec::with_capacity(table.len());
+            for (operator, implementation) in table {
+                let concrete = match implementation {
+                    Implementation::Forward {
+                        parameter,
+                        operator: forwarded,
+                    } => frame
+                        .tables
+                        .get(*parameter)
+                        .and_then(|own| own.iter().find(|(name, _)| name == forwarded))
+                        .map(|(_, found)| found.clone())
+                        .ok_or_else(|| {
+                            oracle_bug(span, "a generic's table missing an operation")
+                        })?,
+                    other => other.clone(),
+                };
+                entries.push((operator.clone(), concrete));
+            }
+            resolved.push(entries);
+        }
+        Ok(resolved)
+    }
+
+    /// An operation on a type parameter's values, done as the call's table says. (D235)
+    /// trace: D235
+    fn generic(
+        &mut self,
+        parameter: usize,
+        operator: &str,
+        left: Value,
+        right: Value,
+        frame: &Frame,
+        span: Span,
+    ) -> Result<Value, Stop> {
+        let implementation = frame
+            .tables
+            .get(parameter)
+            .and_then(|table| table.iter().find(|(name, _)| name == operator))
+            .map(|(_, found)| found.clone())
+            .ok_or_else(|| oracle_bug(span, "a generic's table missing an operation"))?;
+        match implementation {
+            Implementation::Arithmetic(arithmetic_operator, number) => {
+                arithmetic(arithmetic_operator, number, &left, &right, span).map_err(Stop::Report)
+            }
+            Implementation::Compare(compare_operator) => {
+                Ok(Value::Bool(compare(compare_operator, &left, &right, span)?))
+            }
+            Implementation::Function(function) => {
+                let returned = self.call(
+                    function,
+                    vec![(0, Binding::fresh(left)), (1, Binding::fresh(right))],
+                    Vec::new(),
+                    span,
+                )?;
+                let root = returned.root.borrow();
+                walk(&root, &returned.path)
+                    .cloned()
+                    .ok_or_else(|| oracle_bug(span, "an operator handed back nothing"))
+            }
+            Implementation::Forward { .. } => {
+                Err(oracle_bug(span, "a generic's table still forwarding"))
+            }
+        }
+    }
 }

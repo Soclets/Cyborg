@@ -1,0 +1,5 @@
+NotDesignedYet: d240_std_interfaces.cy:19:18, line 19 column 18
+19 | fn larger<?item: std::ordered> [$a: ?item, $b: ?item] -> bool:
+   |                  ^^^^^^^^^^^^
+ what: which interfaces `std` declares for its own types, and their names
+ why:  not decided yet (standard 12.5)

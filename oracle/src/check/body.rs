@@ -40,7 +40,20 @@ enum LoopSource {
 }
 
 impl Checker<'_> {
+    /// Checks a function's body. A generic's is checked once, here, with its type parameters
+    /// standing for whatever a call fills them with. (D235, D89)
     pub(super) fn check_function(&mut self, function: &Function) -> Outcome<ir::Function> {
+        self.generic = self
+            .signatures
+            .get(&function.name.text)
+            .map(|signature| signature.type_parameters.clone())
+            .unwrap_or_default();
+        let checked = self.check_function_inner(function);
+        self.generic.clear();
+        checked
+    }
+
+    fn check_function_inner(&mut self, function: &Function) -> Outcome<ir::Function> {
         let signature = self
             .signatures
             .get(&function.name.text)
@@ -680,9 +693,8 @@ impl Checker<'_> {
         match held_type {
             Type::Struct(struct_name) => {
                 let fields = self
-                    .structs
-                    .get(struct_name)
-                    .map(|info| info.fields.clone())
+                    .struct_info(struct_name)
+                    .map(|info| info.fields)
                     .unwrap_or_default();
                 // A field moved out on every path here no longer needs giving. (D185)
                 let moved_everywhere = |index: usize| {

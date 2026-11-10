@@ -47,7 +47,7 @@ impl Checker<'_> {
                 let Type::Struct(owner) = self.type_from_form(base)? else {
                     return None;
                 };
-                let info = self.structs.get(&owner)?;
+                let info = self.struct_info(&owner)?;
                 info.fields
                     .iter()
                     .find(|(field, _)| *field == name.text)
@@ -103,10 +103,15 @@ impl Checker<'_> {
             .is_some()
     }
 
-    /// Whether either side is a struct or union, so the operator is the type's own.
+    /// Whether either side is a struct or union, so the operator is the type's own, or a type
+    /// parameter, so it's what the call's table says. (D236, D235)
     pub(super) fn sides_are_own(&self, left: &Expression, right: &Expression) -> bool {
-        self.type_from_form(left).as_ref().is_some_and(is_own)
-            || self.type_from_form(right).as_ref().is_some_and(is_own)
+        let own = |found: Option<Type>| {
+            found
+                .as_ref()
+                .is_some_and(|found| is_own(found) || matches!(found, Type::Parameter(_)))
+        };
+        own(self.type_from_form(left)) || own(self.type_from_form(right))
     }
 
     /// `$a + $b` on a type of your own: a call to its `op +`. (D236)
@@ -199,6 +204,10 @@ impl Checker<'_> {
         (left, right): (&Expression, &Expression),
         span: Span,
     ) -> Outcome<(Node, Type)> {
+        // trace: D235
+        if self.is_generic(left) || self.is_generic(right) {
+            return self.generic_operator(word, written, (left, right), span);
+        }
         let left_type = self.type_from_form(left);
         let right_type = self.type_from_form(right);
         let Some(found) = self

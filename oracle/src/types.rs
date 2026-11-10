@@ -148,6 +148,9 @@ pub enum Sources {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Type {
     Void,
+    /// `?item`, a type parameter: a value a generic can only do with what its requirement
+    /// lists. (D234, D235)
+    Parameter(String),
     Bool,
     Str,
     Integer {
@@ -257,6 +260,7 @@ impl fmt::Display for Type {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Type::Void => write!(formatter, "void"),
+            Type::Parameter(name) => write!(formatter, "?{name}"),
             Type::Bool => write!(formatter, "bool"),
             Type::Str => write!(formatter, "str"),
             Type::Integer { kind, bound, unit } => {

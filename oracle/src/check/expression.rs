@@ -718,8 +718,11 @@ impl Checker<'_> {
                 self.check_build(path, fields, span, expected)
             }
             ExpressionKind::Call { .. } | ExpressionKind::Method { .. } => {
-                let raw = self.check_raw_call(expression)?;
-                Ok(Self::crash_if_it_fails(raw, span))
+                // A generic's type parameter can come from where its result goes. (D241)
+                self.context.call_expected = expected.cloned();
+                let raw = self.check_raw_call(expression);
+                self.context.call_expected = None;
+                Ok(Self::crash_if_it_fails(raw?, span))
             }
             // trace: D56
             ExpressionKind::Builtin(path)
@@ -1323,7 +1326,8 @@ impl Checker<'_> {
             }
             text.clone()
         };
-        if let Some(info) = self.structs.get(&bare).cloned() {
+        let bare = self.built_instance(bare, expected, span)?;
+        if let Some(info) = self.struct_info(&bare) {
             let built = Type::Struct(bare.clone());
             let filled = Self::filled_for(&built, &info.sources, expected, span)?;
             let nodes = self.check_field_values(
@@ -1474,6 +1478,19 @@ impl Checker<'_> {
         ))
     }
 
+    /// A called name without its `my::`, which only a clashing name writes. (D75)
+    fn without_my(text: &str, span: Span) -> Outcome<String> {
+        match text.strip_prefix("my::") {
+            Some(mine) if !is_clashing(mine) => Err(Report::not_designed(
+                span,
+                format!("`my::` on `{mine}`, which doesn't clash"),
+                "",
+            )),
+            Some(mine) => Ok(mine.to_string()),
+            None => Ok(text.to_string()),
+        }
+    }
+
     fn check_call(
         &mut self,
         path: &crate::ast::Path,
@@ -1491,19 +1508,7 @@ impl Checker<'_> {
             self.require_std(rest, path.span)?;
             return self.check_std_call(rest, arguments, span, path.span);
         }
-        let bare = match text.strip_prefix("my::") {
-            Some(mine) => {
-                if !is_clashing(mine) {
-                    return Err(Report::not_designed(
-                        path.span,
-                        format!("`my::` on `{mine}`, which doesn't clash"),
-                        "",
-                    ));
-                }
-                mine.to_string()
-            }
-            None => text.clone(),
-        };
+        let bare = Self::without_my(&text, path.span)?;
         let Some(signature) = self.signatures.get(&bare).cloned() else {
             return Err(Report::refused(
                 path.span,
@@ -1514,6 +1519,7 @@ impl Checker<'_> {
         if signature.kind == FunctionKind::Main {
             return Err(Report::not_designed(path.span, "calling `fn.main`", ""));
         }
+        let (signature, tables) = self.fill_if_generic(signature, arguments, span)?;
         self.refuse_impure_call(&signature, path.span)?;
         let parameters = signature.parameters.clone();
         let bound =
@@ -1576,6 +1582,7 @@ impl Checker<'_> {
                 kind: NodeKind::Call {
                     function: signature.index,
                     arguments: code,
+                    tables,
                 },
             },
             value_type,
@@ -2565,6 +2572,7 @@ impl Checker<'_> {
                 kind: NodeKind::Call {
                     function: signature.index,
                     arguments: code,
+                    tables: Vec::new(),
                 },
             },
             value_type: signature.return_type.clone(),
@@ -3394,7 +3402,9 @@ impl Checker<'_> {
         if rest.first().is_some_and(|(operator, right)| {
             self.sides_are_own(first, right)
                 && (!matches!(operator, CompareOperator::Equal | CompareOperator::NotEqual)
-                    || self.has_operator("==", first, right))
+                    || self.has_operator("==", first, right)
+                    || self.is_generic(first)
+                    || self.is_generic(right))
         }) {
             return self.own_comparison_chain(first, rest, span);
         }

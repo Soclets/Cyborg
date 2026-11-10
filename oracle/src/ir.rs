@@ -95,6 +95,22 @@ pub enum Arithmetic {
     ShiftRight,
 }
 
+/// How a type parameter's type does each operation: by name, as `<` or `div.floor`.
+pub type Table = Vec<(String, Implementation)>;
+
+/// How one type does one operation for a generic. (D235, D236)
+#[derive(Clone, Debug)]
+pub enum Implementation {
+    /// A built-in number's own arithmetic.
+    Arithmetic(Arithmetic, Number),
+    /// A built-in comparison, `==` or `<`.
+    Compare(crate::ast::CompareOperator),
+    /// A type's own `op`, by its function.
+    Function(usize),
+    /// What the generic calling this one was told for its own type parameter.
+    Forward { parameter: usize, operator: String },
+}
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Number {
     Integer(IntegerKind),
@@ -144,10 +160,20 @@ pub enum NodeKind {
         first: Box<Node>,
         rest: Vec<(CompareOperator, Node)>,
     },
-    /// `arguments` are in the order written, and each says which parameter it fills.
+    /// `arguments` are in the order written, and each says which parameter it fills. A
+    /// generic's call also carries, for each type parameter, how the type that fills it does
+    /// each operation its requirement lists. (D235)
     Call {
         function: usize,
         arguments: Vec<(usize, Argument)>,
+        tables: Vec<Table>,
+    },
+    /// An operation on a type parameter's values, done by what the call's table says. (D235)
+    Generic {
+        parameter: usize,
+        operator: String,
+        left: Box<Node>,
+        right: Box<Node>,
     },
     /// `std::io::fmt_print`, with its text in pieces and the values its holes take. (D194)
     FormatPrint {

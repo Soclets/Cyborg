@@ -1,0 +1,5 @@
+refused: d235_an_interface_with_a_type.cy:20:5, line 20 column 5
+20 |     i32;
+   |     ^^^
+ what: an interface lists operations, not types
+ why:  an `interface` lists what a type can do, and a `type_set` lists types, and the two are never mixed (D235)

@@ -1,0 +1,5 @@
+refused: d235_hasnt_said_satisfies.cy:25:20, line 25 column 20
+25 |     let $b: bool = larger($a, $a);
+   |                    ^^^^^^^^^^^^^^
+ what: `i32` hasn't said it satisfies `ordered`
+ why:  a type fits an interface only through a `satisfies` line, which the compiler checks there (D235)
