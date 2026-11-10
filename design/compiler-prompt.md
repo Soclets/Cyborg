@@ -36,10 +36,14 @@ oracle's source isn't.
 - Depend on Lyftar with `lyftar = { git = "https://github.com/Soclets/Lyftar" }`.
   It needs LLVM 23, installed at /opt/homebrew/opt/llvm@23.
 - `okay` links by itself, like Zig (D261): building for a supported target
-  needs nothing else installed, and it ships each target's startup code and
-  linker scripts. Lyftar doesn't embed lld yet, so until it does, call the
-  installed `ld.lld` or `ld64.lld` from /opt/homebrew/bin, kept behind one
-  function so it's easy to swap out.
+  needs nothing else installed. Lyftar now builds with its own static LLVM
+  and lld, so link with `lyftar::link(LinkTarget::…, objects, output,
+  script)`, for `MacOsAarch64`, `LinuxAarch64`, `LinuxX86_64` and
+  `CortexM4`, and never call an outside linker. Linux programs come out
+  static with musl. Cyborg ships each target's startup code and linker
+  script itself. A compiler with LLVM inside ships LLVM's licence text, and
+  Linux programs carry musl's notice: Lyftar's README section "A
+  self-contained compiler" lists the files.
 - Build optimizations in from the start, never as a plain version sped up
   later (rule 10), with D168's fast compiling: incremental, parallel,
   cached, and a lighter `Working` build.
@@ -62,7 +66,9 @@ Work through these in order, passing the oracle's tests for each:
 1. Hello world, section 1.2 of the standard, compiled to an object file for
    aarch64-apple-darwin, aarch64-unknown-linux-gnu and thumbv7em-none-eabihf
    with cortex-m4, then linked and run on this Mac, matching its test byte
-   for byte. Linking for the Cortex-M4 is a stretch goal here.
+   for byte. Link the other two as well. The Cortex-M4 image needs your own
+   startup code and linker script, and it's never been run on a real board,
+   so a working image is a stretch goal here.
 2. Integers, bounds, variables, `if`, loops and printing.
 3. Functions, structs, unions and failures.
 4. Ownership and borrows, where the Verus proofs start.
