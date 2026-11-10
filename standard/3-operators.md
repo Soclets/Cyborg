@@ -11,6 +11,7 @@
 | [3.7](#37-bits-and-shifts) | `bit_and`, `bit_or`, `bit_xor`, `bit_not`, `shl`, `shr` | |
 | [3.8](#38-wrapping-pluswrap) | `plus.wrap` | Wraps in every mode |
 | [3.9](#39-grouping-and-precedence) | `( )`, precedence | Follows maths |
+| [3.10](#310-operators-for-your-own-types-op) | `op <` | A struct defines an operator for itself |
 
 ## 3.1 Every operator
 
@@ -143,3 +144,21 @@ $a + read() ?? 0
 Unary `-` negates, so `-$x` and `-7` are both allowed. A comparison chain means all of it is true, and each value is evaluated once: `1 < $x < 5` means `1 < $x and $x < 5`. It stops at its first false. The linter can ask for parentheses.
 
 **From:** D23, D116, D117, D124, D131, D132.
+
+## 3.10 Operators for your own types: `op`
+
+**Rule:** a struct or union can define an operator for itself, as a function named by the operator. It keeps the operator's usual precedence, and applies only where its parameters' types match. This is how a type gets what an interface asks for ([5.8](5-functions.md#58-generics)).
+
+```
+op < [$a: reading, $b: reading] -> bool:
+    return $a.celsius < $b.celsius;
+end op <
+
+reading satisfies ordered;
+```
+
+Which operators can be defined isn't decided ([12.3](12-not-decided.md#123-operators-and-conversion)).
+
+**Refused:** defining or changing an operator on a built-in type, like `i32`.
+
+**From:** D116, D117, D235, D236, and CyborgPL's `op`.
