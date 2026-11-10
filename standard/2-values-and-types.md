@@ -354,7 +354,7 @@ let $t: f64.time.seconds = average($times);
 
 A unit parameter goes only where a unit goes, after a number type. A body can add and compare values of the same `?u`.
 
-In a family with an offset, like temperature, and in `std`'s `time`, every value says whether it's a point, a spot on the scale, or a span, the distance between two spots:
+In a family with an offset, like temperature, and in `std`'s `time`, every value says whether it's a point, a spot on the scale, or a span, the distance between two spots. That covers every unit in the family, its base included, so `kelvin` needs it too:
 
 ```
 fam.unit temperature:
@@ -386,7 +386,7 @@ let $output: f64.power.dbm.point = $input + $gain;
 
 Two levels can't be added, since in dB that would mean multiplying two powers, so you convert to watts, add, and convert back.
 
-**From:** D99, D100, D101, D108, D109, D110, D111, D112, D141, D144, D242, D243, D245, D249, D250, D251.
+**From:** D99, D100, D101, D108, D109, D110, D111, D112, D141, D144, D242, D243, D245, D249, D250, D251, D254.
 
 ## 2.17 Getting an item
 

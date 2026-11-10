@@ -1008,6 +1008,8 @@ A `type_set` is a closed list of types that nothing can join later, as in `type_
 
 **D253. The milestone board is the Uno R4 WiFi.** The owner bought an official Arduino Uno R4 WiFi for 1,400 THB, so D252's milestones run on it instead of the Minima. It has the same Renesas RA4M1 ARM chip and the LED on pin 13, so blinking and then printing over serial stay the steps. It has no easy debug header, so debugging is by blink patterns or serial. The owner: "Bought the official Arduino Uno R4 Wifi for 1.4k THB". (Owner, 2026-11-10)
 
+**D254. The point and span split belongs to the whole family.** Every unit in a family that has the split needs `.point` or `.span`, including its base, so `kelvin` and `milliwatts` need one too, not only `celsius` and `dbm`. Adding two readings in kelvin is as meaningless as in Celsius, so the split is about the quantity, not about which unit has the offset. This was oracle claude's reading of D249; Claude recommended keeping it; the owner chose: "yea". (Owner, 2026-11-10)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude
