@@ -1985,15 +1985,15 @@ impl Checker<'_> {
                 crate::ast::FormatPiece::Text(_) => None,
             })
             .collect();
-        // A named hole prints its variable, and doesn't mix with the other kinds yet. (D210)
-        // trace: D210
+        // A named hole prints its variable, and doesn't mix with the other kinds. (D210, D247)
+        // trace: D210, D247
         let named = holes.iter().filter(|hole| hole.name.is_some()).count();
         if named > 0 && named < holes.len() {
             let other = holes.iter().find(|hole| hole.name.is_none());
-            return Err(Report::not_designed(
+            return Err(Report::refused(
                 other.map_or(format.value.span, |hole| hole.span),
-                "named holes in one format with `{}` or numbered ones",
-                "12.2",
+                "this format mixes named holes with `{}` or numbered ones",
+                "named holes can't be mixed with `{}` or numbered holes in one format (D247)",
             ));
         }
         let (slots, (value_nodes, value_types)) = if named > 0 {
@@ -2011,25 +2011,7 @@ impl Checker<'_> {
                 self.check_print_values(values)?,
             )
         };
-        let mut printed = Vec::new();
-        let mut holes_seen = 0;
-        for piece in pieces {
-            match piece {
-                crate::ast::FormatPiece::Text(text) => printed.push(ir::PrintPiece::Text(text)),
-                crate::ast::FormatPiece::Hole(hole) => {
-                    let value = slots.get(holes_seen).copied().unwrap_or_default();
-                    holes_seen += 1;
-                    if let Some((found, value_span)) = value_types.get(value) {
-                        Self::check_shapes(found, &hole.shapes, *value_span, stored)?;
-                    }
-                    printed.push(ir::PrintPiece::Hole {
-                        value,
-                        shapes: hole.shapes,
-                        span: hole.span,
-                    });
-                }
-            }
-        }
+        let printed = self.print_pieces(pieces, &slots, &value_types, stored)?;
         Ok(RawCall {
             node: Node {
                 span,
@@ -2055,14 +2037,30 @@ impl Checker<'_> {
         &mut self,
         holes: &[&crate::ast::Hole],
     ) -> Outcome<(Vec<Node>, Vec<TypedSpan>)> {
+        // `{$r.celsius}` reads a field. (D247)
+        // trace: D247
         let named_values: Vec<Argument> = holes
             .iter()
-            .map(|hole| Argument {
-                label: None,
-                value: Expression {
+            .map(|hole| {
+                let name = hole.name.clone().unwrap_or_default();
+                let mut pieces = name.split('.');
+                let mut value = Expression {
                     span: hole.span,
-                    kind: ExpressionKind::Variable(hole.name.clone().unwrap_or_default()),
-                },
+                    kind: ExpressionKind::Variable(pieces.next().unwrap_or_default().to_string()),
+                };
+                for field in pieces {
+                    value = Expression {
+                        span: hole.span,
+                        kind: ExpressionKind::Field {
+                            base: Box::new(value),
+                            name: crate::ast::Name {
+                                text: field.to_string(),
+                                span: hole.span,
+                            },
+                        },
+                    };
+                }
+                Argument { label: None, value }
             })
             .collect();
         self.check_print_values(&named_values)
@@ -2162,7 +2160,12 @@ impl Checker<'_> {
                 ));
             }
         };
+        let has_unit = matches!(
+            found,
+            Type::Integer { unit: Some(_), .. } | Type::Float { unit: Some(_), .. }
+        );
         let applies = |shape: &str| match shown {
+            _ if shape == "unit" => has_unit,
             "str" => matches!(shape, "align:" | "width:"),
             "integer" => !matches!(shape, "places:" | "form:"),
             _ => shape != "base:",
@@ -3676,5 +3679,78 @@ impl Checker<'_> {
             ),
             "12.9",
         ))
+    }
+}
+
+impl Checker<'_> {
+    /// A value's unit the way this file writes it: by the short name a `use` gives it, or else
+    /// by its family and name with its package path left off. (D246)
+    /// trace: D246
+    fn unit_as_written(&self, found: &Type, span: Span) -> Outcome<String> {
+        let (Type::Integer {
+            unit: Some(unit), ..
+        }
+        | Type::Float {
+            unit: Some(unit), ..
+        }) = found
+        else {
+            return Err(Report::refused(
+                span,
+                format!("`{found}` has no unit"),
+                "(D246)",
+            ));
+        };
+        let mut shortened: Vec<&String> = self
+            .aliases
+            .iter()
+            .filter(|(_, path)| **path == *unit || path.strip_prefix("my::") == Some(unit.as_str()))
+            .map(|(short, _)| short)
+            .collect();
+        shortened.sort();
+        if let Some(short) = shortened.first() {
+            return Ok((*short).clone());
+        }
+        Ok(unit
+            .rsplit_once("::")
+            .map_or(unit.as_str(), |(_, rest)| rest)
+            .to_string())
+    }
+}
+
+impl Checker<'_> {
+    /// A format's pieces, each hole with its value's slot, its shapes checked, and its unit
+    /// written the way this file writes it when it asks for one. (D194, D246)
+    fn print_pieces(
+        &self,
+        pieces: Vec<crate::ast::FormatPiece>,
+        slots: &[usize],
+        value_types: &[TypedSpan],
+        stored: bool,
+    ) -> Outcome<Vec<ir::PrintPiece>> {
+        let mut printed = Vec::new();
+        let mut holes_seen = 0;
+        for piece in pieces {
+            match piece {
+                crate::ast::FormatPiece::Text(text) => printed.push(ir::PrintPiece::Text(text)),
+                crate::ast::FormatPiece::Hole(hole) => {
+                    let value = slots.get(holes_seen).copied().unwrap_or_default();
+                    holes_seen += 1;
+                    let mut shapes = hole.shapes;
+                    if let Some((found, value_span)) = value_types.get(value) {
+                        Self::check_shapes(found, &shapes, *value_span, stored)?;
+                        // trace: D246
+                        if shapes.unit {
+                            shapes.unit_text = Some(self.unit_as_written(found, *value_span)?);
+                        }
+                    }
+                    printed.push(ir::PrintPiece::Hole {
+                        value,
+                        shapes,
+                        span: hole.span,
+                    });
+                }
+            }
+        }
+        Ok(printed)
     }
 }

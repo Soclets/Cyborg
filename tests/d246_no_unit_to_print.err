@@ -1,0 +1,5 @@
+refused: d246_no_unit_to_print.cy:8:25, line 8 column 25
+ 8 |     std::io::fmt_print("{$n, unit}{newln}");
+   |                         ^^^^^^^^^^
+ what: `unit` doesn't apply to `i32`
+ why:  a literal format is checked when building, including a shape that doesn't apply (D194)

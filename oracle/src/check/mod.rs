@@ -696,9 +696,16 @@ impl Checker<'_> {
                 );
                 continue;
             }
-            // trace: D93
+            // `use my::length.feet as feet;` shortens your own declaration, so the short name
+            // stands for it as written in this file. (D248, D75)
+            // trace: D93, D248
+            let path = declared
+                .path
+                .text
+                .strip_prefix("my::")
+                .unwrap_or(&declared.path.text);
             self.aliases
-                .insert(declared.short.text.clone(), declared.path.text.clone());
+                .insert(declared.short.text.clone(), path.to_string());
         }
         // trace: D198
         if !self.imported_things.is_empty() && self.imports.contains("std") {

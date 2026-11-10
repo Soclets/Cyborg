@@ -45,6 +45,12 @@ pub fn render(value: &Value, shapes: &Shapes, stored: bool, span: Span) -> Outco
         ""
     };
     let whole = format!("{sign}{body}");
+    // `{unit}`: the value, then its unit as its file writes it. (D246)
+    // trace: D246
+    let whole = match &shapes.unit_text {
+        Some(unit) => format!("{whole} {unit}"),
+        None => whole,
+    };
     let Some((width, unit)) = shapes.width else {
         return Ok(whole);
     };

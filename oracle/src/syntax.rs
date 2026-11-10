@@ -234,30 +234,37 @@ pub fn parse_format(raw: &str, start: usize) -> Outcome<Vec<FormatPiece>> {
 
 /// `{$t}`, a hole naming its variable. (D210)
 /// trace: D210
-fn parse_named_hole(name: &str, span: Span) -> Outcome<Hole> {
-    let is_name = name.starts_with(is_word_start) && name.chars().all(is_word_part);
-    if is_name {
-        return Ok(Hole {
-            number: None,
-            name: Some(name.to_string()),
-            shapes: Shapes::default(),
+/// `{$price, places: 2}` or `{$r.celsius}`: a variable, or a field of one, and its shapes
+/// after a comma. A hole only reads a value, so it never runs a call or maths. (D210, D247)
+/// trace: D210, D247
+fn parse_named_hole(inner: &str, span: Span) -> Outcome<Hole> {
+    let (name, shapes) = match inner.split_once(',') {
+        Some((name, shapes)) => (name.trim(), Some(shapes)),
+        None => (inner.trim(), None),
+    };
+    let is_word = |word: &str| word.starts_with(is_word_start) && word.chars().all(is_word_part);
+    if !name.split('.').all(is_word) {
+        return Err(Report::refused(
             span,
-        });
+            format!("`${name}` isn't a variable or a field of one"),
+            "a named hole reads a variable or its field, never a call or maths, so it never runs anything (D247)",
+        ));
     }
-    Err(Report::not_designed(
+    let shapes = match shapes {
+        Some(shapes) => read_shapes(shapes.split(',').map(str::trim), span)?,
+        None => Shapes::default(),
+    };
+    Ok(Hole {
+        number: None,
+        name: Some(name.to_string()),
+        shapes,
         span,
-        if name.contains(',') {
-            "shapes on a named hole"
-        } else {
-            "a named hole that's more than a variable, like a field"
-        },
-        "12.2",
-    ))
+    })
 }
 
 /// What's inside a hole's `{ }`: nothing, a number, or its shapes. (D194)
 fn parse_hole(inner: &str, span: Span) -> Outcome<Hole> {
-    let mut shapes = Shapes::default();
+    let shapes = Shapes::default();
     if inner.is_empty() {
         return Ok(Hole {
             number: None,
@@ -299,6 +306,17 @@ fn parse_hole(inner: &str, span: Span) -> Outcome<Hole> {
             "12.2",
         ));
     }
+    Ok(Hole {
+        number: None,
+        name: None,
+        shapes: read_shapes(parts, span)?,
+        span,
+    })
+}
+
+/// A hole's shapes, each written once. (D194)
+fn read_shapes<'a>(parts: impl Iterator<Item = &'a str>, span: Span) -> Outcome<Shapes> {
+    let mut shapes = Shapes::default();
     for part in parts {
         let (word, value) = match part.split_once(':') {
             Some((word, value)) => (word.trim(), Some(value.trim())),
@@ -312,11 +330,12 @@ fn parse_hole(inner: &str, span: Span) -> Outcome<Hole> {
             "form" => "form:",
             "zeros" => "zeros",
             "sign" => "sign",
+            "unit" => "unit",
             _ => {
                 return Err(Report::refused(
                     span,
                     format!("`{part}` isn't a shape"),
-                    "the shapes are `align:`, `width:`, `places:`, `base:`, `form:`, `zeros` and `sign` (D194)",
+                    "the shapes are `align:`, `width:`, `places:`, `base:`, `form:`, `zeros`, `sign` and `unit` (D194, D246)",
                 ));
             }
         };
@@ -337,12 +356,7 @@ fn parse_hole(inner: &str, span: Span) -> Outcome<Hole> {
             "`zeros` pads a value to its width (D194)",
         ));
     }
-    Ok(Hole {
-        number: None,
-        name: None,
-        shapes,
-        span,
-    })
+    Ok(shapes)
 }
 
 /// One shape inside a hole, such as `width: 8 cols`. (D194)
@@ -359,6 +373,8 @@ fn parse_shape(
     match (name, value) {
         ("zeros", None) => shapes.zeros = true,
         ("sign", None) => shapes.sign = true,
+        // trace: D246
+        ("unit", None) => shapes.unit = true,
         ("align:", Some(value)) => {
             shapes.align = Some(match value {
                 "left" => Align::Left,

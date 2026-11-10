@@ -1,5 +1,0 @@
-NotDesignedYet: d210_named_field.cy:11:25, line 11 column 25
-11 |     std::io::fmt_print("{$r.celsius}{newln}");
-   |                         ^^^^^^^^^^^^
- what: a named hole that's more than a variable, like a field
- why:  not decided yet (standard 12.2)

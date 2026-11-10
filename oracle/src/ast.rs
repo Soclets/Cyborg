@@ -719,6 +719,7 @@ pub struct Hole {
 
 /// A hole's shapes, each a word, with where each was written. (D194)
 #[derive(Clone, Debug, Default)]
+#[allow(clippy::struct_excessive_bools)] // Each bare shape word, like `zeros`, is one flag.
 pub struct Shapes {
     pub align: Option<Align>,
     pub width: Option<(usize, WidthUnit)>,
@@ -727,6 +728,10 @@ pub struct Shapes {
     pub science: bool,
     pub zeros: bool,
     pub sign: bool,
+    /// `unit`: the value is followed by its unit, the way its file writes it, which the
+    /// checker fills in. (D246)
+    pub unit: bool,
+    pub unit_text: Option<String>,
     pub written: Vec<(&'static str, Span)>,
 }
 
