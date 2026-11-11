@@ -2,7 +2,7 @@
 
 **Merging with the Machine.**
 
-Okay performance, reproducible. Made for long-lived codebases, not quick scripts.
+`OKAY\n` performance, reproducible. Made for long-lived codebases, not quick scripts.
 
 ## Licences
 
