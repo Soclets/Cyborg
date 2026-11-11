@@ -21,7 +21,16 @@ struct reading:
 end struct reading
 ```
 
-**From:** D57.
+A bare `struct` keeps its fields in the written order, padded to their natural alignment, like C and Go. `struct.any_order` lets the compiler reorder fields to save space, with its choice fixed for each target. `struct.packed` keeps the written order with no padding at all, for wire formats and packed registers.
+
+```
+struct.any_order cache_entry:
+    key: u64;
+    hits: u16;
+end struct.any_order cache_entry
+```
+
+**From:** D57, D319.
 
 ## 7.2 Building a struct
 
