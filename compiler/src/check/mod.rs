@@ -4,6 +4,7 @@
 //! (standard 11.7), and a skipped `let` still declares its variable, with the type it wrote.
 
 pub mod aggregates;
+pub mod failures;
 pub mod floats;
 pub mod format;
 pub mod types;
@@ -40,6 +41,9 @@ pub struct Signature {
     pub parameters: Vec<(String, Type, syntax::ParameterOwnership)>,
     pub returns: Type,
     pub span: Span,
+    /// The failures it lists, and its result's layout if there are any (standard 8).
+    pub failures: Vec<failures::FailureInfo>,
+    pub result: Option<failures::ResultLayout>,
 }
 
 /// Whether a variable has its value on the path being checked (D203).
@@ -111,6 +115,11 @@ pub struct Body {
     pub next_loop: checked::LoopId,
     /// The span of the statement being checked, which an error about a `decl` with no value points at.
     pub statement: Option<Span>,
+    /// The function's failures, and its result's layout, for `fail` and `?`.
+    pub failures: Vec<failures::FailureInfo>,
+    pub result: Option<failures::ResultLayout>,
+    /// The `otherwise:` arms around this, innermost last, for `instead`.
+    pub handlers: Vec<failures::Handler>,
 }
 
 impl Default for Type {
@@ -181,6 +190,7 @@ pub struct Checker<'a> {
     pub uses: HashMap<String, String>,
     pub functions: HashMap<String, Signature>,
     pub aggregates: aggregates::Aggregates,
+    pub failure_sets: failures::FailureSets,
     pub program: checked::Program,
 }
 
@@ -207,6 +217,7 @@ pub fn check(
         uses: HashMap::new(),
         functions: HashMap::new(),
         aggregates: aggregates::Aggregates::default(),
+        failure_sets: failures::FailureSets::default(),
         program: checked::Program::default(),
     };
     checker.check_file(parsed);
@@ -235,6 +246,7 @@ impl Checker<'_> {
             }
         }
         self.declare_aggregates(file);
+        self.declare_failure_sets(file);
         let mut bodies = Vec::new();
         let mut main = None;
         let mut header_failed = false;
@@ -375,16 +387,22 @@ impl Checker<'_> {
                 "a program starts at `fn.main`, and `main` says `return void;` (D11)",
             )));
         }
+        let failures = match &function.fails {
+            Some(list) => self.fail_list(list)?,
+            None => Vec::new(),
+        };
+        let result = if failures.is_empty() { None } else { Some(self.result_layout(&returns, &failures)) };
         let id = self.program.functions.len();
         let symbol = if name == "main" { "main".to_string() } else { format!("cyborg.{name}") };
+        let machine_returns = result.map_or_else(|| returns.machine(), failures::result_machine_type);
         self.program.functions.push(checked::Function {
             symbol,
             parameters: Vec::new(),
-            returns: returns.machine(),
+            returns: machine_returns,
             locals: Vec::new(),
             body: Vec::new(),
         });
-        Ok(Signature { name, id, parameters, returns, span: function.header_span })
+        Ok(Signature { name, id, parameters, returns, span: function.header_span, failures, result })
     }
 
     fn function_body(&mut self, function: &syntax::Function, signature: &Signature) {
@@ -393,6 +411,8 @@ impl Checker<'_> {
             returns: signature.returns.clone(),
             function_name: signature.name.clone(),
             is_main: function.keyword.text() == "fn.main",
+            failures: signature.failures.clone(),
+            result: signature.result,
             ..Body::default()
         };
         let mut parameters = Vec::new();

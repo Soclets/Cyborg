@@ -160,6 +160,13 @@ impl Checker<'_> {
         Ok(())
     }
 
+    /// Whether a call is one of `std`'s prints.
+    pub fn is_library_print(&self, expression: &syntax::Expression) -> bool {
+        let ExpressionKind::Call { callee, .. } = &expression.kind else { return false };
+        let ExpressionKind::Path(path) = &callee.kind else { return false };
+        matches!(self.resolve_path(path).as_str(), "std::io::fmt_print" | "std::io::fmt_print.stored")
+    }
+
     /// A writer held in a variable.
     fn writer_variable(&mut self, body: &Body, value: &syntax::Expression) -> Check<(WriterKind, checked::LocalId)> {
         if let ExpressionKind::Variable(name) = &value.kind

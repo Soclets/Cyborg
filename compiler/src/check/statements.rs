@@ -17,6 +17,8 @@ const NOT_DECIDED: &str = "not decided yet, and the standard doesn't say";
 pub struct Checked {
     pub block: checked::Block,
     pub leaves: bool,
+    /// Whether it leaves by `instead`, which carries on after the call it handles.
+    pub gives: bool,
 }
 
 impl Checker<'_> {
@@ -32,19 +34,29 @@ impl Checker<'_> {
         let count = body.variables.len();
         let mut block = Vec::new();
         let mut leaves = false;
+        let mut gives = false;
         for statement in statements {
+            if matches!(statement.kind, StatementKind::Instead(_)) {
+                gives = true;
+            }
             body.statement = None;
             let result = self.statement(body, statement, &mut block);
             // A `return` or `break` leaves even when what it hands back is refused.
             if matches!(result, Ok(true))
-                || matches!(statement.kind, StatementKind::Return(_) | StatementKind::Break(_))
+                || matches!(
+                    statement.kind,
+                    StatementKind::Return(_)
+                        | StatementKind::Break(_)
+                        | StatementKind::Fail(_)
+                        | StatementKind::Instead(_)
+                )
             {
                 leaves = true;
             }
         }
         body.scopes.pop();
         body.forget_after(count);
-        Checked { block, leaves }
+        Checked { block, leaves, gives }
     }
 
     /// Checks one statement, adding what it runs to `block`, and gives whether it always leaves.
@@ -94,6 +106,8 @@ impl Checker<'_> {
                 self.forever(body, label.as_ref(), inner, block)
             }
             StatementKind::Match(choice) => self.match_statement(body, statement.span, choice, block),
+            StatementKind::Fail(value) => self.fail_statement(body, statement.span, value, block).map(|()| true),
+            StatementKind::Instead(value) => self.instead_statement(body, statement.span, value, block).map(|()| true),
             StatementKind::For(each) => {
                 match &each.label {
                     Some(label) => self.check_closer(&each.end, &format!("end for {}", label.text), super::CLOSER_WHY),
@@ -332,7 +346,7 @@ impl Checker<'_> {
                         "`return` hands back a value (D11)",
                     )));
                 }
-                Ok(checked::Statement::Return(None))
+                Ok(checked::Statement::Return(body.result.map(|_| self.succeed(body, None))))
             }
             Some(expression) if returns == Type::Void => {
                 if body.is_main {
@@ -346,7 +360,13 @@ impl Checker<'_> {
             }
             Some(expression) => {
                 body.statement = Some(expression.span);
-                self.value_into(body, expression, &returns).map(|value| checked::Statement::Return(Some(value)))
+                self.value_into(body, expression, &returns).map(|value| {
+                    checked::Statement::Return(Some(if body.result.is_some() {
+                        self.succeed(body, Some(value))
+                    } else {
+                        value
+                    }))
+                })
             }
             None => Err(self.not_yet(statement.span, "`return` with nothing after it".to_string())),
         };
@@ -390,6 +410,38 @@ impl Checker<'_> {
         expression: &syntax::Expression,
         block: &mut checked::Block,
     ) -> Check<()> {
+        // A print can fail with `print_failed` (D96), which this compiler's writers never do, so its handling is
+        // checked and the print runs as it is.
+        let inner = match &expression.kind {
+            ExpressionKind::Pass { value, .. }
+            | ExpressionKind::Instead { value, .. }
+            | ExpressionKind::Otherwise { value, .. } => Some(value.as_ref()),
+            _ => None,
+        };
+        if let Some(inner) = inner
+            && self.is_library_print(inner)
+        {
+            if let ExpressionKind::Pass { .. } = &expression.kind {
+                if body.is_main {
+                    return Err(self.error(Diagnostic::not_designed(
+                        expression.span,
+                        "`?` in `fn.main`",
+                        "not decided yet (standard 12.6)",
+                    )));
+                }
+                if !body.failures.iter().any(|failure| failure.short == "print_failed") {
+                    return Err(self.error(Diagnostic::refused(
+                        expression.span,
+                        "this passes up `print_failed`, which this function doesn't list",
+                        "`?` is a compile error if the function doesn't list what it passes up (D47)",
+                    )));
+                }
+            }
+            if let Some(statement) = self.library_statement(body, inner)? {
+                block.push(statement);
+                return Ok(());
+            }
+        }
         if let Some(statement) = self.library_statement(body, expression)? {
             block.push(statement);
             return Ok(());

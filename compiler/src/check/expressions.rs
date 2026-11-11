@@ -174,6 +174,9 @@ impl Checker<'_> {
                 self.conversion(body, expression, value, keyword, written_type)
             }
             ExpressionKind::Call { callee, arguments, .. } => self.call(body, expression, callee, arguments),
+            ExpressionKind::Pass { .. } | ExpressionKind::Instead { .. } | ExpressionKind::Otherwise { .. } => {
+                self.handle(body, expression, expected)
+            }
             _ => Err(self.not_yet(expression.span, "this kind of value".to_string())),
         }
     }
@@ -1079,6 +1082,25 @@ impl Checker<'_> {
         callee: &syntax::Expression,
         arguments: &[syntax::Argument],
     ) -> Check<Typed> {
+        let typed = self.call_unhandled(body, expression, callee, arguments)?;
+        let checked::ExpressionKind::Call { function, .. } = &typed.value.kind else { return Ok(typed) };
+        let Some(signature) = self.functions.values().find(|signature| signature.id == *function).cloned() else {
+            return Ok(typed);
+        };
+        if signature.failures.is_empty() {
+            return Ok(typed);
+        }
+        Ok(self.crash_on_failure(expression.span, &signature, typed.value))
+    }
+
+    /// A call, before what happens when it fails is known.
+    pub fn call_unhandled(
+        &mut self,
+        body: &mut Body,
+        expression: &syntax::Expression,
+        callee: &syntax::Expression,
+        arguments: &[syntax::Argument],
+    ) -> Check<Typed> {
         let ExpressionKind::Path(path) = &callee.kind else {
             return Err(self.not_yet(callee.span, "calling this".to_string()));
         };
@@ -1121,7 +1143,11 @@ impl Checker<'_> {
         if failed {
             return Err(Reported);
         }
-        Ok(Typed::new(signature.returns.clone(), Kind::Call { function: signature.id, arguments: values }))
+        let mut typed = Typed::new(signature.returns.clone(), Kind::Call { function: signature.id, arguments: values });
+        if let Some(layout) = signature.result {
+            typed.value.machine_type = super::failures::result_machine_type(layout);
+        }
+        Ok(typed)
     }
 
     /// One argument, with the ownership word the parameter asks for (D2, D3, D184).

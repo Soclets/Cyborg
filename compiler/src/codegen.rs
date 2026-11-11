@@ -64,6 +64,8 @@ pub fn object_file(program: &Program, target: Target, mode: Mode) -> Result<Vec<
                 functions: Vec::new(),
                 structs: Vec::new(),
                 struct_fields: Vec::new(),
+                union_fields: Vec::new(),
+                sites: None,
                 unions: Vec::new(),
             };
             generator.program(program)?;
@@ -97,6 +99,10 @@ struct Generator<'context, 'module> {
     /// Each struct's LLVM type, and each union's, with each union's cases as LLVM structs.
     structs: Vec<lyftar::types::Type<'context>>,
     struct_fields: Vec<Vec<MachineType>>,
+    /// Each union's cases' fields, by machine type.
+    union_fields: Vec<Vec<Vec<MachineType>>>,
+    /// The table of where each failure was raised, for crash messages.
+    sites: Option<Value<'context, 'module>>,
     unions: Vec<(lyftar::types::Type<'context>, Vec<lyftar::types::Type<'context>>)>,
 }
 
@@ -110,6 +116,8 @@ struct Frame<'context, 'module> {
     is_main: bool,
     /// Each local's machine type.
     local_types: Vec<MachineType>,
+    /// Where `instead` goes, for each `otherwise:` around the code being made, innermost last.
+    handlers: Vec<BasicBlock<'context, 'module>>,
 }
 
 /// A value with its machine type, which a failure's `when:` line prints.
@@ -149,15 +157,29 @@ impl<'context, 'module> Generator<'context, 'module> {
     /// Makes the program's struct and union types, before anything uses them.
     fn aggregates(&mut self, program: &Program) {
         self.struct_fields.clone_from(&program.structs);
+        self.union_fields.clone_from(&program.unions);
+        // Every named type exists before any body uses it: structs and unions can hold each other.
         for id in 0..program.structs.len() {
             self.structs.push(self.context.create_named_struct(&format!("struct.{id}")));
+        }
+        for id in 0..program.unions.len() {
+            let union = self.context.create_named_struct(&format!("union.{id}"));
+            self.unions.push((union, Vec::new()));
+        }
+        for (id, cases) in program.unions.iter().enumerate() {
+            let words = cases
+                .iter()
+                .map(|fields| fields.iter().map(|field| size_in_words(field, program)).sum::<u64>())
+                .max()
+                .unwrap_or(0);
+            let payload = self.context.integer_type(64).to_dynamic().array_type(words.max(1));
+            self.unions[id].0.set_struct_body(&[self.context.integer_type(32).to_dynamic(), payload], false);
         }
         for (id, fields) in program.structs.iter().enumerate() {
             let fields: Vec<_> = fields.iter().map(|field| self.machine_type(field)).collect();
             self.structs[id].set_struct_body(&fields, false);
         }
         for (id, cases) in program.unions.iter().enumerate() {
-            let union = self.context.create_named_struct(&format!("union.{id}"));
             let case_types: Vec<_> = cases
                 .iter()
                 .map(|fields| {
@@ -165,19 +187,33 @@ impl<'context, 'module> Generator<'context, 'module> {
                     self.context.struct_type(&fields, false)
                 })
                 .collect();
-            let words = cases
-                .iter()
-                .map(|fields| fields.iter().map(|field| size_in_words(field, program)).sum::<u64>())
-                .max()
-                .unwrap_or(0);
-            let payload = self.context.integer_type(64).to_dynamic().array_type(words.max(1));
-            union.set_struct_body(&[self.context.integer_type(32).to_dynamic(), payload], false);
-            self.unions.push((union, case_types));
+            self.unions[id].1 = case_types;
         }
+    }
+
+    /// The table of where each failure was raised: a constant array of texts.
+    fn sites_table(&mut self, program: &Program) {
+        let text_type = self.machine_type(&MachineType::Text);
+        let mut entries = Vec::new();
+        for site in &program.sites {
+            let bytes = self.constant_bytes(site);
+            let length = self.integer(64, site.len() as u64);
+            entries.push(self.context.constant_struct(&[bytes, length], false));
+        }
+        if entries.is_empty() {
+            entries.push(text_type.constant_null().to_dynamic());
+        }
+        let table = self.context.constant_array(text_type, &entries);
+        let global = self.module.add_global("cyborg.sites", table.get_type());
+        global.set_initializer(table);
+        global.set_global_constant(true);
+        global.set_linkage(Linkage::Private);
+        self.sites = Some(global.to_dynamic());
     }
 
     fn program(&mut self, program: &Program) -> Result<()> {
         self.aggregates(program);
+        self.sites_table(program);
         let pointer = self.context.pointer_type(0);
         for (index, function) in program.functions.iter().enumerate() {
             let is_main = index == program.entry;
@@ -232,6 +268,7 @@ impl<'context, 'module> Generator<'context, 'module> {
             builder,
             is_main,
             local_types: function.locals.clone(),
+            handlers: Vec::new(),
         };
         self.block(&mut frame, &function.body)?;
         // The end of a body the checker let run off its end can't be reached, since every function returns.
@@ -245,6 +282,18 @@ impl<'context, 'module> Generator<'context, 'module> {
             }
         }
         Ok(())
+    }
+
+    /// A stack slot for a temporary, made in the entry block, so a loop doesn't make a new one each round.
+    fn temporary(
+        frame: &Frame<'context, 'module>,
+        slot_type: lyftar::types::Type<'context>,
+    ) -> Value<'context, 'module> {
+        let entry = frame.function.entry_basic_block();
+        match entry {
+            Some(entry) => Builder::at_first_insertion_point(entry).stack_allocate(slot_type, "").to_dynamic(),
+            None => frame.builder.stack_allocate(slot_type, "").to_dynamic(),
+        }
     }
 
     /// Starts a new block after a terminator, so code after a `return` or `break` has somewhere to go.
@@ -277,6 +326,12 @@ impl<'context, 'module> Generator<'context, 'module> {
             }
             Statement::Evaluate(value) => {
                 self.expression(frame, value)?;
+            }
+            Statement::Instead { local, value } => {
+                let value = self.expression(frame, value)?;
+                frame.builder.store(value, frame.slots[*local]);
+                let after = *frame.handlers.last().ok_or("`instead` outside its arms")?;
+                frame.builder.branch(after);
             }
             Statement::SetField { local, path, value } => {
                 let value = self.expression(frame, value)?;
@@ -373,7 +428,7 @@ impl<'context, 'module> Generator<'context, 'module> {
             frame.builder.call(self.runtime("__cyborg_trap")?, &[] as &[Value<'context, 'module>], "");
         } else {
             let writer_type = self.machine_type(&MachineType::Writer);
-            let writer = frame.builder.stack_allocate(writer_type, "").to_dynamic();
+            let writer = Self::temporary(frame, writer_type);
             frame.builder.call(self.runtime("__cyborg_crash_begin")?, &[writer], "");
             self.text(frame, writer, &failure.before)?;
             for (text, operand) in &failure.when {
@@ -475,6 +530,188 @@ impl<'context, 'module> Generator<'context, 'module> {
     }
 
     /// Prints a number or a `bool` with its shape.
+    /// A failing call, and what happens when it fails (standard 8).
+    #[allow(clippy::too_many_lines)]
+    fn handle(
+        &mut self,
+        frame: &mut Frame<'context, 'module>,
+        call: &Expression,
+        union: usize,
+        on_failure: &crate::checked::OnFailure,
+        value_type: &MachineType,
+    ) -> Result<Value<'context, 'module>> {
+        use crate::checked::OnFailure;
+        let gives_value = !matches!(value_type, MachineType::Void);
+        let result = self.expression(frame, call)?;
+        let failure = frame.builder.extract_value(result, 1, "").to_dynamic();
+        let tag = frame.builder.extract_value(failure, 0, "").to_dynamic();
+        let site = frame.builder.extract_value(result, 2, "").to_dynamic();
+        // The value goes in one slot on every path: the arms' local, which `instead` writes too, or a temporary.
+        let value_slot = match on_failure {
+            OnFailure::Arms { result, .. } if gives_value => Some(frame.slots[*result]),
+            _ if gives_value => Some(Self::temporary(frame, self.machine_type(value_type))),
+            _ => None,
+        };
+        let ok = frame.function.append_basic_block("call_fine");
+        let failed = frame.function.append_basic_block("call_failed");
+        let after = frame.function.append_basic_block("after_call");
+        let fine = frame.builder.integer_compare(IntegerPredicate::Equal, tag, self.integer(32, 0), "").to_dynamic();
+        frame.builder.conditional_branch(fine, ok, failed);
+        frame.builder.position_at_end(ok);
+        if let Some(slot) = value_slot {
+            let value = frame.builder.extract_value(result, 0, "").to_dynamic();
+            frame.builder.store(value, slot);
+        }
+        frame.builder.branch(after);
+        frame.builder.position_at_end(failed);
+        let case_value = |generator: &mut Self,
+                          frame: &mut Frame<'context, 'module>,
+                          case: usize,
+                          index: usize|
+         -> Result<Value<'context, 'module>> {
+            let (union_type, case_types) = generator.unions.get(union).cloned().ok_or("a union that wasn't made")?;
+            let case_type = *case_types.get(case).ok_or("a case that wasn't made")?;
+            let slot = Self::temporary(frame, union_type);
+            frame.builder.store(failure, slot);
+            let payload = frame.builder.struct_get_element_pointer(union_type, slot, 1, "").to_dynamic();
+            let whole = frame.builder.load(case_type, payload, "").to_dynamic();
+            Ok(frame.builder.extract_value(whole, u32::try_from(index).unwrap_or(0), "").to_dynamic())
+        };
+        match on_failure {
+            OnFailure::Crash(messages) => {
+                for message in messages {
+                    let this_case = frame.function.append_basic_block("this_failure");
+                    let next = frame.function.append_basic_block("next_failure");
+                    let is_case = frame
+                        .builder
+                        .integer_compare(IntegerPredicate::Equal, tag, self.integer(32, message.case as u64), "")
+                        .to_dynamic();
+                    frame.builder.conditional_branch(is_case, this_case, next);
+                    frame.builder.position_at_end(this_case);
+                    let mut operands = Vec::new();
+                    if message.carried {
+                        let field_type = self
+                            .union_fields
+                            .get(union)
+                            .and_then(|cases| cases.get(message.case))
+                            .and_then(|fields| fields.first())
+                            .cloned()
+                            .ok_or("a carried value that isn't there")?;
+                        operands.push((case_value(self, frame, message.case, 0)?, field_type));
+                    }
+                    self.crash_with_site(frame, &message.failure, &operands, site)?;
+                    frame.builder.unreachable();
+                    frame.builder.position_at_end(next);
+                }
+                frame.builder.unreachable();
+            }
+            OnFailure::Ignore => {
+                frame.builder.branch(after);
+            }
+            OnFailure::Fallback(fallback) => {
+                let value = self.expression(frame, fallback)?;
+                if let Some(slot) = value_slot {
+                    frame.builder.store(value, slot);
+                }
+                frame.builder.branch(after);
+            }
+            OnFailure::PassUp { mapping, structure, union: caller_union, value_type: caller_value } => {
+                let (caller_union_type, caller_cases) =
+                    self.unions.get(*caller_union).cloned().ok_or("a union that wasn't made")?;
+                let caller_struct = *self.structs.get(*structure).ok_or("a struct that wasn't made")?;
+                for (from, to) in mapping {
+                    let this_case = frame.function.append_basic_block("pass_up");
+                    let next = frame.function.append_basic_block("next_failure");
+                    let is_case = frame
+                        .builder
+                        .integer_compare(IntegerPredicate::Equal, tag, self.integer(32, *from as u64), "")
+                        .to_dynamic();
+                    frame.builder.conditional_branch(is_case, this_case, next);
+                    frame.builder.position_at_end(this_case);
+                    let fields =
+                        self.union_fields.get(union).and_then(|cases| cases.get(*from)).cloned().unwrap_or_default();
+                    let case_type = *caller_cases.get(*to).ok_or("a case that wasn't made")?;
+                    let mut data = case_type.undefined().to_dynamic();
+                    for index in 0..fields.len() {
+                        let value = case_value(self, frame, *from, index)?;
+                        data =
+                            frame.builder.insert_value(data, value, u32::try_from(index).unwrap_or(0), "").to_dynamic();
+                    }
+                    let slot = Self::temporary(frame, caller_union_type);
+                    let tag_place =
+                        frame.builder.struct_get_element_pointer(caller_union_type, slot, 0, "").to_dynamic();
+                    frame.builder.store(self.integer(32, *to as u64), tag_place);
+                    let payload = frame.builder.struct_get_element_pointer(caller_union_type, slot, 1, "").to_dynamic();
+                    frame.builder.store(data, payload);
+                    let passed_failure = frame.builder.load(caller_union_type, slot, "").to_dynamic();
+                    let mut passed = caller_struct.undefined().to_dynamic();
+                    let zero_value = self.machine_type(caller_value).constant_null().to_dynamic();
+                    passed = frame.builder.insert_value(passed, zero_value, 0, "").to_dynamic();
+                    passed = frame.builder.insert_value(passed, passed_failure, 1, "").to_dynamic();
+                    passed = frame.builder.insert_value(passed, site, 2, "").to_dynamic();
+                    frame.builder.return_value(passed);
+                    frame.builder.position_at_end(next);
+                }
+                frame.builder.unreachable();
+            }
+            OnFailure::Arms { arms, result, union_local } => {
+                frame.builder.store(failure, frame.slots[*union_local]);
+                frame.handlers.push(after);
+                for (case, statements) in arms {
+                    let this_case = frame.function.append_basic_block("arm");
+                    let next = frame.function.append_basic_block("next_arm");
+                    let is_case = frame
+                        .builder
+                        .integer_compare(IntegerPredicate::Equal, tag, self.integer(32, *case as u64), "")
+                        .to_dynamic();
+                    frame.builder.conditional_branch(is_case, this_case, next);
+                    frame.builder.position_at_end(this_case);
+                    self.block(frame, statements)?;
+                    Self::branch_if_open(frame, after);
+                    frame.builder.position_at_end(next);
+                }
+                frame.handlers.pop();
+                let _ = result;
+                frame.builder.unreachable();
+            }
+        }
+        frame.builder.position_at_end(after);
+        match value_slot {
+            Some(slot) => Ok(frame.builder.load(self.machine_type(value_type), slot, "").to_dynamic()),
+            None => Ok(self.integer(8, 0)),
+        }
+    }
+
+    /// Crashes with a failure's message, then where it was raised, from the sites table (D96).
+    fn crash_with_site(
+        &mut self,
+        frame: &mut Frame<'context, 'module>,
+        failure: &CheckFailure,
+        operands: &[Operand<'context, 'module>],
+        site: Value<'context, 'module>,
+    ) -> Result<()> {
+        let writer_type = self.machine_type(&MachineType::Writer);
+        let writer = Self::temporary(frame, writer_type);
+        frame.builder.call(self.runtime("__cyborg_crash_begin")?, &[writer], "");
+        self.text(frame, writer, &failure.before)?;
+        for (text, operand) in &failure.when {
+            self.text(frame, writer, text)?;
+            let (value, machine_type) = operands.get(*operand).cloned().ok_or("a failure names a missing operand")?;
+            self.print_number(frame, writer, value, &machine_type, &Shape::default())?;
+        }
+        self.text(frame, writer, &failure.after)?;
+        let table = self.sites.ok_or("no table of failure sites")?;
+        let entry_type = self.machine_type(&MachineType::Text);
+        let wide_site = frame.builder.zero_extend(site, self.context.integer_type(64), "").to_dynamic();
+        let entry = frame.builder.get_element_pointer(entry_type, table, &[wide_site], "").to_dynamic();
+        let text = frame.builder.load(entry_type, entry, "").to_dynamic();
+        let data = frame.builder.extract_value(text, 0, "").to_dynamic();
+        let length = frame.builder.extract_value(text, 1, "").to_dynamic();
+        frame.builder.call(self.runtime("__cyborg_writer_write")?, &[writer, data, length], "");
+        frame.builder.call(self.runtime("__cyborg_exit")?, &[self.integer(32, 1)], "");
+        Ok(())
+    }
+
     /// The address of a field, maybe deep, inside a local.
     fn field_place(
         &mut self,
@@ -530,7 +767,7 @@ impl<'context, 'module> Generator<'context, 'module> {
         };
         let places = shape.places.unwrap_or(0);
         let buffer_type = self.context.integer_type(8).to_dynamic().array_type(1400 + u64::from(places));
-        let buffer = frame.builder.stack_allocate(buffer_type, "").to_dynamic();
+        let buffer = Self::temporary(frame, buffer_type);
         let arguments = [
             wide,
             self.integer(32, u64::from(bits)),
@@ -895,7 +1132,7 @@ impl<'context, 'module> Generator<'context, 'module> {
                         Argument::Temporary(value) => {
                             let generated = self.expression(frame, value)?;
                             let slot_type = self.machine_type(&value.machine_type);
-                            let slot = frame.builder.stack_allocate(slot_type, "").to_dynamic();
+                            let slot = Self::temporary(frame, slot_type);
                             frame.builder.store(generated, slot);
                             slot
                         }
@@ -925,6 +1162,10 @@ impl<'context, 'module> Generator<'context, 'module> {
                 self.check(frame, fits, failure, &[(generated, value.machine_type.clone())])?;
                 generated
             }
+            ExpressionKind::Zero => self.machine_type(&expression.machine_type).constant_null().to_dynamic(),
+            ExpressionKind::Handle { call, union, on_failure } => {
+                self.handle(frame, call, *union, on_failure, &expression.machine_type)?
+            }
             ExpressionKind::Build(fields) => {
                 let mut built = self.machine_type(&expression.machine_type).undefined().to_dynamic();
                 for (index, field) in fields.iter().enumerate() {
@@ -950,7 +1191,7 @@ impl<'context, 'module> Generator<'context, 'module> {
                     built =
                         frame.builder.insert_value(built, value, u32::try_from(index).unwrap_or(0), "").to_dynamic();
                 }
-                let slot = frame.builder.stack_allocate(union_type, "").to_dynamic();
+                let slot = Self::temporary(frame, union_type);
                 let tag_place = frame.builder.struct_get_element_pointer(union_type, slot, 0, "").to_dynamic();
                 frame.builder.store(self.integer(32, *case as u64), tag_place);
                 let payload = frame.builder.struct_get_element_pointer(union_type, slot, 1, "").to_dynamic();
@@ -968,7 +1209,7 @@ impl<'context, 'module> Generator<'context, 'module> {
                 let (union_type, case_types) = self.unions.get(id).cloned().ok_or("a union that wasn't made")?;
                 let case_type = *case_types.get(*case).ok_or("a case that wasn't made")?;
                 let value = self.expression(frame, base)?;
-                let slot = frame.builder.stack_allocate(union_type, "").to_dynamic();
+                let slot = Self::temporary(frame, union_type);
                 frame.builder.store(value, slot);
                 let payload = frame.builder.struct_get_element_pointer(union_type, slot, 1, "").to_dynamic();
                 let case_value = frame.builder.load(case_type, payload, "").to_dynamic();

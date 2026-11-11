@@ -143,6 +143,16 @@ impl Diagnostic {
     }
 }
 
+/// A `because:` part on its own, as a failure's crash message adds it once it knows where the failure was raised.
+#[must_use]
+pub fn render_because(sources: &Sources, span: Span, note: &str) -> String {
+    let mut out = String::new();
+    let _ = writeln!(out, " because: {}", place_line(sources, span));
+    snippet(&mut out, sources, span);
+    let _ = writeln!(out, "     {note}");
+    out
+}
+
 /// `file:line:col, line N column M`.
 fn place_line(sources: &Sources, span: Span) -> String {
     let file = sources.get(span.file);

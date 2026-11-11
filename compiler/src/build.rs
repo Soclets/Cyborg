@@ -54,9 +54,20 @@ pub fn build(file: &Path, target: Target, mode: Mode, output: &Path) -> Outcome 
     let Some(program) = program else {
         return Outcome::Failed("the checker gave no program and no error".to_string());
     };
-    let object = match codegen::object_file(&program, target, mode) {
-        Ok(object) => object,
-        Err(message) => return Outcome::Failed(message),
+    // Lyftar panics on a build call that's wrong, which is a bug in this compiler, so it's reported as one (rule 6).
+    let generated =
+        std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| codegen::object_file(&program, target, mode)));
+    let object = match generated {
+        Ok(Ok(object)) => object,
+        Ok(Err(message)) => return Outcome::Failed(message),
+        Err(panic) => {
+            let message = panic
+                .downcast_ref::<String>()
+                .cloned()
+                .or_else(|| panic.downcast_ref::<&str>().map(|text| (*text).to_string()))
+                .unwrap_or_else(|| "a panic while making machine code".to_string());
+            return Outcome::Failed(message);
+        }
     };
     let object_path = output.with_extension("o");
     if let Err(error) = std::fs::write(&object_path, object) {

@@ -42,6 +42,8 @@ pub struct Program {
     pub structs: Vec<Vec<MachineType>>,
     /// Each union's cases, and each case's fields.
     pub unions: Vec<Vec<Vec<MachineType>>>,
+    /// Where each failure was raised, as the `because:` part its crash message ends with.
+    pub sites: Vec<String>,
     /// `fn.main`.
     pub entry: FunctionId,
 }
@@ -82,6 +84,11 @@ pub enum Statement {
     },
     /// Changes a local.
     Set {
+        local: LocalId,
+        value: Expression,
+    },
+    /// `instead value;` in an `otherwise:` arm: the value used in place of the failed call (D139).
+    Instead {
         local: LocalId,
         value: Expression,
     },
@@ -228,6 +235,30 @@ pub enum Base {
     HexUpper,
 }
 
+/// What happens when a call fails (standard 8).
+#[derive(Clone, Debug)]
+pub enum OnFailure {
+    /// Nothing handles it, so the program stops (D96).
+    Crash(Vec<Unhandled>),
+    /// `?? void` on a call that gives nothing back.
+    Ignore,
+    /// `?? value`.
+    Fallback(Expression),
+    /// `?`: the caller's result, with the callee's failure cases moved to the caller's (D47).
+    PassUp { mapping: Vec<(usize, usize)>, structure: usize, union: usize, value_type: MachineType },
+    /// `otherwise:` arms, by failure case, giving their value with `instead` into a local.
+    Arms { arms: Vec<(usize, Block)>, result: LocalId, union_local: LocalId },
+}
+
+/// The crash message for one failure nothing handles.
+#[derive(Clone, Debug)]
+pub struct Unhandled {
+    pub case: usize,
+    pub failure: CheckFailure,
+    /// Whether it carries one value, which its `when:` line prints.
+    pub carried: bool,
+}
+
 /// What a failed check prints. The message is rendered while building, in the one error layout (standard 11.1),
 /// with the values that broke it, if any, printed into its `when:` line while running.
 #[derive(Clone, Debug)]
@@ -343,6 +374,15 @@ pub enum ExpressionKind {
         min: f64,
         max: f64,
         failure: Box<CheckFailure>,
+    },
+    /// A value with every bit 0, for a result's value when it failed.
+    Zero,
+    /// A call to a failing function, and what happens when it fails. Its value is the call's value.
+    Handle {
+        call: Box<Expression>,
+        /// The union of the callee's failures, inside its result.
+        union: usize,
+        on_failure: Box<OnFailure>,
     },
     /// A struct built from its fields' values, in their declared order.
     Build(Vec<Expression>),
