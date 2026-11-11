@@ -12,6 +12,8 @@ What's waiting for when the owner unpauses Cyborg, written down on 2026-11-11 so
 - **Concurrency:** threads, sharing data, and anything like goroutines or async (12.8).
 - **A secret type** for constant-time code (12.7).
 
+- **"Merging with the Machine"**: the owner wants it on the README and GitHub later, not yet (2026-11-11).
+
 ## compiler claude
 
 - `FinalPerf` and `FinalShit` still keep overflow checks, where 10.1 says none (`bench/okay-vs-rust`).
