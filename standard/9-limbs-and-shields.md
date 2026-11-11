@@ -152,7 +152,6 @@ end shield sensor_driver
 - `inline.asm`, and any `inline.@limb::lang`
 - Raw pointers, with any address and pointer arithmetic
 - Volatile reads and writes, for hardware registers
-- Exact struct layouts, with field order, packing and alignment fixed
 - Your own allocator
 - `@csup` C calls
 - `@csup::union.untagged`
