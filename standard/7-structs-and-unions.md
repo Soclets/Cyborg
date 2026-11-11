@@ -38,7 +38,7 @@ let $r: reading = reading[celsius = 21, time = 3600 std::units::time.seconds];
 **Rule:** a field read is a plain `.`, and no code runs.
 
 ```
-std::io::fmt_print("{}{newln}", $r.celsius);
+std::io::fmt_print(Lend.mut $out, "{}{newln}", $r.celsius);
 ```
 
 A field can be changed if the whole variable is `let mut`, or the parameter `Lent.mut`:

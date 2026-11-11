@@ -77,6 +77,7 @@ Waiting on the owner, most needed first. Each is `NotDesignedYet` unless it says
 - `:=` (D216): the spelling of Precog's rule, list items and struct fields in Precog's mode, and `:=` on a borrow.
 - Checking past an error (D215): an error in a block's opening line, like `if` or `for`, or in a function's header.
 - Spacing (D213): indentation, line length, and the space before an opening `[`, which `fn total [$xs: …]` has and `reading[celsius = 21]` doesn't.
+- `os` and writers (D271, D272): what else goes in `os`, a bare-metal program's writers like a board's serial port, the names `os::stdout.buffered`, `os::stderr.buffered` and `os::flush`, and how flushing ends a writer's duty.
 - Print (D194): how the fill character is written, a per-value `form: stored`, formatting to a `str` without printing, and what the output is on bare metal. `form: science` is how a float prints with an exponent.
 - How to check a float's sign.
 - Raw pointers' spelling, though D38 puts them in shields.

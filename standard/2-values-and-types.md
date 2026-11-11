@@ -114,8 +114,8 @@ A float prints as the shortest text that means its value, and `std::io::fmt_prin
 
 ```
 let $x: f64.stable = ~0.1;
-std::io::fmt_print("{}{newln}", $x);
-std::io::fmt_print.stored("{}{newln}", $x);
+std::io::fmt_print(Lend.mut $out, "{}{newln}", $x);
+std::io::fmt_print.stored(Lend.mut $out, "{}{newln}", $x);
 ```
 
 The first prints `0.1`, and the second prints every digit, with no limit: `0.1000000000000000055511151231257827021181583404541015625`.
@@ -460,7 +460,7 @@ if $hot:
 else:
     assign $x = 2;
 end if
-std::io::fmt_print("{}{newln}", $x);
+std::io::fmt_print(Lend.mut $out, "{}{newln}", $x);
 ```
 
 It isn't uninitialized memory, since nothing can read it empty, so it needs no shield.

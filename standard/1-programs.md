@@ -29,17 +29,22 @@
 
 ```
 import std;
+import os;
 use std::io::fmt_print as fmt_print;
 
 fn.main [none] -> void:
-    fmt_print("Hello, World!{newln}");
+    let mut $out: os::stdout.buffered = os::stdout.buffered(size: 1024 bytes);
+    fmt_print(Lend.mut $out, "Hello, World!{newln}");
+    os::flush(Give $out);
     return void;
 end fn.main
 ```
 
 This is the owner's hello world. The `use` line is on purpose.
 
-**From:** D11, D23, D93, D197, D265, D267, the sketch.
+Its manifest says `need std` and `need os`. Examples elsewhere in the standard assume a writer `$out` like this one.
+
+**From:** D11, D23, D93, D197, D265, D267, D271, D272, the sketch.
 
 ## 1.3 Blocks and statements
 
@@ -63,7 +68,7 @@ end if
 
 ```
 let $r: reading = reading[celsius = 21, time = 3600 std::units::time.seconds];
-std::io::fmt_print("{}{newln}", $r.celsius);
+std::io::fmt_print(Lend.mut $out, "{}{newln}", $r.celsius);
 ```
 
 **From:** D57, D58, the sketch.
@@ -76,12 +81,12 @@ std::io::fmt_print("{}{newln}", $r.celsius);
 import std;
 import @csup;
 
-std::io::fmt_print("hi{newln}");
+std::io::fmt_print(Lend.mut $out, "hi{newln}");
 ```
 
 A file imports the half of a package it uses: `import std;` for `std::`, and `import @std;` for `@std::`. `import pkg std;` brings in both.
 
-`import std::io::fmt_print;` imports only that one thing, with its narrowings, like `.stderr`, and the file can reach nothing else from `std`. It still writes the full path, unless a `use` shortens it. `import std::units::time;` imports a whole unit family.
+`import std::io::fmt_print;` imports only that one thing, with its narrowings, like `.stored`, and the file can reach nothing else from `std`. It still writes the full path, unless a `use` shortens it. `import std::units::time;` imports a whole unit family.
 
 **From:** D22, D56, D80, D81, D82, D92, D161, D183, D186, D187, D188, D191, D196, D198, D199, D229.
 
@@ -102,12 +107,11 @@ With two or more narrowings, the strongest goes first: the one that changes the 
 
 | Thing | Order | Example |
 |---|---|---|
-| A print | What's printed, then where | `fmt_print.stored.stderr` |
 | A borrow | How it can be used, then how long | `Lend.mut.held` |
 
 Shapes in a format hole are labels, so they go in any order.
 
-**Refused:** narrowings out of order, as in `fmt_print.stderr.stored`, with the right order as the fix.
+**Refused:** narrowings out of order, as in `Lend.held.mut`, with the right order as the fix.
 
 **From:** D8, D54, D223.
 
@@ -119,11 +123,11 @@ A default the language or `std` fixes can't be written out. In a collection you 
 
 ```
 let $a: str = "hi";
-std::io::fmt_print("hi{newln}");
+std::io::fmt_print(Lend.mut $out, "hi{newln}");
 7 div.trunc 2
 ```
 
-**Refused:** `str.utf8`, `std::io::fmt_print.stdout`, a bare `div` on integers, and a bare `mod`.
+**Refused:** `str.utf8`, a bare `div` on integers, and a bare `mod`.
 
 **From:** D48, D50, D51, D97, D164.
 
@@ -187,7 +191,7 @@ use std::units::time.seconds as seconds;
 use std::io::fmt_print as "say";
 
 let $a: i32[unit: seconds] = 3600 seconds;
-say("hi{newln}");
+say(Lend.mut $out, "hi{newln}");
 ```
 
 A limb works the same way: `use @csup::union.untagged as untagged;`, or a quoted name.
@@ -208,7 +212,7 @@ A function's narrowing can't be shortened to its bare name, since `stored(…)` 
 use std::io::fmt_print as fmt_print;
 use std::io::fmt_print.stored as "print_exact";
 
-fmt_print.stored("{}{newln}", $x);
+fmt_print.stored(Lend.mut $out, "{}{newln}", $x);
 print_exact("{}{newln}", $x);
 ```
 
@@ -245,33 +249,31 @@ end comment why_sorted
 
 ## 1.13 Printing: `std::io::fmt_print`
 
-**Rule:** `std` has one print, `std::io::fmt_print`, and it's always a format print. Plain text is a format with no holes. A newline is `{newln}` and a tab is `{tab}`, inside the text.
+**Rule:** `std` has one print, `std::io::fmt_print`, and it's always a format print. Its first argument is the writer, where the output goes: a buffered terminal from `os`, like `os::stdout.buffered(size: 1024 bytes)` or `os::stderr.buffered(…)`, or a board's port on bare metal. A buffered writer must be flushed, as in `os::flush(Give $out);`, or the program doesn't compile. Plain text is a format with no holes. A newline is `{newln}` and a tab is `{tab}`, inside the text.
 
 ```
-std::io::fmt_print("hi{newln}");
-std::io::fmt_print("{}: {} at ${places: 2}{newln}", $name, $count, $price);
-std::io::fmt_print("0x{base: hex.upper, zeros, width: 4 cols}{newln}", 255);
-std::io::fmt_print("[{align: right, width: 6 cols}] {form: science, places: 2}{newln}", 42, $price);
-std::io::fmt_print.stored("{}{newln}", $tenth);
+std::io::fmt_print(Lend.mut $out, "hi{newln}");
+std::io::fmt_print(Lend.mut $out, "{}: {} at ${places: 2}{newln}", $name, $count, $price);
+std::io::fmt_print(Lend.mut $out, "0x{base: hex.upper, zeros, width: 4 cols}{newln}", 255);
+std::io::fmt_print(Lend.mut $out, "[{align: right, width: 6 cols}] {form: science, places: 2}{newln}", 42, $price);
+std::io::fmt_print.stored(Lend.mut $out, "{}{newln}", $tenth);
 ```
 
 With `$name` as `"rope"`, `$count` as `3`, `$price` as an `f64.stable` holding `12.5`, and `$tenth` as an `f64.stable` holding `~0.1`, these print `hi`, `rope: 3 at $12.50`, `0x00FF`, `[    42] 1.25e1`, and `0.1000000000000000055511151231257827021181583404541015625`.
 
 - **Holes:** `{}` takes the next value in its readable form. `{1}`, `{2}` are numbered, counting from 1, and can't be mixed with plain ones.
-- **Named holes:** `{$t}` prints the variable `$t`, with shapes after a comma and fields allowed, as in `fmt_print("{$name}: {$count} at ${$price, places: 2}{newln}");` and `{$r.celsius}`. A hole only reads a value, never a call or maths. Named holes aren't mixed with `{}` or numbered ones.
+- **Named holes:** `{$t}` prints the variable `$t`, with shapes after a comma and fields allowed, as in `fmt_print(Lend.mut $out, "{$name}: {$count} at ${$price, places: 2}{newln}");` and `{$r.celsius}`. A hole only reads a value, never a call or maths. Named holes aren't mixed with `{}` or numbered ones.
 - **Shapes are words:** `align: left`, `right` or `center`; `width:` with its unit, `cols`, `cols.east_asian`, `graphemes`, `points` or `bytes`; `places:`; `base: bin`, `oct`, `hex` or `hex.upper`; `form: science`; and bare `zeros` and `sign`.
 - **Escapes in the text:** `\\`, `\"`, `\'`, `\r`, `\0`, `\xHH`, `\uHHHH`, `\UHHHHHHHH`, and `\{` and `\}` for a brace.
 - **Too wide:** a value wider than its width prints whole.
 - **`unit`:** prints the value and its unit, the way its own file writes it, so with `use std::units::time.seconds as seconds;`, `{unit}` prints `3600 seconds`. The package path is left off.
 - **`.stored`:** prints every float exactly as it's stored.
-- **`.stderr`:** prints to stderr instead of stdout, as in `std::io::fmt_print.stderr("failed{newln}");`.
-- **Both:** `.stored` and `.stderr` combine on one print, strongest first ([1.6](#16-narrowings-)), as in `std::io::fmt_print.stored.stderr(…)`.
 
 A literal format is checked when building.
 
-**Refused:** a bare `{` in the text, with `fix: \{`; `\n`, with `fix: {newln}`; `{0}`; mixing plain and numbered holes; more or fewer values than holes; a shape that doesn't apply, like `places:` on an integer; a width with no unit; `zeros` with no width; a shape written twice; an unknown escape; `std::io::fmt_print.stdout`, since stdout is the default, and `std::io::fmt_println`, with `fix: std::io::fmt_print`.
+**Refused:** a bare `{` in the text, with `fix: \{`; `\n`, with `fix: {newln}`; `{0}`; mixing plain and numbered holes; more or fewer values than holes; a shape that doesn't apply, like `places:` on an integer; a width with no unit; `zeros` with no width; a shape written twice; an unknown escape; `.stdout` and `.stderr`, since the writer says where output goes, a buffered writer never flushed, and `std::io::fmt_println`, with `fix: std::io::fmt_print`.
 
-**From:** D11, D50, D51, D122, D162, D165, D194, D195, D197, D210, D221, D223, D246, D247, and CyborgPL's format print.
+**From:** D11, D50, D51, D122, D162, D165, D194, D195, D197, D210, D221, D223, D246, D247, D272, and CyborgPL's format print.
 
 ## 1.14 Spacing
 
@@ -291,6 +293,7 @@ A line break inside a statement is allowed only after a comma, after an opening 
 
 ```
 std::io::fmt_print(
+    Lend.mut $out,
     "{}: {} at ${places: 2}{newln}",
     $name,
     $count,

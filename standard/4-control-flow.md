@@ -19,7 +19,7 @@ Each loop says how it ends. There is no `continue`: wrap the work in an `if` ins
 
 ```
 if $t at_least 10:
-    std::io::fmt_print("big total: {}{newln}", $t);
+    std::io::fmt_print(Lend.mut $out, "big total: {}{newln}", $t);
 end if
 ```
 
@@ -27,11 +27,11 @@ end if
 
 ```
 if $n > 100:
-    std::io::fmt_print("huge{newln}");
+    std::io::fmt_print(Lend.mut $out, "huge{newln}");
 else if $n > 0:
-    std::io::fmt_print("big{newln}");
+    std::io::fmt_print(Lend.mut $out, "big{newln}");
 else:
-    std::io::fmt_print("small{newln}");
+    std::io::fmt_print(Lend.mut $out, "small{newln}");
 end if
 ```
 
@@ -45,7 +45,7 @@ It works on a union's case, and on a bound for a plain integer.
 
 ```
 if $s: status.failed:
-    std::io::fmt_print("failed: {}{newln}", $s.code);
+    std::io::fmt_print(Lend.mut $out, "failed: {}{newln}", $s.code);
 end if
 
 if $n: i32[min: 0, max: 100]:
@@ -59,7 +59,7 @@ Changing `$s` inside the block, or lending it with `Lend.mut`, is allowed, and t
 
 ```
 if $s: status.failed:
-    std::io::fmt_print("{}{newln}", $s.code);
+    std::io::fmt_print(Lend.mut $out, "{}{newln}", $s.code);
     change $s = status.ok;
 end if
 ```
@@ -77,9 +77,9 @@ The test is the program's own logic, so on a plain integer it stays in every bui
 ```
 match $s:
     case status.ok:
-        std::io::fmt_print("worked{newln}");
+        std::io::fmt_print(Lend.mut $out, "worked{newln}");
     case status.failed:
-        std::io::fmt_print("failed{newln}");
+        std::io::fmt_print(Lend.mut $out, "failed{newln}");
 end match
 ```
 
@@ -88,9 +88,9 @@ Naming a case lets its arm read its data:
 ```
 match $s:
     case status.failed $f:
-        std::io::fmt_print("{}{newln}", $f.code);
+        std::io::fmt_print(Lend.mut $out, "{}{newln}", $f.code);
     case status.ok:
-        std::io::fmt_print("worked{newln}");
+        std::io::fmt_print(Lend.mut $out, "worked{newln}");
 end match
 ```
 

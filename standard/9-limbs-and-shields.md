@@ -29,7 +29,7 @@ Bare `@`, with no `::`, is a compiler builtin instead ([5.7](5-functions.md#57-b
 | Limb | A compiler extension | `@` and its path: `@csup::union.untagged` |
 | Package | What you install: a kit, a limb, or both, with one name and one version | Its halves, as `std::` and `@std::` |
 
-The manifest lists packages. `std` is a package with both halves. Your own project is a package too, named in the manifest, and no file says which package it belongs to. The base and builtins aren't packages.
+The manifest lists packages. `std` is a package with both halves, and works anywhere, bare metal included: collections, maths, units, text and formatting. `os` is a separate package, a plain and portable layer over an operating system, like the terminal, files, arguments and exit codes, so a program using it says `need os`. Your own project is a package too, named in the manifest, and no file says which package it belongs to. The base and builtins aren't packages.
 
 Packages are installed with CyJet, Cyborg's package manager, which shares only its name with CyborgPL's.
 
@@ -41,6 +41,7 @@ ver 2026y-11m-14d same
 okay 2026y-11m-01d
 
 need std 2026y-11m-01d
+need os 2026y-11m-01d
 need json 2026y-10m-20d
 need csup 2026y-09m-30d with headers
 ```
@@ -49,7 +50,7 @@ need csup 2026y-09m-30d with headers
 
 **Refused:** a line like Go's `package main`, a `need` line with no version, and a release that changes or removes a `pub` item while saying it doesn't break.
 
-**From:** D22, D28, D36, D56, D186, D189, D190, D228, D229, D230, D231.
+**From:** D22, D28, D36, D56, D186, D189, D190, D228, D229, D230, D231, D271.
 
 ## 9.2 `@`: a limb
 
