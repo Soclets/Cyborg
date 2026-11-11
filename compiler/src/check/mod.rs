@@ -4,6 +4,7 @@
 //! (standard 11.7), and a skipped `let` still declares its variable, with the type it wrote.
 
 pub mod aggregates;
+pub mod bake;
 pub mod contracts;
 pub mod failures;
 pub mod floats;
@@ -47,6 +48,7 @@ pub struct Signature {
     pub result: Option<failures::ResultLayout>,
     /// Its labels, defaults and contracts (D114).
     pub top: contracts::TopOfBody,
+    pub purity: Purity,
 }
 
 /// Whether a variable has its value on the path being checked (D203).
@@ -76,6 +78,8 @@ pub enum Origin {
     Decl,
     Parameter,
     LoopItem,
+    /// A `const` in a body, fixed at compile time (D83).
+    Constant,
 }
 
 /// A variable.
@@ -127,6 +131,23 @@ pub struct Body {
     pub top: contracts::TopOfBody,
     /// The value being returned, for `result` in `ensures`.
     pub result_value: Option<(checked::LocalId, Type)>,
+    /// The opener of the loop being checked, which its checked form keeps.
+    pub loop_opener: Span,
+    /// Whether this is a `fn.pure` or `fn.pure.baked` function, whose code is held to more (D86, D91).
+    pub purity: Purity,
+    /// Whether a contract's condition is being checked, which only calls pure functions (D86).
+    pub in_contract: bool,
+    /// `const`s declared in this body, by their locals, with their values (D83).
+    pub known: HashMap<checked::LocalId, bake::Constant>,
+}
+
+/// How pure a function is (D86, D91).
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub enum Purity {
+    #[default]
+    Plain,
+    Pure,
+    Baked,
 }
 
 impl Default for Type {
@@ -197,6 +218,8 @@ pub struct Checker<'a> {
     pub uses: HashMap<String, String>,
     pub functions: HashMap<String, Signature>,
     pub aggregates: aggregates::Aggregates,
+    /// The program's `const`s, with their types and values (D83).
+    pub constants: HashMap<String, (Type, bake::Constant)>,
     pub failure_sets: failures::FailureSets,
     pub program: checked::Program,
 }
@@ -224,6 +247,7 @@ pub fn check(
         uses: HashMap::new(),
         functions: HashMap::new(),
         aggregates: aggregates::Aggregates::default(),
+        constants: HashMap::new(),
         failure_sets: failures::FailureSets::default(),
         program: checked::Program::default(),
     };
@@ -284,7 +308,18 @@ impl Checker<'_> {
         if header_failed {
             return;
         }
-        for (function, signature) in bodies {
+        // Baked functions first, so `const`s and `bake` can run them, then every other body (D91).
+        let (baked, others): (Vec<_>, Vec<_>) =
+            bodies.into_iter().partition(|(_, signature)| signature.purity == Purity::Baked);
+        for (function, signature) in baked {
+            self.function_body(function, &signature);
+        }
+        for item in &file.items {
+            if let ItemKind::Const(constant) = &item.kind {
+                self.global_constant(constant);
+            }
+        }
+        for (function, signature) in others {
             self.function_body(function, &signature);
         }
         if let Some(id) = main {
@@ -421,7 +456,35 @@ impl Checker<'_> {
             body: Vec::new(),
         });
         let top = self.top_of_body(function);
-        Ok(Signature { name, id, parameters, returns, span: function.header_span, failures, result, top })
+        let purity = match keyword.as_str() {
+            "fn.pure" => Purity::Pure,
+            "fn.pure.baked" => Purity::Baked,
+            _ => Purity::Plain,
+        };
+        if purity != Purity::Plain {
+            if function.fails.is_some() {
+                let end = function.returns.as_ref().map_or(function.header_span.end, |written| written.span.end);
+                return Err(self.error(Diagnostic::not_designed(
+                    Span { file: self.file, start: function.header_span.start, end },
+                    "whether a `fn.pure` may fail",
+                    "not decided yet (standard 12.5)",
+                )));
+            }
+            if let Some(parameter) = function
+                .parameters
+                .list
+                .iter()
+                .find(|parameter| parameter.ownership == syntax::ParameterOwnership::LentMut)
+            {
+                let span = parameter.ownership_span.unwrap_or(parameter.span);
+                return Err(self.error(Diagnostic::refused(
+                    Span { file: span.file, start: span.start, end: span.start + 4 },
+                    "a pure function can't take `Lent.mut`",
+                    "a pure function changes nothing outside itself (D86)",
+                )));
+            }
+        }
+        Ok(Signature { name, id, parameters, returns, span: function.header_span, failures, result, top, purity })
     }
 
     fn function_body(&mut self, function: &syntax::Function, signature: &Signature) {
@@ -433,6 +496,7 @@ impl Checker<'_> {
             failures: signature.failures.clone(),
             result: signature.result,
             top: signature.top.clone(),
+            purity: signature.purity,
             ..Body::default()
         };
         let mut parameters = Vec::new();
@@ -500,6 +564,98 @@ impl Checker<'_> {
                 return;
             }
             self.error(Diagnostic::refused_fix(closer.span, expected, why));
+        }
+    }
+
+    /// A `const` at the top of a file, worked out while compiling (D83, D91).
+    fn global_constant(&mut self, constant: &syntax::Let) {
+        let Some(written) = &constant.written_type else { return };
+        let Ok(value_type) = self.resolve_type(written) else { return };
+        let mut body = Body { scopes: vec![Vec::new()], ..Body::default() };
+        if let Ok(value) = self.constant_value(&mut body, &constant.value, &value_type) {
+            self.constants.insert(constant.name.text.clone(), (value_type, value));
+        }
+    }
+
+    /// A value known at compile time: only known values and calls to `fn.pure.baked` functions (D83, D91).
+    pub fn constant_value(
+        &mut self,
+        body: &mut Body,
+        value: &syntax::Expression,
+        into: &Type,
+    ) -> Check<bake::Constant> {
+        self.known_at_compile_time(
+            body,
+            value,
+            "a `const`'s value must be fully known at compile time (D83, D91)",
+            true,
+        )?;
+        let checked = self.value_into(body, value, into)?;
+        self.run_at_compile_time(body, &checked)
+    }
+
+    /// Runs checked code at compile time.
+    pub fn run_at_compile_time(&mut self, body: &Body, checked: &checked::Expression) -> Check<bake::Constant> {
+        let mut interpreter = bake::Interpreter::new(&self.program);
+        interpreter.known.clone_from(&body.known);
+        match interpreter.evaluate(checked) {
+            Ok(value) => Ok(value),
+            Err(bake::Stop::Refused(diagnostic)) => Err(self.error(*diagnostic)),
+            Err(bake::Stop::StepLimit(span)) => Err(self.error(Diagnostic::refused(
+                span,
+                "compile-time work didn't finish within its step limit",
+                "compile-time code always finishes, through a step limit that refuses it (D89, D91)",
+            ))),
+            Err(bake::Stop::NotBuilt(what)) => Err(self.not_yet(Span::default(), what)),
+        }
+    }
+
+    /// Refuses a variable that isn't known at compile time, or a call to a function that isn't `fn.pure.baked`.
+    pub fn known_at_compile_time(
+        &mut self,
+        body: &Body,
+        value: &syntax::Expression,
+        why: &str,
+        constant: bool,
+    ) -> Check<()> {
+        match &value.kind {
+            syntax::ExpressionKind::Variable(name) => {
+                let known = body.find(&name.text).is_some_and(|index| body.variables[index].origin == Origin::Constant)
+                    || (body.find(&name.text).is_none() && self.constants.contains_key(&name.text));
+                if !known {
+                    return Err(self.error(Diagnostic::refused(
+                        name.span,
+                        format!("`{}` isn't known at compile time", name.text),
+                        "a `const`'s value must be fully known at compile time (D83, D91)",
+                    )));
+                }
+                Ok(())
+            }
+            syntax::ExpressionKind::Call { callee, arguments, .. } => {
+                if let syntax::ExpressionKind::Path(path) = &callee.kind {
+                    let name = self.resolve_path(path);
+                    if self.functions.get(&name).is_some_and(|signature| signature.purity != Purity::Baked) {
+                        let span = if constant { value.span } else { value.span };
+                        return Err(self.error(Diagnostic::refused(
+                            span,
+                            format!("`{name}` isn't `fn.pure.baked`"),
+                            why,
+                        )));
+                    }
+                }
+                for argument in arguments {
+                    self.known_at_compile_time(body, &argument.value, why, constant)?;
+                }
+                Ok(())
+            }
+            syntax::ExpressionKind::Binary { left, right, .. } => {
+                self.known_at_compile_time(body, left, why, constant)?;
+                self.known_at_compile_time(body, right, why, constant)
+            }
+            syntax::ExpressionKind::Unary { operand, .. } | syntax::ExpressionKind::Group(operand) => {
+                self.known_at_compile_time(body, operand, why, constant)
+            }
+            _ => Ok(()),
         }
     }
 

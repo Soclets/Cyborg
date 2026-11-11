@@ -92,6 +92,7 @@ d127_my_true
 d127_number_isnt_a_bool
 d127_word_on_true
 d128_a_function_called_loop
+d128_baked_loop
 d128_block_arm_with_break
 d128_break_a_finished_loop
 d128_break_ends_the_block
@@ -99,6 +100,7 @@ d128_break_inside_a_nested_loop_doesnt_end_forever
 d128_break_outside_a_loop
 d128_break_stops_the_innermost
 d128_break_unknown_name
+d128_empty_forever_at_compile_time
 d128_forever_and_break
 d128_forever_with_a_break_can_end
 d128_forever_with_no_break_never_ends
@@ -234,6 +236,7 @@ d158_fast_as_plain
 d158_fast_with_plain
 d158_fast_with_plain_in_maths
 d158_field_is_checked
+d158_in_a_const
 d158_integer_bound
 d158_literal_outside_the_bound
 d158_literal_too_large
@@ -299,6 +302,7 @@ d161_negative_zero_prints
 d161_no_exponent
 d161_shortest_text
 d161_stored_exact
+d161_stored_is_a_call_that_can_fail
 d161_sum_shows_its_rounding
 d162_stored_every_digit
 d162_the_smallest_float
@@ -310,10 +314,12 @@ d164_bare_div
 d164_bare_mod_on_floats
 d164_by_negative_zero
 d164_by_zero_makes_infinity
+d164_const_works
 d164_div_trunc_on_floats
 d164_doesnt_mix_widths
 d164_fast_by_zero
 d164_ieee_by_zero_is_allowed
+d164_in_a_const
 d164_integer_literal_on_a_float
 d164_integers_refuse_it
 d164_mod_on_floats
@@ -379,6 +385,7 @@ d194_center_with_an_odd_gap
 d194_escapes
 d194_format_isnt_a_literal
 d194_hex_escape_above_7f
+d194_in_a_pure_function
 d194_labels_on_values
 d194_mixing_holes
 d194_nan_and_infinity
@@ -473,6 +480,7 @@ d211_closer_keeps_the_mark
 d211_declaration_needs_double
 d211_declaration_needs_single
 d211_read_and_change
+d212_constants_keep_one_dollar
 d213_a_tab
 d213_after_a_comma
 d213_after_a_label
@@ -546,6 +554,7 @@ d273_flush_keeps_it_going
 d273_forgetting_done
 d273_unbuffered_has_no_flush
 d274_unhandled_failure_flushes_first
+d277_colon_equals_written_type_uses_equals
 d278_words_and_a_chain
 d283_set_to_is_refused
 d287_returns_is_refused
@@ -639,7 +648,24 @@ d7_conversion_isnt_decided
 d7_unknown_type
 d80_imports_are_in_the_file
 d82_std_not_imported
+d83_change_a_constant
+d83_constant_from_a_call
+d83_constant_from_a_variable
+d83_constants
+d83_older_constant_spelling
+d86_contract_calls_impure
 d86_contract_calls_pure
+d86_pure_calls_impure
+d86_pure_may_allocate
+d86_pure_may_copy
+d86_pure_may_fail
+d86_pure_prints
+d86_pure_takes_lent_mut
+d91_bake
+d91_bake_a_function_that_isnt_baked
+d91_bake_a_runtime_value
+d91_baked_calls_only_baked
+d91_baked_overflow_at_compile_time
 d93_use_a_short_name
 d96_ignored_on_purpose
 d96_print_can_be_passed_up
@@ -651,4 +677,5 @@ d9_field_outside_the_test
 d9_match_all_arms_leave
 d9_match_misses_a_case
 d9_test_trusts_inside
+program_contracts_in_use
 program_parser_shape

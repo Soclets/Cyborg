@@ -60,6 +60,14 @@ pub fn failure(checker: &Checker<'_>, diagnostic: Diagnostic, when: &[When]) -> 
             When::Operand(index) => template.push(MARKS[(*index).min(MARKS.len() - 1)]),
         }
     }
+    let source = Some(Box::new(diagnostic.clone()));
+    let when_template = when
+        .iter()
+        .map(|part| match part {
+            When::Text(text) => checked::WhenPart::Text(text.clone()),
+            When::Operand(index) => checked::WhenPart::Operand(*index),
+        })
+        .collect();
     let diagnostic = if when.is_empty() { diagnostic } else { diagnostic.with_when(template) };
     let rendered = diagnostic.render(checker.sources);
     let mut before = String::new();
@@ -82,7 +90,7 @@ pub fn failure(checker: &Checker<'_>, diagnostic: Diagnostic, when: &[When]) -> 
     if first {
         before = std::mem::take(&mut current);
     }
-    checked::CheckFailure { before, when: when_parts, after: current }
+    checked::CheckFailure { before, when: when_parts, after: current, source, when_template }
 }
 
 impl Checker<'_> {
@@ -167,6 +175,18 @@ impl Checker<'_> {
                 Err(self.not_yet(expression.span, format!("building `{}`", path.text())))
             }
             ExpressionKind::Field { base, field } => self.field(body, base, field),
+            ExpressionKind::Bake(inner) => {
+                self.known_at_compile_time(
+                    body,
+                    inner,
+                    "`bake` can call normal functions marked `fn.pure.baked`, and only those (D91)",
+                    false,
+                )?;
+                let typed = self.expression(body, inner, expected)?;
+                let value = self.run_at_compile_time(body, &typed.value)?;
+                let machine_type = typed.value.machine_type.clone();
+                Ok(Typed::new(typed.value_type, value.expression(machine_type).kind))
+            }
             ExpressionKind::MethodCall { receiver, method, arguments, .. } => {
                 self.method_call(body, expression, receiver, method, arguments)
             }
@@ -378,6 +398,12 @@ impl Checker<'_> {
         };
         match (&typed.value_type, &into) {
             (Type::Unknown, _) => Err(Reported),
+            (Type::Integer { .. } | Type::Float { .. }, Type::Str) if body.purity != super::Purity::Plain => Err(self
+                .error(Diagnostic::not_designed(
+                    expression.span,
+                    "whether a `fn.pure` may allocate, as `as` can",
+                    "not decided yet (standard 12.5)",
+                ))),
             (Type::Integer { .. }, Type::Str) => Ok(Typed::new(Type::Str, Kind::TextOf(Box::new(typed.value)))),
             (Type::Float { kind, .. }, Type::Str) if *kind != super::types::FloatKind::Fast => {
                 Ok(Typed::new(Type::Str, Kind::TextOf(Box::new(typed.value))))
@@ -419,6 +445,11 @@ impl Checker<'_> {
 
     fn read_variable(&mut self, body: &mut Body, name: &syntax::Name) -> Check<Typed> {
         let Some(index) = body.find(&name.text) else {
+            if let Some((value_type, value)) = self.constants.get(&name.text).cloned() {
+                let mut typed = Typed::new(value_type.clone(), value.expression(value_type.machine()).kind);
+                typed.variable = Some(name.text.clone());
+                return Ok(typed);
+            }
             return Err(self.error(Diagnostic::refused(
                 name.span,
                 format!("`{}` isn't declared", name.text),
@@ -1320,6 +1351,29 @@ impl Checker<'_> {
             )));
         }
         self.require_import(&name, path.span)?;
+        if let Some(signature) = self.functions.get(&name).cloned() {
+            if body.in_contract && signature.purity == super::Purity::Plain {
+                return Err(self.error(Diagnostic::refused(
+                    callee.span,
+                    format!("`{name}` isn't pure, so a contract can't call it"),
+                    "contracts can only call pure functions (D86)",
+                )));
+            }
+            if body.purity == super::Purity::Baked && signature.purity != super::Purity::Baked {
+                return Err(self.error(Diagnostic::refused(
+                    callee.span,
+                    format!("`{name}` isn't `fn.pure.baked`, so a baked function can't call it"),
+                    "baked code can call normal functions marked `fn.pure.baked`, and only those (D91)",
+                )));
+            }
+            if body.purity == super::Purity::Pure && signature.purity == super::Purity::Plain {
+                return Err(self.error(Diagnostic::refused(
+                    callee.span,
+                    format!("`{name}` isn't pure, so a pure function can't call it"),
+                    "a pure function refuses calling a function that isn't pure (D86)",
+                )));
+            }
+        }
         let Some(signature) = self.functions.get(&name).cloned() else {
             return Err(self.error(Diagnostic::refused(
                 callee.span,
@@ -1513,6 +1567,13 @@ impl Checker<'_> {
                 ownership_span.to(value.span),
                 written,
                 "plain numbers and `bool` are always copied, and take no word (D2, D123)",
+            )));
+        }
+        if ownership == syntax::Ownership::Copy && body.purity != super::Purity::Plain {
+            return Err(self.error(Diagnostic::not_designed(
+                value.span,
+                "whether a `fn.pure` may allocate, as `Copy` can",
+                "not decided yet (standard 12.5)",
             )));
         }
         match ownership {

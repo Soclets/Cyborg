@@ -104,6 +104,15 @@ impl Checker<'_> {
             self.require_import(&resolved, path.span)?;
         }
         self.old_prints(&resolved, callee.span)?;
+        if body.purity != super::Purity::Plain
+            && matches!(resolved.as_str(), "std::io::fmt_print" | "std::io::fmt_print.stored")
+        {
+            return Err(self.error(Diagnostic::refused(
+                path.span,
+                "printing is I/O, which a pure function refuses",
+                "a pure function refuses I/O, and contracts can only call pure functions (D86)",
+            )));
+        }
         match resolved.as_str() {
             "std::io::fmt_print" => self.print(body, callee.span, arguments, *arguments_span, false).map(Some),
             "std::io::fmt_print.stored" => self.print(body, callee.span, arguments, *arguments_span, true).map(Some),

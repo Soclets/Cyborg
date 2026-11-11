@@ -352,7 +352,7 @@ impl<'context, 'module> Generator<'context, 'module> {
                 Self::branch_if_open(frame, after);
                 frame.builder.position_at_end(after);
             }
-            Statement::Loop { id, body } => {
+            Statement::Loop { id, body, .. } => {
                 let top = frame.function.append_basic_block("loop");
                 let after = frame.function.append_basic_block("after_loop");
                 frame.loops.insert(*id, after);

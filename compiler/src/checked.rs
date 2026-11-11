@@ -115,6 +115,8 @@ pub enum Statement {
     Loop {
         id: LoopId,
         body: Block,
+        /// Where the loop starts, for an error about compile-time work that doesn't finish.
+        opener: crate::source::Span,
     },
     Break(LoopId),
     Return(Option<Expression>),
@@ -275,6 +277,17 @@ pub struct CheckFailure {
     /// `when:` parts: text, then which operand's value, then `after`.
     pub when: Vec<(String, usize)>,
     pub after: String,
+    /// The error itself, and its `when:` line's parts, so a check that fails while baking can be refused instead
+    /// (D91).
+    pub source: Option<Box<crate::diagnostic::Diagnostic>>,
+    pub when_template: Vec<WhenPart>,
+}
+
+/// A part of a `when:` line: text, or an operand's value.
+#[derive(Clone, Debug)]
+pub enum WhenPart {
+    Text(String),
+    Operand(usize),
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]

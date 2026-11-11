@@ -94,12 +94,14 @@ impl Checker<'_> {
             }
             StatementKind::If(chain) => self.if_statement(body, chain, block),
             StatementKind::While { label, condition, body: inner, end } => {
+                body.loop_opener = opener(self.text, statement.span);
                 if label.is_none() {
                     self.check_closer(end, "end while", super::CLOSER_WHY);
                 }
                 self.while_statement(body, label.as_ref(), condition, inner, block).map(|()| false)
             }
             StatementKind::Forever { label, body: inner, end } => {
+                body.loop_opener = opener(self.text, statement.span);
                 if label.is_none() {
                     self.check_closer(end, "end forever", super::CLOSER_WHY);
                 }
@@ -109,6 +111,7 @@ impl Checker<'_> {
             StatementKind::Fail(value) => self.fail_statement(body, statement.span, value, block).map(|()| true),
             StatementKind::Instead(value) => self.instead_statement(body, statement.span, value, block).map(|()| true),
             StatementKind::For(each) => {
+                body.loop_opener = opener(self.text, statement.span);
                 match &each.label {
                     Some(label) => self.check_closer(&each.end, &format!("end for {}", label.text), super::CLOSER_WHY),
                     None => self.check_closer(
@@ -133,6 +136,9 @@ impl Checker<'_> {
     }
 
     fn let_statement(&mut self, body: &mut Body, binding: &syntax::Let, block: &mut checked::Block) -> Check<()> {
+        if binding.constant {
+            return self.local_constant(body, binding, block);
+        }
         let declared = match &binding.written_type {
             Some(written) => self.resolve_type(written).unwrap_or(Type::Unknown),
             None => Type::Unknown,
@@ -156,6 +162,35 @@ impl Checker<'_> {
             state,
         );
         result
+    }
+
+    /// A `const` in a body: worked out while compiling, and fixed (D83).
+    fn local_constant(&mut self, body: &mut Body, binding: &syntax::Let, block: &mut checked::Block) -> Check<()> {
+        let declared = match &binding.written_type {
+            Some(written) => self.resolve_type(written).unwrap_or(Type::Unknown),
+            None => Type::Unknown,
+        };
+        let local = body.new_local(declared.machine());
+        let result =
+            if declared.is_unknown() { Err(Reported) } else { self.constant_value(body, &binding.value, &declared) };
+        if let Ok(value) = result {
+            body.known.insert(local, value);
+            block.push(checked::Statement::Let { local, value: value.expression(declared.machine()) });
+        }
+        body.declare(
+            Variable {
+                name: binding.name.text.clone(),
+                value_type: declared,
+                mutable: false,
+                origin: if result.is_ok() { Origin::Constant } else { Origin::RefusedLet },
+                local,
+                declared: binding.name.span,
+                given: None,
+                known_case: None,
+            },
+            if result.is_ok() { State::Assigned } else { State::Unassigned },
+        );
+        result.map(|_| ())
     }
 
     fn let_value(
@@ -237,6 +272,13 @@ impl Checker<'_> {
             return Err(self.not_yet(target.span, "`change` on this".to_string()));
         };
         let Some(index) = body.find(&name.text) else {
+            if self.constants.contains_key(&name.text) {
+                return Err(self.error(Diagnostic::refused(
+                    name.span,
+                    format!("`{}` is a constant, so it can't change", name.text),
+                    "a constant's value is fixed at compile time (D83)",
+                )));
+            }
             return Err(self.error(Diagnostic::refused(
                 name.span,
                 format!("`{}` isn't declared", name.text),
@@ -254,6 +296,13 @@ impl Checker<'_> {
                 Diagnostic::refused(name.span, what, "every path has to `assign` a `decl` before reading it (D203)")
                     .with_because(variable.declared, format!("`{}` is declared here", name.text)),
             ));
+        }
+        if variable.origin == Origin::Constant {
+            return Err(self.error(Diagnostic::refused(
+                name.span,
+                format!("`{}` is a constant, so it can't change", name.text),
+                "a constant's value is fixed at compile time (D83)",
+            )));
         }
         if !variable.mutable {
             if variable.origin == Origin::Parameter && variable.value_type.is_copied() {
@@ -797,7 +846,7 @@ impl Checker<'_> {
             otherwise: Vec::new(),
         }];
         statements.extend(loop_body);
-        block.push(checked::Statement::Loop { id, body: statements });
+        block.push(checked::Statement::Loop { id, body: statements, opener: body.loop_opener });
         Ok(())
     }
 
@@ -861,7 +910,7 @@ impl Checker<'_> {
             }
             body.states = joined;
         }
-        block.push(checked::Statement::Loop { id, body: loop_body });
+        block.push(checked::Statement::Loop { id, body: loop_body, opener: body.loop_opener });
         Ok(leaves)
     }
 
@@ -1034,7 +1083,7 @@ impl Checker<'_> {
                 machine_type: wide.clone(),
             },
         });
-        block.push(checked::Statement::Loop { id, body: statements });
+        block.push(checked::Statement::Loop { id, body: statements, opener: body.loop_opener });
         Ok(())
     }
 
@@ -1238,4 +1287,14 @@ fn and(left: checked::Expression, right: checked::Expression) -> checked::Expres
 
 fn or(left: checked::Expression, right: checked::Expression) -> checked::Expression {
     checked::Expression { kind: Kind::Or(Box::new(left), Box::new(right)), machine_type: MachineType::Bool }
+}
+
+/// A block statement's opener: from its start to the `:` ending its first line.
+fn opener(text: &str, span: Span) -> Span {
+    let start = span.start as usize;
+    let line_end =
+        text.get(start..).and_then(|rest| rest.find('\n')).map_or(span.end as usize, |offset| start + offset);
+    let line = text.get(start..line_end).unwrap_or("");
+    let end = line.rfind(':').map_or(line_end, |colon| start + colon + 1);
+    Span::new(span.file, start, end)
 }

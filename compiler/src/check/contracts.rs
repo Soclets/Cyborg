@@ -244,7 +244,9 @@ impl Checker<'_> {
         result: Option<checked::LocalId>,
     ) -> Check<(checked::Expression, checked::CheckFailure, Vec<checked::Expression>)> {
         body.result_value = result.map(|local| (local, body.returns.clone()));
+        body.in_contract = true;
         let typed = self.condition_value(body, condition);
+        body.in_contract = false;
         body.result_value = None;
         let typed = typed?;
         let mut names = Vec::new();

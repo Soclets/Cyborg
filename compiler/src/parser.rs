@@ -1176,6 +1176,11 @@ impl<'source> Parser<'source> {
             }
             Some(TokenKind::ColonEqual) => {
                 let token = self.advance().ok_or(Reported)?;
+                self.errors.push(Diagnostic::refused_fix(
+                    token.span,
+                    "=",
+                    "`=` gives a value, and there's no type inference in the base language (D277, D283)",
+                ));
                 Ok(Path {
                     segments: vec![Segment {
                         joint: Joint::Start,
