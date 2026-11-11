@@ -94,7 +94,7 @@ The `FinalPerf` entries follow from D14 having no checks there; the owner's answ
 
 ## 10.5 Overflow
 
-**Rule:** see the first row of [10.4](#104-what-happens-when-something-goes-wrong). `FinalPerf` wraps because a plain `+` isn't a promise you wrote. To always wrap, use [3.8](3-operators.md#38-wrapping-pluswrap).
+**Rule:** see the first row of [10.4](#104-what-happens-when-something-goes-wrong). `FinalPerf` wraps because a plain `+` isn't a promise you wrote. To always wrap, use [3.8](3-operators.md#38-wrapping-and-saturating-pluswrap-plussaturate).
 
 Whether `-` and `x` follow the same table isn't stated ([12.3](12-not-decided.md#123-operators-and-conversion)).
 
