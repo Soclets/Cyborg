@@ -181,6 +181,7 @@ impl Checker<'_> {
                 Err(self.not_yet(expression.span, format!("building `{}`", path.text())))
             }
             ExpressionKind::Field { base, field } => self.field(body, base, field),
+            ExpressionKind::Bracket { base, labels, .. } => self.item_value(body, expression, base, labels),
             ExpressionKind::Bake(inner) => {
                 self.known_at_compile_time(
                     body,
@@ -760,8 +761,9 @@ impl Checker<'_> {
         if let Some(reported) = self.new_in_operation(span, left, right, true) {
             return Err(reported);
         }
-        // The same units compare, and then it's the numbers that do (D100).
-        if left_type.unit().is_some() || right_type.unit().is_some() {
+        // The same units compare, and then it's the numbers that do (D100). Between different number types, it's the
+        // type that's wrong (D7).
+        if (left_type.unit().is_some() || right_type.unit().is_some()) && same_number(left_type, right_type) {
             if !self.same_unit(left_type.unit(), right_type.unit()) {
                 return Err(self.error(Diagnostic::refused(
                     span,
@@ -2253,6 +2255,9 @@ impl Checker<'_> {
         expression: &syntax::Expression,
         into: &Type,
     ) -> Check<checked::Expression> {
+        if let Some(result) = self.collection_value(body, expression, into) {
+            return result;
+        }
         // A literal lands in a `type.new` as what it's made from (D141).
         if let Type::New { inner, .. } = into
             && (Self::is_literal_number(expression)
@@ -2287,9 +2292,11 @@ impl Checker<'_> {
             return Ok(typed.value);
         }
         // A unit has to match where it's stored, as written or once expanded (D100, D101, D242).
+        // Between different number types, it's the type that's wrong, which the arms below say (D7).
         if matches!(into, Type::Integer { .. } | Type::Float { .. })
             && matches!(typed.value_type, Type::Integer { .. } | Type::Float { .. })
             && (typed.value_type.unit().is_some() || into.unit().is_some())
+            && same_number(&typed.value_type, into)
         {
             if !self.same_unit(typed.value_type.unit(), into.unit()) {
                 return Err(self.unit_mismatch(span, &typed, into));
@@ -2466,6 +2473,7 @@ fn is_held(expression: &syntax::Expression) -> bool {
     match &expression.kind {
         ExpressionKind::Variable(_) => true,
         ExpressionKind::Field { base, .. } => is_held(base),
+        ExpressionKind::Bracket { base, .. } if !matches!(base.kind, ExpressionKind::Path(_)) => is_held(base),
         ExpressionKind::Group(inner) => is_held(inner),
         _ => false,
     }
@@ -2504,6 +2512,16 @@ pub fn root_name(expression: &syntax::Expression) -> Option<&syntax::Name> {
     match &expression.kind {
         ExpressionKind::Variable(name) => Some(name),
         ExpressionKind::Field { base, .. } | ExpressionKind::Group(base) => root_name(base),
+        ExpressionKind::Bracket { base, .. } if !matches!(base.kind, ExpressionKind::Path(_)) => root_name(base),
         _ => None,
+    }
+}
+
+/// Whether two number types are the same, apart from their bounds and units.
+fn same_number(a: &Type, b: &Type) -> bool {
+    match (a, b) {
+        (Type::Integer { kind: x, .. }, Type::Integer { kind: y, .. }) => x == y,
+        (Type::Float { bits: x, kind: p, .. }, Type::Float { bits: y, kind: q, .. }) => x == y && p == q,
+        _ => false,
     }
 }

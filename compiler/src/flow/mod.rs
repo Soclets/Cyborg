@@ -219,6 +219,15 @@ impl Lowering {
                 }
                 None
             }
+            Statement::Store { place, value } | Statement::Push { place, value, .. } => {
+                let mut here = here;
+                for step in &place.steps {
+                    if let checked::Step::Item { position, .. } = step {
+                        here = self.expression(position, here);
+                    }
+                }
+                Some(self.expression(value, here))
+            }
             Statement::Let { value, .. }
             | Statement::AliasValue { value, .. }
             | Statement::Set { value, .. }

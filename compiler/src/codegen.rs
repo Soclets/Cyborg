@@ -128,6 +128,88 @@ impl<'context, 'module> Generator<'context, 'module> {
         self.module.get_function(name).ok_or_else(|| format!("the runtime has no `{name}`"))
     }
 
+    /// The address of a place and what's there: through fields, and items, each item's position checked against the
+    /// count first (D133).
+    fn place_pointer(
+        &mut self,
+        frame: &mut Frame<'context, 'module>,
+        place: &crate::checked::Place,
+    ) -> Result<(Value<'context, 'module>, MachineType)> {
+        use crate::checked::Step;
+        let mut pointer = frame.slots[place.local];
+        let mut machine_type = frame.local_types.get(place.local).cloned().ok_or("a place in a missing local")?;
+        for step in &place.steps {
+            match step {
+                Step::Field(index) => {
+                    let MachineType::Struct(id) = machine_type else {
+                        return Err("a field of something that isn't a struct".into());
+                    };
+                    let struct_type = *self.structs.get(id).ok_or("a struct that wasn't made")?;
+                    pointer = frame
+                        .builder
+                        .struct_get_element_pointer(struct_type, pointer, u32::try_from(*index).unwrap_or(0), "")
+                        .to_dynamic();
+                    machine_type = self
+                        .struct_fields
+                        .get(id)
+                        .and_then(|fields| fields.get(*index))
+                        .cloned()
+                        .ok_or("a missing field")?;
+                }
+                Step::Item { position, from_one, check } => {
+                    let written = self.expression(frame, position)?;
+                    let MachineType::Integer { bits, signed } = position.machine_type else {
+                        return Err("a position that isn't an integer".into());
+                    };
+                    let word = self.context.integer_type(64);
+                    let mut index = match bits.cmp(&64) {
+                        std::cmp::Ordering::Less if signed => frame.builder.sign_extend(written, word, "").to_dynamic(),
+                        std::cmp::Ordering::Less => frame.builder.zero_extend(written, word, "").to_dynamic(),
+                        _ => written,
+                    };
+                    if *from_one {
+                        index = frame.builder.integer_subtract(index, self.integer(64, 1), "").to_dynamic();
+                    }
+                    let (items, count, item) = match &machine_type {
+                        MachineType::Array { item, len } => (pointer, self.integer(64, *len), (**item).clone()),
+                        MachineType::List(item) => {
+                            let list_type = self.list_type();
+                            let storage =
+                                frame.builder.struct_get_element_pointer(list_type, pointer, 0, "").to_dynamic();
+                            let storage = frame.builder.load(self.context.pointer_type(0), storage, "").to_dynamic();
+                            let count =
+                                frame.builder.struct_get_element_pointer(list_type, pointer, 1, "").to_dynamic();
+                            let count = frame.builder.load(word, count, "").to_dynamic();
+                            (storage, count, (**item).clone())
+                        }
+                        _ => return Err("an item of something that isn't a list or array".into()),
+                    };
+                    if let Some(failure) = check {
+                        let inside = frame
+                            .builder
+                            .integer_compare(IntegerPredicate::UnsignedLessThan, index, count, "")
+                            .to_dynamic();
+                        let operands = [
+                            (written, position.machine_type.clone()),
+                            (count, MachineType::Integer { bits: 64, signed: false }),
+                        ];
+                        self.check(frame, inside, failure, &operands)?;
+                    }
+                    let item_type = self.machine_type(&item);
+                    pointer = frame.builder.get_element_pointer(item_type, items, &[index], "").to_dynamic();
+                    machine_type = item;
+                }
+            }
+        }
+        Ok((pointer, machine_type))
+    }
+
+    /// A list's record: where its items are, how many there are, and how many fit before it grows (D11).
+    fn list_type(&self) -> lyftar::types::Type<'context> {
+        let word = self.context.integer_type(64).to_dynamic();
+        self.context.struct_type(&[self.context.pointer_type(0), word, word], false)
+    }
+
     fn machine_type(&self, machine_type: &MachineType) -> lyftar::types::Type<'context> {
         match machine_type {
             MachineType::Integer { bits, .. } => self.context.integer_type(*bits).to_dynamic(),
@@ -142,6 +224,8 @@ impl<'context, 'module> Generator<'context, 'module> {
                 self.context.get_named_struct("writer").unwrap_or_else(|| self.context.integer_type(8).to_dynamic())
             }
             MachineType::Address => self.context.pointer_type(0),
+            MachineType::Array { item, len } => self.machine_type(item).array_type(*len),
+            MachineType::List(_) => self.list_type(),
             MachineType::Struct(id) => {
                 self.structs.get(*id).copied().unwrap_or_else(|| self.context.integer_type(8).to_dynamic())
             }
@@ -322,6 +406,33 @@ impl<'context, 'module> Generator<'context, 'module> {
     fn statement(&mut self, frame: &mut Frame<'context, 'module>, statement: &Statement) -> Result<()> {
         match statement {
             Statement::Flow(_) => {}
+            Statement::Store { place, value } => {
+                // The place first, so a position runs before the value (D133).
+                let (pointer, _) = self.place_pointer(frame, place)?;
+                let value = self.expression(frame, value)?;
+                frame.builder.store(value, pointer);
+            }
+            Statement::Push { place, value, room } => {
+                let (record, machine_type) = self.place_pointer(frame, place)?;
+                let MachineType::List(item) = machine_type else {
+                    return Err("adding to something that isn't a list".into());
+                };
+                let list_type = self.list_type();
+                if let Some((max, failure)) = room {
+                    let count_place = frame.builder.struct_get_element_pointer(list_type, record, 1, "").to_dynamic();
+                    let count = frame.builder.load(self.context.integer_type(64), count_place, "").to_dynamic();
+                    let fits = frame
+                        .builder
+                        .integer_compare(IntegerPredicate::UnsignedLessThan, count, self.integer(64, *max), "")
+                        .to_dynamic();
+                    self.check(frame, fits, failure, &[(count, MachineType::Integer { bits: 64, signed: false })])?;
+                }
+                let item_type = self.machine_type(&item);
+                let size = self.context.size_of(item_type);
+                let slot = frame.builder.call(self.runtime("__cyborg_list_push")?, &[record, size], "").to_dynamic();
+                let value = self.expression(frame, value)?;
+                frame.builder.store(value, slot);
+            }
             Statement::AliasValue { local, value } => {
                 let address = self.expression(frame, value)?;
                 if let Some(slot) = frame.slots.get_mut(*local) {
@@ -1193,6 +1304,51 @@ impl<'context, 'module> Generator<'context, 'module> {
             }
             ExpressionKind::Zero => self.machine_type(&expression.machine_type).constant_null().to_dynamic(),
             ExpressionKind::AddressOf { local, path } => self.field_place(frame, *local, path)?,
+            ExpressionKind::Load(place) => {
+                let (pointer, machine_type) = self.place_pointer(frame, place)?;
+                frame.builder.load(self.machine_type(&machine_type), pointer, "").to_dynamic()
+            }
+            ExpressionKind::PlaceAddress(place) => self.place_pointer(frame, place)?.0,
+            ExpressionKind::ListLen(list) => {
+                let list = self.expression(frame, list)?;
+                frame.builder.extract_value(list, 1, "").to_dynamic()
+            }
+            ExpressionKind::ListOf(items) => {
+                let MachineType::List(item) = &expression.machine_type else {
+                    return Err("a list of something that isn't a list".into());
+                };
+                let item_type = self.machine_type(item);
+                let count = self.integer(64, items.len() as u64);
+                let storage = if items.is_empty() {
+                    self.context.pointer_type(0).constant_null().to_dynamic()
+                } else {
+                    let size = self.context.size_of(item_type);
+                    let bytes = frame.builder.integer_multiply(size, count, "").to_dynamic();
+                    frame.builder.call(self.runtime("__cyborg_allocate")?, &[bytes], "").to_dynamic()
+                };
+                for (index, item) in items.iter().enumerate() {
+                    let value = self.expression(frame, item)?;
+                    let slot = frame
+                        .builder
+                        .get_element_pointer(item_type, storage, &[self.integer(64, index as u64)], "")
+                        .to_dynamic();
+                    frame.builder.store(value, slot);
+                }
+                let mut record = self.list_type().undefined().to_dynamic();
+                record = frame.builder.insert_value(record, storage, 0, "").to_dynamic();
+                record = frame.builder.insert_value(record, count, 1, "").to_dynamic();
+                frame.builder.insert_value(record, count, 2, "").to_dynamic()
+            }
+            ExpressionKind::Fill { value, len } => {
+                let value = self.expression(frame, value)?;
+                let array_type = self.machine_type(&expression.machine_type);
+                let mut built = array_type.undefined().to_dynamic();
+                for index in 0..*len {
+                    built =
+                        frame.builder.insert_value(built, value, u32::try_from(index).unwrap_or(0), "").to_dynamic();
+                }
+                built
+            }
             ExpressionKind::Handle { call, union, on_failure } => {
                 self.handle(frame, call, *union, on_failure, &expression.machine_type)?
             }
@@ -1452,6 +1608,8 @@ fn size_in_words(machine_type: &MachineType, program: &Program) -> u64 {
         MachineType::Text => 2,
         MachineType::Writer => 6,
         MachineType::Address => 1,
+        MachineType::Array { item, len } => size_in_words(item, program).saturating_mul(*len).max(1),
+        MachineType::List(_) => 3,
         MachineType::Struct(id) => program
             .structs
             .get(*id)

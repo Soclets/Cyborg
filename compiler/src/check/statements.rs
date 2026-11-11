@@ -621,6 +621,9 @@ impl Checker<'_> {
         value: &syntax::Expression,
         block: &mut checked::Block,
     ) -> Check<()> {
+        if has_item(target) {
+            return self.change_item(body, span, target, value, block);
+        }
         if let ExpressionKind::Field { .. } = &target.kind {
             return self.change_field(body, target, value, block);
         }
@@ -937,6 +940,13 @@ impl Checker<'_> {
             }
         }
         if let Some(statement) = self.library_statement(body, expression)? {
+            block.push(statement);
+            return Ok(());
+        }
+        if let ExpressionKind::MethodCall { receiver, method, arguments, .. } = &expression.kind
+            && method.text() == "std::%%append"
+        {
+            let statement = self.append(body, expression, receiver, arguments)?;
             block.push(statement);
             return Ok(());
         }
@@ -1506,6 +1516,11 @@ impl Checker<'_> {
                 NOT_DECIDED,
             )));
         }
+        let is_range = matches!(&each.source.kind, ExpressionKind::Bracket { base, .. }
+            if matches!(&base.kind, ExpressionKind::Path(path) if path.is_single("range")));
+        if !is_range {
+            return self.for_collection(body, each, block);
+        }
         let ExpressionKind::Bracket { base, labels, .. } = &each.source.kind else {
             let typed = self.expression(body, &each.source, None)?;
             if matches!(typed.value_type, Type::Integer { .. } | Type::Float { .. } | Type::Bool | Type::Str) {
@@ -1616,6 +1631,178 @@ impl Checker<'_> {
                     more: Vec::new(),
                 },
                 machine_type: wide.clone(),
+            },
+        });
+        block.push(checked::Statement::Loop { id, body: statements, opener: body.loop_opener });
+        Ok(())
+    }
+
+    /// `for $x in $xs:` reads each item in place, `for $x in Lend.mut $xs:` lends each to change, and
+    /// `for $x in Give $xs:` hands each out, leaving the list gone (D128, D180, D182).
+    #[allow(clippy::too_many_lines)]
+    fn for_collection(&mut self, body: &mut Body, each: &syntax::For, block: &mut checked::Block) -> Check<()> {
+        use syntax::Ownership;
+        let word = each.ownership.map(|(word, _)| word);
+        if let Some((Ownership::Lend, span)) = each.ownership {
+            let shown = self.slice(each.source.span).to_string();
+            return Err(self.error(Diagnostic::refused_fix(
+                span.to(each.source.span),
+                shown,
+                "a bare loop reads in place, so `Lend` isn't written (D182)",
+            )));
+        }
+        if let Some((Ownership::Copy, span)) = each.ownership {
+            return Err(self.not_yet(span, "`Copy` on a loop".to_string()));
+        }
+        let reached = self.reach(body, &each.source)?;
+        let (local, steps, collection, root) = match reached {
+            Some(reached) => {
+                let root = Some((reached.root.clone(), reached.root_span));
+                (reached.root.local, reached.steps, reached.value_type, root)
+            }
+            None => {
+                // A fresh list or array goes in a temporary for the loop.
+                let typed = self.expression(body, &each.source, None)?;
+                let local = body.new_local(typed.value.machine_type.clone());
+                block.push(checked::Statement::Let { local, value: typed.value });
+                (local, Vec::new(), typed.value_type, None)
+            }
+        };
+        let item_type = match &collection {
+            Type::Array { item, .. } | Type::List { item, .. } => (**item).clone(),
+            Type::Unknown => return Err(Reported),
+            other => {
+                if matches!(other, Type::Integer { .. } | Type::Float { .. } | Type::Bool | Type::Str) {
+                    return Err(self.error(Diagnostic::refused(
+                        each.source.span,
+                        format!("`for` goes through a collection or range, and this is `{other}`"),
+                        "`for` goes through a collection or range, reading it in place (D2, D128)",
+                    )));
+                }
+                return Err(self.not_yet(each.source.span, "`for` over this".to_string()));
+            }
+        };
+        if let Some((root, root_span)) = &root {
+            if word == Some(Ownership::LendMut) && !root.mutable {
+                return Err(self.error(Diagnostic::refused(
+                    *root_span,
+                    format!("`{}` can't change, so it can't be lent with `Lend.mut`", root.name),
+                    "`let` declares a variable that can't change, and `let mut` one that can (D3)",
+                )));
+            }
+            if !root.value_type.is_copied() {
+                let site = body.site(*root_span);
+                let marker = each.ownership.map_or(each.source.span, |(_, span)| span.to(each.source.span));
+                let place = crate::flow::Place { local: root.local, path: Vec::new(), shown: root.name.clone() };
+                let spot = crate::flow::Spot { variable: *root_span, place: each.source.span, site, marker };
+                body.events.push(match word {
+                    Some(Ownership::Give) => crate::flow::Event::Give { place, spot },
+                    Some(Ownership::LendMut) => crate::flow::Event::LendMut { place, spot },
+                    _ => crate::flow::Event::Read { place, spot },
+                });
+            }
+        }
+        let word_machine = MachineType::Integer { bits: 64, signed: false };
+        let index = body.new_local(word_machine.clone());
+        let read_index = checked::Expression { kind: Kind::Local(index), machine_type: word_machine.clone() };
+        let place_with = |steps: &[checked::Step], item: checked::Step| {
+            let mut all = steps.to_vec();
+            all.push(item);
+            checked::Place { local, steps: all }
+        };
+        let count = match &collection {
+            Type::Array { len, .. } => {
+                checked::Expression { kind: Kind::Integer(i128::from(*len)), machine_type: word_machine.clone() }
+            }
+            _ => checked::Expression {
+                kind: Kind::ListLen(Box::new(checked::Expression {
+                    kind: Kind::Load(checked::Place { local, steps: steps.clone() }),
+                    machine_type: collection.machine(),
+                })),
+                machine_type: word_machine.clone(),
+            },
+        };
+        block.push(checked::Statement::Let {
+            local: index,
+            value: checked::Expression { kind: Kind::Integer(0), machine_type: word_machine.clone() },
+        });
+        let item_step = checked::Step::Item { position: Box::new(read_index.clone()), from_one: false, check: None };
+        let item_place = place_with(&steps, item_step);
+        let item = body.new_local(item_type.machine());
+        let take_item = if word == Some(Ownership::LendMut) {
+            checked::Statement::AliasValue {
+                local: item,
+                value: checked::Expression { kind: Kind::PlaceAddress(item_place), machine_type: MachineType::Address },
+            }
+        } else {
+            checked::Statement::Let {
+                local: item,
+                value: checked::Expression { kind: Kind::Load(item_place), machine_type: item_type.machine() },
+            }
+        };
+        body.scopes.push(Vec::new());
+        let before = body.states.len();
+        if word != Some(Ownership::Give) {
+            body.lent.push(item);
+        }
+        body.declare(
+            Variable {
+                name: each.name.text.clone(),
+                value_type: item_type.clone(),
+                mutable: word == Some(Ownership::LendMut),
+                origin: Origin::LoopItem,
+                local: item,
+                declared: each.name.span,
+                given: None,
+                known_case: None,
+            },
+            State::Assigned,
+        );
+        let mut binding = Vec::new();
+        if word == Some(Ownership::Give) && !item_type.is_copied() {
+            binding.push(crate::flow::Event::Bind {
+                local: item,
+                name: each.name.text.clone(),
+                declared: each.name.span,
+                must_give: self.must_give(&item_type),
+                origin: crate::flow::Origin::Local,
+            });
+        }
+        let reading = root.as_ref().map(|(root, _)| root.name.clone());
+        body.reading.extend(reading.clone());
+        let start = body.states[..before].to_vec();
+        let (id, loop_body, breaks) = self.loop_body(body, each.label.as_ref(), &each.body);
+        if reading.is_some() {
+            body.reading.pop();
+        }
+        body.scopes.pop();
+        body.forget_after(before);
+        let mut joined = Body::join_states(&start, &body.states[..before]);
+        for state in breaks {
+            joined = Body::join_states(&joined, &state[..before]);
+        }
+        body.states = joined;
+        let mut statements = vec![
+            checked::Statement::If {
+                condition: not(compare(checked::Comparison::Below, read_index.clone(), count)),
+                then: vec![checked::Statement::Break(id)],
+                otherwise: Vec::new(),
+            },
+            take_item,
+            checked::Statement::Flow(binding),
+        ];
+        statements.extend(loop_body);
+        statements.push(checked::Statement::Set {
+            local: index,
+            value: checked::Expression {
+                kind: Kind::Arithmetic {
+                    operator: checked::Arithmetic::WrappingAdd,
+                    left: Box::new(read_index),
+                    right: Box::new(checked::Expression { kind: Kind::Integer(1), machine_type: word_machine.clone() }),
+                    failure: None,
+                    more: Vec::new(),
+                },
+                machine_type: word_machine,
             },
         });
         block.push(checked::Statement::Loop { id, body: statements, opener: body.loop_opener });
@@ -1828,4 +2015,13 @@ fn opener(text: &str, span: Span) -> Span {
     let line = text.get(start..line_end).unwrap_or("");
     let end = line.rfind(':').map_or(line_end, |colon| start + colon + 1);
     Span::new(span.file, start, end)
+}
+
+/// Whether a place goes through an item, as in `$b.boxes[pos: 1].n`.
+fn has_item(expression: &syntax::Expression) -> bool {
+    match &expression.kind {
+        ExpressionKind::Bracket { base, .. } => !matches!(base.kind, ExpressionKind::Path(_)),
+        ExpressionKind::Field { base, .. } | ExpressionKind::Group(base) => has_item(base),
+        _ => false,
+    }
 }

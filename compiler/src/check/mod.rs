@@ -5,6 +5,7 @@
 
 pub mod aggregates;
 pub mod bake;
+pub mod collections;
 pub mod contracts;
 pub mod failures;
 pub mod floats;
@@ -155,6 +156,8 @@ pub struct Body {
     pub calls: Vec<Span>,
     /// Parameters that are only lent, bare or `Lent.mut`, so their duties are the caller's (D2).
     pub lent: Vec<checked::LocalId>,
+    /// The lists and arrays a `for` around this is reading in place (D128).
+    pub reading: Vec<String>,
     /// The receiver a method call is lending with `Lend.mut`, while its arguments are checked.
     pub lent_receiver: Option<String>,
     /// What fills each source of the struct or union being built, from the type it goes into (D171).
@@ -1065,6 +1068,7 @@ impl Checker<'_> {
                 self.check_fills(written, &name, &sources)?;
                 Ok(found)
             }
+            "std::list" | "std::array" => self.collection_type(written, &text, path, fill, labels),
             _ if let Some(reported) = self.bare_member(path, &text) => Err(reported),
             _ if text.contains("::") || text.contains('.') => {
                 Err(self.not_yet(written.span, format!("the type `{text}`")))
@@ -1170,6 +1174,128 @@ impl Checker<'_> {
             named.push(self.borrow_source(span, source, mutable)?);
         }
         Ok(Type::Borrow { mutable, held, sources: named, inner: Box::new(inner) })
+    }
+
+    /// `std::list<i32>[len.max: inf items]` or `std::array<i32>[len: 3 items]` (D11, D12, D13, D140).
+    fn collection_type(
+        &mut self,
+        written: &syntax::Type,
+        text: &str,
+        path: &syntax::Path,
+        fill: &[syntax::TypeArgument],
+        labels: &[syntax::Label],
+    ) -> Check<Type> {
+        self.require_import(text, path.span)?;
+        let array = text == "std::array";
+        let item = match fill {
+            [syntax::TypeArgument { label: None, value: syntax::TypeArgumentValue::Type(item), .. }] => {
+                self.resolve_type(item)?
+            }
+            _ => return Err(self.not_yet(written.span, format!("`{text}` filled in this way"))),
+        };
+        let mut len = None;
+        let mut min = None;
+        let mut max = None;
+        let mut len_type = IntegerKind::U64;
+        for label in labels {
+            let name = label.name.text();
+            match name.as_str() {
+                "len.always" => {
+                    return Err(self.error(Diagnostic::refused_fix(
+                        label.name.span,
+                        "len",
+                        "bare `len` is exact, so there is no `len.always` (D13)",
+                    )));
+                }
+                "len" if !array => {
+                    return Err(self.error(Diagnostic::refused(
+                        label.name.span,
+                        "a list has no bare `len`, since exactly that many is an `array`",
+                        "a list with a bare `len` is refused in favour of `array` (D13)",
+                    )));
+                }
+                "len" => len = Some((self.item_count(&label.value)?, label.value.span)),
+                "len.min" if !array => min = Some((self.item_count(&label.value)?, label.value.span)),
+                "len.max" if !array => max = Some((self.item_count(&label.value)?, label.value.span)),
+                "len.type" => len_type = self.length_type(&label.value)?,
+                _ => {
+                    return Err(self.not_yet(label.name.span, format!("`{name}` on `{text}`")));
+                }
+            }
+        }
+        // A length its type can't count is refused (D140).
+        let (_, most) = len_type.range();
+        for (count, span) in [len, max].into_iter().flatten() {
+            if let Some(count) = count
+                && i128::from(count) > most
+            {
+                return Err(self.error(Diagnostic::refused(
+                    span,
+                    format!("`{}` can't count this many", len_type.name()),
+                    "a length that doesn't fit its `len.type` is refused (D140)",
+                )));
+            }
+        }
+        if array {
+            let Some((Some(len), _)) = len else {
+                return Err(self.not_yet(written.span, "an array without a fixed `len`".to_string()));
+            };
+            return Ok(Type::Array { item: Box::new(item), len, len_type });
+        }
+        let Some((max, _)) = max else {
+            return Err(self.error(Diagnostic::refused(
+                path.span,
+                "a list always writes its `len.max`, with `inf` for unbounded",
+                "nothing goes unsaid about being empty or unbounded (D11)",
+            )));
+        };
+        let min = match min {
+            Some((Some(min), _)) => min,
+            Some((None, span)) => return Err(self.not_yet(span, "`len.min: inf`".to_string())),
+            None => 0,
+        };
+        Ok(Type::List { item: Box::new(item), min, max, len_type })
+    }
+
+    /// A count of items, `3 items`, or `inf items` as `None` (D11, D101).
+    fn item_count(&mut self, value: &syntax::Expression) -> Check<Option<u64>> {
+        let syntax::ExpressionKind::WithUnit { value: number, unit } = &value.kind else {
+            let shown = self.slice(value.span).to_string();
+            return Err(self.error(Diagnostic::refused_fix(
+                value.span,
+                format!("{shown} items"),
+                "a unit is required where the type asks for one (D101)",
+            )));
+        };
+        if self.resolve_path(unit) != "items" {
+            return Err(self.not_yet(unit.span, "a length in another unit".to_string()));
+        }
+        match &number.kind {
+            syntax::ExpressionKind::Path(path) if path.is_single("inf") => Ok(None),
+            syntax::ExpressionKind::Infinity => Ok(None),
+            _ => {
+                let count = self.constant_integer(number)?;
+                u64::try_from(count).map(Some).map_err(|_| self.not_yet(number.span, "this count".to_string()))
+            }
+        }
+    }
+
+    /// `len.type: u32`: an integer type that counts a length (D140).
+    fn length_type(&mut self, value: &syntax::Expression) -> Check<IntegerKind> {
+        const WHY: &str = "a list can choose its length's type with `len.type` (D140)";
+        let syntax::ExpressionKind::Path(path) = &value.kind else {
+            return Err(self.error(Diagnostic::refused(value.span, "`len.type` is an integer type", WHY)));
+        };
+        let text = path.text();
+        match IntegerKind::from_name(&text) {
+            Some(kind) if matches!(text.as_str(), "i32" | "i64" | "u8" | "u32" | "u64") => Ok(kind),
+            Some(_) => Err(self.error(Diagnostic::not_designed(
+                value.span,
+                format!("`len.type: {text}`"),
+                "not decided yet (standard 12.2)",
+            ))),
+            None => Err(self.error(Diagnostic::refused(value.span, format!("`{text}` can't count a length"), WHY))),
+        }
     }
 
     /// A float's bounds, `f64.stable[min: -40.0, max: 125.0]`, whose literals follow D59 (D158).

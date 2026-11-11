@@ -368,6 +368,11 @@ impl Checker<'_> {
             return Ok(typed);
         }
         let typed = self.expression(body, base, None)?;
+        if field.text == "len"
+            && let Some(length) = self.length(&typed)
+        {
+            return Ok(length);
+        }
         match &typed.value_type {
             Type::New { .. } => Err(self.error(Diagnostic::not_designed(
                 field.span,

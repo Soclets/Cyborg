@@ -11,6 +11,7 @@
 
 declare i64 @write(i32, ptr, i64)
 declare ptr @malloc(i64)
+declare ptr @realloc(ptr, i64)
 declare void @free(ptr)
 declare void @exit(i32) noreturn
 
@@ -356,4 +357,55 @@ entry:
   %with_data = insertvalue { ptr, i64 } undef, ptr %text, 0
   %result = insertvalue { ptr, i64 } %with_data, i64 %length, 1
   ret { ptr, i64 } %result
+}
+
+; Lists (D11, D24): a record of where the items are, how many there are, and how many fit before it grows.
+%list = type { ptr, i64, i64 }
+
+; Memory for a list's first items. Running out of memory stops the program, since nothing can carry on without it.
+define ptr @__cyborg_allocate(i64 %bytes) {
+entry:
+  %memory = call ptr @malloc(i64 %bytes)
+  %none = icmp eq ptr %memory, null
+  br i1 %none, label %out, label %fine
+out:
+  call void @exit(i32 1)
+  unreachable
+fine:
+  ret ptr %memory
+}
+
+; Makes room for one more item at the end of a list, doubling its room when it's full, and gives the new item's place.
+define ptr @__cyborg_list_push(ptr %list, i64 %item_size) {
+entry:
+  %storage_place = getelementptr %list, ptr %list, i32 0, i32 0
+  %count_place = getelementptr %list, ptr %list, i32 0, i32 1
+  %room_place = getelementptr %list, ptr %list, i32 0, i32 2
+  %count = load i64, ptr %count_place
+  %room = load i64, ptr %room_place
+  %full = icmp uge i64 %count, %room
+  br i1 %full, label %grow, label %place
+grow:
+  %doubled = shl i64 %room, 1
+  %small = icmp ult i64 %doubled, 4
+  %new_room = select i1 %small, i64 4, i64 %doubled
+  %bytes = mul i64 %new_room, %item_size
+  %old = load ptr, ptr %storage_place
+  %new = call ptr @realloc(ptr %old, i64 %bytes)
+  %none = icmp eq ptr %new, null
+  br i1 %none, label %out, label %grown
+out:
+  call void @exit(i32 1)
+  unreachable
+grown:
+  store ptr %new, ptr %storage_place
+  store i64 %new_room, ptr %room_place
+  br label %place
+place:
+  %storage = load ptr, ptr %storage_place
+  %offset = mul i64 %count, %item_size
+  %slot = getelementptr i8, ptr %storage, i64 %offset
+  %more = add i64 %count, 1
+  store i64 %more, ptr %count_place
+  ret ptr %slot
 }

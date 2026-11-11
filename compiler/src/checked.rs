@@ -21,6 +21,13 @@ pub enum MachineType {
     Writer,
     /// The address of a place, which a function hands back as a borrow (D170).
     Address,
+    /// A fixed number of items, held in place (D12).
+    Array {
+        item: Box<MachineType>,
+        len: u64,
+    },
+    /// Items on the heap: their address, how many there are, and how many fit before it grows (D11).
+    List(Box<MachineType>),
     /// A struct, by its number in the program.
     Struct(usize),
     /// A tagged union: a tag saying which case, then room for the largest case.
@@ -139,6 +146,17 @@ pub enum Statement {
     /// `os::done(Give $out)`: flushes for the last time and frees the buffer (D273).
     Done {
         writer: LocalId,
+    },
+    /// Changes what's at a place: `change $xs[pos: 3] = 10;`. The place is worked out first, then the value (D133).
+    Store {
+        place: Place,
+        value: Expression,
+    },
+    /// Adds an item at the end of a list, checking it has room for one more (D24).
+    Push {
+        place: Place,
+        value: Expression,
+        room: Option<(u64, Box<CheckFailure>)>,
     },
     /// A stored borrow made from a call that hands one back: from here on, `local` is the place at that address
     /// (D170).
@@ -423,6 +441,19 @@ pub enum ExpressionKind {
     },
     /// A struct built from its fields' values, in their declared order.
     Build(Vec<Expression>),
+    /// The value at a place, through fields and items, each item checked (D133).
+    Load(Place),
+    /// The address of a place, for a borrow of an item (D133, D180).
+    PlaceAddress(Place),
+    /// A list built from its items (D102).
+    ListOf(Vec<Expression>),
+    /// An array of one value, `all 0` (D102).
+    Fill {
+        value: Box<Expression>,
+        len: u64,
+    },
+    /// How many items a list holds, as a `u64`.
+    ListLen(Box<Expression>),
     /// The address of a local, or a field inside it, handed back as a borrow (D170).
     AddressOf {
         local: LocalId,
@@ -458,6 +489,25 @@ pub enum ExpressionKind {
         local: LocalId,
         value: Box<Expression>,
         body: Box<Expression>,
+    },
+}
+
+/// A place in memory: a local, then fields and items inside it (D125, D133).
+#[derive(Clone, Debug)]
+pub struct Place {
+    pub local: LocalId,
+    pub steps: Vec<Step>,
+}
+
+#[derive(Clone, Debug)]
+pub enum Step {
+    Field(usize),
+    /// An item at a position as written, counting from 1 for `pos:` or 0 for `offset.items:`, with its bounds check,
+    /// whose `when:` prints the position and the count.
+    Item {
+        position: Box<Expression>,
+        from_one: bool,
+        check: Option<Box<CheckFailure>>,
     },
 }
 

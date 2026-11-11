@@ -239,6 +239,20 @@ pub enum Type {
         sources: Vec<String>,
         inner: Box<Type>,
     },
+    /// `std::array<i32>[len: 3 items]`: exactly `len` items (D12, D24).
+    Array {
+        item: Box<Type>,
+        len: u64,
+        /// What `.len` is, `u64` unless `len.type` says otherwise (D140).
+        len_type: IntegerKind,
+    },
+    /// `std::list<i32>[len.max: inf items]`: from `min` to `max` items, with no `max` for `inf` (D11, D24).
+    List {
+        item: Box<Type>,
+        min: u64,
+        max: Option<u64>,
+        len_type: IntegerKind,
+    },
     /// After an error, so nothing more is said about it.
     Unknown,
 }
@@ -319,6 +333,8 @@ impl Type {
             Type::Union { id, .. } => checked::MachineType::Union(*id),
             Type::Failure { union, .. } => checked::MachineType::Union(*union),
             Type::New { inner, .. } | Type::Borrow { inner, .. } => inner.machine(),
+            Type::Array { item, len, .. } => checked::MachineType::Array { item: Box::new(item.machine()), len: *len },
+            Type::List { item, .. } => checked::MachineType::List(Box::new(item.machine())),
             Type::Str => checked::MachineType::Text,
             Type::Void | Type::Unknown => checked::MachineType::Void,
         }
@@ -383,6 +399,27 @@ impl fmt::Display for Type {
                     [one] => write!(formatter, "{word} from {one} {inner}"),
                     _ => write!(formatter, "{word} from <{}> {inner}", sources.join(", ")),
                 }
+            }
+            Type::Array { item, len, len_type } => {
+                write!(formatter, "std::array<{item}>[len: {len} items")?;
+                if *len_type != IntegerKind::U64 {
+                    write!(formatter, ", len.type: {}", len_type.name())?;
+                }
+                write!(formatter, "]")
+            }
+            Type::List { item, min, max, len_type } => {
+                write!(formatter, "std::list<{item}>[")?;
+                if *min > 0 {
+                    write!(formatter, "len.min: {min} items, ")?;
+                }
+                match max {
+                    Some(max) => write!(formatter, "len.max: {max} items")?,
+                    None => write!(formatter, "len.max: inf items")?,
+                }
+                if *len_type != IntegerKind::U64 {
+                    write!(formatter, ", len.type: {}", len_type.name())?;
+                }
+                write!(formatter, "]")
             }
             Type::Unknown => write!(formatter, "?"),
         }
