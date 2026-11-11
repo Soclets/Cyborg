@@ -10,8 +10,8 @@ use crate::syntax::{
     Argument, Arm, BinaryOperator, Branch, Case, Closer, Condition, Expression, ExpressionKind, FailEntry, FailList,
     Family, FamilyEntry, FamilyEntryKind, Field, File, For, Function, Generic, GenericKind, Handling, If, Import, Item,
     ItemKind, Joint, Label, Let, Mark, Match, Name, Ownership, Parameter, ParameterOwnership, Parameters, Path,
-    Requirement, Segment, Shield, ShortName, Statement, StatementKind, Struct, Type, TypeArgument, TypeArgumentValue,
-    TypeKind, UnaryOperator, Union, UnitDefinition, Use,
+    Requirement, RequirementEntry, Requirements, Segment, Shield, ShortName, Statement, StatementKind, Struct, Type,
+    TypeArgument, TypeArgumentValue, TypeKind, UnaryOperator, Union, UnitDefinition, Use,
 };
 
 /// What a token does, for the spacing checks.
@@ -414,7 +414,7 @@ impl<'source> Parser<'source> {
                 self.recover();
                 return Err(Reported);
             }
-            "interface" | "type_set" => self.skipped_block(word)?,
+            "interface" | "type_set" => self.requirements(word)?,
             _ if self.is_satisfies() => self.satisfies()?,
             _ => {
                 let statement = self.statement()?;
@@ -516,24 +516,55 @@ impl<'source> Parser<'source> {
         Ok(ItemKind::TypeName { keyword, name, target })
     }
 
-    /// An `interface` or `type_set`, read to its closer and kept whole.
-    fn skipped_block(&mut self, word: &str) -> Parse<ItemKind> {
+    /// An `interface` or a `type_set`, with its lines (D235, D238).
+    fn requirements(&mut self, word: &str) -> Parse<ItemKind> {
+        let start = self.current_span();
         let keyword = self.path()?;
         let name = self.path()?;
-        let start = keyword.span;
-        while self.peek().is_some() {
-            if self.starts_line() && self.is_word("end") && self.word_at(1) == Some(word) {
-                self.closer()?;
-                break;
+        let generics = self.generics()?;
+        self.expect_block_colon()?;
+        let mut entries = Vec::new();
+        while self.peek().is_some() && !self.is_word("end") {
+            let entry_start = self.current_span();
+            let result = (|| {
+                if self.is_word("includes") {
+                    self.advance();
+                    let path = self.path()?;
+                    self.expect(TokenKind::Semicolon, ";")?;
+                    return Ok(RequirementEntry::Includes(path));
+                }
+                if self.is_word("op") {
+                    self.advance();
+                    let token = self.advance().ok_or(Reported)?;
+                    let operator = Name { text: self.text_of(token).to_string(), span: token.span };
+                    let parameters = self.parameters()?;
+                    if self.is(TokenKind::Arrow) {
+                        self.advance();
+                        self.parse_type()?;
+                    }
+                    self.expect(TokenKind::Semicolon, ";")?;
+                    let values = parameters.list.len();
+                    return Ok(RequirementEntry::Op { operator, values, span: entry_start.to(self.previous_span()) });
+                }
+                if self.is_word("law") {
+                    while self.peek().is_some() && !self.is(TokenKind::Semicolon) {
+                        self.advance();
+                    }
+                    self.expect(TokenKind::Semicolon, ";")?;
+                    return Ok(RequirementEntry::Law(entry_start.to(self.previous_span())));
+                }
+                let written = self.parse_type()?;
+                self.expect(TokenKind::Semicolon, ";")?;
+                Ok(RequirementEntry::Type(written))
+            })();
+            match result {
+                Ok(entry) => entries.push(entry),
+                Err(Reported) => self.recover(),
             }
-            // Its insides aren't read yet, so its lines aren't held to the line-break rule.
-            if let Some(role) = self.roles.get_mut(self.at) {
-                *role = Role::LineEnd;
-            }
-            self.advance();
         }
-        let block = crate::syntax::Block { keyword, name, span: start.to(self.previous_span()) };
-        Ok(if word == "interface" { ItemKind::Interface(block) } else { ItemKind::TypeSet(block) })
+        let end = self.closer()?;
+        let requirements = Requirements { keyword, name, generics, entries, end, span: start.to(self.previous_span()) };
+        Ok(if word == "interface" { ItemKind::Interface(requirements) } else { ItemKind::TypeSet(requirements) })
     }
 
     /// `end` and the rest of its line.
@@ -589,6 +620,7 @@ impl<'source> Parser<'source> {
             let start = self.current_span();
             let (name, kind) = match self.kind() {
                 Some(TokenKind::Question) => {
+                    self.roles[self.at] = Role::Prefix;
                     self.advance();
                     let name = self.name()?;
                     (Name { text: name.text, span: start.to(name.span) }, GenericKind::Type)
@@ -1692,6 +1724,8 @@ impl<'source> Parser<'source> {
     pub fn parse_type(&mut self) -> Parse<Type> {
         let start = self.current_span();
         if self.is(TokenKind::Question) {
+            // `?item`: the `?` marks the name, so it touches it and not what's before (D234).
+            self.roles[self.at] = Role::Prefix;
             self.advance();
             let name = self.name()?;
             let name = Name { text: name.text, span: start.to(name.span) };

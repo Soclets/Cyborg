@@ -120,8 +120,10 @@ pub enum ItemKind {
         name: Path,
         target: Type,
     },
-    Interface(Block),
-    TypeSet(Block),
+    /// `interface ordered<?self>: … end interface ordered` (D235, D238).
+    Interface(Requirements),
+    /// `type_set whole: i32; i64; end type_set whole` (D235).
+    TypeSet(Requirements),
     /// `reading satisfies ordered;`, or the `.|.` easter egg.
     Satisfies {
         subject: Path,
@@ -161,6 +163,29 @@ pub struct Block {
     pub keyword: Path,
     pub name: Path,
     pub span: Span,
+}
+
+/// An interface's or type set's lines (D235).
+#[derive(Clone, Debug)]
+pub struct Requirements {
+    pub keyword: Path,
+    pub name: Path,
+    pub generics: Vec<Generic>,
+    pub entries: Vec<RequirementEntry>,
+    pub end: Closer,
+    pub span: Span,
+}
+
+#[derive(Clone, Debug)]
+pub enum RequirementEntry {
+    /// `includes equatable;`.
+    Includes(Path),
+    /// `op below [$a: ?self, $b: ?self] -> bool;`, with how many values it takes.
+    Op { operator: Name, values: usize, span: Span },
+    /// `law …;`, which says what the operations obey.
+    Law(Span),
+    /// A type on its own line, as a type set lists them.
+    Type(Type),
 }
 
 #[derive(Clone, Debug)]
