@@ -13,6 +13,7 @@
 | [6.9](#69-must_give) | `must_Give`, `finish` | Handed off exactly once |
 | [6.10](#610-stored-borrows) | `Lend from` | A borrow as a type, returned or in a struct |
 | [6.11](#611-no-word-needed) | No word needed | Reading in place, fresh values |
+| [6.12](#612-defer) | `defer` | Ends a value when its block ends, however it ends |
 
 ## 6.1 The words
 
@@ -135,6 +136,8 @@ $xs.std::%%append(val: 4);
 
 **Rule:** a `must_Give` type is linear: it's handed off with `Give` exactly once. Lending doesn't count.
 
+Every value that owns memory is `must_Give`, so nothing is ever freed automatically: you write every free, and the compiler checks every one, so a leak is a compile error as much as a double free or a use after free. That covers growable lists ([2.10](2-values-and-types.md#210-lists)), strings made with `as str`, maps, and any struct or type holding one. `defer` ([6.12](#612-defer)) keeps the freeing in one place.
+
 ```
 struct.must_Give open_file:
     …
@@ -175,7 +178,7 @@ end fn close_log
 
 **Refused:** forgetting it, giving it twice, `finish` outside the kit or file that declared the type, `finish` while a `must_Give` field inside hasn't been given away, a struct holding a `must_Give` field without saying `must_Give`, with the fix shown, moving a field out of something borrowed, and using a value whole after a field has been moved out.
 
-**From:** D2, D57, D129, D177, D185.
+**From:** D2, D57, D129, D177, D185, D325.
 
 ## 6.10 Stored borrows
 
@@ -295,3 +298,25 @@ reading[celsius = 21, time = 3600 std::units::time.seconds]
 ```
 
 **From:** D2, D182.
+
+## 6.12 `defer`
+
+**Rule:** `defer` runs a statement when its block ends, however it ends: reaching `end`, `return`, `fail`, `?` or `break`. Deferred statements run in reverse order, so things are torn down opposite to how they were built. A deferred `Give` ends the value's duty on every path, so `must_Give` is met once, where the value is made. Until then the value is still yours to read and change.
+
+```
+fn total_of_both [$alloc: Lent os::heap] -> i64 fails [out_of_memory, bad_number]:
+    let mut $xs: std::list<i64>[len.max: inf items] = empty;
+    defer std::list.done(Give $xs, alloc: Lend $alloc);
+    read_numbers(Lend.mut $xs, alloc: Lend $alloc)?;
+
+    let mut $ys: std::list<i64>[len.max: inf items] = empty;
+    defer std::list.done(Give $ys, alloc: Lend $alloc);
+    read_numbers(Lend.mut $ys, alloc: Lend $alloc)?;
+
+    return sum(Lend $xs) + sum(Lend $ys);
+end fn total_of_both
+```
+
+**Refused:** giving away a value a `defer` has already promised, as in `consume(Give $xs);` after the `defer` above.
+
+**From:** D325, and Zig's `defer`.
