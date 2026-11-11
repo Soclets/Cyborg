@@ -368,6 +368,17 @@ impl Checker<'_> {
                         let index =
                             info.cases[case].fields.iter().position(|each| each.name == field.text).unwrap_or(0);
                         let value_type = info.cases[case].fields[index].value_type.clone();
+                        // Reading through a test's trust, which a `change` or `Lend.mut` ends (D104).
+                        if let ExpressionKind::Variable(variable) = &base.kind
+                            && let Some(found) = body.lookup(&variable.text)
+                        {
+                            let place = base.span.to(field.span);
+                            body.events.push(crate::flow::Event::TrustedRead {
+                                local: found.local,
+                                spot: crate::flow::Spot { variable: base.span, place, site: place, marker: place },
+                                what: format!("{name}.{}", info.cases[case].name),
+                            });
+                        }
                         Ok(Typed::new(value_type, Kind::CaseField { base: Box::new(typed.value), case, index }))
                     }
                     (_, Some(_)) if matches!(&base.kind, ExpressionKind::Variable(variable) if body.matching.contains(&variable.text)) =>

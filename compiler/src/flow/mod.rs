@@ -95,6 +95,17 @@ pub enum Event {
         mutable: bool,
         held: bool,
     },
+    /// A test on a union's case starts being trusted (D9, D104).
+    Trust {
+        local: LocalId,
+        what: String,
+    },
+    /// A read that relies on that trust.
+    TrustedRead {
+        local: LocalId,
+        spot: Spot,
+        what: String,
+    },
     /// What only happens on some paths, like the right side of `and`.
     Maybe(Vec<Event>),
     /// The block that declared these ends.
@@ -343,6 +354,8 @@ struct Loan {
 struct State {
     holding: BTreeMap<LocalId, Holding>,
     loans: BTreeMap<LocalId, Loan>,
+    /// Each variable a test trusts, with where a `change` or `Lend.mut` ended that, on some path (D104).
+    trusts: BTreeMap<LocalId, Option<Span>>,
 }
 
 /// What's known about each variable that doesn't change along a path.
@@ -423,6 +436,18 @@ fn join(a: &State, b: &State) -> State {
             }
             None => {
                 joined.loans.insert(*local, loan.clone());
+            }
+        }
+    }
+    for (local, ended) in &b.trusts {
+        match joined.trusts.get_mut(local) {
+            Some(mine) => {
+                if checks::join_spoiled(mine.is_some(), ended.is_some()) && mine.is_none() {
+                    *mine = *ended;
+                }
+            }
+            None => {
+                joined.trusts.insert(*local, *ended);
             }
         }
     }
@@ -514,6 +539,13 @@ impl Checker<'_> {
                 if self.usable(state, place, spot, false) {
                     self.spoil(state, place, spot, false);
                 }
+                // A change ends a test's trust, said at the whole statement, or at the call that lends it (D104).
+                let at = if matches!(event, Event::Change { .. }) { spot.marker } else { spot.site };
+                if let Some(trust) = state.trusts.get_mut(&place.local)
+                    && trust.is_none()
+                {
+                    *trust = Some(at);
+                }
             }
             Event::Give { place, spot } if !place.path.is_empty() => self.move_out(state, place, spot),
             Event::Give { place, spot } => {
@@ -564,6 +596,22 @@ impl Checker<'_> {
                 }
             }
             Event::Maybe(_) => {}
+            Event::Trust { local, .. } => {
+                state.trusts.insert(*local, None);
+            }
+            Event::TrustedRead { local, spot, what } => {
+                if let Some(Some(at)) = state.trusts.get(local) {
+                    let name = self.name(*local);
+                    self.say(
+                        Diagnostic::refused(
+                            spot.place,
+                            format!("`{name}` may not be `{what}` any more"),
+                            "a test's trust ends at a `change`, and at a `Lend.mut` too (D104)",
+                        )
+                        .with_because(*at, format!("`{name}` changed here")),
+                    );
+                }
+            }
         }
     }
 

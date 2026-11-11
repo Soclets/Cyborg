@@ -1,6 +1,9 @@
 # Tests this compiler claims to pass. Every one must pass before a push (rule 5).
 d101_plain_i32_needs_no_unit
 d104_change_is_allowed
+d104_trust_ends_at_change
+d104_trust_ends_at_lend_mut
+d104_trust_ends_on_one_path
 d106_only_in_working_is_checked_here
 d10_i32_alias_chain
 d10_other_integer_widths
@@ -117,6 +120,7 @@ d128_break_inside_a_nested_loop_doesnt_end_forever
 d128_break_outside_a_loop
 d128_break_stops_the_innermost
 d128_break_unknown_name
+d128_change_ends_trust_in_a_while
 d128_empty_forever_at_compile_time
 d128_forever_and_break
 d128_forever_with_a_break_can_end
@@ -195,6 +199,7 @@ d130_dot_never_runs_code
 d130_given_receiver
 d130_label_left_off
 d130_labels_and_defaults
+d130_lent_mut_ends_trust
 d130_lent_mut_on_a_fresh_value
 d130_lent_mut_on_a_let
 d130_method_declared_later
@@ -295,7 +300,9 @@ d139_instead_of_the_wrong_type
 d139_instead_on_a_void_call
 d139_instead_outside_an_arm
 d139_instead_with_a_duty_open
+d139_match_name_after_a_change
 d139_match_name_can_be_lent_and_copied
+d139_match_name_cant_be_given
 d139_match_name_cant_change
 d139_match_name_is_for_that_case
 d139_match_names_its_case

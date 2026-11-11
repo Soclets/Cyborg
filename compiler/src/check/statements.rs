@@ -100,7 +100,9 @@ impl Checker<'_> {
             StatementKind::Assign { target, value } => {
                 self.assign(body, statement.span, target, value, block).map(|()| false)
             }
-            StatementKind::Change { target, value } => self.change(body, target, value, block).map(|()| false),
+            StatementKind::Change { target, value } => {
+                self.change(body, statement.span, target, value, block).map(|()| false)
+            }
             StatementKind::Return(value) => {
                 self.return_statement(body, statement, value.as_ref(), block).map(|()| true)
             }
@@ -597,6 +599,7 @@ impl Checker<'_> {
     fn change(
         &mut self,
         body: &mut Body,
+        span: Span,
         target: &syntax::Expression,
         value: &syntax::Expression,
         block: &mut checked::Block,
@@ -658,7 +661,8 @@ impl Checker<'_> {
         block.push(checked::Statement::Set { local: variable.local, value });
         body.states[index] = State::Assigned;
         if !variable.value_type.is_copied() {
-            let spot = crate::flow::Spot { variable: name.span, place: name.span, site: name.span, marker: name.span };
+            // The whole statement is where a test's trust ended (D104).
+            let spot = crate::flow::Spot { variable: name.span, place: name.span, site: name.span, marker: span };
             body.events.push(crate::flow::Event::Change {
                 place: crate::flow::Place { local: variable.local, path: Vec::new(), shown: String::new() },
                 spot,
@@ -984,7 +988,19 @@ impl Checker<'_> {
                     State::Assigned,
                 );
             }
-            let checked = self.block(body, &branch.body);
+            let mut checked = self.block(body, &branch.body);
+            // A test on a union's case is trusted inside, until a `change` or `Lend.mut` (D9, D104).
+            if let Ok((_, Some(narrowed))) = &condition
+                && narrowed.known_case.is_some()
+                && let Type::Union { id, name } = &narrowed.value_type
+                && let Some(case) = narrowed.known_case.and_then(|case| self.aggregates.unions[*id].cases.get(case))
+            {
+                let what = format!("{name}.{}", case.name);
+                checked.block.insert(
+                    0,
+                    checked::Statement::Flow(vec![crate::flow::Event::Trust { local: narrowed.local, what }]),
+                );
+            }
             body.scopes.pop();
             body.forget_after(start);
             if !checked.leaves {
@@ -1087,6 +1103,9 @@ impl Checker<'_> {
             covered[case] = true;
             let before = body.states.clone();
             body.scopes.push(Vec::new());
+            if arm.binding.is_some() && !body.lent.contains(&local) {
+                body.lent.push(local);
+            }
             if let Some(binding) = &arm.binding {
                 body.declare(
                     Variable {
@@ -1107,7 +1126,31 @@ impl Checker<'_> {
                 _ => None,
             };
             body.matching.extend(subject.clone());
-            let checked = self.block(body, &arm.body);
+            let mut checked = self.block(body, &arm.body);
+            // The name a case gives is a borrow of what's matched, so it ends if that's changed (D139, D169).
+            if let Some(binding) = &arm.binding
+                && let ExpressionKind::Variable(subject_name) = &choice.subject.kind
+                && let Some(source) = body.lookup(&subject_name.text).map(|variable| variable.local)
+            {
+                checked.block.insert(
+                    0,
+                    checked::Statement::Flow(vec![
+                        crate::flow::Event::Bind {
+                            local,
+                            name: binding.text.clone(),
+                            declared: binding.span,
+                            must_give: false,
+                            origin: crate::flow::Origin::Lent,
+                        },
+                        crate::flow::Event::Borrow {
+                            borrower: local,
+                            sources: vec![(source, Vec::new())],
+                            mutable: false,
+                            held: false,
+                        },
+                    ]),
+                );
+            }
             if subject.is_some() {
                 body.matching.pop();
             }

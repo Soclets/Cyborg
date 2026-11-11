@@ -1306,6 +1306,12 @@ impl Checker<'_> {
                     "`let` declares a variable that can't change, and `let mut` one that can (D3)",
                 )));
             }
+            body.take_read(variable.local);
+            let site = body.site(name.span);
+            body.events.push(crate::flow::Event::LendMut {
+                place: crate::flow::Place { local: variable.local, path: Vec::new(), shown: name.text.clone() },
+                spot: crate::flow::Spot { variable: name.span, place: name.span, site, marker: site },
+            });
             checked::Argument::Address(variable.local)
         } else if receiver_typed.value_type.is_copied() {
             // A lent number is passed as its value, as its parameter takes it.
