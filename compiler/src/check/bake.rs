@@ -130,6 +130,7 @@ impl<'a> Interpreter<'a> {
                 Ok(Flow::Normal)
             }
             Statement::Break(id) => Ok(Flow::Break(*id)),
+            Statement::Flow(_) => Ok(Flow::Normal),
             Statement::Return(value) => match value {
                 Some(value) => Ok(Flow::Return(Some(self.expression(value, locals)?))),
                 None => Ok(Flow::Return(None)),

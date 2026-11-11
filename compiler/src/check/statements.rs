@@ -34,12 +34,22 @@ impl Checker<'_> {
         let mut block = Vec::new();
         let mut leaves = false;
         let mut gives = false;
+        // What the statement around this block did so far stays with it, and goes before it.
+        let outer = std::mem::take(&mut body.events);
         for statement in statements {
             if matches!(statement.kind, StatementKind::Instead(_)) {
                 gives = true;
             }
             body.statement = None;
+            let mark = block.len();
             let result = self.statement(body, statement, &mut block);
+            if result.is_ok() && matches!(statement.kind, StatementKind::Return(_) | StatementKind::Fail(_)) {
+                body.events.push(crate::flow::Event::Leave { span: statement.span, locals: None });
+            }
+            let events = std::mem::take(&mut body.events);
+            if !events.is_empty() {
+                block.insert(mark.min(block.len()), checked::Statement::Flow(events));
+            }
             // A `return` or `break` leaves even when what it hands back is refused.
             if matches!(result, Ok(true))
                 || matches!(
@@ -53,6 +63,12 @@ impl Checker<'_> {
                 leaves = true;
             }
         }
+        let locals: Vec<checked::LocalId> =
+            body.variables[count.min(body.variables.len())..].iter().map(|variable| variable.local).collect();
+        if !leaves && !locals.is_empty() {
+            block.push(checked::Statement::Flow(vec![crate::flow::Event::ScopeEnd { locals }]));
+        }
+        body.events = outer;
         body.scopes.pop();
         body.forget_after(count);
         Checked { block, leaves, gives }
@@ -129,6 +145,7 @@ impl Checker<'_> {
             | StatementKind::Defaults(_)
             | StatementKind::Requires { .. }
             | StatementKind::Ensures { .. } => Ok(false),
+            StatementKind::Finish(value) => self.finish_statement(body, statement.span, value).map(|()| false),
             StatementKind::Broken => Err(Reported),
             _ => Err(self.not_yet(statement.span, "this statement".to_string())),
         }
@@ -154,6 +171,9 @@ impl Checker<'_> {
         // The variable exists even if its value is refused, and reading it then is its own error (standard 11.7).
         let origin = if result.is_ok() { Origin::Let } else { Origin::RefusedLet };
         let state = if result.is_ok() { State::Assigned } else { State::Unassigned };
+        if result.is_ok() {
+            self.bind_event(body, local, &binding.name.text, binding.name.span, &declared);
+        }
         body.declare(
             Variable {
                 name: binding.name.text.clone(),
@@ -260,6 +280,45 @@ impl Checker<'_> {
         let value = self.value_into(body, value, &variable.value_type)?;
         block.push(checked::Statement::Let { local: variable.local, value });
         body.states[index] = State::Assigned;
+        self.bind_event(body, variable.local, &name.text, variable.declared, &variable.value_type);
+        Ok(())
+    }
+
+    /// `finish $f;` ends a `must_Give` duty (D129).
+    fn finish_statement(&mut self, body: &mut Body, span: Span, value: &syntax::Expression) -> Check<()> {
+        const FINISH_WHY: &str = "`finish` ends a `must_Give` duty (D129)";
+        let ExpressionKind::Variable(name) = &value.kind else {
+            return Err(self.error(Diagnostic::refused(
+                value.span,
+                "`finish` goes on a variable that holds the duty",
+                FINISH_WHY,
+            )));
+        };
+        let Some(variable) = body.lookup(&name.text).cloned() else {
+            return Err(self.error(Diagnostic::refused(
+                name.span,
+                format!("`{}` isn't declared", name.text),
+                FINISH_WHY,
+            )));
+        };
+        if !self.must_give(&variable.value_type) {
+            return Err(self.error(Diagnostic::refused(
+                name.span,
+                format!("`{}` is `{}`, which has no duty to end", name.text, variable.value_type),
+                FINISH_WHY,
+            )));
+        }
+        if body.lent.contains(&variable.local) {
+            return Err(self.error(Diagnostic::refused(
+                name.span,
+                format!("`{}` is only lent here, so its duty isn't this code's to end", name.text),
+                "`Lend` is temporary access, and the caller keeps it (D2, D129)",
+            )));
+        }
+        body.events.push(crate::flow::Event::Finish {
+            local: variable.local,
+            spot: crate::flow::Spot { variable: name.span, place: name.span, site: span, marker: span },
+        });
         Ok(())
     }
 
@@ -327,6 +386,13 @@ impl Checker<'_> {
         let value = self.value_into(body, value, &variable.value_type)?;
         block.push(checked::Statement::Set { local: variable.local, value });
         body.states[index] = State::Assigned;
+        if !variable.value_type.is_copied() {
+            let spot = crate::flow::Spot { variable: name.span, place: name.span, site: name.span, marker: name.span };
+            body.events.push(crate::flow::Event::Change {
+                place: crate::flow::Place { local: variable.local, path: Vec::new() },
+                spot,
+            });
+        }
         Ok(())
     }
 
@@ -414,6 +480,11 @@ impl Checker<'_> {
             )));
         }
         let value = self.value_into(body, value, &current)?;
+        let spot = crate::flow::Spot { variable: root.span, place: target.span, site: root.span, marker: target.span };
+        body.events.push(crate::flow::Event::Change {
+            place: crate::flow::Place { local: variable.local, path: path.clone() },
+            spot,
+        });
         block.push(checked::Statement::SetField { local: variable.local, path, value });
         Ok(())
     }
@@ -555,6 +626,7 @@ impl Checker<'_> {
                     value_type: Type::Void,
                     result,
                     loops: body.loops.len(),
+                    variables: body.variables.len(),
                 });
                 self.block(body, &arm.body);
                 body.handlers.pop();
@@ -610,8 +682,12 @@ impl Checker<'_> {
         let mut branches = Vec::new();
         // Each branch starts from the path where every condition before it was false, which changes nothing
         // variables know, since conditions only read.
-        for branch in &chain.branches {
+        for (index, branch) in chain.branches.iter().enumerate() {
+            let mark = body.events.len();
             let condition = self.branch_condition(body, &branch.condition);
+            // A later test only runs once the ones before it were false, so what it does goes in that `else`.
+            let condition_events =
+                if index == 0 { Vec::new() } else { body.events.split_off(mark.min(body.events.len())) };
             let before = body.states.clone();
             body.scopes.push(Vec::new());
             if let Ok((_, Some(narrowed))) = &condition {
@@ -641,7 +717,7 @@ impl Checker<'_> {
                 ends.push(body.states[..start].to_vec());
             }
             body.states.clone_from(&before);
-            branches.push((condition.map(|(value, _)| value), checked.block));
+            branches.push((condition.map(|(value, _)| value), checked.block, condition_events));
         }
         let otherwise = match &chain.otherwise {
             Some((_, statements)) => {
@@ -664,9 +740,14 @@ impl Checker<'_> {
         }
         let mut built = otherwise;
         let mut failed = false;
-        for (condition, then) in branches.into_iter().rev() {
+        for (condition, then, events) in branches.into_iter().rev() {
             match condition {
-                Ok(condition) => built = vec![checked::Statement::If { condition, then, otherwise: built }],
+                Ok(condition) => {
+                    built = vec![checked::Statement::If { condition, then, otherwise: built }];
+                    if !events.is_empty() {
+                        built.insert(0, checked::Statement::Flow(events));
+                    }
+                }
                 Err(Reported) => failed = true,
             }
         }
@@ -928,6 +1009,7 @@ impl Checker<'_> {
                 NOT_DECIDED,
             )));
         }
+        let mark = body.events.len();
         let condition = match condition {
             Condition::Plain(expression) => self.condition_value(body, expression)?.value,
             Condition::Test { written_type, .. } => {
@@ -938,6 +1020,8 @@ impl Checker<'_> {
                 )));
             }
         };
+        // The condition runs at the top of every round, so what it does goes inside the loop.
+        let condition_events = body.events.split_off(mark.min(body.events.len()));
         let before = body.states.clone();
         let (id, loop_body, breaks) = self.loop_body(body, None, inner);
         // The body may not have run at all, or may have stopped at a `break`.
@@ -946,11 +1030,14 @@ impl Checker<'_> {
             joined = Body::join_states(&joined, &each[..before.len()]);
         }
         body.states = joined;
-        let mut statements = vec![checked::Statement::If {
-            condition: not(condition),
-            then: vec![checked::Statement::Break(id)],
-            otherwise: Vec::new(),
-        }];
+        let mut statements = vec![
+            checked::Statement::Flow(condition_events),
+            checked::Statement::If {
+                condition: not(condition),
+                then: vec![checked::Statement::Break(id)],
+                otherwise: Vec::new(),
+            },
+        ];
         statements.extend(loop_body);
         block.push(checked::Statement::Loop { id, body: statements, opener: body.loop_opener });
         Ok(())
@@ -965,7 +1052,8 @@ impl Checker<'_> {
     ) -> (checked::LoopId, checked::Block, Vec<Vec<State>>) {
         let id = body.next_loop;
         body.next_loop += 1;
-        body.loops.push(Loop { id, label: label.map(|name| name.text.clone()), breaks: Some(Vec::new()) });
+        let variables = body.variables.len();
+        body.loops.push(Loop { id, label: label.map(|name| name.text.clone()), breaks: Some(Vec::new()), variables });
         // A body runs again with what it changed, so it's checked from the states it could start a round with:
         // before the loop, joined with how a round ends. The first pass finds those, quietly.
         let before = body.states.clone();
@@ -1059,6 +1147,10 @@ impl Checker<'_> {
         };
         let states = body.states.clone();
         let id = body.loops[target].id;
+        // Leaving the loop leaves its variables behind, and their duties with them (D2).
+        let start = body.loops[target].variables.min(body.variables.len());
+        let locals = body.variables[start..].iter().map(|variable| variable.local).collect();
+        body.events.push(crate::flow::Event::Leave { span, locals: Some(locals) });
         if let Some(breaks) = &mut body.loops[target].breaks {
             breaks.push(states);
         }

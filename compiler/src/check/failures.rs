@@ -43,6 +43,8 @@ pub struct Handler {
     pub result: checked::LocalId,
     /// How many loops were open when the arm started, since `instead` inside a loop in its arm isn't decided.
     pub loops: usize,
+    /// How many variables were in scope as the arm started, so `instead` knows which ones it leaves behind.
+    pub variables: usize,
 }
 
 /// The named sets of failures, `fam.failure` (D47).
@@ -419,7 +421,10 @@ impl Checker<'_> {
                 }
                 let value_type = expected.cloned().unwrap_or_else(|| signature.returns.clone());
                 let _ = value_type;
-                let fallback_value = self.value_into(body, fallback, &signature.returns)?;
+                let mark = body.events.len();
+                let fallback_value = self.value_into(body, fallback, &signature.returns);
+                body.maybe_since(mark);
+                let fallback_value = fallback_value?;
                 Ok(self.handled(&signature, call, checked::OnFailure::Fallback(fallback_value)))
             }
             ExpressionKind::Otherwise { value, keyword, handling: syntax::Handling::Arms { arms, end } } => {
@@ -549,7 +554,12 @@ impl Checker<'_> {
                     State::Assigned,
                 );
             }
-            body.handlers.push(Handler { value_type: signature.returns.clone(), result, loops: body.loops.len() });
+            body.handlers.push(Handler {
+                value_type: signature.returns.clone(),
+                result,
+                loops: body.loops.len(),
+                variables: body.variables.len(),
+            });
             let errors_before = self.errors.len();
             let checked = self.block(body, &arm.body);
             body.handlers.pop();
@@ -666,6 +676,9 @@ impl Checker<'_> {
             )));
         }
         let value = self.value_into(body, value, &handler.value_type)?;
+        let start = handler.variables.min(body.variables.len());
+        let locals = body.variables[start..].iter().map(|variable| variable.local).collect();
+        body.events.push(crate::flow::Event::Leave { span, locals: Some(locals) });
         block.push(checked::Statement::Instead { local: handler.result, value });
         Ok(())
     }

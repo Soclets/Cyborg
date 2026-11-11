@@ -105,6 +105,8 @@ pub struct Loop {
     pub label: Option<String>,
     /// Variable states at each `break` out of it, joined after it.
     pub breaks: Option<Vec<Vec<State>>>,
+    /// How many variables were in scope as it started, so a `break` knows which ones it leaves behind.
+    pub variables: usize,
 }
 
 /// The `why` for something nobody has decided yet.
@@ -145,6 +147,12 @@ pub struct Body {
     pub known: HashMap<checked::LocalId, bake::Constant>,
     /// The variables a `match` arm is inside, since reading a case's field through one isn't decided (D139).
     pub matching: Vec<String>,
+    /// What the statement being checked does to ownership, so far (D285).
+    pub events: Vec<crate::flow::Event>,
+    /// The calls whose arguments are being checked, innermost last, which is where a use is said to be.
+    pub calls: Vec<Span>,
+    /// Parameters that are only lent, bare or `Lent.mut`, so their duties are the caller's (D2).
+    pub lent: Vec<checked::LocalId>,
 }
 
 /// How pure a function is (D86, D91).
@@ -163,6 +171,29 @@ impl Default for Type {
 }
 
 impl Body {
+    /// Where a use is said to be: the call around it, or the fallback.
+    #[must_use]
+    pub fn site(&self, fallback: Span) -> Span {
+        self.calls.last().copied().unwrap_or(fallback)
+    }
+
+    /// What was recorded since `mark` only happens on some paths, like the right side of `and` (D124).
+    pub fn maybe_since(&mut self, mark: usize) {
+        let events = self.events.split_off(mark.min(self.events.len()));
+        if !events.is_empty() {
+            self.events.push(crate::flow::Event::Maybe(events));
+        }
+    }
+
+    /// Takes back a read of `local` just recorded, since the hand-off around it says what happened instead.
+    pub fn take_read(&mut self, local: checked::LocalId) {
+        if let Some(crate::flow::Event::Read { place, .. }) = self.events.last()
+            && place.local == local
+        {
+            self.events.pop();
+        }
+    }
+
     /// The variable a name means here, by its index.
     #[must_use]
     pub fn find(&self, name: &str) -> Option<usize> {
@@ -503,6 +534,7 @@ impl Checker<'_> {
     }
 
     fn function_body(&mut self, function: &syntax::Function, signature: &Signature) {
+        let errors_before = self.errors.len();
         let mut body = Body {
             scopes: vec![Vec::new()],
             returns: signature.returns.clone(),
@@ -515,6 +547,7 @@ impl Checker<'_> {
             ..Body::default()
         };
         let mut parameters = Vec::new();
+        let mut starts = Vec::new();
         for (parameter, (name, value_type, ownership)) in function.parameters.list.iter().zip(&signature.parameters) {
             let local = body.new_local(value_type.machine());
             let passing = if *ownership == syntax::ParameterOwnership::Given
@@ -525,6 +558,23 @@ impl Checker<'_> {
                 checked::Passing::Address
             };
             parameters.push(checked::Parameter { local, passing });
+            if *ownership != syntax::ParameterOwnership::Given {
+                body.lent.push(local);
+            }
+            if !value_type.is_copied() {
+                let origin = match ownership {
+                    syntax::ParameterOwnership::Given => crate::flow::Origin::Given,
+                    syntax::ParameterOwnership::LentMut => crate::flow::Origin::LentMut,
+                    _ => crate::flow::Origin::Lent,
+                };
+                starts.push(crate::flow::Event::Bind {
+                    local,
+                    name: name.clone(),
+                    declared: parameter.name.span,
+                    must_give: self.must_give(value_type),
+                    origin,
+                });
+            }
             body.declare(
                 Variable {
                     name: name.clone(),
@@ -554,15 +604,46 @@ impl Checker<'_> {
             prelude = self.requires_checks(&mut body, &signature.top, site);
         }
         let (statements, leaves) = self.function_block(&mut body, &function.body);
-        let statements: Vec<checked::Statement> = prelude.into_iter().chain(statements).collect();
+        let statements: Vec<checked::Statement> =
+            std::iter::once(checked::Statement::Flow(starts)).chain(prelude).chain(statements).collect();
         if !leaves && !contains_broken(&function.body) {
             self.function_end(&body, function);
+        }
+        // Ownership is checked over every path, once the function is otherwise sound (D2, D285).
+        if self.errors.len() == errors_before {
+            let graph = crate::flow::lower(&statements);
+            let found = crate::flow::check(&graph);
+            self.errors.extend(found);
         }
         if let Some(target) = self.program.functions.get_mut(signature.id) {
             target.parameters = parameters;
             target.locals = body.locals;
             target.body = statements;
         }
+    }
+
+    /// Whether a value of this type carries a duty to be given away or finished (D2, D177).
+    #[must_use]
+    pub fn must_give(&self, value_type: &Type) -> bool {
+        match value_type {
+            Type::Struct { id, .. } => self.aggregates.structs.get(*id).is_some_and(|info| info.must_give),
+            Type::New { inner, .. } => self.must_give(inner),
+            _ => false,
+        }
+    }
+
+    /// Records that a variable got a value, if it's one whose ownership is followed: anything but a plain number.
+    pub fn bind_event(&self, body: &mut Body, local: checked::LocalId, name: &str, declared: Span, value_type: &Type) {
+        if value_type.is_copied() || value_type.is_unknown() {
+            return;
+        }
+        body.events.push(crate::flow::Event::Bind {
+            local,
+            name: name.to_string(),
+            declared,
+            must_give: self.must_give(value_type),
+            origin: crate::flow::Origin::Local,
+        });
     }
 
     /// A closer repeats what it closes, including its narrowings and name (D33, D121).

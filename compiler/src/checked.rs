@@ -138,6 +138,9 @@ pub enum Statement {
     Done {
         writer: LocalId,
     },
+    /// What the statement after it does to ownership, for the checks over the control-flow IR. It runs nothing
+    /// (D285).
+    Flow(Vec<crate::flow::Event>),
     /// Stops the program with its failure's message unless the condition holds. The operands are the values its
     /// `when:` line prints.
     Check {

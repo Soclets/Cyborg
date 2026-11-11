@@ -500,6 +500,13 @@ impl Checker<'_> {
         }
         let mut typed = Typed::new(variable.value_type.clone(), Kind::Local(variable.local));
         typed.variable = Some(name.text.clone());
+        if !variable.value_type.is_copied() && variable.origin != Origin::Constant {
+            let site = body.site(name.span);
+            body.events.push(crate::flow::Event::Read {
+                place: crate::flow::Place { local: variable.local, path: Vec::new() },
+                spot: crate::flow::Spot { variable: name.span, place: name.span, site, marker: site },
+            });
+        }
         Ok(typed)
     }
 
@@ -648,7 +655,11 @@ impl Checker<'_> {
                     }
                 };
                 let left_typed = self.condition_value(body, left);
+                let mark = body.events.len();
                 let right_typed = self.condition_value(body, right);
+                if !both {
+                    body.maybe_since(mark);
+                }
                 let (left_value, right_value) = (Box::new(left_typed?.value), Box::new(right_typed?.value));
                 let kind = match (is_and, both) {
                     (true, false) => Kind::And(left_value, right_value),
@@ -1064,7 +1075,13 @@ impl Checker<'_> {
         let mut hint = None;
         for (index, operand) in operands.iter().enumerate() {
             if !Self::is_literal_number(operand) {
-                match self.expression(body, operand, None) {
+                // Past the first comparison, an operand only runs if the ones before held.
+                let mark = body.events.len();
+                let result = self.expression(body, operand, None);
+                if index >= 2 {
+                    body.maybe_since(mark);
+                }
+                match result {
                     Ok(value) => {
                         hint.get_or_insert_with(|| value.value_type.plain());
                         typed[index] = Some(value);
@@ -1161,6 +1178,20 @@ impl Checker<'_> {
 
     /// A method call, `$r.%%warm_up(by: 2)`: the receiver is lent with `%`, or to change with `%%` (D130, D211).
     pub fn method_call(
+        &mut self,
+        body: &mut Body,
+        expression: &syntax::Expression,
+        receiver: &syntax::Expression,
+        method: &syntax::Path,
+        arguments: &[syntax::Argument],
+    ) -> Check<Typed> {
+        body.calls.push(expression.span);
+        let result = self.method_inside(body, expression, receiver, method, arguments);
+        body.calls.pop();
+        result
+    }
+
+    fn method_inside(
         &mut self,
         body: &mut Body,
         expression: &syntax::Expression,
@@ -1335,6 +1366,19 @@ impl Checker<'_> {
 
     /// A call, before what happens when it fails is known.
     pub fn call_unhandled(
+        &mut self,
+        body: &mut Body,
+        expression: &syntax::Expression,
+        callee: &syntax::Expression,
+        arguments: &[syntax::Argument],
+    ) -> Check<Typed> {
+        body.calls.push(expression.span);
+        let result = self.call_inside(body, expression, callee, arguments);
+        body.calls.pop();
+        result
+    }
+
+    fn call_inside(
         &mut self,
         body: &mut Body,
         expression: &syntax::Expression,
@@ -1520,6 +1564,12 @@ impl Checker<'_> {
                         CONVERT_WHY,
                     )));
                 }
+                body.take_read(variable.local);
+                let site = body.site(name.span);
+                body.events.push(crate::flow::Event::LendMut {
+                    place: crate::flow::Place { local: variable.local, path: Vec::new() },
+                    spot: crate::flow::Spot { variable: name.span, place: name.span, site, marker: site },
+                });
                 Ok(checked::Argument::Address(variable.local))
             }
             _ if parameter_type.is_copied() => {
@@ -1551,6 +1601,18 @@ impl Checker<'_> {
                     )));
                 }
                 let typed = self.expression(body, &argument.value, Some(parameter_type))?;
+                if word == Some(Ownership::Give)
+                    && let Some((local, path)) = place_of(body, &argument.value)
+                    && let Some(root) = root_name(&argument.value)
+                {
+                    self.only_lent(body, local, root)?;
+                    body.take_read(local);
+                    let site = body.site(root.span);
+                    body.events.push(crate::flow::Event::Give {
+                        place: crate::flow::Place { local, path },
+                        spot: crate::flow::Spot { variable: root.span, place: argument.value.span, site, marker: site },
+                    });
+                }
                 Ok(checked::Argument::Value(self.convert_into(argument.value.span, typed, parameter_type)?))
             }
             ParameterOwnership::Lent | ParameterOwnership::LentWritten => {
@@ -1587,6 +1649,18 @@ impl Checker<'_> {
         }
     }
 
+    /// Refuses giving away what's only lent: a bare or `Lent.mut` parameter, or a stored borrow (D2).
+    fn only_lent(&mut self, body: &Body, local: checked::LocalId, root: &syntax::Name) -> Check<()> {
+        if body.lent.contains(&local) {
+            return Err(self.error(Diagnostic::refused(
+                root.span,
+                format!("`{}` is only lent here, so it can't be given away", root.text),
+                "`Lend` is temporary access, and the caller keeps it (D2)",
+            )));
+        }
+        Ok(())
+    }
+
     /// `Give $x` or `Copy $x` where a value is handed over (D2, D3).
     fn owned(
         &mut self,
@@ -1611,6 +1685,19 @@ impl Checker<'_> {
                 "whether a `fn.pure` may allocate, as `Copy` can",
                 "not decided yet (standard 12.5)",
             )));
+        }
+        if ownership == syntax::Ownership::Give
+            && let Some((local, path)) = place_of(body, value)
+            && let Some(root) = root_name(value)
+        {
+            self.only_lent(body, local, root)?;
+            body.take_read(local);
+            let site = body.site(root.span);
+            let marker = body.calls.last().copied().unwrap_or(ownership_span.to(value.span));
+            body.events.push(crate::flow::Event::Give {
+                place: crate::flow::Place { local, path },
+                spot: crate::flow::Spot { variable: root.span, place: value.span, site, marker },
+            });
         }
         match ownership {
             syntax::Ownership::Give | syntax::Ownership::Copy => {
@@ -1860,6 +1947,15 @@ fn root_variable(expression: &syntax::Expression) -> Option<String> {
     match &expression.kind {
         ExpressionKind::Variable(name) => Some(name.text.clone()),
         ExpressionKind::Field { base, .. } | ExpressionKind::Group(base) => root_variable(base),
+        _ => None,
+    }
+}
+
+/// The variable a place starts from, as written: `$r` in `$r.celsius`.
+fn root_name(expression: &syntax::Expression) -> Option<&syntax::Name> {
+    match &expression.kind {
+        ExpressionKind::Variable(name) => Some(name),
+        ExpressionKind::Field { base, .. } | ExpressionKind::Group(base) => root_name(base),
         _ => None,
     }
 }

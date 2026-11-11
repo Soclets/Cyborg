@@ -9,6 +9,7 @@ pub mod check;
 pub mod checked;
 pub mod codegen;
 pub mod diagnostic;
+pub mod flow;
 pub mod lexer;
 pub mod manifest;
 pub mod parser;

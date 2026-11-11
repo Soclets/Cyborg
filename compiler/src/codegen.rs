@@ -320,6 +320,7 @@ impl<'context, 'module> Generator<'context, 'module> {
 
     fn statement(&mut self, frame: &mut Frame<'context, 'module>, statement: &Statement) -> Result<()> {
         match statement {
+            Statement::Flow(_) => {}
             Statement::Let { local, value } | Statement::Set { local, value } => {
                 let value = self.expression(frame, value)?;
                 frame.builder.store(value, frame.slots[*local]);

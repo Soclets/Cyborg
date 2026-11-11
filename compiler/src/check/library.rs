@@ -78,6 +78,17 @@ impl Checker<'_> {
         body: &mut Body,
         expression: &syntax::Expression,
     ) -> Check<Option<checked::Statement>> {
+        body.calls.push(expression.span);
+        let result = self.library_inside(body, expression);
+        body.calls.pop();
+        result
+    }
+
+    fn library_inside(
+        &mut self,
+        body: &mut Body,
+        expression: &syntax::Expression,
+    ) -> Check<Option<checked::Statement>> {
         if let ExpressionKind::MethodCall { receiver, method, arguments, .. } = &expression.kind
             && method.text() == "%%flush"
             && arguments.is_empty()
