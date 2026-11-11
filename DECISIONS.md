@@ -1122,6 +1122,8 @@ A `type_set` is a closed list of types that nothing can join later, as in `type_
 
 **D310. `dialect original <version>` replaces the `okay` line.** The manifest's `dialect` line says both which compiler builds the project and which version of it, as in `dialect original 2026y-11m-01d` for `okay` at that version, or `dialect mc_mod 2026y-11m-01d` for a Dialect at its own. That's one line for one fact, the same shape as `need std 2026y-11m-01d`, where D228's `okay` line and D309's `dialect` line had split it in two. An `okay` line is refused, with `fix: dialect original` and its version. Claude proposed merging them; the owner chose: "yes". (Owner, 2026-11-11)
 
+**D311. Plain Cyborg can't use a package written in a Dialect.** A `dialect original` project that needs a package whose own manifest names a Dialect is stopped by CyJet when installing, as in "cool_lib is written in dialect mc_mod, and this project is dialect original". That code needs another compiler, and none of Cyborg's checks cover it, so allowing it would hide unchecked code inside a project that says `original`. Whether a Dialect project can use plain Cyborg packages is up to the Dialect. Claude proposed it; the owner asked "What?", Claude explained it more simply, and the owner chose: "yea". (Owner, 2026-11-11)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude
