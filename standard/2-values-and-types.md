@@ -520,4 +520,11 @@ $v.%max_val()    // 9
 
 `sum` and `product` use the pairwise order and are checked like any other maths. A `simd<bool>` also has `.%all_true()` and `.%any_true()`.
 
-**From:** D291, D292, D293, D296, D297.
+`as` converts between an array and a `simd` of the same count, both ways. It can't fail, and a different count is refused when compiling.
+
+```
+let $a: std::array<i32>[len: 4 items] = [3, 9, 1, 7];
+let $v: simd<i32>[lanes: 4] = $a as simd<i32>[lanes: 4];
+```
+
+**From:** D255, D291, D292, D293, D296, D297, D298.

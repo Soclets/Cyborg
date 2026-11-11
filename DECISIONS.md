@@ -1096,6 +1096,8 @@ A `type_set` is a closed list of types that nothing can join later, as in `type_
 
 **D297. Combining a `simd`'s lanes: six `.%` methods.** `$v.%sum()`, `$v.%product()`, `$v.%min_val()` and `$v.%max_val()`, and on a `simd<bool>`, `$v.%all_true()` and `$v.%any_true()`. They're `.%` since they only read the `simd` (D211). `sum` and `product` use D296's pairwise order and are checked like any other maths (D293). `min_val` and `max_val` use `val`, a word Cyborg already has in labels like `append(val: 4)` and failure data like `negative[val: i32]`, so `max` can't be read as `lanes: max` (D292) or a bound. `all_true` and `any_true` say "true" because `all` is already the fill word in `all 0`. Claude proposed `min` and `max`, then `largest` and `smallest`, and wrongly called `val` only a placeholder; the owner asked "Should it be `%max_val`?" and "Don't we already use `val`", and chose: "yes". (Owner, 2026-11-11)
 
+**D298. `as` converts between an array and a `simd` of the same count.** `$a as simd<i32>[lanes: 4]` turns a `std::array<i32>[len: 4 items]` into a vector, and `as std::array<i32>[len: 4 items]` turns it back. The counts must match, so it can't fail (D255), and a different count is refused when compiling. Walking a longer list or array in chunks is not settled here. Claude proposed it; the owner chose: "yea". (Owner, 2026-11-11)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude
