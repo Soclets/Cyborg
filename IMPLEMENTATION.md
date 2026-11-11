@@ -7,9 +7,10 @@ rule changes, `DECISIONS.md` gets a new entry and this file is updated to match.
 ## Sessions
 
 - **design claude**: the decisions, `DECISIONS.md`, `IMPLEMENTATION.md` and the standard.
-- **oracle claude**: the oracle, in `oracle/`, and the tests, in `tests/`.
+- **oracle claude**: the oracle, in `oracle/`, the tests, in `tests/`, and for now the random program generator and the
+  live comparison of the oracle and the compiler, in `check/`. (D313)
 - **compiler claude**: the compiler, in `compiler/`, once Lyftar is ready.
-- **check claude**: attacks the compiler, in `check/`, once the compiler exists. Its generator can start earlier.
+- **check claude**: optional, later: a second, independent generator in `check/`, from a fresh author.
 
 Each works in its own clone, on `main` with no branch, and runs `git pull --rebase` before pushing.
 
@@ -22,10 +23,13 @@ Each works in its own clone, on `main` with no branch, and runs `git pull --reba
 2. **Where.** Only design claude edits `DECISIONS.md`, `IMPLEMENTATION.md` and the standard.
 3. **The oracle stays apart.** compiler claude reads the oracle's tests, never `oracle/src`. If the compiler copied the
    oracle, their bugs would agree.
-   check claude reads neither's source: it runs both as black boxes, and reports findings without sending fixes. A difference
-   is a bug in one of them, and the standard decides which, or `DECISIONS.md` until it exists. If that's silent, it's a question for the owner. Its generator
-   builds programs from a syntax tree with one printer, and tracks what it doesn't generate, since all passing doesn't mean
-   covered. (D68)
+   The generator in `check/` is written from `standard/`, never from `oracle/src`, so what counts as a valid program comes
+   from the docs, not from the oracle's own reading. It builds programs from a syntax tree with one printer, and tracks what
+   it doesn't generate, since all passing doesn't mean covered. The live comparison runs the oracle and the compiler as
+   black boxes, on every generated program and every test, in every build mode, and shrinks a difference to the smallest
+   program that still shows it. A difference is a bug in one of them, and the standard decides which, or `DECISIONS.md`
+   until it exists. If that's silent, it's a question for the owner. Findings about the compiler go to compiler claude
+   without fixes. A later check claude reads neither's source. (D68, D313)
 4. **No design in code.** Code follows `standard/`. Nothing undecided is guessed, and anything in `standard/12-not-decided.md` gives a
    `NotDesignedYet` error, with the question going to the owner through design claude.
    Something decided that a session hasn't built yet gives `NotBuiltYet` instead, never `NotDesignedYet`. (D286)
