@@ -169,7 +169,8 @@ impl Type {
             Type::Float { bits, .. } => checked::MachineType::Float { bits: *bits },
             Type::Bool => checked::MachineType::Bool,
             Type::Writer(_) => checked::MachineType::Writer,
-            Type::Str | Type::Void | Type::Unknown => checked::MachineType::Void,
+            Type::Str => checked::MachineType::Text,
+            Type::Void | Type::Unknown => checked::MachineType::Void,
         }
     }
 }

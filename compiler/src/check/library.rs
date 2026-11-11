@@ -11,6 +11,7 @@ use super::types::{Type, WriterKind};
 use super::{Body, Check, Checker};
 
 const NOT_DECIDED: &str = "not decided yet, and the standard doesn't say";
+pub const WRITER_KINDS_WHY: &str = "`os::stdout` and `os::stderr` say which kind they are: `.buffered(size: 1024 bytes)` writes in chunks and is finished with `os::done`, and `.unbuffered()` writes each print straight away (D273)";
 
 impl Checker<'_> {
     /// `os::stdout.buffered(size: 1024 bytes)` or `os::stderr.unbuffered()`, going into a writer (D273).
@@ -29,6 +30,13 @@ impl Checker<'_> {
         };
         let made = self.resolve_path(path);
         self.require_import(&made, path.span)?;
+        if made == "os::stdout" || made == "os::stderr" {
+            return Err(self.error(Diagnostic::refused(
+                callee.span.to(value.span),
+                format!("`{made}()` says which kind it is"),
+                WRITER_KINDS_WHY,
+            )));
+        }
         if made != writer.name() {
             return Err(self.not_yet(callee.span, format!("`{made}` going into `{}`", writer.name())));
         }
@@ -76,7 +84,12 @@ impl Checker<'_> {
         {
             let (writer, local) = self.writer_variable(body, receiver)?;
             if !writer.buffered {
-                return Err(self.not_yet(expression.span, "flushing an unbuffered writer".to_string()));
+                let name_span = method.last().map_or(method.span, |segment| segment.name.span);
+                return Err(self.error(Diagnostic::refused(
+                    name_span,
+                    format!("`{}` writes each print straight away, so it has no `flush`", writer.name()),
+                    "only a buffered writer holds output to push (D273)",
+                )));
             }
             return Ok(Some(checked::Statement::Flush { writer: local }));
         }
@@ -90,6 +103,7 @@ impl Checker<'_> {
         if matches!(resolved.as_str(), "std::io::fmt_print" | "std::io::fmt_print.stored" | "os::done") {
             self.require_import(&resolved, path.span)?;
         }
+        self.old_prints(&resolved, callee.span)?;
         match resolved.as_str() {
             "std::io::fmt_print" => self.print(body, callee.span, arguments, *arguments_span, false).map(Some),
             "std::io::fmt_print.stored" => self.print(body, callee.span, arguments, *arguments_span, true).map(Some),
@@ -113,6 +127,37 @@ impl Checker<'_> {
             }
             _ => Ok(None),
         }
+    }
+
+    /// Prints that are gone: `std::println` and every other print but `std::io::fmt_print` (D194, D197), and a print
+    /// that says where it goes, since the writer does (D272).
+    pub fn old_prints(&mut self, resolved: &str, span: Span) -> Check<()> {
+        if resolved == "std::println" || resolved.starts_with("std::println.") {
+            return Err(self.error(Diagnostic::refused(
+                span,
+                format!("`{resolved}` is gone, and `std` has one print"),
+                "`std::io::fmt_print` is the one print, a format print, with `{newln}` for a newline (D194, D197)",
+            )));
+        }
+        if matches!(resolved, "std::print" | "std::io::fmt_println" | "std::io::print") {
+            return Err(self.error(Diagnostic::refused_fix(
+                span,
+                "std::io::fmt_print",
+                "the print is `std::io::fmt_print` (D197)",
+            )));
+        }
+        for stream in ["stdout", "stderr"] {
+            if resolved == format!("std::io::fmt_print.{stream}") {
+                return Err(self.error(Diagnostic::refused(
+                    span,
+                    format!("`.{stream}` is gone, since the writer says where output goes"),
+                    format!(
+                        "`std::io::fmt_print` always takes a writer first, like `Lend.mut $out` for `os::{stream}.buffered(size: 1024 bytes)` or `os::{stream}.unbuffered()` (D272, D273)"
+                    ),
+                )));
+            }
+        }
+        Ok(())
     }
 
     /// A writer held in a variable.
@@ -142,6 +187,21 @@ impl Checker<'_> {
         let Some(writer_argument) = arguments.first() else {
             return Err(self.not_yet(callee.to(arguments_span), "a print with no writer".to_string()));
         };
+        if matches!(writer_argument.value.kind, ExpressionKind::Text(_)) || writer_argument.label.is_some() {
+            return Err(self.error(Diagnostic::refused(
+                writer_argument.span,
+                "this isn't a writer, and a print's first argument is the writer it goes to",
+                "`std::io::fmt_print` always takes a writer first, as in `fmt_print(Lend.mut $out, \"hi{newln}\");`, since the writer says where output goes (D272, D273)",
+            )));
+        }
+        if writer_argument.ownership.is_none() && matches!(writer_argument.value.kind, ExpressionKind::Variable(_)) {
+            let written = self.slice(writer_argument.value.span).to_string();
+            return Err(self.error(Diagnostic::refused_fix(
+                writer_argument.span,
+                format!("Lend.mut {written}"),
+                "every hand-off shows on the page (D3)",
+            )));
+        }
         if writer_argument.ownership.map(|(ownership, _)| ownership) != Some(Ownership::LendMut) {
             return Err(self.not_yet(writer_argument.span, "a writer not lent with `Lend.mut`".to_string()));
         }
@@ -173,7 +233,7 @@ impl Checker<'_> {
         for value in values {
             if let Some(label) = &value.label {
                 return Err(self.error(Diagnostic::refused(
-                    label.span.to(value.value.span),
+                    label.span,
                     "a print's text and values have no labels",
                     "`std` labels every other argument, except where every one has the same role, like a print's values (D114)",
                 )));
@@ -302,7 +362,7 @@ impl Checker<'_> {
         }
         if shape.width.is_some() && shape.align.is_none() && !shape.zeros {
             return Err(self.error(Diagnostic::not_designed(
-                hole.span,
+                argument.value.span,
                 "which way a value lines up when only its width is given",
                 NOT_DECIDED,
             )));
@@ -365,6 +425,17 @@ impl Checker<'_> {
         match value_type {
             Type::Integer { .. } => Ok(checked::Piece::Value { value, shape, failures: None }),
             Type::Str => {
+                if let (checked::ExpressionKind::Text(text), Some(width), Some(checked::Align::Center)) =
+                    (&value.kind, shape.width, shape.align)
+                    && width > shape.columns_of(text)
+                    && (width - shape.columns_of(text)) % 2 == 1
+                {
+                    return Err(self.error(Diagnostic::not_designed(
+                        hole.span,
+                        "which side of a centred value gets the odd space",
+                        NOT_DECIDED,
+                    )));
+                }
                 if shape.width.is_some() && !matches!(value.kind, checked::ExpressionKind::Text(_)) {
                     return Err(
                         self.not_yet(argument.value.span, "a width on text known only while running".to_string())

@@ -126,6 +126,13 @@ impl Checker<'_> {
                 self.binary(body, expression, operator, *operator_span, left, right, expected)
             }
             ExpressionKind::Chain { operands, operators } => self.chain(body, operands, operators),
+            ExpressionKind::Bracket { base, .. } if matches!(&base.kind, ExpressionKind::Path(path) if path.is_single("range")) => {
+                Err(self.error(Diagnostic::not_designed(
+                    base.span,
+                    "a range anywhere but straight after `in`",
+                    NOT_DECIDED,
+                )))
+            }
             ExpressionKind::As { value, keyword, written_type } => {
                 self.conversion(body, expression, value, keyword, written_type)
             }
@@ -197,6 +204,10 @@ impl Checker<'_> {
             ExpressionKind::Exponent(literal) => {
                 exponent_word = Some(expression.span);
                 inner = literal.as_ref();
+                if let ExpressionKind::Unary { operand, .. } = &inner.kind {
+                    negative = true;
+                    inner = operand.as_ref();
+                }
             }
             _ => {}
         }
@@ -217,7 +228,7 @@ impl Checker<'_> {
                 "not decided yet (standard 12.2)",
             )));
         }
-        if has_exponent && matches!(inner.kind, ExpressionKind::Integer(_)) {
+        if has_exponent && !digits.split(['e', 'E']).next().unwrap_or("").contains('.') {
             return Err(self.error(Diagnostic::not_designed(
                 digits_span,
                 "an exponent on an integer",
@@ -361,7 +372,7 @@ impl Checker<'_> {
             return Err(self.error(Diagnostic::refused(
                 name.span,
                 format!("`{}` isn't declared", name.text),
-                "a variable is declared with `let`, `let mut` or `decl` before it's used (D203)",
+                "`let` and `const` declare a variable with its type and value (D57, D83)",
             )));
         };
         let variable = body.variables[index].clone();
@@ -608,6 +619,13 @@ impl Checker<'_> {
             }
             (Type::Str, Type::Str) => {
                 Err(self.error(Diagnostic::not_designed(span, "comparing `str` values", NOT_DECIDED)))
+            }
+            (Type::Float { bits: a, .. }, Type::Float { bits: b, .. }) if a == b => {
+                Err(self.error(Diagnostic::refused(
+                    span,
+                    format!("this compares `{left_type}` and `{right_type}`"),
+                    format!("`f{a}.ieee` is a different type from `f{a}`, and `as` is the wall between them (D159)"),
+                )))
             }
             _ => Err(self.error(Diagnostic::refused(
                 span,
@@ -1028,6 +1046,7 @@ impl Checker<'_> {
             return Err(self.not_yet(callee.span, "calling this".to_string()));
         };
         let name = self.resolve_path(path);
+        self.old_prints(&name, callee.span)?;
         if name.starts_with("std::") && name.contains('.') && !self.functions.contains_key(&name) {
             // `std` is grouped with `::`, and a `.` after a function is a narrowing (D196).
             let fixed = name.replacen('.', "::", 1);
@@ -1134,7 +1153,7 @@ impl Checker<'_> {
                         return Err(self.error(Diagnostic::refused(
                             span,
                             format!("this is `{from_type}`, where `{into}` is needed"),
-                            CONVERT_WHY,
+                            format!("`f{from_bits}.ieee` is a different type from `f{from_bits}`, and `as` is the wall between them (D159)"),
                         )));
                     }
                     return Err(self.error(Diagnostic::not_designed(

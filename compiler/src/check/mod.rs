@@ -8,7 +8,7 @@ pub mod format;
 pub mod types;
 
 mod expressions;
-mod library;
+pub mod library;
 mod statements;
 
 use std::collections::HashMap;
@@ -345,6 +345,16 @@ impl Checker<'_> {
         let mut parameters = Vec::new();
         for parameter in &function.parameters.list {
             let value_type = self.resolve_type(&parameter.written_type)?;
+            if value_type.is_copied()
+                && matches!(parameter.ownership, syntax::ParameterOwnership::Given)
+                && let Some(span) = parameter.ownership_span
+            {
+                return Err(self.error(Diagnostic::refused(
+                    span,
+                    format!("`{value_type}` is always copied, and takes no word"),
+                    "plain numbers and `bool` are always copied, and take no word (D2, D123)",
+                )));
+            }
             parameters.push((parameter.name.text.clone(), value_type, parameter.ownership));
         }
         let returns = match &function.returns {
@@ -480,6 +490,16 @@ impl Checker<'_> {
             let bounds = self.integer_bounds(written.span, labels)?;
             return Ok(Type::Integer { kind, bounds });
         }
+        if let Some((base, kind)) = text.rsplit_once('.')
+            && IntegerKind::from_name(base).is_some()
+            && matches!(kind, "ieee" | "stable" | "fast")
+        {
+            return Err(self.error(Diagnostic::refused(
+                path.span,
+                format!("`{base}` is an integer, and only a float says `.{kind}`"),
+                "a float says whether it's `.stable`, `.fast` or `.ieee`, and an integer has no such kind (D257, D158)",
+            )));
+        }
         if text == "int.signed.32_bit" {
             return Err(self.error(Diagnostic::refused_fix(
                 path.span,
@@ -512,6 +532,14 @@ impl Checker<'_> {
                 self.require_import(&text, path.span)?;
                 let stream = if text.starts_with("os::stdout") { checked::Stream::Out } else { checked::Stream::Error };
                 Ok(Type::Writer(types::WriterKind { stream, buffered: text.ends_with(".buffered") }))
+            }
+            "os::stdout" | "os::stderr" => {
+                self.require_import(&text, path.span)?;
+                Err(self.error(Diagnostic::refused(
+                    path.span,
+                    format!("`{text}` says which kind it is"),
+                    library::WRITER_KINDS_WHY,
+                )))
             }
             _ if text.contains("::") || text.contains('.') => {
                 Err(self.not_yet(written.span, format!("the type `{text}`")))

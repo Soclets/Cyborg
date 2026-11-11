@@ -215,7 +215,7 @@ impl Checker<'_> {
             return Err(self.error(Diagnostic::refused(
                 name.span,
                 format!("`{}` isn't declared", name.text),
-                "a variable is declared with `let`, `let mut` or `decl` before it's used (D203)",
+                "`let` declares a variable (D2)",
             )));
         };
         let variable = body.variables[index].clone();
@@ -624,7 +624,24 @@ impl Checker<'_> {
 
     /// `for $i in range[…]:` (D128, D145, D146). Collections come later.
     fn for_statement(&mut self, body: &mut Body, each: &syntax::For, block: &mut checked::Block) -> Check<()> {
+        if let Some(label) = &each.label
+            && body.loops.iter().any(|outer| outer.label.as_deref() == Some(label.text.as_str()))
+        {
+            return Err(self.error(Diagnostic::not_designed(
+                label.span,
+                format!("naming a loop `{}` inside another with that name", label.text),
+                NOT_DECIDED,
+            )));
+        }
         let ExpressionKind::Bracket { base, labels, .. } = &each.source.kind else {
+            let typed = self.expression(body, &each.source, None)?;
+            if matches!(typed.value_type, Type::Integer { .. } | Type::Float { .. } | Type::Bool | Type::Str) {
+                return Err(self.error(Diagnostic::refused(
+                    each.source.span,
+                    format!("`for` goes through a collection or range, and this is `{}`", typed.value_type),
+                    "`for` goes through a collection or range, reading it in place (D2, D128)",
+                )));
+            }
             return Err(self.not_yet(each.source.span, "`for` over this".to_string()));
         };
         match &base.kind {
@@ -790,7 +807,8 @@ impl Checker<'_> {
         let item_type = from_typed.value_type.plain();
         let step_typed = match step {
             Some(step) => {
-                let typed = self.expression(body, &step.value, Some(&item_type))?;
+                // A step can be any integer, and doesn't have to match the range's type (D146).
+                let typed = self.expression(body, &step.value, None)?;
                 self.range_number(&typed, &step.value)?;
                 Some(typed)
             }
@@ -874,9 +892,11 @@ impl Checker<'_> {
         end: &syntax::Expression,
     ) -> Check<(Typed, Typed)> {
         let from_result = self.expression(body, from, None);
-        let end_result = self.expression(body, end, None);
+        if let Ok(typed) = &from_result {
+            self.range_number(typed, from)?;
+        }
+        let end_result = self.expression(body, end, from_result.as_ref().ok().map(|typed| &typed.value_type));
         let (mut from_typed, mut end_typed) = (from_result?, end_result?);
-        self.range_number(&from_typed, from)?;
         self.range_number(&end_typed, end)?;
         // A literal end takes the other's type.
         if from_typed.literal.is_some() && end_typed.literal.is_none() {

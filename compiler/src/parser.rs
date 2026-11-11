@@ -788,6 +788,18 @@ impl<'source> Parser<'source> {
                 }
                 self.expect(TokenKind::Colon, ":")?;
                 let written_type = self.parse_type()?;
+                if self.is(TokenKind::Equal) {
+                    // `decl` gives no value (D203).
+                    self.advance();
+                    let value = self.expression()?;
+                    self.errors.push(Diagnostic::refused(
+                        value.span,
+                        "`decl` gives no value, and `let` does",
+                        "`decl` declares a variable with no value yet, and `assign` gives it one (D203)",
+                    ));
+                    self.expect(TokenKind::Semicolon, ";")?;
+                    return Err(Reported);
+                }
                 self.expect(TokenKind::Semicolon, ";")?;
                 Ok(Field { name, written_type, span: start.to(self.previous_span()) })
             })();
@@ -2157,6 +2169,17 @@ impl<'source> Parser<'source> {
                 self.advance();
                 return self.unit_after(Expression { kind: ExpressionKind::Infinity, span: start });
             }
+            Some("not") if !self.followed_by_path_joint() => {
+                // `not` sits below comparisons and maths, so inside them it needs `( )` (D131).
+                self.errors.push(Diagnostic::refused(
+                    start,
+                    "`not` sits below comparisons and maths, so here it needs `( )`",
+                    "`not` sits just above `and`, and `( )` groups (D116, D131)",
+                ));
+                self.advance();
+                let _ = self.unary()?;
+                return Err(Reported);
+            }
             Some("result") if !self.followed_by_path_joint() => {
                 self.advance();
                 return Ok(Expression { kind: ExpressionKind::Result, span: start });
@@ -2174,11 +2197,30 @@ impl<'source> Parser<'source> {
                 return Ok(Expression { kind: ExpressionKind::Bake(Box::new(value)), span });
             }
             Some("exponent")
-                if matches!(self.kind_at(1), Some(TokenKind::Tilde | TokenKind::Integer | TokenKind::Float)) =>
+                if matches!(
+                    self.kind_at(1),
+                    Some(TokenKind::Tilde | TokenKind::Integer | TokenKind::Float | TokenKind::Minus)
+                ) =>
             {
                 let exponent = self.current_span();
                 self.advance();
-                let literal = self.primary()?;
+                let literal = if self.is(TokenKind::Minus) {
+                    let minus = self.current_span();
+                    self.roles[self.at] = Role::Prefix;
+                    self.advance();
+                    let number = self.number_literal()?;
+                    let span = minus.to(number.span);
+                    Expression {
+                        kind: ExpressionKind::Unary {
+                            operator: UnaryOperator::Negate,
+                            operand: Box::new(number),
+                            operator_span: minus,
+                        },
+                        span,
+                    }
+                } else {
+                    self.primary()?
+                };
                 let span = start.to(literal.span);
                 let kind = match literal.kind {
                     ExpressionKind::Inexact { literal, .. } => {
