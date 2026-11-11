@@ -6,12 +6,12 @@
 | [3.2](#32-arithmetic----x) | `+`, `-`, `x` | Overflow depends on the mode |
 | [3.3](#33-division-div) | `div.trunc`, `div.floor`, `div.exact`, `div` | No bare `div` on integers |
 | [3.4](#34-remainder-mod) | `mod.trunc`, `mod.floor` | No bare `mod` |
-| [3.5](#35-comparison) | `==`, `!=`, `<`, `>`, `at_least`, `at_most` | |
+| [3.5](#35-comparison) | `==`, `!=`, `below`, `above`, `at_least`, `at_most` | |
 | [3.6](#36-logic) | `and`, `or`, `not` | |
 | [3.7](#37-bits-and-shifts) | `bit_and`, `bit_or`, `bit_xor`, `bit_not`, `shl`, `shr` | |
 | [3.8](#38-wrapping-pluswrap) | `plus.wrap` | Wraps in every mode |
 | [3.9](#39-grouping-and-precedence) | `( )`, precedence | Follows maths |
-| [3.10](#310-operators-for-your-own-types-op) | `op <` | A struct defines an operator for itself |
+| [3.10](#310-operators-for-your-own-types-op) | `op below` | A struct defines an operator for itself |
 
 ## 3.1 Every operator
 
@@ -20,7 +20,7 @@
 | Arithmetic | `+`, `-`, `x` | [3.2](#32-arithmetic----x) |
 | Divide | `div.trunc`, `div.floor`, `div.exact`, and bare `div` on floats | [3.3](#33-division-div) |
 | Remainder | `mod.trunc`, `mod.floor` | [3.4](#34-remainder-mod) |
-| Comparison | `==`, `!=`, `<`, `>`, `at_least`, `at_most` | [3.5](#35-comparison) |
+| Comparison | `==`, `!=`, `below`, `above`, `at_least`, `at_most` | [3.5](#35-comparison) |
 | Logic | `and`, `or`, `not` | [3.6](#36-logic) |
 | Bits | `bit_and`, `bit_or`, `bit_xor`, `bit_not`, `shl`, `shr` | [3.7](#37-bits-and-shifts) |
 | Set a value | `set_to` | [2.1](2-values-and-types.md#21-let), [7.2](7-structs-and-unions.md#72-building-a-struct) |
@@ -80,23 +80,23 @@ The first gives -1, and the second gives 1.
 
 ## 3.5 Comparison
 
-**Rule:** `==`, `!=`, `<` and `>` are symbols, and `at_least` and `at_most` are words. There is no `<=` or `>=`. A `<` or `>` comparison has a space on each side.
+**Rule:** equality is symbols, `==` and `!=`, and ordering is words, `below`, `above`, `at_least` and `at_most`, so its direction is spelled out. There is no `<`, `>`, `<=` or `>=` comparison: `<` and `>` only mean brackets.
 
 ```
 if $t at_least 10:
-if $a < $b:
+if $a below $b:
 ```
 
-**Refused:** `$a<$b`.
+**Refused:** `$a < $b`, with `fix: below`, and `$a > $b`, with `fix: above`.
 
-**From:** D23, D43, D44, D49.
+**From:** D23, D43, D44, D49, D278.
 
 ## 3.6 Logic
 
 **Rule:** `and`, `or` and `not` are words. `and` and `or` stop early, so the right side only runs if it's needed. A narrowing runs both sides, spelled `and.both` and `or.both` as placeholders.
 
 ```
-if $n != 0 and 10 div.trunc $n > 1:
+if $n != 0 and 10 div.trunc $n above 1:
 ```
 
 **From:** D49, D124.
@@ -127,7 +127,7 @@ $a plus.wrap $b
 | 2 | Unary `-` |
 | 3 | `x`, `div…`, `mod…`, left to right |
 | 4 | `+`, `-` |
-| 5 | `==`, `!=`, `<`, `>`, `at_least`, `at_most` |
+| 5 | `==`, `!=`, `below`, `above`, `at_least`, `at_most` |
 | 6 | `not` |
 | 7 | `and` |
 | 8 | `or` |
@@ -141,7 +141,7 @@ $a + read() ?? 0
 
 **Refused:** where maths gives no order, so bit operators and shifts mixed with anything, as in `$a shl 2 + 1`, and `as` on anything but a single value, as in `$a + $b as str`.
 
-Unary `-` negates, so `-$x` and `-7` are both allowed. A comparison chain means all of it is true, and each value is evaluated once: `1 < $x < 5` means `1 < $x and $x < 5`. It stops at its first false. The linter can ask for parentheses.
+Unary `-` negates, so `-$x` and `-7` are both allowed. A comparison chain means all of it is true, and each value is evaluated once: `1 below $x below 5` means `1 below $x and $x below 5`. It stops at its first false. The linter can ask for parentheses.
 
 **From:** D23, D116, D117, D124, D131, D132.
 
@@ -150,15 +150,15 @@ Unary `-` negates, so `-$x` and `-7` are both allowed. A comparison chain means 
 **Rule:** a struct or union can define an operator for itself, as a function named by the operator. It keeps the operator's usual precedence, and applies only where its parameters' types match. This is how a type gets what an interface asks for ([5.8](5-functions.md#58-generics)).
 
 ```
-op < [$a: reading, $b: reading] returns bool:
-    return $a.celsius < $b.celsius;
-end op <
+op below [$a: reading, $b: reading] returns bool:
+    return $a.celsius below $b.celsius;
+end op below
 
 reading satisfies ordered;
 ```
 
-A type can define arithmetic, `+`, `-`, `x` and the `div` narrowings, and comparisons. Only `==` and `<` are written: `!=`, `>`, `at_least` and `at_most` follow from them, so they can never disagree.
+A type can define arithmetic, `+`, `-`, `x` and the `div` narrowings, and comparisons. Only `==` and `below` are written: `!=`, `above`, `at_least` and `at_most` follow from them, so they can never disagree.
 
-**Refused:** defining or changing an operator on a built-in type, like `i32`, writing `!=`, `>`, `at_least` or `at_most` yourself, and defining `and`, `or`, `not`, `set_to`, `?`, `??` or `as`.
+**Refused:** defining or changing an operator on a built-in type, like `i32`, writing `!=`, `above`, `at_least` or `at_most` yourself, and defining `and`, `or`, `not`, `set_to`, `?`, `??` or `as`.
 
 **From:** D116, D117, D124, D235, D236, D237, and CyborgPL's `op`.

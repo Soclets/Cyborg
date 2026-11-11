@@ -26,9 +26,9 @@ end if
 `else if` and `else:` continue it, and one `end if` closes the whole chain. The test in [4.2](#42-the-test-if-n-t) works in `else if` too.
 
 ```
-if $n > 100:
+if $n above 100:
     std::io::fmt_print(Lend.mut $out, "huge{newln}");
-else if $n > 0:
+else if $n above 0:
     std::io::fmt_print(Lend.mut $out, "big{newln}");
 else:
     std::io::fmt_print(Lend.mut $out, "small{newln}");
@@ -150,7 +150,7 @@ Inside the loop, the compiler knows the value is within its range, and skips any
 **Rule:** `while` runs as long as a `bool` holds.
 
 ```
-while $n > 0:
+while $n above 0:
     change $n set_to $n - 1;
 end while
 ```

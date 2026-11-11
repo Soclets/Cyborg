@@ -143,9 +143,9 @@ std::io::fmt_print(Lend.mut $out, "hi{newln}");
 
 The one exception is grouping in maths: `($a + $b) x 2`.
 
-An opening `<` has no space after it, a closing `>` has none before it, and a comparison has a space on each side.
+An opening `<` has no space after it, and a closing `>` has none before it. `<` and `>` are never comparisons, which are `below` and `above` ([3.5](3-operators.md#35-comparison)).
 
-**Refused:** `$a<$b`.
+**Refused:** `$a < $b`, with `fix: below`.
 
 **From:** D23.
 
@@ -284,10 +284,10 @@ A literal format is checked when building.
 | Around `.`, `::`, `%`, `%%`, `@` | None | `fn.main`, `std::io::fmt_print`, `$p.%area()` |
 | After `$`, a unary `-`, a `~` on a literal, an opening `(`, `[`, `<` | None | `-$x`, `~0.1`, `total(Lend $xs)`, `std::list<i32>` |
 | Before a closing bracket, or a postfix `?` | None | `read()?` |
-| Around a binary operator, word operators and `set_to` included | One on each side | `1 < 8`, `$a + $b`, `$x at_least 0` |
+| Around a binary operator, word operators and `set_to` included | One on each side | `1 below 8`, `$a + $b`, `$x at_least 0` |
 | After a comma, or a label's `:` | One | `range[from: 1, to: 3]` |
 
-**Refused:** `fn . main`, `std :: io`, `1<8`, `$a+$b`, `$a  +  $b`, and `( $x )`, each with the spaced version as its fix, and a line break anywhere else, such as between `end` and `fn.main`, with a fix that joins the line.
+**Refused:** `fn . main`, `std :: io`, `$a+$b`, `$a  +  $b`, and `( $x )`, each with the spaced version as its fix, and a line break anywhere else, such as between `end` and `fn.main`, with a fix that joins the line.
 
 A line break inside a statement is allowed only after a comma, after an opening `(`, `[` or `<`, with the closing one then on its own line, and after a binary operator. Every block opener and closer stays on one line.
 

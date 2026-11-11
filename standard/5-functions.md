@@ -148,7 +148,7 @@ A receiver that's `Given` is refused, because methods only borrow.
 
 ```
 fn largest<?item: ordered> [$a: ?item, $b: ?item] returns ?item:
-    if $a > $b:
+    if $a above $b:
         return Copy $a;
     end if
     return Copy $b;
@@ -169,8 +169,8 @@ A requirement is one of two kinds, never mixed. An `interface` lists operations 
 ```
 interface ordered<?self>:
     includes equatable;
-    op < [$a: ?self, $b: ?self] returns bool;
-    law if $a < $b and $b < $c then $a < $c;
+    op below [$a: ?self, $b: ?self] returns bool;
+    law if $a below $b and $b below $c then $a below $c;
 end interface ordered
 
 type_set whole:
