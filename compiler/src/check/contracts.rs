@@ -25,6 +25,10 @@ pub struct TopOfBody {
     /// The `requires` and `ensures` lines, with whether each is `.only_in_working`.
     pub requires: Vec<(syntax::Expression, bool)>,
     pub ensures: Vec<(syntax::Expression, bool)>,
+    /// Each label's span, for errors about a unit it carries (D144).
+    pub label_spans: Vec<Option<Span>>,
+    /// The unit each label carries, as in `labels [$x as at.screen.pixels];` (D144).
+    pub label_units: Vec<Option<super::types::Unit>>,
     /// `requires $list lasts_at_least $article;`: facts about how long parameters last, which every call meets and
     /// nothing checks while running (D171).
     pub lasts: Vec<(String, String)>,
@@ -86,6 +90,8 @@ impl Checker<'_> {
                         let ExpressionKind::Variable(name) = &value.kind else { continue };
                         let syntax::TypeKind::Named { path, .. } = &written_type.kind else { continue };
                         if let Some(index) = parameter_index(&name.text) {
+                            top.label_spans.resize(count, None);
+                            top.label_spans[index] = Some(path.span);
                             top.labels[index] = Some(path.text());
                         }
                     }

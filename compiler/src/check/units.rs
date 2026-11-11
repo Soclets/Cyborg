@@ -497,16 +497,34 @@ impl Checker<'_> {
         &mut self,
         labels: &'labels [syntax::Label],
     ) -> Check<(Option<Unit>, &'labels [syntax::Label])> {
+        // The labels go `unit:`, then `min:`, then `max:` (D259).
+        let rank = |label: &syntax::Label| match label.name.text().as_str() {
+            "unit" => 0,
+            "min" => 1,
+            "max" => 2,
+            _ => 3,
+        };
+        if labels.windows(2).any(|pair| rank(&pair[0]) > rank(&pair[1])) && labels.iter().all(|label| rank(label) < 3) {
+            let mut ordered: Vec<&syntax::Label> = labels.iter().collect();
+            ordered.sort_by_key(|label| rank(label));
+            let fixed: Vec<String> = ordered.iter().map(|label| self.slice(label.span).to_string()).collect();
+            let span = labels[0].span.to(labels[labels.len() - 1].span);
+            return Err(self.error(Diagnostic::refused_fix(
+                span,
+                fixed.join(", "),
+                "a type reads as what it measures, then its range in that unit, so its labels go `unit:`, `min:`, `max:` (D259)",
+            )));
+        }
         let Some((first, rest)) = labels.split_first() else { return Ok((None, labels)) };
         if first.name.text() != "unit" {
-            if let Some(later) = rest.iter().find(|label| label.name.text() == "unit") {
-                return Err(self.error(Diagnostic::refused(
-                    later.name.span,
-                    "`unit:` comes first, then `min:`, then `max:`",
-                    "a type's labels go `unit:`, then `min:`, then `max:` (D255)",
-                )));
-            }
             return Ok((None, labels));
+        }
+        if let Some(again) = rest.iter().find(|label| label.name.text() == "unit") {
+            return Err(self.error(Diagnostic::refused(
+                again.name.span,
+                "this type says `unit:` twice",
+                "a type's unit is a `unit:` label in its brackets (D258)",
+            )));
         }
         let unit = match &first.value.kind {
             syntax::ExpressionKind::Path(path) => self.resolve_unit(path, false)?,

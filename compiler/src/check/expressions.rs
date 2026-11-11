@@ -393,9 +393,14 @@ impl Checker<'_> {
         keyword: &syntax::Path,
         written_type: &syntax::Type,
     ) -> Check<Typed> {
-        if keyword.segments.len() > 1 {
-            return Err(self.not_yet(keyword.span, format!("`{}`", keyword.text())));
-        }
+        // `as.trunc`, `as.floor` and `as.exact` say how an integer rounds going to a bigger unit (D255).
+        let narrowing = match keyword.segments.as_slice() {
+            [_] => None,
+            [_, word] if matches!(word.name.text.as_str(), "trunc" | "floor" | "exact") => {
+                Some((word.name.text.clone(), word.name.span))
+            }
+            _ => return Err(self.not_yet(keyword.span, format!("`{}`", keyword.text()))),
+        };
         if let ExpressionKind::Group(grouped) = &value.kind
             && let ExpressionKind::Owned { ownership, .. } = &grouped.kind
         {
@@ -433,7 +438,29 @@ impl Checker<'_> {
                 "not decided yet (standard 12.3)",
             )
         };
-        if let Some(converted) = self.unit_conversion(expression, &typed, &into) {
+        if let Some((word, span)) = &narrowing {
+            let unit_change = typed.value_type.unit().is_some()
+                && into.unit().is_some()
+                && typed.value_type.with_unit(None).plain() == into.with_unit(None).plain();
+            if !unit_change {
+                return Err(self.error(Diagnostic::not_designed(
+                    *span,
+                    format!("`as.{word}` on anything but a change of unit"),
+                    "not decided yet (standard 12.2)",
+                )));
+            }
+            if matches!(typed.value_type, Type::Float { .. }) {
+                return Err(self.error(Diagnostic::refused(
+                    *span,
+                    "a float rounds to the nearest, so its `as` says no narrowing",
+                    "a value changes unit with `as`: a float rounds to the nearest, an integer going to a smaller unit is exact, and one going to a bigger unit says how it rounds with `as.trunc`, `as.floor` or `as.exact` (D255)",
+                )));
+            }
+        }
+        self.narrowing = narrowing.as_ref().map(|(word, _)| word.clone());
+        let converted = self.unit_conversion(expression, &typed, &into);
+        self.narrowing = None;
+        if let Some(converted) = converted {
             return converted;
         }
         match (&typed.value_type, &into) {
@@ -736,6 +763,21 @@ impl Checker<'_> {
             }
             operator if operator.is_comparison() => {
                 let (left_typed, right_typed) = self.operands(body, left, right, None)?;
+                // A plain literal against a unit needs the unit (D100, D101).
+                for (side, typed, other) in [(right, &right_typed, &left_typed), (left, &left_typed, &right_typed)] {
+                    if typed.value_type.unit().is_none()
+                        && (typed.literal.is_some() || typed.float_literal.is_some())
+                        && same_number(&typed.value_type, &other.value_type)
+                        && let Some(unit) = other.value_type.unit()
+                    {
+                        let shown = self.slice(side.span).to_string();
+                        return Err(self.error(Diagnostic::refused_fix(
+                            side.span,
+                            format!("{shown} {unit}"),
+                            "the compiler checks units, and a unit is required where the type asks for one (D100, D101)",
+                        )));
+                    }
+                }
                 let comparison = self.comparison(expression.span, operator, &left_typed, &right_typed)?;
                 Ok(Typed::new(
                     Type::Bool,
@@ -1570,6 +1612,9 @@ impl Checker<'_> {
         let mut rest = signature.clone();
         rest.parameters.remove(0);
         rest.top.labels.remove(0);
+        if !rest.top.label_units.is_empty() {
+            rest.top.label_units.remove(0);
+        }
         rest.top.defaults.remove(0);
         rest.name = full.clone();
         if arguments.len() > rest.parameters.len() {
@@ -1583,15 +1628,21 @@ impl Checker<'_> {
         let matched = self.match_arguments(expression.span, &rest, arguments)?;
         let mut values = vec![receiver_argument];
         let mut changed = Vec::new();
-        for (each, (parameter_name, parameter_type, ownership)) in matched.iter().zip(&rest.parameters) {
-            values.push(match each {
+        for (index, (each, (parameter_name, parameter_type, ownership))) in
+            matched.iter().zip(&rest.parameters).enumerate()
+        {
+            let carried = rest.top.label_units.get(index).cloned().flatten();
+            let outer = std::mem::replace(&mut self.label_unit, carried);
+            let value = match each {
                 super::contracts::Matched::Argument(argument) => {
-                    self.argument(body, argument, parameter_name, parameter_type, *ownership, &mut changed)?
+                    self.argument(body, argument, parameter_name, parameter_type, *ownership, &mut changed)
                 }
                 super::contracts::Matched::Default(default) => {
-                    checked::Argument::Value(self.value_into(body, default, parameter_type)?)
+                    self.value_into(body, default, parameter_type).map(checked::Argument::Value)
                 }
-            });
+            };
+            self.label_unit = outer;
+            values.push(value?);
         }
         if super::contracts::needs_site(&signature.top) {
             let site = self.program.sites.len();
@@ -1745,7 +1796,11 @@ impl Checker<'_> {
         let mut values = Vec::new();
         let mut failed = false;
         let mut changed: Vec<Handed> = Vec::new();
-        for (each, (parameter_name, parameter_type, ownership)) in matched.iter().zip(&signature.parameters) {
+        for (index, (each, (parameter_name, parameter_type, ownership))) in
+            matched.iter().zip(&signature.parameters).enumerate()
+        {
+            let outer =
+                std::mem::replace(&mut self.label_unit, signature.top.label_units.get(index).cloned().flatten());
             let result = match each {
                 super::contracts::Matched::Argument(argument) => {
                     self.argument(body, argument, parameter_name, parameter_type, *ownership, &mut changed)
@@ -1754,6 +1809,7 @@ impl Checker<'_> {
                     self.value_into(body, default, parameter_type).map(checked::Argument::Value)
                 }
             };
+            self.label_unit = outer;
             match result {
                 Ok(value) => values.push(value),
                 Err(Reported) => failed = true,
@@ -2155,6 +2211,45 @@ impl Checker<'_> {
             Type::Integer { .. } if pi != 0 || from_offset != 0.0 || into_offset != 0.0 => {
                 return Some(Err(self.not_yet(expression.span, "this conversion of a whole number".to_string())));
             }
+            Type::Integer { .. } if ratio.bottom != 1 && self.narrowing.is_some() => {
+                if ratio.top != 1 {
+                    return Some(Err(self.error(Diagnostic::not_designed(
+                        expression.span,
+                        format!("an integer conversion whose ratio, {} per {}, isn't whole", ratio.top, ratio.bottom),
+                        "not decided yet (standard 12.2)",
+                    ))));
+                }
+                let word = self.narrowing.clone().unwrap_or_default();
+                let (operator, more) = match word.as_str() {
+                    "trunc" => (checked::Arithmetic::DivideTruncate, Vec::new()),
+                    "floor" => (checked::Arithmetic::DivideFloor, Vec::new()),
+                    _ => (
+                        checked::Arithmetic::DivideExact,
+                        vec![failure(
+                            self,
+                            Diagnostic::not_designed(
+                                expression.span,
+                                "what `div.exact` does when it isn't exact",
+                                NOT_DECIDED_OPERATORS,
+                            ),
+                            &[
+                                When::Text("`".into()),
+                                When::Operand(0),
+                                When::Text(" div.exact ".into()),
+                                When::Operand(1),
+                                When::Text("`".into()),
+                            ],
+                        )],
+                    ),
+                };
+                constant(Kind::Arithmetic {
+                    operator,
+                    left: Box::new(typed.value.clone()),
+                    right: Box::new(constant(Kind::Integer(ratio.bottom))),
+                    failure: None,
+                    more,
+                })
+            }
             Type::Integer { .. } => {
                 if ratio.bottom != 1 {
                     let times = ratio.bottom / ratio.top.max(1);
@@ -2471,6 +2566,7 @@ impl Checker<'_> {
 
     /// Checks an already-checked value against where it goes.
     pub fn convert_into(&mut self, span: Span, typed: Typed, into: &Type) -> Check<checked::Expression> {
+        let mut typed = typed;
         if typed.value_type.is_unknown() || into.is_unknown() {
             return Ok(typed.value);
         }
@@ -2481,17 +2577,33 @@ impl Checker<'_> {
             && (typed.value_type.unit().is_some() || into.unit().is_some())
             && same_number(&typed.value_type, into)
         {
+            // A label that carries a unit gives it to a plain number, and refuses another unit (D144).
+            if let Some(carried) = &self.label_unit
+                && into.unit() == Some(carried)
+            {
+                match typed.value_type.unit() {
+                    None => {}
+                    Some(unit) if !self.same_unit(Some(unit), Some(carried)) => {
+                        return Err(self.error(Diagnostic::refused(
+                            span,
+                            format!("this is `{}`, and the label asks for `{into}`", typed.value_type),
+                            "a label's unit takes a plain number or that unit, and a value in another is refused (D144)",
+                        )));
+                    }
+                    Some(_) => {}
+                }
+            }
             let literal = typed.literal.is_some() || typed.float_literal.is_some();
             let takes_mark = literal
                 && typed.value_type.unit().is_some_and(|unit| super::units::unit_mark(unit).is_none())
                 && typed.value_type.unit().and_then(super::units::unmarked)
                     == into.unit().and_then(super::units::unmarked);
-            if !takes_mark && !self.same_unit(typed.value_type.unit(), into.unit()) {
+            let carried = self.label_unit.is_some() && into.unit() == self.label_unit.as_ref();
+            if !carried && !takes_mark && !self.same_unit(typed.value_type.unit(), into.unit()) {
                 return Err(self.unit_mismatch(span, &typed, into));
             }
-            let mut typed = typed;
-            typed.value_type = typed.value_type.with_unit(None);
-            return self.convert_into(span, typed, &into.with_unit(None));
+            // The units match, so the number goes on to the checks below with the unit it lands in.
+            typed.value_type = typed.value_type.with_unit(into.unit().cloned());
         }
         match (&typed.value_type, into) {
             (

@@ -112,6 +112,9 @@ pub struct Loop {
     pub variables: usize,
 }
 
+/// Why a bound in another unit is converted, or refused (D260).
+const BOUND_UNIT_WHY: &str = "a bound writes its unit like any value given to its type, in any unit with the same base, converted when compiling, and exactly for an integer type (D260)";
+
 /// The `why` for something nobody has decided yet.
 pub const NOT_DECIDED: &str = "not decided yet, and the standard doesn't say";
 
@@ -291,6 +294,10 @@ pub struct Checker<'a> {
     pub source_scope: Option<sources::SourceScope>,
     /// Every unit, from `fam.unit` and the base language (D99, D109).
     pub units: units::Units,
+    /// The unit the label of the argument being checked carries, which a plain number takes (D144).
+    pub label_unit: Option<types::Unit>,
+    /// `trunc`, `floor` or `exact`, on the `as` being checked (D255).
+    pub narrowing: Option<String>,
     pub program: checked::Program,
 }
 
@@ -323,6 +330,8 @@ pub fn check(
         type_names: names::TypeNames::default(),
         source_scope: None,
         units: units::Units::default(),
+        label_unit: None,
+        narrowing: None,
         program: checked::Program::default(),
     };
     checker.check_file(parsed);
@@ -580,7 +589,38 @@ impl Checker<'_> {
             locals: Vec::new(),
             body: Vec::new(),
         });
-        let top = self.top_of_body(function);
+        let mut top = self.top_of_body(function);
+        // A label can carry its parameter's unit, as in `labels [$x as at.screen.pixels];` (D144).
+        top.label_units = vec![None; parameters.len()];
+        for (index, label) in top.labels.clone().iter().enumerate() {
+            let Some((_, unit)) = label.as_deref().and_then(|label| label.split_once('.')) else { continue };
+            let resolved = self.uses.get(unit).cloned().unwrap_or_else(|| unit.to_string());
+            let resolved = resolved.strip_prefix("my::").unwrap_or(&resolved).to_string();
+            let span = top.label_spans.get(index).copied().flatten().unwrap_or(function.header_span);
+            if !self.units.knows(&resolved) {
+                return Err(self.error(Diagnostic::refused(
+                    span,
+                    format!("the unit `{unit}` isn't known"),
+                    "a unit is defined in a collection, and a unit from a kit has its path (D109, D112)",
+                )));
+            }
+            let parameter_type = parameters.get(index).map(|(_, value_type, _)| value_type.clone());
+            let name = parameters.get(index).map(|(name, _, _)| name.clone()).unwrap_or_default();
+            let matches = parameter_type
+                .as_ref()
+                .and_then(Type::unit)
+                .and_then(units::unmarked)
+                .is_some_and(|carried| carried == resolved);
+            if !matches {
+                let shown = parameter_type.map(|value_type| value_type.to_string()).unwrap_or_default();
+                return Err(self.error(Diagnostic::refused(
+                    span,
+                    format!("this label says `{unit}`, and `{name}` is `{shown}`"),
+                    "a label can carry the unit its parameter has (D144)",
+                )));
+            }
+            top.label_units[index] = parameters.get(index).and_then(|(_, value_type, _)| value_type.unit().cloned());
+        }
         // A result whose type says one parameter lasts at least as long as another needs the function to say so too
         // (D171).
         if let Some(written) = &function.returns {
@@ -1003,6 +1043,18 @@ impl Checker<'_> {
         if let Some(named) = self.named_type(written, &text) {
             return named;
         }
+        // A unit was once written after the type, as `i32.length.meters` (D258).
+        if let Some((number, unit)) = text.split_once('.')
+            && (IntegerKind::from_name(number).is_some() || matches!(number, "f32" | "f64"))
+            && self.units.knows(unit.strip_prefix("my::").unwrap_or(unit))
+        {
+            let number = if number.starts_with('f') { format!("{number}.stable") } else { number.to_string() };
+            return Err(self.error(Diagnostic::refused_fix(
+                path.span,
+                format!("{number}[unit: {unit}]"),
+                "a type's unit is a `unit:` label in its brackets, next to any bounds (D258)",
+            )));
+        }
         if let Some(kind) = IntegerKind::from_name(&text) {
             if !matches!(text.as_str(), "i32" | "i64" | "u8" | "u32" | "u64") {
                 return Err(self.error(Diagnostic::not_designed(
@@ -1057,7 +1109,7 @@ impl Checker<'_> {
                     NOT_DECIDED,
                 )));
             }
-            let bounds = self.float_bounds(written.span, bits, kind, labels)?;
+            let bounds = self.float_bounds(written.span, bits, kind, labels, unit.as_ref())?;
             return Ok(Type::Float { bits, kind, bounds, unit });
         }
         match text.as_str() {
@@ -1280,7 +1332,7 @@ impl Checker<'_> {
             return Err(self.error(Diagnostic::refused_fix(
                 value.span,
                 format!("{shown} items"),
-                "a unit is required where the type asks for one (D101)",
+                "the language asks for units on things that have them, like lengths (D101)",
             )));
         };
         if self.resolve_path(unit) != "items" {
@@ -1321,6 +1373,7 @@ impl Checker<'_> {
         bits: u32,
         kind: types::FloatKind,
         labels: &[syntax::Label],
+        unit: Option<&types::Unit>,
     ) -> Check<Option<types::FloatBounds>> {
         if labels.is_empty() {
             return Ok(None);
@@ -1344,8 +1397,9 @@ impl Checker<'_> {
                     format!("`f{bits}[min: -40.0, max: 125.0]` is still {bits} bits, and holds only that range (D158)"),
                 )));
             }
+            let (number, ratio, pi) = self.bound_number(&label.value, unit)?;
             if !matches!(
-                label.value.kind,
+                number.kind,
                 syntax::ExpressionKind::Float(_)
                     | syntax::ExpressionKind::Integer(_)
                     | syntax::ExpressionKind::Inexact { .. }
@@ -1359,13 +1413,32 @@ impl Checker<'_> {
                 )));
             }
             let mut body = Body::default();
-            let typed = self.expression(&mut body, &label.value, Some(&plain))?;
+            let typed = self.expression(&mut body, number, Some(&plain))?;
             let Some(value) = typed.float_literal else {
                 return Err(self.error(Diagnostic::not_designed(
                     label.value.span,
                     "a bound that isn't a literal",
                     "not decided yet, and the standard doesn't say",
                 )));
+            };
+            // Converted into the type's unit when compiling (D260).
+            #[allow(clippy::cast_precision_loss)]
+            let value = {
+                let mut value = value;
+                if ratio.top != 1 {
+                    value *= ratio.top as f64;
+                }
+                if ratio.bottom != 1 {
+                    value /= ratio.bottom as f64;
+                }
+                for _ in 0..pi.unsigned_abs() {
+                    if pi > 0 {
+                        value *= std::f64::consts::PI;
+                    } else {
+                        value /= std::f64::consts::PI;
+                    }
+                }
+                value
             };
             if name == "min" {
                 min = Some(value);
@@ -1428,28 +1501,68 @@ impl Checker<'_> {
         Ok(Some(types::Bounds { min, max }))
     }
 
-    /// A bound on an integer type, which says its unit if the type has one (D255).
+    /// A bound on an integer type, in its unit, converted exactly when it's written in another (D260).
     fn bound_integer(&mut self, expression: &syntax::Expression, unit: Option<&types::Unit>) -> Check<i128> {
+        let (number, ratio, pi) = self.bound_number(expression, unit)?;
+        let value = self.constant_integer(number)?;
+        if pi != 0 {
+            return Err(self.not_yet(expression.span, "an integer bound in an angle".to_string()));
+        }
+        let Some(scaled) = value.checked_mul(ratio.top) else {
+            return Err(self.not_yet(expression.span, "this bound".to_string()));
+        };
+        if scaled % ratio.bottom != 0 {
+            let shown = self.slice(expression.span).to_string();
+            let unit = unit.map(ToString::to_string).unwrap_or_default();
+            return Err(self.error(Diagnostic::refused(
+                expression.span,
+                format!("`{shown}` isn't a whole number of `{unit}`, so this integer bound can't convert exactly"),
+                BOUND_UNIT_WHY,
+            )));
+        }
+        Ok(scaled / ratio.bottom)
+    }
+
+    /// A bound's number, and the ratio and power of π that take it into the type's unit (D260).
+    fn bound_number<'value>(
+        &mut self,
+        expression: &'value syntax::Expression,
+        unit: Option<&types::Unit>,
+    ) -> Check<(&'value syntax::Expression, units::Ratio, i32)> {
+        const PLAIN_WHY: &str =
+            "a bound writes its unit like any value given to its type, as `min: 0.0 length.meters` (D260, D101)";
         match (&expression.kind, unit) {
             (syntax::ExpressionKind::WithUnit { value, unit: written }, Some(unit)) => {
                 let written = self.resolve_unit(written, true)?;
-                if written != *unit {
-                    return Err(self.not_yet(expression.span, "a bound in another unit".to_string()));
+                if written == *unit {
+                    return Ok((value, units::Ratio::ONE, 0));
                 }
-                self.constant_integer(value)
+                let (Some(from), Some(into)) = (self.units.expand(&written), self.units.expand(unit)) else {
+                    return Err(Reported);
+                };
+                if from.powers != into.powers {
+                    return Err(self.error(Diagnostic::refused(
+                        expression.span,
+                        format!("`{written}` and `{unit}` don't trace back to the same base"),
+                        BOUND_UNIT_WHY,
+                    )));
+                }
+                let Some(ratio) =
+                    units::Ratio::new(into.scale.bottom, into.scale.top).and_then(|inverse| from.scale.times(inverse))
+                else {
+                    return Err(self.not_yet(expression.span, "this bound".to_string()));
+                };
+                Ok((value, ratio, from.pi - into.pi))
             }
-            (syntax::ExpressionKind::WithUnit { .. }, None) => {
-                Err(self.not_yet(expression.span, "a bound with a unit on a type without one".to_string()))
+            (syntax::ExpressionKind::WithUnit { value, .. }, None) => {
+                let shown = self.slice(value.span).to_string();
+                Err(self.error(Diagnostic::refused_fix(expression.span, shown, PLAIN_WHY)))
             }
             (_, Some(unit)) => {
                 let shown = self.slice(expression.span).to_string();
-                Err(self.error(Diagnostic::refused_fix(
-                    expression.span,
-                    format!("{shown} {unit}"),
-                    "a bound on a type with a unit says its unit (D255)",
-                )))
+                Err(self.error(Diagnostic::refused_fix(expression.span, format!("{shown} {unit}"), PLAIN_WHY)))
             }
-            (_, None) => self.constant_integer(expression),
+            (_, None) => Ok((expression, units::Ratio::ONE, 0)),
         }
     }
 

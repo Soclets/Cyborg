@@ -2185,7 +2185,7 @@ impl<'source> Parser<'source> {
         let mut ahead = 0;
         loop {
             match (self.kind_at(ahead), self.kind_at(ahead + 1)) {
-                (Some(TokenKind::Word), Some(TokenKind::Dot)) => ahead += 2,
+                (Some(TokenKind::Word), Some(TokenKind::Dot | TokenKind::DoubleColon)) => ahead += 2,
                 (Some(TokenKind::Word), Some(TokenKind::Colon)) => {
                     return self.kind_at(ahead + 2) != Some(TokenKind::Colon);
                 }

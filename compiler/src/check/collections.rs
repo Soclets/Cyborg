@@ -170,6 +170,23 @@ impl Checker<'_> {
         let from_one = match word.as_str() {
             "pos" => true,
             "offset.items" => false,
+            "offset" => {
+                return Err(self.error(Diagnostic::refused_fix(
+                    label.name.span,
+                    "offset.items",
+                    "an offset could read as bytes, so there's no bare `offset:` (D143, D144)",
+                )));
+            }
+            _ if word.starts_with("offset.") => {
+                return Err(self.error(Diagnostic::refused_fix(
+                    label.name.span,
+                    "offset.items",
+                    "a label's unit takes a plain number or that unit, and a value in another is refused (D144)",
+                )));
+            }
+            _ if word.starts_with("pos.") => {
+                return Err(self.error(Diagnostic::not_designed(label.name.span, format!("`{word}:`"), NOT_DECIDED)));
+            }
             _ => {
                 return Err(self.error(Diagnostic::refused(
                     opening,
