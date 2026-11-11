@@ -1060,6 +1060,8 @@ A `type_set` is a closed list of types that nothing can join later, as in `type_
 
 **D279. Each session has a core limit.** On the owner's Mac, which has 10 cores, design claude uses at most 1 core, oracle claude at most 3, and compiler claude at most 3, leaving the rest for the owner. That covers builds and tests, as in `cargo build -j 3`, `CARGO_BUILD_JOBS=3`, and `cargo test -- --test-threads=3`. This replaces rule 9's "no limit". Check claude's limit is not settled here. It's about the sessions' own work, not Cyborg's compiler, whose `--max_cores=` still defaults to `max` for its users (D224). The owner: "It should be: design claude = 1 core, oracle claude = 3 core, compiler claude = 3 core". (Owner, 2026-11-11)
 
+**D280. `Working` keeps every check, even proven ones.** In `Working`, Precog's proofs don't remove checks, so a check Precog wrongly "proved" turns a Precog bug into a loud crash while developing, instead of a silent hole in a release build. Kespar's fuzzer found about a dozen such bugs in its own Precog. Every other mode still drops what Precog proves. This narrows 10.3's "in any mode". The owner asked "Would Precog keep runtime checks in `working`?"; Claude proposed this; the owner chose: "yea". (Owner, 2026-11-11)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude

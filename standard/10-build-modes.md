@@ -49,7 +49,7 @@ It counts as choosing a mode. In a language about reproducibility, a build that'
 
 ## 10.3 What gets checked
 
-**Rule:** anything Precog proves can drop its check, in any mode.
+**Rule:** anything Precog proves can drop its check, in every mode except `Working`, which keeps every check, proven or not, so a wrong proof shows up as a crash while developing.
 
 | Check | `Working` | `FinalSafe` | `FinalPerf` | `FinalShit` | `FinalSmall` |
 |---|---|---|---|---|---|
@@ -65,7 +65,7 @@ A check in `Working` is kept no matter the cost. `.only_in_working` on `requires
 requires.only_in_working is_sorted(Lend $xs);
 ```
 
-**From:** D14, D20, D26, D37, D39, D105, D106.
+**From:** D14, D20, D26, D37, D39, D105, D106, D280.
 
 ## 10.4 What happens when something goes wrong
 
