@@ -363,6 +363,35 @@ impl Checker<'_> {
         let mut path = Vec::new();
         let mut current = variable.value_type.clone();
         for field in names {
+            let reached = at.span.to(field.span);
+            if let Type::Union { id, name } = &current
+                && let Some(holding) = self.aggregates.unions[*id]
+                    .cases
+                    .iter()
+                    .position(|case| case.fields.iter().any(|each| each.name == field.text))
+            {
+                let shown = self.slice(at.span).to_string();
+                if variable.known_case.is_some() {
+                    return Err(self.error(Diagnostic::not_designed(
+                        reached,
+                        "`change` on a value inside a union's case, and whether the test's trust survives it",
+                        NOT_DECIDED,
+                    )));
+                }
+                let case = self.aggregates.unions[*id].cases[holding].name.clone();
+                return Err(self.error(Diagnostic::refused(
+                    reached,
+                    format!("`{shown}` isn't known to be `{name}.{case}` here"),
+                    format!("inside `if {shown}: {name}.{case}:` the compiler trusts it, and outside that's a compile error (D9)"),
+                )));
+            }
+            if matches!(current, Type::Failure { .. }) && !variable.mutable {
+                return Err(self.error(Diagnostic::refused(
+                    reached,
+                    format!("`{}` can't change, so neither can its field", root.text),
+                    "a field or item can be changed if the whole variable is `let mut`, or the parameter `Lent.mut` (D125, D133)",
+                )));
+            }
             let Type::Struct { id, name } = &current else {
                 return Err(self.not_yet(field.span, "changing a field of this".to_string()));
             };
@@ -507,6 +536,30 @@ impl Checker<'_> {
                         "`?` is a compile error if the function doesn't list what it passes up (D47)",
                     )));
                 }
+            }
+            // The handler is still checked for its `*` (D46), even though a print here never fails.
+            // Its arms are checked where they're used too, since a `break` in one needs a loop here (D128). They
+            // never run, so what they build is dropped.
+            let arms = match &expression.kind {
+                ExpressionKind::Otherwise { handling: syntax::Handling::Handler(path), .. } => {
+                    self.handler_arms(path)?
+                }
+                ExpressionKind::Otherwise { handling: syntax::Handling::Arms { arms, .. }, .. } => arms.clone(),
+                _ => Vec::new(),
+            };
+            let before = body.states.clone();
+            let start = body.states.len();
+            for arm in &arms {
+                let result = body.new_local(MachineType::Void);
+                body.handlers.push(super::failures::Handler {
+                    value_type: Type::Void,
+                    result,
+                    loops: body.loops.len(),
+                });
+                self.block(body, &arm.body);
+                body.handlers.pop();
+                body.forget_after(start);
+                body.states.clone_from(&before);
             }
             if let Some(statement) = self.library_statement(body, inner)? {
                 block.push(statement);
@@ -847,12 +900,13 @@ impl Checker<'_> {
                         let narrowed = Variable { value_type: tested.clone(), mutable: false, ..original };
                         Ok((condition, Some(narrowed)))
                     }
-                    (Type::Float { .. } | Type::Integer { .. }, Type::Float { .. } | Type::Integer { .. }) => Err(self
-                        .error(Diagnostic::not_designed(
-                            written_type.span,
-                            format!("the test for `{tested}` on `{}`", typed.value_type),
-                            "not decided yet (standard 12.2)",
-                        ))),
+                    (Type::Float { .. } | Type::Integer { .. }, Type::Float { .. } | Type::Integer { .. })
+                    | (Type::Bool, Type::Bool)
+                    | (Type::Str, Type::Str) => Err(self.error(Diagnostic::not_designed(
+                        written_type.span,
+                        format!("the test for `{tested}` on `{}`", typed.value_type),
+                        "not decided yet (standard 12.2)",
+                    ))),
                     _ => Err(self.not_yet(subject.span.to(written_type.span), "this test".to_string())),
                 }
             }
@@ -876,9 +930,9 @@ impl Checker<'_> {
         }
         let condition = match condition {
             Condition::Plain(expression) => self.condition_value(body, expression)?.value,
-            Condition::Test { subject, written_type, .. } => {
+            Condition::Test { written_type, .. } => {
                 return Err(self.error(Diagnostic::not_designed(
-                    subject.span.to(written_type.span),
+                    written_type.span,
                     "the test in a `while`",
                     "not decided yet (standard 12.4)",
                 )));
@@ -1217,12 +1271,8 @@ impl Checker<'_> {
             return Err(self.error(never()));
         }
         if let (Some(start), Some(stop), Some(by)) = (from_typed.literal, end_typed.literal, step_literal) {
-            let reachable = match (by > 0, before) {
-                (true, true) => start < stop,
-                (true, false) => start <= stop,
-                (false, true) => start > stop,
-                (false, false) => start >= stop,
-            };
+            // A range ending before where it starts is empty, which still ends; only one going the wrong way can't.
+            let reachable = if by > 0 { start <= stop } else { start >= stop };
             if !reachable {
                 return Err(self.error(never()));
             }

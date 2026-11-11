@@ -1252,8 +1252,7 @@ impl<'source> Parser<'source> {
                         STATEMENT_WHY,
                     ));
                     // Read on as if the `:` were there, so the rest of the chain isn't misread.
-                    let body = self.block(&["end", "else"])?;
-                    otherwise = Some((else_span, body));
+                    self.block(&["end", "else"])?;
                     self.statements_after_else(else_span)?;
                     let end = self.closer()?;
                     return Err(self.reported_after(end));

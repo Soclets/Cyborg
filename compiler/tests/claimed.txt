@@ -52,6 +52,8 @@ d124_and_stops_early
 d124_chain_stops_at_first_false
 d124_or_both_runs_both
 d124_or_stops_early
+d125_case_value_inside_the_test
+d125_case_value_outside_the_test
 d125_field_checks_its_bound
 d125_field_literal_cant_fit
 d125_field_needs_the_word
@@ -73,6 +75,7 @@ d126_else_with_no_if
 d126_every_block_returns
 d126_give_in_each_block
 d126_given_by_a_later_test_isnt_gone_earlier
+d126_handler_jumps_from_an_else
 d126_main_returns_in_every_block
 d126_names_stay_in_their_block
 d126_nested_chains
@@ -105,6 +108,8 @@ d128_forever_with_a_break_can_end
 d128_forever_with_no_break_never_ends
 d128_going_through_a_number
 d128_handler_whose_break_stays_inside
+d128_handler_with_break_needs_star
+d128_handler_with_break_outside_a_loop
 d128_handler_with_break_runs
 d128_item_cant_change
 d128_loop_name_that_clashes
@@ -130,6 +135,7 @@ d128_range_with_equals
 d128_range_with_variables
 d128_range_without_an_end
 d128_range_without_from
+d128_ranges
 d128_same_name_nested
 d128_same_name_one_after_another
 d128_trust_doesnt_leave_through_a_break
@@ -139,6 +145,7 @@ d128_while_can_finish_so_it_needs_a_return
 d128_while_needs_a_bool
 d128_while_on_a_call_isnt_a_name
 d128_while_that_leaves_doesnt_go_round
+d128_while_with_a_test
 d129_finish_clashes
 d129_my_finish
 d130_bare_receiver_keeps_trust
@@ -188,6 +195,7 @@ d139_arm_can_run_off_on_one_path
 d139_arm_returns_breaks_or_fails
 d139_arm_says_nothing
 d139_case_name_reads_a_failure
+d139_changing_a_failures_data
 d139_data_from_a_named_set
 d139_data_needs_a_word
 d139_data_passes_up_through_question_mark
@@ -205,6 +213,7 @@ d139_instead_on_a_void_call
 d139_instead_outside_an_arm
 d139_match_name_can_be_lent_and_copied
 d139_match_name_cant_change
+d139_match_name_is_for_that_case
 d139_match_names_its_case
 d139_match_without_a_name
 d139_name_already_taken
@@ -620,9 +629,12 @@ d44_use_this_wrong_type
 d46_arm_ending_in_a_value
 d46_arm_for_impossible_failure
 d46_arm_missing
+d46_handler_needs_star
 d46_handler_on_a_void_call
 d46_handler_that_fails
 d46_handler_with_star_runs
+d46_star_on_one_that_cant_jump
+d46_unknown_handler
 d47_duplicate_member
 d47_member_says_its_set
 d47_named_set
@@ -701,6 +713,8 @@ d9_field_after_the_test
 d9_field_outside_the_test
 d9_match_all_arms_leave
 d9_match_misses_a_case
+d9_test_on_a_known_type
+d9_test_on_wrong_field
 d9_test_trusts_inside
 program_contracts_in_use
 program_parser_shape

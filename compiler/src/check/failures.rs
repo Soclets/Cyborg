@@ -571,7 +571,7 @@ impl Checker<'_> {
 
     /// A handler narrowing's arms, used at a call as if written there (D46). A handler that can `return` or `break`
     /// is marked `*` where it's used, and one that can't isn't.
-    fn handler_arms(&mut self, path: &syntax::Path) -> Check<Vec<syntax::Arm>> {
+    pub(super) fn handler_arms(&mut self, path: &syntax::Path) -> Check<Vec<syntax::Arm>> {
         let written = path.text();
         let starred = path.last().is_some_and(|segment| segment.mark == syntax::Mark::Star);
         let plain = written.replacen(".*", ".", 1);

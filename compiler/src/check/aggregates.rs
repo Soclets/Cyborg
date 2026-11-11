@@ -316,7 +316,7 @@ impl Checker<'_> {
                         .error(Diagnostic::refused(
                             field.span,
                             format!("`{name}.{}` has no field `{}`", info.cases[case].name, field.text),
-                            "a field read is a plain `.` (D57)",
+                            "a case's values go in `[ ]` (D33)",
                         ))),
                     (Some(case), _) if info.cases[case].fields.iter().any(|each| each.name == field.text) => {
                         let index =
