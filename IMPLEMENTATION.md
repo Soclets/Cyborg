@@ -28,6 +28,7 @@ Each works in its own clone, on `main` with no branch, and runs `git pull --reba
    covered. (D68)
 4. **No design in code.** Code follows `standard/`. Nothing undecided is guessed, and anything in `standard/12-not-decided.md` gives a
    `NotDesignedYet` error, with the question going to the owner through design claude.
+   Something decided that a session hasn't built yet gives `NotBuiltYet` instead, never `NotDesignedYet`. (D286)
 5. **Tests.** Output matches the oracle byte for byte, except `f64.fast`, which only has to be close, and may crash where the
    oracle doesn't. (D163) Nothing is pushed while a test fails.
 6. **A bad program never crashes the compiler.** No `unwrap`, `expect` or panic on a path real programs take. If the compiler

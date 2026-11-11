@@ -1072,6 +1072,8 @@ A `type_set` is a closed list of types that nothing can join later, as in `type_
 
 **D285. How many IRs the compiler has is compiler claude's call.** The compiler can have as many intermediate representations of its own as help, and an extra one is fine whenever it makes a check or a proof simpler, since more implementation isn't a cost Cyborg avoids. Whatever the shape, the IRs must serve three things: borrows ending at their last use (D169), which means following every path through a function; Precog dropping checks it proves (D168); and Verus proving the checks (rule 13), which is easier over a small IR. `Literal` (D282) should be able to go to Lyftar without being rewritten. Today the compiler has a syntax tree and a checked program, then Lyftar's IR and LLVM IR. Claude suggested adding a control-flow IR, like Rust's MIR; the owner said "Compiler claudes probably know best, but tbh, more impl shouldn't be a big issue", and chose: "yea". (Owner, 2026-11-11)
 
+**D286. Not built yet is its own error: `NotBuiltYet`.** When the oracle or the compiler reaches something that is decided but that it doesn't handle yet, it says `NotBuiltYet`, never `NotDesignedYet`. `NotDesignedYet` only ever means the design isn't decided (rule 4), so a reader, the owner or check claude can tell a design gap from an implementation gap at a glance. Compiler claude's milestone 1 used `NotDesignedYet` with the why "this compiler doesn't handle it yet"; Claude suggested a separate error, with `NotBuiltYet` as its name; the owner chose: "yes". (Owner, 2026-11-11)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude
