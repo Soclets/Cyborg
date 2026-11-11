@@ -35,7 +35,7 @@ use std::io::fmt_print as fmt_print;
 fn.main [none] -> void:
     let mut $out: os::stdout.buffered = os::stdout.buffered(size: 1024 bytes);
     fmt_print(Lend.mut $out, "Hello, World!{newln}");
-    os::flush(Give $out);
+    os::done(Give $out);
     return void;
 end fn.main
 ```
@@ -44,7 +44,7 @@ This is the owner's hello world. The `use` line is on purpose.
 
 Its manifest says `need std` and `need os`. Examples elsewhere in the standard assume a writer `$out` like this one.
 
-**From:** D11, D23, D93, D197, D265, D267, D271, D272, the sketch.
+**From:** D11, D23, D93, D197, D265, D267, D271, D272, D273, the sketch.
 
 ## 1.3 Blocks and statements
 
@@ -249,7 +249,7 @@ end comment why_sorted
 
 ## 1.13 Printing: `std::io::fmt_print`
 
-**Rule:** `std` has one print, `std::io::fmt_print`, and it's always a format print. Its first argument is the writer, where the output goes: a buffered terminal from `os`, like `os::stdout.buffered(size: 1024 bytes)` or `os::stderr.buffered(…)`, or a board's port on bare metal. A buffered writer must be flushed, as in `os::flush(Give $out);`, or the program doesn't compile. Plain text is a format with no holes. A newline is `{newln}` and a tab is `{tab}`, inside the text.
+**Rule:** `std` has one print, `std::io::fmt_print`, and it's always a format print. Its first argument is the writer, where the output goes. On a terminal, that's `os::stdout` or `os::stderr`, which must say whether they're `.buffered(size: 1024 bytes)`, writing in chunks, or `.unbuffered()`, writing each print straight away. A buffered writer is flushed with `$out.%%flush();` to push output now, and finished with `os::done(Give $out);`, without which the program doesn't compile. On bare metal, the writer is the board's port. Plain text is a format with no holes. A newline is `{newln}` and a tab is `{tab}`, inside the text.
 
 ```
 std::io::fmt_print(Lend.mut $out, "hi{newln}");
@@ -271,9 +271,9 @@ With `$name` as `"rope"`, `$count` as `3`, `$price` as an `f64.stable` holding `
 
 A literal format is checked when building.
 
-**Refused:** a bare `{` in the text, with `fix: \{`; `\n`, with `fix: {newln}`; `{0}`; mixing plain and numbered holes; more or fewer values than holes; a shape that doesn't apply, like `places:` on an integer; a width with no unit; `zeros` with no width; a shape written twice; an unknown escape; `.stdout` and `.stderr`, since the writer says where output goes, a buffered writer never flushed, and `std::io::fmt_println`, with `fix: std::io::fmt_print`.
+**Refused:** a bare `{` in the text, with `fix: \{`; `\n`, with `fix: {newln}`; `{0}`; mixing plain and numbered holes; more or fewer values than holes; a shape that doesn't apply, like `places:` on an integer; a width with no unit; `zeros` with no width; a shape written twice; an unknown escape; `.stdout` and `.stderr`, since the writer says where output goes, a bare `os::stdout()`, asking which kind, a buffered writer never given to `os::done`, and `std::io::fmt_println`, with `fix: std::io::fmt_print`.
 
-**From:** D11, D50, D51, D122, D162, D165, D194, D195, D197, D210, D221, D223, D246, D247, D272, and CyborgPL's format print.
+**From:** D11, D50, D51, D122, D162, D165, D194, D195, D197, D210, D221, D223, D246, D247, D272, D273, and CyborgPL's format print.
 
 ## 1.14 Spacing
 
