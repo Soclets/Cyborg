@@ -156,6 +156,6 @@ std::io::fmt_print(Lend.mut $out, "hi{newln}") otherwise:
 end otherwise
 ```
 
-A search for `?? void` finds every ignored failure. The crash stays in every mode except `FinalShit`, where it's UB ([10.7](10-build-modes.md#107-finalshit)). The linter can be stricter, such as requiring handling ([9.11](9-limbs-and-shields.md#911-the-linter)). `print_failed` is a placeholder.
+Before the crash message, every buffered writer still holding output is flushed, so the last thing printed before a crash always shows. A search for `?? void` finds every ignored failure. The crash stays in every mode except `FinalShit`, where it's UB ([10.7](10-build-modes.md#107-finalshit)). The linter can be stricter, such as requiring handling ([9.11](9-limbs-and-shields.md#911-the-linter)). `print_failed` is a placeholder.
 
-**From:** D95, D96, D107.
+**From:** D95, D96, D107, D274.
