@@ -22,6 +22,7 @@
 | [2.18](#218-naming-a-type) | `type.alias`, `type.new` | Another name, or a different type |
 | [2.19](#219-decl-and-assign) | `decl`, `assign` | A value given later, once |
 | [2.20](#220-types-are-always-written-and-precogs-pick-precogset_to_best) | `@precog::set_to_best` | Precog picks the type |
+| [2.21](#221-simd) | `simd<i32>[lanes: 4]` | Several values worked on by one instruction |
 
 ## 2.1 `let`
 
@@ -484,3 +485,17 @@ The `@` and the path mark that a limb chose the type. In Precog's mode, a bound 
 **Refused:** a `let` with no type and no Precog, asking for one; `:=`, with `fix: =` and a type; and `@precog::set_to_best` on a parameter, a return type or a struct field.
 
 **From:** D50, D215, D216, D265, D277, D283, and CyborgPL's `:=`.
+
+## 2.21 SIMD
+
+**Rule:** `simd` is a base type holding several values, its lanes, which one CPU instruction works on at once. An operator on two `simd` values works on every lane, and the compiler picks each CPU's instruction, so the same code is portable. In `Literal`, SIMD happens exactly where the code writes `simd` (D282).
+
+```
+let $a: simd<i32>[lanes: 4] = [1, 2, 3, 4];
+let $b: simd<i32>[lanes: 4] = [10, 20, 30, 40];
+let $c: simd<i32>[lanes: 4] = $a + $b;
+```
+
+`$c` holds `[11, 22, 33, 44]`. Instructions for one CPU only go in `inline.asm`.
+
+**From:** D291.
