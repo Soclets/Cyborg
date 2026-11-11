@@ -18,7 +18,7 @@
 
 | Mode | Optimization | Runtime checks | For |
 |---|---|---|---|
-| `Working` | You choose | All kept, no matter the cost | Developing and debugging |
+| `Working` | You choose, with `--opt=` | All kept, no matter the cost | Developing and debugging |
 | `FinalSafe` | Max | Cheap checks only | Safe releases |
 | `FinalPerf` | Max | None | Trust your tests |
 | `FinalShit` | Max | None | A joke, with more UB possible than C |
@@ -44,9 +44,15 @@ feeling lucky: FinalShit
 
 It counts as choosing a mode. In a language about reproducibility, a build that's different every time is the joke.
 
-**Refused:** `okay comp` with no mode flag, and `--mode FinalSafe`, with `fix: --FinalSafe`.
+`--Working` always says its optimization with `--opt=`, using LLVM's own levels: `O0`, `O1`, `O2`, `O3`, `Os` or `Oz`. There's no separate debug mode, so `Working` is for both debugging, where `O0` keeps every variable and line where a debugger expects them, and quick runs, where `O1` or higher is faster. Every check stays at every level.
 
-**From:** D26, D222, D224, D261, D268, D281.
+```
+okay run --Working --opt=O0
+```
+
+**Refused:** `okay comp` with no mode flag, and `--mode FinalSafe`, with `fix: --FinalSafe`. `--Working` without `--opt=`, with `fix: --opt=O0` for debugging or `--opt=O1` for quick runs, and `--opt=` with any other mode, whose optimization is fixed.
+
+**From:** D26, D222, D224, D261, D268, D281, D288.
 
 ## 10.3 What gets checked
 
