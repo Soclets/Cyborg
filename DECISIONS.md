@@ -1104,6 +1104,8 @@ A `type_set` is a closed list of types that nothing can join later, as in `type_
 
 **D301. Comparing `simd` values works lane by lane, and `if` on a `simd<bool>` is refused.** All six comparisons, `==`, `!=`, `below`, `above`, `at_least` and `at_most`, give a `simd<bool>` with one answer per lane, as in Zig, where Rust's `==` on vectors gives one `bool` for "all equal". So `==` behaves like the other five, and the code chooses what it wants from the answers: `($a == $b).%all_true()` for every lane, `.%any_true()` for any lane, or the `simd<bool>` itself for which lanes. `if` needs one `bool`, so `if` on a `simd<bool>` is refused, with `fix: .%all_true()` or `.%any_true()`, rather than quietly picking one. Claude proposed it; the owner asked "why not just let them choose?", Claude explained that lane by lane is what lets them choose, and the owner chose: "yea". (Owner, 2026-11-11)
 
+**D302. `.%pick(if_true:, if_false:)` chooses lane by lane.** A `simd<bool>` picks each lane from one of two vectors, as in `($a above $b).%pick(if_true: $a, if_false: $b)` for the larger value in each lane, which is how SIMD code replaces `if`. The labels are `if_true` and `if_false`, since `true`, `false` and `else` are already words. Both sides are worked out in full, for every lane, before picking, since SIMD can't skip a lane, and every lane is checked (D293): `$m.%pick(if_true: $x div.trunc $y, if_false: 0)` fails if any lane of `$y` is 0, even one that `if_false` picks. The fix is making the unused lanes safe first. Claude proposed it; the owner chose: "yea". (Owner, 2026-11-11)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude

@@ -558,6 +558,14 @@ if ($a == $b).%all_true():
 
 `$m` holds `[false, true, false, true]`.
 
+`.%pick` on a `simd<bool>` chooses each lane from one of two vectors, which is how SIMD code replaces `if`:
+
+```
+let $big: simd<i32>[lanes: 4] = $m.%pick(if_true: $a, if_false: $b);
+```
+
+`$big` holds `[5, 8, 5, 6]`. Both sides are worked out in full, for every lane, before picking, and every lane is checked, so `$m.%pick(if_true: $x div.trunc $y, if_false: 0)` fails if any lane of `$y` is 0, even one that `if_false` picks.
+
 **Refused:** `if` on a `simd<bool>`, with `fix: .%all_true()` or `.%any_true()`; a bare `simd_chunks`, asking which of the three; `.leftovers` without a `leftovers` section; and a `leftovers` section on any other loop.
 
-**From:** D255, D291, D292, D293, D296, D297, D298, D299, D300, D301.
+**From:** D255, D291, D292, D293, D296, D297, D298, D299, D300, D301, D302.
