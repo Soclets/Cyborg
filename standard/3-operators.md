@@ -115,7 +115,16 @@ if $n != 0 and 10 div.trunc $n above 1:
 $a plus.wrap $b
 ```
 
-**From:** D42.
+A saturating operator sticks at the type's own bounds instead of overflowing, including a written `min:` and `max:`, on one value or on every lane of a `simd` (D291). On a type with no written bounds, like `u8`, those are the hardware's, so it's one native instruction; written bounds add a `min` and a `max`. `plus.saturate` is a placeholder spelling.
+
+```
+let $volume: u8[min: 0, max: 100] = 95;
+let $louder: u8[min: 0, max: 100] = $volume plus.saturate 10;
+```
+
+`$louder` is 100. To stick at the hardware's limit and check a bound afterwards, saturate in the plain type first, then assign.
+
+**From:** D42, D294.
 
 ## 3.9 Grouping and precedence
 
