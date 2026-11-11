@@ -189,9 +189,16 @@ std::list<i32>[len.max: inf items, len.type: u32]
 let $b: std::list<i32>[len.min: 1 items, len.max: 8 items] = [4, 6];
 ```
 
+Allocation is explicit, as in Zig: anything that takes heap memory takes an allocator, the way printing takes a writer ([1.13](1-programs.md#113-printing-stdiofmt_print)). A list with a finite `len.max` needs none, since its size is known. Running out of memory is a failure, handled like any other, and a program with no allocator, as on bare metal, can't call anything that allocates. The names below are placeholders.
+
+```
+let mut $alloc: os::heap = os::heap();
+let mut $xs: std::list<i32>[len.max: inf items] = std::list.new(Lend.mut $alloc);
+```
+
 **Refused:** `std::list<i32>` with no `len.max`, a list with a bare `len`, in favour of `array`, `= empty` on a list with `len.min` above 0, `[]`, with `fix: empty`, and too few or too many items.
 
-**From:** D11, D12, D13, D24, D102, D103, D140.
+**From:** D11, D12, D13, D24, D102, D103, D140, D321.
 
 ## 2.11 Arrays
 

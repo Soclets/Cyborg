@@ -184,7 +184,7 @@ $led.%%write(val: 1);
 $led.%%write(val: 0);
 ```
 
-How exact layouts and allocators are spelled, isn't decided.
+Writing your own allocator is shield code. How an allocator is spelled and what it must provide isn't decided ([2.10](2-values-and-types.md#210-lists)).
 
 Using a limb doesn't need a shield by itself: `@` says it's a compiler extension, and a shield says it's dangerous.
 
