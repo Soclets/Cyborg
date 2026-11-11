@@ -69,7 +69,7 @@ There are no error codes. A `^` run sits under exactly the part in question.
 
 ```
 refused: main.cy:1:15, line 1 column 15
- 1 | let $a: f64.stable = 0.1;
+ 1 | let $a: f64.stable set_to 0.1;
    |               ^^^
  fix:  `~0.1`
  why:  f64.stable can't hold 0.1 exactly (D59)
@@ -93,18 +93,18 @@ To find those, the checker applies the first error's `fix:` in memory and checks
 
 ```
 refused: main.cy:4:25, line 4 column 25
- 4 |     let mut $sum: i32 = totl(Lend $xs);
+ 4 |     let mut $sum: i32 set_to totl(Lend $xs);
    |                         ^^^^
  fix:  `total`
  why:  a name has to be declared before it's used (the sketch)
 
 refused: main.cy:9:5, line 9 column 5
- 9 |     change $sum = $sum + $more;
+ 9 |     change $sum set_to $sum + $more;
    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^
  what: `$sum` never got a value
  why:  a variable is read only after it has one (D203)
  because: main.cy:4:25, line 4 column 25
- 4 |     let mut $sum: i32 = totl(Lend $xs);
+ 4 |     let mut $sum: i32 set_to totl(Lend $xs);
    |                         ^^^^
      with `total` here, this error goes away
 ```

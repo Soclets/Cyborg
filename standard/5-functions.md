@@ -33,7 +33,7 @@ Declarations work in any order, so a function can call one declared later in the
 **Rule:** a call uses `( )`, and the ownership word goes on the argument. Values like integers take no word.
 
 ```
-let $t: i32 = total(Lend $xs);
+let $t: i32 set_to total(Lend $xs);
 use_score($n);
 ```
 
@@ -64,7 +64,7 @@ In `std`, the first argument, the thing being worked on, stays bare, and every o
 ```
 fn first_word [$text: str, $limit: i32] returns str fails [too_long]:
     labels [$limit as limit];
-    defaults [$limit = 40];
+    defaults [$limit set_to 40];
     requires $limit at_least 1;
 
     …
@@ -119,7 +119,7 @@ A method is declared as a normal function with its type in the name. The first p
 ```
 fn reading.%%warm_up [$r: Lent.mut reading, $by: i32] returns void:
     labels [$by as by];
-    change $r.celsius = $r.celsius + $by;
+    change $r.celsius set_to $r.celsius + $by;
     return void;
 end fn reading.%%warm_up
 
@@ -159,10 +159,10 @@ struct pair<?left: any.type, ?right: any.type>:
     second: ?right;
 end struct pair
 
-let $x: i32 = largest(3, 5);
+let $x: i32 set_to largest(3, 5);
 ```
 
-A type parameter is `?` and a lowercase name, declared in `< >` straight after the name, and always writes its requirement. A call fills each type parameter from its arguments, and when they're bare literals, from the type the result goes into, so `?item` above is `i32`. If nothing says a type, as in `let $x := largest(3, 5);`, it's refused. `any.type` means it needs nothing, so the body can only store, move, copy and lend it. A type parameter takes ownership words like a struct, since it might be filled by one, and they do nothing for a plain number. A unit parameter writes `any.unit`, or a family's name, and goes only where a unit goes ([2.16](2-values-and-types.md#216-units)).
+A type parameter is `?` and a lowercase name, declared in `< >` straight after the name, and always writes its requirement. A call fills each type parameter from its arguments, and when they're bare literals, from the type the result goes into, so `?item` above is `i32`. If nothing says a type, it's refused. `any.type` means it needs nothing, so the body can only store, move, copy and lend it. A type parameter takes ownership words like a struct, since it might be filled by one, and they do nothing for a plain number. A unit parameter writes `any.unit`, or a family's name, and goes only where a unit goes ([2.16](2-values-and-types.md#216-units)).
 
 A requirement is one of two kinds, never mixed. An `interface` lists operations a type must have, with no code, and can state laws, include another interface, and leave type slots. A `type_set` is a closed list of types:
 
@@ -240,9 +240,9 @@ fn.pure.baked seconds_in [$days: i32] returns i32:
     return $days x 86_400;
 end fn.pure.baked seconds_in
 
-const $week: i32 = seconds_in(7);
-let $day: i32 = bake seconds_in(1);
-let $n: i32 = seconds_in($d);
+const $week: i32 set_to seconds_in(7);
+let $day: i32 set_to bake seconds_in(1);
+let $n: i32 set_to seconds_in($d);
 ```
 
 **Refused:** baking a function that isn't `fn.pure.baked`, and a compile-time step limit being reached. An edit that stops a function being baked is refused on that function.

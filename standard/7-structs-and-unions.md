@@ -3,7 +3,7 @@
 | Section | What | In short |
 |---|---|---|
 | [7.1](#71-declaring-a-struct) | `struct` | Named fields |
-| [7.2](#72-building-a-struct) | `reading[ ]` | `=` sets a field |
+| [7.2](#72-building-a-struct) | `reading[ ]` | `set_to` sets a field |
 | [7.3](#73-reading-a-field) | `$r.celsius` | A plain `.` |
 | [7.4](#74-linear-structs) | `struct.must_Give` | Handed off exactly once |
 | [7.5](#75-tagged-unions) | `union.tagged` | One of several cases |
@@ -25,13 +25,13 @@ end struct reading
 
 ## 7.2 Building a struct
 
-**Rule:** building one uses `[ ]`, because it holds values and runs nothing. `=` sets a field.
+**Rule:** building one uses `[ ]`, because it holds values and runs nothing. `set_to` sets a field.
 
 ```
-let $r: reading = reading[celsius = 21, time = 3600 std::units::time.seconds];
+let $r: reading set_to reading[celsius set_to 21, time set_to 3600 std::units::time.seconds];
 ```
 
-**From:** D23, D57.
+**From:** D23, D57, D276.
 
 ## 7.3 Reading a field
 
@@ -44,7 +44,7 @@ std::io::fmt_print(Lend.mut $out, "{}{newln}", $r.celsius);
 A field can be changed if the whole variable is `let mut`, or the parameter `Lent.mut`:
 
 ```
-change $r.celsius = 22;
+change $r.celsius set_to 22;
 ```
 
 **From:** D8, D57, D125.

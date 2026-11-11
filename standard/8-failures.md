@@ -36,7 +36,7 @@ end fn half
 
 ```
 fail odd;
-fail negative[val = $n];
+fail negative[val set_to $n];
 ```
 
 **From:** D52.
@@ -62,7 +62,7 @@ Two sets sharing a failure's name need the full name in a list: `file_failed.den
 **Rule:** if this failed, hand the failure to the caller. There's no word form.
 
 ```
-let $f: file = open(Lend $path)?;
+let $f: file set_to open(Lend $path)?;
 ```
 
 **Refused:** a `?` passing up a failure the function doesn't list.
@@ -74,7 +74,7 @@ let $f: file = open(Lend $path)?;
 **Rule:** if this failed, use this instead. There's no word form.
 
 ```
-let $port: i32 = read_port() ?? 8080;
+let $port: i32 set_to read_port() ?? 8080;
 ```
 
 **From:** D44, D45.
@@ -84,7 +84,7 @@ let $port: i32 = read_port() ?? 8080;
 **Rule:** `otherwise:` handles a failure in a block. Its arms must cover every failure still possible at that call.
 
 ```
-let $w: str = first_word(Lend $text) otherwise:
+let $w: str set_to first_word(Lend $text) otherwise:
     case too_long:
         instead "…";
     case no_words:
@@ -95,7 +95,7 @@ end otherwise
 `instead` gives the value used in place of the failed call. An arm can also `return`, `break` or `fail`. Naming the failure in its `case` lets the arm read its data:
 
 ```
-let $h: i32 = half($n) otherwise:
+let $h: i32 set_to half($n) otherwise:
     case negative $f:
         std::io::fmt_print(Lend.mut $out, "{}{newln}", $f.val);
         instead 0;
@@ -118,7 +118,7 @@ fam.handler word_failed:
     end word_failed.use_placeholder
 end fam.handler word_failed
 
-let $w: str = first_word(Lend $text) otherwise word_failed.use_placeholder;
+let $w: str set_to first_word(Lend $text) otherwise word_failed.use_placeholder;
 ```
 
 **From:** D45, D46.
@@ -128,7 +128,7 @@ let $w: str = first_word(Lend $text) otherwise word_failed.use_placeholder;
 **Rule:** a handler that can `return` or `break` is marked `*` where it's used, and not where it's declared.
 
 ```
-let $w: str = first_word(Lend $text) otherwise word_failed.*bail;
+let $w: str set_to first_word(Lend $text) otherwise word_failed.*bail;
 ```
 
 **Refused:** leaving `*` off a handler that can jump, and putting it on one that can't.

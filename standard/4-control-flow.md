@@ -60,7 +60,7 @@ Changing `$s` inside the block, or lending it with `Lend.mut`, is allowed, and t
 ```
 if $s: status.failed:
     std::io::fmt_print(Lend.mut $out, "{}{newln}", $s.code);
-    change $s = status.ok;
+    change $s set_to status.ok;
 end if
 ```
 
@@ -104,11 +104,11 @@ end match
 
 ```
 for $x in $xs:
-    change $sum = $sum + $x;
+    change $sum set_to $sum + $x;
 end for
 
 for $r in Lend.mut $readings:
-    change $r.celsius = $r.celsius + 1;
+    change $r.celsius set_to $r.celsius + 1;
 end for
 
 for $f in Give $files:
@@ -151,7 +151,7 @@ Inside the loop, the compiler knows the value is within its range, and skips any
 
 ```
 while $n > 0:
-    change $n = $n - 1;
+    change $n set_to $n - 1;
 end while
 ```
 

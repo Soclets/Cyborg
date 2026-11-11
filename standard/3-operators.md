@@ -23,7 +23,7 @@
 | Comparison | `==`, `!=`, `<`, `>`, `at_least`, `at_most` | [3.5](#35-comparison) |
 | Logic | `and`, `or`, `not` | [3.6](#36-logic) |
 | Bits | `bit_and`, `bit_or`, `bit_xor`, `bit_not`, `shl`, `shr` | [3.7](#37-bits-and-shifts) |
-| Set a value | `=` | [2.1](2-values-and-types.md#21-let), [7.2](7-structs-and-unions.md#72-building-a-struct) |
+| Set a value | `set_to` | [2.1](2-values-and-types.md#21-let), [7.2](7-structs-and-unions.md#72-building-a-struct) |
 | Convert | `as` | [2.14](2-values-and-types.md#214-conversion-as) |
 | Inexact literal | `~` | [2.7](2-values-and-types.md#27-inexact-literals-) |
 | Pass a failure up | `?` | [8.4](8-failures.md#84--pass-it-up) |
@@ -159,6 +159,6 @@ reading satisfies ordered;
 
 A type can define arithmetic, `+`, `-`, `x` and the `div` narrowings, and comparisons. Only `==` and `<` are written: `!=`, `>`, `at_least` and `at_most` follow from them, so they can never disagree.
 
-**Refused:** defining or changing an operator on a built-in type, like `i32`, writing `!=`, `>`, `at_least` or `at_most` yourself, and defining `and`, `or`, `not`, `=`, `?`, `??` or `as`.
+**Refused:** defining or changing an operator on a built-in type, like `i32`, writing `!=`, `>`, `at_least` or `at_most` yourself, and defining `and`, `or`, `not`, `set_to`, `?`, `??` or `as`.
 
 **From:** D116, D117, D124, D235, D236, D237, and CyborgPL's `op`.
