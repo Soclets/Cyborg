@@ -1,9 +1,11 @@
 // A closing bracket goes on its own line only when its opening one broke the line.
 // trace: D219
 import std;
+import os;
 
 fn.main [none] -> void:
-    std::io::fmt_print("{} {}{newln}", 1,
+    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
+    std::io::fmt_print(Lend.mut $out, "{} {}{newln}", 1,
         2
     );
     return void;

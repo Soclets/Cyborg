@@ -1,5 +1,5 @@
-NotDesignedYet: d98_full_print_isnt_spelled.cy:5:5, line 5 column 5
- 5 |     std::io::fmt_print.buffered("hi{newln}");
+NotDesignedYet: d98_full_print_isnt_spelled.cy:7:5, line 7 column 5
+ 7 |     std::io::fmt_print.buffered(Lend.mut $out, "hi{newln}");
    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^
  what: `std::io::fmt_print.buffered`
  why:  not decided yet, and the standard doesn't say

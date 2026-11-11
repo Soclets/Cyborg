@@ -2,6 +2,7 @@
 // `return` says `Copy`, since a type parameter is handed off like a struct is.
 // trace: D234, D235, D238, D241, D236
 import std;
+import os;
 
 interface equatable<?self>:
     op == [$a: ?self, $b: ?self] -> bool;
@@ -36,12 +37,13 @@ fn largest<?item: ordered> [$a: ?item, $b: ?item] -> ?item:
 end fn largest
 
 fn.main [none] -> void:
+    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     let $x: i32 = largest(3, 5);
     let $y: i32 = 9;
     let $z: i32 = 4;
     let $cold: reading = reading[celsius = 3];
     let $warm: reading = reading[celsius = 21];
     let $top: reading = largest(Lend $cold, Lend $warm);
-    std::io::fmt_print("{} {} {}{newln}", $x, largest($y, $z), $top.celsius);
+    std::io::fmt_print(Lend.mut $out, "{} {} {}{newln}", $x, largest($y, $z), $top.celsius);
     return void;
 end fn.main

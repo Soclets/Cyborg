@@ -1,10 +1,12 @@
 // trace: D194, D165
 import std;
+import os;
 
 fn.main [none] -> void:
+    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     let $a: f64.stable = 1000.0;
     let $b: f64.stable = 12.5;
     let $c: f64.stable = ~99.99;
-    std::io::fmt_print("{form: science} {form: science} {form: science, places: 1}{newln}", $a, $b, $c);
+    std::io::fmt_print(Lend.mut $out, "{form: science} {form: science} {form: science, places: 1}{newln}", $a, $b, $c);
     return void;
 end fn.main

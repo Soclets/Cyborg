@@ -1,6 +1,7 @@
 // A point converts with its offset, and a span only scales.
 // trace: D255, D249, D254
 import std;
+import os;
 
 fam.unit temperature:
     temperature.kelvin: base;
@@ -11,11 +12,12 @@ use my::temperature.celsius as celsius;
 use my::temperature.kelvin as kelvin;
 
 fn.main [none] -> void:
+    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     let $freezing: f64.stable[unit: celsius.point] = 0.0 celsius;
     let $rise: f64.stable[unit: celsius.span] = 10.0 celsius;
     let $k: f64.stable[unit: kelvin.point] = $freezing as f64.stable[unit: kelvin.point];
     let $r: f64.stable[unit: kelvin.span] = $rise as f64.stable[unit: kelvin.span];
     let $back: f64.stable[unit: celsius.point] = $k as f64.stable[unit: celsius.point];
-    std::io::fmt_print("{$k, unit} {$r, unit} {$back, unit}{newln}");
+    std::io::fmt_print(Lend.mut $out, "{$k, unit} {$r, unit} {$back, unit}{newln}");
     return void;
 end fn.main

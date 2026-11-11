@@ -1,0 +1,9 @@
+refused: d273_forgetting_done.cy:10:5, line 10 column 5
+10 |     return void;
+   |     ^^^^^^^^^^^^
+ what: this leaves with `$out` never given away or finished
+ why:  a buffered writer is `must_Give`, and `os::done(Give $out);` flushes it for the last time and ends its duty, so no output is lost (D272, D273)
+ because: d273_forgetting_done.cy:8:13, line 8 column 13
+ 8 |     let mut $out: os::stdout.buffered = os::stdout.buffered(size: 1024 bytes);
+   |             ^^^^
+     `$out` was made here

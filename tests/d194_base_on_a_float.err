@@ -1,5 +1,5 @@
-refused: d194_base_on_a_float.cy:6:25, line 6 column 25
- 6 |     std::io::fmt_print("{base: hex}{newln}", $x);
-   |                         ^^^^^^^^^^^
+refused: d194_base_on_a_float.cy:8:40, line 8 column 40
+ 8 |     std::io::fmt_print(Lend.mut $out, "{base: hex}{newln}", $x);
+   |                                        ^^^^^^^^^^^
  what: `base:` doesn't apply to `f64.stable`
  why:  a literal format is checked when building, including a shape that doesn't apply (D194)

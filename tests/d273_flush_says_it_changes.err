@@ -1,0 +1,5 @@
+refused: d273_flush_says_it_changes.cy:8:10, line 8 column 10
+ 8 |     $out.%flush();
+   |          ^^^^^^
+ fix:  `%%flush`
+ why:  `.%` lends a receiver read-only and `.%%` lends it to change, so the call shows which (D211)

@@ -1,0 +1,5 @@
+NotDesignedYet: d273_failure_before_done.cy:10:22, line 10 column 22
+10 |     let $over: i32 = $big + 1;
+   |                      ^^^^^^^^
+ what: what happens to a buffered writer's output when a failure stops the program before `os::done`
+ why:  not decided yet, and the standard doesn't say

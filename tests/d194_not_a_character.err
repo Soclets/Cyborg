@@ -1,5 +1,5 @@
-refused: d194_not_a_character.cy:5:25, line 5 column 25
- 5 |     std::io::fmt_print("\uD800{newln}");
-   |                         ^^^^^^
+refused: d194_not_a_character.cy:7:40, line 7 column 40
+ 7 |     std::io::fmt_print(Lend.mut $out, "\uD800{newln}");
+   |                                        ^^^^^^
  what: `D800` isn't a character
  why:  `\uHHHH` and `\UHHHHHHHH` give a character by its number (D194)

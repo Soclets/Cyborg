@@ -1,6 +1,7 @@
 // A struct with no duty just goes away once its fields are out.
 // trace: D185
 import std;
+import os;
 
 struct pair:
     a: str;
@@ -8,7 +9,8 @@ struct pair:
 end struct pair
 
 fn eat [$s: Given str] -> void:
-    std::io::fmt_print("{}{newln}", $s);
+    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
+    std::io::fmt_print(Lend.mut $out, "{}{newln}", $s);
     return void;
 end fn eat
 

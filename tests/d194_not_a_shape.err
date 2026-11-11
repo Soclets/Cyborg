@@ -1,5 +1,5 @@
-refused: d194_not_a_shape.cy:5:25, line 5 column 25
- 5 |     std::io::fmt_print("{bold}{newln}", 1);
-   |                         ^^^^^^
+refused: d194_not_a_shape.cy:7:40, line 7 column 40
+ 7 |     std::io::fmt_print(Lend.mut $out, "{bold}{newln}", 1);
+   |                                        ^^^^^^
  what: `bold` isn't a shape
  why:  the shapes are `align:`, `width:`, `places:`, `base:`, `form:`, `zeros`, `sign` and `unit` (D194, D246)

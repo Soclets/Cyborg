@@ -1,5 +1,6 @@
 // trace: D47
 import std;
+import os;
 
 fam.failure file_failed:
     file_failed.not_found;
@@ -20,18 +21,19 @@ fn load [$which: i32] -> i32 fails [file_failed, bad_syntax]:
 end fn load
 
 fn name_of [$which: i32] -> void:
+    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     let $n: i32 = load($which) otherwise:
         case not_found:
-            std::io::fmt_print("not found{newln}");
+            std::io::fmt_print(Lend.mut $out, "not found{newln}");
             return void;
         case file_failed.denied:
-            std::io::fmt_print("denied{newln}");
+            std::io::fmt_print(Lend.mut $out, "denied{newln}");
             return void;
         case bad_syntax:
-            std::io::fmt_print("bad syntax{newln}");
+            std::io::fmt_print(Lend.mut $out, "bad syntax{newln}");
             return void;
     end otherwise
-    std::io::fmt_print("fine {}{newln}", $n);
+    std::io::fmt_print(Lend.mut $out, "fine {}{newln}", $n);
     return void;
 end fn name_of
 

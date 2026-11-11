@@ -1,0 +1,5 @@
+refused: d273_unbuffered_isnt_done.cy:8:14, line 8 column 14
+ 8 |     os::done(Give $out);
+   |              ^^^^^^^^^
+ what: `os::stdout.unbuffered` writes each print straight away, so there's nothing for `os::done` to finish
+ why:  only a buffered writer is `must_Give`, and `os::done` is how it ends (D273)

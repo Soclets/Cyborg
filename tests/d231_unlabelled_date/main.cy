@@ -1,8 +1,10 @@
 // A version is a labelled date, so `2026-11-01` gets its labels.
 // trace: D231
 import std;
+import os;
 
 fn.main [none] -> void:
-    std::io::fmt_print("hi{newln}");
+    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
+    std::io::fmt_print(Lend.mut $out, "hi{newln}");
     return void;
 end fn.main

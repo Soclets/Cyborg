@@ -1,7 +1,9 @@
 // trace: D194
 import std;
+import os;
 
 fn.main [none] -> void:
-    std::io::fmt_print("[{align: right, width: 3 cols}]{newln}", "longer");
+    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
+    std::io::fmt_print(Lend.mut $out, "[{align: right, width: 3 cols}]{newln}", "longer");
     return void;
 end fn.main

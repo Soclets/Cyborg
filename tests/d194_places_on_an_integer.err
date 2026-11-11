@@ -1,5 +1,5 @@
-refused: d194_places_on_an_integer.cy:5:25, line 5 column 25
- 5 |     std::io::fmt_print("{places: 2}{newln}", 3);
-   |                         ^^^^^^^^^^^
+refused: d194_places_on_an_integer.cy:7:40, line 7 column 40
+ 7 |     std::io::fmt_print(Lend.mut $out, "{places: 2}{newln}", 3);
+   |                                        ^^^^^^^^^^^
  what: `places:` doesn't apply to `i32`
  why:  a literal format is checked when building, including a shape that doesn't apply (D194)

@@ -1,5 +1,6 @@
 // trace: D47
 import std;
+import os;
 
 fam.failure file_failed:
     file_failed.denied;
@@ -14,12 +15,13 @@ fn load [none] -> i32 fails [file_failed.denied, net_failed.denied]:
 end fn load
 
 fn.main [none] -> void:
+    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     let $n: i32 = load() otherwise:
         case file_failed.denied:
-            std::io::fmt_print("file{newln}");
+            std::io::fmt_print(Lend.mut $out, "file{newln}");
             return void;
         case net_failed.denied:
-            std::io::fmt_print("net{newln}");
+            std::io::fmt_print(Lend.mut $out, "net{newln}");
             return void;
     end otherwise
     return void;

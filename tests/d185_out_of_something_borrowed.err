@@ -1,5 +1,5 @@
-refused: d185_out_of_something_borrowed.cy:20:16, line 20 column 16
-20 |     close(Give $l.file);
+refused: d185_out_of_something_borrowed.cy:22:16, line 22 column 16
+22 |     close(Give $l.file);
    |                ^^^^^^^
  what: `$l` is only borrowed here, so a field can't be moved out of it
  why:  a field moves out only of something you own, a `Given` parameter or your own `let` (D185)

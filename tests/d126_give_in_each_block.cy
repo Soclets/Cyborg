@@ -1,9 +1,11 @@
 // Only one block runs, so each may give it away, and it's dead after.
 // trace: D126, D2
 import std;
+import os;
 
 fn eat [$s: Given str] -> void:
-    std::io::fmt_print("{}{newln}", $s);
+    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
+    std::io::fmt_print(Lend.mut $out, "{}{newln}", $s);
     return void;
 end fn eat
 

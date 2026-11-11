@@ -1,5 +1,6 @@
 // trace: D139
 import std;
+import os;
 
 fn word [$bad: bool] -> str fails [too_long]:
     if $bad:
@@ -9,6 +10,7 @@ fn word [$bad: bool] -> str fails [too_long]:
 end fn word
 
 fn.main [none] -> void:
+    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     let $a: str = word(false) otherwise:
         case too_long:
             instead "…";
@@ -17,7 +19,7 @@ fn.main [none] -> void:
         case too_long:
             instead "…";
     end otherwise
-    std::io::fmt_print("{}{newln}", $a);
-    std::io::fmt_print("{}{newln}", $b);
+    std::io::fmt_print(Lend.mut $out, "{}{newln}", $a);
+    std::io::fmt_print(Lend.mut $out, "{}{newln}", $b);
     return void;
 end fn.main

@@ -1,9 +1,9 @@
-refused: d203_one_path_missing.cy:9:5, line 9 column 5
- 9 |     std::io::fmt_print("{}{newln}", $x);
-   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+refused: d203_one_path_missing.cy:11:5, line 11 column 5
+11 |     std::io::fmt_print(Lend.mut $out, "{}{newln}", $x);
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
  what: `$x` has no value yet on some path here
  why:  every path has to `assign` a `decl` before reading it (D203)
- because: d203_one_path_missing.cy:5:10, line 5 column 10
- 5 |     decl $x: i32;
+ because: d203_one_path_missing.cy:7:10, line 7 column 10
+ 7 |     decl $x: i32;
    |          ^^
      `$x` is declared here

@@ -1,5 +1,5 @@
-refused: d194_sign_on_a_str.cy:5:25, line 5 column 25
- 5 |     std::io::fmt_print("{sign}{newln}", "a");
-   |                         ^^^^^^
+refused: d194_sign_on_a_str.cy:7:40, line 7 column 40
+ 7 |     std::io::fmt_print(Lend.mut $out, "{sign}{newln}", "a");
+   |                                        ^^^^^^
  what: `sign` doesn't apply to `str`
  why:  a literal format is checked when building, including a shape that doesn't apply (D194)

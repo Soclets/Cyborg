@@ -1,11 +1,13 @@
 // A note for whoever reads this.
 // trace: D118, D119
 import std;
+import os;
 
 /// Says hello.
 fn hello [none] -> void:
+    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     // a note inside
-    std::io::fmt_print("hello{newln}"); // and one after code
+    std::io::fmt_print(Lend.mut $out, "hello{newln}"); // and one after code
     //
     return void;
 end fn hello

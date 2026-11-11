@@ -1,5 +1,5 @@
-refused: d194_numbered_from_zero.cy:5:25, line 5 column 25
- 5 |     std::io::fmt_print("{0}{newln}", 1);
-   |                         ^^^
+refused: d194_numbered_from_zero.cy:7:40, line 7 column 40
+ 7 |     std::io::fmt_print(Lend.mut $out, "{0}{newln}", 1);
+   |                                        ^^^
  fix:  `{1}`
  why:  `{1}`, `{2}` are numbered holes, counting from 1 (D194)

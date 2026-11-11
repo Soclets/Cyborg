@@ -1,5 +1,5 @@
-refused: d188_limb_half_alone_isnt_the_kit.cy:5:5, line 5 column 5
- 5 |     std::io::fmt_print("hi{newln}");
+refused: d188_limb_half_alone_isnt_the_kit.cy:7:5, line 7 column 5
+ 7 |     std::io::fmt_print(Lend.mut $out, "hi{newln}");
    |     ^^^^^^^^^^^^^^^^^^
  fix:  `import std;`
  why:  everything gets imported, including `std` (D82)

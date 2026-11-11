@@ -1,9 +1,9 @@
-refused: d170_lasts_while_both_do.cy:21:37, line 21 column 37
-21 |     std::io::fmt_print("{}{newln}", $w.celsius);
-   |                                     ^^
+refused: d170_lasts_while_both_do.cy:23:52, line 23 column 52
+23 |     std::io::fmt_print(Lend.mut $out, "{}{newln}", $w.celsius);
+   |                                                    ^^
  what: `$w` can't be used after what it borrows was used
  why:  a stored `Lend.mut` means nothing else uses it meanwhile, and a `Lend` means it can't change (D2)
- because: d170_lasts_while_both_do.cy:20:12, line 20 column 12
-20 |     change $y.celsius = 0;
+ because: d170_lasts_while_both_do.cy:22:12, line 22 column 12
+22 |     change $y.celsius = 0;
    |            ^^^^^^^^^^
      what it borrows was used here

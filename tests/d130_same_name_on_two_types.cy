@@ -1,5 +1,6 @@
 // trace: D130
 import std;
+import os;
 
 struct a:
     n: i32;
@@ -10,17 +11,20 @@ struct b:
 end struct b
 
 fn a.%show [$v: a] -> void:
-    std::io::fmt_print("a {}{newln}", $v.n);
+    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
+    std::io::fmt_print(Lend.mut $out, "a {}{newln}", $v.n);
     return void;
 end fn a.%show
 
 fn b.%show [$v: b] -> void:
-    std::io::fmt_print("b {}{newln}", $v.n);
+    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
+    std::io::fmt_print(Lend.mut $out, "b {}{newln}", $v.n);
     return void;
 end fn b.%show
 
 fn show [$n: i32] -> void:
-    std::io::fmt_print("plain {}{newln}", $n);
+    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
+    std::io::fmt_print(Lend.mut $out, "plain {}{newln}", $n);
     return void;
 end fn show
 

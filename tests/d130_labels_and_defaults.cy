@@ -1,5 +1,6 @@
 // trace: D130, D114
 import std;
+import os;
 
 struct box:
     n: i32;
@@ -13,8 +14,9 @@ fn box.%plus [$b: box, $by: i32] -> i32:
 end fn box.%plus
 
 fn.main [none] -> void:
+    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     let $b: box = box[n = 1];
-    std::io::fmt_print("{}{newln}", $b.%plus());
-    std::io::fmt_print("{}{newln}", $b.%plus(by: 5));
+    std::io::fmt_print(Lend.mut $out, "{}{newln}", $b.%plus());
+    std::io::fmt_print(Lend.mut $out, "{}{newln}", $b.%plus(by: 5));
     return void;
 end fn.main

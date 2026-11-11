@@ -15,12 +15,12 @@ use crate::types::Sources;
 use crate::types::{show_float, FloatKind, FloatRules, IntegerKind, Type, Value};
 
 /// A call before anything has said what happens if it fails.
-struct RawCall {
-    node: Node,
-    value_type: Type,
-    failures: Vec<Failure>,
+pub(super) struct RawCall {
+    pub(super) node: Node,
+    pub(super) value_type: Type,
+    pub(super) failures: Vec<Failure>,
     /// A failure with no name yet, and which section of 12 says so.
-    unnamed: Option<(&'static str, &'static str)>,
+    pub(super) unnamed: Option<(&'static str, &'static str)>,
 }
 
 impl RawCall {
@@ -1424,7 +1424,7 @@ impl Checker<'_> {
         ))
     }
 
-    fn is_pure(&self) -> bool {
+    pub(super) fn is_pure(&self) -> bool {
         matches!(
             self.context.kind,
             FunctionKind::Pure | FunctionKind::PureBaked
@@ -1545,6 +1545,11 @@ impl Checker<'_> {
         if let Some(rest) = text.strip_prefix("std::") {
             self.require_std(rest, path.span)?;
             return self.check_std_call(rest, arguments, span, path.span);
+        }
+        // trace: D271, D273
+        if let Some(rest) = text.strip_prefix("os::") {
+            self.require_os(path.span)?;
+            return self.check_os_call(rest, arguments, span, path.span);
         }
         let bare = Self::without_my(&text, path.span)?;
         let Some(signature) = self.signatures.get(&bare).cloned() else {
@@ -1909,18 +1914,23 @@ impl Checker<'_> {
                 "",
             ));
         };
-        let (stored, stderr) = match narrowing {
-            "" => (false, false),
-            ".stored" => (true, false),
-            ".stderr" => (false, true),
-            // trace: D195, D51
-            ".stdout" => {
+        let stored = match narrowing {
+            "" => false,
+            ".stored" => true,
+            // The writer says where output goes. (D272, D273)
+            // trace: D272, D273
+            ".stdout" | ".stderr" | ".stored.stderr" | ".stderr.stored" | ".stored.stdout"
+            | ".stdout.stored" => {
+                let stream = if narrowing.contains("stderr") {
+                    "stderr"
+                } else {
+                    "stdout"
+                };
                 return Err(Report::refused(
                     path_span,
-                    "`std::io::fmt_print.stdout` spells out what bare `std::io::fmt_print` means",
-                    "a default `std` fixes can't be written out, and stdout is the default (D195, D51)",
-                )
-                .fix("std::io::fmt_print"));
+                    format!("`.{stream}` is gone, since the writer says where output goes"),
+                    format!("`std::io::fmt_print` always takes a writer first, like `Lend.mut $out` for `os::{stream}.buffered(size: 1024 bytes)` or `os::{stream}.unbuffered()` (D272, D273)"),
+                ));
             }
             // trace: D196
             after if after.starts_with("::") => {
@@ -1931,19 +1941,6 @@ impl Checker<'_> {
                 )
                 .fix(format!("std::io::fmt_print.{}", &after[2..])));
             }
-            // They combine, strongest first: `.stored` changes what's printed, and `.stderr` only
-            // where it goes. (D221, D223)
-            // trace: D221, D223
-            ".stored.stderr" => (true, true),
-            ".stderr.stored" => {
-                let written = self.text_of(path_span);
-                return Err(Report::refused(
-                    path_span,
-                    "narrowings go strongest first, so `.stored` comes before `.stderr`",
-                    "the narrowing that changes the action most sits next to the thing, and `.stored` changes what's printed while `.stderr` changes only where (D223)",
-                )
-                .fix(written.replace(".stderr.stored", ".stored.stderr")));
-            }
             other => {
                 return Err(Report::not_designed(
                     path_span,
@@ -1952,7 +1949,7 @@ impl Checker<'_> {
                 ));
             }
         };
-        self.check_fmt_print(arguments, span, path_span, stored, stderr)
+        self.check_fmt_print(arguments, span, path_span, stored)
     }
 
     /// `std::println`, `std::print` and `std::io::fmt_println` aren't the print any more.
@@ -1977,16 +1974,15 @@ impl Checker<'_> {
         Ok(())
     }
 
-    /// `std::io::fmt_print("{}: {}{newln}", $name, $count)`: a literal format, checked here, and
-    /// its values. (D194)
-    /// trace: D194, D197
+    /// `std::io::fmt_print(Lend.mut $out, "{}: {}{newln}", $name, $count)`: its writer, a literal
+    /// format, checked here, and its values. (D194, D272)
+    /// trace: D194, D197, D272
     fn check_fmt_print(
         &mut self,
         arguments: &[Argument],
         span: Span,
         path_span: Span,
         stored: bool,
-        stderr: bool,
     ) -> Outcome<RawCall> {
         if self.is_pure() || self.context.in_contract {
             // trace: D86
@@ -2007,6 +2003,16 @@ impl Checker<'_> {
                 "`std` labels every other argument, except where every one has the same role, like a print's values (D114)",
             ));
         }
+        let Some((writer, arguments)) = arguments.split_first() else {
+            return Err(Report::refused(
+                span,
+                "this print has no writer",
+                "`std::io::fmt_print` always takes a writer first, as in `fmt_print(Lend.mut $out, \"hi{newln}\");`, since the writer says where output goes (D272, D273)",
+            ));
+        };
+        let mut handed = Vec::new();
+        let (writer, _) =
+            self.writer_argument(&writer.value, ParameterWord::LentMut, &mut handed)?;
         let Some((format, values)) = arguments.split_first() else {
             return Err(Report::not_designed(
                 span,
@@ -2060,10 +2066,10 @@ impl Checker<'_> {
             node: Node {
                 span,
                 kind: NodeKind::FormatPrint {
+                    writer: Box::new(writer),
                     pieces: printed,
                     values: value_nodes,
                     stored,
-                    stderr,
                 },
             },
             value_type: Type::Void,
@@ -2248,7 +2254,7 @@ impl Checker<'_> {
     /// `.%` lends a receiver read-only, and `.%%` lends it to change, as the method says. (D211)
     /// The span covers the marks as written and the name, so the fix can replace them. The
     /// call wrote the other mark, `%` when it needs `%%` and `%%` when it needs `%`. (D207)
-    fn wrong_receiver_mark(name: &crate::ast::Name, changes: bool) -> Box<Report> {
+    pub(super) fn wrong_receiver_mark(name: &crate::ast::Name, changes: bool) -> Box<Report> {
         let (what, mark, written) = if changes {
             (
                 "this method changes its receiver, so the call says `.%%`",
@@ -2349,6 +2355,14 @@ impl Checker<'_> {
             let (node, found) = self.check_expression(receiver, None)?;
             (Some(node), found)
         };
+        // trace: D273
+        if let (true, Type::Struct(writer)) = (percent, &receiver_type) {
+            if super::writers::writer_kind(writer).is_some() {
+                let writer = writer.clone();
+                return self
+                    .check_writer_method(receiver, &writer, kit, name, changes, arguments, span);
+            }
+        }
         // A short name from `use` stands for the kit method it names, on that type only.
         // trace: D178
         let resolved = self.kit_method_alias(kit, percent, name, &receiver_type);

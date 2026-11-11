@@ -1,5 +1,5 @@
-refused: d155_kit_things_arent_marked.cy:8:5, line 8 column 5
- 8 |     fmt_print("hi{newln}");
+refused: d155_kit_things_arent_marked.cy:10:5, line 10 column 5
+10 |     fmt_print(Lend.mut $out, "hi{newln}");
    |     ^^^^^^^^^
  fix:  `std::io::fmt_print`
  why:  `@` goes only on things a limb provides (D22)

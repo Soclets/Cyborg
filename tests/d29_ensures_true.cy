@@ -1,5 +1,6 @@
 // trace: D29, D84
 import std;
+import os;
 
 fn right [$n: i32] -> i32:
     ensures result at_least $n;
@@ -8,6 +9,7 @@ fn right [$n: i32] -> i32:
 end fn right
 
 fn.main [none] -> void:
-    std::io::fmt_print("{}{newln}", right(5));
+    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
+    std::io::fmt_print(Lend.mut $out, "{}{newln}", right(5));
     return void;
 end fn.main

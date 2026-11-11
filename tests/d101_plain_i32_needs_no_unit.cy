@@ -1,9 +1,11 @@
 // A plain `i32` means just a number.
 // trace: D101
 import std;
+import os;
 
 fn.main [none] -> void:
+    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     let $x: i32 = 3600;
-    std::io::fmt_print("{}{newln}", $x);
+    std::io::fmt_print(Lend.mut $out, "{}{newln}", $x);
     return void;
 end fn.main

@@ -1,6 +1,7 @@
 // A prefix family is declared once, and a unit opts in with `with`, which makes its prefixed units.
 // trace: D250
 import std;
+import os;
 
 fam.prefix metric:
     metric.kilo = 1000;
@@ -12,8 +13,9 @@ fam.unit length:
 end fam.unit length
 
 fn.main [none] -> void:
+    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     let $road: f64.stable[unit: length.kilometers] = 2.5 length.kilometers;
     let $hair: f64.stable[unit: length.millimeters] = 0.5 length.millimeters;
-    std::io::fmt_print("{$road, unit} {$hair, unit}{newln}");
+    std::io::fmt_print(Lend.mut $out, "{$road, unit} {$hair, unit}{newln}");
     return void;
 end fn.main

@@ -1,7 +1,9 @@
 // trace: D194
 import std;
+import os;
 
 fn.main [none] -> void:
-    std::io::fmt_print("\xE9{newln}");
+    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
+    std::io::fmt_print(Lend.mut $out, "\xE9{newln}");
     return void;
 end fn.main

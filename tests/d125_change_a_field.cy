@@ -1,5 +1,6 @@
 // trace: D125
 import std;
+import os;
 
 fam.unit time:
     time.seconds: base;
@@ -22,6 +23,7 @@ fn warm [$r: Lent.mut reading] -> void:
 end fn warm
 
 fn.main [none] -> void:
+    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     let mut $r: reading = reading[celsius = 21, label = "a", at = 1 time.seconds, deep = inner[n = 1]];
     change $r.celsius = 22;
     warm(Lend.mut $r);
@@ -30,8 +32,8 @@ fn.main [none] -> void:
     change $r.label = Give $s;
     change $r.at = $r.at + 5 time.seconds;
     change $r.deep.n = 9;
-    std::io::fmt_print("{} {} {} {}{newln}", $r.celsius, $r.label, $r.at, $r.deep.n);
+    std::io::fmt_print(Lend.mut $out, "{} {} {} {}{newln}", $r.celsius, $r.label, $r.at, $r.deep.n);
     change $r.deep = inner[n = 10];
-    std::io::fmt_print("{}{newln}", $r.deep.n);
+    std::io::fmt_print(Lend.mut $out, "{}{newln}", $r.deep.n);
     return void;
 end fn.main

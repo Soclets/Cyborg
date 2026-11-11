@@ -1,5 +1,5 @@
-NotDesignedYet: CyJet.siml:6:25, line 6 column 25
- 6 | need csup 2026y-09m-30d with headers
+NotDesignedYet: CyJet.siml:7:25, line 7 column 25
+ 7 | need csup 2026y-09m-30d with headers
    |                         ^^^^^^^^^^^^
  what: a package's features, which `with` adds
  why:  not decided yet (standard 12.9)

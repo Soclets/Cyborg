@@ -1,5 +1,6 @@
 // trace: D86
 import std;
+import os;
 
 fn.pure positive [$n: i32] -> bool:
     return $n at_least 0;
@@ -12,6 +13,7 @@ fn f [$n: i32] -> i32:
 end fn f
 
 fn.main [none] -> void:
-    std::io::fmt_print("{}{newln}", f(1));
+    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
+    std::io::fmt_print(Lend.mut $out, "{}{newln}", f(1));
     return void;
 end fn.main

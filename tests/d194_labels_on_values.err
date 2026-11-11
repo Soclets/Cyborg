@@ -1,5 +1,5 @@
-refused: d194_labels_on_values.cy:5:37, line 5 column 37
- 5 |     std::io::fmt_print("{}{newln}", val: 1);
-   |                                     ^^^
+refused: d194_labels_on_values.cy:7:52, line 7 column 52
+ 7 |     std::io::fmt_print(Lend.mut $out, "{}{newln}", val: 1);
+   |                                                    ^^^
  what: a print's text and values have no labels
  why:  `std` labels every other argument, except where every one has the same role, like a print's values (D114)

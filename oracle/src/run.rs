@@ -134,6 +134,16 @@ struct Runner<'c> {
     steps: u64,
     step_limit: Option<u64>,
     out: std::io::BufWriter<std::io::Stdout>,
+    /// The terminal writers the program made, by number. (D273)
+    writers: Vec<Writer>,
+}
+
+/// A terminal writer: which stream, and for a buffered one, its size and what it holds.
+/// trace: D273
+struct Writer {
+    stderr: bool,
+    size: Option<usize>,
+    held: Vec<u8>,
 }
 
 /// trace: D89
@@ -218,6 +228,21 @@ pub fn run(code: &Code) -> Outcome<()> {
     }
     let result = runner.call(code.main, Vec::new(), Vec::new(), Span::new(0, 0));
     let flushed = runner.out.flush();
+    // A buffered writer always reaches `os::done`, unless a failure stops the program first,
+    // and what happens to its output then isn't decided. (D273)
+    // trace: D273
+    if result.is_err() && runner.writers.iter().any(|writer| !writer.held.is_empty()) {
+        let span = match &result {
+            Err(Stop::Report(report)) => report.span,
+            Err(Stop::Raised(raised)) => raised.span,
+            _ => Span::new(0, 0),
+        };
+        return Err(Report::not_designed(
+            span,
+            "what happens to a buffered writer's output when a failure stops the program before `os::done`",
+            "",
+        ));
+    }
     match result {
         Ok(_) => flushed.map_err(|error| {
             Report::check_failed(
@@ -247,6 +272,7 @@ impl<'c> Runner<'c> {
             steps: 0,
             step_limit,
             out: std::io::BufWriter::new(std::io::stdout()),
+            writers: Vec::new(),
         }
     }
 
@@ -900,11 +926,26 @@ impl<'c> Runner<'c> {
                     .ok_or_else(|| oracle_bug(span, "a call handed back a borrow of nothing"))
             }
             NodeKind::FormatPrint {
+                writer,
                 pieces,
                 values,
                 stored,
-                stderr,
-            } => self.format_print(pieces, values, *stored, *stderr, frame, span),
+            } => self.format_print(writer, pieces, values, *stored, frame, span),
+            // trace: D273
+            NodeKind::Writer { stderr, size } => {
+                self.writers.push(Writer {
+                    stderr: *stderr,
+                    size: *size,
+                    held: Vec::new(),
+                });
+                let number = i128::try_from(self.writers.len() - 1).unwrap_or(i128::MAX);
+                Ok(Value::Struct(vec![Value::Integer(number)]))
+            }
+            NodeKind::Flush { writer, .. } => {
+                let number = self.writer_number(writer, frame)?;
+                self.flush_writer(number, span)?;
+                Ok(Value::Void)
+            }
             NodeKind::Append {
                 receiver,
                 shown,
@@ -1071,17 +1112,85 @@ impl<'c> Runner<'c> {
         }
     }
 
-    /// Shapes each value into its hole, then prints the line to stdout, or stderr. (D194, D195)
-    /// trace: D95, D194, D195
+    /// Which writer a writer's value is.
+    fn writer_number(&mut self, writer: &Node, frame: &mut Frame) -> Result<usize, Stop> {
+        match self.evaluate(writer, frame)? {
+            Value::Struct(fields) => match fields.first() {
+                Some(Value::Integer(number)) => usize::try_from(*number)
+                    .ok()
+                    .filter(|number| *number < self.writers.len())
+                    .ok_or_else(|| oracle_bug(writer.span, "a writer that was never made")),
+                _ => Err(oracle_bug(writer.span, "a writer with no number")),
+            },
+            _ => Err(oracle_bug(writer.span, "a writer that isn't one")),
+        }
+    }
+
+    /// Writes straight to the writer's stream. stdout goes first, so what was printed before
+    /// shows before stderr's. (D273)
+    fn write_out(&mut self, stderr: bool, bytes: &[u8], span: Span) -> Result<(), Stop> {
+        let written = if stderr {
+            let mut error = std::io::stderr();
+            self.out.flush().is_ok() && error.write_all(bytes).is_ok() && error.flush().is_ok()
+        } else {
+            self.out.write_all(bytes).is_ok() && self.out.flush().is_ok()
+        };
+        if written {
+            Ok(())
+        } else {
+            Err(print_failed(span))
+        }
+    }
+
+    /// Pushes what a buffered writer holds out now. (D273)
+    fn flush_writer(&mut self, number: usize, span: Span) -> Result<(), Stop> {
+        let Some(writer) = self.writers.get_mut(number) else {
+            return Err(oracle_bug(span, "a writer that was never made"));
+        };
+        let held = std::mem::take(&mut writer.held);
+        let stderr = writer.stderr;
+        if held.is_empty() {
+            return Ok(());
+        }
+        self.write_out(stderr, &held, span)
+    }
+
+    /// A buffered writer holds output until it's full, then writes what it holds, and anything
+    /// bigger than its size goes straight out. An unbuffered one writes each print straight
+    /// away. (D273)
+    /// trace: D273
+    fn write_to(&mut self, number: usize, line: &[u8], span: Span) -> Result<(), Stop> {
+        let Some(writer) = self.writers.get(number) else {
+            return Err(oracle_bug(span, "a writer that was never made"));
+        };
+        let (stderr, size, held) = (writer.stderr, writer.size, writer.held.len());
+        let Some(size) = size else {
+            return self.write_out(stderr, line, span);
+        };
+        if held + line.len() > size {
+            self.flush_writer(number, span)?;
+        }
+        if line.len() > size {
+            return self.write_out(stderr, line, span);
+        }
+        if let Some(writer) = self.writers.get_mut(number) {
+            writer.held.extend_from_slice(line);
+        }
+        Ok(())
+    }
+
+    /// Shapes each value into its hole, then writes the line to its writer. (D194, D272)
+    /// trace: D95, D194, D272
     fn format_print(
         &mut self,
+        writer: &Node,
         pieces: &[crate::ir::PrintPiece],
         values: &[Node],
         stored: bool,
-        stderr: bool,
         frame: &mut Frame,
         span: Span,
     ) -> Result<Value, Stop> {
+        let number = self.writer_number(writer, frame)?;
         let mut evaluated = Vec::with_capacity(values.len());
         for value in values {
             evaluated.push(self.evaluate(value, frame)?);
@@ -1104,22 +1213,7 @@ impl<'c> Runner<'c> {
                 }
             }
         }
-        if stderr {
-            // stdout goes first, so what was printed before shows before this does.
-            let flushed = self.out.flush().is_ok();
-            let mut error = std::io::stderr();
-            if !flushed || error.write_all(line.as_bytes()).is_err() || error.flush().is_err() {
-                return Err(print_failed(span));
-            }
-            return Ok(Value::Void);
-        }
-        self.write_line(&line, span)
-    }
-
-    fn write_line(&mut self, line: &str, span: Span) -> Result<Value, Stop> {
-        if self.out.write_all(line.as_bytes()).is_err() || self.out.flush().is_err() {
-            return Err(print_failed(span));
-        }
+        self.write_to(number, line.as_bytes(), span)?;
         Ok(Value::Void)
     }
 

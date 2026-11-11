@@ -1,5 +1,6 @@
 // trace: D151, D155
 import std;
+import os;
 
 use std::io::fmt_print as "$say";
 

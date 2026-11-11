@@ -1,5 +1,6 @@
 // trace: D139, D128, D52
 import std;
+import os;
 
 fn f [$which: i32] -> i32 fails [a]:
     if $which > 0:
@@ -25,15 +26,16 @@ fn h [none] -> i32:
 end fn h
 
 fn.main [none] -> void:
-    std::io::fmt_print("{}{newln}", (g() ?? 5));
-    std::io::fmt_print("{}{newln}", h());
+    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
+    std::io::fmt_print(Lend.mut $out, "{}{newln}", (g() ?? 5));
+    std::io::fmt_print(Lend.mut $out, "{}{newln}", h());
     forever:
         let $n: i32 = f(1) otherwise:
             case a:
-                std::io::fmt_print("broke out{newln}");
+                std::io::fmt_print(Lend.mut $out, "broke out{newln}");
                 break;
         end otherwise
-        std::io::fmt_print("not reached{newln}");
+        std::io::fmt_print(Lend.mut $out, "not reached{newln}");
     end forever
     return void;
 end fn.main

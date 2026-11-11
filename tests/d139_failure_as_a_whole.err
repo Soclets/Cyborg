@@ -1,5 +1,5 @@
-refused: d139_failure_as_a_whole.cy:12:45, line 12 column 45
-12 |             std::io::fmt_print("{}{newln}", $x);
-   |                                             ^^
+refused: d139_failure_as_a_whole.cy:14:60, line 14 column 60
+14 |             std::io::fmt_print(Lend.mut $out, "{}{newln}", $x);
+   |                                                            ^^
  what: `$x` names a failure, which is for reading its data
  why:  `case negative $f:` names the failure, so `$f.val` reads its data (D139)

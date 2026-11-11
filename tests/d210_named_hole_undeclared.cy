@@ -1,7 +1,9 @@
 // trace: D210
 import std;
+import os;
 
 fn.main [none] -> void:
-    std::io::fmt_print("temp: {$t} C{newln}");
+    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
+    std::io::fmt_print(Lend.mut $out, "temp: {$t} C{newln}");
     return void;
 end fn.main

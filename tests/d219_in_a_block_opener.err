@@ -1,5 +1,5 @@
-refused: d219_in_a_block_opener.cy:7:5, line 7 column 5
- 7 |     if
+refused: d219_in_a_block_opener.cy:9:5, line 9 column 5
+ 9 |     if
    |     ^^
  fix:  `if $a`
  why:  a line breaks only after a comma, an opening bracket or a binary operator, so it visibly isn't finished (D219)

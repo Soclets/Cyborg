@@ -1,5 +1,5 @@
-refused: d194_newline_escape.cy:5:27, line 5 column 27
- 5 |     std::io::fmt_print("hi\n");
-   |                           ^^
+refused: d194_newline_escape.cy:7:42, line 7 column 42
+ 7 |     std::io::fmt_print(Lend.mut $out, "hi\n");
+   |                                          ^^
  fix:  `{newln}`
  why:  a newline and a tab are words inside the text, `{newln}` and `{tab}` (D194)

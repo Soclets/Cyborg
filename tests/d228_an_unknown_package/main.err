@@ -1,5 +1,5 @@
-NotDesignedYet: CyJet.siml:6:6, line 6 column 6
- 6 | need json 2026y-10m-20d
+NotDesignedYet: CyJet.siml:7:6, line 7 column 6
+ 7 | need json 2026y-10m-20d
    |      ^^^^
  what: how the package `json` is found
  why:  not decided yet (standard 12.9)

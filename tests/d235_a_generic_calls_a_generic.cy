@@ -1,6 +1,7 @@
 // A generic can call another with its own `?item`, lent like any other value, and it needs what the other needs.
 // trace: D235, D241
 import std;
+import os;
 
 interface ordered<?self>:
     op < [$a: ?self, $b: ?self] -> bool;
@@ -33,8 +34,9 @@ fn shown [$yes: bool] -> str:
 end fn shown
 
 fn.main [none] -> void:
+    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     let $a: i32 = 3;
     let $b: i32 = 8;
-    std::io::fmt_print("{} {}{newln}", shown(smaller($a, $b)), shown(smaller($b, $a)));
+    std::io::fmt_print(Lend.mut $out, "{} {}{newln}", shown(smaller($a, $b)), shown(smaller($b, $a)));
     return void;
 end fn.main

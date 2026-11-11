@@ -1,5 +1,5 @@
-NotDesignedYet: CyJet.siml:6:1, line 6 column 1
- 6 | rule var.mut.never_changed refuse
+NotDesignedYet: CyJet.siml:7:1, line 7 column 1
+ 7 | rule var.mut.never_changed refuse
    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
  what: a `rule` line, since rule names and the words `rule`, `refuse`, `allow` and `in` are placeholders
  why:  not decided yet (standard 12.9)

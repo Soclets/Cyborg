@@ -1,9 +1,11 @@
 // A print reads its values, so a `str` takes no word.
 // trace: D194, D95
 import std;
+import os;
 
 fn.main [none] -> void:
+    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     let $s: str = "hi";
-    std::io::fmt_print("{}{newln}", $s);
+    std::io::fmt_print(Lend.mut $out, "{}{newln}", $s);
     return void;
 end fn.main

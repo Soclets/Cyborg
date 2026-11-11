@@ -1,5 +1,5 @@
-refused: d11_main_says_return_void.cy:6:1, line 6 column 1
- 6 | end fn.main
+refused: d11_main_says_return_void.cy:8:1, line 8 column 1
+ 8 | end fn.main
    | ^^^^^^^^^^^
  what: `fn.main` ends without `return void;`
  why:  `main` says `return void;` (D11)

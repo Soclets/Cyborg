@@ -1,8 +1,10 @@
 // 9.4's example. The oracle builds for no chip, so it follows `else:`, as a build for a chip no branch names would.
 // trace: D233
 import std;
+import os;
 
 fn.main [none] -> void:
+    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     let $a: i64 = 6;
     let $b: i64 = 7;
     let $c: i64 = 8;
@@ -19,6 +21,6 @@ fn.main [none] -> void:
     else:
         let $r: i64 = $a x $b + $c;
     end on.target
-    std::io::fmt_print("{}{newln}", $r);
+    std::io::fmt_print(Lend.mut $out, "{}{newln}", $r);
     return void;
 end fn.main

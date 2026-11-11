@@ -1,13 +1,15 @@
 // The standard's `close_log`: a `struct.must_Give` ends its duty at last.
 // trace: D185, D177, D129
 import std;
+import os;
 
 struct.must_Give open_file:
     fd: i32;
 end struct.must_Give open_file
 
 fn close [$f: Given open_file] -> void:
-    std::io::fmt_print("closing {}{newln}", $f.fd);
+    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
+    std::io::fmt_print(Lend.mut $out, "closing {}{newln}", $f.fd);
     finish $f;
     return void;
 end fn close
@@ -24,8 +26,9 @@ fn close_log [$l: Given log] -> void:
 end fn close_log
 
 fn.main [none] -> void:
+    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     let $l: log = log[file = open_file[fd = 3], lines = 1];
     close_log(Give $l);
-    std::io::fmt_print("done{newln}");
+    std::io::fmt_print(Lend.mut $out, "done{newln}");
     return void;
 end fn.main

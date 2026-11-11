@@ -1,6 +1,7 @@
 // A unit made of others is declared once with `per` and `x`, and maths makes any combination.
 // trace: D242
 import std;
+import os;
 
 fam.unit length:
     length.meters: base;
@@ -18,6 +19,7 @@ fam.unit motion:
 end fam.unit motion
 
 fn.main [none] -> void:
+    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     let $dist: f64.stable[unit: length.meters] = 100.0 length.meters;
     let $time: f64.stable[unit: time.seconds] = 8.0 time.seconds;
     let $speed: f64.stable[unit: motion.speed] = $dist div $time;
@@ -25,6 +27,6 @@ fn.main [none] -> void:
     let $area: f64.stable[unit: motion.area] = $dist x $dist;
     let $back: f64.stable[unit: length.meters] = $speed x $time;
     let $ratio: f64.stable = $time div $time;
-    std::io::fmt_print("{} {} {} {} {}{newln}", $speed, $accel, $area, $back, $ratio);
+    std::io::fmt_print(Lend.mut $out, "{} {} {} {} {}{newln}", $speed, $accel, $area, $back, $ratio);
     return void;
 end fn.main

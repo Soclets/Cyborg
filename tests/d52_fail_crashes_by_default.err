@@ -1,9 +1,9 @@
-check failed: d52_fail_crashes_by_default.cy:13:37, line 13 column 37
-13 |     std::io::fmt_print("{}{newln}", half(3));
-   |                                     ^^^^^^^
+check failed: d52_fail_crashes_by_default.cy:15:52, line 15 column 52
+15 |     std::io::fmt_print(Lend.mut $out, "{}{newln}", half(3));
+   |                                                    ^^^^^^^
  what: `odd` failed, and nothing handled it
  why:  a failure nothing handles stops the program (D96)
- because: d52_fail_crashes_by_default.cy:6:9, line 6 column 9
- 6 |         fail odd;
+ because: d52_fail_crashes_by_default.cy:7:9, line 7 column 9
+ 7 |         fail odd;
    |         ^^^^^^^^^
      it was raised here

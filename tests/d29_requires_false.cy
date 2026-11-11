@@ -1,5 +1,6 @@
 // trace: D29, D84
 import std;
+import os;
 
 fn half [$n: i32] -> i32:
     requires $n at_least 0;
@@ -8,7 +9,8 @@ fn half [$n: i32] -> i32:
 end fn half
 
 fn.main [none] -> void:
-    std::io::fmt_print("{}{newln}", half(4));
-    std::io::fmt_print("{}{newln}", half(-4));
+    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
+    std::io::fmt_print(Lend.mut $out, "{}{newln}", half(4));
+    std::io::fmt_print(Lend.mut $out, "{}{newln}", half(-4));
     return void;
 end fn.main

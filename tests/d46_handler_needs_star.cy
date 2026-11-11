@@ -1,5 +1,6 @@
 // trace: D46
 import std;
+import os;
 
 fam.handler say_failed:
     say_failed.bail:
@@ -9,6 +10,7 @@ fam.handler say_failed:
 end fam.handler say_failed
 
 fn.main [none] -> void:
-    std::io::fmt_print("hi{newln}") otherwise say_failed.bail;
+    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
+    std::io::fmt_print(Lend.mut $out, "hi{newln}") otherwise say_failed.bail;
     return void;
 end fn.main

@@ -1,5 +1,6 @@
 // trace: D149
 import std;
+import os;
 
 struct reading:
     celsius: i32;
@@ -8,8 +9,9 @@ end struct reading
 type.new wrapped = reading;
 
 fn take [$w: Given wrapped] -> void:
+    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     let $r: reading = Give $w as reading;
-    std::io::fmt_print("{}{newln}", $r.celsius);
+    std::io::fmt_print(Lend.mut $out, "{}{newln}", $r.celsius);
     return void;
 end fn take
 

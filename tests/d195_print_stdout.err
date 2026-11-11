@@ -1,5 +1,0 @@
-refused: d195_print_stdout.cy:5:5, line 5 column 5
- 5 |     std::io::fmt_print.stdout("hi{newln}");
-   |     ^^^^^^^^^^^^^^^^^^^^^^^^^
- fix:  `std::io::fmt_print`
- why:  a default `std` fixes can't be written out, and stdout is the default (D195, D51)

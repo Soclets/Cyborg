@@ -1,5 +1,5 @@
-refused: d111_together.cy:17:1, line 17 column 1
-17 | together length.meters / time.seconds = speed.meters_per_second;
+refused: d111_together.cy:18:1, line 18 column 1
+18 | together length.meters / time.seconds = speed.meters_per_second;
    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
  what: `together` lines are gone
  why:  a unit made of others is declared once, inside a family, with `per` and `x`, as in `motion.speed = length.meters per time.seconds;` (D242)

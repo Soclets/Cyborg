@@ -1,6 +1,6 @@
-check failed: d133_past_the_end.cy:7:37, line 7 column 37
- 7 |     std::io::fmt_print("{}{newln}", $xs[pos: 3]);
-   |                                     ^^^^^^^^^^^
+check failed: d133_past_the_end.cy:9:52, line 9 column 52
+ 9 |     std::io::fmt_print(Lend.mut $out, "{}{newln}", $xs[pos: 3]);
+   |                                                    ^^^^^^^^^^^
  what: `pos: 3` is outside `$xs`
  why:  a bad position is a bounds check (D26, D133)
  when: it holds 2 items

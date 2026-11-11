@@ -1,0 +1,5 @@
+refused: d273_unbuffered_has_no_flush.cy:8:12, line 8 column 12
+ 8 |     $out.%%flush();
+   |            ^^^^^
+ what: `os::stdout.unbuffered` writes each print straight away, so it has no `flush`
+ why:  only a buffered writer holds output to push (D273)

@@ -1,5 +1,5 @@
-refused: d194_a_numbered_value_left_out.cy:5:24, line 5 column 24
- 5 |     std::io::fmt_print("{2}{newln}", 1, 2);
-   |                        ^^^^^^^^^^^^
+refused: d194_a_numbered_value_left_out.cy:7:39, line 7 column 39
+ 7 |     std::io::fmt_print(Lend.mut $out, "{2}{newln}", 1, 2);
+   |                                       ^^^^^^^^^^^^
  what: value 1 has no hole
  why:  a literal format is checked when building, and every value goes in a hole (D194)

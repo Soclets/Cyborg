@@ -1,9 +1,9 @@
-refused: d171_changing_a_source_ends_it.cy:16:37, line 16 column 37
-16 |     std::io::fmt_print("{}{newln}", $v.words.celsius);
-   |                                     ^^
+refused: d171_changing_a_source_ends_it.cy:18:52, line 18 column 52
+18 |     std::io::fmt_print(Lend.mut $out, "{}{newln}", $v.words.celsius);
+   |                                                    ^^
  what: `$v` can't be used after what it borrows was used
  why:  a stored `Lend.mut` means nothing else uses it meanwhile, and a `Lend` means it can't change (D2)
- because: d171_changing_a_source_ends_it.cy:15:12, line 15 column 12
-15 |     change $a.celsius = 5;
+ because: d171_changing_a_source_ends_it.cy:17:12, line 17 column 12
+17 |     change $a.celsius = 5;
    |            ^^^^^^^^^^
      what it borrows was used here

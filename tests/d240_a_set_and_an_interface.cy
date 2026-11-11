@@ -1,6 +1,7 @@
 // A type set and an interface together: the set says which types, the interface what they do.
 // trace: D240, D235
 import std;
+import os;
 
 interface ordered<?self>:
     op < [$a: ?self, $b: ?self] -> bool;
@@ -23,10 +24,11 @@ fn total<?item: whole and addable> [$a: ?item, $b: ?item] -> ?item:
 end fn total
 
 fn.main [none] -> void:
+    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     let $a: i64 = 40;
     let $b: i64 = 2;
-    std::io::fmt_print("{} {}{newln}", total($a, $b), total($b, $a));
+    std::io::fmt_print(Lend.mut $out, "{} {}{newln}", total($a, $b), total($b, $a));
     let $small: i32 = total(1, 2);
-    std::io::fmt_print("{}{newln}", $small);
+    std::io::fmt_print(Lend.mut $out, "{}{newln}", $small);
     return void;
 end fn.main

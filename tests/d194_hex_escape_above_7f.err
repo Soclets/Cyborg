@@ -1,5 +1,5 @@
-NotDesignedYet: d194_hex_escape_above_7f.cy:5:25, line 5 column 25
- 5 |     std::io::fmt_print("\xE9{newln}");
-   |                         ^^^^
+NotDesignedYet: d194_hex_escape_above_7f.cy:7:40, line 7 column 40
+ 7 |     std::io::fmt_print(Lend.mut $out, "\xE9{newln}");
+   |                                        ^^^^
  what: `\x` above `7F`, which isn't one character in UTF-8
  why:  not decided yet (standard 12.2)

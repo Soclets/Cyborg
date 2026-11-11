@@ -1,6 +1,7 @@
 // A real program: sort an array in place, with positions and `while`.
 // trace: D125, D126, D127, D128, D133
 import std;
+import os;
 
 fn sort [$xs: Lent.mut std::array<i32>[len: 6 items]] -> void:
     let mut $swapped: bool = true;
@@ -19,10 +20,11 @@ fn sort [$xs: Lent.mut std::array<i32>[len: 6 items]] -> void:
 end fn sort
 
 fn.main [none] -> void:
+    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     let mut $xs: std::array<i32>[len: 6 items] = [5, 2, 9, 1, 7, 3];
     sort(Lend.mut $xs);
     for $x in $xs:
-        std::io::fmt_print("{}{newln}", $x);
+        std::io::fmt_print(Lend.mut $out, "{}{newln}", $x);
     end for
     return void;
 end fn.main

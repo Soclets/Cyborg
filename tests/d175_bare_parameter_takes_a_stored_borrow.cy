@@ -1,5 +1,6 @@
 // trace: D175, D174
 import std;
+import os;
 
 struct reading:
     celsius: i32;
@@ -7,7 +8,8 @@ struct reading:
 end struct reading
 
 fn show [$v: reading] -> void:
-    std::io::fmt_print("{}{newln}", $v.celsius);
+    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
+    std::io::fmt_print(Lend.mut $out, "{}{newln}", $v.celsius);
     return void;
 end fn show
 

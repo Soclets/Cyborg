@@ -1,7 +1,9 @@
 // trace: D98
 import std;
+import os;
 
 fn.main [none] -> void:
-    std::io::fmt_print.buffered("hi{newln}");
+    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
+    std::io::fmt_print.buffered(Lend.mut $out, "hi{newln}");
     return void;
 end fn.main

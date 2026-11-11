@@ -1,5 +1,6 @@
 // trace: D139, D9
 import std;
+import os;
 
 union.tagged status:
     ok;
@@ -8,13 +9,14 @@ union.tagged status:
 end union.tagged status
 
 fn show [$s: status] -> void:
+    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     match $s:
         case status.failed $f:
-            std::io::fmt_print("failed {}{newln}", $f.code);
+            std::io::fmt_print(Lend.mut $out, "failed {}{newln}", $f.code);
         case status.lost $l:
-            std::io::fmt_print("lost at {}{newln}", $l.where);
+            std::io::fmt_print(Lend.mut $out, "lost at {}{newln}", $l.where);
         case status.ok:
-            std::io::fmt_print("ok{newln}");
+            std::io::fmt_print(Lend.mut $out, "ok{newln}");
     end match
     return void;
 end fn show
@@ -24,16 +26,17 @@ fn make [none] -> status:
 end fn make
 
 fn.main [none] -> void:
+    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     show(status.failed[code = 7]);
     show(status.lost[where = "home"]);
     show(status.ok);
     match make():
         case status.failed $f:
-            std::io::fmt_print("fresh {}{newln}", $f.code);
+            std::io::fmt_print(Lend.mut $out, "fresh {}{newln}", $f.code);
         case status.lost:
-            std::io::fmt_print("lost{newln}");
+            std::io::fmt_print(Lend.mut $out, "lost{newln}");
         case status.ok:
-            std::io::fmt_print("ok{newln}");
+            std::io::fmt_print(Lend.mut $out, "ok{newln}");
     end match
     return void;
 end fn.main

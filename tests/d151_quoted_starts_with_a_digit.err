@@ -1,5 +1,5 @@
-refused: d151_quoted_starts_with_a_digit.cy:4:27, line 4 column 27
- 4 | use std::io::fmt_print as "2nd";
+refused: d151_quoted_starts_with_a_digit.cy:5:27, line 5 column 27
+ 5 | use std::io::fmt_print as "2nd";
    |                           ^^^^^
  what: nothing could use `"2nd"` as a name
  why:  the quotes only skip the check against the path, so a quoted name still has to be usable (D151)

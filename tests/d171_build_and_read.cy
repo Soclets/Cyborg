@@ -1,5 +1,6 @@
 // trace: D171
 import std;
+import os;
 
 struct reading:
     celsius: i32;
@@ -11,9 +12,10 @@ struct index <`text`, `table`: lasts_at_least `text`>:
 end struct index
 
 fn.main [none] -> void:
+    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     let $list: reading = reading[celsius = 2];
     let $article: reading = reading[celsius = 1];
     let $i: index<`text`: $article, `table`: $list> = index[words = Lend $article, lookup = Lend $list];
-    std::io::fmt_print("{} {}{newln}", $i.words.celsius, $i.lookup.celsius);
+    std::io::fmt_print(Lend.mut $out, "{} {}{newln}", $i.words.celsius, $i.lookup.celsius);
     return void;
 end fn.main

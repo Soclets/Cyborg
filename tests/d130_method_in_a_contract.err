@@ -1,9 +1,9 @@
-check failed: d130_method_in_a_contract.cy:13:14, line 13 column 14
-13 |     requires $b.%positive();
+check failed: d130_method_in_a_contract.cy:14:14, line 14 column 14
+14 |     requires $b.%positive();
    |              ^^^^^^^^^^^^^^
  what: this `requires` is false
  why:  contracts are checked at runtime, and a false one stops the program (D29)
- because: d130_method_in_a_contract.cy:22:37, line 22 column 37
-22 |     std::io::fmt_print("{}{newln}", take(Lend $bad));
-   |                                     ^^^^^^^^^^^^^^^
+ because: d130_method_in_a_contract.cy:24:52, line 24 column 52
+24 |     std::io::fmt_print(Lend.mut $out, "{}{newln}", take(Lend $bad));
+   |                                                    ^^^^^^^^^^^^^^^
      called here

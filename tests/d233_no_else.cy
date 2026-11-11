@@ -1,8 +1,10 @@
 // With no `else:`, a build for another chip, like the oracle's, gets nothing from the choice.
 // trace: D233
 import std;
+import os;
 
 fn.main [none] -> void:
+    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     let $a: i64 = 6;
     let $b: i64 = 7;
     on.target aarch64:
@@ -16,6 +18,6 @@ fn.main [none] -> void:
             end inline.asm
         end shield add
     end on.target
-    std::io::fmt_print("{}{newln}", $r);
+    std::io::fmt_print(Lend.mut $out, "{}{newln}", $r);
     return void;
 end fn.main

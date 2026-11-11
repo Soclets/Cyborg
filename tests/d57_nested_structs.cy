@@ -1,5 +1,6 @@
 // trace: D57
 import std;
+import os;
 
 struct inner:
     n: i32;
@@ -15,9 +16,10 @@ fn read [$i: inner] -> i32:
 end fn read
 
 fn.main [none] -> void:
+    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     let $first: inner = inner[n = 1];
     let $o: outer = outer[a = Give $first, b = inner[n = 2]];
-    std::io::fmt_print("{}{newln}", $o.a.n);
-    std::io::fmt_print("{}{newln}", read(Lend $o.b));
+    std::io::fmt_print(Lend.mut $out, "{}{newln}", $o.a.n);
+    std::io::fmt_print(Lend.mut $out, "{}{newln}", read(Lend $o.b));
     return void;
 end fn.main

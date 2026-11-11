@@ -1,6 +1,7 @@
 // A level in dBm converts to milliwatts and back, so two levels are added by way of watts.
 // trace: D255, D251
 import std;
+import os;
 
 fam.unit power:
     power.milliwatts: base;
@@ -8,10 +9,11 @@ fam.unit power:
 end fam.unit power
 
 fn.main [none] -> void:
+    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     let $a: f64.stable[unit: power.dbm.point] = 10.0 power.dbm;
     let $b: f64.stable[unit: power.dbm.point] = 20.0 power.dbm;
     let $a_mw: f64.stable[unit: power.milliwatts.point] = $a as f64.stable[unit: power.milliwatts.point];
     let $b_mw: f64.stable[unit: power.milliwatts.point] = $b as f64.stable[unit: power.milliwatts.point];
-    std::io::fmt_print("{$a_mw, unit} {$b_mw, unit}{newln}");
+    std::io::fmt_print(Lend.mut $out, "{$a_mw, unit} {$b_mw, unit}{newln}");
     return void;
 end fn.main

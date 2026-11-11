@@ -1,5 +1,6 @@
 // trace: D144, D130
 import std;
+import os;
 
 fam.unit screen:
     screen.pixels: base;
@@ -17,8 +18,9 @@ fn cursor.%%move [$c: Lent.mut cursor, $by: i32[unit: screen.pixels]] -> void:
 end fn cursor.%%move
 
 fn.main [none] -> void:
+    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     let mut $c: cursor = cursor[x = 1 screen.pixels];
     $c.%%move(by.screen.pixels: 2);
-    std::io::fmt_print("{}{newln}", ($c.x as i32));
+    std::io::fmt_print(Lend.mut $out, "{}{newln}", ($c.x as i32));
     return void;
 end fn.main

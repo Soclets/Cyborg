@@ -1,5 +1,5 @@
-check failed: d159_as_fails_on_infinity.cy:10:30, line 10 column 30
-10 |     let $clean: f64.stable = $x as f64.stable;
+check failed: d159_as_fails_on_infinity.cy:12:30, line 12 column 30
+12 |     let $clean: f64.stable = $x as f64.stable;
    |                              ^^^^^^^^^^^^^^^^
  what: this is infinity, so it can't become `f64.stable`
  why:  `as` out of `f64.ieee` is a real conversion, and it fails on NaN or infinity (D159)

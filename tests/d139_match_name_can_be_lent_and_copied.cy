@@ -1,5 +1,6 @@
 // trace: D139, D2
 import std;
+import os;
 
 union.tagged status:
     ok;
@@ -7,8 +8,9 @@ union.tagged status:
 end union.tagged status
 
 fn show [$s: status] -> void:
+    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     if $s: status.failed:
-        std::io::fmt_print("{}{newln}", $s.code);
+        std::io::fmt_print(Lend.mut $out, "{}{newln}", $s.code);
     end if
     return void;
 end fn show

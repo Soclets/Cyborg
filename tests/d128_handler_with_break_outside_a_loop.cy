@@ -1,6 +1,7 @@
 // Used as if written there, so there's no loop for it to stop.
 // trace: D128, D46
 import std;
+import os;
 
 fam.handler say_failed:
     say_failed.stop:
@@ -10,6 +11,7 @@ fam.handler say_failed:
 end fam.handler say_failed
 
 fn.main [none] -> void:
-    std::io::fmt_print("hi{newln}") otherwise say_failed.*stop;
+    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
+    std::io::fmt_print(Lend.mut $out, "hi{newln}") otherwise say_failed.*stop;
     return void;
 end fn.main

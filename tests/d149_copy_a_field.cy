@@ -1,5 +1,6 @@
 // trace: D149
 import std;
+import os;
 
 struct reading:
     celsius: i32;
@@ -12,8 +13,9 @@ struct holder:
 end struct holder
 
 fn.main [none] -> void:
+    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     let $h: holder = holder[inner = reading[celsius = 1]];
     let $w: wrapped = Copy $h.inner as wrapped;
-    std::io::fmt_print("{}{newln}", $h.inner.celsius);
+    std::io::fmt_print(Lend.mut $out, "{}{newln}", $h.inner.celsius);
     return void;
 end fn.main

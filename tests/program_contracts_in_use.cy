@@ -1,6 +1,7 @@
 // Contracts, a pure function and baked constants working together.
 // trace: D29, D53, D84, D86, D91
 import std;
+import os;
 
 const $week: i32 = days(7);
 
@@ -25,9 +26,10 @@ fn per_day [$total: i32, $n: i32] -> i32 fails [nothing_to_share]:
 end fn per_day
 
 fn.main [none] -> void:
-    std::io::fmt_print("{}{newln}", $week);
-    std::io::fmt_print("{}{newln}", per_day($week));
-    std::io::fmt_print("{}{newln}", per_day($week, days: 2));
-    std::io::fmt_print("{}{newln}", (per_day(0) ?? -1));
+    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
+    std::io::fmt_print(Lend.mut $out, "{}{newln}", $week);
+    std::io::fmt_print(Lend.mut $out, "{}{newln}", per_day($week));
+    std::io::fmt_print(Lend.mut $out, "{}{newln}", per_day($week, days: 2));
+    std::io::fmt_print(Lend.mut $out, "{}{newln}", (per_day(0) ?? -1));
     return void;
 end fn.main

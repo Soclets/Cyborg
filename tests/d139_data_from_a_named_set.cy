@@ -1,5 +1,6 @@
 // trace: D139, D47
 import std;
+import os;
 
 fam.failure file_failed:
     file_failed.not_found;
@@ -11,11 +12,12 @@ fn save [none] -> void fails [file_failed]:
 end fn save
 
 fn.main [none] -> void:
+    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     save() otherwise:
         case not_found:
-            std::io::fmt_print("not found{newln}");
+            std::io::fmt_print(Lend.mut $out, "not found{newln}");
         case file_failed.disk_full $d:
-            std::io::fmt_print("{} has {} free{newln}", $d.label, $d.free);
+            std::io::fmt_print(Lend.mut $out, "{} has {} free{newln}", $d.label, $d.free);
     end otherwise
     return void;
 end fn.main

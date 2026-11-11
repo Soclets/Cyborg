@@ -1,5 +1,5 @@
-refused: d194_unknown_escape.cy:5:27, line 5 column 27
- 5 |     std::io::fmt_print("hi\q{newln}");
-   |                           ^^
+refused: d194_unknown_escape.cy:7:42, line 7 column 42
+ 7 |     std::io::fmt_print(Lend.mut $out, "hi\q{newln}");
+   |                                          ^^
  what: `\q` isn't an escape
  why:  the escapes are `\\ \" \' \r \0 \xHH \uHHHH \UHHHHHHHH`, and `\{` and `\}` for a brace (D194, D197)

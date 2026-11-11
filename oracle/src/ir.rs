@@ -175,12 +175,24 @@ pub enum NodeKind {
         left: Box<Node>,
         right: Box<Node>,
     },
-    /// `std::io::fmt_print`, with its text in pieces and the values its holes take. (D194)
+    /// `std::io::fmt_print`, with the writer it goes to, its text in pieces and the values its
+    /// holes take. (D194, D272)
     FormatPrint {
+        writer: Box<Node>,
         pieces: Vec<PrintPiece>,
         values: Vec<Node>,
         stored: bool,
+    },
+    /// `os::stdout.buffered(size: 1024 bytes)` or `os::stderr.unbuffered()`: a terminal writer,
+    /// buffered when it has a size. (D273)
+    Writer {
         stderr: bool,
+        size: Option<usize>,
+    },
+    /// `$out.%%flush()`, or `os::done(Give $out)`, which is the same flush with the duty ended
+    /// when checking. (D273)
+    Flush {
+        writer: Box<Node>,
     },
     Append {
         receiver: Place,

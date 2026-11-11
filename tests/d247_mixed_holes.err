@@ -1,5 +1,5 @@
-refused: d247_mixed_holes.cy:7:37, line 7 column 37
- 7 |     std::io::fmt_print("{$name} and {}{newln}", 3);
-   |                                     ^^
+refused: d247_mixed_holes.cy:9:52, line 9 column 52
+ 9 |     std::io::fmt_print(Lend.mut $out, "{$name} and {}{newln}", 3);
+   |                                                    ^^
  what: this format mixes named holes with `{}` or numbered ones
  why:  named holes can't be mixed with `{}` or numbered holes in one format (D247)

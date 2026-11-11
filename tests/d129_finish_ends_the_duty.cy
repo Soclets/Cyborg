@@ -1,6 +1,7 @@
 // A whole `must_Give` program: made, lent, handed on, and finished.
 // trace: D129, D2, D57
 import std;
+import os;
 
 struct.must_Give open_file:
     fd: i32;
@@ -16,17 +17,19 @@ fn pass_on [$f: Given open_file] -> void:
 end fn pass_on
 
 fn close [$f: Given open_file] -> void:
-    std::io::fmt_print("closing {}{newln}", $f.fd);
+    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
+    std::io::fmt_print(Lend.mut $out, "closing {}{newln}", $f.fd);
     finish $f;
     return void;
 end fn close
 
 fn.main [none] -> void:
+    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     let $f: open_file = open_file[fd = 3];
-    std::io::fmt_print("{}{newln}", read_from(Lend $f));
+    std::io::fmt_print(Lend.mut $out, "{}{newln}", read_from(Lend $f));
     pass_on(Give $f);
     let $g: open_file = open_file[fd = 4];
     finish $g;
-    std::io::fmt_print("done{newln}");
+    std::io::fmt_print(Lend.mut $out, "done{newln}");
     return void;
 end fn.main

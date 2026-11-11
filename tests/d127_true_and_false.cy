@@ -1,15 +1,17 @@
 // trace: D127
 import std;
+import os;
 
 struct flags:
     on: bool;
 end struct flags
 
 fn yes_or_no [$b: bool] -> void:
+    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     if $b:
-        std::io::fmt_print("yes{newln}");
+        std::io::fmt_print(Lend.mut $out, "yes{newln}");
     else:
-        std::io::fmt_print("no{newln}");
+        std::io::fmt_print(Lend.mut $out, "no{newln}");
     end if
     return void;
 end fn yes_or_no

@@ -547,7 +547,13 @@ impl Checker<'_> {
         if given.is_some() && !only_some_path {
             return Ok(());
         }
-        let why = "a `must_Give` value is handed off with `Give` exactly once, or `finish` ends it (D2, D129)";
+        // A buffered writer's duty ends with `os::done`. (D273)
+        // trace: D273
+        let why = if super::writers::is_buffered_writer(&variable.held_type) {
+            "a buffered writer is `must_Give`, and `os::done(Give $out);` flushes it for the last time and ends its duty, so no output is lost (D272, D273)"
+        } else {
+            "a `must_Give` value is handed off with `Give` exactly once, or `finish` ends it (D2, D129)"
+        };
         if let Some(given_at) = given {
             return Err(Report::refused(
                 variable.declared,

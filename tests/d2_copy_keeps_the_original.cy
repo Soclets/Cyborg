@@ -1,5 +1,6 @@
 // trace: D2
 import std;
+import os;
 
 struct box:
     n: i32;
@@ -10,8 +11,9 @@ fn eat [$b: Given box] -> i32:
 end fn eat
 
 fn.main [none] -> void:
+    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     let $b: box = box[n = 7];
-    std::io::fmt_print("{}{newln}", eat(Copy $b));
-    std::io::fmt_print("{}{newln}", $b.n);
+    std::io::fmt_print(Lend.mut $out, "{}{newln}", eat(Copy $b));
+    std::io::fmt_print(Lend.mut $out, "{}{newln}", $b.n);
     return void;
 end fn.main

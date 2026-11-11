@@ -1,5 +1,6 @@
 // trace: D134
 import std;
+import os;
 
 type.alias score = i32;
 type.alias numbers = std::list<i32>[len.max: inf items];
@@ -13,14 +14,15 @@ fn total [$xs: numbers] -> score:
 end fn total
 
 fn.main [none] -> void:
+    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     let $a: score = 5;
     let $b: i32 = $a;
     let $c: score = $b + 1;
     let mut $xs: std::list<i32>[len.max: inf items] = empty;
     $xs.std::%%append(val: $c);
     let $ys: numbers = Copy $xs;
-    std::io::fmt_print("{}{newln}", total(Lend $ys));
-    std::io::fmt_print("{}{newln}", total(Lend $xs));
-    std::io::fmt_print("{}{newln}", $a);
+    std::io::fmt_print(Lend.mut $out, "{}{newln}", total(Lend $ys));
+    std::io::fmt_print(Lend.mut $out, "{}{newln}", total(Lend $xs));
+    std::io::fmt_print(Lend.mut $out, "{}{newln}", $a);
     return void;
 end fn.main

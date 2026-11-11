@@ -1,6 +1,7 @@
 // The standard's example: lending an item names the whole list.
 // trace: D170, D172
 import std;
+import os;
 
 struct reading:
     celsius: i32;
@@ -11,8 +12,9 @@ fn first [$xs: std::list<reading>[len.min: 1 items, len.max: inf items]] -> Lend
 end fn first
 
 fn.main [none] -> void:
+    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     let $xs: std::list<reading>[len.min: 1 items, len.max: inf items] = [reading[celsius = 3]];
     let $f: Lend from $xs reading = first(Lend $xs);
-    std::io::fmt_print("{}{newln}", $f.celsius);
+    std::io::fmt_print(Lend.mut $out, "{}{newln}", $f.celsius);
     return void;
 end fn.main

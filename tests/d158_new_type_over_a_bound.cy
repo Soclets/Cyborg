@@ -1,13 +1,15 @@
 // trace: D158, D141
 import std;
+import os;
 
 type.new ratio = f64.stable[min: 0.0, max: 1.0];
 
 fn.main [none] -> void:
+    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     let $r: ratio = 0.5;
     let $x: f64.stable = $r as f64.stable;
     if $x: f64.stable[min: 0.5, max: 0.5]:
-        std::io::fmt_print("crossed{newln}");
+        std::io::fmt_print(Lend.mut $out, "crossed{newln}");
     end if
     return void;
 end fn.main

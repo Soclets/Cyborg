@@ -1,5 +1,5 @@
-NotDesignedYet: d194_stored_with_places.cy:6:53, line 6 column 53
- 6 |     std::io::fmt_print.stored("{places: 2}{newln}", $x);
-   |                                                     ^^
+NotDesignedYet: d194_stored_with_places.cy:8:68, line 8 column 68
+ 8 |     std::io::fmt_print.stored(Lend.mut $out, "{places: 2}{newln}", $x);
+   |                                                                    ^^
  what: `places:` or `form:` in a `.stored` print
  why:  not decided yet (standard 12.2)

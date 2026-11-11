@@ -7,6 +7,7 @@ mod generics;
 mod hand;
 mod operators;
 mod units;
+mod writers;
 
 use std::collections::{HashMap, HashSet};
 
@@ -514,7 +515,8 @@ impl Checker<'_> {
             .next()
             .unwrap_or(&import.name.text);
         if let Some(needs) = &self.needs {
-            if matches!(package, "std" | "csup") && !needs.iter().any(|need| need == package) {
+            if matches!(package, "std" | "csup" | "os") && !needs.iter().any(|need| need == package)
+            {
                 return Err(Report::refused(
                     import.name.span,
                     format!("`{package}` has no `need` line in `CyJet.siml`"),
@@ -574,8 +576,9 @@ impl Checker<'_> {
                     ));
                 }
             }
-        } else if import.name.text == "std" {
-            self.imports.insert("std".to_string());
+        } else if import.name.text == "std" || import.name.text == "os" {
+            // trace: D271
+            self.imports.insert(import.name.text.clone());
         } else {
             return Err(Report::not_designed(
                 import.name.span,
@@ -1991,6 +1994,10 @@ impl Checker<'_> {
     }
 
     fn is_must_give(&self, value_type: &Type) -> bool {
+        // trace: D272, D273
+        if writers::is_buffered_writer(value_type) {
+            return true;
+        }
         match value_type {
             Type::Struct(name) => self.struct_info(name).is_some_and(|info| info.must_give),
             Type::Holding { base, .. } => self.is_must_give(base),
@@ -2407,6 +2414,15 @@ impl Checker<'_> {
         if let Some(rest) = text.strip_prefix("std::") {
             self.require_std(rest, path.span)?;
             return self.resolve_std_type(rest, written, path, fill, describe);
+        }
+        // trace: D271, D273
+        if let Some(rest) = text.strip_prefix("os::") {
+            self.require_os(path.span)?;
+            return Self::resolve_os_type(
+                rest,
+                written.span,
+                fill.is_empty() && describe.is_empty(),
+            );
         }
         // trace: D134
         if !is_clashing(&text) {

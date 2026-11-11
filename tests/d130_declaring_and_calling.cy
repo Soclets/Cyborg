@@ -1,5 +1,6 @@
 // trace: D130, D4, D5, D8
 import std;
+import os;
 
 struct reading:
     celsius: i32;
@@ -12,7 +13,8 @@ fn reading.%%warm_up [$r: Lent.mut reading, $by: i32] -> void:
 end fn reading.%%warm_up
 
 fn reading.%show [$r: reading] -> void:
-    std::io::fmt_print("{}{newln}", $r.celsius);
+    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
+    std::io::fmt_print(Lend.mut $out, "{}{newln}", $r.celsius);
     return void;
 end fn reading.%show
 
@@ -25,12 +27,13 @@ fn make [none] -> reading:
 end fn make
 
 fn.main [none] -> void:
+    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     let mut $r: reading = reading[celsius = 21];
     $r.%%warm_up(by: 2);
     $r.%show();
     $r.%%warm_up(by: 1);
     $r.%show();
-    std::io::fmt_print("{}{newln}", $r.%doubled());
+    std::io::fmt_print(Lend.mut $out, "{}{newln}", $r.%doubled());
     make().%show();
     return void;
 end fn.main

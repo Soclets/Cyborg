@@ -1,5 +1,6 @@
 // trace: D130, D86
 import std;
+import os;
 
 struct box:
     n: i32;
@@ -16,9 +17,10 @@ fn take [$b: box] -> i32:
 end fn take
 
 fn.main [none] -> void:
+    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     let $ok: box = box[n = 1];
-    std::io::fmt_print("{}{newln}", take(Lend $ok));
+    std::io::fmt_print(Lend.mut $out, "{}{newln}", take(Lend $ok));
     let $bad: box = box[n = 0];
-    std::io::fmt_print("{}{newln}", take(Lend $bad));
+    std::io::fmt_print(Lend.mut $out, "{}{newln}", take(Lend $bad));
     return void;
 end fn.main

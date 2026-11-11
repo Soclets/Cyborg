@@ -1,0 +1,5 @@
+refused: d272_print_takes_a_writer.cy:7:24, line 7 column 24
+ 7 |     std::io::fmt_print("hi{newln}");
+   |                        ^^^^^^^^^^^
+ what: this isn't a writer, and a print's first argument is the writer it goes to
+ why:  `std::io::fmt_print` always takes a writer first, as in `fmt_print(Lend.mut $out, "hi{newln}");`, since the writer says where output goes (D272, D273)

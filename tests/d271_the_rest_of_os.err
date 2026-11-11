@@ -1,0 +1,5 @@
+NotDesignedYet: d271_the_rest_of_os.cy:7:5, line 7 column 5
+ 7 |     os::exit(1);
+   |     ^^^^^^^^
+ what: `os::exit`, since only `os`'s terminal writers are designed
+ why:  not decided yet, and the standard doesn't say

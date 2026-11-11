@@ -1,13 +1,15 @@
 // trace: D126
 import std;
+import os;
 
 fn.main [none] -> void:
+    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     let $n: i32 = 0;
     if $n > 0:
-        std::io::fmt_print("positive{newln}");
+        std::io::fmt_print(Lend.mut $out, "positive{newln}");
     else if $n < 0:
-        std::io::fmt_print("negative{newln}");
+        std::io::fmt_print(Lend.mut $out, "negative{newln}");
     end if
-    std::io::fmt_print("carried on{newln}");
+    std::io::fmt_print(Lend.mut $out, "carried on{newln}");
     return void;
 end fn.main

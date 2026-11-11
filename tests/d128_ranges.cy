@@ -1,8 +1,10 @@
 // trace: D128
 import std;
+import os;
 
 fn show [$label: str, $n: i32] -> void:
-    std::io::fmt_print("{}{}{newln}", $label, $n);
+    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
+    std::io::fmt_print(Lend.mut $out, "{}{}{newln}", $label, $n);
     return void;
 end fn show
 

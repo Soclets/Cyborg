@@ -1,5 +1,6 @@
 // trace: D211
 import std;
+import os;
 
 struct reading:
     celsius: i32;
@@ -15,8 +16,9 @@ fn reading.%%warm_up [$r: Lent.mut reading, $by: i32] -> void:
 end fn reading.%%warm_up
 
 fn.main [none] -> void:
+    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     let mut $r: reading = reading[celsius = 20];
     $r.%%warm_up(3);
-    std::io::fmt_print("{}{newln}", $r.%shown());
+    std::io::fmt_print(Lend.mut $out, "{}{newln}", $r.%shown());
     return void;
 end fn.main

@@ -1,9 +1,11 @@
 // trace: D130, D120
 import std;
+import os;
 
 fn.main [none] -> void:
+    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     let $b: box = box[n = 1];
-    std::io::fmt_print("{}{newln}", $b.%read());
+    std::io::fmt_print(Lend.mut $out, "{}{newln}", $b.%read());
     return void;
 end fn.main
 

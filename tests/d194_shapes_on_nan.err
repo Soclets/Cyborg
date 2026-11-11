@@ -1,5 +1,5 @@
-NotDesignedYet: d194_shapes_on_nan.cy:6:25, line 6 column 25
- 6 |     std::io::fmt_print("{places: 2}{newln}", $zero div $zero);
-   |                         ^^^^^^^^^^^
+NotDesignedYet: d194_shapes_on_nan.cy:8:40, line 8 column 40
+ 8 |     std::io::fmt_print(Lend.mut $out, "{places: 2}{newln}", $zero div $zero);
+   |                                        ^^^^^^^^^^^
  what: how `NaN` prints with shapes on it
  why:  not decided yet, and the standard doesn't say

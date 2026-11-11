@@ -1,5 +1,5 @@
-NotDesignedYet: d194_center_with_an_odd_gap.cy:5:26, line 5 column 26
- 5 |     std::io::fmt_print("[{align: center, width: 5 cols}]{newln}", "ab");
-   |                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+NotDesignedYet: d194_center_with_an_odd_gap.cy:7:41, line 7 column 41
+ 7 |     std::io::fmt_print(Lend.mut $out, "[{align: center, width: 5 cols}]{newln}", "ab");
+   |                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
  what: which side of a centred value gets the odd space
  why:  not decided yet, and the standard doesn't say

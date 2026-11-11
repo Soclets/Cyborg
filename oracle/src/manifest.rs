@@ -18,7 +18,7 @@ pub struct Manifest {
 }
 
 /// The packages the oracle has. Any other is found some way that isn't designed.
-const KNOWN_PACKAGES: &[&str] = &["std", "csup"];
+const KNOWN_PACKAGES: &[&str] = &["std", "csup", "os"];
 
 const WHY_LINES: &str =
     "a manifest has one line per fact, starting with what it is: `name`, `ver`, `okay` or `need` (D228, D229)";

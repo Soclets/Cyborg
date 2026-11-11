@@ -1,8 +1,9 @@
 // trace: D161, D95
 import std;
+import os;
 
-fn.pure p [$x: f64.stable] -> f64.stable:
-    std::io::fmt_print.stored("{}{newln}", $x);
+fn.pure p [$out: os::stdout.unbuffered, $x: f64.stable] -> f64.stable:
+    std::io::fmt_print.stored(Lend.mut $out, "{}{newln}", $x);
     return $x;
 end fn.pure p
 

@@ -1,6 +1,7 @@
 // The owner's sketch, from design/sketch.md.
 // trace: D2, D4, D11, D13, D115
 import std;
+import os;
 
 fn total [$xs: std::list<i32>[len.max: inf items]] -> i32:
     let mut $sum: i32 = 0;
@@ -11,15 +12,16 @@ fn total [$xs: std::list<i32>[len.max: inf items]] -> i32:
 end fn total
 
 fn.main [none] -> void:
+    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     let mut $xs: std::list<i32>[len.max: inf items] = empty;
     $xs.std::%%append(val: 4);
     $xs.std::%%append(val: 6);
     $xs.std::%%append(val: 5);
 
     let $t: i32 = total(Lend $xs);
-    std::io::fmt_print("count: {}{newln}", $xs.len);
+    std::io::fmt_print(Lend.mut $out, "count: {}{newln}", $xs.len);
     if $t at_least 10:
-        std::io::fmt_print("big total: {}{newln}", $t);
+        std::io::fmt_print(Lend.mut $out, "big total: {}{newln}", $t);
     end if
     return void;
 end fn.main

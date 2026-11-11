@@ -1,8 +1,10 @@
 // Every program has a manifest, hello world included.
 // trace: D183, D229
 import std;
+import os;
 
 fn.main [none] -> void:
-    std::io::fmt_print("hi{newln}");
+    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
+    std::io::fmt_print(Lend.mut $out, "hi{newln}");
     return void;
 end fn.main

@@ -1,5 +1,5 @@
-refused: d46_unknown_handler.cy:5:47, line 5 column 47
- 5 |     std::io::fmt_print("hi{newln}") otherwise say_failed.log;
-   |                                               ^^^^^^^^^^^^^^
+refused: d46_unknown_handler.cy:7:62, line 7 column 62
+ 7 |     std::io::fmt_print(Lend.mut $out, "hi{newln}") otherwise say_failed.log;
+   |                                                              ^^^^^^^^^^^^^^
  what: there's no handler `say_failed.log`
  why:  a handler narrowing is a named set of `otherwise` arms (D46)

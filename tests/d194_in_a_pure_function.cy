@@ -1,8 +1,9 @@
 // trace: D194, D86
 import std;
+import os;
 
-fn.pure f [none] -> i32:
-    std::io::fmt_print("hi{newln}");
+fn.pure f [$out: os::stdout.unbuffered] -> i32:
+    std::io::fmt_print(Lend.mut $out, "hi{newln}");
     return 1;
 end fn.pure f
 

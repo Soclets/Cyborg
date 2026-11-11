@@ -1,9 +1,9 @@
-refused: d185_reading_the_moved_field.cy:22:37, line 22 column 37
-22 |     std::io::fmt_print("{}{newln}", $l.file.fd);
-   |                                     ^^
+refused: d185_reading_the_moved_field.cy:25:52, line 25 column 52
+25 |     std::io::fmt_print(Lend.mut $out, "{}{newln}", $l.file.fd);
+   |                                                    ^^
  what: a field of `$l` was moved out, so all that's left is moving out another, or `finish`
  why:  after a field is moved out, the value is incomplete (D185)
- because: d185_reading_the_moved_field.cy:21:5, line 21 column 5
-21 |     close(Give $l.file);
+ because: d185_reading_the_moved_field.cy:24:5, line 24 column 5
+24 |     close(Give $l.file);
    |     ^^^^^^^^^^^^^^^^^^^
      it was moved out here

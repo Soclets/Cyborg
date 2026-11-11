@@ -1,5 +1,5 @@
-refused: d177_struct_must_say_it.cy:19:11, line 19 column 11
-19 |     file: open_file;
+refused: d177_struct_must_say_it.cy:21:11, line 21 column 11
+21 |     file: open_file;
    |           ^^^^^^^^^
  fix:  `struct.must_Give log`
  why:  a struct holding a `must_Give` value is `must_Give` itself, and nothing is implicit (D177, D3)

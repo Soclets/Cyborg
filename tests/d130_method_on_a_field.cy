@@ -1,5 +1,6 @@
 // trace: D130, D125
 import std;
+import os;
 
 struct inner:
     n: i32;
@@ -15,8 +16,9 @@ fn inner.%%bump [$i: Lent.mut inner] -> void:
 end fn inner.%%bump
 
 fn.main [none] -> void:
+    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     let mut $o: outer = outer[a = inner[n = 1]];
     $o.a.%%bump();
-    std::io::fmt_print("{}{newln}", $o.a.n);
+    std::io::fmt_print(Lend.mut $out, "{}{newln}", $o.a.n);
     return void;
 end fn.main

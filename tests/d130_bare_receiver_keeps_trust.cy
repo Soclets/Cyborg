@@ -1,5 +1,6 @@
 // trace: D130, D9
 import std;
+import os;
 
 union.tagged status:
     ok;
@@ -11,10 +12,11 @@ fn status.%label [$s: status] -> str:
 end fn status.%label
 
 fn.main [none] -> void:
+    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     let $s: status = status.failed[code = 3];
     if $s: status.failed:
-        std::io::fmt_print("{}{newln}", $s.%label());
-        std::io::fmt_print("{}{newln}", $s.code);
+        std::io::fmt_print(Lend.mut $out, "{}{newln}", $s.%label());
+        std::io::fmt_print(Lend.mut $out, "{}{newln}", $s.code);
     end if
     return void;
 end fn.main

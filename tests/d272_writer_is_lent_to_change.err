@@ -1,0 +1,5 @@
+refused: d272_writer_is_lent_to_change.cy:8:24, line 8 column 24
+ 8 |     std::io::fmt_print($out, "hi{newln}");
+   |                        ^^^^
+ fix:  `Lend.mut $out`
+ why:  every hand-off shows on the page (D3)

@@ -1,6 +1,7 @@
 // One file is one package, so `pub` changes nothing it can see.
 // trace: D200
 import std;
+import os;
 
 pub const $max: i32 = 100;
 
@@ -17,6 +18,7 @@ pub fn.pure area [$w: i32, $h: i32] -> i32:
 end fn.pure area
 
 fn.main [none] -> void:
-    std::io::fmt_print("{} {}{newln}", total(1, 2), area(2, 3));
+    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
+    std::io::fmt_print(Lend.mut $out, "{} {}{newln}", total(1, 2), area(2, 3));
     return void;
 end fn.main

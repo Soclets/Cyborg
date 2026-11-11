@@ -1,5 +1,5 @@
-NotDesignedYet: d177_returned_value_thrown_away.cy:19:5, line 19 column 5
-19 |     open(3);
+NotDesignedYet: d177_returned_value_thrown_away.cy:21:5, line 21 column 5
+21 |     open(3);
    |     ^^^^^^^
  what: dropping a value of `open_file` by not using it
  why:  not decided yet, and the standard doesn't say

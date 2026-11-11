@@ -1,5 +1,5 @@
 NotDesignedYet: d198_one_narrowing.cy:2:26, line 2 column 26
- 2 | import std::io::fmt_print.stderr;
+ 2 | import std::io::fmt_print.stored;
    |                          ^
  what: importing one narrowing, since importing a thing brings all of them
  why:  not decided yet (standard 12.2)

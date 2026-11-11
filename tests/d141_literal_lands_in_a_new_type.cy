@@ -1,5 +1,6 @@
 // trace: D141, D134
 import std;
+import os;
 
 type.new user_id = i64;
 type.new label = str;
@@ -20,17 +21,18 @@ fn same [$u: user_id] -> user_id:
 end fn same
 
 fn.main [none] -> void:
+    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     let $u: user_id = 5;
     let $l: label = "x";
     let $f: flag = true;
     let $r: row = [1, 2];
     let $i: ids.user = 9;
     let $back: i64 = first_user() as i64;
-    std::io::fmt_print("{}{newln}", $back);
+    std::io::fmt_print(Lend.mut $out, "{}{newln}", $back);
     let $again: i64 = same(7) as i64;
-    std::io::fmt_print("{}{newln}", $again);
+    std::io::fmt_print(Lend.mut $out, "{}{newln}", $again);
     let $whole: i64 = $i as i64;
-    std::io::fmt_print("{}{newln}", $whole);
-    std::io::fmt_print("all built{newln}");
+    std::io::fmt_print(Lend.mut $out, "{}{newln}", $whole);
+    std::io::fmt_print(Lend.mut $out, "all built{newln}");
     return void;
 end fn.main

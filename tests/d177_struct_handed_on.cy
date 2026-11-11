@@ -1,13 +1,15 @@
 // It can be handed on, and as with any `struct.must_Give`, nothing can end its duty yet.
 // trace: D177, D2
 import std;
+import os;
 
 struct.must_Give open_file:
     fd: i32;
 end struct.must_Give open_file
 
 fn close [$f: Given open_file] -> void:
-    std::io::fmt_print("closing {}{newln}", $f.fd);
+    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
+    std::io::fmt_print(Lend.mut $out, "closing {}{newln}", $f.fd);
     finish $f;
     return void;
 end fn close
@@ -25,8 +27,9 @@ fn keep [$l: Given log] -> log:
 end fn keep
 
 fn.main [none] -> void:
+    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     let $l: log = keep(log[file = open(3)]);
     let $m: log = Give $l;
-    std::io::fmt_print("{}{newln}", $m.file.fd);
+    std::io::fmt_print(Lend.mut $out, "{}{newln}", $m.file.fd);
     return void;
 end fn.main

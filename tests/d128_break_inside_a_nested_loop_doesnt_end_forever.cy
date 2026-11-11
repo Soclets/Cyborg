@@ -1,6 +1,7 @@
 // That `break` stops the `for`, so the `forever` around it still has no way out.
 // trace: D128, D11
 import std;
+import os;
 
 fn f [none] -> i32:
     forever:
@@ -12,6 +13,7 @@ fn f [none] -> i32:
 end fn f
 
 fn.main [none] -> void:
-    std::io::fmt_print("{}{newln}", f());
+    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
+    std::io::fmt_print(Lend.mut $out, "{}{newln}", f());
     return void;
 end fn.main

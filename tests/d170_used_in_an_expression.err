@@ -1,5 +1,5 @@
-NotDesignedYet: d170_used_in_an_expression.cy:18:37, line 18 column 37
-18 |     std::io::fmt_print("{}{newln}", warmer(Lend $x, Lend $y).celsius);
-   |                                     ^^^^^^^^^^^^^^^^^^^^^^^^
+NotDesignedYet: d170_used_in_an_expression.cy:20:52, line 20 column 52
+20 |     std::io::fmt_print(Lend.mut $out, "{}{newln}", warmer(Lend $x, Lend $y).celsius);
+   |                                                    ^^^^^^^^^^^^^^^^^^^^^^^^
  what: using a returned borrow anywhere but in a stored borrow or a `return`
  why:  not decided yet, and the standard doesn't say

@@ -1,6 +1,7 @@
 // A struct defines `+`, `x` and a `div` narrowing for itself, keeping their usual precedence.
 // trace: D236, D237, D116
 import std;
+import os;
 
 struct money:
     cents: i64;
@@ -19,11 +20,12 @@ op div.floor [$a: money, $b: i64] -> money:
 end op div.floor
 
 fn.main [none] -> void:
+    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     let $price: money = money[cents = 250];
     let $fee: money = money[cents = 30];
     let $count: i64 = 3;
     let $total: money = $price + $fee x $count;
     let $half: money = $total div.floor 2;
-    std::io::fmt_print("{} {}{newln}", $total.cents, $half.cents);
+    std::io::fmt_print(Lend.mut $out, "{} {}{newln}", $total.cents, $half.cents);
     return void;
 end fn.main

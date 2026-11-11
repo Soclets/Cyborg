@@ -1,6 +1,7 @@
 // The standard's `shown`: a parameter names the borrow inside it with the function's own source.
 // trace: D171
 import std;
+import os;
 
 struct reading:
     celsius: i32;
@@ -15,8 +16,9 @@ fn shown <`t`> [$v: view<`text`: `t`>] -> i32:
 end fn shown
 
 fn.main [none] -> void:
+    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     let $a: reading = reading[celsius = 9];
     let $v: view<`text`: $a> = view[words = Lend $a];
-    std::io::fmt_print("{}{newln}", shown(Lend $v));
+    std::io::fmt_print(Lend.mut $out, "{}{newln}", shown(Lend $v));
     return void;
 end fn.main

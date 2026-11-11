@@ -1,12 +1,14 @@
 // Lists built up and read back, with bounds and recursion standing in for what isn't decided yet.
 // trace: D2, D4, D13, D20, D96, D115, D120
 import std;
+import os;
 
 fn.main [none] -> void:
+    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     let mut $xs: std::list<i32>[len.max: 8 items] = empty;
     fill(Lend.mut $xs, 5);
-    std::io::fmt_print("sum {}{newln}", sum(Lend $xs));
-    std::io::fmt_print("largest {}{newln}", largest(Lend $xs));
+    std::io::fmt_print(Lend.mut $out, "sum {}{newln}", sum(Lend $xs));
+    std::io::fmt_print(Lend.mut $out, "largest {}{newln}", largest(Lend $xs));
     let mut $evens: std::list<i32>[len.max: 8 items] = empty;
     keep_even(Lend $xs, Lend.mut $evens);
     print_all(Lend $evens);
@@ -52,8 +54,9 @@ fn keep_even [$xs: std::list<i32>[len.max: 8 items], $out: Lent.mut std::list<i3
 end fn keep_even
 
 fn print_all [$xs: std::list<i32>[len.max: 8 items]] -> void:
+    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     for $x in $xs:
-        std::io::fmt_print("{}{newln}", $x);
+        std::io::fmt_print(Lend.mut $out, "{}{newln}", $x);
     end for
     return void;
 end fn print_all

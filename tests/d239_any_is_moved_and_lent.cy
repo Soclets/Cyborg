@@ -1,6 +1,7 @@
 // An `any` parameter can be stored, moved, copied and lent, and nothing more.
 // trace: D239
 import std;
+import os;
 
 interface ordered<?self>:
     op < [$a: ?self, $b: ?self] -> bool;
@@ -25,9 +26,10 @@ fn keep<?item: any.type> [$a: Given ?item] -> ?item:
 end fn keep
 
 fn.main [none] -> void:
+    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     let $text: str = "kept";
     let $k: str = keep(Give $text);
     let $b: box<i32> = box[held = 5];
-    std::io::fmt_print("{} {}{newln}", $k, $b.held);
+    std::io::fmt_print(Lend.mut $out, "{} {}{newln}", $k, $b.held);
     return void;
 end fn.main

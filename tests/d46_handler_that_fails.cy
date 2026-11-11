@@ -2,6 +2,7 @@
 // `continue` as what needs a `*`. Reported to the design session.
 // trace: D46, D52
 import std;
+import os;
 
 fam.handler say_failed:
     say_failed.up:
@@ -11,7 +12,8 @@ fam.handler say_failed:
 end fam.handler say_failed
 
 fn say [none] -> void fails [lost]:
-    std::io::fmt_print("hi{newln}") otherwise say_failed.up;
+    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
+    std::io::fmt_print(Lend.mut $out, "hi{newln}") otherwise say_failed.up;
     return void;
 end fn say
 

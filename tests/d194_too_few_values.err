@@ -1,5 +1,5 @@
-refused: d194_too_few_values.cy:5:24, line 5 column 24
- 5 |     std::io::fmt_print("{} {}{newln}", 1);
-   |                        ^^^^^^^^^^^^^^
+refused: d194_too_few_values.cy:7:39, line 7 column 39
+ 7 |     std::io::fmt_print(Lend.mut $out, "{} {}{newln}", 1);
+   |                                       ^^^^^^^^^^^^^^
  what: this format takes 2 values, and it's given 1
  why:  a literal format is checked when building, including how many values it takes (D194)

@@ -1,8 +1,10 @@
 // The lines after `clobbers:` are raw assembly, so `#` and `[ ]` mean nothing to Cyborg there.
 // trace: D233
 import std;
+import os;
 
 fn.main [none] -> void:
+    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     let $a: i64 = 6;
     let $b: i64 = 7;
     let $c: i64 = 8;
@@ -22,6 +24,6 @@ fn.main [none] -> void:
     else:
         let $r: i64 = $a + $b;
     end on.target
-    std::io::fmt_print("{}{newln}", $r);
+    std::io::fmt_print(Lend.mut $out, "{}{newln}", $r);
     return void;
 end fn.main

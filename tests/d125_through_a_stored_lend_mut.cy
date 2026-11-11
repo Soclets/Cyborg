@@ -1,13 +1,15 @@
 // `Lend.mut` may change the value, so its field can change too. Reported as a reading.
 // trace: D125, D2
 import std;
+import os;
 
 struct box:
     n: i32;
 end struct box
 
 fn show [$b: box] -> void:
-    std::io::fmt_print("{}{newln}", $b.n);
+    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
+    std::io::fmt_print(Lend.mut $out, "{}{newln}", $b.n);
     return void;
 end fn show
 

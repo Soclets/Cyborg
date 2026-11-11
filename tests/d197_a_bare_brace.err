@@ -1,5 +1,5 @@
-refused: d197_a_bare_brace.cy:5:25, line 5 column 25
- 5 |     std::io::fmt_print("{");
-   |                         ^
+refused: d197_a_bare_brace.cy:7:40, line 7 column 40
+ 7 |     std::io::fmt_print(Lend.mut $out, "{");
+   |                                        ^
  fix:  `\{`
  why:  `fmt_` says `{` starts a hole, so a brace in the text is `\{` (D197)

@@ -1,5 +1,6 @@
 // trace: D130, D44, D96
 import std;
+import os;
 
 struct box:
     n: i32;
@@ -13,11 +14,12 @@ fn box.%half [$b: box] -> i32 fails [odd]:
 end fn box.%half
 
 fn.main [none] -> void:
+    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     let $even: box = box[n = 4];
     let $odd: box = box[n = 3];
-    std::io::fmt_print("{}{newln}", $even.%half());
-    std::io::fmt_print("{}{newln}", ($odd.%half() ?? -1));
+    std::io::fmt_print(Lend.mut $out, "{}{newln}", $even.%half());
+    std::io::fmt_print(Lend.mut $out, "{}{newln}", ($odd.%half() ?? -1));
     let $c: i32 = $odd.%half();
-    std::io::fmt_print("not reached{newln}");
+    std::io::fmt_print(Lend.mut $out, "not reached{newln}");
     return void;
 end fn.main

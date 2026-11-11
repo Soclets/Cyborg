@@ -1,5 +1,5 @@
-refused: d194_a_shape_twice.cy:5:25, line 5 column 25
- 5 |     std::io::fmt_print("{places: 2, places: 3}{newln}", 1.5);
-   |                         ^^^^^^^^^^^^^^^^^^^^^^
+refused: d194_a_shape_twice.cy:7:40, line 7 column 40
+ 7 |     std::io::fmt_print(Lend.mut $out, "{places: 2, places: 3}{newln}", 1.5);
+   |                                        ^^^^^^^^^^^^^^^^^^^^^^
  what: `places:` is written twice in this hole
  why:  each shape is written once (D194)

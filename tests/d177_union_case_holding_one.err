@@ -1,5 +1,5 @@
-NotDesignedYet: d177_union_case_holding_one.cy:20:16, line 20 column 16
-20 |     some[file: open_file];
+NotDesignedYet: d177_union_case_holding_one.cy:22:16, line 22 column 16
+22 |     some[file: open_file];
    |                ^^^^^^^^^
  what: a `must_Give` value in a `union.tagged` case
  why:  not decided yet (standard 12.8)

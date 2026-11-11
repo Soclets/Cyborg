@@ -1,6 +1,7 @@
 // Nothing runs past a `forever` with no `break`, so this needs no `return` after it.
 // trace: D128, D11
 import std;
+import os;
 
 fn first_over [$limit: i32] -> i32:
     let mut $n: i32 = 0;
@@ -13,6 +14,7 @@ fn first_over [$limit: i32] -> i32:
 end fn first_over
 
 fn.main [none] -> void:
-    std::io::fmt_print("{}{newln}", first_over(10));
+    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
+    std::io::fmt_print(Lend.mut $out, "{}{newln}", first_over(10));
     return void;
 end fn.main

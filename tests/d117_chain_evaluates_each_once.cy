@@ -1,14 +1,17 @@
 // trace: D117, D124
 import std;
+import os;
 
 fn say [$n: i32] -> i32:
-    std::io::fmt_print("evaluated {}{newln}", $n);
+    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
+    std::io::fmt_print(Lend.mut $out, "evaluated {}{newln}", $n);
     return $n;
 end fn say
 
 fn.main [none] -> void:
+    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     if say(1) < say(2) < say(3):
-        std::io::fmt_print("in order{newln}");
+        std::io::fmt_print(Lend.mut $out, "in order{newln}");
     end if
     return void;
 end fn.main

@@ -1,15 +1,15 @@
-refused: d185_moving_a_number_field.cy:22:19, line 22 column 19
-22 |     let $n: i32 = Give $l.lines;
+refused: d185_moving_a_number_field.cy:24:19, line 24 column 19
+24 |     let $n: i32 = Give $l.lines;
    |                   ^^^^^^^^^^^^^
  fix:  `$l.lines`
  why:  plain numbers and `bool` are always copied, and take no word (D2, D123)
 
-refused: d185_moving_a_number_field.cy:23:5, line 23 column 5
-23 |     return void;
+refused: d185_moving_a_number_field.cy:25:5, line 25 column 5
+25 |     return void;
    |     ^^^^^^^^^^^^
  what: this leaves with `$l` never given away or finished
  why:  a `must_Give` value is handed off with `Give` exactly once, or `finish` ends it (D2, D129)
- because: d185_moving_a_number_field.cy:21:9, line 21 column 9
-21 |     let $l: log = log[file = open_file[fd = 4], lines = 7];
+ because: d185_moving_a_number_field.cy:23:9, line 23 column 9
+23 |     let $l: log = log[file = open_file[fd = 4], lines = 7];
    |         ^^
      `$l` was made here

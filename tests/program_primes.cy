@@ -1,6 +1,7 @@
 // A real program, now that loops exist: primes by trial division.
 // trace: D126, D127, D128
 import std;
+import os;
 
 fn is_prime [$n: i32] -> bool:
     if $n < 2:
@@ -17,6 +18,7 @@ fn is_prime [$n: i32] -> bool:
 end fn is_prime
 
 fn.main [none] -> void:
+    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     let mut $found: std::list<i32>[len.max: 8 items] = empty;
     for $n in range[from: 1, to: 30]:
         if is_prime($n):
@@ -24,8 +26,8 @@ fn.main [none] -> void:
         end if
     end for
     for $p in $found:
-        std::io::fmt_print("{}{newln}", $p);
+        std::io::fmt_print(Lend.mut $out, "{}{newln}", $p);
     end for
-    std::io::fmt_print("kept {}{newln}", $found.len);
+    std::io::fmt_print(Lend.mut $out, "kept {}{newln}", $found.len);
     return void;
 end fn.main

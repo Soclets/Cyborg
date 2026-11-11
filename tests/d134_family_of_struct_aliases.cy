@@ -1,5 +1,6 @@
 // trace: D134, D57
 import std;
+import os;
 
 struct point:
     x: i32;
@@ -10,7 +11,8 @@ fam.type.alias shapes:
 end fam.type.alias shapes
 
 fn.main [none] -> void:
+    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     let $d: shapes.dot = shapes.dot[x = 4];
-    std::io::fmt_print("{}{newln}", $d.x);
+    std::io::fmt_print(Lend.mut $out, "{}{newln}", $d.x);
     return void;
 end fn.main

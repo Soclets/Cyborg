@@ -1,13 +1,15 @@
 // Stopping early would leave the items not reached yet with nobody to give them.
 // trace: D180, D2, D128
 import std;
+import os;
 
 struct.must_Give open_file:
     fd: i32;
 end struct.must_Give open_file
 
 fn close [$f: Given open_file] -> void:
-    std::io::fmt_print("closing {}{newln}", $f.fd);
+    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
+    std::io::fmt_print(Lend.mut $out, "closing {}{newln}", $f.fd);
     finish $f;
     return void;
 end fn close

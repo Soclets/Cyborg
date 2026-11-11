@@ -1,9 +1,9 @@
-refused: d177_struct_handed_on.cy:31:5, line 31 column 5
-31 |     return void;
+refused: d177_struct_handed_on.cy:34:5, line 34 column 5
+34 |     return void;
    |     ^^^^^^^^^^^^
  what: this leaves with `$m` never given away or finished
  why:  a `must_Give` value is handed off with `Give` exactly once, or `finish` ends it (D2, D129)
- because: d177_struct_handed_on.cy:29:9, line 29 column 9
-29 |     let $m: log = Give $l;
+ because: d177_struct_handed_on.cy:32:9, line 32 column 9
+32 |     let $m: log = Give $l;
    |         ^^
      `$m` was made here

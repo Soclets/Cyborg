@@ -1,5 +1,6 @@
 // trace: D144, D114
 import std;
+import os;
 
 fam.unit screen:
     screen.pixels: base;
@@ -8,8 +9,9 @@ end fam.unit screen
 fn draw [$x: i32[unit: screen.pixels]] -> void:
     labels [$x as at.screen.pixels];
     defaults [$x = 3];
+    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
 
-    std::io::fmt_print("{}{newln}", ($x as i32));
+    std::io::fmt_print(Lend.mut $out, "{}{newln}", ($x as i32));
     return void;
 end fn draw
 

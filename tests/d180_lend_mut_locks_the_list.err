@@ -1,5 +1,5 @@
-refused: d180_lend_mut_locks_the_list.cy:7:41, line 7 column 41
- 7 |         std::io::fmt_print("{}{newln}", $xs.len);
-   |                                         ^^^
+refused: d180_lend_mut_locks_the_list.cy:9:56, line 9 column 56
+ 9 |         std::io::fmt_print(Lend.mut $out, "{}{newln}", $xs.len);
+   |                                                        ^^^
  what: a `for` is changing `$xs` through its items here
  why:  `Lend.mut` means nothing else uses it meanwhile, and the `for` is using it (D2, D180)

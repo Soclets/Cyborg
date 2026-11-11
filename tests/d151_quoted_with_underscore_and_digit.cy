@@ -1,9 +1,11 @@
 // trace: D151
 import std;
+import os;
 
 use std::io::fmt_print as "say_2";
 
 fn.main [none] -> void:
-    say_2("hi{newln}");
+    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
+    say_2(Lend.mut $out, "hi{newln}");
     return void;
 end fn.main

@@ -1,5 +1,5 @@
-check failed: d164_ieee_by_zero_is_allowed.cy:9:30, line 9 column 30
- 9 |     let $clean: f64.stable = $nan as f64.stable;
+check failed: d164_ieee_by_zero_is_allowed.cy:11:30, line 11 column 30
+11 |     let $clean: f64.stable = $nan as f64.stable;
    |                              ^^^^^^^^^^^^^^^^^^
  what: this is NaN, so it can't become `f64.stable`
  why:  `as` out of `f64.ieee` is a real conversion, and it fails on NaN or infinity (D159)

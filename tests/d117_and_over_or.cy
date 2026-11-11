@@ -1,5 +1,6 @@
 // trace: D117, D49
 import std;
+import os;
 
 fn.pure yes [none] -> bool:
     return 1 < 2;
@@ -10,11 +11,12 @@ fn.pure no [none] -> bool:
 end fn.pure no
 
 fn.main [none] -> void:
+    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     if yes() or no() and no():
-        std::io::fmt_print("and binds tighter{newln}");
+        std::io::fmt_print(Lend.mut $out, "and binds tighter{newln}");
     end if
     if not no() and yes():
-        std::io::fmt_print("not binds tighter{newln}");
+        std::io::fmt_print(Lend.mut $out, "not binds tighter{newln}");
     end if
     return void;
 end fn.main

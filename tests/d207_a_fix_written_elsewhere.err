@@ -1,27 +1,27 @@
-refused: d207_a_fix_written_elsewhere.cy:4:5, line 4 column 5
- 4 |     std::io::fmt_print("hi{newln}");
+refused: d207_a_fix_written_elsewhere.cy:6:5, line 6 column 5
+ 6 |     std::io::fmt_print(Lend.mut $out, "hi{newln}");
    |     ^^^^^^^^^^^^^^^^^^
  fix:  `import std;`
  why:  everything gets imported, including `std` (D82)
 
-refused: d207_a_fix_written_elsewhere.cy:5:26, line 5 column 26
- 5 |     let $a: f64.stable = 0.1;
+refused: d207_a_fix_written_elsewhere.cy:7:26, line 7 column 26
+ 7 |     let $a: f64.stable = 0.1;
    |                          ^^^
  fix:  `~0.1`
  why:  f64 can't hold 0.1 exactly (D59)
 
-refused: d207_a_fix_written_elsewhere.cy:6:26, line 6 column 26
- 6 |     let $b: f64.stable = $a;
+refused: d207_a_fix_written_elsewhere.cy:8:26, line 8 column 26
+ 8 |     let $b: f64.stable = $a;
    |                          ^^
  what: `$a` never got a value
  why:  a variable is read only after it has one (D203)
- because: d207_a_fix_written_elsewhere.cy:5:26, line 5 column 26
- 5 |     let $a: f64.stable = 0.1;
+ because: d207_a_fix_written_elsewhere.cy:7:26, line 7 column 26
+ 7 |     let $a: f64.stable = 0.1;
    |                          ^^^
      with `~0.1` here, this error goes away
 
-refused: d207_a_fix_written_elsewhere.cy:8:19, line 8 column 19
- 8 |     let $d: i64 = $c;
+refused: d207_a_fix_written_elsewhere.cy:10:19, line 10 column 19
+10 |     let $d: i64 = $c;
    |                   ^^
  what: this is `i32`, where `i64` is needed
  why:  `:` doesn't convert, and `as` builds a new value of another type (D7)

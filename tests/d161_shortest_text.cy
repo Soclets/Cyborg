@@ -1,8 +1,10 @@
 // trace: D161
 import std;
+import os;
 
 fn show [$x: f64.stable] -> void:
-    std::io::fmt_print("{}{newln}", $x);
+    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
+    std::io::fmt_print(Lend.mut $out, "{}{newln}", $x);
     return void;
 end fn show
 

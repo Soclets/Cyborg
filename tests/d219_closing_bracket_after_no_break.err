@@ -1,5 +1,5 @@
-refused: d219_closing_bracket_after_no_break.cy:7:9, line 7 column 9
- 7 |         2
+refused: d219_closing_bracket_after_no_break.cy:9:9, line 9 column 9
+ 9 |         2
    |         ^
  fix:  `2)`
  why:  a line breaks only after a comma, an opening bracket or a binary operator, so it visibly isn't finished (D219)

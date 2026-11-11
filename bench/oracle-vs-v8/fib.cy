@@ -1,4 +1,5 @@
 import std;
+import os;
 use std::io::fmt_print as fmt_print;
 
 fn fib [$n: i64] -> i64:
@@ -9,7 +10,9 @@ fn fib [$n: i64] -> i64:
 end fn fib
 
 fn.main [none] -> void:
+    let mut $out: os::stdout.buffered = os::stdout.buffered(size: 1024 bytes);
     let $r: i64 = fib(35);
-    fmt_print("{$r}{newln}");
+    fmt_print(Lend.mut $out, "{$r}{newln}");
+    os::done(Give $out);
     return void;
 end fn.main

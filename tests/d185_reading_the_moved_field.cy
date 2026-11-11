@@ -1,12 +1,14 @@
 // trace: D185
 import std;
+import os;
 
 struct.must_Give open_file:
     fd: i32;
 end struct.must_Give open_file
 
 fn close [$f: Given open_file] -> void:
-    std::io::fmt_print("closing {}{newln}", $f.fd);
+    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
+    std::io::fmt_print(Lend.mut $out, "closing {}{newln}", $f.fd);
     finish $f;
     return void;
 end fn close
@@ -17,9 +19,10 @@ struct.must_Give log:
 end struct.must_Give log
 
 fn.main [none] -> void:
+    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     let $l: log = log[file = open_file[fd = 4], lines = 1];
     close(Give $l.file);
-    std::io::fmt_print("{}{newln}", $l.file.fd);
+    std::io::fmt_print(Lend.mut $out, "{}{newln}", $l.file.fd);
     finish $l;
     return void;
 end fn.main

@@ -1,15 +1,17 @@
 // A handler narrowing is used at a call as if written there.
 // trace: D46
 import std;
+import os;
 
 fam.handler say_failed:
     say_failed.log:
         case print_failed:
-            std::io::fmt_print("nope{newln}") ?? void;
+            std::io::fmt_print(Lend.mut $out, "nope{newln}") ?? void;
     end say_failed.log
 end fam.handler say_failed
 
 fn.main [none] -> void:
-    std::io::fmt_print("hi{newln}") otherwise say_failed.log;
+    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
+    std::io::fmt_print(Lend.mut $out, "hi{newln}") otherwise say_failed.log;
     return void;
 end fn.main

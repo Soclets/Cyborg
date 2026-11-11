@@ -1,6 +1,7 @@
 // `=` can point at a unit in any family.
 // trace: D109
 import std;
+import os;
 
 fam.unit money:
     money.cents: base;
@@ -12,7 +13,8 @@ fam.unit cash:
 end fam.unit cash
 
 fn.main [none] -> void:
+    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     let $a: i32[unit: cash.dollars] = 2 cash.dollars;
-    std::io::fmt_print("{}{newln}", $a);
+    std::io::fmt_print(Lend.mut $out, "{}{newln}", $a);
     return void;
 end fn.main

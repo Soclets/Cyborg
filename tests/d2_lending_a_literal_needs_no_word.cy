@@ -1,13 +1,16 @@
 // trace: D2
 import std;
+import os;
 
 fn f [$s: str] -> void:
-    std::io::fmt_print("{}{newln}", $s);
+    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
+    std::io::fmt_print(Lend.mut $out, "{}{newln}", $s);
     return void;
 end fn f
 
 fn g [$s: Given str] -> void:
-    std::io::fmt_print("{}{newln}", $s);
+    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
+    std::io::fmt_print(Lend.mut $out, "{}{newln}", $s);
     return void;
 end fn g
 

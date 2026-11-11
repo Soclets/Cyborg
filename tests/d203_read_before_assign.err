@@ -1,9 +1,9 @@
-refused: d203_read_before_assign.cy:6:5, line 6 column 5
- 6 |     std::io::fmt_print("{}{newln}", $x);
-   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+refused: d203_read_before_assign.cy:8:5, line 8 column 5
+ 8 |     std::io::fmt_print(Lend.mut $out, "{}{newln}", $x);
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
  what: `$x` has no value yet
  why:  every path has to `assign` a `decl` before reading it (D203)
- because: d203_read_before_assign.cy:5:10, line 5 column 10
- 5 |     decl $x: i32;
+ because: d203_read_before_assign.cy:7:10, line 7 column 10
+ 7 |     decl $x: i32;
    |          ^^
      `$x` is declared here

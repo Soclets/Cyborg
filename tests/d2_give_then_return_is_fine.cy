@@ -1,6 +1,7 @@
 // Giving inside a block that leaves doesn't touch the path that carries on.
 // trace: D2
 import std;
+import os;
 
 struct box:
     n: i32;
@@ -18,7 +19,8 @@ fn pick [$b: Given box, $early: bool] -> i32:
 end fn pick
 
 fn.main [none] -> void:
-    std::io::fmt_print("{}{newln}", pick(box[n = 1], 1 < 2));
-    std::io::fmt_print("{}{newln}", pick(box[n = 1], 2 < 1));
+    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
+    std::io::fmt_print(Lend.mut $out, "{}{newln}", pick(box[n = 1], 1 < 2));
+    std::io::fmt_print(Lend.mut $out, "{}{newln}", pick(box[n = 1], 2 < 1));
     return void;
 end fn.main

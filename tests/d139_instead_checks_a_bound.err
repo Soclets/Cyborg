@@ -1,5 +1,5 @@
-check failed: d139_instead_checks_a_bound.cy:13:21, line 13 column 21
-13 |             instead $big;
+check failed: d139_instead_checks_a_bound.cy:15:21, line 15 column 21
+15 |             instead $big;
    |                     ^^^^
  what: `$big` doesn't fit `i32[min: 0, max: 9]`
  why:  a plain `=`, `change` or argument checks a bound when the compiler can't see it fits (D20)

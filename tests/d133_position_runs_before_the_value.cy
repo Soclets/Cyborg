@@ -1,9 +1,11 @@
 // Left to right as written, which is the guess in the queue.
 // trace: D133
 import std;
+import os;
 
 fn say [$n: i32] -> i32:
-    std::io::fmt_print("say {}{newln}", $n);
+    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
+    std::io::fmt_print(Lend.mut $out, "say {}{newln}", $n);
     return $n;
 end fn say
 

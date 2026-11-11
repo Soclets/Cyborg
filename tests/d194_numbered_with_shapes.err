@@ -1,5 +1,5 @@
-NotDesignedYet: d194_numbered_with_shapes.cy:5:25, line 5 column 25
- 5 |     std::io::fmt_print("{1, places: 2}{newln}", 1.5);
-   |                         ^^^^^^^^^^^^^^
+NotDesignedYet: d194_numbered_with_shapes.cy:7:40, line 7 column 40
+ 7 |     std::io::fmt_print(Lend.mut $out, "{1, places: 2}{newln}", 1.5);
+   |                                        ^^^^^^^^^^^^^^
  what: shapes on a numbered hole, and how they're written
  why:  not decided yet (standard 12.2)

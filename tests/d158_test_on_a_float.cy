@@ -1,11 +1,13 @@
 // trace: D158, D20
 import std;
+import os;
 
 fn pick [$x: f64.stable] -> void:
+    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     if $x: f64.stable[min: 100.0, max: 200.0]:
-        std::io::fmt_print("inside{newln}");
+        std::io::fmt_print(Lend.mut $out, "inside{newln}");
     else:
-        std::io::fmt_print("outside{newln}");
+        std::io::fmt_print(Lend.mut $out, "outside{newln}");
     end if
     return void;
 end fn pick

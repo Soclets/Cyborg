@@ -1,9 +1,9 @@
-check failed: d44_question_passes_it_up.cy:19:19, line 19 column 19
-19 |     let $b: i32 = outer(3);
+check failed: d44_question_passes_it_up.cy:21:19, line 21 column 19
+21 |     let $b: i32 = outer(3);
    |                   ^^^^^^^^
  what: `odd` failed, and nothing handled it
  why:  a failure nothing handles stops the program (D96)
- because: d44_question_passes_it_up.cy:6:9, line 6 column 9
- 6 |         fail odd;
+ because: d44_question_passes_it_up.cy:7:9, line 7 column 9
+ 7 |         fail odd;
    |         ^^^^^^^^^
      it was raised here

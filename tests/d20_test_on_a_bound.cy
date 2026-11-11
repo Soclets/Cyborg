@@ -1,9 +1,11 @@
 // The test is how to handle a bad value yourself.
 // trace: D20, D9
 import std;
+import os;
 
 fn use_score [$s: i32[min: 0, max: 100]] -> void:
-    std::io::fmt_print("score {}{newln}", $s);
+    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
+    std::io::fmt_print(Lend.mut $out, "score {}{newln}", $s);
     return void;
 end fn use_score
 
