@@ -547,6 +547,14 @@ end for
 
 With `.leftovers`, the `leftovers` section runs once for each leftover item, after every chunk, and doesn't run when there are none. The loop isn't complete without it. `break` stops the whole loop, leftovers included.
 
+`simd_chunks` only reads: its chunks are copies, and changing one is refused. `.%%simd_chunks_mut` writes each chunk back into the list or array at the end of its round, which is locked for the whole loop. Padding lanes are dropped when writing back, and a changed leftover item is written back too.
+
+```
+for $chunk in $pixels.%%simd_chunks_mut.exact(lanes: 16):
+    change $chunk = $chunk plus.saturate 20;
+end for
+```
+
 Comparisons work lane by lane: `==`, `!=`, `below`, `above`, `at_least` and `at_most` on two `simd` values give a `simd<bool>` of the same count. "Every lane" and "any lane" are written out, so the code chooses.
 
 ```
@@ -566,6 +574,6 @@ let $big: simd<i32>[lanes: 4] = $m.%pick(if_true: $a, if_false: $b);
 
 `$big` holds `[5, 8, 5, 6]`. Both sides are worked out in full, for every lane, before picking, and every lane is checked, so `$m.%pick(if_true: $x div.trunc $y, if_false: 0)` fails if any lane of `$y` is 0, even one that `if_false` picks.
 
-**Refused:** `if` on a `simd<bool>`, with `fix: .%all_true()` or `.%any_true()`; a bare `simd_chunks`, asking which of the three; `.leftovers` without a `leftovers` section; and a `leftovers` section on any other loop.
+**Refused:** changing a chunk from `simd_chunks`; `.%%simd_chunks`, with `fix: .%`, and `.%simd_chunks_mut`, with `fix: .%%`; `if` on a `simd<bool>`, with `fix: .%all_true()` or `.%any_true()`; a bare `simd_chunks`, asking which of the three; `.leftovers` without a `leftovers` section; and a `leftovers` section on any other loop.
 
-**From:** D255, D291, D292, D293, D296, D297, D298, D299, D300, D301, D302.
+**From:** D255, D291, D292, D293, D296, D297, D298, D299, D300, D301, D302, D303.
