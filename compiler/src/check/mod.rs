@@ -298,6 +298,9 @@ pub struct Checker<'a> {
     pub label_unit: Option<types::Unit>,
     /// `trunc`, `floor` or `exact`, on the `as` being checked (D255).
     pub narrowing: Option<String>,
+    /// The operators structs and unions define, by the operator and their values' types, to the function's name
+    /// (D236).
+    pub operators: HashMap<(String, String, String), String>,
     pub program: checked::Program,
 }
 
@@ -332,6 +335,7 @@ pub fn check(
         units: units::Units::default(),
         label_unit: None,
         narrowing: None,
+        operators: HashMap::new(),
         program: checked::Program::default(),
     };
     checker.check_file(parsed);
@@ -497,6 +501,9 @@ impl Checker<'_> {
         let name = match (&function.name, keyword.as_str()) {
             (_, "fn.main") => "main".to_string(),
             (Some(name), _) => name.text(),
+            (None, _) if function.operator.is_some() => {
+                format!("op {}", function.operator.as_ref().map_or("", |operator| operator.text.as_str()))
+            }
             (None, _) => return Err(Reported),
         };
         let function_sources: Vec<String> = function
@@ -554,6 +561,11 @@ impl Checker<'_> {
             Some(written) => self.resolve_type(written)?,
             None => Type::Void,
         };
+        // An operator a type defines for itself is named by what it's for (D236).
+        let name = match &function.operator {
+            Some(operator) => self.operator_signature(function, operator, &parameters, &returns)?,
+            None => name,
+        };
         if let (Type::Borrow { mutable, held, sources, .. }, Some(written)) = (&returns, &function.returns) {
             self.borrow_claim(function, written.span, *mutable, *held, sources)?;
         }
@@ -572,7 +584,13 @@ impl Checker<'_> {
         };
         let result = if failures.is_empty() { None } else { Some(self.result_layout(&returns, &failures)) };
         let id = self.program.functions.len();
-        let symbol = if name == "main" { "main".to_string() } else { format!("cyborg.{name}") };
+        let symbol = if name == "main" {
+            "main".to_string()
+        } else if name.starts_with("op ") {
+            format!("cyborg.op{id}")
+        } else {
+            format!("cyborg.{name}")
+        };
         if result.is_some() && matches!(returns, Type::Borrow { .. }) {
             let span = function.returns.as_ref().map_or(function.header_span, |written| written.span);
             return Err(self.not_yet(span, "a function that can fail handing back a borrow".to_string()));
@@ -732,7 +750,12 @@ impl Checker<'_> {
             (None, Some(operator)) => format!("end {keyword} {}", operator.text),
             (None, None) => format!("end {keyword}"),
         };
-        self.check_closer(&function.end, &expected, CLOSER_WHY);
+        let why = if function.operator.is_some() {
+            "the closer repeats all of what it closes (D33, D121)"
+        } else {
+            CLOSER_WHY
+        };
+        self.check_closer(&function.end, &expected, why);
         // A function with `requires` is told where it was called from, for its crash message (D29).
         let mut prelude = Vec::new();
         if contracts::needs_site(&signature.top) {
@@ -1162,6 +1185,99 @@ impl Checker<'_> {
                 "a type is built in, or declared with `struct` or `union.tagged` (D33, D57)",
             ))),
         }
+    }
+
+    /// An operator a struct or union defines for itself: which ones can be, and how they're written (D236, D237,
+    /// D278). It's registered by the operator and its values' types.
+    fn operator_signature(
+        &mut self,
+        function: &syntax::Function,
+        operator: &syntax::Name,
+        parameters: &[(String, Type, syntax::ParameterOwnership)],
+        returns: &Type,
+    ) -> Check<String> {
+        const LANGUAGE_WHY: &str = "`and`, `or` and `not` stop early, which an operator couldn't promise, and `=`, `?`, `??` and `as` are part of the language, not maths (D237, D124)";
+        const FOLLOWS_WHY: &str = "`!=`, `above`, `at_least` and `at_most` follow from `==` and `below`, so they can never disagree, and aren't written (D237, D278)";
+        let text = operator.text.as_str();
+        let whole = function.keyword.span.to(operator.span);
+        match text {
+            "and" | "or" | "not" | "as" | "=" | "?" | "??" => {
+                return Err(self.error(Diagnostic::refused(
+                    operator.span,
+                    format!("`{text}` can't be defined for a type"),
+                    LANGUAGE_WHY,
+                )));
+            }
+            "above" | "!=" | "at_least" | "at_most" => {
+                return Err(self.error(Diagnostic::refused(
+                    operator.span,
+                    format!("`{text}` follows from `==` and `below`, so a type doesn't write it"),
+                    FOLLOWS_WHY,
+                )));
+            }
+            "<" => {
+                return Err(self.error(Diagnostic::refused_fix(
+                    operator.span,
+                    "below",
+                    "ordering is written in words, and a type defines `==` and `below`, which the others follow from (D278, D237)",
+                )));
+            }
+            "bit_and" | "bit_or" | "bit_xor" | "bit_not" | "shl" | "shr" => {
+                return Err(self.error(Diagnostic::not_designed(
+                    operator.span,
+                    format!("a type's own `{text}`"),
+                    "not decided yet (standard 12.3)",
+                )));
+            }
+            _ if text == "mod" || text.starts_with("mod.") => {
+                let span = Span::new(self.file, operator.span.start as usize, operator.span.start as usize + 3);
+                return Err(self.error(Diagnostic::not_designed(
+                    span,
+                    "a type's own `mod`",
+                    "not decided yet (standard 12.3)",
+                )));
+            }
+            _ => {}
+        }
+        if parameters.len() == 1 && text == "-" {
+            return Err(self.error(Diagnostic::not_designed(
+                whole,
+                "a type's own unary `-`",
+                "not decided yet (standard 12.3)",
+            )));
+        }
+        if let Some(parameter) = function.parameters.list.iter().find(|parameter| {
+            matches!(parameter.ownership, syntax::ParameterOwnership::Given | syntax::ParameterOwnership::LentMut)
+        }) {
+            let span = parameter.ownership_span.unwrap_or(parameter.span);
+            return Err(self.error(Diagnostic::not_designed(
+                span,
+                "an operator's value that's `Given` or `Lent.mut`, since the operator shows no word",
+                NOT_DECIDED,
+            )));
+        }
+        let [(_, left, _), (_, right, _)] = parameters else {
+            return Err(self.not_yet(whole, format!("`op {text}` with these values")));
+        };
+        let built_in = |value_type: &Type| !matches!(value_type, Type::Struct { .. } | Type::Union { .. });
+        if built_in(left) && built_in(right) {
+            return Err(self.error(Diagnostic::refused(
+                whole,
+                format!("`op {text}` here is for `{left}` and `{right}`, which are built in"),
+                "a struct or union can define an operator for itself, but an operator is never defined for, or changed on, built-in types (D236)",
+            )));
+        }
+        if matches!(text, "below" | "==") && *returns != Type::Bool {
+            let span = function.returns.as_ref().map_or(whole, |written| written.span);
+            return Err(self.error(Diagnostic::refused(
+                span,
+                format!("`op {text}` gives a `bool`"),
+                "`!=`, `above`, `at_least` and `at_most` follow from `==` and `below`, so those compare and give a `bool` (D237, D278)",
+            )));
+        }
+        let name = format!("op {text} [{left}, {right}]");
+        self.operators.insert((text.to_string(), left.to_string(), right.to_string()), name.clone());
+        Ok(name)
     }
 
     /// A function's claim to hand back a borrow: each source is a parameter it can lend that way (D170).

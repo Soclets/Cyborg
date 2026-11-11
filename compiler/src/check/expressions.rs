@@ -779,6 +779,10 @@ impl Checker<'_> {
             }
             operator if operator.is_comparison() => {
                 let (left_typed, right_typed) = self.operands(body, left, right, None)?;
+                if is_own_type(&left_typed.value_type) || is_own_type(&right_typed.value_type) {
+                    let written = self.slice(operator_span).to_string();
+                    return self.own_operator(expression, &written, (left, right), (left_typed, right_typed));
+                }
                 // A plain literal against a unit needs the unit (D100, D101).
                 for (side, typed, other) in [(right, &right_typed, &left_typed), (left, &left_typed, &right_typed)] {
                     if typed.value_type.unit().is_none()
@@ -887,6 +891,10 @@ impl Checker<'_> {
         expected: Option<&Type>,
     ) -> Check<Typed> {
         let (mut left_typed, mut right_typed) = self.operands(body, left, right, expected)?;
+        if is_own_type(&left_typed.value_type) || is_own_type(&right_typed.value_type) {
+            let written = self.slice(operator_span).to_string();
+            return self.own_operator(expression, &written, (left, right), (left_typed, right_typed));
+        }
         // Units are checked first, then the maths runs on the numbers, and the result gets its unit (D100, D242).
         let left_unit = left_typed.value_type.unit().cloned();
         let right_unit = right_typed.value_type.unit().cloned();
@@ -956,6 +964,82 @@ impl Checker<'_> {
             }
             _ => Err(self.not_yet(expression.span, "this maths on numbers with units".to_string())),
         }
+    }
+
+    /// An operator on a struct or union, which calls the `op` it defines for those types. `above`, `at_least`,
+    /// `at_most` and `!=` follow from `below` and `==` (D236, D237, D278).
+    fn own_operator(
+        &mut self,
+        expression: &syntax::Expression,
+        written: &str,
+        (left, right): (&syntax::Expression, &syntax::Expression),
+        (left_typed, right_typed): (Typed, Typed),
+    ) -> Check<Typed> {
+        const WHY: &str = "a struct or union gets an operator by defining it with `op`, and it applies only where its values' types match (D236, D237)";
+        let (named, swap, negate) = match written {
+            "above" => ("below", true, false),
+            "at_least" => ("below", false, true),
+            "at_most" => ("below", true, true),
+            "!=" => ("==", false, true),
+            other => (other, false, false),
+        };
+        let mut sides = [(left, left_typed), (right, right_typed)];
+        if swap {
+            sides.swap(0, 1);
+        }
+        let mut key = (named.to_string(), sides[0].1.value_type.to_string(), sides[1].1.value_type.to_string());
+        // A literal takes the number type the operator asks for there, as `$total div.floor 2` does.
+        if !self.operators.contains_key(&key) {
+            for index in 0..2 {
+                let literal = sides[index].1.literal.is_some() || sides[index].1.float_literal.is_some();
+                if !literal {
+                    continue;
+                }
+                let other = sides[1 - index].1.value_type.to_string();
+                let found = self
+                    .operators
+                    .keys()
+                    .find(|(op, a, b)| op == named && if index == 0 { *b == other } else { *a == other });
+                if let Some(found) = found.cloned()
+                    && let Some(signature) =
+                        self.operators.get(&found).and_then(|name| self.functions.get(name)).cloned()
+                    && let Some((_, wanted, _)) = signature.parameters.get(index)
+                {
+                    // A literal reads no variables, so it's typed again on its own.
+                    let retyped = self.expression(&mut Body::default(), sides[index].0, Some(wanted))?;
+                    let value = self.convert_into(sides[index].0.span, retyped, wanted)?;
+                    sides[index].1 = Typed::new(wanted.clone(), value.kind);
+                    key = found;
+                    break;
+                }
+            }
+        }
+        let Some(signature) = self.operators.get(&key).and_then(|name| self.functions.get(name)).cloned() else {
+            let what = if named == written {
+                format!("there's no `op {named}` for `{}` and `{}`", key.1, key.2)
+            } else {
+                format!("there's no `op {named}` for `{}` and `{}`, which `{written}` follows from", key.1, key.2)
+            };
+            return Err(self.error(Diagnostic::refused(expression.span, what, WHY)));
+        };
+        let [(first, first_typed), (second, second_typed)] = sides;
+        let mut arguments = Vec::new();
+        for ((side, typed), (_, parameter_type, _)) in
+            [(first, first_typed), (second, second_typed)].into_iter().zip(&signature.parameters)
+        {
+            let _ = side;
+            // A lent value goes in a temporary whose address is passed, which reads the same as lending it in place.
+            arguments.push(if parameter_type.is_copied() {
+                checked::Argument::Value(typed.value)
+            } else {
+                checked::Argument::Temporary(typed.value)
+            });
+        }
+        let call = Typed::new(signature.returns.clone(), Kind::Call { function: signature.id, arguments });
+        if negate {
+            return Ok(Typed::new(Type::Bool, Kind::Not(Box::new(call.value))));
+        }
+        Ok(call)
     }
 
     /// `+` and `-` on points and spans: a point plus a span is a point, a point minus a point is a span, and spans add
@@ -1382,6 +1466,30 @@ impl Checker<'_> {
             return Err(Reported);
         }
         let typed: Vec<Typed> = typed.into_iter().flatten().collect();
+        // A chain over structs calls their `op below` and `op ==`, one pair at a time (D236).
+        if typed.iter().any(|each| is_own_type(&each.value_type)) {
+            let mut joined: Option<checked::Expression> = None;
+            for (index, (_, operator_span)) in operators.iter().enumerate() {
+                let written = self.slice(*operator_span).to_string();
+                let span = operands[index].span.to(operands[index + 1].span);
+                let pair = syntax::Expression { kind: ExpressionKind::Group(Box::new(operands[index].clone())), span };
+                let compared = self.own_operator(
+                    &pair,
+                    &written,
+                    (&operands[index], &operands[index + 1]),
+                    (typed[index].clone(), typed[index + 1].clone()),
+                )?;
+                joined = Some(match joined {
+                    None => compared.value,
+                    Some(before) => checked::Expression {
+                        kind: Kind::And(Box::new(before), Box::new(compared.value)),
+                        machine_type: MachineType::Bool,
+                    },
+                });
+            }
+            let Some(joined) = joined else { return Err(Reported) };
+            return Ok(Typed::new(Type::Bool, joined.kind));
+        }
         let mut comparisons = Vec::new();
         for (index, (operator, _)) in operators.iter().enumerate() {
             let span = operands[index].span.to(operands[index + 1].span);
@@ -2849,4 +2957,9 @@ pub fn is_item(expression: &syntax::Expression) -> bool {
         ExpressionKind::Group(inner) => is_item(inner),
         _ => false,
     }
+}
+
+/// Whether a value is of a struct or union, which gets operators only by defining them (D236).
+fn is_own_type(value_type: &Type) -> bool {
+    matches!(value_type, Type::Struct { .. } | Type::Union { .. })
 }

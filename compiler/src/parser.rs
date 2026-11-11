@@ -656,7 +656,17 @@ impl<'source> Parser<'source> {
             let token = self.peek();
             if let Some(token) = token {
                 self.advance();
-                operator = Some(Name { text: self.text_of(token).to_string(), span: token.span });
+                let mut text = self.text_of(token).to_string();
+                let mut span = token.span;
+                // `op div.floor`, with its narrowing.
+                while self.is(TokenKind::Dot) && self.kind_at(1) == Some(TokenKind::Word) {
+                    self.advance();
+                    if let Some(word) = self.advance() {
+                        text = format!("{text}.{}", self.text_of(word));
+                        span = span.to(word.span);
+                    }
+                }
+                operator = Some(Name { text, span });
             }
         } else if self.is(TokenKind::Word) || self.is(TokenKind::At) {
             name = Some(self.path()?);
