@@ -153,6 +153,8 @@ pub struct Body {
     pub calls: Vec<Span>,
     /// Parameters that are only lent, bare or `Lent.mut`, so their duties are the caller's (D2).
     pub lent: Vec<checked::LocalId>,
+    /// Whether an ownership word is handing the value being converted with `as` (D149).
+    pub handing: bool,
     /// Whether a call that hands back a borrow is allowed here: in a stored borrow or a `return` (D170).
     pub borrow_call: bool,
     /// What the last call that handed back a borrow borrows from: the names, and their locals, including any
@@ -477,6 +479,15 @@ impl Checker<'_> {
                     parameter.written_type.span,
                     fixed,
                     "a bare parameter is already lent, and `Lent.mut` already is the changing one (D175)",
+                )));
+            }
+            if parameter.ownership == syntax::ParameterOwnership::LentWritten
+                && let Some(span) = parameter.ownership_span
+            {
+                return Err(self.error(Diagnostic::refused(
+                    span,
+                    "`Lent` alone is written bare",
+                    "a bare parameter is lent, so writing `Lent` alone is refused (D2)",
                 )));
             }
             let value_type = self.resolve_type(&parameter.written_type)?;

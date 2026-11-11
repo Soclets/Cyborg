@@ -10,6 +10,10 @@ use super::{Body, Check, Checker, Origin, Reported, State};
 
 use super::names::NEW_WHY;
 
+/// Something handed off in the call being checked: its variable, field path, argument, and whether nothing else
+/// may use it meanwhile.
+type Handed = (String, Vec<usize>, Span, bool);
+
 pub const CONVERT_WHY: &str = "`:` doesn't convert, and `as` builds a new value of another type (D7)";
 const NOT_DECIDED: &str = "not decided yet, and the standard doesn't say";
 const NOT_DECIDED_OPERATORS: &str = "not decided yet (standard 12.3)";
@@ -389,8 +393,36 @@ impl Checker<'_> {
         if keyword.segments.len() > 1 {
             return Err(self.not_yet(keyword.span, format!("`{}`", keyword.text())));
         }
+        if let ExpressionKind::Group(grouped) = &value.kind
+            && let ExpressionKind::Owned { ownership, .. } = &grouped.kind
+        {
+            return Err(self.error(Diagnostic::refused(
+                grouped.span,
+                format!("`{}` goes where a value is handed off", ownership.word()),
+                "the words go on a call's argument, or into a name, a `return` or a field (D2, D3)",
+            )));
+        }
+        let handing = if matches!(value.kind, ExpressionKind::As { .. }) {
+            body.handing
+        } else {
+            std::mem::replace(&mut body.handing, false)
+        };
         let typed = self.expression(body, value, None)?;
         let into = self.resolve_type(written_type)?;
+        // A crossing of a whole value in a variable says its ownership (D149).
+        let crossing = match (&typed.value_type, &into) {
+            (Type::New { inner, .. }, to) => **inner == *to || inner.plain() == *to,
+            (from, Type::New { inner, .. }) => *from == **inner || from.plain() == **inner,
+            _ => false,
+        };
+        if crossing && !handing && is_held(value) && !typed.value_type.is_copied() {
+            let shown = self.slice(value.span).to_string();
+            return Err(self.error(Diagnostic::refused(
+                value.span,
+                format!("`{shown}` is `{}`, so this says `Give` or `Copy`", typed.value_type),
+                "`as` on a whole value says its ownership: `Give` leaves it dead, and `Copy` pays for a copy (D3, D149)",
+            )));
+        }
         let undecided = |from: &Type, into: &Type| {
             Diagnostic::not_designed(
                 expression.span,
@@ -406,7 +438,8 @@ impl Checker<'_> {
                 Ok(Typed::new(into.clone(), typed.value.kind))
             }
             (from, Type::New { inner, .. })
-                if inner.plain() == **inner && from.plain() == **inner && !matches!(from, Type::New { .. }) =>
+                if *from == **inner
+                    || (inner.plain() == **inner && from.plain() == **inner && !matches!(from, Type::New { .. })) =>
             {
                 Ok(Typed::new(into.clone(), typed.value.kind))
             }
@@ -1473,7 +1506,7 @@ impl Checker<'_> {
         let matched = self.match_arguments(expression.span, &signature, arguments)?;
         let mut values = Vec::new();
         let mut failed = false;
-        let mut changed: Vec<String> = Vec::new();
+        let mut changed: Vec<Handed> = Vec::new();
         for (each, (parameter_name, parameter_type, ownership)) in matched.iter().zip(&signature.parameters) {
             let result = match each {
                 super::contracts::Matched::Argument(argument) => {
@@ -1554,6 +1587,7 @@ impl Checker<'_> {
     }
 
     /// One argument, with the ownership word the parameter asks for (D2, D3, D184).
+    #[allow(clippy::too_many_lines)]
     fn argument(
         &mut self,
         body: &mut Body,
@@ -1561,7 +1595,7 @@ impl Checker<'_> {
         parameter_name: &str,
         parameter_type: &Type,
         ownership: syntax::ParameterOwnership,
-        changed: &mut Vec<String>,
+        handed: &mut Vec<Handed>,
     ) -> Check<checked::Argument> {
         use syntax::{Ownership, ParameterOwnership};
         let word = argument.ownership.map(|(word, _)| word);
@@ -1593,40 +1627,44 @@ impl Checker<'_> {
                         )));
                     }
                 }
-                let ExpressionKind::Variable(name) = &argument.value.kind else {
+                let (Some((local, path)), Some(root)) =
+                    (self.any_place(body, &argument.value), root_name(&argument.value))
+                else {
                     return Err(self.not_yet(argument.value.span, "lending this with `Lend.mut`".to_string()));
                 };
-                if changed.contains(&name.text) {
-                    return Err(self.error(Diagnostic::refused(
-                        argument.span,
-                        format!("`{}` is already handed off with `Lend.mut` in this call", name.text),
-                        "`Lend.mut` means nothing else uses it meanwhile, and `Give` means it's gone (D2)",
-                    )));
-                }
-                changed.push(name.text.clone());
+                self.hand_in_call(handed, &root.text, &path, argument.span, true)?;
                 let typed = self.expression(body, &argument.value, Some(parameter_type))?;
-                let Some(variable) = body.lookup(&name.text).cloned() else { return Err(Reported) };
+                let Some(variable) = body.lookup(&root.text).cloned() else { return Err(Reported) };
                 if !variable.mutable {
+                    let what = if path.is_empty() {
+                        format!("`{}` can't change, so it can't be lent with `Lend.mut`", root.text)
+                    } else {
+                        format!("`{}` can't change, so neither can its field", root.text)
+                    };
                     return Err(self.error(Diagnostic::refused(
                         argument.value.span,
-                        format!("`{}` can't change, so it can't be lent with `Lend.mut`", name.text),
+                        what,
                         "`let` declares a variable that can't change, and `let mut` one that can (D3)",
                     )));
                 }
                 if typed.value_type != *parameter_type && !typed.value_type.is_unknown() {
                     return Err(self.error(Diagnostic::refused(
-                        argument.value.span,
+                        argument.span,
                         format!("this is `{}`, where `{parameter_type}` is needed", typed.value_type),
                         CONVERT_WHY,
                     )));
                 }
                 body.take_read(variable.local);
-                let site = body.site(name.span);
+                let site = body.site(root.span);
                 body.events.push(crate::flow::Event::LendMut {
-                    place: crate::flow::Place { local: variable.local, path: Vec::new(), shown: String::new() },
-                    spot: crate::flow::Spot { variable: name.span, place: name.span, site, marker: site },
+                    place: crate::flow::Place { local: variable.local, path: path.clone(), shown },
+                    spot: crate::flow::Spot { variable: root.span, place: argument.value.span, site, marker: site },
                 });
-                Ok(checked::Argument::Address(variable.local))
+                if path.is_empty() {
+                    Ok(checked::Argument::Address(local))
+                } else {
+                    Ok(checked::Argument::FieldAddress { local, path })
+                }
             }
             _ if parameter_type.is_copied() => {
                 if let Some((_, span)) = argument.ownership {
@@ -1656,6 +1694,28 @@ impl Checker<'_> {
                         "the call and the parameter both say it, and they must match (D2)",
                     )));
                 }
+                if let ExpressionKind::As { value: inner, keyword, written_type } = &argument.value.kind
+                    && let Some((word, span)) = argument.ownership
+                {
+                    let typed = self.owned_as(body, word, span, &argument.value, inner, keyword, written_type)?;
+                    return Ok(checked::Argument::Value(self.convert_into(
+                        argument.value.span,
+                        typed,
+                        parameter_type,
+                    )?));
+                }
+                if word.is_some() && !held {
+                    return Err(self.error(Diagnostic::refused(
+                        argument.value.span,
+                        "a fresh value takes no word",
+                        "a fresh value that has no holder yet takes no word (D2)",
+                    )));
+                }
+                if let Some(root) = root_name(&argument.value)
+                    && let Some((_, path)) = self.any_place(body, &argument.value)
+                {
+                    self.hand_in_call(handed, &root.text, &path, argument.span, word == Some(Ownership::Give))?;
+                }
                 let typed = self.expression(body, &argument.value, Some(parameter_type))?;
                 if word == Some(Ownership::Give)
                     && let Some((local, path)) = self.any_place(body, &argument.value)
@@ -1664,7 +1724,6 @@ impl Checker<'_> {
                     self.only_lent(body, local, root, &path, argument.value.span)?;
                     body.take_read(local);
                     let site = body.site(root.span);
-                    let shown = self.slice(argument.value.span).to_string();
                     body.events.push(crate::flow::Event::Give {
                         place: crate::flow::Place { local, path, shown },
                         spot: crate::flow::Spot { variable: root.span, place: argument.value.span, site, marker: site },
@@ -1686,7 +1745,18 @@ impl Checker<'_> {
                         let value = self.value_into(body, &argument.value, parameter_type)?;
                         return Ok(checked::Argument::Temporary(value));
                     }
-                    Some(_) => return Err(self.not_yet(argument.span, "this word on a lent parameter".to_string())),
+                    Some(_) => {
+                        return Err(self.error(Diagnostic::refused_fix(
+                            argument.span,
+                            format!("Lend {shown}"),
+                            "the call and the parameter both say it, and they must match (D2)",
+                        )));
+                    }
+                }
+                if let Some(root) = root_name(&argument.value)
+                    && let Some((_, path)) = self.any_place(body, &argument.value)
+                {
+                    self.hand_in_call(handed, &root.text, &path, argument.span, false)?;
                 }
                 let typed = self.expression(body, &argument.value, Some(parameter_type))?;
                 let typed_type = typed.value_type.clone();
@@ -1697,13 +1767,40 @@ impl Checker<'_> {
                         CONVERT_WHY,
                     )));
                 }
-                match place_of(body, &argument.value) {
+                match self.any_place(body, &argument.value) {
                     Some((local, path)) if path.is_empty() => Ok(checked::Argument::Address(local)),
                     Some((local, path)) => Ok(checked::Argument::FieldAddress { local, path }),
                     None => Ok(checked::Argument::Temporary(typed.value)),
                 }
             }
         }
+    }
+
+    /// Within one call, `Lend.mut` or `Give` of something means nothing else in the call can use it. Different fields
+    /// are separate (D2, D173).
+    fn hand_in_call(
+        &mut self,
+        handed: &mut Vec<Handed>,
+        root: &str,
+        path: &[usize],
+        span: Span,
+        exclusive: bool,
+    ) -> Check<()> {
+        let overlaps = |other: &[usize]| other.starts_with(path) || path.starts_with(other);
+        if let Some((_, _, earlier, _)) = handed.iter().find(|(name, other, _, other_exclusive)| {
+            name == root && overlaps(other) && (exclusive || *other_exclusive)
+        }) {
+            return Err(self.error(
+                Diagnostic::refused(
+                    span,
+                    format!("`{root}` is already handed off with `Lend.mut` in this call"),
+                    "`Lend.mut` means nothing else uses it meanwhile, and `Give` means it's gone (D2)",
+                )
+                .with_because(*earlier, "that's here"),
+            ));
+        }
+        handed.push((root.to_string(), path.to_vec(), span, exclusive));
+        Ok(())
     }
 
     /// The place an expression names: a variable, or a field inside one.
@@ -1737,6 +1834,95 @@ impl Checker<'_> {
         Ok(())
     }
 
+    /// `Give $r as wrapped`: `as` on a whole value says its ownership, and the word goes on the value (D149).
+    #[allow(clippy::too_many_arguments)]
+    fn owned_as(
+        &mut self,
+        body: &mut Body,
+        ownership: syntax::Ownership,
+        ownership_span: Span,
+        whole: &syntax::Expression,
+        inner: &syntax::Expression,
+        keyword: &syntax::Path,
+        written_type: &syntax::Type,
+    ) -> Check<Typed> {
+        // `Give $r as wrapped as rewrapped` gives `$r`, under every `as`.
+        let mut inner = inner;
+        let whole_inner = inner;
+        while let ExpressionKind::As { value: deeper, .. } = &inner.kind {
+            inner = deeper;
+        }
+        let marked = ownership_span.to(inner.span);
+        let written = self.slice(inner.span).to_string();
+        if matches!(ownership, syntax::Ownership::Lend | syntax::Ownership::LendMut) {
+            return Err(self.error(Diagnostic::refused(
+                marked,
+                format!("`as` builds a new value, so `{}` doesn't fit here", ownership.word()),
+                "`as` on a whole value says `Give` or `Copy` (D3, D149)",
+            )));
+        }
+        let place = self.any_place(body, inner);
+        if place.is_none() {
+            return Err(self.error(Diagnostic::refused_fix(
+                marked,
+                written,
+                "a fresh value that has no holder yet takes no word (D2, D149)",
+            )));
+        }
+        body.handing = true;
+        let typed = self.conversion(body, whole, whole_inner, keyword, written_type);
+        body.handing = false;
+        let mut typed = typed?;
+        let source_copied = match self.expression_type_quietly(body, inner) {
+            Some(source) => source.is_copied(),
+            None => typed.value_type.is_copied(),
+        };
+        if source_copied {
+            return Err(self.error(Diagnostic::refused_fix(
+                marked,
+                written,
+                "plain numbers and `bool` are always copied, and take no word (D2, D123)",
+            )));
+        }
+        if ownership == syntax::Ownership::Give
+            && let Some((local, path)) = place
+            && let Some(root) = root_name(inner)
+        {
+            self.only_lent(body, local, root, &path, inner.span)?;
+            body.take_read(local);
+            let site = body.site(root.span);
+            let marker = body.calls.last().copied().unwrap_or(marked);
+            body.events.push(crate::flow::Event::Give {
+                place: crate::flow::Place { local, path, shown: written },
+                spot: crate::flow::Spot { variable: root.span, place: inner.span, site, marker },
+            });
+        }
+        typed.variable = None;
+        typed.handed = true;
+        Ok(typed)
+    }
+
+    /// The type of a variable or field, without checking it again or recording anything.
+    fn expression_type_quietly(&self, body: &Body, expression: &syntax::Expression) -> Option<Type> {
+        match &expression.kind {
+            ExpressionKind::Variable(name) => {
+                body.lookup(&name.text).map(|variable| variable.value_type.read_as().clone())
+            }
+            ExpressionKind::Group(inner) => self.expression_type_quietly(body, inner),
+            ExpressionKind::Field { .. } => {
+                let (local, path, _) = self.field_place(body, expression)?;
+                let mut current =
+                    body.variables.iter().rev().find(|variable| variable.local == local)?.value_type.read_as().clone();
+                for index in path {
+                    let Type::Struct { id, .. } = current else { return None };
+                    current = self.aggregates.structs.get(id)?.fields.get(index)?.value_type.clone();
+                }
+                Some(current)
+            }
+            _ => None,
+        }
+    }
+
     /// `Give $x` or `Copy $x` where a value is handed over (D2, D3).
     fn owned(
         &mut self,
@@ -1746,6 +1932,9 @@ impl Checker<'_> {
         value: &syntax::Expression,
         expected: Option<&Type>,
     ) -> Check<Typed> {
+        if let ExpressionKind::As { value: inner, keyword, written_type } = &value.kind {
+            return self.owned_as(body, ownership, ownership_span, value, inner, keyword, written_type);
+        }
         let typed = self.expression(body, value, expected)?;
         if typed.value_type.is_copied() {
             let written = self.slice(value.span).to_string();

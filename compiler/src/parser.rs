@@ -706,6 +706,17 @@ impl<'source> Parser<'source> {
                     self.advance();
                     (ParameterOwnership::Given, Some(ownership_start))
                 }
+                // The call's words on a parameter: the parameter says `Given` (D2).
+                Some(word @ ("Give" | "Copy")) => {
+                    let why = if word == "Copy" {
+                        "`Copy` hands over a separate copy, to a `Given` parameter (D2)"
+                    } else {
+                        "`Give` goes at the call, and `Given` on the parameter (D2)"
+                    };
+                    self.errors.push(Diagnostic::refused_fix(ownership_start, "Given", why));
+                    self.advance();
+                    (ParameterOwnership::Given, Some(ownership_start))
+                }
                 Some("Lent") => {
                     let path = self.path()?;
                     if path.text() == "Lent.mut" {
@@ -1441,6 +1452,28 @@ impl<'source> Parser<'source> {
 
     /// An ownership word, if one is here: `Give`, `Copy`, `Lend` or `Lend.mut`.
     fn ownership_word(&mut self) -> Parse<Option<(Ownership, Span)>> {
+        // The parameter's words at a call: the call says `Give` and `Lend.mut` (D2).
+        let mistaken = match self.word() {
+            Some("Given") if self.kind_at(1) == Some(TokenKind::Dollar) || self.word_at(1).is_some() => {
+                Some((Ownership::Give, self.current_span(), "Give"))
+            }
+            Some("Lent") if self.kind_at(1) == Some(TokenKind::Dot) && self.word_at(2) == Some("mut") => {
+                let start = self.current_span();
+                self.advance();
+                self.advance();
+                Some((Ownership::LendMut, start.to(self.current_span()), "Lend.mut"))
+            }
+            _ => None,
+        };
+        if let Some((ownership, span, fixed)) = mistaken {
+            self.errors.push(Diagnostic::refused_fix(
+                span,
+                fixed,
+                "the call and the parameter each have their own word (D2)",
+            ));
+            self.advance();
+            return Ok(Some((ownership, span)));
+        }
         let ownership = match self.word() {
             Some("Give") => Ownership::Give,
             Some("Copy") => Ownership::Copy,

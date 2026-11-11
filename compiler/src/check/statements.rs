@@ -303,7 +303,7 @@ impl Checker<'_> {
             }
             body.events.push(crate::flow::Event::Borrow {
                 borrower: local,
-                sources: locals,
+                sources: locals.into_iter().map(|source| (source, Vec::new())).collect(),
                 mutable: *mutable,
                 held: *held,
             });
@@ -388,9 +388,12 @@ impl Checker<'_> {
         } else {
             crate::flow::Event::Read { place, spot }
         });
-        let mut source_locals: Vec<checked::LocalId> =
-            originals.iter().filter_map(|original| body.lookup(original).map(|variable| variable.local)).collect();
-        source_locals.extend(through);
+        let mut source_locals: Vec<(checked::LocalId, Vec<usize>)> = originals
+            .iter()
+            .filter_map(|original| body.lookup(original).map(|variable| variable.local))
+            .map(|source| (source, if through.is_none() { path.clone() } else { Vec::new() }))
+            .collect();
+        source_locals.extend(through.map(|local| (local, Vec::new())));
         body.events.push(crate::flow::Event::Borrow {
             borrower: local,
             sources: source_locals,
@@ -642,7 +645,7 @@ impl Checker<'_> {
                 return Err(self.error(Diagnostic::refused(
                     name.span,
                     format!("`{}` is a plain parameter, so it can't change", name.text),
-                    "a plain number parameter can't be changed, so a function can't quietly change its own copy (D184)",
+                    "a function can't quietly change its own copy, and `Lent.mut` says it changes the caller's (D184, D125)",
                 )));
             }
             return Err(self.error(Diagnostic::refused(

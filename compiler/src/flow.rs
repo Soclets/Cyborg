@@ -87,7 +87,8 @@ pub enum Event {
     /// A stored borrow made in `borrower`, from `sources`.
     Borrow {
         borrower: LocalId,
-        sources: Vec<LocalId>,
+        /// Each source, with the field it borrows, or none for all of it (D173).
+        sources: Vec<(LocalId, Vec<usize>)>,
         mutable: bool,
         held: bool,
     },
@@ -328,7 +329,7 @@ enum Holding {
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 struct Loan {
-    sources: Vec<LocalId>,
+    sources: Vec<(LocalId, Vec<usize>)>,
     mutable: bool,
     held: bool,
     /// Where something used what it borrows, after which it can't be used.
@@ -482,18 +483,18 @@ impl Checker<'_> {
             }
             Event::Read { place, spot } => {
                 if self.usable(state, place, spot, false) {
-                    self.spoil(state, place.local, spot, true);
+                    self.spoil(state, place, spot, true);
                 }
             }
             Event::LendMut { place, spot } | Event::Change { place, spot } => {
                 if self.usable(state, place, spot, false) {
-                    self.spoil(state, place.local, spot, false);
+                    self.spoil(state, place, spot, false);
                 }
             }
             Event::Give { place, spot } if !place.path.is_empty() => self.move_out(state, place, spot),
             Event::Give { place, spot } => {
                 if self.usable(state, place, spot, false) {
-                    self.spoil(state, place.local, spot, false);
+                    self.spoil(state, place, spot, false);
                     state.holding.insert(place.local, Holding::Gone { finished: false, at: spot.marker, maybe: false });
                 }
             }
@@ -517,7 +518,7 @@ impl Checker<'_> {
                     ));
                     return;
                 }
-                self.spoil(state, *local, spot, false);
+                self.spoil(state, &place, spot, false);
                 state.holding.insert(*local, Holding::Gone { finished: true, at: spot.site, maybe: false });
             }
             Event::Borrow { borrower, sources, mutable, held } => {
@@ -629,18 +630,25 @@ impl Checker<'_> {
             self.usable(state, place, spot, false);
             return;
         }
-        self.spoil(state, place.local, spot, false);
+        self.spoil(state, place, spot, false);
         moved.push((place.path.clone(), spot.marker, true));
         state.holding.insert(place.local, Holding::Partial { moved });
     }
 
     /// A use of `local` spoils the stored borrows of it that it conflicts with: any use, for one lent to change,
     /// and anything but a read, for one lent to read.
-    fn spoil(&mut self, state: &mut State, local: LocalId, spot: &Spot, reading: bool) {
+    fn spoil(&mut self, state: &mut State, place: &Place, spot: &Spot, reading: bool) {
+        let local = place.local;
+        // Different fields are separate, so only a use that overlaps the borrowed field spoils it (D173).
+        let overlaps = |(source, path): &(LocalId, Vec<usize>)| {
+            *source == local && (path.starts_with(&place.path) || place.path.starts_with(path))
+        };
         let borrowers: Vec<LocalId> = state
             .loans
             .iter()
-            .filter(|(_, loan)| loan.sources.contains(&local) && loan.spoiled.is_none() && (loan.mutable || !reading))
+            .filter(|(_, loan)| {
+                loan.sources.iter().any(overlaps) && loan.spoiled.is_none() && (loan.mutable || !reading)
+            })
             .map(|(borrower, _)| *borrower)
             .collect();
         for borrower in borrowers {
