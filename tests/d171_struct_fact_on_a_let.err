@@ -1,5 +1,5 @@
 refused: d171_struct_fact_on_a_let.cy:20:17, line 20 column 17
-20 |         let $j: index<`text`: $article, `table`: $list> = index[words = Lend $article, lookup = Lend $list];
+20 |         let $j: index<`text`: $article, `table`: $list> set_to index[words set_to Lend $article, lookup set_to Lend $list];
    |                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
  what: `$list` doesn't last as long as `$article`, and `index` says `table` lasts at least as long as `text`
  why:  a struct's `lasts_at_least` fact holds for every type that fills it in (D171)

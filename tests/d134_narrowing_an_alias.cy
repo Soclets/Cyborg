@@ -4,9 +4,9 @@ fam.unit time:
     time.seconds: base;
 end fam.unit time
 
-type.alias score = i32;
+type.alias score set_to i32;
 
-fn.main [none] -> void:
-    let $a: score.time.seconds = 1 time.seconds;
+fn.main [none] returns void:
+    let $a: score.time.seconds set_to 1 time.seconds;
     return void;
 end fn.main

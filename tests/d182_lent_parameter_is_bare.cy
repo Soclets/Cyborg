@@ -5,10 +5,10 @@ struct reading:
     celsius: i32;
 end struct reading
 
-fn show [$r: Lent reading] -> void:
+fn show [$r: Lent reading] returns void:
     return void;
 end fn show
 
-fn.main [none] -> void:
+fn.main [none] returns void:
     return void;
 end fn.main

@@ -4,14 +4,14 @@ struct box:
     n: i32;
 end struct box
 
-fn box.%plus [$b: box, $by: i32] -> i32:
+fn box.%plus [$b: box, $by: i32] returns i32:
     labels [$by as by];
 
     return $b.n + $by;
 end fn box.%plus
 
-fn.main [none] -> void:
-    let $b: box = box[n = 1];
-    let $n: i32 = $b.%plus(1);
+fn.main [none] returns void:
+    let $b: box set_to box[n set_to 1];
+    let $n: i32 set_to $b.%plus(1);
     return void;
 end fn.main

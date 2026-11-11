@@ -1,5 +1,5 @@
 refused: d180_bare_item_cant_change.cy:11:16, line 11 column 16
-11 |         change $r.celsius = 0;
+11 |         change $r.celsius set_to 0;
    |                ^^^^^^^^^^
  what: `$r` can't change, so neither can its field
  why:  a field or item can be changed if the whole variable is `let mut`, or the parameter `Lent.mut` (D125, D133)

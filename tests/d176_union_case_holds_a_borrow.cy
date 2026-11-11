@@ -11,11 +11,11 @@ union.tagged lookup <`text`>:
     missing;
 end union.tagged lookup
 
-fn.main [none] -> void:
-    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
-    let $a: reading = reading[celsius = 4];
-    let $l: lookup<`text`: $a> = lookup.found[item = Lend $a];
-    let $m: lookup<`text`: $a> = lookup.missing;
+fn.main [none] returns void:
+    let mut $out: os::stdout.unbuffered set_to os::stdout.unbuffered();
+    let $a: reading set_to reading[celsius set_to 4];
+    let $l: lookup<`text`: $a> set_to lookup.found[item set_to Lend $a];
+    let $m: lookup<`text`: $a> set_to lookup.missing;
     match $l:
         case lookup.found $f:
             std::io::fmt_print(Lend.mut $out, "{}{newln}", $f.item.celsius);

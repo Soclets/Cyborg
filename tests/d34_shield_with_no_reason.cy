@@ -1,6 +1,6 @@
 // trace: D34
 
-fn.main [none] -> void:
+fn.main [none] returns void:
     shield sensor:
         return void;
     end shield sensor

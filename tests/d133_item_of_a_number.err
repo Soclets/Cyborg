@@ -1,5 +1,5 @@
-refused: d133_item_of_a_number.cy:5:19, line 5 column 19
- 5 |     let $n: i32 = $x[pos: 1];
-   |                   ^^^^^^^^^^
+refused: d133_item_of_a_number.cy:5:24, line 5 column 24
+ 5 |     let $n: i32 set_to $x[pos: 1];
+   |                        ^^^^^^^^^^
  what: `pos:` and `offset:` work on lists and arrays, and this is `i32`
  why:  both work on lists and arrays (D133)

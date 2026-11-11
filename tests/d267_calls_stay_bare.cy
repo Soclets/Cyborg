@@ -3,13 +3,13 @@
 import std;
 import os;
 
-fn seven [none] -> i32:
+fn seven [none] returns i32:
     return 7;
 end fn seven
 
-fn.main [none] -> void:
-    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
-    let $n: i32 = seven();
+fn.main [none] returns void:
+    let mut $out: os::stdout.unbuffered set_to os::stdout.unbuffered();
+    let $n: i32 set_to seven();
     std::io::fmt_print(Lend.mut $out, "{$n}{newln}");
     return void;
 end fn.main

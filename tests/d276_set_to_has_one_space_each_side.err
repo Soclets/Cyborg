@@ -1,0 +1,5 @@
+refused: d276_set_to_has_one_space_each_side.cy:4:13, line 4 column 13
+ 4 |     let $a: i32  set_to 1;
+   |             ^^^^^^^^^^^^^
+ fix:  `i32 set_to 1`
+ why:  a binary operator, `set_to` and word operators included, has one space on each side, so `1+8` is refused (D23, D213)

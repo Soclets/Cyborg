@@ -5,15 +5,15 @@ struct box:
     n: i32;
 end struct box
 
-fn eat [$b: Given box] -> void:
+fn eat [$b: Given box] returns void:
     return void;
 end fn eat
 
-fn.main [none] -> void:
-    if 1 < 2:
-        let $inner: i32 = 1;
+fn.main [none] returns void:
+    if 1 below 2:
+        let $inner: i32 set_to 1;
     end if
-    let $b: box = box[n = 1];
+    let $b: box set_to box[n set_to 1];
     eat(Give $b);
     eat(Give $b);
     return void;

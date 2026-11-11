@@ -1,5 +1,5 @@
-refused: d211_call_needs_single.cy:14:22, line 14 column 22
-14 |     let $n: i32 = $r.%%shown();
-   |                      ^^^^^^^
+refused: d211_call_needs_single.cy:14:27, line 14 column 27
+14 |     let $n: i32 set_to $r.%%shown();
+   |                           ^^^^^^^
  fix:  `%shown`
  why:  `.%` lends a receiver read-only and `.%%` lends it to change, so the call shows which (D211)

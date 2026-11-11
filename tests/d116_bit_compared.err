@@ -1,5 +1,5 @@
-refused: d116_bit_compared.cy:5:20, line 5 column 20
- 5 |     let $b: bool = $a bit_and 1 == 1;
-   |                    ^^^^^^^^^^^^
+refused: d116_bit_compared.cy:5:25, line 5 column 25
+ 5 |     let $b: bool set_to $a bit_and 1 == 1;
+   |                         ^^^^^^^^^^^^
  what: this needs `( )` around it, since maths gives bit operators no order
  why:  where maths gives no order, you group with `( )` (D116)

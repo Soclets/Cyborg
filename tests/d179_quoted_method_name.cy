@@ -4,9 +4,9 @@ import os;
 
 use std::list.%%append as %%"push";
 
-fn.main [none] -> void:
-    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
-    let mut $xs: std::list<i32>[len.max: inf items] = empty;
+fn.main [none] returns void:
+    let mut $out: os::stdout.unbuffered set_to os::stdout.unbuffered();
+    let mut $xs: std::list<i32>[len.max: inf items] set_to empty;
     $xs.%%push(val: 4);
     std::io::fmt_print(Lend.mut $out, "{}{newln}", $xs.len);
     return void;

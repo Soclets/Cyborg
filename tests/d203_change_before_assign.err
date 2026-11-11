@@ -1,5 +1,5 @@
 refused: d203_change_before_assign.cy:6:12, line 6 column 12
- 6 |     change $x = 2;
+ 6 |     change $x set_to 2;
    |            ^^
  what: `$x` has no value yet
  why:  every path has to `assign` a `decl` before reading it (D203)

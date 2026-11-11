@@ -5,10 +5,10 @@ struct money:
     cents: i64;
 end struct money
 
-op + [$a: Given money, $b: money] -> money:
-    return money[cents = $a.cents + $b.cents];
+op + [$a: Given money, $b: money] returns money:
+    return money[cents set_to $a.cents + $b.cents];
 end op +
 
-fn.main [none] -> void:
+fn.main [none] returns void:
     return void;
 end fn.main

@@ -3,6 +3,6 @@ import @csup;
 
 use @csup::union.untagged as "@c";
 
-fn.main [none] -> void:
+fn.main [none] returns void:
     return void;
 end fn.main

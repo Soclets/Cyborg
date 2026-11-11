@@ -4,14 +4,14 @@ import std;
 
 fam.unit length:
     length.meters: base;
-    length.kilometers = 1000 length.meters;
+    length.kilometers set_to 1000 length.meters;
     length.inches: base;
-    length.yards = 36 length.inches;
-    length.feet = 12 length.inches;
+    length.yards set_to 36 length.inches;
+    length.feet set_to 12 length.inches;
 end fam.unit length
 
-fn.main [none] -> void:
-    let $n: i32 = 7;
-    let $s: str = $n as.trunc str;
+fn.main [none] returns void:
+    let $n: i32 set_to 7;
+    let $s: str set_to $n as.trunc str;
     return void;
 end fn.main

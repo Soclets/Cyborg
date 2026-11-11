@@ -1,5 +1,0 @@
-refused: d216_bare_float_literal.cy:5:15, line 5 column 15
- 5 |     let $x := 1.5;
-   |               ^^^
- what: `1.5` has no type of its own, so this line says one, as in `: f64 = 1.5`
- why:  a bare literal has no default type, so `:=` can't take one from it (D216, D50)

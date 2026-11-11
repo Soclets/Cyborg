@@ -4,13 +4,13 @@ struct box:
     n: i32;
 end struct box
 
-fn eat [$b: Given box] -> void:
+fn eat [$b: Given box] returns void:
     return void;
 end fn eat
 
-fn.main [none] -> void:
-    let mut $b: box = box[n = 1];
+fn.main [none] returns void:
+    let mut $b: box set_to box[n set_to 1];
     eat(Give $b);
-    change $b.n = 2;
+    change $b.n set_to 2;
     return void;
 end fn.main

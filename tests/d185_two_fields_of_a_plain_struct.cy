@@ -8,14 +8,14 @@ struct pair:
     b: str;
 end struct pair
 
-fn eat [$s: Given str] -> void:
-    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
+fn eat [$s: Given str] returns void:
+    let mut $out: os::stdout.unbuffered set_to os::stdout.unbuffered();
     std::io::fmt_print(Lend.mut $out, "{}{newln}", $s);
     return void;
 end fn eat
 
-fn.main [none] -> void:
-    let $p: pair = pair[a = "x", b = "y"];
+fn.main [none] returns void:
+    let $p: pair set_to pair[a set_to "x", b set_to "y"];
     eat(Give $p.a);
     eat(Give $p.b);
     return void;

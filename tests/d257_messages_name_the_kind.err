@@ -1,5 +1,5 @@
-refused: d257_messages_name_the_kind.cy:7:19, line 7 column 19
- 7 |     let $y: i32 = $x;
-   |                   ^^
+refused: d257_messages_name_the_kind.cy:7:24, line 7 column 24
+ 7 |     let $y: i32 set_to $x;
+   |                        ^^
  what: this is `f64.stable`, where `i32` is needed
  why:  `:` doesn't convert, and `as` builds a new value of another type (D7)

@@ -2,10 +2,10 @@
 // trace: D257
 import std;
 
-fn half [$x: f32] -> f32.stable:
+fn half [$x: f32] returns f32.stable:
     return 0.5;
 end fn half
 
-fn.main [none] -> void:
+fn.main [none] returns void:
     return void;
 end fn.main

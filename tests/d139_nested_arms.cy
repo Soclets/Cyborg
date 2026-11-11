@@ -3,19 +3,19 @@
 import std;
 import os;
 
-fn f [none] -> i32 fails [a]:
+fn f [none] returns i32 fails [a]:
     fail a;
 end fn f
 
-fn g [none] -> i32 fails [b]:
+fn g [none] returns i32 fails [b]:
     fail b;
 end fn g
 
-fn.main [none] -> void:
-    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
-    let $n: i32 = f() otherwise:
+fn.main [none] returns void:
+    let mut $out: os::stdout.unbuffered set_to os::stdout.unbuffered();
+    let $n: i32 set_to f() otherwise:
         case a:
-            let $m: i32 = g() otherwise:
+            let $m: i32 set_to g() otherwise:
                 case b:
                     instead 2;
             end otherwise

@@ -6,10 +6,10 @@ struct.must_Give open_file:
     fd: i32;
 end struct.must_Give open_file
 
-fn.main [none] -> void:
+fn.main [none] returns void:
     decl $x: open_file;
-    assign $x = open_file[fd = 3];
-    let $n: i64 = $x.fd;
+    assign $x set_to open_file[fd set_to 3];
+    let $n: i64 set_to $x.fd;
     finish $x;
     return void;
 end fn.main

@@ -4,10 +4,10 @@ struct box:
     n: i32;
 end struct box
 
-fn.pure box.%f [$b: box] -> i32:
+fn.pure box.%f [$b: box] returns i32:
     return $b.n;
 end fn box.%f
 
-fn.main [none] -> void:
+fn.main [none] returns void:
     return void;
 end fn.main

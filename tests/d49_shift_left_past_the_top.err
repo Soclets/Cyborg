@@ -1,6 +1,6 @@
-NotDesignedYet: d49_shift_left_past_the_top.cy:4:19, line 4 column 19
- 4 |     let $a: i32 = 1 shl 31;
-   |                   ^^^^^^^^
+NotDesignedYet: d49_shift_left_past_the_top.cy:4:24, line 4 column 24
+ 4 |     let $a: i32 set_to 1 shl 31;
+   |                        ^^^^^^^^
  what: what happens when `shl` overflows
  why:  not decided yet, and the standard doesn't say
  when: `1` and `31` in `i32`

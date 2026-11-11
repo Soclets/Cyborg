@@ -6,21 +6,21 @@ struct box:
     n: i32;
 end struct box
 
-fn.pure box.%positive [$b: box] -> bool:
-    return $b.n > 0;
+fn.pure box.%positive [$b: box] returns bool:
+    return $b.n above 0;
 end fn.pure box.%positive
 
-fn take [$b: box] -> i32:
+fn take [$b: box] returns i32:
     requires $b.%positive();
 
     return $b.n;
 end fn take
 
-fn.main [none] -> void:
-    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
-    let $ok: box = box[n = 1];
+fn.main [none] returns void:
+    let mut $out: os::stdout.unbuffered set_to os::stdout.unbuffered();
+    let $ok: box set_to box[n set_to 1];
     std::io::fmt_print(Lend.mut $out, "{}{newln}", take(Lend $ok));
-    let $bad: box = box[n = 0];
+    let $bad: box set_to box[n set_to 0];
     std::io::fmt_print(Lend.mut $out, "{}{newln}", take(Lend $bad));
     return void;
 end fn.main

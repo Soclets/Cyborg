@@ -5,6 +5,6 @@ fam.unit storage:
     storage.bytes: base with binary;
 end fam.unit storage
 
-fn.main [none] -> void:
+fn.main [none] returns void:
     return void;
 end fn.main

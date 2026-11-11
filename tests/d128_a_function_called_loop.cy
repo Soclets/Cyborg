@@ -3,13 +3,13 @@
 import std;
 import os;
 
-fn loop [none] -> void:
-    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
+fn loop [none] returns void:
+    let mut $out: os::stdout.unbuffered set_to os::stdout.unbuffered();
     std::io::fmt_print(Lend.mut $out, "called{newln}");
     return void;
 end fn loop
 
-fn.main [none] -> void:
+fn.main [none] returns void:
     loop();
     return void;
 end fn.main

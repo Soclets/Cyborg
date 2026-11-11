@@ -1,5 +1,5 @@
-refused: d101_missing_unit.cy:8:39, line 8 column 39
- 8 |     let $b: i32[unit: time.seconds] = 3600;
-   |                                       ^^^^
+refused: d101_missing_unit.cy:8:44, line 8 column 44
+ 8 |     let $b: i32[unit: time.seconds] set_to 3600;
+   |                                            ^^^^
  fix:  `3600 time.seconds`
  why:  a unit is required where the type asks for one (D101)

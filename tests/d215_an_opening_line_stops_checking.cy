@@ -2,11 +2,11 @@
 // trace: D215
 import std;
 
-fn.main [none] -> void:
-    let $a: i32 = 1;
-    if $a < "x":
-        let $b: i64 = $a;
+fn.main [none] returns void:
+    let $a: i32 set_to 1;
+    if $a below "x":
+        let $b: i64 set_to $a;
     end if
-    let $c: i64 = $a;
+    let $c: i64 set_to $a;
     return void;
 end fn.main

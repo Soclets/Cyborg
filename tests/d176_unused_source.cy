@@ -9,6 +9,6 @@ union.tagged lookup <`text`>:
     missing;
 end union.tagged lookup
 
-fn.main [none] -> void:
+fn.main [none] returns void:
     return void;
 end fn.main

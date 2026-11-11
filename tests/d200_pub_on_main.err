@@ -1,5 +1,5 @@
 NotDesignedYet: d200_pub_on_main.cy:4:1, line 4 column 1
- 4 | pub fn.main [none] -> void:
+ 4 | pub fn.main [none] returns void:
    | ^^^
  what: `pub` on `fn.main`, which needs none
  why:  not decided yet, and the standard doesn't say

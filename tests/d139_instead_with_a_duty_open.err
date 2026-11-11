@@ -4,6 +4,6 @@ refused: d139_instead_with_a_duty_open.cy:15:13, line 15 column 13
  what: this leaves with `$g` never given away or finished
  why:  a `must_Give` value is handed off with `Give` exactly once, or `finish` ends it (D2, D129)
  because: d139_instead_with_a_duty_open.cy:14:17, line 14 column 17
-14 |             let $g: open_file = open_file[fd = 1];
+14 |             let $g: open_file set_to open_file[fd set_to 1];
    |                 ^^
      `$g` was made here

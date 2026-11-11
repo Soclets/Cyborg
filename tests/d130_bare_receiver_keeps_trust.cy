@@ -7,13 +7,13 @@ union.tagged status:
     failed[code: i32];
 end union.tagged status
 
-fn status.%label [$s: status] -> str:
+fn status.%label [$s: status] returns str:
     return "a status";
 end fn status.%label
 
-fn.main [none] -> void:
-    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
-    let $s: status = status.failed[code = 3];
+fn.main [none] returns void:
+    let mut $out: os::stdout.unbuffered set_to os::stdout.unbuffered();
+    let $s: status set_to status.failed[code set_to 3];
     if $s: status.failed:
         std::io::fmt_print(Lend.mut $out, "{}{newln}", $s.%label());
         std::io::fmt_print(Lend.mut $out, "{}{newln}", $s.code);

@@ -7,12 +7,12 @@ struct reading:
     time: i32;
 end struct reading
 
-fn.main [none] -> void:
-    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
-    let mut $r: reading = reading[celsius = 21, time = 3600];
-    let $m: Lend.mut from $r reading = Lend.mut $r;
-    let $n: Lend.mut from $r reading = Lend.mut $m;
+fn.main [none] returns void:
+    let mut $out: os::stdout.unbuffered set_to os::stdout.unbuffered();
+    let mut $r: reading set_to reading[celsius set_to 21, time set_to 3600];
+    let $m: Lend.mut from $r reading set_to Lend.mut $r;
+    let $n: Lend.mut from $r reading set_to Lend.mut $m;
     std::io::fmt_print(Lend.mut $out, "{}{newln}", $m.celsius);
-    change $n.celsius = 2;
+    change $n.celsius set_to 2;
     return void;
 end fn.main

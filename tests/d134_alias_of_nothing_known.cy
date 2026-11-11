@@ -1,7 +1,7 @@
 // trace: D134
 
-type.alias score = widget;
+type.alias score set_to widget;
 
-fn.main [none] -> void:
+fn.main [none] returns void:
     return void;
 end fn.main

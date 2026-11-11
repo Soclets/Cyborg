@@ -1,5 +1,5 @@
-refused: d131_not_inside_a_comparison.cy:5:28, line 5 column 28
- 5 |     let $c: bool = true == not $b;
-   |                            ^^^
+refused: d131_not_inside_a_comparison.cy:5:33, line 5 column 33
+ 5 |     let $c: bool set_to true == not $b;
+   |                                 ^^^
  what: `not` sits below comparisons and maths, so here it needs `( )`
  why:  `not` sits just above `and`, and `( )` groups (D116, D131)

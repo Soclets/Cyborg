@@ -7,25 +7,25 @@ struct money:
     cents: i64;
 end struct money
 
-op + [$a: money, $b: money] -> money:
-    return money[cents = $a.cents + $b.cents];
+op + [$a: money, $b: money] returns money:
+    return money[cents set_to $a.cents + $b.cents];
 end op +
 
-op x [$a: money, $b: i64] -> money:
-    return money[cents = $a.cents x $b];
+op x [$a: money, $b: i64] returns money:
+    return money[cents set_to $a.cents x $b];
 end op x
 
-op div.floor [$a: money, $b: i64] -> money:
-    return money[cents = $a.cents div.floor $b];
+op div.floor [$a: money, $b: i64] returns money:
+    return money[cents set_to $a.cents div.floor $b];
 end op div.floor
 
-fn.main [none] -> void:
-    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
-    let $price: money = money[cents = 250];
-    let $fee: money = money[cents = 30];
-    let $count: i64 = 3;
-    let $total: money = $price + $fee x $count;
-    let $half: money = $total div.floor 2;
+fn.main [none] returns void:
+    let mut $out: os::stdout.unbuffered set_to os::stdout.unbuffered();
+    let $price: money set_to money[cents set_to 250];
+    let $fee: money set_to money[cents set_to 30];
+    let $count: i64 set_to 3;
+    let $total: money set_to $price + $fee x $count;
+    let $half: money set_to $total div.floor 2;
     std::io::fmt_print(Lend.mut $out, "{} {}{newln}", $total.cents, $half.cents);
     return void;
 end fn.main

@@ -1,5 +1,5 @@
-refused: d205_trailing_needs_a_space.cy:4:22, line 4 column 22
- 4 |     let $x: i32 = 1; //no space
-   |                      ^^^^^^^^^^
+refused: d205_trailing_needs_a_space.cy:4:27, line 4 column 27
+ 4 |     let $x: i32 set_to 1; //no space
+   |                           ^^^^^^^^^^
  fix:  `// no space`
  why:  `//` needs a space after it, and `///` is its own form (D119)

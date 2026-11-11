@@ -2,12 +2,12 @@
 // trace: D133, D2
 import std;
 
-fn eat [$s: Given str] -> void:
+fn eat [$s: Given str] returns void:
     return void;
 end fn eat
 
-fn.main [none] -> void:
-    let $a: std::array<str>[len: 1 items] = ["hi"];
+fn.main [none] returns void:
+    let $a: std::array<str>[len: 1 items] set_to ["hi"];
     eat(Give $a[pos: 1]);
     return void;
 end fn.main

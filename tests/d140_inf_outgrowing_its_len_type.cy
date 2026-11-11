@@ -3,9 +3,9 @@
 import std;
 import os;
 
-fn.main [none] -> void:
-    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
-    let mut $xs: std::list<i32>[len.max: inf items, len.type: u8] = empty;
+fn.main [none] returns void:
+    let mut $out: os::stdout.unbuffered set_to os::stdout.unbuffered();
+    let mut $xs: std::list<i32>[len.max: inf items, len.type: u8] set_to empty;
     for $i in range[from: 1, to: 255]:
         $xs.std::%%append(val: $i);
     end for

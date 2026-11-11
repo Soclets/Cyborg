@@ -1,5 +1,5 @@
 refused: d260_unit_on_a_plain_type.cy:9:22, line 9 column 22
- 9 |     let $n: i32[min: 0 time.seconds, max: 9] = 5;
+ 9 |     let $n: i32[min: 0 time.seconds, max: 9] set_to 5;
    |                      ^^^^^^^^^^^^^^
  fix:  `0`
  why:  a bound writes its unit like any value given to its type, as `min: 0.0 length.meters` (D260, D101)

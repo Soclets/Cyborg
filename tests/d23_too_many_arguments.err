@@ -1,5 +1,5 @@
-refused: d23_too_many_arguments.cy:8:24, line 8 column 24
- 8 |     let $a: i32 = f(1, 2);
-   |                        ^
+refused: d23_too_many_arguments.cy:8:29, line 8 column 29
+ 8 |     let $a: i32 set_to f(1, 2);
+   |                             ^
  what: this is one argument too many for `f`
  why:  a declared label must be written, and a parameter with no label is called without one (D113, D114)

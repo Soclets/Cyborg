@@ -10,10 +10,10 @@ struct index <`text`, `table`: lasts_at_least `text`>:
     lookup: Lend from `table` reading;
 end struct index
 
-fn build [$article: reading, $list: reading] -> index<`text`: $article, `table`: $list>:
-    return index[words = Lend $article, lookup = Lend $list];
+fn build [$article: reading, $list: reading] returns index<`text`: $article, `table`: $list>:
+    return index[words set_to Lend $article, lookup set_to Lend $list];
 end fn build
 
-fn.main [none] -> void:
+fn.main [none] returns void:
     return void;
 end fn.main

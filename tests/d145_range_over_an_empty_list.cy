@@ -3,9 +3,9 @@
 import std;
 import os;
 
-fn.main [none] -> void:
-    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
-    let $xs: std::list<i32>[len.max: 8 items] = empty;
+fn.main [none] returns void:
+    let mut $out: os::stdout.unbuffered set_to os::stdout.unbuffered();
+    let $xs: std::list<i32>[len.max: 8 items] set_to empty;
     for $i in range[from: 1, to: $xs.len]:
         std::io::fmt_print(Lend.mut $out, "inside{newln}");
     end for

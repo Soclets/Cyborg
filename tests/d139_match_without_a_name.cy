@@ -6,13 +6,13 @@ union.tagged status:
     failed[code: i32];
 end union.tagged status
 
-fn.main [none] -> void:
-    let $s: status = status.failed[code = 1];
+fn.main [none] returns void:
+    let $s: status set_to status.failed[code set_to 1];
     match $s:
         case status.failed:
-            let $n: i32 = $s.code;
+            let $n: i32 set_to $s.code;
         case status.ok:
-            let $n: i32 = 0;
+            let $n: i32 set_to 0;
     end match
     return void;
 end fn.main

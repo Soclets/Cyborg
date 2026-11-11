@@ -1,5 +1,5 @@
-refused: d241_two_types_for_one.cy:28:29, line 28 column 29
-28 |     let $c: i64 = total($a, $b);
-   |                             ^^
+refused: d241_two_types_for_one.cy:28:34, line 28 column 34
+28 |     let $c: i64 set_to total($a, $b);
+   |                                  ^^
  what: `?item` is `i32` from an earlier argument, and this is `i64`
  why:  a call fills each type parameter with one type (D241)

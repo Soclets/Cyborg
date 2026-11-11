@@ -1,6 +1,6 @@
-check failed: d158_negating_drops_the_bound.cy:5:46, line 5 column 46
- 5 |     let $b: f64.stable[min: 0.0, max: 1.0] = -$a;
-   |                                              ^^^
+check failed: d158_negating_drops_the_bound.cy:5:51, line 5 column 51
+ 5 |     let $b: f64.stable[min: 0.0, max: 1.0] set_to -$a;
+   |                                                   ^^^
  what: this doesn't fit `f64.stable[min: 0.0, max: 1.0]`
- why:  a plain `=`, `change` or argument checks a bound when the compiler can't see it fits (D20, D158)
+ why:  a plain `set_to`, `change` or argument checks a bound when the compiler can't see it fits (D20, D158)
  when: it is -0.5

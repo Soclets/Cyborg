@@ -1,5 +1,5 @@
-refused: d141_as_str_in_a_constant.cy:3:17, line 3 column 17
- 3 | const $s: str = 5 as str;
-   |                 ^^^^^^^^
+refused: d141_as_str_in_a_constant.cy:3:22, line 3 column 22
+ 3 | const $s: str set_to 5 as str;
+   |                      ^^^^^^^^
  what: this `as` isn't known at compile time
  why:  a `const`'s value must be fully known at compile time (D83, D91)

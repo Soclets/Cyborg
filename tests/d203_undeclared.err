@@ -1,5 +1,5 @@
 refused: d203_undeclared.cy:5:12, line 5 column 12
- 5 |     assign $x = 1;
+ 5 |     assign $x set_to 1;
    |            ^^
  what: `$x` isn't declared
  why:  `decl` declares a variable with no value yet, and `assign` gives it one (D203)

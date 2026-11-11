@@ -9,8 +9,8 @@ struct outer:
     a: inner;
 end struct outer
 
-fn.main [none] -> void:
-    let $o: outer = outer[a = inner[n = 1]];
-    let $l: Lend from $o inner = Lend $o.a;
+fn.main [none] returns void:
+    let $o: outer set_to outer[a set_to inner[n set_to 1]];
+    let $l: Lend from $o inner set_to Lend $o.a;
     return void;
 end fn.main

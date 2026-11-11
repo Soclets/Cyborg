@@ -5,9 +5,9 @@ struct box:
     s: str;
 end struct box
 
-fn.main [none] -> void:
-    let mut $b: box = box[s = "a"];
-    let $s: str = "b";
-    change $b.s = $s;
+fn.main [none] returns void:
+    let mut $b: box set_to box[s set_to "a"];
+    let $s: str set_to "b";
+    change $b.s set_to $s;
     return void;
 end fn.main

@@ -2,12 +2,12 @@
 import std;
 import os;
 
-fn.pure again [none] -> bool:
+fn.pure again [none] returns bool:
     return false;
 end fn.pure again
 
-fn.main [none] -> void:
-    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
+fn.main [none] returns void:
+    let mut $out: os::stdout.unbuffered set_to os::stdout.unbuffered();
     while again():
         return void;
     end while

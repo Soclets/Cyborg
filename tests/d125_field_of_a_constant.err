@@ -1,5 +1,5 @@
 refused: d125_field_of_a_constant.cy:10:12, line 10 column 12
-10 |     change $b.n = 2;
+10 |     change $b.n set_to 2;
    |            ^^^^
  what: `$b` is a constant, so it can't change
  why:  a constant's value is fixed at compile time (D83)

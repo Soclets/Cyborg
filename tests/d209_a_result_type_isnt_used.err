@@ -1,5 +1,5 @@
-refused: d209_a_result_type_isnt_used.cy:4:22, line 4 column 22
- 4 | fn half [$n: i32] -> result<i32, odd>:
-   |                      ^^^^^^
+refused: d209_a_result_type_isnt_used.cy:4:27, line 4 column 27
+ 4 | fn half [$n: i32] returns result<i32, odd>:
+   |                           ^^^^^^
  what: the type `result` isn't known
  why:  a type is built in, or declared with `struct` or `union.tagged` (D33, D57)

@@ -3,11 +3,11 @@
 import std;
 import os;
 
-fn.main [none] -> void:
-    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
-    let mut $xs: std::array<i32>[len: 3 items] = [1, 2, 3];
+fn.main [none] returns void:
+    let mut $out: os::stdout.unbuffered set_to os::stdout.unbuffered();
+    let mut $xs: std::array<i32>[len: 3 items] set_to [1, 2, 3];
     for $n in Lend.mut $xs:
-        change $n = $n x 10;
+        change $n set_to $n x 10;
     end for
     for $n in $xs:
         std::io::fmt_print(Lend.mut $out, "{}{newln}", $n);

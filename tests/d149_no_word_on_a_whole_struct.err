@@ -1,5 +1,5 @@
-refused: d149_no_word_on_a_whole_struct.cy:12:23, line 12 column 23
-12 |     let $w: wrapped = $r as wrapped;
-   |                       ^^
+refused: d149_no_word_on_a_whole_struct.cy:12:28, line 12 column 28
+12 |     let $w: wrapped set_to $r as wrapped;
+   |                            ^^
  what: `$r` is `reading`, so this says `Give` or `Copy`
  why:  `as` on a whole value says its ownership: `Give` leaves it dead, and `Copy` pays for a copy (D3, D149)

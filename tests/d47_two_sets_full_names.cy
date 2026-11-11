@@ -10,13 +10,13 @@ fam.failure net_failed:
     net_failed.denied;
 end fam.failure net_failed
 
-fn load [none] -> i32 fails [file_failed.denied, net_failed.denied]:
+fn load [none] returns i32 fails [file_failed.denied, net_failed.denied]:
     fail net_failed.denied;
 end fn load
 
-fn.main [none] -> void:
-    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
-    let $n: i32 = load() otherwise:
+fn.main [none] returns void:
+    let mut $out: os::stdout.unbuffered set_to os::stdout.unbuffered();
+    let $n: i32 set_to load() otherwise:
         case file_failed.denied:
             std::io::fmt_print(Lend.mut $out, "file{newln}");
             return void;

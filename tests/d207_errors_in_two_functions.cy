@@ -3,14 +3,14 @@
 import std;
 import os;
 
-fn half [$n: i32] -> i32:
-    let $a: i64 = $n;
+fn half [$n: i32] returns i32:
+    let $a: i64 set_to $n;
     return $n div.trunc 2;
 end fn half
 
-fn.main [none] -> void:
-    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
-    let $b: f64.stable = 0.1;
+fn.main [none] returns void:
+    let mut $out: os::stdout.unbuffered set_to os::stdout.unbuffered();
+    let $b: f64.stable set_to 0.1;
     std::io::fmt_print(Lend.mut $out, "{}{newln}", half(4));
     return void;
 end fn.main

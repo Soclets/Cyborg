@@ -2,8 +2,8 @@
 // trace: D213
 import std;
 
-fn.main [none] -> void:
-    let $a: bool = true;
-    let $b: bool = $a and  $a;
+fn.main [none] returns void:
+    let $a: bool set_to true;
+    let $b: bool set_to $a and  $a;
     return void;
 end fn.main

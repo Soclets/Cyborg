@@ -7,31 +7,31 @@ struct reading:
     celsius: i32;
 end struct reading
 
-op < [$a: reading, $b: reading] -> bool:
-    return $a.celsius < $b.celsius;
-end op <
+op below [$a: reading, $b: reading] returns bool:
+    return $a.celsius below $b.celsius;
+end op below
 
-op == [$a: reading, $b: reading] -> bool:
+op == [$a: reading, $b: reading] returns bool:
     return $a.celsius == $b.celsius;
 end op ==
 
-fn shown [$yes: bool] -> str:
+fn shown [$yes: bool] returns str:
     if $yes:
         return "yes";
     end if
     return "no";
 end fn shown
 
-fn.main [none] -> void:
-    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
-    let $cold: reading = reading[celsius = 3];
-    let $warm: reading = reading[celsius = 21];
-    std::io::fmt_print(Lend.mut $out, "< {}{newln}", shown($cold < $warm));
-    std::io::fmt_print(Lend.mut $out, "> {}{newln}", shown($cold > $warm));
+fn.main [none] returns void:
+    let mut $out: os::stdout.unbuffered set_to os::stdout.unbuffered();
+    let $cold: reading set_to reading[celsius set_to 3];
+    let $warm: reading set_to reading[celsius set_to 21];
+    std::io::fmt_print(Lend.mut $out, "< {}{newln}", shown($cold below $warm));
+    std::io::fmt_print(Lend.mut $out, "> {}{newln}", shown($cold above $warm));
     std::io::fmt_print(Lend.mut $out, "== {}{newln}", shown($cold == $warm));
     std::io::fmt_print(Lend.mut $out, "!= {}{newln}", shown($cold != $warm));
     std::io::fmt_print(Lend.mut $out, "at_least {}{newln}", shown($cold at_least $warm));
     std::io::fmt_print(Lend.mut $out, "at_most {}{newln}", shown($cold at_most $warm));
-    std::io::fmt_print(Lend.mut $out, "chain {}{newln}", shown($cold < $warm < reading[celsius = 30]));
+    std::io::fmt_print(Lend.mut $out, "chain {}{newln}", shown($cold below $warm below reading[celsius set_to 30]));
     return void;
 end fn.main

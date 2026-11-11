@@ -4,6 +4,6 @@ refused: d169_held_mut_stops_reads.cy:15:52, line 15 column 52
  what: `$lock` holds `$r` until the end of its block
  why:  `.held` means nobody touches what it borrows for the whole block (D169)
  because: d169_held_mut_stops_reads.cy:13:9, line 13 column 9
-13 |     let $lock: Lend.mut.held from $r reading = Lend.mut $r;
+13 |     let $lock: Lend.mut.held from $r reading set_to Lend.mut $r;
    |         ^^^^^
      `$lock` holds it from here

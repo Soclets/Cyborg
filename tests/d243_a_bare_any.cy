@@ -11,10 +11,10 @@ fam.unit time:
     time.seconds: base;
 end fam.unit time
 
-fn keep<?item: any> [$a: Given ?item] -> ?item:
+fn keep<?item: any> [$a: Given ?item] returns ?item:
     return Give $a;
 end fn keep
 
-fn.main [none] -> void:
+fn.main [none] returns void:
     return void;
 end fn.main

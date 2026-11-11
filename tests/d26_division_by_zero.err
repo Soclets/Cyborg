@@ -1,5 +1,5 @@
-check failed: d26_division_by_zero.cy:9:19, line 9 column 19
- 9 |     let $a: i32 = 1 div.trunc $z;
-   |                   ^^^^^^^^^^^^^^
+check failed: d26_division_by_zero.cy:9:24, line 9 column 24
+ 9 |     let $a: i32 set_to 1 div.trunc $z;
+   |                        ^^^^^^^^^^^^^^
  what: this divides by zero
  why:  division by zero traps (D26)

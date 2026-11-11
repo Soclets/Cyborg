@@ -1,10 +1,10 @@
 // trace: D23, D113
 
-fn f [$a: i32] -> i32:
+fn f [$a: i32] returns i32:
     return $a;
 end fn f
 
-fn.main [none] -> void:
-    let $a: i32 = f();
+fn.main [none] returns void:
+    let $a: i32 set_to f();
     return void;
 end fn.main

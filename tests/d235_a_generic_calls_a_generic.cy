@@ -4,11 +4,11 @@ import std;
 import os;
 
 interface ordered<?self>:
-    op < [$a: ?self, $b: ?self] -> bool;
+    op below [$a: ?self, $b: ?self] returns bool;
 end interface ordered
 
 interface addable<?self>:
-    op + [$a: ?self, $b: ?self] -> ?self;
+    op + [$a: ?self, $b: ?self] returns ?self;
 end interface addable
 
 type_set whole:
@@ -18,25 +18,25 @@ end type_set whole
 
 i32 satisfies ordered;
 
-fn larger<?item: ordered> [$a: ?item, $b: ?item] -> bool:
-    return $a > $b;
+fn larger<?item: ordered> [$a: ?item, $b: ?item] returns bool:
+    return $a above $b;
 end fn larger
 
-fn smaller<?thing: ordered> [$a: ?thing, $b: ?thing] -> bool:
+fn smaller<?thing: ordered> [$a: ?thing, $b: ?thing] returns bool:
     return larger(Lend $b, Lend $a);
 end fn smaller
 
-fn shown [$yes: bool] -> str:
+fn shown [$yes: bool] returns str:
     if $yes:
         return "yes";
     end if
     return "no";
 end fn shown
 
-fn.main [none] -> void:
-    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
-    let $a: i32 = 3;
-    let $b: i32 = 8;
+fn.main [none] returns void:
+    let mut $out: os::stdout.unbuffered set_to os::stdout.unbuffered();
+    let $a: i32 set_to 3;
+    let $b: i32 set_to 8;
     std::io::fmt_print(Lend.mut $out, "{} {}{newln}", shown(smaller($a, $b)), shown(smaller($b, $a)));
     return void;
 end fn.main

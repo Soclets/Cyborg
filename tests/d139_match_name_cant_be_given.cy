@@ -5,17 +5,17 @@ union.tagged status:
     failed[code: i32];
 end union.tagged status
 
-fn eat [$s: Given status] -> void:
+fn eat [$s: Given status] returns void:
     return void;
 end fn eat
 
-fn.main [none] -> void:
-    let $s: status = status.failed[code = 1];
+fn.main [none] returns void:
+    let $s: status set_to status.failed[code set_to 1];
     match $s:
         case status.failed $f:
             eat(Give $f);
         case status.ok:
-            let $m: i32 = 0;
+            let $m: i32 set_to 0;
     end match
     return void;
 end fn.main

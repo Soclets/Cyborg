@@ -1,5 +1,5 @@
-refused: d7_colon_doesnt_convert.cy:4:19, line 4 column 19
- 4 |     let $a: str = 5;
-   |                   ^
+refused: d7_colon_doesnt_convert.cy:4:24, line 4 column 24
+ 4 |     let $a: str set_to 5;
+   |                        ^
  what: this is `i32`, where `str` is needed
  why:  `:` doesn't convert, and `as` builds a new value of another type (D7)

@@ -2,9 +2,9 @@
 import std;
 import os;
 
-fn.main [none] -> void:
-    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
-    if 1 < 2:
+fn.main [none] returns void:
+    let mut $out: os::stdout.unbuffered set_to os::stdout.unbuffered();
+    if 1 below 2:
         std::io::fmt_print(Lend.mut $out, "yes{newln}");
         return void;
     else:

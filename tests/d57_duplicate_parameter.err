@@ -1,5 +1,5 @@
 refused: d57_duplicate_parameter.cy:3:16, line 3 column 16
- 3 | fn f [$a: i32, $a: i32] -> void:
+ 3 | fn f [$a: i32, $a: i32] returns void:
    |                ^^
  what: `$a` is already a parameter here
  why:  a parameter's name is how the body reaches it (D2)

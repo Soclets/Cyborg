@@ -3,9 +3,9 @@
 import std;
 import os;
 
-fn.main [none] -> void:
-    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
-    let mut $xs: std::list<i32>[len.max: 2 items] = empty;
+fn.main [none] returns void:
+    let mut $out: os::stdout.unbuffered set_to os::stdout.unbuffered();
+    let mut $xs: std::list<i32>[len.max: 2 items] set_to empty;
     $xs.std::%%append(val: 1);
     $xs.std::%%append(val: 2);
     std::io::fmt_print(Lend.mut $out, "two in{newln}");

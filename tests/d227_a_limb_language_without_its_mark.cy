@@ -1,7 +1,7 @@
 // A limb's inline language says its limb with `@`.
 // trace: D227
 
-fn.main [none] -> void:
+fn.main [none] returns void:
     shield low:
         reason "talks to the chip"
         inline.llvm::ir();

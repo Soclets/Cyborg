@@ -1,6 +1,6 @@
-check failed: d133_item_into_a_bound.cy:6:35, line 6 column 35
- 6 |     let $b: i32[min: 0, max: 9] = $a[pos: 1];
-   |                                   ^^^^^^^^^^
+check failed: d133_item_into_a_bound.cy:6:40, line 6 column 40
+ 6 |     let $b: i32[min: 0, max: 9] set_to $a[pos: 1];
+   |                                        ^^^^^^^^^^
  what: `$a[pos: 1]` doesn't fit `i32[min: 0, max: 9]`
- why:  a plain `=`, `change` or argument checks a bound when the compiler can't see it fits (D20)
+ why:  a plain `set_to`, `change` or argument checks a bound when the compiler can't see it fits (D20)
  when: `$a[pos: 1]` is 50

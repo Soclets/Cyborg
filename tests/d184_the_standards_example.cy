@@ -8,15 +8,15 @@ struct reading:
     time: i32;
 end struct reading
 
-fn adjust [$c: Lent.mut i32, $t: Lent.mut i32] -> void:
-    change $c = $c + 1;
-    change $t = $t x 2;
+fn adjust [$c: Lent.mut i32, $t: Lent.mut i32] returns void:
+    change $c set_to $c + 1;
+    change $t set_to $t x 2;
     return void;
 end fn adjust
 
-fn.main [none] -> void:
-    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
-    let mut $r: reading = reading[celsius = 21, time = 3600];
+fn.main [none] returns void:
+    let mut $out: os::stdout.unbuffered set_to os::stdout.unbuffered();
+    let mut $r: reading set_to reading[celsius set_to 21, time set_to 3600];
     adjust(Lend.mut $r.celsius, Lend.mut $r.time);
     std::io::fmt_print(Lend.mut $out, "{} {}{newln}", $r.celsius, $r.time);
     return void;

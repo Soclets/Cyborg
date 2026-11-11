@@ -1,5 +1,5 @@
-NotDesignedYet: d130_called_by_its_full_name.cy:13:19, line 13 column 19
-13 |     let $n: i32 = box.%read(Lend $b);
-   |                   ^^^^^^^^^^^^^^^^^^
+NotDesignedYet: d130_called_by_its_full_name.cy:13:24, line 13 column 24
+13 |     let $n: i32 set_to box.%read(Lend $b);
+   |                        ^^^^^^^^^^^^^^^^^^
  what: calling a method by its full name, as a plain function
  why:  not decided yet, and the standard doesn't say

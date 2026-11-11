@@ -6,6 +6,6 @@ struct pair<?left, ?right: any.type>:
     second: ?right;
 end struct pair
 
-fn.main [none] -> void:
+fn.main [none] returns void:
     return void;
 end fn.main

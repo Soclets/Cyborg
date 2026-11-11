@@ -4,8 +4,8 @@
 import std;
 import os;
 
-fn.main [none] -> void:
-    let mut $out: os::stdout.buffered = os::stdout.buffered(size: 4 bytes);
+fn.main [none] returns void:
+    let mut $out: os::stdout.buffered set_to os::stdout.buffered(size: 4 bytes);
     std::io::fmt_print(Lend.mut $out, "ab");
     std::io::fmt_print(Lend.mut $out, "cd");
     $out.%%flush();

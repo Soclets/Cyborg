@@ -1,5 +1,0 @@
-refused: d216_on_a_parameter.cy:4:10, line 4 column 10
- 4 | fn f [$x := i32] -> void:
-   |          ^^
- what: a parameter always writes its type
- why:  `:=` leaves the type out only on a `let` or a `const`, not a parameter, a return type or a field (D216)

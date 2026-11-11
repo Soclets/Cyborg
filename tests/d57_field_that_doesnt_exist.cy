@@ -4,8 +4,8 @@ struct reading:
     celsius: i32;
 end struct reading
 
-fn.main [none] -> void:
-    let $r: reading = reading[celsius = 21];
-    let $n: i32 = $r.kelvin;
+fn.main [none] returns void:
+    let $r: reading set_to reading[celsius set_to 21];
+    let $n: i32 set_to $r.kelvin;
     return void;
 end fn.main

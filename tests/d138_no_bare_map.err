@@ -1,5 +1,5 @@
 refused: d138_no_bare_map.cy:5:13, line 5 column 13
- 5 |     let $m: std::map<key: str, val: i32> = empty;
+ 5 |     let $m: std::map<key: str, val: i32> set_to empty;
    |             ^^^^^^^^
  what: there's no bare `std::map`, so pick `std::map.hash` or `std::map.ordered`
  why:  no default is obvious, so you pick (D48, D138)

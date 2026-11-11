@@ -1,5 +1,5 @@
 refused: d260_plain_bound_on_a_unit_type.cy:9:42, line 9 column 42
- 9 |     let $t: i32[unit: time.seconds, min: 0, max: 3600 time.seconds] = 60 time.seconds;
+ 9 |     let $t: i32[unit: time.seconds, min: 0, max: 3600 time.seconds] set_to 60 time.seconds;
    |                                          ^
  fix:  `0 time.seconds`
  why:  a bound writes its unit like any value given to its type, as `min: 0.0 length.meters` (D260, D101)

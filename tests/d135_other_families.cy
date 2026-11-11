@@ -4,6 +4,6 @@
 fam.fn tools:
 end fam.fn tools
 
-fn.main [none] -> void:
+fn.main [none] returns void:
     return void;
 end fn.main

@@ -1,5 +1,5 @@
-refused: d52_older_failure_spelling.cy:3:26, line 3 column 26
- 3 | fn half [$n: i32] -> i32 or fail[odd]:
-   |                          ^^
+refused: d52_older_failure_spelling.cy:3:31, line 3 column 31
+ 3 | fn half [$n: i32] returns i32 or fail[odd]:
+   |                               ^^
  what: `or fail[…]` is the older spelling
  why:  a function lists its failures in its header, after its return type, with `fails` (D52, D209)

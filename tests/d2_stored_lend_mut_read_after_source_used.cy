@@ -5,10 +5,10 @@ struct reading:
     celsius: i32;
 end struct reading
 
-fn.main [none] -> void:
-    let mut $r: reading = reading[celsius = 21];
-    let $b: Lend.mut from $r reading = Lend.mut $r;
-    let $n: i32 = $r.celsius;
-    let $m: i32 = $b.celsius;
+fn.main [none] returns void:
+    let mut $r: reading set_to reading[celsius set_to 21];
+    let $b: Lend.mut from $r reading set_to Lend.mut $r;
+    let $n: i32 set_to $r.celsius;
+    let $m: i32 set_to $b.celsius;
     return void;
 end fn.main

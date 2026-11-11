@@ -6,16 +6,16 @@ struct reading:
     celsius: i32;
 end struct reading
 
-type.new wrapped = reading;
+type.new wrapped set_to reading;
 
-fn make [none] -> reading:
-    return reading[celsius = 3];
+fn make [none] returns reading:
+    return reading[celsius set_to 3];
 end fn make
 
-fn.main [none] -> void:
-    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
-    let $w: wrapped = make() as wrapped;
-    let $v: wrapped = reading[celsius = 4] as wrapped;
+fn.main [none] returns void:
+    let mut $out: os::stdout.unbuffered set_to os::stdout.unbuffered();
+    let $w: wrapped set_to make() as wrapped;
+    let $v: wrapped set_to reading[celsius set_to 4] as wrapped;
     std::io::fmt_print(Lend.mut $out, "ok{newln}");
     return void;
 end fn.main

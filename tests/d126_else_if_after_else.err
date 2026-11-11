@@ -1,5 +1,5 @@
 refused: d126_else_if_after_else.cy:8:5, line 8 column 5
- 8 |     else if 2 < 1:
+ 8 |     else if 2 below 1:
    |     ^^^^
  what: nothing follows `else:` but `end if`
  why:  `else if` and `else:` continue an `if`, and one `end if` closes the chain (D126)

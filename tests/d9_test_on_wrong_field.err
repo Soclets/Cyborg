@@ -1,5 +1,5 @@
-refused: d9_test_on_wrong_field.cy:11:26, line 11 column 26
-11 |         let $n: i32 = $s.code;
-   |                          ^^^^
+refused: d9_test_on_wrong_field.cy:11:31, line 11 column 31
+11 |         let $n: i32 set_to $s.code;
+   |                               ^^^^
  what: `status.ok` has no field `code`
  why:  a case's values go in `[ ]` (D33)

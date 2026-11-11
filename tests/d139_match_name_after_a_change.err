@@ -1,9 +1,9 @@
-refused: d139_match_name_after_a_change.cy:14:27, line 14 column 27
-14 |             let $n: i32 = $f.code;
-   |                           ^^
+refused: d139_match_name_after_a_change.cy:14:32, line 14 column 32
+14 |             let $n: i32 set_to $f.code;
+   |                                ^^
  what: `$f` can't be used after what it borrows was used
  why:  a stored `Lend.mut` means nothing else uses it meanwhile, and a `Lend` means it can't change (D2)
  because: d139_match_name_after_a_change.cy:13:20, line 13 column 20
-13 |             change $s = status.ok;
+13 |             change $s set_to status.ok;
    |                    ^^
      what it borrows was used here

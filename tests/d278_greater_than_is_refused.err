@@ -1,0 +1,5 @@
+refused: d278_greater_than_is_refused.cy:6:28, line 6 column 28
+ 6 |     let $c: bool set_to $a > $b;
+   |                            ^
+ fix:  `above`
+ why:  `below`, `above`, `at_least` and `at_most` say their direction outright, and `<` and `>` only mean brackets (D278)

@@ -1,5 +1,5 @@
 refused: d171_sources_out_of_order.cy:14:19, line 14 column 19
-14 |     let $i: index<`table`: $a, `text`: $a> = index[words = Lend $a, lookup = Lend $a];
+14 |     let $i: index<`table`: $a, `text`: $a> set_to index[words set_to Lend $a, lookup set_to Lend $a];
    |                   ^^^^^^^
  what: `index`'s sources go in their declared order: `text`, then `table`
  why:  a type fills every source, in the declared order (D171)

@@ -1,5 +1,5 @@
-refused: d134_alias_of_nothing_known.cy:3:20, line 3 column 20
- 3 | type.alias score = widget;
-   |                    ^^^^^^
+refused: d134_alias_of_nothing_known.cy:3:25, line 3 column 25
+ 3 | type.alias score set_to widget;
+   |                         ^^^^^^
  what: the type `widget` isn't known
  why:  a type is built in, or declared with `struct` or `union.tagged` (D33, D57)

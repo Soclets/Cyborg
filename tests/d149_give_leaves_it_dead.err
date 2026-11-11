@@ -1,9 +1,9 @@
-refused: d149_give_leaves_it_dead.cy:12:32, line 12 column 32
-12 |     let $again: reading = Copy $r;
-   |                                ^^
+refused: d149_give_leaves_it_dead.cy:12:37, line 12 column 37
+12 |     let $again: reading set_to Copy $r;
+   |                                     ^^
  what: `$r` was already given away
  why:  a given value is dead afterwards (D2)
- because: d149_give_leaves_it_dead.cy:11:23, line 11 column 23
-11 |     let $w: wrapped = Give $r as wrapped;
-   |                       ^^^^^^^
+ because: d149_give_leaves_it_dead.cy:11:28, line 11 column 28
+11 |     let $w: wrapped set_to Give $r as wrapped;
+   |                            ^^^^^^^
      `$r` was given away here

@@ -2,9 +2,9 @@
 import std;
 import os;
 
-fn.main [none] -> void:
-    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
-    let $xs: std::array<i32>[len: 3 items] = [4, 5, 6];
+fn.main [none] returns void:
+    let mut $out: os::stdout.unbuffered set_to os::stdout.unbuffered();
+    let $xs: std::array<i32>[len: 3 items] set_to [4, 5, 6];
     for $i in range[from: 1, to: $xs.len]:
         std::io::fmt_print(Lend.mut $out, "{} holds {}{newln}", $i, $xs[pos: $i]);
     end for
@@ -12,7 +12,7 @@ fn.main [none] -> void:
         std::io::fmt_print(Lend.mut $out, "{}{newln}", $i);
     end for
     for $i in range[from: 1 items, to: 2 items]:
-        let $kept: i32[unit: items] = $i;
+        let $kept: i32[unit: items] set_to $i;
         std::io::fmt_print(Lend.mut $out, "{}{newln}", $kept);
     end for
     return void;

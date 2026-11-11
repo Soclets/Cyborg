@@ -14,6 +14,6 @@ refused: d185_using_it_whole.cy:31:5, line 31 column 5
  what: this leaves with `$l` never given away or finished
  why:  a `must_Give` value is handed off with `Give` exactly once, or `finish` ends it (D2, D129)
  because: d185_using_it_whole.cy:28:9, line 28 column 9
-28 |     let $l: log = log[file = open_file[fd = 4], lines = 7];
+28 |     let $l: log set_to log[file set_to open_file[fd set_to 4], lines set_to 7];
    |         ^^
      `$l` was made here

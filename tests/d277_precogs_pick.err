@@ -1,0 +1,5 @@
+NotDesignedYet: d277_precogs_pick.cy:4:16, line 4 column 16
+ 4 |     let $count @precog::set_to 0;
+   |                ^
+ what: Precog's `@precog::set_to`, which needs its `rule` line, and `rule` lines aren't designed
+ why:  not decided yet (standard 12.9)

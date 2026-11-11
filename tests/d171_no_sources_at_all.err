@@ -1,5 +1,5 @@
 refused: d171_no_sources_at_all.cy:12:14, line 12 column 14
-12 | fn take [$i: index] -> void:
+12 | fn take [$i: index] returns void:
    |              ^^^^^
  what: `index` has the sources `text`, then `table`, and this leaves out `text`
  why:  a type fills every source, in the declared order, and leaving one out is refused (D171)

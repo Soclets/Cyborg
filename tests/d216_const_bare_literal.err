@@ -1,5 +1,0 @@
-refused: d216_const_bare_literal.cy:4:15, line 4 column 15
- 4 | const $max := 100;
-   |               ^^^
- what: `100` has no type of its own, so this line says one, as in `: i32 = 100`
- why:  a bare literal has no default type, so `:=` can't take one from it (D216, D50)

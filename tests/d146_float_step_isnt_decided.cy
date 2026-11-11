@@ -1,8 +1,8 @@
 // A step takes any integer, and floats wait on whether ranges of floats exist at all.
 // trace: D146
 
-fn.main [none] -> void:
-    let $by: f64.stable = 1.5;
+fn.main [none] returns void:
+    let $by: f64.stable set_to 1.5;
     for $i in range[from: 1, to: 5, step_by: $by]:
         return void;
     end for

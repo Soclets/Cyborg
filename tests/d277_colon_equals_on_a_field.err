@@ -1,0 +1,5 @@
+refused: d277_colon_equals_on_a_field.cy:5:13, line 5 column 13
+ 5 |     celsius := i32;
+   |             ^^
+ what: `:=` is gone, and a struct field always writes its type
+ why:  there's no type inference in the base language, so everything writes its type (D277)

@@ -7,20 +7,20 @@ struct box:
     n: i32;
 end struct box
 
-fn eat [$b: Given box] -> i32:
+fn eat [$b: Given box] returns i32:
     return $b.n;
 end fn eat
 
-fn pick [$b: Given box, $early: bool] -> i32:
+fn pick [$b: Given box, $early: bool] returns i32:
     if $early:
         return eat(Give $b);
     end if
     return eat(Give $b) + 1;
 end fn pick
 
-fn.main [none] -> void:
-    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
-    std::io::fmt_print(Lend.mut $out, "{}{newln}", pick(box[n = 1], 1 < 2));
-    std::io::fmt_print(Lend.mut $out, "{}{newln}", pick(box[n = 1], 2 < 1));
+fn.main [none] returns void:
+    let mut $out: os::stdout.unbuffered set_to os::stdout.unbuffered();
+    std::io::fmt_print(Lend.mut $out, "{}{newln}", pick(box[n set_to 1], 1 below 2));
+    std::io::fmt_print(Lend.mut $out, "{}{newln}", pick(box[n set_to 1], 2 below 1));
     return void;
 end fn.main

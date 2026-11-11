@@ -1,5 +1,5 @@
 refused: d109_loop_of_units.cy:4:5, line 4 column 5
- 4 |     money.cents = 100 money.dollars;
+ 4 |     money.cents set_to 100 money.dollars;
    |     ^^^^^^^^^^^
  what: `money.cents` never reaches a `base`
  why:  loops and units with no base are refused (D109)

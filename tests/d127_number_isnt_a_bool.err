@@ -1,5 +1,5 @@
-refused: d127_number_isnt_a_bool.cy:4:20, line 4 column 20
- 4 |     let $a: bool = 1;
-   |                    ^
+refused: d127_number_isnt_a_bool.cy:4:25, line 4 column 25
+ 4 |     let $a: bool set_to 1;
+   |                         ^
  what: this is `i32`, where `bool` is needed
  why:  `:` doesn't convert, and `as` builds a new value of another type (D7)

@@ -4,12 +4,12 @@ struct reading:
     celsius: i32;
 end struct reading
 
-type.new wrapped = reading;
+type.new wrapped set_to reading;
 
-fn f [$w: Given wrapped] -> wrapped:
+fn f [$w: Given wrapped] returns wrapped:
     return $w;
 end fn f
 
-fn.main [none] -> void:
+fn.main [none] returns void:
     return void;
 end fn.main

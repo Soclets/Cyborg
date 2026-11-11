@@ -8,15 +8,15 @@ struct.must_Give open_file:
     fd: i32;
 end struct.must_Give open_file
 
-fn close [$f: Given open_file] -> void:
-    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
+fn close [$f: Given open_file] returns void:
+    let mut $out: os::stdout.unbuffered set_to os::stdout.unbuffered();
     std::io::fmt_print(Lend.mut $out, "closing {}{newln}", $f.fd);
     finish $f;
     return void;
 end fn close
 
-fn open [$fd: i32] -> open_file:
-    return open_file[fd = $fd];
+fn open [$fd: i32] returns open_file:
+    return open_file[fd set_to $fd];
 end fn open
 
 struct.must_Give log:
@@ -24,14 +24,14 @@ struct.must_Give log:
     lines: i32;
 end struct.must_Give log
 
-fn read_log [$l: log] -> i32:
+fn read_log [$l: log] returns i32:
     return $l.file.fd + $l.lines;
 end fn read_log
 
-fn.main [none] -> void:
-    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
-    let $f: open_file = open(3);
-    let $l: log = log[file = Give $f, lines = 10];
+fn.main [none] returns void:
+    let mut $out: os::stdout.unbuffered set_to os::stdout.unbuffered();
+    let $f: open_file set_to open(3);
+    let $l: log set_to log[file set_to Give $f, lines set_to 10];
     std::io::fmt_print(Lend.mut $out, "{}{newln}", read_log(Lend $l));
     return void;
 end fn.main

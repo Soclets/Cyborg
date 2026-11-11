@@ -3,11 +3,11 @@
 import std;
 import os;
 
-fn.main [none] -> void:
-    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
-    let $a: i32 = 1;
+fn.main [none] returns void:
+    let mut $out: os::stdout.unbuffered set_to os::stdout.unbuffered();
+    let $a: i32 set_to 1;
     if
-        $a < 3:
+        $a below 3:
         std::io::fmt_print(Lend.mut $out, "small{newln}");
     end if
     return void;

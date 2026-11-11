@@ -5,6 +5,6 @@ union.tagged if:
     no;
 end union.tagged if
 
-fn.main [none] -> void:
+fn.main [none] returns void:
     return void;
 end fn.main

@@ -2,16 +2,16 @@
 import std;
 import os;
 
-fn.main [none] -> void:
-    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
-    let $x: i32 = 3;
-    if 1 < $x < 5:
+fn.main [none] returns void:
+    let mut $out: os::stdout.unbuffered set_to os::stdout.unbuffered();
+    let $x: i32 set_to 3;
+    if 1 below $x below 5:
         std::io::fmt_print(Lend.mut $out, "between{newln}");
     end if
-    if 1 < $x < 2:
+    if 1 below $x below 2:
         std::io::fmt_print(Lend.mut $out, "not reached{newln}");
     end if
-    if 1 < 2 at_most 2 == 2 != 3:
+    if 1 below 2 at_most 2 == 2 != 3:
         std::io::fmt_print(Lend.mut $out, "any mix{newln}");
     end if
     return void;

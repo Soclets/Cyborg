@@ -2,14 +2,14 @@
 // trace: D134, D16
 
 fam.type.alias sizes:
-    sizes.small = i32;
+    sizes.small set_to i32;
 end fam.type.alias sizes
 
 fam.type.alias shoes:
-    shoes.small = i32;
+    shoes.small set_to i32;
 end fam.type.alias shoes
 
-fn.main [none] -> void:
-    let $a: small = 1;
+fn.main [none] returns void:
+    let $a: small set_to 1;
     return void;
 end fn.main

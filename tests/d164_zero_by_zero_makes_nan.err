@@ -1,6 +1,6 @@
-check failed: d164_zero_by_zero_makes_nan.cy:5:26, line 5 column 26
- 5 |     let $a: f64.stable = $zero div $zero;
-   |                          ^^^^^^^^^^^^^^^
+check failed: d164_zero_by_zero_makes_nan.cy:5:31, line 5 column 31
+ 5 |     let $a: f64.stable set_to $zero div $zero;
+   |                               ^^^^^^^^^^^^^^^
  what: this makes NaN
  why:  a float can't be NaN or infinity, and making one is a failure (D158)
  when: `0.0` and `0.0` in `f64`

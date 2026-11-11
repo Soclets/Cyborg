@@ -2,8 +2,8 @@
 import std;
 import os;
 
-fn.main [none] -> void:
-    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
+fn.main [none] returns void:
+    let mut $out: os::stdout.unbuffered set_to os::stdout.unbuffered();
     for rows $a in range[from: 1, to: 3]:
         for $b in range[from: 1, to: 3]:
             if $a == 2 and $b == 2:

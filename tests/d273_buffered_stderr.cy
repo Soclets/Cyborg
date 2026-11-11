@@ -3,9 +3,9 @@
 import std;
 import os;
 
-fn.main [none] -> void:
-    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
-    let mut $err: os::stderr.buffered = os::stderr.buffered(size: 64 bytes);
+fn.main [none] returns void:
+    let mut $out: os::stdout.unbuffered set_to os::stdout.unbuffered();
+    let mut $err: os::stderr.buffered set_to os::stderr.buffered(size: 64 bytes);
     std::io::fmt_print(Lend.mut $out, "out{newln}");
     std::io::fmt_print(Lend.mut $err, "warning{newln}");
     os::done(Give $err);

@@ -1,5 +1,5 @@
-refused: d174_names_the_original.cy:11:40, line 11 column 40
-11 |     let $n: Lend.mut from $m reading = Lend.mut $m;
-   |                                        ^^^^^^^^^^^
+refused: d174_names_the_original.cy:11:45, line 11 column 45
+11 |     let $n: Lend.mut from $m reading set_to Lend.mut $m;
+   |                                             ^^^^^^^^^^^
  what: this borrows `$r` through `$m`, so the type names `$r`
  why:  a borrow taken through a stored borrow names the original value (D174)

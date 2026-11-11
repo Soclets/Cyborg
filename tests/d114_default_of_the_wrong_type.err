@@ -1,5 +1,5 @@
-refused: d114_default_of_the_wrong_type.cy:5:20, line 5 column 20
- 5 |     defaults [$a = "x"];
-   |                    ^^^
+refused: d114_default_of_the_wrong_type.cy:5:25, line 5 column 25
+ 5 |     defaults [$a set_to "x"];
+   |                         ^^^
  what: this is `str`, where `i32` is needed
  why:  `:` doesn't convert, and `as` builds a new value of another type (D7)

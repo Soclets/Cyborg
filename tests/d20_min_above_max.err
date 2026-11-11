@@ -1,5 +1,5 @@
 refused: d20_min_above_max.cy:4:13, line 4 column 13
- 4 |     let $a: i32[min: 5, max: 1] = 1;
+ 4 |     let $a: i32[min: 5, max: 1] set_to 1;
    |             ^^^^^^^^^^^^^^^^^^^
  what: `min` is above `max`, so nothing fits
  why:  a bounded integer holds only its range (D20)

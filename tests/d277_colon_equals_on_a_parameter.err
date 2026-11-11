@@ -1,0 +1,5 @@
+refused: d277_colon_equals_on_a_parameter.cy:4:10, line 4 column 10
+ 4 | fn f [$x := i32] returns void:
+   |          ^^
+ what: `:=` is gone, and a parameter always writes its type
+ why:  there's no type inference in the base language, so everything writes its type (D277)

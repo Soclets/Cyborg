@@ -1,5 +1,5 @@
-refused: d59_exact_in_f64_not_f32.cy:6:26, line 6 column 26
- 6 |     let $b: f32.stable = 16777217.0;
-   |                          ^^^^^^^^^^
+refused: d59_exact_in_f64_not_f32.cy:6:31, line 6 column 31
+ 6 |     let $b: f32.stable set_to 16777217.0;
+   |                               ^^^^^^^^^^
  fix:  `~16777217.0`
  why:  f32 can't hold 16777217.0 exactly (D59)

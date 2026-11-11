@@ -4,13 +4,13 @@ fam.unit screen:
     screen.pixels: base;
 end fam.unit screen
 
-fn draw [$x: i32[unit: screen.pixels]] -> void:
+fn draw [$x: i32[unit: screen.pixels]] returns void:
     labels [$x as at.screen.pixels];
 
     return void;
 end fn draw
 
-fn.main [none] -> void:
+fn.main [none] returns void:
     draw(5);
     return void;
 end fn.main

@@ -3,7 +3,7 @@
 import std;
 import os;
 
-fn f [none] -> i32:
+fn f [none] returns i32:
     forever:
         for $i in range[from: 1, to: 2]:
             break;
@@ -12,8 +12,8 @@ fn f [none] -> i32:
     end forever
 end fn f
 
-fn.main [none] -> void:
-    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
+fn.main [none] returns void:
+    let mut $out: os::stdout.unbuffered set_to os::stdout.unbuffered();
     std::io::fmt_print(Lend.mut $out, "{}{newln}", f());
     return void;
 end fn.main

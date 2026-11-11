@@ -384,13 +384,6 @@ pub enum StatementKind {
         written_type: TypeExpression,
         value: Expression,
     },
-    /// `let $y := $x + 1;` or `const $max := 100 x 2;`, which leave the type out. (D216)
-    Inferred {
-        constant: bool,
-        mutable: bool,
-        name: Name,
-        value: Expression,
-    },
     /// `decl $x: i32;`, a variable with no value yet. (D203)
     Decl {
         mutable: bool,
@@ -588,8 +581,8 @@ pub enum Narrowing {
 pub enum CompareOperator {
     Equal,
     NotEqual,
-    Less,
-    Greater,
+    Below,
+    Above,
     AtLeast,
     AtMost,
 }
@@ -599,8 +592,8 @@ impl CompareOperator {
         match self {
             CompareOperator::Equal => "==",
             CompareOperator::NotEqual => "!=",
-            CompareOperator::Less => "<",
-            CompareOperator::Greater => ">",
+            CompareOperator::Below => "below",
+            CompareOperator::Above => "above",
             CompareOperator::AtLeast => "at_least",
             CompareOperator::AtMost => "at_most",
         }

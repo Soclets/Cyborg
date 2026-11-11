@@ -6,8 +6,8 @@ struct.must_Give open_file:
     fd: i32;
 end struct.must_Give open_file
 
-fn close [$f: Given open_file] -> void:
-    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
+fn close [$f: Given open_file] returns void:
+    let mut $out: os::stdout.unbuffered set_to os::stdout.unbuffered();
     std::io::fmt_print(Lend.mut $out, "closing {}{newln}", $f.fd);
     finish $f;
     return void;
@@ -18,11 +18,11 @@ struct.must_Give log:
     lines: i32;
 end struct.must_Give log
 
-fn peek [$l: log] -> void:
+fn peek [$l: log] returns void:
     close(Give $l.file);
     return void;
 end fn peek
 
-fn.main [none] -> void:
+fn.main [none] returns void:
     return void;
 end fn.main

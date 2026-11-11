@@ -4,8 +4,8 @@ union.tagged status:
     ok;
 end union.tagged status
 
-fn.main [none] -> void:
-    let $n: i32 = 1;
+fn.main [none] returns void:
+    let $n: i32 set_to 1;
     if $n: status.ok:
         return void;
     end if

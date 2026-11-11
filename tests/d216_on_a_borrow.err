@@ -1,5 +1,0 @@
-NotDesignedYet: d216_on_a_borrow.cy:10:15, line 10 column 15
-10 |     let $v := Lend $r;
-   |               ^^^^^^^
- what: `:=` on a borrow, or on a struct that holds one
- why:  not decided yet, and the standard doesn't say

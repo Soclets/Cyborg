@@ -2,14 +2,14 @@
 import std;
 import os;
 
-fn flip [$b: Lent.mut bool] -> void:
-    change $b = not $b;
+fn flip [$b: Lent.mut bool] returns void:
+    change $b set_to not $b;
     return void;
 end fn flip
 
-fn.main [none] -> void:
-    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
-    let mut $on: bool = false;
+fn.main [none] returns void:
+    let mut $out: os::stdout.unbuffered set_to os::stdout.unbuffered();
+    let mut $on: bool set_to false;
     flip(Lend.mut $on);
     if $on:
         std::io::fmt_print(Lend.mut $out, "on{newln}");

@@ -1,8 +1,8 @@
 // trace: D144, D143
 import std;
 
-fn.main [none] -> void:
-    let $xs: std::array<i32>[len: 3 items] = [4, 5, 6];
-    let $n: i32 = $xs[offset: 1];
+fn.main [none] returns void:
+    let $xs: std::array<i32>[len: 3 items] set_to [4, 5, 6];
+    let $n: i32 set_to $xs[offset: 1];
     return void;
 end fn.main

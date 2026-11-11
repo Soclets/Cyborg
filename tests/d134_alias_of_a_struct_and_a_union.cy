@@ -12,15 +12,15 @@ union.tagged status:
     failed[code: i32];
 end union.tagged status
 
-type.alias r = reading;
-type.alias s = status;
+type.alias r set_to reading;
+type.alias s set_to status;
 
-fn.main [none] -> void:
-    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
-    let $a: r = r[celsius = 21];
-    let $b: reading = Copy $a;
+fn.main [none] returns void:
+    let mut $out: os::stdout.unbuffered set_to os::stdout.unbuffered();
+    let $a: r set_to r[celsius set_to 21];
+    let $b: reading set_to Copy $a;
     std::io::fmt_print(Lend.mut $out, "{}{newln}", $b.celsius);
-    let $c: s = s.failed[code = 7];
+    let $c: s set_to s.failed[code set_to 7];
     if $c: s.failed:
         std::io::fmt_print(Lend.mut $out, "{}{newln}", $c.code);
     end if

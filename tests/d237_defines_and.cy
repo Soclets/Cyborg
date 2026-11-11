@@ -5,10 +5,10 @@ struct money:
     cents: i64;
 end struct money
 
-op and [$a: money, $b: money] -> bool:
+op and [$a: money, $b: money] returns bool:
     return true;
 end op and
 
-fn.main [none] -> void:
+fn.main [none] returns void:
     return void;
 end fn.main

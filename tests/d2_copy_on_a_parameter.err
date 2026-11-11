@@ -1,5 +1,5 @@
 refused: d2_copy_on_a_parameter.cy:3:11, line 3 column 11
- 3 | fn f [$s: Copy str] -> void:
+ 3 | fn f [$s: Copy str] returns void:
    |           ^^^^
  fix:  `Given`
  why:  `Copy` hands over a separate copy, to a `Given` parameter (D2)

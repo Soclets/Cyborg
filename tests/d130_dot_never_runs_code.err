@@ -1,5 +1,5 @@
-refused: d130_dot_never_runs_code.cy:13:19, line 13 column 19
-13 |     let $n: i32 = $b.f();
-   |                   ^^^^^^
+refused: d130_dot_never_runs_code.cy:13:24, line 13 column 24
+13 |     let $n: i32 set_to $b.f();
+   |                        ^^^^^^
  fix:  `$b.%f()`
  why:  a `.` never runs code, and a `.%` always does (D8)

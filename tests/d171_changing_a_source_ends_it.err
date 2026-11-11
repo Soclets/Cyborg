@@ -4,6 +4,6 @@ refused: d171_changing_a_source_ends_it.cy:18:52, line 18 column 52
  what: `$v` can't be used after what it borrows was used
  why:  a stored `Lend.mut` means nothing else uses it meanwhile, and a `Lend` means it can't change (D2)
  because: d171_changing_a_source_ends_it.cy:17:12, line 17 column 12
-17 |     change $a.celsius = 5;
+17 |     change $a.celsius set_to 5;
    |            ^^^^^^^^^^
      what it borrows was used here

@@ -3,7 +3,7 @@
 import std;
 import os;
 
-fn.main [none] -> void:
+fn.main [none] returns void:
     os::exit(1);
     return void;
 end fn.main

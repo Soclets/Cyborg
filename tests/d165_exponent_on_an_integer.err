@@ -1,5 +1,5 @@
-NotDesignedYet: d165_exponent_on_an_integer.cy:4:28, line 4 column 28
- 4 |     let $a: i64 = exponent 6e23;
-   |                            ^^^^
+NotDesignedYet: d165_exponent_on_an_integer.cy:4:33, line 4 column 33
+ 4 |     let $a: i64 set_to exponent 6e23;
+   |                                 ^^^^
  what: an exponent on an integer
  why:  not decided yet (standard 12.2)

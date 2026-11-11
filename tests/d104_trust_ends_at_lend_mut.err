@@ -1,6 +1,6 @@
-refused: d104_trust_ends_at_lend_mut.cy:17:23, line 17 column 23
-17 |         let $b: i32 = $s.code;
-   |                       ^^^^^^^
+refused: d104_trust_ends_at_lend_mut.cy:17:28, line 17 column 28
+17 |         let $b: i32 set_to $s.code;
+   |                            ^^^^^^^
  what: `$s` may not be `status.failed` any more
  why:  a test's trust ends at a `change`, and at a `Lend.mut` too (D104)
  because: d104_trust_ends_at_lend_mut.cy:16:9, line 16 column 9

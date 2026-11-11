@@ -10,6 +10,6 @@ union.tagged maybe:
     some[r: Lend from program reading];
 end union.tagged maybe
 
-fn.main [none] -> void:
+fn.main [none] returns void:
     return void;
 end fn.main

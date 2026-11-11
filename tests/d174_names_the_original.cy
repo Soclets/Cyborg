@@ -5,9 +5,9 @@ struct reading:
     time: i32;
 end struct reading
 
-fn.main [none] -> void:
-    let mut $r: reading = reading[celsius = 21, time = 3600];
-    let $m: Lend.mut from $r reading = Lend.mut $r;
-    let $n: Lend.mut from $m reading = Lend.mut $m;
+fn.main [none] returns void:
+    let mut $r: reading set_to reading[celsius set_to 21, time set_to 3600];
+    let $m: Lend.mut from $r reading set_to Lend.mut $r;
+    let $n: Lend.mut from $m reading set_to Lend.mut $m;
     return void;
 end fn.main

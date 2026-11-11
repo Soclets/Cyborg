@@ -1,5 +1,5 @@
 refused: d174_lend_mut_on_stops_use.cy:16:12, line 16 column 12
-16 |     change $n.celsius = 2;
+16 |     change $n.celsius set_to 2;
    |            ^^
  what: `$n` can't be used after what it borrows was used
  why:  a stored `Lend.mut` means nothing else uses it meanwhile, and a `Lend` means it can't change (D2)

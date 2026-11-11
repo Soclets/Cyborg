@@ -1,5 +1,5 @@
-refused: d57_field_that_doesnt_exist.cy:9:22, line 9 column 22
- 9 |     let $n: i32 = $r.kelvin;
-   |                      ^^^^^^
+refused: d57_field_that_doesnt_exist.cy:9:27, line 9 column 27
+ 9 |     let $n: i32 set_to $r.kelvin;
+   |                           ^^^^^^
  what: `reading` has no field `kelvin`
  why:  a field read is a plain `.` (D57)

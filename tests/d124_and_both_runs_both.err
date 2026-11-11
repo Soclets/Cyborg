@@ -1,5 +1,5 @@
 check failed: d124_and_both_runs_both.cy:5:25, line 5 column 25
- 5 |     if $n != 0 and.both 10 div.trunc $n > 1:
+ 5 |     if $n != 0 and.both 10 div.trunc $n above 1:
    |                         ^^^^^^^^^^^^^^^
  what: this divides by zero
  why:  division by zero traps (D26)

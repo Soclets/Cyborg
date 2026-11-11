@@ -3,11 +3,11 @@
 import std;
 
 interface ordered<?self>:
-    op < [$a: ?self, $b: ?self] -> bool;
+    op below [$a: ?self, $b: ?self] returns bool;
 end interface ordered
 
 interface addable<?self>:
-    op + [$a: ?self, $b: ?self] -> ?self;
+    op + [$a: ?self, $b: ?self] returns ?self;
 end interface addable
 
 type_set whole:
@@ -17,12 +17,12 @@ end type_set whole
 
 u8 satisfies addable;
 
-fn total<?item: whole and addable> [$a: ?item, $b: ?item] -> ?item:
+fn total<?item: whole and addable> [$a: ?item, $b: ?item] returns ?item:
     return $a + $b;
 end fn total
 
-fn.main [none] -> void:
-    let $a: u8 = 4;
-    let $b: u8 = total($a, $a);
+fn.main [none] returns void:
+    let $a: u8 set_to 4;
+    let $b: u8 set_to total($a, $a);
     return void;
 end fn.main

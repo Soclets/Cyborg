@@ -3,12 +3,12 @@
 // trace: D215
 import std;
 
-fn half [$n: i32] -> i32:
+fn half [$n: i32] returns i32:
     return $n x "two";
 end fn half
 
-fn.main [none] -> void:
-    let $h: i32 = half(4);
-    let $wrong: i64 = $h;
+fn.main [none] returns void:
+    let $h: i32 set_to half(4);
+    let $wrong: i64 set_to $h;
     return void;
 end fn.main

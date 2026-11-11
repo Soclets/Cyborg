@@ -1,5 +1,0 @@
-refused: d216_empty.cy:5:15, line 5 column 15
- 5 |     let $x := empty;
-   |               ^^^^^
- what: `empty` has no type of its own, so this line says one
- why:  a bare literal has no default type, so `:=` can't take one from it (D216, D50)

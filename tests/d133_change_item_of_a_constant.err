@@ -1,5 +1,5 @@
 refused: d133_change_item_of_a_constant.cy:7:12, line 7 column 12
- 7 |     change $primes[pos: 1] = 3;
+ 7 |     change $primes[pos: 1] set_to 3;
    |            ^^^^^^^^^^^^^^^
  what: `$primes` is a constant, so it can't change
  why:  a constant's value is fixed at compile time (D83)

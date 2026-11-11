@@ -1,6 +1,6 @@
-refused: d91_baked_overflow_at_compile_time.cy:4:17, line 4 column 17
- 4 | const $a: i32 = 2147483647 + 1;
-   |                 ^^^^^^^^^^^^^^
+refused: d91_baked_overflow_at_compile_time.cy:4:22, line 4 column 22
+ 4 | const $a: i32 set_to 2147483647 + 1;
+   |                      ^^^^^^^^^^^^^^
  what: this `+` overflows `i32`
  why:  a plain `+` that overflows traps in `Working` (D42)
  when: `2147483647 + 1`

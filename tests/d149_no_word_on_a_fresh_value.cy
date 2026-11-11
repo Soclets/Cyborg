@@ -4,13 +4,13 @@ struct reading:
     celsius: i32;
 end struct reading
 
-type.new wrapped = reading;
+type.new wrapped set_to reading;
 
-fn make [none] -> reading:
-    return reading[celsius = 3];
+fn make [none] returns reading:
+    return reading[celsius set_to 3];
 end fn make
 
-fn.main [none] -> void:
-    let $w: wrapped = Give make() as wrapped;
+fn.main [none] returns void:
+    let $w: wrapped set_to Give make() as wrapped;
     return void;
 end fn.main

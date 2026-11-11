@@ -5,6 +5,6 @@ struct box:
     n: str;
 end struct box
 
-fn.main [none] -> void:
+fn.main [none] returns void:
     return void;
 end fn.main

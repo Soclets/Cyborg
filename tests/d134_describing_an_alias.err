@@ -1,5 +1,5 @@
 NotDesignedYet: d134_describing_an_alias.cy:6:13, line 6 column 13
- 6 |     let $a: score[min: 0, max: 5] = 1;
+ 6 |     let $a: score[min: 0, max: 5] set_to 1;
    |             ^^^^^^^^^^^^^^^^^^^^^
  what: filling in or describing `score`
  why:  not decided yet (standard 12.5)

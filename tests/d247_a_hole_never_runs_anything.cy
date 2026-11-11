@@ -3,9 +3,9 @@
 import std;
 import os;
 
-fn.main [none] -> void:
-    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
-    let $count: i32 = 3;
+fn.main [none] returns void:
+    let mut $out: os::stdout.unbuffered set_to os::stdout.unbuffered();
+    let $count: i32 set_to 3;
     std::io::fmt_print(Lend.mut $out, "{$count + 1}{newln}");
     return void;
 end fn.main

@@ -1,0 +1,5 @@
+refused: d277_a_let_writes_its_type.cy:4:16, line 4 column 16
+ 4 |     let $count set_to 0;
+   |                ^^^^^^
+ what: this `let` doesn't write its type
+ why:  every `let` and `const` writes its type, so a reader never has to work one out, and there's no type inference in the base language (D277)

@@ -1,9 +1,9 @@
 refused: d124_must_give_later_in_a_chain.cy:14:9, line 14 column 9
-14 |     let $f: open_file = open_file[fd = 3];
+14 |     let $f: open_file set_to open_file[fd set_to 3];
    |         ^^
  what: `$f` isn't given away or finished on every path
  why:  a `must_Give` value is handed off with `Give` exactly once, or `finish` ends it (D2, D129)
- because: d124_must_give_later_in_a_chain.cy:15:16, line 15 column 16
-15 |     if 2 < 1 < close(Give $f):
-   |                ^^^^^^^^^^^^^^
+ because: d124_must_give_later_in_a_chain.cy:15:24, line 15 column 24
+15 |     if 2 below 1 below close(Give $f):
+   |                        ^^^^^^^^^^^^^^
      `$f` went here, on only one path

@@ -1,5 +1,5 @@
 refused: d273_bare_type_asks_which.cy:7:19, line 7 column 19
- 7 |     let mut $out: os::stdout = os::stdout.unbuffered();
+ 7 |     let mut $out: os::stdout set_to os::stdout.unbuffered();
    |                   ^^^^^^^^^^
  what: `os::stdout` says which kind it is
  why:  `os::stdout` and `os::stderr` say which kind they are: `.buffered(size: 1024 bytes)` writes in chunks and is finished with `os::done`, and `.unbuffered()` writes each print straight away (D273)

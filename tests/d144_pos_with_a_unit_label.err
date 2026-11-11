@@ -1,5 +1,5 @@
-NotDesignedYet: d144_pos_with_a_unit_label.cy:7:23, line 7 column 23
- 7 |     let $n: i32 = $xs[pos.items: 1];
-   |                       ^^^^^^^^^
+NotDesignedYet: d144_pos_with_a_unit_label.cy:7:28, line 7 column 28
+ 7 |     let $n: i32 set_to $xs[pos.items: 1];
+   |                            ^^^^^^^^^
  what: `pos.items:`
  why:  not decided yet, and the standard doesn't say

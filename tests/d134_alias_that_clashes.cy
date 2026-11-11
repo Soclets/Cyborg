@@ -3,12 +3,12 @@
 import std;
 import os;
 
-type.alias str = i32;
+type.alias str set_to i32;
 
-fn.main [none] -> void:
-    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
-    let $a: my::str = 5;
-    let $b: str = "still a string";
+fn.main [none] returns void:
+    let mut $out: os::stdout.unbuffered set_to os::stdout.unbuffered();
+    let $a: my::str set_to 5;
+    let $b: str set_to "still a string";
     std::io::fmt_print(Lend.mut $out, "{}{newln}", $a);
     std::io::fmt_print(Lend.mut $out, "{}{newln}", $b);
     return void;

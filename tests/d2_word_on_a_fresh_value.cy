@@ -1,10 +1,10 @@
 // trace: D2
 
-fn f [$s: Given str] -> void:
+fn f [$s: Given str] returns void:
     return void;
 end fn f
 
-fn.main [none] -> void:
+fn.main [none] returns void:
     f(Give "a");
     return void;
 end fn.main

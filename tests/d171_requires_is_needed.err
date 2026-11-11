@@ -1,5 +1,5 @@
-refused: d171_requires_is_needed.cy:13:49, line 13 column 49
-13 | fn build [$article: reading, $list: reading] -> index<`text`: $article, `table`: $list>:
-   |                                                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+refused: d171_requires_is_needed.cy:13:54, line 13 column 54
+13 | fn build [$article: reading, $list: reading] returns index<`text`: $article, `table`: $list>:
+   |                                                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
  fix:  `requires $list lasts_at_least $article;`
  why:  a function states which parameter lasts longer with `requires … lasts_at_least …;` (D171)

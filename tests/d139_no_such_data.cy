@@ -1,11 +1,11 @@
 // trace: D139
 
-fn f [none] -> i32 fails [odd]:
+fn f [none] returns i32 fails [odd]:
     return 1;
 end fn f
 
-fn.main [none] -> void:
-    let $n: i32 = f() otherwise:
+fn.main [none] returns void:
+    let $n: i32 set_to f() otherwise:
         case odd $o:
             instead $o.val;
     end otherwise

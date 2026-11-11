@@ -5,9 +5,9 @@ struct money:
     cents: i64;
 end struct money
 
-fn.main [none] -> void:
-    let $a: money = money[cents = 1];
-    let $b: money = money[cents = 2];
-    let $c: money = $a + $b;
+fn.main [none] returns void:
+    let $a: money set_to money[cents set_to 1];
+    let $b: money set_to money[cents set_to 2];
+    let $c: money set_to $a + $b;
     return void;
 end fn.main

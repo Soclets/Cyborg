@@ -4,7 +4,7 @@ import os;
 
 use std::io::fmt_print as "say";
 
-fn.main [none] -> void:
+fn.main [none] returns void:
     "say"("hi");
     return void;
 end fn.main

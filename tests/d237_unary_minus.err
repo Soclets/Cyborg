@@ -1,5 +1,5 @@
 NotDesignedYet: d237_unary_minus.cy:8:1, line 8 column 1
- 8 | op - [$a: money] -> money:
+ 8 | op - [$a: money] returns money:
    | ^^^^
  what: a type's own unary `-`
  why:  not decided yet (standard 12.3)

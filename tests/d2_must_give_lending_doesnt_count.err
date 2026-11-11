@@ -4,6 +4,6 @@ refused: d2_must_give_lending_doesnt_count.cy:14:5, line 14 column 5
  what: this leaves with `$f` never given away or finished
  why:  a `must_Give` value is handed off with `Give` exactly once, or `finish` ends it (D2, D129)
  because: d2_must_give_lending_doesnt_count.cy:12:9, line 12 column 9
-12 |     let $f: open_file = open_file[fd = 3];
+12 |     let $f: open_file set_to open_file[fd set_to 3];
    |         ^^
      `$f` was made here

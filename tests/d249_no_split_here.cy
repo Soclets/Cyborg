@@ -4,7 +4,7 @@ import std;
 
 fam.unit temperature:
     temperature.kelvin: base;
-    temperature.celsius = temperature.kelvin offset ~-273.15;
+    temperature.celsius set_to temperature.kelvin offset ~-273.15;
 end fam.unit temperature
 
 use my::temperature.celsius as celsius;
@@ -13,7 +13,7 @@ fam.unit length:
     length.meters: base;
 end fam.unit length
 
-fn.main [none] -> void:
-    let $a: f64.stable[unit: length.meters.point] = 2.0 length.meters;
+fn.main [none] returns void:
+    let $a: f64.stable[unit: length.meters.point] set_to 2.0 length.meters;
     return void;
 end fn.main

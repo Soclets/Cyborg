@@ -1,5 +1,5 @@
 refused: d130_unknown_type.cy:3:4, line 3 column 4
- 3 | fn widget.%f [$b: i32] -> i32:
+ 3 | fn widget.%f [$b: i32] returns i32:
    |    ^^^^^^^^^
  what: the type `widget` isn't known
  why:  a method is declared with its type in the name (D130)

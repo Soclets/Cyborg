@@ -1,5 +1,5 @@
 NotDesignedYet: d237_mod.cy:8:4, line 8 column 4
- 8 | op mod.floor [$a: money, $b: i64] -> money:
+ 8 | op mod.floor [$a: money, $b: i64] returns money:
    |    ^^^
  what: a type's own `mod`
  why:  not decided yet (standard 12.3)

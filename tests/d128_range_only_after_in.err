@@ -1,5 +1,5 @@
-NotDesignedYet: d128_range_only_after_in.cy:4:19, line 4 column 19
- 4 |     let $r: i32 = range[from: 1, to: 2];
-   |                   ^^^^^
+NotDesignedYet: d128_range_only_after_in.cy:4:24, line 4 column 24
+ 4 |     let $r: i32 set_to range[from: 1, to: 2];
+   |                        ^^^^^
  what: a range anywhere but straight after `in`
  why:  not decided yet, and the standard doesn't say

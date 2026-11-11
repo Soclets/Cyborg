@@ -6,9 +6,9 @@ struct reading:
     celsius: i32;
 end struct reading
 
-fn.main [none] -> void:
-    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
-    let $r: reading = reading[celsius = 3];
+fn.main [none] returns void:
+    let mut $out: os::stdout.unbuffered set_to os::stdout.unbuffered();
+    let $r: reading set_to reading[celsius set_to 3];
     std::io::fmt_print(Lend.mut $out, "{$r.celsius}{newln}");
     return void;
 end fn.main

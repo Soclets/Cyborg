@@ -1,5 +1,5 @@
-refused: d134_new_doesnt_take_its_own_data.cy:6:23, line 6 column 23
- 6 |     let $u: user_id = $n;
-   |                       ^^
+refused: d134_new_doesnt_take_its_own_data.cy:6:28, line 6 column 28
+ 6 |     let $u: user_id set_to $n;
+   |                            ^^
  what: this is `i64`, where `user_id` is needed
  why:  a `type.new` is a different type, so it doesn't mix with another, or with what it's made from (D134)

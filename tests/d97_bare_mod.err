@@ -1,5 +1,5 @@
-refused: d97_bare_mod.cy:4:21, line 4 column 21
- 4 |     let $a: i32 = 7 mod 2;
-   |                     ^^^
+refused: d97_bare_mod.cy:4:26, line 4 column 26
+ 4 |     let $a: i32 set_to 7 mod 2;
+   |                          ^^^
  what: there's no bare `mod`, so pick a narrowing
  why:  `mod` has no single right answer, so you pick one (D97)

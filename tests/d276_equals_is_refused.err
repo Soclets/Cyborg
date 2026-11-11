@@ -1,0 +1,5 @@
+refused: d276_equals_is_refused.cy:4:21, line 4 column 21
+ 4 |     let $total: i32 = 0;
+   |                     ^
+ fix:  `set_to`
+ why:  `set_to` gives something a value everywhere, so `=` is never written, and `==` compares (D276)

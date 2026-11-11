@@ -2,15 +2,15 @@
 import std;
 import os;
 
-fn f [none] -> i32[min: 0, max: 9] fails [a]:
+fn f [none] returns i32[min: 0, max: 9] fails [a]:
     fail a;
 end fn f
 
-fn.main [none] -> void:
-    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
-    let $big: i32 = 50;
+fn.main [none] returns void:
+    let mut $out: os::stdout.unbuffered set_to os::stdout.unbuffered();
+    let $big: i32 set_to 50;
     std::io::fmt_print(Lend.mut $out, "before{newln}");
-    let $n: i32[min: 0, max: 9] = f() otherwise:
+    let $n: i32[min: 0, max: 9] set_to f() otherwise:
         case a:
             instead $big;
     end otherwise

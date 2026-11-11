@@ -1,5 +1,5 @@
 NotDesignedYet: d134_declared_twice.cy:4:12, line 4 column 12
- 4 | type.alias score = i64;
+ 4 | type.alias score set_to i64;
    |            ^^^^^
  what: declaring `score` twice
  why:  not decided yet, and the standard doesn't say

@@ -1,11 +1,11 @@
 // trace: D134
 
-type.new user_id = i64;
+type.new user_id set_to i64;
 
-fn f [$a: user_id, $b: user_id] -> bool:
+fn f [$a: user_id, $b: user_id] returns bool:
     return $a == $b;
 end fn f
 
-fn.main [none] -> void:
+fn.main [none] returns void:
     return void;
 end fn.main

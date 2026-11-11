@@ -1,7 +1,7 @@
 // trace: D134
 
-type score = i32;
+type score set_to i32;
 
-fn.main [none] -> void:
+fn.main [none] returns void:
     return void;
 end fn.main

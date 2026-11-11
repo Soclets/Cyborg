@@ -2,7 +2,7 @@
 // trace: D225
 import @csup;
 
-fn.main [none] -> void:
+fn.main [none] returns void:
     shield talk:
         reason "calls C"
         @csup::extern.c("hi");

@@ -3,11 +3,11 @@
 import std;
 import os;
 
-fn pick [$hot: bool] -> void:
-    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
+fn pick [$hot: bool] returns void:
+    let mut $out: os::stdout.unbuffered set_to os::stdout.unbuffered();
     decl $x: i32;
     if $hot:
-        assign $x = 1;
+        assign $x set_to 1;
     else:
         return void;
     end if
@@ -15,7 +15,7 @@ fn pick [$hot: bool] -> void:
     return void;
 end fn pick
 
-fn.main [none] -> void:
+fn.main [none] returns void:
     pick(true);
     return void;
 end fn.main

@@ -3,14 +3,14 @@
 import std;
 import os;
 
-fn say [$n: i32] -> i32:
-    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
+fn say [$n: i32] returns i32:
+    let mut $out: os::stdout.unbuffered set_to os::stdout.unbuffered();
     std::io::fmt_print(Lend.mut $out, "say {}{newln}", $n);
     return $n;
 end fn say
 
-fn.main [none] -> void:
-    let mut $a: std::array<i32>[len: 1 items] = [1];
-    change $a[pos: say(1)] = say(2);
+fn.main [none] returns void:
+    let mut $a: std::array<i32>[len: 1 items] set_to [1];
+    change $a[pos: say(1)] set_to say(2);
     return void;
 end fn.main

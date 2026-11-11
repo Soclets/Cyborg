@@ -1,5 +1,5 @@
-refused: d159_doesnt_mix.cy:5:26, line 5 column 26
- 5 |     let $x: f64.stable = $reading;
-   |                          ^^^^^^^^
+refused: d159_doesnt_mix.cy:5:31, line 5 column 31
+ 5 |     let $x: f64.stable set_to $reading;
+   |                               ^^^^^^^^
  fix:  `$reading as f64.stable`
  why:  `f64.ieee` is a different type from `f64`, and `as` is the wall between them (D159)

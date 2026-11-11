@@ -1,0 +1,5 @@
+refused: d277_colon_equals_written_type_uses_equals.cy:5:17, line 5 column 17
+ 5 |     let $x: i32 := 0;
+   |                 ^^
+ fix:  `set_to`
+ why:  `set_to` gives a value everywhere, and there's no type inference in the base language (D276, D277)

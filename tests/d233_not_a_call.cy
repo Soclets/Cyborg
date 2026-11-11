@@ -1,7 +1,7 @@
 // Assembly is a block, `inline.asm:`, not a call.
 // trace: D233, D227
 
-fn.main [none] -> void:
+fn.main [none] returns void:
     shield low:
         reason "talks to the chip"
         inline.asm();

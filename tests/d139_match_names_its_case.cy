@@ -8,8 +8,8 @@ union.tagged status:
     lost[where: str];
 end union.tagged status
 
-fn show [$s: status] -> void:
-    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
+fn show [$s: status] returns void:
+    let mut $out: os::stdout.unbuffered set_to os::stdout.unbuffered();
     match $s:
         case status.failed $f:
             std::io::fmt_print(Lend.mut $out, "failed {}{newln}", $f.code);
@@ -21,14 +21,14 @@ fn show [$s: status] -> void:
     return void;
 end fn show
 
-fn make [none] -> status:
-    return status.failed[code = 8];
+fn make [none] returns status:
+    return status.failed[code set_to 8];
 end fn make
 
-fn.main [none] -> void:
-    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
-    show(status.failed[code = 7]);
-    show(status.lost[where = "home"]);
+fn.main [none] returns void:
+    let mut $out: os::stdout.unbuffered set_to os::stdout.unbuffered();
+    show(status.failed[code set_to 7]);
+    show(status.lost[where set_to "home"]);
     show(status.ok);
     match make():
         case status.failed $f:

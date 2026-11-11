@@ -6,20 +6,20 @@ fam.unit screen:
     screen.pixels: base;
 end fam.unit screen
 
-fn draw [$x: i32[unit: screen.pixels]] -> void:
+fn draw [$x: i32[unit: screen.pixels]] returns void:
     labels [$x as at.screen.pixels];
-    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
+    let mut $out: os::stdout.unbuffered set_to os::stdout.unbuffered();
 
     std::io::fmt_print(Lend.mut $out, "{}{newln}", ($x as i32));
     return void;
 end fn draw
 
-fn.main [none] -> void:
+fn.main [none] returns void:
     draw(at.screen.pixels: 5);
     draw(at.screen.pixels: 6 screen.pixels);
-    let $n: i32 = 7;
+    let $n: i32 set_to 7;
     draw(at.screen.pixels: $n);
-    let $p: i32[unit: screen.pixels] = 8 screen.pixels;
+    let $p: i32[unit: screen.pixels] set_to 8 screen.pixels;
     draw(at.screen.pixels: $p);
     return void;
 end fn.main

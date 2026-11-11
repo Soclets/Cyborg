@@ -1,5 +1,5 @@
 NotDesignedYet: d128_naming_a_while.cy:4:11, line 4 column 11
- 4 |     while rows 1 < 2:
+ 4 |     while rows 1 below 2:
    |           ^^^^
  what: how `while` is named, which 4.8 only shows on `for`
  why:  not decided yet, and the standard doesn't say

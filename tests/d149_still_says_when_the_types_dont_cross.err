@@ -1,5 +1,5 @@
-NotDesignedYet: d149_still_says_when_the_types_dont_cross.cy:12:19, line 12 column 19
-12 |     let $n: i32 = $r as i32;
-   |                   ^^^^^^^^^
+NotDesignedYet: d149_still_says_when_the_types_dont_cross.cy:12:24, line 12 column 24
+12 |     let $n: i32 set_to $r as i32;
+   |                        ^^^^^^^^^
  what: converting `reading` to `i32` with `as`
  why:  not decided yet (standard 12.3)

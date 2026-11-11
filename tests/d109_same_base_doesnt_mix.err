@@ -1,5 +1,5 @@
-refused: d109_same_base_doesnt_mix.cy:11:40, line 11 column 40
-11 |     let $b: i32[unit: money.dollars] = $a + 1 money.cents;
-   |                                        ^^^^^^^^^^^^^^^^^^
+refused: d109_same_base_doesnt_mix.cy:11:45, line 11 column 45
+11 |     let $b: i32[unit: money.dollars] set_to $a + 1 money.cents;
+   |                                             ^^^^^^^^^^^^^^^^^^
  what: this mixes `i32[unit: money.dollars]` and `i32[unit: money.cents]`
  why:  the same units can add and compare, and mixing them is refused (D100)

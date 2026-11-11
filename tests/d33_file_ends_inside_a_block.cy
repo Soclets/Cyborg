@@ -1,4 +1,4 @@
 // trace: D33
 
-fn.main [none] -> void:
+fn.main [none] returns void:
     return void;

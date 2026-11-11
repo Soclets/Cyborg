@@ -3,12 +3,12 @@
 import std;
 import os;
 
-fn f [none] -> void fails [a[val: i32]]:
+fn f [none] returns void fails [a[val: i32]]:
     return void;
 end fn f
 
-fn.main [none] -> void:
-    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
+fn.main [none] returns void:
+    let mut $out: os::stdout.unbuffered set_to os::stdout.unbuffered();
     f() otherwise:
         case a $x:
             std::io::fmt_print(Lend.mut $out, "{}{newln}", $x);

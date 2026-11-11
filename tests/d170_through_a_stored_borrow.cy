@@ -7,15 +7,15 @@ struct reading:
     celsius: i32;
 end struct reading
 
-fn first [$a: reading] -> Lend from $a reading:
+fn first [$a: reading] returns Lend from $a reading:
     return Lend $a;
 end fn first
 
-fn.main [none] -> void:
-    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
-    let $x: reading = reading[celsius = 4];
-    let $v: Lend from $x reading = Lend $x;
-    let $w: Lend from $x reading = first(Lend $v);
+fn.main [none] returns void:
+    let mut $out: os::stdout.unbuffered set_to os::stdout.unbuffered();
+    let $x: reading set_to reading[celsius set_to 4];
+    let $v: Lend from $x reading set_to Lend $x;
+    let $w: Lend from $x reading set_to first(Lend $v);
     std::io::fmt_print(Lend.mut $out, "{}{newln}", $w.celsius);
     return void;
 end fn.main

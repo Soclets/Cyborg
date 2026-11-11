@@ -1,5 +1,5 @@
 refused: d257_unit_before_kind.cy:10:13, line 10 column 13
-10 |     let $d: f64.length.meters.stable = 2.5 length.meters;
+10 |     let $d: f64.length.meters.stable set_to 2.5 length.meters;
    |             ^^^^^^^^^^^^^^^^^^^^^^^^
  what: `f64` says which kind of float it is: `.stable`, `.fast` or `.ieee`
  why:  a float always says its kind straight after its type, since floats differ between machines in nearly every other language (D257)

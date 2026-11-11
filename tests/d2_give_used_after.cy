@@ -5,16 +5,16 @@ struct open_data:
     fd: i32;
 end struct open_data
 
-fn send [$f: Given open_data] -> void:
+fn send [$f: Given open_data] returns void:
     return void;
 end fn send
 
-fn close [$f: Given open_data] -> void:
+fn close [$f: Given open_data] returns void:
     return void;
 end fn close
 
-fn.main [none] -> void:
-    let $f: open_data = open_data[fd = 3];
+fn.main [none] returns void:
+    let $f: open_data set_to open_data[fd set_to 3];
     send(Give $f);
     close(Give $f);
     return void;

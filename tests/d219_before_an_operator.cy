@@ -2,9 +2,9 @@
 // trace: D219
 import std;
 
-fn.main [none] -> void:
-    let $a: i32 = 1;
-    let $b: i32 = $a
+fn.main [none] returns void:
+    let $a: i32 set_to 1;
+    let $b: i32 set_to $a
         + 2;
     return void;
 end fn.main

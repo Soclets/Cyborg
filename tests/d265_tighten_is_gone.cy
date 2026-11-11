@@ -3,6 +3,6 @@
 import std;
 @tighten_config(var.mut.never_changed);
 
-fn.main [none] -> void:
+fn.main [none] returns void:
     return void;
 end fn.main

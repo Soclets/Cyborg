@@ -1,5 +1,5 @@
 refused: d7_unknown_type.cy:4:13, line 4 column 13
- 4 |     let $a: widget = 5;
+ 4 |     let $a: widget set_to 5;
    |             ^^^^^^
  what: the type `widget` isn't known
  why:  a type is built in, or declared with `struct` or `union.tagged` (D33, D57)

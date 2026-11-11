@@ -1,4 +1,4 @@
-//! A type's own operators: `+`, `-`, `x`, the `div` narrowings, `==` and `<`, with `!=`, `>`,
+//! A type's own operators: `+`, `-`, `x`, the `div` narrowings, `==` and `below`, with `!=`, `above`,
 //! `at_least` and `at_most` following from the last two. Each becomes a call to the function
 //! the type wrote, with its values lent, since the operator shows no word. (D236, D237)
 
@@ -126,9 +126,9 @@ impl Checker<'_> {
         self.call_operator(word, word, (left, right), span)
     }
 
-    /// One comparison on a type of your own. `==` and `<` are the type's own, and the others
-    /// follow from them: `!=` is not `==`, `>` is `<` the other way round, `at_least` is not
-    /// `<`, and `at_most` is not `<` the other way round. (D237)
+    /// One comparison on a type of your own. `==` and `below` are the type's own, and the
+    /// others follow from them: `!=` is not `==`, `above` is `below` the other way round,
+    /// `at_least` is not `below`, and `at_most` is not `below` the other way round. (D237, D278)
     /// trace: D237
     pub(super) fn own_comparison(
         &mut self,
@@ -141,10 +141,10 @@ impl Checker<'_> {
         let (word, sides, negated) = match operator {
             CompareOperator::Equal => ("==", (left, right), false),
             CompareOperator::NotEqual => ("==", (left, right), true),
-            CompareOperator::Less => ("<", (left, right), false),
-            CompareOperator::Greater => ("<", (right, left), false),
-            CompareOperator::AtLeast => ("<", (left, right), true),
-            CompareOperator::AtMost => ("<", (right, left), true),
+            CompareOperator::Below => ("below", (left, right), false),
+            CompareOperator::Above => ("below", (right, left), false),
+            CompareOperator::AtLeast => ("below", (left, right), true),
+            CompareOperator::AtMost => ("below", (right, left), true),
         };
         let (node, found) = self.call_operator(word, written, sides, span)?;
         if negated {

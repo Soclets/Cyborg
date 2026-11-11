@@ -1,5 +1,5 @@
 refused: d126_must_give_with_no_else.cy:14:9, line 14 column 9
-14 |     let $f: open_file = open_file[fd = 3];
+14 |     let $f: open_file set_to open_file[fd set_to 3];
    |         ^^
  what: `$f` isn't given away or finished on every path
  why:  a `must_Give` value is handed off with `Give` exactly once, or `finish` ends it (D2, D129)

@@ -3,12 +3,12 @@
 
 fam.unit temperature:
     temperature.kelvin: base;
-    temperature.celsius = temperature.kelvin offset ~-273.15;
+    temperature.celsius set_to temperature.kelvin offset ~-273.15;
 end fam.unit temperature
 
 use my::temperature.celsius as celsius;
 
-fn.main [none] -> void:
-    let $now: f64.stable[unit: celsius.point, min: 0.0 celsius, max: 100.0 celsius] = 20.0 celsius;
+fn.main [none] returns void:
+    let $now: f64.stable[unit: celsius.point, min: 0.0 celsius, max: 100.0 celsius] set_to 20.0 celsius;
     return void;
 end fn.main

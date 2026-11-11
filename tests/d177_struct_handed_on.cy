@@ -7,29 +7,29 @@ struct.must_Give open_file:
     fd: i32;
 end struct.must_Give open_file
 
-fn close [$f: Given open_file] -> void:
-    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
+fn close [$f: Given open_file] returns void:
+    let mut $out: os::stdout.unbuffered set_to os::stdout.unbuffered();
     std::io::fmt_print(Lend.mut $out, "closing {}{newln}", $f.fd);
     finish $f;
     return void;
 end fn close
 
-fn open [$fd: i32] -> open_file:
-    return open_file[fd = $fd];
+fn open [$fd: i32] returns open_file:
+    return open_file[fd set_to $fd];
 end fn open
 
 struct.must_Give log:
     file: open_file;
 end struct.must_Give log
 
-fn keep [$l: Given log] -> log:
+fn keep [$l: Given log] returns log:
     return Give $l;
 end fn keep
 
-fn.main [none] -> void:
-    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
-    let $l: log = keep(log[file = open(3)]);
-    let $m: log = Give $l;
+fn.main [none] returns void:
+    let mut $out: os::stdout.unbuffered set_to os::stdout.unbuffered();
+    let $l: log set_to keep(log[file set_to open(3)]);
+    let $m: log set_to Give $l;
     std::io::fmt_print(Lend.mut $out, "{}{newln}", $m.file.fd);
     return void;
 end fn.main

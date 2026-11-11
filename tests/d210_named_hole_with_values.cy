@@ -2,9 +2,9 @@
 import std;
 import os;
 
-fn.main [none] -> void:
-    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
-    let $t: i32 = 21;
+fn.main [none] returns void:
+    let mut $out: os::stdout.unbuffered set_to os::stdout.unbuffered();
+    let $t: i32 set_to 21;
     std::io::fmt_print(Lend.mut $out, "temp: {$t} C{newln}", $t);
     return void;
 end fn.main

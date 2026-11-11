@@ -8,6 +8,6 @@ shield c_number:
     end @csup::union.untagged number
 end shield c_number
 
-fn.main [none] -> void:
+fn.main [none] returns void:
     return void;
 end fn.main

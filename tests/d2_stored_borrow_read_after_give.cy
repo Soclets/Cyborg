@@ -4,14 +4,14 @@ struct reading:
     celsius: i32;
 end struct reading
 
-fn eat [$r: Given reading] -> void:
+fn eat [$r: Given reading] returns void:
     return void;
 end fn eat
 
-fn.main [none] -> void:
-    let $r: reading = reading[celsius = 21];
-    let $b: Lend from $r reading = Lend $r;
+fn.main [none] returns void:
+    let $r: reading set_to reading[celsius set_to 21];
+    let $b: Lend from $r reading set_to Lend $r;
     eat(Give $r);
-    let $n: i32 = $b.celsius;
+    let $n: i32 set_to $b.celsius;
     return void;
 end fn.main

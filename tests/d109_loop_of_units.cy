@@ -1,10 +1,10 @@
 // trace: D109
 
 fam.unit money:
-    money.cents = 100 money.dollars;
-    money.dollars = 100 money.cents;
+    money.cents set_to 100 money.dollars;
+    money.dollars set_to 100 money.cents;
 end fam.unit money
 
-fn.main [none] -> void:
+fn.main [none] returns void:
     return void;
 end fn.main

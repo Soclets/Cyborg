@@ -1,5 +1,5 @@
 NotDesignedYet: d158_bound_on_fast.cy:4:13, line 4 column 13
- 4 |     let $a: f64.fast[min: 0.0, max: 1.0] = 0.5;
+ 4 |     let $a: f64.fast[min: 0.0, max: 1.0] set_to 0.5;
    |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
  what: a bound on `f64.fast`
  why:  not decided yet (standard 12.2)

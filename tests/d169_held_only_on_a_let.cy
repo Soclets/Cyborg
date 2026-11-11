@@ -5,10 +5,10 @@ struct reading:
     time: i32;
 end struct reading
 
-fn first [$a: reading] -> Lend.held from $a reading:
+fn first [$a: reading] returns Lend.held from $a reading:
     return Lend $a;
 end fn first
 
-fn.main [none] -> void:
+fn.main [none] returns void:
     return void;
 end fn.main

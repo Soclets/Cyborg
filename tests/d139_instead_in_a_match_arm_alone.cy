@@ -5,8 +5,8 @@ union.tagged status:
     ok;
 end union.tagged status
 
-fn.main [none] -> void:
-    let $s: status = status.ok;
+fn.main [none] returns void:
+    let $s: status set_to status.ok;
     match $s:
         case status.ok:
             instead 0;

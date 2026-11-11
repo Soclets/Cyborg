@@ -1,5 +1,5 @@
-refused: d130_too_many_arguments.cy:13:28, line 13 column 28
-13 |     let $n: i32 = $b.%read(1);
-   |                            ^
+refused: d130_too_many_arguments.cy:13:33, line 13 column 33
+13 |     let $n: i32 set_to $b.%read(1);
+   |                                 ^
  what: this is one argument too many for `box.%read`
  why:  a declared label must be written, and a parameter with no label is called without one (D113, D114)

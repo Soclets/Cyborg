@@ -4,7 +4,7 @@ import @csup;
 
 use @csup::extern.c as c;
 
-fn.main [none] -> void:
+fn.main [none] returns void:
     c("hi");
     return void;
 end fn.main

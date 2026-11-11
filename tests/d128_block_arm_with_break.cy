@@ -3,8 +3,8 @@
 import std;
 import os;
 
-fn.main [none] -> void:
-    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
+fn.main [none] returns void:
+    let mut $out: os::stdout.unbuffered set_to os::stdout.unbuffered();
     forever:
         std::io::fmt_print(Lend.mut $out, "once{newln}") otherwise:
             case print_failed:

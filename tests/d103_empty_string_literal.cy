@@ -1,6 +1,6 @@
 // trace: D103
 
-fn.main [none] -> void:
-    let $a: str = "";
+fn.main [none] returns void:
+    let $a: str set_to "";
     return void;
 end fn.main

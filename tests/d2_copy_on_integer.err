@@ -1,5 +1,5 @@
-refused: d2_copy_on_integer.cy:9:21, line 9 column 21
- 9 |     let $m: i32 = f(Copy $n);
-   |                     ^^^^^^^
+refused: d2_copy_on_integer.cy:9:26, line 9 column 26
+ 9 |     let $m: i32 set_to f(Copy $n);
+   |                          ^^^^^^^
  fix:  `$n`
  why:  plain numbers and `bool` are always copied, and take no word (D2, D123)

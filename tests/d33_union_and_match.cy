@@ -7,8 +7,8 @@ union.tagged status:
     failed[code: i32];
 end union.tagged status
 
-fn show [$s: status] -> void:
-    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
+fn show [$s: status] returns void:
+    let mut $out: os::stdout.unbuffered set_to os::stdout.unbuffered();
     match $s:
         case status.ok:
             std::io::fmt_print(Lend.mut $out, "worked{newln}");
@@ -18,8 +18,8 @@ fn show [$s: status] -> void:
     return void;
 end fn show
 
-fn.main [none] -> void:
+fn.main [none] returns void:
     show(status.ok);
-    show(status.failed[code = 7]);
+    show(status.failed[code set_to 7]);
     return void;
 end fn.main

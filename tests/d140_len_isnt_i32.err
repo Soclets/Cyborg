@@ -1,5 +1,5 @@
-refused: d140_len_isnt_i32.cy:6:19, line 6 column 19
- 6 |     let $n: i32 = $a.len;
-   |                   ^^^^^^
+refused: d140_len_isnt_i32.cy:6:24, line 6 column 24
+ 6 |     let $n: i32 set_to $a.len;
+   |                        ^^^^^^
  what: this is `u64[unit: items]`, where `i32` is needed
  why:  `:` doesn't convert, and `as` builds a new value of another type (D7)

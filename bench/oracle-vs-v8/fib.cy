@@ -3,7 +3,7 @@ import os;
 use std::io::fmt_print as fmt_print;
 
 fn fib [$n: i64] returns i64:
-    if $n < 2:
+    if $n below 2:
         return $n;
     end if
     return fib($n - 1) + fib($n - 2);

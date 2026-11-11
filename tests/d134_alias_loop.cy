@@ -1,8 +1,8 @@
 // trace: D134
 
-type.alias a = b;
-type.alias b = a;
+type.alias a set_to b;
+type.alias b set_to a;
 
-fn.main [none] -> void:
+fn.main [none] returns void:
     return void;
 end fn.main

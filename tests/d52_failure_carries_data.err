@@ -1,10 +1,10 @@
-check failed: d52_failure_carries_data.cy:15:19, line 15 column 19
-15 |     let $n: i32 = half(-3);
-   |                   ^^^^^^^^
+check failed: d52_failure_carries_data.cy:15:24, line 15 column 24
+15 |     let $n: i32 set_to half(-3);
+   |                        ^^^^^^^^
  what: `negative` failed, and nothing handled it
  why:  a failure nothing handles stops the program (D96)
  when: it carried -3
  because: d52_failure_carries_data.cy:8:9, line 8 column 9
- 8 |         fail negative[value = $n];
-   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ 8 |         fail negative[value set_to $n];
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
      it was raised here

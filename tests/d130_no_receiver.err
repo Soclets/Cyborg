@@ -1,5 +1,5 @@
 refused: d130_no_receiver.cy:7:4, line 7 column 4
- 7 | fn box.%make [none] -> i32:
+ 7 | fn box.%make [none] returns i32:
    |    ^^^^^^^^^
  what: `box.%make` has no receiver
  why:  a method's first parameter is its receiver (D130)

@@ -1,5 +1,5 @@
 refused: d130_needs_its_percent.cy:7:4, line 7 column 4
- 7 | fn box.f [$b: box] -> i32:
+ 7 | fn box.f [$b: box] returns i32:
    |    ^^^^^
  fix:  `box.%f`
  why:  a method is declared with its type in the name, as in `reading.%warm_up` (D130)

@@ -1,5 +1,5 @@
-refused: d132_unary_minus_on_the_right.cy:10:29, line 10 column 29
-10 |     let $a: i32 = read() ?? -$x;
-   |                             ^
+refused: d132_unary_minus_on_the_right.cy:10:34, line 10 column 34
+10 |     let $a: i32 set_to read() ?? -$x;
+   |                                  ^
  what: `??`'s right side is one value, and unary `-` sits below it, so this needs `( )`
  why:  `??` sits level with `?`, and its right side is the next single value (D132)

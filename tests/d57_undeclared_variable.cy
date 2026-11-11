@@ -1,6 +1,6 @@
 // trace: D57
 
-fn.main [none] -> void:
-    let $a: i32 = $b;
+fn.main [none] returns void:
+    let $a: i32 set_to $b;
     return void;
 end fn.main

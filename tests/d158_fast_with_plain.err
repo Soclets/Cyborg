@@ -1,5 +1,5 @@
-NotDesignedYet: d158_fast_with_plain.cy:5:26, line 5 column 26
- 5 |     let $b: f64.stable = $a;
-   |                          ^^
+NotDesignedYet: d158_fast_with_plain.cy:5:31, line 5 column 31
+ 5 |     let $b: f64.stable set_to $a;
+   |                               ^^
  what: how `f64.fast` and `f64.stable` mix
  why:  not decided yet (standard 12.2)

@@ -1,6 +1,6 @@
-check failed: d42_plus_overflows.cy:5:19, line 5 column 19
- 5 |     let $b: i32 = $a + 1;
-   |                   ^^^^^^
+check failed: d42_plus_overflows.cy:5:24, line 5 column 24
+ 5 |     let $b: i32 set_to $a + 1;
+   |                        ^^^^^^
  what: this `+` overflows `i32`
  why:  a plain `+` that overflows traps in `Working` (D42)
  when: `2147483647 + 1`

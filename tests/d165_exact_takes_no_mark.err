@@ -1,5 +1,5 @@
-refused: d165_exact_takes_no_mark.cy:4:26, line 4 column 26
- 4 |     let $a: f64.stable = exponent ~1.5e3;
-   |                          ^^^^^^^^^^^^^^^
+refused: d165_exact_takes_no_mark.cy:4:31, line 4 column 31
+ 4 |     let $a: f64.stable set_to exponent ~1.5e3;
+   |                               ^^^^^^^^^^^^^^^
  fix:  `exponent 1.5e3`
  why:  f64 holds 1.5e3 exactly (D59)

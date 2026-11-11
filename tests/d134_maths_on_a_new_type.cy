@@ -1,12 +1,12 @@
 // trace: D134
 
-type.new user_id = i64;
+type.new user_id set_to i64;
 
-fn f [$u: user_id] -> void:
-    let $v: user_id = $u + $u;
+fn f [$u: user_id] returns void:
+    let $v: user_id set_to $u + $u;
     return void;
 end fn f
 
-fn.main [none] -> void:
+fn.main [none] returns void:
     return void;
 end fn.main

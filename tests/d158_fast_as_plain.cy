@@ -1,7 +1,7 @@
 // trace: D158
 
-fn.main [none] -> void:
-    let $a: f64.fast = 1.5;
-    let $b: f64.stable = $a as f64.stable;
+fn.main [none] returns void:
+    let $a: f64.fast set_to 1.5;
+    let $b: f64.stable set_to $a as f64.stable;
     return void;
 end fn.main

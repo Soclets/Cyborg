@@ -1,5 +1,5 @@
-refused: d23_comparison_needs_spaces.cy:6:20, line 6 column 20
- 6 |     let $c: bool = $a<$b;
-   |                    ^^^^^
- fix:  `$a < $b`
- why:  a binary operator, `=` and word operators included, has one space on each side, so `1<8` is refused (D23, D213)
+refused: d23_comparison_needs_spaces.cy:6:25, line 6 column 25
+ 6 |     let $c: bool set_to $a below$b;
+   |                         ^^^^^^^^^^
+ fix:  `$a below $b`
+ why:  a binary operator, `set_to` and word operators included, has one space on each side, so `1+8` is refused (D23, D213)

@@ -4,9 +4,9 @@ struct pair:
     a: f64.stable;
 end struct pair
 
-fn.main [none] -> void:
-    let $x: pair = pair[a = 0.5];
-    let $y: pair = pair[a = 0.5];
+fn.main [none] returns void:
+    let $x: pair set_to pair[a set_to 0.5];
+    let $y: pair set_to pair[a set_to 0.5];
     if $x == $y:
         return void;
     end if

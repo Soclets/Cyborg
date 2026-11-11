@@ -2,8 +2,8 @@
 import std;
 import os;
 
-fn.main [none] -> void:
-    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
+fn.main [none] returns void:
+    let mut $out: os::stdout.unbuffered set_to os::stdout.unbuffered();
     std::io::fmt_print(Lend.mut $out, "{}{newln}", (7 div.trunc 2));
     std::io::fmt_print(Lend.mut $out, "{}{newln}", (-7 div.trunc 2));
     std::io::fmt_print(Lend.mut $out, "{}{newln}", (-7 div.floor 2));

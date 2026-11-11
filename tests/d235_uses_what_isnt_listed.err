@@ -1,5 +1,5 @@
 refused: d235_uses_what_isnt_listed.cy:19:12, line 19 column 12
-19 |     return $a < $b;
-   |            ^^^^^^^
- what: `?item` needs `any.type`, which doesn't list `op <`
+19 |     return $a below $b;
+   |            ^^^^^^^^^^^
+ what: `?item` needs `any.type`, which doesn't list `op below`
  why:  a generic body may use on a `?item` only what its requirement lists, and only an interface gives operations (D235, D240)

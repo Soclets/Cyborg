@@ -3,9 +3,9 @@
 import std;
 import os;
 
-fn.main [none] -> void:
-    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
-    let $start: i32 = 5;
+fn.main [none] returns void:
+    let mut $out: os::stdout.unbuffered set_to os::stdout.unbuffered();
+    let $start: i32 set_to 5;
     std::io::fmt_print(Lend.mut $out, "before{newln}");
     for $i in range[from: $start, to: 1]:
         std::io::fmt_print(Lend.mut $out, "inside{newln}");

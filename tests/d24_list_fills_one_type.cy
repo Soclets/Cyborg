@@ -1,7 +1,7 @@
 // trace: D24, D25
 import std;
 
-fn.main [none] -> void:
-    let $xs: std::list<i32, i32>[len.max: 1 items] = empty;
+fn.main [none] returns void:
+    let $xs: std::list<i32, i32>[len.max: 1 items] set_to empty;
     return void;
 end fn.main

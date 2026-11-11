@@ -5,13 +5,13 @@ struct money:
     cents: i64;
 end struct money
 
-op == [$a: money, $b: money] -> bool:
+op == [$a: money, $b: money] returns bool:
     return $a.cents == $b.cents;
 end op ==
 
-fn.main [none] -> void:
-    let $a: money = money[cents = 1];
-    let $b: money = money[cents = 2];
-    let $c: bool = $a > $b;
+fn.main [none] returns void:
+    let $a: money set_to money[cents set_to 1];
+    let $b: money set_to money[cents set_to 2];
+    let $c: bool set_to $a above $b;
     return void;
 end fn.main

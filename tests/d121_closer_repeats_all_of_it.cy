@@ -2,16 +2,16 @@
 import std;
 import os;
 
-fn.pure area [$w: i32, $h: i32] -> i32:
+fn.pure area [$w: i32, $h: i32] returns i32:
     return $w x $h;
 end fn.pure area
 
-fn.pure.baked seconds_in [$days: i32] -> i32:
+fn.pure.baked seconds_in [$days: i32] returns i32:
     return $days x 86_400;
 end fn.pure.baked seconds_in
 
-fn.main [none] -> void:
-    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
+fn.main [none] returns void:
+    let mut $out: os::stdout.unbuffered set_to os::stdout.unbuffered();
     std::io::fmt_print(Lend.mut $out, "{}{newln}", area(3, 4));
     std::io::fmt_print(Lend.mut $out, "{}{newln}", seconds_in(2));
     return void;

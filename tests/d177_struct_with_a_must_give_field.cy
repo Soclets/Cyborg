@@ -9,6 +9,6 @@ struct.must_Give pair:
     a: open_file;
 end struct.must_Give pair
 
-fn.main [none] -> void:
+fn.main [none] returns void:
     return void;
 end fn.main

@@ -5,11 +5,11 @@ struct box:
     n: i32;
 end struct box
 
-fn f [$b: Given box] -> void:
-    change $b.n = 2;
+fn f [$b: Given box] returns void:
+    change $b.n set_to 2;
     return void;
 end fn f
 
-fn.main [none] -> void:
+fn.main [none] returns void:
     return void;
 end fn.main

@@ -1,6 +1,6 @@
 // trace: D145, D128
 
-fn.main [none] -> void:
+fn.main [none] returns void:
     for $i in range[from: 5, to: 1]:
         return void;
     end for

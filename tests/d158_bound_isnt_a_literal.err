@@ -1,5 +1,5 @@
 NotDesignedYet: d158_bound_isnt_a_literal.cy:6:39, line 6 column 39
- 6 |     let $t: f64.stable[min: 0.0, max: $top] = 0.5;
+ 6 |     let $t: f64.stable[min: 0.0, max: $top] set_to 0.5;
    |                                       ^^^^
  what: a bound that isn't a literal
  why:  not decided yet, and the standard doesn't say

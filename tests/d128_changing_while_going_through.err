@@ -1,5 +1,5 @@
 refused: d128_changing_while_going_through.cy:7:16, line 7 column 16
- 7 |         change $xs = [3];
+ 7 |         change $xs set_to [3];
    |                ^^^
  what: a `for` is reading `$xs` in place here
  why:  `Lend.mut` means nothing else uses it meanwhile, and `for` is using it (D2)

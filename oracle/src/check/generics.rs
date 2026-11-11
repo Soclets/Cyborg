@@ -87,8 +87,8 @@ fn builtin(operator: &str, own: &Type, result: &Type) -> Option<Implementation> 
         "==" if *result == Type::Bool && (number.is_some() || *own == Type::Bool) => {
             Some(Implementation::Compare(CompareOperator::Equal))
         }
-        "<" if *result == Type::Bool && number.is_some() => {
-            Some(Implementation::Compare(CompareOperator::Less))
+        "below" if *result == Type::Bool && number.is_some() => {
+            Some(Implementation::Compare(CompareOperator::Below))
         }
         "+" | "-" if result == own => Some(Implementation::Arithmetic(
             if operator == "+" {
@@ -590,7 +590,7 @@ impl Checker<'_> {
                     _ => {
                         return Err(Report::refused(
                             span,
-                            format!("nothing here says which type `?{name}` is, so this line says one, as in `: i32 =`"),
+                            format!("nothing here says which type `?{name}` is, so this line says one, as in `: i32 set_to`"),
                             "a call fills a type parameter from its arguments, and bare literals from the type the result goes into (D241, D50)",
                         ));
                     }

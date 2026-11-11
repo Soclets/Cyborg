@@ -3,6 +3,6 @@
 @config(default);
 import std;
 
-fn.main [none] -> void:
+fn.main [none] returns void:
     return void;
 end fn.main

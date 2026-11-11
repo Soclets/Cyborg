@@ -2,9 +2,9 @@
 import std;
 import os;
 
-fn.main [none] -> void:
-    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
-    let $by: u8 = 3;
+fn.main [none] returns void:
+    let mut $out: os::stdout.unbuffered set_to os::stdout.unbuffered();
+    let $by: u8 set_to 3;
     for $i in range[from: -4, to: 4, step_by: $by]:
         std::io::fmt_print(Lend.mut $out, "{}{newln}", $i);
     end for

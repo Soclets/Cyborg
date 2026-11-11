@@ -4,8 +4,8 @@
 import std;
 import os;
 
-fn.main [none] -> void:
-    let mut $out: os::stdout.buffered = os::stdout.buffered(size: 1024 bytes);
+fn.main [none] returns void:
+    let mut $out: os::stdout.buffered set_to os::stdout.buffered(size: 1024 bytes);
     std::io::fmt_print(Lend.mut $out, "lost?{newln}");
     return void;
 end fn.main

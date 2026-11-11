@@ -4,6 +4,6 @@ refused: d177_struct_handed_on.cy:34:5, line 34 column 5
  what: this leaves with `$m` never given away or finished
  why:  a `must_Give` value is handed off with `Give` exactly once, or `finish` ends it (D2, D129)
  because: d177_struct_handed_on.cy:32:9, line 32 column 9
-32 |     let $m: log = Give $l;
+32 |     let $m: log set_to Give $l;
    |         ^^
      `$m` was made here

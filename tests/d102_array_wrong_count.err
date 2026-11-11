@@ -1,5 +1,5 @@
-refused: d102_array_wrong_count.cy:5:45, line 5 column 45
- 5 |     let $a: std::array<i32>[len: 3 items] = [1, 2];
-   |                                             ^^^^^^
+refused: d102_array_wrong_count.cy:5:50, line 5 column 50
+ 5 |     let $a: std::array<i32>[len: 3 items] set_to [1, 2];
+   |                                                  ^^^^^^
  what: `std::array<i32>[len: 3 items]` holds exactly 3 items, and this gives 2
  why:  `[ ]` gives an array its items, with the count checked against the type (D102)

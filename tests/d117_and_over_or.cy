@@ -2,16 +2,16 @@
 import std;
 import os;
 
-fn.pure yes [none] -> bool:
-    return 1 < 2;
+fn.pure yes [none] returns bool:
+    return 1 below 2;
 end fn.pure yes
 
-fn.pure no [none] -> bool:
-    return 2 < 1;
+fn.pure no [none] returns bool:
+    return 2 below 1;
 end fn.pure no
 
-fn.main [none] -> void:
-    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
+fn.main [none] returns void:
+    let mut $out: os::stdout.unbuffered set_to os::stdout.unbuffered();
     if yes() or no() and no():
         std::io::fmt_print(Lend.mut $out, "and binds tighter{newln}");
     end if

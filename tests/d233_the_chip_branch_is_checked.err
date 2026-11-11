@@ -1,5 +1,5 @@
-refused: d233_the_chip_branch_is_checked.cy:11:27, line 11 column 27
-11 |         let $wrong: i32 = $a;
-   |                           ^^
+refused: d233_the_chip_branch_is_checked.cy:11:32, line 11 column 32
+11 |         let $wrong: i32 set_to $a;
+   |                                ^^
  what: this is `i64`, where `i32` is needed
  why:  `:` doesn't convert, and `as` builds a new value of another type (D7)

@@ -1,13 +1,13 @@
 // Changing through a plain `i32` could break the bound, so the types must match.
 // trace: D184, D20
 
-fn bump [$n: Lent.mut i32] -> void:
-    change $n = $n + 1;
+fn bump [$n: Lent.mut i32] returns void:
+    change $n set_to $n + 1;
     return void;
 end fn bump
 
-fn.main [none] -> void:
-    let mut $n: i32[min: 0, max: 9] = 1;
+fn.main [none] returns void:
+    let mut $n: i32[min: 0, max: 9] set_to 1;
     bump(Lend.mut $n);
     return void;
 end fn.main

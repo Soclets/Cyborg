@@ -1,6 +1,6 @@
 // trace: D36
 
-fn.main [none] -> void:
+fn.main [none] returns void:
     ＠std::inline.asm();
     return void;
 end fn.main

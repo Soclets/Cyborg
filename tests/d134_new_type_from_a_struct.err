@@ -1,5 +1,5 @@
-NotDesignedYet: d134_new_type_from_a_struct.cy:10:23, line 10 column 23
-10 |     let $w: wrapped = wrapped[celsius = 1];
-   |                       ^^^^^^^^^^^^^^^^^^^^
+NotDesignedYet: d134_new_type_from_a_struct.cy:10:28, line 10 column 28
+10 |     let $w: wrapped set_to wrapped[celsius set_to 1];
+   |                            ^^^^^^^^^^^^^^^^^^^^^^^^^
  what: building a `type.new` by its own name, rather than crossing with `as`
  why:  not decided yet (standard 12.1)

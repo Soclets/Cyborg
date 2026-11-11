@@ -4,6 +4,6 @@ import @std;
 
 use @std::inline.asm as asm;
 
-fn.main [none] -> void:
+fn.main [none] returns void:
     return void;
 end fn.main

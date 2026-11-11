@@ -1,5 +1,5 @@
-refused: d47_two_sets_share_a_name.cy:11:43, line 11 column 43
-11 | fn load [none] -> i32 fails [file_failed, net_failed]:
-   |                                           ^^^^^^^^^^
+refused: d47_two_sets_share_a_name.cy:11:48, line 11 column 48
+11 | fn load [none] returns i32 fails [file_failed, net_failed]:
+   |                                                ^^^^^^^^^^
  what: two failures here are called `denied`
  why:  two sets sharing a failure's name need the full name in a list (D47)

@@ -1,5 +1,5 @@
-refused: d2_borrow_type_needs_a_lend.cy:10:23, line 10 column 23
-10 |     let $b: reading = Lend $r;
-   |                       ^^^^^^^
+refused: d2_borrow_type_needs_a_lend.cy:10:28, line 10 column 28
+10 |     let $b: reading set_to Lend $r;
+   |                            ^^^^^^^
  what: `Lend` here needs a stored borrow's type
  why:  a stored borrow is a type, such as `Lend from $r reading` (D2)

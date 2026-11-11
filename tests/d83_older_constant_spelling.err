@@ -1,5 +1,5 @@
 refused: d83_older_constant_spelling.cy:5:17, line 5 column 17
  5 |     let $a: i32 := 1;
    |                 ^^
- fix:  `=`
- why:  `:=` leaves the type out, and a written type uses `=` (D216)
+ fix:  `set_to`
+ why:  `set_to` gives a value everywhere, and there's no type inference in the base language (D276, D277)

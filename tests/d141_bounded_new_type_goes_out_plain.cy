@@ -2,12 +2,12 @@
 import std;
 import os;
 
-type.new percent = i32[min: 0, max: 100];
+type.new percent set_to i32[min: 0, max: 100];
 
-fn.main [none] -> void:
-    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
-    let $p: percent = 40;
-    let $n: i32 = $p as i32;
+fn.main [none] returns void:
+    let mut $out: os::stdout.unbuffered set_to os::stdout.unbuffered();
+    let $p: percent set_to 40;
+    let $n: i32 set_to $p as i32;
     std::io::fmt_print(Lend.mut $out, "{}{newln}", $n);
     return void;
 end fn.main

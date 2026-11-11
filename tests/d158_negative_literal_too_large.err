@@ -1,5 +1,5 @@
-refused: d158_negative_literal_too_large.cy:4:26, line 4 column 26
- 4 |     let $x: f32.stable = ~-1000000000000000000000000000000000000000000.0;
-   |                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+refused: d158_negative_literal_too_large.cy:4:31, line 4 column 31
+ 4 |     let $x: f32.stable set_to ~-1000000000000000000000000000000000000000000.0;
+   |                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
  what: this literal is too large for `f32`
  why:  a float can't be infinity, and a literal that can't fit is a compile error (D158, D20)

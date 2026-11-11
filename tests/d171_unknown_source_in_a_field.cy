@@ -8,6 +8,6 @@ struct view <`text`>:
     words: Lend from `txt` reading;
 end struct view
 
-fn.main [none] -> void:
+fn.main [none] returns void:
     return void;
 end fn.main

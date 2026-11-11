@@ -1,5 +1,5 @@
-refused: d165_needs_the_word_without_a_mark.cy:4:26, line 4 column 26
- 4 |     let $a: f64.stable = 1.5e3;
-   |                          ^^^^^
+refused: d165_needs_the_word_without_a_mark.cy:4:31, line 4 column 31
+ 4 |     let $a: f64.stable set_to 1.5e3;
+   |                               ^^^^^
  fix:  `exponent 1.5e3`
  why:  a stray `e` can't quietly change a number, so the word goes in front (D165)

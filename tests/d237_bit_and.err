@@ -1,5 +1,5 @@
 NotDesignedYet: d237_bit_and.cy:8:4, line 8 column 4
- 8 | op bit_and [$a: money, $b: money] -> money:
+ 8 | op bit_and [$a: money, $b: money] returns money:
    |    ^^^^^^^
  what: a type's own `bit_and`
  why:  not decided yet (standard 12.3)

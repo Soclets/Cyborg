@@ -1,5 +1,5 @@
-refused: d3_store_with_no_word.cy:9:19, line 9 column 19
- 9 |     let $b: box = $a;
-   |                   ^^
+refused: d3_store_with_no_word.cy:9:24, line 9 column 24
+ 9 |     let $b: box set_to $a;
+   |                        ^^
  what: `$a` is `box`, so this needs `Give` or `Copy`
  why:  every hand-off shows on the page, including one into a name, a `return` or a field (D3)

@@ -5,8 +5,8 @@ import std;
 import os;
 use std::io::fmt_print as fmt_print;
 
-fn.main [none] -> void:
-    let mut $out: os::stdout.buffered = os::stdout.buffered(size: 1024 bytes);
+fn.main [none] returns void:
+    let mut $out: os::stdout.buffered set_to os::stdout.buffered(size: 1024 bytes);
     fmt_print(Lend.mut $out, "Hello, World!{newln}");
     os::done(Give $out);
     return void;

@@ -5,7 +5,7 @@ fam.unit time:
     time.seconds: base;
 end fam.unit time
 
-fn.main [none] -> void:
-    let $n: i32[min: 0 time.seconds, max: 9] = 5;
+fn.main [none] returns void:
+    let $n: i32[min: 0 time.seconds, max: 9] set_to 5;
     return void;
 end fn.main

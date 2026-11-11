@@ -1,5 +1,5 @@
-refused: d126_trust_isnt_in_the_next_link.cy:13:23, line 13 column 23
-13 |         let $b: i32 = $s.code;
-   |                       ^^^^^^^
+refused: d126_trust_isnt_in_the_next_link.cy:13:28, line 13 column 28
+13 |         let $b: i32 set_to $s.code;
+   |                            ^^^^^^^
  what: `$s` isn't known to be `status.failed` here
  why:  inside `if $s: status.failed:` the compiler trusts it, and outside that's a compile error (D9)

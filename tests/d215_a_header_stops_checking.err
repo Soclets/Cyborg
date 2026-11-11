@@ -1,5 +1,5 @@
 refused: d215_a_header_stops_checking.cy:5:14, line 5 column 14
- 5 | fn half [$n: nope] -> i32:
+ 5 | fn half [$n: nope] returns i32:
    |              ^^^^
  what: the type `nope` isn't known
  why:  a type is built in, or declared with `struct` or `union.tagged` (D33, D57)

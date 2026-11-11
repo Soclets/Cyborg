@@ -1,5 +1,5 @@
 NotDesignedYet: d214_my_on_a_name_that_doesnt_clash.cy:3:4, line 3 column 4
- 3 | fn my::total [none] -> i32:
+ 3 | fn my::total [none] returns i32:
    |    ^^^^^^^^^
  what: `my::` on `total`, which doesn't clash
  why:  not decided yet, and the standard doesn't say

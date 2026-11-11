@@ -3,13 +3,13 @@
 import std;
 import os;
 
-fn eat [$s: Given str] -> void:
+fn eat [$s: Given str] returns void:
     return void;
 end fn eat
 
-fn.main [none] -> void:
-    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
-    let $s: str = "a";
+fn.main [none] returns void:
+    let mut $out: os::stdout.unbuffered set_to os::stdout.unbuffered();
+    let $s: str set_to "a";
     eat(Give $s);
     std::io::fmt_print(Lend.mut $out, "{$s}{newln}");
     return void;

@@ -1,5 +1,5 @@
 refused: d171_no_sources_to_fill.cy:9:13, line 9 column 13
- 9 |     let $r: reading<`text`: $a> = reading[celsius = 2];
+ 9 |     let $r: reading<`text`: $a> set_to reading[celsius set_to 2];
    |             ^^^^^^^^^^^^^^^^^^^
  what: `reading` holds no borrows, so it has no sources to fill
  why:  a struct that holds a borrow names its sources, and others have none (D171)

@@ -1,5 +1,5 @@
 refused: d215_an_opening_line_stops_checking.cy:7:8, line 7 column 8
- 7 |     if $a < "x":
-   |        ^^^^^^^^
+ 7 |     if $a below "x":
+   |        ^^^^^^^^^^^^
  what: this compares `i32` and `str`
  why:  `:` doesn't convert, and `as` builds a new value of another type (D7)

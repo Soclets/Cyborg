@@ -2,11 +2,11 @@
 import std;
 import os;
 
-fn size [$n: i32] -> void:
-    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
-    if $n > 100:
+fn size [$n: i32] returns void:
+    let mut $out: os::stdout.unbuffered set_to os::stdout.unbuffered();
+    if $n above 100:
         std::io::fmt_print(Lend.mut $out, "huge{newln}");
-    else if $n > 0:
+    else if $n above 0:
         std::io::fmt_print(Lend.mut $out, "big{newln}");
     else:
         std::io::fmt_print(Lend.mut $out, "small{newln}");
@@ -14,7 +14,7 @@ fn size [$n: i32] -> void:
     return void;
 end fn size
 
-fn.main [none] -> void:
+fn.main [none] returns void:
     size(101);
     size(1);
     size(0);

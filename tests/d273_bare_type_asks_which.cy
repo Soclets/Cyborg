@@ -3,7 +3,7 @@
 import std;
 import os;
 
-fn.main [none] -> void:
-    let mut $out: os::stdout = os::stdout.unbuffered();
+fn.main [none] returns void:
+    let mut $out: os::stdout set_to os::stdout.unbuffered();
     return void;
 end fn.main

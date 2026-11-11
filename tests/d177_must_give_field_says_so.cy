@@ -8,6 +8,6 @@ struct holder:
     f: open_file;
 end struct holder
 
-fn.main [none] -> void:
+fn.main [none] returns void:
     return void;
 end fn.main

@@ -1,11 +1,11 @@
 // A fresh value takes no word, and neither does a `bool`.
 // trace: D127, D2
 
-fn f [$b: bool] -> bool:
+fn f [$b: bool] returns bool:
     return $b;
 end fn f
 
-fn.main [none] -> void:
-    let $a: bool = f(Lend true);
+fn.main [none] returns void:
+    let $a: bool set_to f(Lend true);
     return void;
 end fn.main

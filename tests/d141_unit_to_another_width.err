@@ -1,5 +1,5 @@
-NotDesignedYet: d141_unit_to_another_width.cy:6:19, line 6 column 19
- 6 |     let $n: i32 = $xs.len as i32;
-   |                   ^^^^^^^^^^^^^^
+NotDesignedYet: d141_unit_to_another_width.cy:6:24, line 6 column 24
+ 6 |     let $n: i32 set_to $xs.len as i32;
+   |                        ^^^^^^^^^^^^^^
  what: converting `u64[unit: items]` to `i32` with `as`
  why:  not decided yet (standard 12.3)

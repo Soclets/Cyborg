@@ -3,12 +3,12 @@
 import std;
 import os;
 
-type.alias int.signed.32_bit = i32;
+type.alias int.signed.32_bit set_to i32;
 
-fn.main [none] -> void:
-    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
-    let $a: int.signed.32_bit = 1;
-    let $b: i32 = $a;
+fn.main [none] returns void:
+    let mut $out: os::stdout.unbuffered set_to os::stdout.unbuffered();
+    let $a: int.signed.32_bit set_to 1;
+    let $b: i32 set_to $a;
     std::io::fmt_print(Lend.mut $out, "{}{newln}", $b);
     return void;
 end fn.main

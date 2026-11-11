@@ -1,9 +1,9 @@
 // trace: D11
 
-fn f [none] -> void:
+fn f [none] returns void:
     return 1;
 end fn f
 
-fn.main [none] -> void:
+fn.main [none] returns void:
     return void;
 end fn.main

@@ -993,7 +993,7 @@ impl<'c> Runner<'c> {
                         Report::check_failed(
                             span,
                             what,
-                            "a plain `=`, `change` or argument checks a bound when the compiler can't see it fits (D20, D158)",
+                            "a plain `set_to`, `change` or argument checks a bound when the compiler can't see it fits (D20, D158)",
                         )
                         .when(when),
                     ));
@@ -1103,7 +1103,7 @@ impl<'c> Runner<'c> {
                         Report::check_failed(
                             span,
                             what,
-                            "a plain `=`, `change` or argument checks a bound when the compiler can't see it fits (D20)",
+                            "a plain `set_to`, `change` or argument checks a bound when the compiler can't see it fits (D20)",
                         )
                         .when(when),
                     ));
@@ -1328,8 +1328,8 @@ fn compare(
     Ok(match operator {
         CompareOperator::Equal => ordering == Some(Equal),
         CompareOperator::NotEqual => ordering != Some(Equal),
-        CompareOperator::Less => ordering == Some(Less),
-        CompareOperator::Greater => ordering == Some(Greater),
+        CompareOperator::Below => ordering == Some(Less),
+        CompareOperator::Above => ordering == Some(Greater),
         CompareOperator::AtLeast => matches!(ordering, Some(Greater | Equal)),
         CompareOperator::AtMost => matches!(ordering, Some(Less | Equal)),
     })

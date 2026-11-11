@@ -10,20 +10,20 @@ struct bag:
     boxes: std::array<box>[len: 2 items];
 end struct bag
 
-fn box.%%bump [$b: Lent.mut box] -> void:
-    change $b.n = $b.n + 1;
+fn box.%%bump [$b: Lent.mut box] returns void:
+    change $b.n set_to $b.n + 1;
     return void;
 end fn box.%%bump
 
-fn.main [none] -> void:
-    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
-    let mut $b: bag = bag[boxes = [box[n = 1], box[n = 2]]];
+fn.main [none] returns void:
+    let mut $out: os::stdout.unbuffered set_to os::stdout.unbuffered();
+    let mut $b: bag set_to bag[boxes set_to [box[n set_to 1], box[n set_to 2]]];
     std::io::fmt_print(Lend.mut $out, "{}{newln}", $b.boxes[pos: 2].n);
-    change $b.boxes[pos: 1].n = 5;
+    change $b.boxes[pos: 1].n set_to 5;
     std::io::fmt_print(Lend.mut $out, "{}{newln}", $b.boxes[offset.items: 0].n);
     $b.boxes[pos: 1].%%bump();
     std::io::fmt_print(Lend.mut $out, "{}{newln}", $b.boxes[pos: 1].n);
-    change $b.boxes[pos: 2] = box[n = 9];
+    change $b.boxes[pos: 2] set_to box[n set_to 9];
     std::io::fmt_print(Lend.mut $out, "{}{newln}", $b.boxes[pos: 2].n);
     return void;
 end fn.main

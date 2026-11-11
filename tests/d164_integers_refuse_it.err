@@ -1,5 +1,5 @@
-refused: d164_integers_refuse_it.cy:6:22, line 6 column 22
- 6 |     let $c: i32 = $a div $b;
-   |                      ^^^
+refused: d164_integers_refuse_it.cy:6:27, line 6 column 27
+ 6 |     let $c: i32 set_to $a div $b;
+   |                           ^^^
  what: an integer has no bare `div`, so pick `div.trunc` or `div.floor`
  why:  integer division has no single right answer, so you pick one (D48, D164)

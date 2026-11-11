@@ -2,12 +2,12 @@
 import std;
 import os;
 
-fn.main [none] -> void:
-    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
-    let mut $n: i32 = 3;
-    while $n > 0:
+fn.main [none] returns void:
+    let mut $out: os::stdout.unbuffered set_to os::stdout.unbuffered();
+    let mut $n: i32 set_to 3;
+    while $n above 0:
         std::io::fmt_print(Lend.mut $out, "{}{newln}", $n);
-        change $n = $n - 1;
+        change $n set_to $n - 1;
     end while
     while false:
         std::io::fmt_print(Lend.mut $out, "never{newln}");

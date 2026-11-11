@@ -1,11 +1,11 @@
 // trace: D2
 
-fn f [$s: Given str] -> void:
+fn f [$s: Given str] returns void:
     return void;
 end fn f
 
-fn.main [none] -> void:
-    let $s: str = "a";
+fn.main [none] returns void:
+    let $s: str set_to "a";
     f(Given $s);
     return void;
 end fn.main

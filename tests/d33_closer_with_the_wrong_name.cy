@@ -1,9 +1,9 @@
 // trace: D33
 
-fn total [none] -> i32:
+fn total [none] returns i32:
     return 1;
 end fn sum
 
-fn.main [none] -> void:
+fn.main [none] returns void:
     return void;
 end fn.main

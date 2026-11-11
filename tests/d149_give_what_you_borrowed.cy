@@ -4,15 +4,15 @@ struct reading:
     celsius: i32;
 end struct reading
 
-type.new wrapped = reading;
+type.new wrapped set_to reading;
 
-fn look [$r: reading] -> void:
-    let $w: wrapped = Give $r as wrapped;
+fn look [$r: reading] returns void:
+    let $w: wrapped set_to Give $r as wrapped;
     return void;
 end fn look
 
-fn.main [none] -> void:
-    let $a: reading = reading[celsius = 1];
+fn.main [none] returns void:
+    let $a: reading set_to reading[celsius set_to 1];
     look(Lend $a);
     return void;
 end fn.main

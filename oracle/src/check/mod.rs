@@ -1138,8 +1138,8 @@ impl Checker<'_> {
                     UnitMeaning::Unsaid => {
                         return Err(Report::refused(
                             member.path.span,
-                            "this unit says neither `base` nor `=`",
-                            "every unit says what it is, `: base` or `=` with a conversion (D109)",
+                            "this unit says neither `base` nor `set_to`",
+                            "every unit says what it is, `: base` or `set_to` with a conversion (D109, D276)",
                         ));
                     }
                 };
@@ -1167,7 +1167,7 @@ impl Checker<'_> {
                 return Err(Report::refused(
                     line.span,
                     "`together` lines are gone",
-                    "a unit made of others is declared once, inside a family, with `per` and `x`, as in `motion.speed = length.meters per time.seconds;` (D242)",
+                    "a unit made of others is declared once, inside a family, with `per` and `x`, as in `motion.speed set_to length.meters per time.seconds;` (D242, D276)",
                 ));
             }
         }
@@ -1209,7 +1209,7 @@ impl Checker<'_> {
                     return Err(Report::refused(
                         target_span,
                         format!("the unit `{target}` isn't known"),
-                        "`=` points at a unit, in any family (D109)",
+                        "`set_to` points at a unit, in any family (D109, D276)",
                     ));
                 }
                 if seen.contains(&target) {
@@ -1889,12 +1889,7 @@ impl Checker<'_> {
         let names: Vec<String> = pending
             .iter()
             .filter_map(|statement| match &statement.kind {
-                StatementKind::Constant { name, .. }
-                | StatementKind::Inferred {
-                    constant: true,
-                    name,
-                    ..
-                } => Some(name.text.clone()),
+                StatementKind::Constant { name, .. } => Some(name.text.clone()),
                 _ => None,
             })
             .collect();
@@ -1902,13 +1897,7 @@ impl Checker<'_> {
             let before = pending.len();
             let mut later = Vec::new();
             for statement in pending {
-                let (StatementKind::Constant { value, .. }
-                | StatementKind::Inferred {
-                    constant: true,
-                    value,
-                    ..
-                }) = &statement.kind
-                else {
+                let StatementKind::Constant { value, .. } = &statement.kind else {
                     continue;
                 };
                 let mut reads = Vec::new();
@@ -1947,17 +1936,6 @@ impl Checker<'_> {
                 let value_type = self.resolve_type(written_type)?;
                 self.context = FunctionContext::outside_any_function();
                 let node = self.check_constant_value(value, &value_type)?;
-                (name, value_type, node)
-            }
-            // trace: D216
-            StatementKind::Inferred {
-                constant: true,
-                name,
-                value,
-                ..
-            } => {
-                self.context = FunctionContext::outside_any_function();
-                let (node, value_type) = self.infer_value(value, true)?;
                 (name, value_type, node)
             }
             _ => return Ok(()),
@@ -3225,7 +3203,7 @@ fn narrowed_function(path: &str) -> Option<&str> {
 impl Checker<'_> {
     /// A type's own operator takes two values, at least one of them a struct or union, since
     /// an operator is never defined for built-in types. Its values are lent, as the operator
-    /// shows no word. `==` and `<` give a `bool`, which the others follow from. (D236, D237)
+    /// shows no word. `==` and `below` give a `bool`, which the others follow from. (D236, D237)
     /// trace: D236, D237
     fn declare_operator(
         &mut self,
@@ -3263,11 +3241,11 @@ impl Checker<'_> {
                 "",
             ));
         }
-        if matches!(operator, "==" | "<") && *return_type != Type::Bool {
+        if matches!(operator, "==" | "below") && *return_type != Type::Bool {
             return Err(Report::refused(
                 function.return_type.span,
                 format!("`op {operator}` gives a `bool`"),
-                "`!=`, `>`, `at_least` and `at_most` follow from `==` and `<`, so those compare and give a `bool` (D237)",
+                "`!=`, `above`, `at_least` and `at_most` follow from `==` and `below`, so those compare and give a `bool` (D237, D278)",
             ));
         }
         self.operators.push(OperatorInfo {

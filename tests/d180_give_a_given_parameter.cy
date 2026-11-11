@@ -6,22 +6,22 @@ struct.must_Give open_file:
     fd: i32;
 end struct.must_Give open_file
 
-fn close [$f: Given open_file] -> void:
-    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
+fn close [$f: Given open_file] returns void:
+    let mut $out: os::stdout.unbuffered set_to os::stdout.unbuffered();
     std::io::fmt_print(Lend.mut $out, "closing {}{newln}", $f.fd);
     finish $f;
     return void;
 end fn close
 
-fn close_all [$files: Given std::list<open_file>[len.max: inf items]] -> void:
+fn close_all [$files: Given std::list<open_file>[len.max: inf items]] returns void:
     for $f in Give $files:
         close(Give $f);
     end for
     return void;
 end fn close_all
 
-fn.main [none] -> void:
-    let $files: std::list<open_file>[len.max: inf items] = [open_file[fd = 3], open_file[fd = 4]];
+fn.main [none] returns void:
+    let $files: std::list<open_file>[len.max: inf items] set_to [open_file[fd set_to 3], open_file[fd set_to 4]];
     close_all(Give $files);
     return void;
 end fn.main

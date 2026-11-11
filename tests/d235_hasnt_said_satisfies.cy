@@ -3,11 +3,11 @@
 import std;
 
 interface ordered<?self>:
-    op < [$a: ?self, $b: ?self] -> bool;
+    op below [$a: ?self, $b: ?self] returns bool;
 end interface ordered
 
 interface addable<?self>:
-    op + [$a: ?self, $b: ?self] -> ?self;
+    op + [$a: ?self, $b: ?self] returns ?self;
 end interface addable
 
 type_set whole:
@@ -15,12 +15,12 @@ type_set whole:
     i64;
 end type_set whole
 
-fn larger<?item: ordered> [$a: ?item, $b: ?item] -> bool:
-    return $a > $b;
+fn larger<?item: ordered> [$a: ?item, $b: ?item] returns bool:
+    return $a above $b;
 end fn larger
 
-fn.main [none] -> void:
-    let $a: i32 = 4;
-    let $b: bool = larger($a, $a);
+fn.main [none] returns void:
+    let $a: i32 set_to 4;
+    let $b: bool set_to larger($a, $a);
     return void;
 end fn.main

@@ -5,14 +5,14 @@ struct.must_Give open_file:
     fd: i32;
 end struct.must_Give open_file
 
-fn close [$f: Given open_file] -> i32:
+fn close [$f: Given open_file] returns i32:
     finish $f;
     return 3;
 end fn close
 
-fn.main [none] -> void:
-    let $f: open_file = open_file[fd = 3];
-    if 2 < 1 < close(Give $f):
+fn.main [none] returns void:
+    let $f: open_file set_to open_file[fd set_to 3];
+    if 2 below 1 below close(Give $f):
         return void;
     end if
     return void;

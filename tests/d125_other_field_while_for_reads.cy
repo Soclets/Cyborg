@@ -7,10 +7,10 @@ struct bag:
     total: i32;
 end struct bag
 
-fn.main [none] -> void:
-    let mut $b: bag = bag[items = [1, 2], total = 0];
+fn.main [none] returns void:
+    let mut $b: bag set_to bag[items set_to [1, 2], total set_to 0];
     for $x in $b.items:
-        change $b.total = $b.total + $x;
+        change $b.total set_to $b.total + $x;
     end for
     return void;
 end fn.main

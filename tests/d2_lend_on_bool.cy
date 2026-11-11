@@ -1,11 +1,11 @@
 // trace: D2
 
-fn f [$b: bool] -> bool:
+fn f [$b: bool] returns bool:
     return $b;
 end fn f
 
-fn.main [none] -> void:
-    let $b: bool = 1 < 2;
-    let $c: bool = f(Lend $b);
+fn.main [none] returns void:
+    let $b: bool set_to 1 below 2;
+    let $c: bool set_to f(Lend $b);
     return void;
 end fn.main

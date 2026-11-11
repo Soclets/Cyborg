@@ -3,7 +3,7 @@
 
 use inline.@llvm::ir as ir;
 
-fn.main [none] -> void:
+fn.main [none] returns void:
     shield low:
         reason "talks to the chip"
         ir();

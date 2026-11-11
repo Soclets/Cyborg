@@ -1115,7 +1115,7 @@ impl Checker<'_> {
             return Err(Report::refused(
                 span,
                 "`all` fills an array",
-                "`= all 0` fills an array with one value (D102)",
+                "`set_to all 0` fills an array with one value (D102, D276)",
             ));
         };
         if !item.is_always_copied() {
@@ -1213,7 +1213,7 @@ impl Checker<'_> {
             return Err(Report::refused(
                 span,
                 format!("building `{bare}` uses `[ ]`"),
-                "building one uses `[ ]`, with `=` setting a field (D57)",
+                "building one uses `[ ]`, with `set_to` setting a field (D57, D276)",
             ));
         }
         // trace: D57
@@ -1240,7 +1240,7 @@ impl Checker<'_> {
             return Err(Report::refused(
                 span,
                 format!("building `{owner}` needs `{missing}`"),
-                "building one uses `[ ]`, with `=` setting each field (D57)",
+                "building one uses `[ ]`, with `set_to` setting each field (D57, D276)",
             ));
         }
         let mut nodes = Vec::new();
@@ -1252,7 +1252,7 @@ impl Checker<'_> {
                 return Err(Report::refused(
                     field.name.span,
                     format!("`{owner}` has no field `{}`", field.name.text),
-                    "building one uses `[ ]`, with `=` setting each field (D57)",
+                    "building one uses `[ ]`, with `set_to` setting each field (D57, D276)",
                 ));
             };
             if index != position {
@@ -1420,7 +1420,7 @@ impl Checker<'_> {
         Err(Report::refused(
             path.span,
             format!("the type `{bare}` isn't known"),
-            "building one uses `[ ]`, with `=` setting a field (D57)",
+            "building one uses `[ ]`, with `set_to` setting a field (D57, D276)",
         ))
     }
 

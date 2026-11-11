@@ -1,6 +1,6 @@
-check failed: d163_order_written_can_crash.cy:7:24, line 7 column 24
- 7 |     let $y: f32.fast = $big x 10.0 x ~0.1;
-   |                        ^^^^^^^^^^^
+check failed: d163_order_written_can_crash.cy:7:29, line 7 column 29
+ 7 |     let $y: f32.fast set_to $big x 10.0 x ~0.1;
+   |                             ^^^^^^^^^^^
  what: this makes infinity
  why:  a float can't be NaN or infinity, and making one is a failure (D158)
  when: `300000000000000000000000000000000000000.0` and `10.0` in `f32`

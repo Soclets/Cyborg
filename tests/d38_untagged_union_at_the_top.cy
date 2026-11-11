@@ -5,6 +5,6 @@ import @csup;
     i: i32;
 end @csup::union.untagged number
 
-fn.main [none] -> void:
+fn.main [none] returns void:
     return void;
 end fn.main

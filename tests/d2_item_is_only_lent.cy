@@ -1,12 +1,12 @@
 // trace: D2
 import std;
 
-fn eat [$s: Given str] -> void:
+fn eat [$s: Given str] returns void:
     return void;
 end fn eat
 
-fn.main [none] -> void:
-    let $xs: std::array<str>[len: 2 items] = ["a", "b"];
+fn.main [none] returns void:
+    let $xs: std::array<str>[len: 2 items] set_to ["a", "b"];
     for $s in $xs:
         eat(Give $s);
     end for

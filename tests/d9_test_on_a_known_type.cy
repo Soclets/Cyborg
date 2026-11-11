@@ -1,7 +1,7 @@
 // trace: D9
 
-fn.main [none] -> void:
-    let $b: bool = 1 < 2;
+fn.main [none] returns void:
+    let $b: bool set_to 1 below 2;
     if $b: bool:
         return void;
     end if

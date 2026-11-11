@@ -4,10 +4,10 @@ struct reading:
     celsius: i32;
 end struct reading
 
-fn pick [$a: reading] -> Lend from $z reading:
+fn pick [$a: reading] returns Lend from $z reading:
     return Lend $a;
 end fn pick
 
-fn.main [none] -> void:
+fn.main [none] returns void:
     return void;
 end fn.main

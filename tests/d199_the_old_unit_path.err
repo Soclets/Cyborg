@@ -1,5 +1,5 @@
 refused: d199_the_old_unit_path.cy:5:23, line 5 column 23
- 5 |     let $a: i64[unit: std::time.seconds] = 3600 std::time.seconds;
+ 5 |     let $a: i64[unit: std::time.seconds] set_to 3600 std::time.seconds;
    |                       ^^^^^^^^^^^^^^^^^
  fix:  `std::units::time.seconds`
  why:  a unit family in `std` sits in the `units` group (D199, D196)

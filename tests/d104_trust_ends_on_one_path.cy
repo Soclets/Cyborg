@@ -5,13 +5,13 @@ union.tagged status:
     failed[code: i32];
 end union.tagged status
 
-fn.main [none] -> void:
-    let mut $s: status = status.failed[code = 3];
+fn.main [none] returns void:
+    let mut $s: status set_to status.failed[code set_to 3];
     if $s: status.failed:
-        if 1 < 2:
-            change $s = status.ok;
+        if 1 below 2:
+            change $s set_to status.ok;
         end if
-        let $b: i32 = $s.code;
+        let $b: i32 set_to $s.code;
     end if
     return void;
 end fn.main

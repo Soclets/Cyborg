@@ -1,11 +1,11 @@
 // trace: D139
 
-fn f [none] -> i32 fails [a[val: i32], b]:
+fn f [none] returns i32 fails [a[val: i32], b]:
     return 1;
 end fn f
 
-fn.main [none] -> void:
-    let $n: i32 = f() otherwise:
+fn.main [none] returns void:
+    let $n: i32 set_to f() otherwise:
         case a $x:
             instead 1;
         case b:

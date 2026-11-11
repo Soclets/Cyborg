@@ -12,13 +12,13 @@ fam.unit time:
 end fam.unit time
 
 interface ordered<?self>:
-    op < [$a: ?self, $b: ?self] -> bool;
+    op below [$a: ?self, $b: ?self] returns bool;
 end interface ordered
 
-fn keep<?u: length and ordered> [$a: f64.stable[unit: ?u]] -> f64.stable[unit: ?u]:
+fn keep<?u: length and ordered> [$a: f64.stable[unit: ?u]] returns f64.stable[unit: ?u]:
     return $a;
 end fn keep
 
-fn.main [none] -> void:
+fn.main [none] returns void:
     return void;
 end fn.main

@@ -2,10 +2,10 @@
 // trace: D203, D128
 import std;
 
-fn.main [none] -> void:
+fn.main [none] returns void:
     decl $x: i32;
     for $i in range[from: 1, to: 3]:
-        assign $x = $i;
+        assign $x set_to $i;
     end for
     return void;
 end fn.main

@@ -1,0 +1,5 @@
+refused: d277_colon_equals_is_gone.cy:4:16, line 4 column 16
+ 4 |     let $count := 0;
+   |                ^^
+ fix:  `set_to`
+ why:  every `let` and `const` writes its type, so a reader never has to work one out, and there's no type inference in the base language (D277)

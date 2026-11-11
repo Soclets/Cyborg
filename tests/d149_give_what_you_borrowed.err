@@ -1,5 +1,5 @@
-refused: d149_give_what_you_borrowed.cy:10:28, line 10 column 28
-10 |     let $w: wrapped = Give $r as wrapped;
-   |                            ^^
+refused: d149_give_what_you_borrowed.cy:10:33, line 10 column 33
+10 |     let $w: wrapped set_to Give $r as wrapped;
+   |                                 ^^
  what: `$r` is only lent here, so it can't be given away
  why:  `Lend` is temporary access, and the caller keeps it (D2)

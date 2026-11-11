@@ -1,6 +1,6 @@
 // trace: D188
 import pkg other;
 
-fn.main [none] -> void:
+fn.main [none] returns void:
     return void;
 end fn.main

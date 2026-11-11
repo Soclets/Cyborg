@@ -3,19 +3,19 @@
 import std;
 import os;
 
-fn.main [none] -> void:
-    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
-    let mut $xs: std::list<i32>[len.max: 8 items] = empty;
+fn.main [none] returns void:
+    let mut $out: os::stdout.unbuffered set_to os::stdout.unbuffered();
+    let mut $xs: std::list<i32>[len.max: 8 items] set_to empty;
     fill(Lend.mut $xs, 5);
     std::io::fmt_print(Lend.mut $out, "sum {}{newln}", sum(Lend $xs));
     std::io::fmt_print(Lend.mut $out, "largest {}{newln}", largest(Lend $xs));
-    let mut $evens: std::list<i32>[len.max: 8 items] = empty;
+    let mut $evens: std::list<i32>[len.max: 8 items] set_to empty;
     keep_even(Lend $xs, Lend.mut $evens);
     print_all(Lend $evens);
     return void;
 end fn.main
 
-fn fill [$xs: Lent.mut std::list<i32>[len.max: 8 items], $n: i32[min: 0, max: 8]] -> void:
+fn fill [$xs: Lent.mut std::list<i32>[len.max: 8 items], $n: i32[min: 0, max: 8]] returns void:
     if $n == 0:
         return void;
     end if
@@ -24,27 +24,27 @@ fn fill [$xs: Lent.mut std::list<i32>[len.max: 8 items], $n: i32[min: 0, max: 8]
     return void;
 end fn fill
 
-fn sum [$xs: std::list<i32>[len.max: 8 items]] -> i32:
-    let mut $total: i32 = 0;
+fn sum [$xs: std::list<i32>[len.max: 8 items]] returns i32:
+    let mut $total: i32 set_to 0;
     for $x in $xs:
-        change $total = $total + $x;
+        change $total set_to $total + $x;
     end for
     return $total;
 end fn sum
 
-fn largest [$xs: std::list<i32>[len.max: 8 items]] -> i32:
+fn largest [$xs: std::list<i32>[len.max: 8 items]] returns i32:
     requires $xs.len at_least 1 items;
 
-    let mut $best: i32 = -2147483648;
+    let mut $best: i32 set_to -2147483648;
     for $x in $xs:
-        if $x > $best:
-            change $best = $x;
+        if $x above $best:
+            change $best set_to $x;
         end if
     end for
     return $best;
 end fn largest
 
-fn keep_even [$xs: std::list<i32>[len.max: 8 items], $out: Lent.mut std::list<i32>[len.max: 8 items]] -> void:
+fn keep_even [$xs: std::list<i32>[len.max: 8 items], $out: Lent.mut std::list<i32>[len.max: 8 items]] returns void:
     for $x in $xs:
         if $x mod.trunc 2 == 0:
             $out.std::%%append(val: $x);
@@ -53,8 +53,8 @@ fn keep_even [$xs: std::list<i32>[len.max: 8 items], $out: Lent.mut std::list<i3
     return void;
 end fn keep_even
 
-fn print_all [$xs: std::list<i32>[len.max: 8 items]] -> void:
-    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
+fn print_all [$xs: std::list<i32>[len.max: 8 items]] returns void:
+    let mut $out: os::stdout.unbuffered set_to os::stdout.unbuffered();
     for $x in $xs:
         std::io::fmt_print(Lend.mut $out, "{}{newln}", $x);
     end for

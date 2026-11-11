@@ -1,17 +1,17 @@
-refused: d207_every_error.cy:6:26, line 6 column 26
- 6 |     let $a: f64.stable = 0.1;
-   |                          ^^^
+refused: d207_every_error.cy:6:31, line 6 column 31
+ 6 |     let $a: f64.stable set_to 0.1;
+   |                               ^^^
  fix:  `~0.1`
  why:  f64 can't hold 0.1 exactly (D59)
 
-refused: d207_every_error.cy:8:19, line 8 column 19
- 8 |     let $c: i64 = $b;
-   |                   ^^
+refused: d207_every_error.cy:8:24, line 8 column 24
+ 8 |     let $c: i64 set_to $b;
+   |                        ^^
  what: this is `i32`, where `i64` is needed
  why:  `:` doesn't convert, and `as` builds a new value of another type (D7)
 
-refused: d207_every_error.cy:9:20, line 9 column 20
- 9 |     let $d: bool = $b < "x";
-   |                    ^^^^^^^^
+refused: d207_every_error.cy:9:25, line 9 column 25
+ 9 |     let $d: bool set_to $b below "x";
+   |                         ^^^^^^^^^^^^
  what: this compares `i32` and `str`
  why:  `:` doesn't convert, and `as` builds a new value of another type (D7)

@@ -1,7 +1,7 @@
 // trace: D199
 import std;
 
-fn.main [none] -> void:
-    let $a: i64[unit: std::time.seconds] = 3600 std::time.seconds;
+fn.main [none] returns void:
+    let $a: i64[unit: std::time.seconds] set_to 3600 std::time.seconds;
     return void;
 end fn.main

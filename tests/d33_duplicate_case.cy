@@ -5,6 +5,6 @@ union.tagged status:
     ok;
 end union.tagged status
 
-fn.main [none] -> void:
+fn.main [none] returns void:
     return void;
 end fn.main

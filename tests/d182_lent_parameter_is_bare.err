@@ -1,5 +1,5 @@
 refused: d182_lent_parameter_is_bare.cy:8:14, line 8 column 14
- 8 | fn show [$r: Lent reading] -> void:
+ 8 | fn show [$r: Lent reading] returns void:
    |              ^^^^
  what: `Lent` alone is written bare
  why:  a bare parameter is lent, so writing `Lent` alone is refused (D2)

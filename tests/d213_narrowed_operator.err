@@ -1,5 +1,5 @@
-refused: d213_narrowed_operator.cy:7:19, line 7 column 19
- 7 |     let $b: i32 = $a div.trunc  2;
-   |                   ^^^^^^^^^^^^^^^
+refused: d213_narrowed_operator.cy:7:24, line 7 column 24
+ 7 |     let $b: i32 set_to $a div.trunc  2;
+   |                        ^^^^^^^^^^^^^^^
  fix:  `$a div.trunc 2`
- why:  a binary operator, `=` and word operators included, has one space on each side, so `1<8` is refused (D23, D213)
+ why:  a binary operator, `set_to` and word operators included, has one space on each side, so `1+8` is refused (D23, D213)

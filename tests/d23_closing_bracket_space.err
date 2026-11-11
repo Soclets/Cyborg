@@ -1,5 +1,5 @@
 refused: d23_closing_bracket_space.cy:5:24, line 5 column 24
- 5 |     let $xs: std::list<i32 >[len.max: inf items] = empty;
+ 5 |     let $xs: std::list<i32 >[len.max: inf items] set_to empty;
    |                        ^^^^^
  fix:  `i32>`
  why:  a mark or a bracket touches what it goes with, so `( $x )`, `- $x` and `read() ?` are refused (D23, D213)

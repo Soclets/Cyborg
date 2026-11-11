@@ -1,5 +1,5 @@
-refused: d213_after_unary_minus.cy:7:19, line 7 column 19
- 7 |     let $y: i32 = - $x;
-   |                   ^^^^
+refused: d213_after_unary_minus.cy:7:24, line 7 column 24
+ 7 |     let $y: i32 set_to - $x;
+   |                        ^^^^
  fix:  `-$x`
  why:  a mark or a bracket touches what it goes with, so `( $x )`, `- $x` and `read() ?` are refused (D23, D213)

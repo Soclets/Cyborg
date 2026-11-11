@@ -2,12 +2,12 @@
 // trace: D140
 import std;
 
-fn f [$xs: std::list<i32>[len.max: inf items]] -> void:
+fn f [$xs: std::list<i32>[len.max: inf items]] returns void:
     return void;
 end fn f
 
-fn.main [none] -> void:
-    let $xs: std::list<i32>[len.max: inf items, len.type: u32] = empty;
+fn.main [none] returns void:
+    let $xs: std::list<i32>[len.max: inf items, len.type: u32] set_to empty;
     f(Lend $xs);
     return void;
 end fn.main

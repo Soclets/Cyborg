@@ -1,10 +1,10 @@
 // trace: D209
 
-fn half [$n: i32] -> i32:
+fn half [$n: i32] returns i32:
     fails [odd];
     return $n;
 end fn half
 
-fn.main [none] -> void:
+fn.main [none] returns void:
     return void;
 end fn.main

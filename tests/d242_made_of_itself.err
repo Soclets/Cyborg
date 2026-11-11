@@ -1,5 +1,5 @@
 refused: d242_made_of_itself.cy:21:5, line 21 column 5
-21 |     odd.loop = odd.loop per time.seconds;
+21 |     odd.loop set_to odd.loop per time.seconds;
    |     ^^^^^^^^
  what: `odd.loop` is made of itself
  why:  loops and units with no base are refused (D109, D242)

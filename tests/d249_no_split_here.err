@@ -1,5 +1,5 @@
 refused: d249_no_split_here.cy:17:30, line 17 column 30
-17 |     let $a: f64.stable[unit: length.meters.point] = 2.0 length.meters;
+17 |     let $a: f64.stable[unit: length.meters.point] set_to 2.0 length.meters;
    |                              ^^^^^^^^^^^^^^^^^^^
  what: `length.meters` has no points and spans, so it takes no `.point`
  why:  only a family with an offset or a log unit, and `std`'s `time`, has points and spans (D249)

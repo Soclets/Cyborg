@@ -11,15 +11,15 @@ struct pair:
     b: inner;
 end struct pair
 
-fn adjust [$x: Lent.mut inner, $y: Lent.mut inner] -> void:
-    change $x.n = 10;
-    change $y.n = 20;
+fn adjust [$x: Lent.mut inner, $y: Lent.mut inner] returns void:
+    change $x.n set_to 10;
+    change $y.n set_to 20;
     return void;
 end fn adjust
 
-fn.main [none] -> void:
-    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
-    let mut $p: pair = pair[a = inner[n = 1], b = inner[n = 2]];
+fn.main [none] returns void:
+    let mut $out: os::stdout.unbuffered set_to os::stdout.unbuffered();
+    let mut $p: pair set_to pair[a set_to inner[n set_to 1], b set_to inner[n set_to 2]];
     adjust(Lend.mut $p.a, Lend.mut $p.b);
     std::io::fmt_print(Lend.mut $out, "{} {}{newln}", $p.a.n, $p.b.n);
     return void;

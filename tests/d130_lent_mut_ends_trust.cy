@@ -5,16 +5,16 @@ union.tagged status:
     failed[code: i32];
 end union.tagged status
 
-fn status.%%reset [$s: Lent.mut status] -> void:
-    change $s = status.ok;
+fn status.%%reset [$s: Lent.mut status] returns void:
+    change $s set_to status.ok;
     return void;
 end fn status.%%reset
 
-fn.main [none] -> void:
-    let mut $s: status = status.failed[code = 3];
+fn.main [none] returns void:
+    let mut $s: status set_to status.failed[code set_to 3];
     if $s: status.failed:
         $s.%%reset();
-        let $n: i32 = $s.code;
+        let $n: i32 set_to $s.code;
     end if
     return void;
 end fn.main

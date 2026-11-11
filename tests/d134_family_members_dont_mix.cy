@@ -1,15 +1,15 @@
 // trace: D134, D135
 
 fam.type.new ids:
-    ids.user = i64;
-    ids.order = i64;
+    ids.user set_to i64;
+    ids.order set_to i64;
 end fam.type.new ids
 
-fn f [$u: ids.user] -> void:
-    let $o: ids.order = $u;
+fn f [$u: ids.user] returns void:
+    let $o: ids.order set_to $u;
     return void;
 end fn f
 
-fn.main [none] -> void:
+fn.main [none] returns void:
     return void;
 end fn.main

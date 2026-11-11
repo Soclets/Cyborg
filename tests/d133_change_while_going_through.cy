@@ -1,10 +1,10 @@
 // trace: D133, D2
 import std;
 
-fn.main [none] -> void:
-    let mut $a: std::array<i32>[len: 2 items] = [1, 2];
+fn.main [none] returns void:
+    let mut $a: std::array<i32>[len: 2 items] set_to [1, 2];
     for $x in $a:
-        change $a[pos: 1] = $x;
+        change $a[pos: 1] set_to $x;
     end for
     return void;
 end fn.main

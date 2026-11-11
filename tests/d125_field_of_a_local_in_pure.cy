@@ -7,14 +7,14 @@ struct box:
     n: i32;
 end struct box
 
-fn.pure bumped [$start: i32] -> i32:
-    let mut $b: box = box[n = $start];
-    change $b.n = $b.n + 1;
+fn.pure bumped [$start: i32] returns i32:
+    let mut $b: box set_to box[n set_to $start];
+    change $b.n set_to $b.n + 1;
     return $b.n;
 end fn.pure bumped
 
-fn.main [none] -> void:
-    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
+fn.main [none] returns void:
+    let mut $out: os::stdout.unbuffered set_to os::stdout.unbuffered();
     std::io::fmt_print(Lend.mut $out, "{}{newln}", bumped(1));
     return void;
 end fn.main
