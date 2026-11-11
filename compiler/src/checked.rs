@@ -19,6 +19,8 @@ pub enum MachineType {
     Text,
     /// A writer from `os`, buffered or not (D272, D273). Its runtime record is the same for both.
     Writer,
+    /// The address of a place, which a function hands back as a borrow (D170).
+    Address,
     /// A struct, by its number in the program.
     Struct(usize),
     /// A tagged union: a tag saying which case, then room for the largest case.
@@ -137,6 +139,18 @@ pub enum Statement {
     /// `os::done(Give $out)`: flushes for the last time and frees the buffer (D273).
     Done {
         writer: LocalId,
+    },
+    /// A stored borrow made from a call that hands one back: from here on, `local` is the place at that address
+    /// (D170).
+    AliasValue {
+        local: LocalId,
+        value: Expression,
+    },
+    /// A stored borrow: from here on, `local` is the place it borrows (D2, D169).
+    Alias {
+        local: LocalId,
+        target: LocalId,
+        path: Vec<usize>,
     },
     /// What the statement after it does to ownership, for the checks over the control-flow IR. It runs nothing
     /// (D285).
@@ -409,6 +423,11 @@ pub enum ExpressionKind {
     },
     /// A struct built from its fields' values, in their declared order.
     Build(Vec<Expression>),
+    /// The address of a local, or a field inside it, handed back as a borrow (D170).
+    AddressOf {
+        local: LocalId,
+        path: Vec<usize>,
+    },
     /// One field of a struct value.
     Field {
         base: Box<Expression>,

@@ -131,6 +131,9 @@ impl<'a> Interpreter<'a> {
             }
             Statement::Break(id) => Ok(Flow::Break(*id)),
             Statement::Flow(_) => Ok(Flow::Normal),
+            Statement::Alias { .. } | Statement::AliasValue { .. } => {
+                Err(Stop::NotBuilt("a stored borrow while baking".to_string()))
+            }
             Statement::Return(value) => match value {
                 Some(value) => Ok(Flow::Return(Some(self.expression(value, locals)?))),
                 None => Ok(Flow::Return(None)),

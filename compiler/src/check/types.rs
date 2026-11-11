@@ -150,6 +150,15 @@ pub enum Type {
         name: String,
         inner: Box<Type>,
     },
+    /// A stored borrow, `Lend from $r reading`: it reads or changes its sources in place (D2, D169).
+    Borrow {
+        mutable: bool,
+        /// `.held`: it lasts until the end of its block, not its last use.
+        held: bool,
+        /// `$r`, or `program`.
+        sources: Vec<String>,
+        inner: Box<Type>,
+    },
     /// After an error, so nothing more is said about it.
     Unknown,
 }
@@ -186,6 +195,15 @@ impl Type {
         }
     }
 
+    /// What a value reads as: a stored borrow reads as what it borrows.
+    #[must_use]
+    pub fn read_as(&self) -> &Type {
+        match self {
+            Type::Borrow { inner, .. } => inner,
+            other => other,
+        }
+    }
+
     /// The machine type.
     #[must_use]
     pub fn machine(&self) -> checked::MachineType {
@@ -197,7 +215,7 @@ impl Type {
             Type::Struct { id, .. } => checked::MachineType::Struct(*id),
             Type::Union { id, .. } => checked::MachineType::Union(*id),
             Type::Failure { union, .. } => checked::MachineType::Union(*union),
-            Type::New { inner, .. } => inner.machine(),
+            Type::New { inner, .. } | Type::Borrow { inner, .. } => inner.machine(),
             Type::Str => checked::MachineType::Text,
             Type::Void | Type::Unknown => checked::MachineType::Void,
         }
@@ -232,6 +250,18 @@ impl fmt::Display for Type {
             | Type::Failure { name, .. }
             | Type::New { name, .. } => {
                 write!(formatter, "{name}")
+            }
+            Type::Borrow { mutable, held, sources, inner } => {
+                let word = match (mutable, held) {
+                    (false, false) => "Lend",
+                    (true, false) => "Lend.mut",
+                    (false, true) => "Lend.held",
+                    (true, true) => "Lend.mut.held",
+                };
+                match sources.as_slice() {
+                    [one] => write!(formatter, "{word} from {one} {inner}"),
+                    _ => write!(formatter, "{word} from <{}> {inner}", sources.join(", ")),
+                }
             }
             Type::Unknown => write!(formatter, "?"),
         }

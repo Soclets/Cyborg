@@ -498,7 +498,7 @@ impl Checker<'_> {
                 ));
             }
         }
-        let mut typed = Typed::new(variable.value_type.clone(), Kind::Local(variable.local));
+        let mut typed = Typed::new(variable.value_type.read_as().clone(), Kind::Local(variable.local));
         typed.variable = Some(name.text.clone());
         if !variable.value_type.is_copied() && variable.origin != Origin::Constant {
             let site = body.site(name.span);
@@ -1339,7 +1339,7 @@ impl Checker<'_> {
     }
 
     /// A field inside a variable, as its local, the fields down to it, and the variable's name.
-    fn field_place(
+    pub fn field_place(
         &self,
         body: &Body,
         expression: &syntax::Expression,
@@ -1461,6 +1461,15 @@ impl Checker<'_> {
                 "a function is declared with `fn` and `[ ]` (D23)",
             )));
         };
+        if let Type::Borrow { .. } = signature.returns
+            && !std::mem::replace(&mut body.borrow_call, false)
+        {
+            return Err(self.error(Diagnostic::not_designed(
+                expression.span,
+                "using a returned borrow anywhere but in a stored borrow or a `return`",
+                NOT_DECIDED,
+            )));
+        }
         let matched = self.match_arguments(expression.span, &signature, arguments)?;
         let mut values = Vec::new();
         let mut failed = false;
@@ -1490,11 +1499,58 @@ impl Checker<'_> {
                 machine_type: MachineType::Integer { bits: 32, signed: true },
             }));
         }
+        if let Type::Borrow { sources, .. } = &signature.returns {
+            body.call_borrows = Some(self.borrowed_arguments(body, &signature, &matched, sources)?);
+        }
         let mut typed = Typed::new(signature.returns.clone(), Kind::Call { function: signature.id, arguments: values });
         if let Some(layout) = signature.result {
             typed.value.machine_type = super::failures::result_machine_type(layout);
         }
+        if let Type::Borrow { .. } = signature.returns {
+            typed.value.machine_type = MachineType::Address;
+        }
         Ok(typed)
+    }
+
+    /// At a call that hands back a borrow, its sources become the arguments, which have to be named values (D170).
+    /// Through a stored borrow, they're what it borrows (D174).
+    fn borrowed_arguments(
+        &mut self,
+        body: &Body,
+        signature: &super::Signature,
+        matched: &[super::contracts::Matched],
+        sources: &[String],
+    ) -> Check<(Vec<String>, Vec<checked::LocalId>)> {
+        let mut names = Vec::new();
+        let mut locals = Vec::new();
+        for source in sources {
+            let Some(index) = signature.parameters.iter().position(|(name, _, _)| name == source) else { continue };
+            let Some(super::contracts::Matched::Argument(argument)) = matched.get(index) else { continue };
+            let Some(root) = root_name(&argument.value).filter(|_| place_of(body, &argument.value).is_some()) else {
+                return Err(self.error(Diagnostic::refused(
+                    argument.value.span,
+                    "the result borrows from this, so it has to be a named value",
+                    "a returned borrow's sources become the arguments, and a fresh one would end with the call (D170)",
+                )));
+            };
+            let Some(variable) = body.lookup(&root.text) else { return Err(Reported) };
+            match &variable.value_type {
+                Type::Borrow { sources: theirs, .. } => {
+                    for original in theirs {
+                        if let Some(found) = body.lookup(original) {
+                            locals.push(found.local);
+                        }
+                        names.push(original.clone());
+                    }
+                    locals.push(variable.local);
+                }
+                _ => {
+                    names.push(root.text.clone());
+                    locals.push(variable.local);
+                }
+            }
+        }
+        Ok((names, locals))
     }
 
     /// One argument, with the ownership word the parameter asks for (D2, D3, D184).
@@ -1706,7 +1762,11 @@ impl Checker<'_> {
                 typed.handed = true;
                 Ok(typed)
             }
-            _ => Err(self.not_yet(ownership_span, format!("`{}` here", ownership.word()))),
+            _ => Err(self.error(Diagnostic::refused(
+                ownership_span.to(value.span),
+                format!("`{}` here needs a stored borrow's type", ownership.word()),
+                "a stored borrow is a type, such as `Lend from $r reading` (D2)",
+            ))),
         }
     }
 
@@ -1924,7 +1984,7 @@ fn is_held(expression: &syntax::Expression) -> bool {
 }
 
 /// Where a held value lives: its variable's local, and the fields down to it, by their numbers.
-fn place_of(body: &Body, expression: &syntax::Expression) -> Option<(checked::LocalId, Vec<usize>)> {
+pub fn place_of(body: &Body, expression: &syntax::Expression) -> Option<(checked::LocalId, Vec<usize>)> {
     match &expression.kind {
         ExpressionKind::Variable(name) => body.lookup(&name.text).map(|variable| (variable.local, Vec::new())),
         ExpressionKind::Group(inner) => place_of(body, inner),
@@ -1952,7 +2012,7 @@ fn root_variable(expression: &syntax::Expression) -> Option<String> {
 }
 
 /// The variable a place starts from, as written: `$r` in `$r.celsius`.
-fn root_name(expression: &syntax::Expression) -> Option<&syntax::Name> {
+pub fn root_name(expression: &syntax::Expression) -> Option<&syntax::Name> {
     match &expression.kind {
         ExpressionKind::Variable(name) => Some(name),
         ExpressionKind::Field { base, .. } | ExpressionKind::Group(base) => root_name(base),

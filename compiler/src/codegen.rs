@@ -141,6 +141,7 @@ impl<'context, 'module> Generator<'context, 'module> {
             MachineType::Writer => {
                 self.context.get_named_struct("writer").unwrap_or_else(|| self.context.integer_type(8).to_dynamic())
             }
+            MachineType::Address => self.context.pointer_type(0),
             MachineType::Struct(id) => {
                 self.structs.get(*id).copied().unwrap_or_else(|| self.context.integer_type(8).to_dynamic())
             }
@@ -321,6 +322,18 @@ impl<'context, 'module> Generator<'context, 'module> {
     fn statement(&mut self, frame: &mut Frame<'context, 'module>, statement: &Statement) -> Result<()> {
         match statement {
             Statement::Flow(_) => {}
+            Statement::AliasValue { local, value } => {
+                let address = self.expression(frame, value)?;
+                if let Some(slot) = frame.slots.get_mut(*local) {
+                    *slot = address;
+                }
+            }
+            Statement::Alias { local, target, path } => {
+                let place = self.field_place(frame, *target, path)?;
+                if let Some(slot) = frame.slots.get_mut(*local) {
+                    *slot = place;
+                }
+            }
             Statement::Let { local, value } | Statement::Set { local, value } => {
                 let value = self.expression(frame, value)?;
                 frame.builder.store(value, frame.slots[*local]);
@@ -1179,6 +1192,7 @@ impl<'context, 'module> Generator<'context, 'module> {
                 generated
             }
             ExpressionKind::Zero => self.machine_type(&expression.machine_type).constant_null().to_dynamic(),
+            ExpressionKind::AddressOf { local, path } => self.field_place(frame, *local, path)?,
             ExpressionKind::Handle { call, union, on_failure } => {
                 self.handle(frame, call, *union, on_failure, &expression.machine_type)?
             }
@@ -1437,6 +1451,7 @@ fn size_in_words(machine_type: &MachineType, program: &Program) -> u64 {
         MachineType::Float { .. } | MachineType::Bool | MachineType::Void => 1,
         MachineType::Text => 2,
         MachineType::Writer => 6,
+        MachineType::Address => 1,
         MachineType::Struct(id) => program
             .structs
             .get(*id)

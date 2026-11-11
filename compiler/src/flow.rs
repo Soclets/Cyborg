@@ -201,6 +201,7 @@ impl Lowering {
                 None
             }
             Statement::Let { value, .. }
+            | Statement::AliasValue { value, .. }
             | Statement::Set { value, .. }
             | Statement::SetField { value, .. }
             | Statement::Evaluate(value) => Some(self.expression(value, here)),
@@ -208,6 +209,7 @@ impl Lowering {
                 Some(self.expression(condition, here))
             }
             Statement::OpenWriter { .. }
+            | Statement::Alias { .. }
             | Statement::Print { .. }
             | Statement::Flush { .. }
             | Statement::Done { .. } => Some(here),
@@ -592,7 +594,7 @@ impl Checker<'_> {
                     .with_because(declared, format!("`{holder}` holds it from here")),
                 );
             } else {
-                loan.spoiled = Some(spot.variable);
+                loan.spoiled = Some(spot.place);
             }
         }
     }

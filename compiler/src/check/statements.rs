@@ -5,7 +5,7 @@ use crate::diagnostic::{Diagnostic, Kind as DiagnosticKind};
 use crate::source::Span;
 use crate::syntax::{self, Condition, ExpressionKind, StatementKind};
 
-use super::expressions::{CONVERT_WHY, Typed, When, failure};
+use super::expressions::{CONVERT_WHY, Typed, When, failure, root_name};
 use super::types::Type;
 use super::{Body, Check, Checker, Loop, NOT_DECIDED, Origin, Reported, State, Variable};
 
@@ -174,11 +174,16 @@ impl Checker<'_> {
         if result.is_ok() {
             self.bind_event(body, local, &binding.name.text, binding.name.span, &declared);
         }
+        // A stored borrow is only lent, and one lent to change can change what it borrows (D2, D174).
+        let lent_to_change = matches!(declared, Type::Borrow { mutable: true, .. });
+        if let Type::Borrow { .. } = declared {
+            body.lent.push(local);
+        }
         body.declare(
             Variable {
                 name: binding.name.text.clone(),
                 value_type: declared,
-                mutable: binding.mutable,
+                mutable: binding.mutable || lent_to_change,
                 origin,
                 local,
                 declared: binding.name.span,
@@ -236,9 +241,255 @@ impl Checker<'_> {
             block.push(statement);
             return Ok(());
         }
+        if let Type::Borrow { .. } = declared {
+            return self.let_borrow(body, binding, local, declared, block);
+        }
         let value = self.value_into(body, &binding.value, declared)?;
         block.push(checked::Statement::Let { local, value });
         Ok(())
+    }
+
+    /// `let $view: Lend from $r reading = Lend $r;`: a stored borrow, which from here on is `$r` in place (D2, D169,
+    /// D174).
+    fn let_borrow(
+        &mut self,
+        body: &mut Body,
+        binding: &syntax::Let,
+        local: checked::LocalId,
+        declared: &Type,
+        block: &mut checked::Block,
+    ) -> Check<()> {
+        use syntax::Ownership;
+        let Type::Borrow { mutable, held, sources, inner } = declared else { return Err(Reported) };
+        let value = &binding.value;
+        let wants = if *mutable { Ownership::LendMut } else { Ownership::Lend };
+        if let ExpressionKind::Call { .. } = &value.kind {
+            body.borrow_call = true;
+            let typed = self.expression(body, value, None);
+            body.borrow_call = false;
+            let typed = typed?;
+            let Some((names, locals)) = body.call_borrows.take() else { return Err(Reported) };
+            let Type::Borrow { mutable: gives_mut, inner: gives, .. } = &typed.value_type else {
+                return Err(self.not_yet(value.span, "a stored borrow from this call".to_string()));
+            };
+            if gives != inner {
+                return Err(self.error(Diagnostic::refused(
+                    value.span,
+                    format!("this is `{gives}`, where `{inner}` is needed"),
+                    super::expressions::CONVERT_WHY,
+                )));
+            }
+            if gives_mut != mutable {
+                return Err(self.error(Diagnostic::refused(
+                    value.span,
+                    format!("this borrow is made with `{}`", wants.word()),
+                    "the call and the parameter both say it, and they must match (D2)",
+                )));
+            }
+            if !names.iter().all(|name| sources.contains(name)) {
+                return Err(self.error(Diagnostic::refused(
+                    value.span,
+                    format!("this borrows `{}`, so the type names that", names.join(", ")),
+                    "at the call, the result's sources become the arguments (D170)",
+                )));
+            }
+            if sources.iter().any(|source| !names.contains(source)) {
+                return Err(self.error(Diagnostic::not_designed(
+                    value.span,
+                    "a stored borrow that names more than it borrows",
+                    NOT_DECIDED,
+                )));
+            }
+            body.events.push(crate::flow::Event::Borrow {
+                borrower: local,
+                sources: locals,
+                mutable: *mutable,
+                held: *held,
+            });
+            block.push(checked::Statement::AliasValue { local, value: typed.value });
+            return Ok(());
+        }
+        let ExpressionKind::Owned { ownership, value: lent, .. } = &value.kind else {
+            return Err(self.not_yet(value.span, "a stored borrow from this".to_string()));
+        };
+        if *ownership != wants {
+            return Err(self.error(Diagnostic::refused(
+                value.span,
+                format!("this borrow is made with `{}`", wants.word()),
+                "the call and the parameter both say it, and they must match (D2)",
+            )));
+        }
+        if sources.iter().any(|source| source == "program") {
+            return Err(self.error(Diagnostic::not_designed(
+                value.span,
+                "what can be lent `from program`",
+                "not decided yet (standard 12.8)",
+            )));
+        }
+        let (Some((root_local, path)), Some(root)) = (self.lent_place(body, lent), root_name(lent)) else {
+            return Err(self.not_yet(value.span, "a stored borrow of this".to_string()));
+        };
+        let Some(root_variable) = body.lookup(&root.text).cloned() else { return Err(Reported) };
+        // Through a stored borrow, the new one names what that one borrows (D174).
+        let (originals, through) = match &root_variable.value_type {
+            Type::Borrow { mutable: lends_mut, sources: theirs, .. } => {
+                if *mutable && !lends_mut {
+                    return Err(self.error(Diagnostic::refused(
+                        root.span,
+                        format!("`{}` only reads what it borrows, so it can't lend it with `Lend.mut`", root.text),
+                        "a stored `Lend` can be lent on with `Lend` only (D174, D2)",
+                    )));
+                }
+                (theirs.clone(), Some(root_variable.local))
+            }
+            _ => (vec![root.text.clone()], None),
+        };
+        if *mutable && !root_variable.mutable {
+            return Err(self.error(Diagnostic::refused(
+                root.span,
+                format!("`{}` can't change, so it can't be lent with `Lend.mut`", root.text),
+                "`let` declares a variable that can't change, and `let mut` one that can (D3)",
+            )));
+        }
+        if through.is_some() && sources.contains(&root.text) {
+            let original = originals.join(", ");
+            return Err(self.error(Diagnostic::refused(
+                value.span,
+                format!("this borrows `{original}` through `{}`, so the type names `{original}`", root.text),
+                "a borrow taken through a stored borrow names the original value (D174)",
+            )));
+        }
+        if !originals.iter().all(|original| sources.contains(original)) {
+            let named = match sources.as_slice() {
+                [one] => one.clone(),
+                _ => format!("<{}>", sources.join(", ")),
+            };
+            return Err(self.error(Diagnostic::refused(
+                value.span,
+                format!("this borrow says it's from `{named}`"),
+                "a stored borrow's type says what it borrows (D2)",
+            )));
+        }
+        let typed = self.expression(body, lent, Some(inner))?;
+        if typed.value_type != **inner && !typed.value_type.is_unknown() {
+            return Err(self.error(Diagnostic::refused(
+                lent.span,
+                format!("this is `{}`, where `{inner}` is needed", typed.value_type),
+                super::expressions::CONVERT_WHY,
+            )));
+        }
+        body.take_read(root_variable.local);
+        let site = body.site(root.span);
+        let spot = crate::flow::Spot { variable: root.span, place: lent.span, site, marker: site };
+        let place = crate::flow::Place { local: root_variable.local, path: path.clone() };
+        body.events.push(if *mutable {
+            crate::flow::Event::LendMut { place, spot }
+        } else {
+            crate::flow::Event::Read { place, spot }
+        });
+        let mut source_locals: Vec<checked::LocalId> =
+            originals.iter().filter_map(|original| body.lookup(original).map(|variable| variable.local)).collect();
+        source_locals.extend(through);
+        body.events.push(crate::flow::Event::Borrow {
+            borrower: local,
+            sources: source_locals,
+            mutable: *mutable,
+            held: *held,
+        });
+        block.push(checked::Statement::Alias { local, target: root_local, path });
+        Ok(())
+    }
+
+    /// `return Lend $a;` from a function that hands back a borrow, checked against its claim (D170).
+    fn return_borrow(&mut self, body: &mut Body, expression: &syntax::Expression) -> Check<checked::Expression> {
+        use syntax::Ownership;
+        let Type::Borrow { mutable, sources, inner, .. } = body.returns.clone() else { return Err(Reported) };
+        let word = if mutable { "Lend.mut" } else { "Lend" };
+        let claim = match sources.as_slice() {
+            [one] => one.clone(),
+            _ => format!("<{}>", sources.join(", ")),
+        };
+        if let ExpressionKind::Call { .. } = &expression.kind {
+            body.borrow_call = true;
+            let typed = self.expression(body, expression, None);
+            body.borrow_call = false;
+            let typed = typed?;
+            let Some((names, _)) = body.call_borrows.take() else { return Err(Reported) };
+            if !names.iter().all(|name| sources.contains(name)) {
+                return Err(self.error(Diagnostic::refused(
+                    expression.span,
+                    format!("this borrows `{}`, and the function says it's from `{claim}`", names.join(", ")),
+                    "the body is checked against the claim (D170)",
+                )));
+            }
+            return Ok(typed.value);
+        }
+        let ExpressionKind::Owned {
+            ownership: ownership @ (Ownership::Lend | Ownership::LendMut), value: lent, ..
+        } = &expression.kind
+        else {
+            return Err(self.error(Diagnostic::refused(
+                expression.span,
+                format!("this function hands back a borrow, so this says `{word}`"),
+                "a returned borrow is made with `Lend` or `Lend.mut`, or comes from a call that hands one back (D170)",
+            )));
+        };
+        if (*ownership == Ownership::LendMut) != mutable {
+            return Err(self.error(Diagnostic::refused(
+                expression.span,
+                format!("this function hands back `{word}`, so this says it"),
+                "the claim and what's returned say the same borrow (D170, D2)",
+            )));
+        }
+        let (Some((root_local, path)), Some(root)) = (self.lent_place(body, lent), root_name(lent)) else {
+            return Err(self.not_yet(expression.span, "handing back a borrow of this".to_string()));
+        };
+        let Some(variable) = body.lookup(&root.text).cloned() else { return Err(Reported) };
+        let originals = match &variable.value_type {
+            Type::Borrow { sources: theirs, .. } => theirs.clone(),
+            _ if variable.origin == Origin::Parameter => vec![root.text.clone()],
+            _ => {
+                return Err(self.error(Diagnostic::refused(
+                    expression.span,
+                    format!("`{}` is a local, which ends when the function returns", root.text),
+                    "a returned borrow comes only from a parameter, a named source or `program` (D170)",
+                )));
+            }
+        };
+        if !originals.iter().all(|original| sources.contains(original)) {
+            return Err(self.error(Diagnostic::refused(
+                expression.span,
+                format!("this borrows `{}`, and the function says it's from `{claim}`", originals.join(", ")),
+                "the body is checked against the claim (D170)",
+            )));
+        }
+        let typed = self.expression(body, lent, Some(&inner))?;
+        if typed.value_type != *inner && !typed.value_type.is_unknown() {
+            return Err(self.error(Diagnostic::refused(
+                lent.span,
+                format!("this is `{}`, where `{inner}` is needed", typed.value_type),
+                super::expressions::CONVERT_WHY,
+            )));
+        }
+        body.take_read(variable.local);
+        let site = body.site(root.span);
+        let spot = crate::flow::Spot { variable: root.span, place: lent.span, site, marker: site };
+        let place = crate::flow::Place { local: variable.local, path: path.clone() };
+        body.events.push(if mutable {
+            crate::flow::Event::LendMut { place, spot }
+        } else {
+            crate::flow::Event::Read { place, spot }
+        });
+        Ok(checked::Expression {
+            kind: Kind::AddressOf { local: root_local, path },
+            machine_type: MachineType::Address,
+        })
+    }
+
+    /// The place a `Lend` names: a variable, or a field inside one.
+    fn lent_place(&mut self, body: &Body, lent: &syntax::Expression) -> Option<(checked::LocalId, Vec<usize>)> {
+        super::expressions::place_of(body, lent)
+            .or_else(|| self.field_place(body, lent).map(|(local, path, _)| (local, path)))
     }
 
     /// `assign $x = …;`: a `decl`'s value, once on each path (D203).
@@ -383,7 +634,7 @@ impl Checker<'_> {
                 "`let` declares a variable that can't change, and `let mut` one that can (D3)",
             )));
         }
-        let value = self.value_into(body, value, &variable.value_type)?;
+        let value = self.value_into(body, value, variable.value_type.read_as())?;
         block.push(checked::Statement::Set { local: variable.local, value });
         body.states[index] = State::Assigned;
         if !variable.value_type.is_copied() {
@@ -427,7 +678,7 @@ impl Checker<'_> {
             )));
         };
         let mut path = Vec::new();
-        let mut current = variable.value_type.clone();
+        let mut current = variable.value_type.read_as().clone();
         for field in names {
             let reached = at.span.to(field.span);
             if let Type::Union { id, name } = &current
@@ -507,6 +758,9 @@ impl Checker<'_> {
                     )));
                 }
                 Ok(checked::Statement::Return(body.result.map(|_| self.succeed(body, None))))
+            }
+            Some(expression) if matches!(returns, Type::Borrow { .. }) => {
+                self.return_borrow(body, expression).map(|value| checked::Statement::Return(Some(value)))
             }
             Some(expression) if returns == Type::Void => {
                 if body.is_main {

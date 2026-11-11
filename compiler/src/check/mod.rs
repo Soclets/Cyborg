@@ -153,6 +153,11 @@ pub struct Body {
     pub calls: Vec<Span>,
     /// Parameters that are only lent, bare or `Lent.mut`, so their duties are the caller's (D2).
     pub lent: Vec<checked::LocalId>,
+    /// Whether a call that hands back a borrow is allowed here: in a stored borrow or a `return` (D170).
+    pub borrow_call: bool,
+    /// What the last call that handed back a borrow borrows from: the names, and their locals, including any
+    /// stored borrow it went through (D170, D174).
+    pub call_borrows: Option<(Vec<String>, Vec<checked::LocalId>)>,
 }
 
 /// How pure a function is (D86, D91).
@@ -460,6 +465,20 @@ impl Checker<'_> {
         };
         let mut parameters = Vec::new();
         for parameter in &function.parameters.list {
+            if let syntax::TypeKind::Borrow { keyword, target, .. } = &parameter.written_type.kind {
+                // trace: D175
+                let target_text = self.slice(target.span).to_string();
+                let fixed = if keyword.text().starts_with("Lend.mut") {
+                    format!("Lent.mut {target_text}")
+                } else {
+                    target_text
+                };
+                return Err(self.error(Diagnostic::refused_fix(
+                    parameter.written_type.span,
+                    fixed,
+                    "a bare parameter is already lent, and `Lent.mut` already is the changing one (D175)",
+                )));
+            }
             let value_type = self.resolve_type(&parameter.written_type)?;
             if value_type.is_copied()
                 && matches!(parameter.ownership, syntax::ParameterOwnership::Given)
@@ -477,6 +496,9 @@ impl Checker<'_> {
             Some(written) => self.resolve_type(written)?,
             None => Type::Void,
         };
+        if let (Type::Borrow { mutable, held, sources, .. }, Some(written)) = (&returns, &function.returns) {
+            self.borrow_claim(function, written.span, *mutable, *held, sources)?;
+        }
         if keyword == "fn.main" && returns != Type::Void {
             let span = function.returns.as_ref().map_or(function.header_span, |written| written.span);
             return Err(self.error(Diagnostic::refused(
@@ -493,7 +515,15 @@ impl Checker<'_> {
         let result = if failures.is_empty() { None } else { Some(self.result_layout(&returns, &failures)) };
         let id = self.program.functions.len();
         let symbol = if name == "main" { "main".to_string() } else { format!("cyborg.{name}") };
-        let machine_returns = result.map_or_else(|| returns.machine(), failures::result_machine_type);
+        if result.is_some() && matches!(returns, Type::Borrow { .. }) {
+            let span = function.returns.as_ref().map_or(function.header_span, |written| written.span);
+            return Err(self.not_yet(span, "a function that can fail handing back a borrow".to_string()));
+        }
+        let machine_returns = match (&returns, result) {
+            (Type::Borrow { .. }, _) => checked::MachineType::Address,
+            (_, Some(layout)) => failures::result_machine_type(layout),
+            (_, None) => returns.machine(),
+        };
         self.program.functions.push(checked::Function {
             symbol,
             parameters: Vec::new(),
@@ -895,6 +925,9 @@ impl Checker<'_> {
 
     /// The type a written type means.
     pub fn resolve_type(&mut self, written: &syntax::Type) -> Check<Type> {
+        if let syntax::TypeKind::Borrow { keyword, sources, target, .. } = &written.kind {
+            return self.borrow_type(written.span, keyword, sources, target);
+        }
         let syntax::TypeKind::Named { path, fill, labels, .. } = &written.kind else {
             return Err(self.not_yet(written.span, "this kind of type".to_string()));
         };
@@ -978,6 +1011,91 @@ impl Checker<'_> {
                 "a type is built in, or declared with `struct` or `union.tagged` (D33, D57)",
             ))),
         }
+    }
+
+    /// A function's claim to hand back a borrow: each source is a parameter it can lend that way (D170).
+    fn borrow_claim(
+        &mut self,
+        function: &syntax::Function,
+        span: Span,
+        mutable: bool,
+        held: bool,
+        sources: &[String],
+    ) -> Check<()> {
+        if held {
+            return Err(self.error(Diagnostic::not_designed(
+                span,
+                "`held` on a borrow that isn't stored in a `let`",
+                NOT_DECIDED,
+            )));
+        }
+        for source in sources {
+            if source == "program" {
+                return Err(self.error(Diagnostic::not_designed(
+                    span,
+                    "returning a borrow `from program`",
+                    "not decided yet (standard 12.8)",
+                )));
+            }
+            let Some(parameter) = function.parameters.list.iter().find(|parameter| parameter.name.text == *source)
+            else {
+                return Err(self.error(Diagnostic::refused(
+                    span,
+                    format!("`{source}` isn't a parameter, and a returned borrow comes from one"),
+                    "a function hands back a borrow only of a parameter, a named source or `program` (D170)",
+                )));
+            };
+            if parameter.ownership == syntax::ParameterOwnership::Given {
+                return Err(self.error(Diagnostic::refused(
+                    span,
+                    format!("`{source}` is given to this function, so it ends when the function does"),
+                    "a returned borrow can't come from a `Given` parameter, which ends with the function (D170)",
+                )));
+            }
+            if mutable && parameter.ownership != syntax::ParameterOwnership::LentMut {
+                return Err(self.error(Diagnostic::refused(
+                    span,
+                    format!("`{source}` is only lent to read, so the function can't hand back `Lend.mut` of it"),
+                    "`Lend.mut` comes only from what can change, here a `Lent.mut` parameter (D170, D2)",
+                )));
+            }
+        }
+        Ok(())
+    }
+
+    /// `Lend from $r reading`, `Lend.mut from <$a, $b> reading` or `Lend.held from $r reading` (D2, D169).
+    fn borrow_type(
+        &mut self,
+        span: Span,
+        keyword: &syntax::Path,
+        sources: &[syntax::Name],
+        target: &syntax::Type,
+    ) -> Check<Type> {
+        let words = keyword.text();
+        let (mutable, held) = match words.as_str() {
+            "Lend" => (false, false),
+            "Lend.mut" => (true, false),
+            "Lend.held" => (false, true),
+            "Lend.mut.held" => (true, true),
+            "Lend.held.mut" => {
+                return Err(self.error(Diagnostic::refused_fix(
+                    keyword.span,
+                    "Lend.mut.held",
+                    "the narrowing that changes the action most sits next to the thing, and for a borrow how it can be used comes before how long (D223, D169)",
+                )));
+            }
+            _ => return Err(self.not_yet(keyword.span, format!("`{words}`"))),
+        };
+        let inner = self.resolve_type(target)?;
+        if inner.is_copied() {
+            return Err(self.error(Diagnostic::refused(
+                span,
+                format!("a borrow of `{inner}`, which is always copied"),
+                "plain numbers and `bool` are always copied, so there's nothing to borrow (D170, D123)",
+            )));
+        }
+        let sources = sources.iter().map(|source| source.text.clone()).collect();
+        Ok(Type::Borrow { mutable, held, sources, inner: Box::new(inner) })
     }
 
     /// A float's bounds, `f64.stable[min: -40.0, max: 125.0]`, whose literals follow D59 (D158).
