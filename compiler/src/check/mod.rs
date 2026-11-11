@@ -14,6 +14,7 @@ pub mod types;
 mod expressions;
 pub mod library;
 pub mod names;
+pub mod sources;
 mod statements;
 
 use std::collections::HashMap;
@@ -153,6 +154,10 @@ pub struct Body {
     pub calls: Vec<Span>,
     /// Parameters that are only lent, bare or `Lent.mut`, so their duties are the caller's (D2).
     pub lent: Vec<checked::LocalId>,
+    /// What fills each source of the struct or union being built, from the type it goes into (D171).
+    pub expected_fills: Option<Vec<(String, String)>>,
+    /// What fills each source of the function's result, for its `return` (D171).
+    pub return_fills: Option<Vec<(String, String)>>,
     /// Whether an ownership word is handing the value being converted with `as` (D149).
     pub handing: bool,
     /// Whether a call that hands back a borrow is allowed here: in a stored borrow or a `return` (D170).
@@ -269,6 +274,8 @@ pub struct Checker<'a> {
     pub handlers: HashMap<String, Vec<syntax::Arm>>,
     /// `type.alias` and `type.new` (D134).
     pub type_names: names::TypeNames,
+    /// The sources a borrow in a type being read can name (D171).
+    pub source_scope: Option<sources::SourceScope>,
     pub program: checked::Program,
 }
 
@@ -299,6 +306,7 @@ pub fn check(
         failure_sets: failures::FailureSets::default(),
         handlers: HashMap::new(),
         type_names: names::TypeNames::default(),
+        source_scope: None,
         program: checked::Program::default(),
     };
     checker.check_file(parsed);
@@ -465,6 +473,19 @@ impl Checker<'_> {
             (Some(name), _) => name.text(),
             (None, _) => return Err(Reported),
         };
+        let function_sources: Vec<String> = function
+            .generics
+            .iter()
+            .filter(|generic| generic.kind == syntax::GenericKind::Source)
+            .map(|generic| generic.name.text.clone())
+            .collect();
+        self.source_scope = Some(sources::SourceScope { names: function_sources, aggregate: false });
+        let signature = self.signature_inner(function, keyword, name);
+        self.source_scope = None;
+        signature
+    }
+
+    fn signature_inner(&mut self, function: &syntax::Function, keyword: String, name: String) -> Check<Signature> {
         let mut parameters = Vec::new();
         for parameter in &function.parameters.list {
             if let syntax::TypeKind::Borrow { keyword, target, .. } = &parameter.written_type.kind {
@@ -543,6 +564,23 @@ impl Checker<'_> {
             body: Vec::new(),
         });
         let top = self.top_of_body(function);
+        // A result whose type says one parameter lasts at least as long as another needs the function to say so too
+        // (D171).
+        if let Some(written) = &function.returns {
+            let (_, facts) = self.sources_of(&returns);
+            let fills = self.fills_of(written);
+            let filled = |source: &str| fills.iter().find(|(each, _)| each == source).map(|(_, fill)| fill.clone());
+            for (longer, shorter) in &facts {
+                let (Some(long_fill), Some(short_fill)) = (filled(longer), filled(shorter)) else { continue };
+                if !top.lasts.contains(&(long_fill.clone(), short_fill.clone())) {
+                    return Err(self.error(Diagnostic::refused_fix(
+                        written.span,
+                        format!("requires {long_fill} lasts_at_least {short_fill};"),
+                        "a function states which parameter lasts longer with `requires … lasts_at_least …;` (D171)",
+                    )));
+                }
+            }
+        }
         let purity = match keyword.as_str() {
             "fn.pure" => Purity::Pure,
             "fn.pure.baked" => Purity::Baked,
@@ -586,6 +624,8 @@ impl Checker<'_> {
             purity: signature.purity,
             ..Body::default()
         };
+        body.return_fills =
+            function.returns.as_ref().map(|written| self.fills_of(written)).filter(|fills| !fills.is_empty());
         let mut parameters = Vec::new();
         let mut starts = Vec::new();
         for (parameter, (name, value_type, ownership)) in function.parameters.list.iter().zip(&signature.parameters) {
@@ -1009,7 +1049,13 @@ impl Checker<'_> {
                     library::WRITER_KINDS_WHY,
                 )))
             }
-            _ if self.aggregates.names.contains_key(&text) => Ok(self.aggregates.names[&text].clone()),
+            _ if self.aggregates.names.contains_key(&text) => {
+                let found = self.aggregates.names[&text].clone();
+                let (sources, _) = self.sources_of(&found);
+                let name = found.to_string();
+                self.check_fills(written, &name, &sources)?;
+                Ok(found)
+            }
             _ if let Some(reported) = self.bare_member(path, &text) => Err(reported),
             _ if text.contains("::") || text.contains('.') => {
                 Err(self.not_yet(written.span, format!("the type `{text}`")))
@@ -1039,6 +1085,13 @@ impl Checker<'_> {
             )));
         }
         for source in sources {
+            if source.starts_with('`') {
+                return Err(self.error(Diagnostic::not_designed(
+                    span,
+                    "returning a borrow from a function's own source",
+                    NOT_DECIDED,
+                )));
+            }
             if source == "program" {
                 return Err(self.error(Diagnostic::not_designed(
                     span,
@@ -1103,8 +1156,11 @@ impl Checker<'_> {
                 "plain numbers and `bool` are always copied, so there's nothing to borrow (D170, D123)",
             )));
         }
-        let sources = sources.iter().map(|source| source.text.clone()).collect();
-        Ok(Type::Borrow { mutable, held, sources, inner: Box::new(inner) })
+        let mut named = Vec::new();
+        for source in sources {
+            named.push(self.borrow_source(span, source, mutable)?);
+        }
+        Ok(Type::Borrow { mutable, held, sources: named, inner: Box::new(inner) })
     }
 
     /// A float's bounds, `f64.stable[min: -40.0, max: 125.0]`, whose literals follow D59 (D158).

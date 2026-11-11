@@ -25,6 +25,9 @@ pub struct TopOfBody {
     /// The `requires` and `ensures` lines, with whether each is `.only_in_working`.
     pub requires: Vec<(syntax::Expression, bool)>,
     pub ensures: Vec<(syntax::Expression, bool)>,
+    /// `requires $list lasts_at_least $article;`: facts about how long parameters last, which every call meets and
+    /// nothing checks while running (D171).
+    pub lasts: Vec<(String, String)>,
 }
 
 impl Checker<'_> {
@@ -101,6 +104,26 @@ impl Checker<'_> {
                         }
                         top.defaults[index] = Some(default.value.clone());
                     }
+                }
+                StatementKind::Requires { condition, .. }
+                    if let ExpressionKind::Binary {
+                        operator: syntax::BinaryOperator::LastsAtLeast,
+                        left,
+                        right,
+                        ..
+                    } = &condition.kind =>
+                {
+                    let longer = self.slice(left.span).to_string();
+                    let shorter = self.slice(right.span).to_string();
+                    if top.lasts.contains(&(longer.clone(), shorter.clone())) {
+                        self.error(Diagnostic::refused(
+                            statement.span,
+                            format!("`{longer}` lasts at least as long as `{shorter}` is already known"),
+                            "the same `lasts_at_least` fact isn't written twice (D171)",
+                        ));
+                        continue;
+                    }
+                    top.lasts.push((longer, shorter));
                 }
                 StatementKind::Requires { keyword, condition } => {
                     top.requires.push((condition.clone(), keyword.text().ends_with(".only_in_working")));

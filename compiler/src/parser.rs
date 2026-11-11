@@ -607,6 +607,15 @@ impl<'source> Parser<'source> {
         let start = self.current_span();
         self.expect(TokenKind::Backtick, "`")?;
         let name = self.name()?;
+        if !self.is(TokenKind::Backtick) {
+            // trace: D171
+            self.errors.push(Diagnostic::refused(
+                start.to(name.span),
+                "a source is a name in backticks, as in `` `text` ``",
+                "a struct names the sources of its borrows in backticks (D171)",
+            ));
+            return Err(Reported);
+        }
         let end = self.expect(TokenKind::Backtick, "`")?;
         Ok(Name { text: name.text, span: start.to(end) })
     }

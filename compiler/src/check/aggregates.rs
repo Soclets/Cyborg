@@ -24,6 +24,10 @@ pub struct StructInfo {
     pub name: String,
     pub fields: Vec<FieldInfo>,
     pub must_give: bool,
+    /// The sources its borrows name, in order (D171).
+    pub sources: Vec<String>,
+    /// Each `lasts_at_least` fact between them: the longer one, then the other.
+    pub facts: Vec<(String, String)>,
 }
 
 #[derive(Clone, Debug)]
@@ -36,6 +40,8 @@ pub struct CaseInfo {
 pub struct UnionInfo {
     pub name: String,
     pub cases: Vec<CaseInfo>,
+    /// The sources its cases' borrows name, in order (D176).
+    pub sources: Vec<String>,
 }
 
 /// The program's own types, by name.
@@ -55,7 +61,15 @@ impl Checker<'_> {
                     let name = declared.name.text();
                     let id = self.aggregates.structs.len();
                     let must_give = declared.keyword.text() == "struct.must_Give";
-                    self.aggregates.structs.push(StructInfo { name: name.clone(), fields: Vec::new(), must_give });
+                    let (sources, facts) = self.declare_sources(&declared.generics);
+                    let sources = sources.into_iter().map(|(source, _)| source).collect();
+                    self.aggregates.structs.push(StructInfo {
+                        name: name.clone(),
+                        fields: Vec::new(),
+                        must_give,
+                        sources,
+                        facts,
+                    });
                     self.aggregates.names.insert(name.clone(), Type::Struct { id, name });
                 }
                 syntax::ItemKind::Union(declared) => {
@@ -70,7 +84,9 @@ impl Checker<'_> {
                         continue;
                     }
                     let id = self.aggregates.unions.len();
-                    self.aggregates.unions.push(UnionInfo { name: name.clone(), cases: Vec::new() });
+                    let (sources, _) = self.declare_sources(&declared.generics);
+                    let sources = sources.into_iter().map(|(source, _)| source).collect();
+                    self.aggregates.unions.push(UnionInfo { name: name.clone(), cases: Vec::new(), sources });
                     self.aggregates.names.insert(name.clone(), Type::Union { id, name });
                 }
                 _ => {}
@@ -84,12 +100,20 @@ impl Checker<'_> {
                     let name = declared.name.text();
                     let expected = format!("end {} {name}", declared.keyword.text());
                     self.check_closer(&declared.end, &expected, super::CLOSER_WHY);
+                    let declared_sources = source_spans(&declared.generics);
+                    self.source_scope = Some(super::sources::SourceScope {
+                        names: declared_sources.iter().map(|(source, _)| source.clone()).collect(),
+                        aggregate: true,
+                    });
                     let fields = self.fields(
                         &declared.fields,
                         &name,
                         "fields",
                         "a field read is a plain `.`, so a field's name says which (D57)",
                     );
+                    self.source_scope = None;
+                    let types: Vec<&Type> = fields.iter().map(|field| &field.value_type).collect();
+                    self.check_sources_used(&declared_sources, &types);
                     // A struct holding a `must_Give` value says so itself (D177).
                     let says_it = declared.keyword.text() == "struct.must_Give";
                     if !says_it
@@ -116,6 +140,11 @@ impl Checker<'_> {
                     let expected = format!("end {} {name}", declared.keyword.text());
                     self.check_closer(&declared.end, &expected, super::CLOSER_WHY);
                     let mut cases: Vec<CaseInfo> = Vec::new();
+                    let declared_sources = source_spans(&declared.generics);
+                    self.source_scope = Some(super::sources::SourceScope {
+                        names: declared_sources.iter().map(|(source, _)| source.clone()).collect(),
+                        aggregate: true,
+                    });
                     for case in &declared.cases {
                         if cases.iter().any(|earlier| earlier.name == case.name.text) {
                             self.error(Diagnostic::refused(
@@ -142,6 +171,10 @@ impl Checker<'_> {
                         }
                         cases.push(CaseInfo { name: case.name.text.clone(), fields });
                     }
+                    self.source_scope = None;
+                    let types: Vec<&Type> =
+                        cases.iter().flat_map(|case| case.fields.iter().map(|field| &field.value_type)).collect();
+                    self.check_sources_used(&declared_sources, &types);
                     if let Some(info) = self.aggregates.unions.get_mut(union_id) {
                         info.cases = cases;
                     }
@@ -285,7 +318,12 @@ impl Checker<'_> {
                 failed = true;
                 continue;
             };
-            match self.value_into(body, &label.value, &fields[index].value_type) {
+            let value = if let Type::Borrow { .. } = fields[index].value_type {
+                self.built_borrow(body, &owner, expression.span, &label.value, &fields[index].value_type)
+            } else {
+                self.value_into(body, &label.value, &fields[index].value_type)
+            };
+            match value {
                 Ok(value) => values[index] = Some(value),
                 Err(Reported) => failed = true,
             }
@@ -345,7 +383,8 @@ impl Checker<'_> {
                         "a field read is a plain `.` (D57)",
                     )));
                 };
-                let value_type = info.fields[index].value_type.clone();
+                // A field that borrows reads as what it borrows (D171).
+                let value_type = info.fields[index].value_type.read_as().clone();
                 let mut result = Typed::new(value_type, Kind::Field { base: Box::new(typed.value), index });
                 result.variable = typed.variable.map(|variable| format!("{variable}.{}", field.text));
                 Ok(result)
@@ -367,7 +406,7 @@ impl Checker<'_> {
                     (Some(case), _) if info.cases[case].fields.iter().any(|each| each.name == field.text) => {
                         let index =
                             info.cases[case].fields.iter().position(|each| each.name == field.text).unwrap_or(0);
-                        let value_type = info.cases[case].fields[index].value_type.clone();
+                        let value_type = info.cases[case].fields[index].value_type.read_as().clone();
                         // Reading through a test's trust, which a `change` or `Lend.mut` ends (D104).
                         if let ExpressionKind::Variable(variable) = &base.kind
                             && let Some(found) = body.lookup(&variable.text)
@@ -412,4 +451,15 @@ impl Checker<'_> {
             other => Err(self.not_yet(field.span, format!("a field of `{other}`"))),
         }
     }
+}
+
+/// A declaration's sources with where each is written, for errors about them.
+fn source_spans(generics: &[syntax::Generic]) -> Vec<(String, Span)> {
+    let mut sources: Vec<(String, Span)> = Vec::new();
+    for generic in generics {
+        if generic.kind == syntax::GenericKind::Source && !sources.iter().any(|(name, _)| *name == generic.name.text) {
+            sources.push((generic.name.text.clone(), generic.name.span));
+        }
+    }
+    sources
 }

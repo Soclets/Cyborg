@@ -170,7 +170,24 @@ impl Checker<'_> {
             None => Type::Unknown,
         };
         let local = body.new_local(declared.machine());
+        // A type that holds borrows makes this a stored borrow of what fills its sources (D171).
+        let fills = match &binding.written_type {
+            Some(written) => match self.let_fills(body, written, &declared) {
+                Ok(fills) => fills,
+                Err(Reported) => return Err(Reported),
+            },
+            None => Vec::new(),
+        };
+        body.expected_fills = if fills.is_empty() { None } else { Some(fills.clone()) };
         let result = self.let_value(body, &declared, binding, local, block);
+        body.expected_fills = None;
+        if result.is_ok() && !fills.is_empty() {
+            let sources: Vec<(checked::LocalId, Vec<usize>)> = fills
+                .iter()
+                .filter_map(|(_, fill)| body.lookup(fill).map(|variable| (variable.local, Vec::new())))
+                .collect();
+            body.events.push(crate::flow::Event::Borrow { borrower: local, sources, mutable: false, held: false });
+        }
         // The variable exists even if its value is refused, and reading it then is its own error (standard 11.7).
         let origin = if result.is_ok() { Origin::Let } else { Origin::RefusedLet };
         let state = if result.is_ok() { State::Assigned } else { State::Unassigned };
@@ -798,7 +815,10 @@ impl Checker<'_> {
             }
             Some(expression) => {
                 body.statement = Some(expression.span);
-                match self.value_into(body, expression, &returns) {
+                body.expected_fills.clone_from(&body.return_fills);
+                let value = self.value_into(body, expression, &returns);
+                body.expected_fills = None;
+                match value {
                     Ok(value) if !body.top.ensures.is_empty() => {
                         // `ensures` reads the value being returned as `result` (D29).
                         let local = body.new_local(returns.machine());
