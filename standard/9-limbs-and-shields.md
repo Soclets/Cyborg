@@ -28,6 +28,7 @@ Bare `@`, with no `::`, is a compiler builtin instead ([5.7](5-functions.md#57-b
 | Kit | A library, written in Cyborg | Its path: `std::io::fmt_print` |
 | Limb | A compiler extension | `@` and its path: `@csup::union.untagged` |
 | Package | What you install: a kit, a limb, or both, with one name and one version | Its halves, as `std::` and `@std::` |
+| Dialect | A compiler forked from `OKAY\n`, on CyJet's registry, with no rules of Cyborg's | A `dialect` line in the manifest |
 
 The manifest lists packages. `std` is a package with both halves, and works anywhere, bare metal included: collections, maths, units, text and formatting. `os` is a separate package, a plain and portable layer over an operating system, like the terminal, files, arguments and exit codes, so a program using it says `need os`. Your own project is a package too, named in the manifest, and no file says which package it belongs to. The base and builtins aren't packages.
 
@@ -38,6 +39,7 @@ The manifest, `CyJet.siml`, has one line per fact:
 ```
 name weather
 ver 2026y-11m-14d same
+dialect original
 okay 2026y-11m-01d
 
 need std 2026y-11m-01d
@@ -46,11 +48,11 @@ need json 2026y-10m-20d
 need csup 2026y-09m-30d with headers
 ```
 
-`name` and `ver` are the project's own. A version is a labelled date, biggest first, and a release says whether it `breaks` anything or stays the `same`, a placeholder word. CyJet checks that flag against what changed in the `pub` items. A `need` line names a date, and CyJet may update it to any later release up to the next one that breaks. A second release on one day adds a counter, as in `2026y-11m-14d.2`. `okay` is the compiler version it needs. Each package it uses has a `need` line with its version, and `with` adds features. A value is quoted only when it needs to be, and `//` starts a comment, as in Cyborg code.
+`name` and `ver` are the project's own. A version is a labelled date, biggest first, and a release says whether it `breaks` anything or stays the `same`, a placeholder word. CyJet checks that flag against what changed in the `pub` items. A `need` line names a date, and CyJet may update it to any later release up to the next one that breaks. A second release on one day adds a counter, as in `2026y-11m-14d.2`. `dialect` says which compiler builds the project: `dialect original` is plain Cyborg, built by `okay`, and any other name is a Dialect, a compiler forked from `OKAY\n` that CyJet loads from its registry, and which needn't follow any of Cyborg's rules. Every manifest has a `dialect` line, and `original` is reserved, so no Dialect can take it. `okay` is the compiler version it needs. Each package it uses has a `need` line with its version, and `with` adds features. A value is quoted only when it needs to be, and `//` starts a comment, as in Cyborg code.
 
-**Refused:** a line like Go's `package main`, a `need` line with no version, and a release that changes or removes a `pub` item while saying it doesn't break.
+**Refused:** a manifest with no `dialect` line, with `fix: dialect original`; a Dialect named `original`; a line like Go's `package main`, a `need` line with no version, and a release that changes or removes a `pub` item while saying it doesn't break.
 
-**From:** D22, D28, D36, D56, D186, D189, D190, D228, D229, D230, D231, D271.
+**From:** D22, D28, D36, D56, D186, D189, D190, D228, D229, D230, D231, D271, D309.
 
 ## 9.2 `@`: a limb
 
@@ -214,6 +216,7 @@ pub const $max: i32 = 100;
 ```
 name weather
 ver 2026y-11m-14d same
+dialect original
 okay 2026y-11m-01d
 
 need std 2026y-11m-01d
