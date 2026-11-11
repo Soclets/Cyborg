@@ -95,6 +95,10 @@ pub enum Event {
         mutable: bool,
         held: bool,
     },
+    /// A variable's round ends with it: a duty still open is never done (D180).
+    Expire {
+        local: LocalId,
+    },
     /// A test on a union's case starts being trusted (D9, D104).
     Trust {
         local: LocalId,
@@ -605,6 +609,32 @@ impl Checker<'_> {
                 }
             }
             Event::Maybe(_) => {}
+            Event::Expire { local } => {
+                let holding = state.holding.get(local).cloned();
+                let variable = self.variables.get(local).cloned();
+                if let (Some(holding), Some(variable)) = (holding, variable)
+                    && variable.must_give
+                    && checks::duty_open(holding.kind())
+                {
+                    let name = &variable.name;
+                    match holding {
+                        Holding::Gone { at, .. } => self.say(
+                            Diagnostic::refused(
+                                variable.declared,
+                                format!("`{name}` isn't given away or finished on every path"),
+                                DUTY_WHY,
+                            )
+                            .with_because(at, format!("`{name}` went here, on only one path")),
+                        ),
+                        _ => self.say(Diagnostic::refused(
+                            variable.declared,
+                            format!("`{name}` is never given away or finished"),
+                            DUTY_WHY,
+                        )),
+                    }
+                }
+                state.holding.remove(local);
+            }
             Event::Trust { local, .. } => {
                 state.trusts.insert(*local, None);
             }

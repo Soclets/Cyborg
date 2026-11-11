@@ -43,8 +43,16 @@ impl Checker<'_> {
                 let values = self.items_into(body, items, item)?;
                 Ok(checked::Expression { kind: Kind::Build(values), machine_type })
             })()),
-            (ExpressionKind::List(items), Type::List { item, min, max, .. }) => Some((|| {
+            (ExpressionKind::List(items), Type::List { item, min, max, len_type }) => Some((|| {
                 let count = items.len() as u64;
+                let (_, most) = len_type.range();
+                if max.is_none() && i128::from(count) > most {
+                    return Err(self.error(Diagnostic::not_designed(
+                        expression.span,
+                        format!("a list of `inf` with more items than its `{}` can count", len_type.name()),
+                        NOT_DECIDED,
+                    )));
+                }
                 if count < *min || max.is_some_and(|max| count > max) {
                     return Err(self.error(Diagnostic::refused(
                         expression.span,
@@ -140,10 +148,12 @@ impl Checker<'_> {
                 )));
             }
         };
+        // A missing or other label is said at the `[`.
+        let opening = expression.span.start as usize + base_text.len();
+        let opening = Span::new(self.file, opening, opening + 1);
         let [label] = labels else {
-            let span = labels.first().map_or(expression.span, |label| label.span);
             return Err(self.error(Diagnostic::refused(
-                span,
+                opening,
                 "getting an item says `pos:` or `offset.items:`",
                 POSITION_WHY,
             )));
@@ -162,7 +172,7 @@ impl Checker<'_> {
             "offset.items" => false,
             _ => {
                 return Err(self.error(Diagnostic::refused(
-                    label.name.span,
+                    opening,
                     "getting an item says `pos:` or `offset.items:`",
                     POSITION_WHY,
                 )));
@@ -217,6 +227,13 @@ impl Checker<'_> {
         match &expression.kind {
             ExpressionKind::Variable(name) => {
                 let Some(root) = body.lookup(&name.text).cloned() else { return Ok(None) };
+                if body.changing.iter().any(|each| *each == name.text) {
+                    return Err(self.error(Diagnostic::refused(
+                        name.span,
+                        format!("a `for` is changing `{}` through its items here", name.text),
+                        "`Lend.mut` means nothing else uses it meanwhile, and the `for` is using it (D2, D180)",
+                    )));
+                }
                 let value_type = root.value_type.read_as().clone();
                 Ok(Some(Reached { root, root_span: name.span, steps: Vec::new(), value_type }))
             }
@@ -253,7 +270,10 @@ impl Checker<'_> {
         if let Some(reached) = self.reach(body, expression)? {
             self.read_root(body, &reached);
             let place = checked::Place { local: reached.root.local, steps: reached.steps };
-            return Ok(Typed::new(reached.value_type, Kind::Load(place)));
+            let mut typed = Typed::new(reached.value_type, Kind::Load(place));
+            // A check on where it goes names it as written (D20).
+            typed.variable = Some(self.slice(expression.span).to_string());
+            return Ok(typed);
         }
         // A fresh value, like `make()[pos: 2]`, goes in a temporary first.
         let typed = self.expression(body, base, None)?;
@@ -314,7 +334,19 @@ impl Checker<'_> {
         let Some(reached) = self.reach(body, target)? else {
             return Err(self.not_yet(target.span, "`change` on this".to_string()));
         };
+        let mark = body.events.len();
+        let written_value_span = value.span;
         let value = self.value_into(body, value, &reached.value_type)?;
+        if body.events[mark.min(body.events.len())..]
+            .iter()
+            .any(|event| matches!(event, crate::flow::Event::LendMut { place, .. } if place.local == root.local))
+        {
+            return Err(self.error(Diagnostic::not_designed(
+                written_value_span,
+                format!("changing part of `{}` with a value that lends it out", root_name.text),
+                NOT_DECIDED,
+            )));
+        }
         body.events.push(crate::flow::Event::Change {
             place: crate::flow::Place { local: root.local, path: Vec::new(), shown: root_name.text.clone() },
             spot: crate::flow::Spot {
@@ -333,6 +365,13 @@ impl Checker<'_> {
 
     /// A list or array a `for` reads in place can't change meanwhile (D2, D128).
     pub fn not_while_reading(&mut self, body: &Body, name: &str, span: Span) -> Check<()> {
+        if body.reading_parts.iter().any(|each| each == name) {
+            return Err(self.error(Diagnostic::not_designed(
+                span,
+                format!("changing one part of `{name}` while a `for` reads another"),
+                NOT_DECIDED,
+            )));
+        }
         if body.reading.iter().any(|each| each == name) {
             return Err(self.error(Diagnostic::refused(
                 span,

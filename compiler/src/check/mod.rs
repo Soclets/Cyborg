@@ -158,6 +158,13 @@ pub struct Body {
     pub lent: Vec<checked::LocalId>,
     /// The lists and arrays a `for` around this is reading in place (D128).
     pub reading: Vec<String>,
+    /// The ones a `for` reads only a part of, like `$g[pos: 1]`.
+    pub reading_parts: Vec<String>,
+    /// The ones a `for` around this is changing through its items, which nothing else uses meanwhile (D180).
+    pub changing: Vec<String>,
+    /// Each `for` around this handing out items with a duty: how many loops were open outside it, its list, and
+    /// where it took it (D180).
+    pub give_loops: Vec<(usize, String, Span)>,
     /// The receiver a method call is lending with `Lend.mut`, while its arguments are checked.
     pub lent_receiver: Option<String>,
     /// What fills each source of the struct or union being built, from the type it goes into (D171).
@@ -717,6 +724,8 @@ impl Checker<'_> {
         match value_type {
             Type::Struct { id, .. } => self.aggregates.structs.get(*id).is_some_and(|info| info.must_give),
             Type::New { inner, .. } => self.must_give(inner),
+            // A list of values with a duty has every one of them to hand off (D180).
+            Type::List { item, .. } | Type::Array { item, .. } => self.must_give(item),
             _ => false,
         }
     }

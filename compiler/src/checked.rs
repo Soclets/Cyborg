@@ -523,4 +523,6 @@ pub enum Argument {
     },
     /// A fresh value lent for the call: it's put in a temporary, whose address is passed.
     Temporary(Expression),
+    /// The address of a place through items, lent: `Lend.mut $a[pos: 1]` (D133).
+    Place(Place),
 }

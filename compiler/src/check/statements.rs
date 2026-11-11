@@ -104,6 +104,9 @@ impl Checker<'_> {
                 self.change(body, statement.span, target, value, block).map(|()| false)
             }
             StatementKind::Return(value) => {
+                if let Some((_, list, given)) = body.give_loops.last().cloned() {
+                    return Err(self.leaves_items(statement.span, &list, given));
+                }
                 self.return_statement(body, statement, value.as_ref(), block).map(|()| true)
             }
             StatementKind::Expression(expression) => {
@@ -346,7 +349,21 @@ impl Checker<'_> {
                 "not decided yet (standard 12.8)",
             )));
         }
-        let (Some((root_local, path)), Some(root)) = (self.lent_place(body, lent), root_name(lent)) else {
+        // A borrow of an item borrows all of its list, and its place goes through the item (D172).
+        let mut item_place = None;
+        let found = match self.lent_place(body, lent) {
+            Some(found) => Some(found),
+            None if super::expressions::is_item(lent) => match self.reach(body, lent)? {
+                Some(reached) => {
+                    let local = reached.root.local;
+                    item_place = Some(checked::Place { local, steps: reached.steps });
+                    Some((local, Vec::new()))
+                }
+                None => None,
+            },
+            None => None,
+        };
+        let (Some((root_local, path)), Some(root)) = (found, root_name(lent)) else {
             return Err(self.not_yet(value.span, "a stored borrow of this".to_string()));
         };
         let Some(root_variable) = body.lookup(&root.text).cloned() else { return Err(Reported) };
@@ -419,8 +436,26 @@ impl Checker<'_> {
             mutable: *mutable,
             held: *held,
         });
-        block.push(checked::Statement::Alias { local, target: root_local, path });
+        match item_place {
+            Some(place) => block.push(checked::Statement::AliasValue {
+                local,
+                value: checked::Expression { kind: Kind::PlaceAddress(place), machine_type: MachineType::Address },
+            }),
+            None => block.push(checked::Statement::Alias { local, target: root_local, path }),
+        }
         Ok(())
+    }
+
+    /// Leaving a `for` that's handing out items with a duty, before it's handed out all of them (D180).
+    fn leaves_items(&mut self, span: Span, list: &str, given: Span) -> Reported {
+        self.error(
+            Diagnostic::refused(
+                span,
+                format!("this leaves before the `for` has handed out every item of `{list}`"),
+                "a `must_Give` value is handed off with `Give` exactly once, so every item has to be (D2, D180)",
+            )
+            .with_because(given, format!("`{list}` was given to the `for` here")),
+        )
     }
 
     /// `return Lend $a;` from a function that hands back a borrow, checked against its claim (D170).
@@ -1494,6 +1529,9 @@ impl Checker<'_> {
         };
         let states = body.states.clone();
         let id = body.loops[target].id;
+        if let Some((_, list, given)) = body.give_loops.iter().find(|(outside, _, _)| *outside >= target).cloned() {
+            return Err(self.leaves_items(span, &list, given));
+        }
         // Leaving the loop leaves its variables behind, and their duties with them (D2).
         let start = body.loops[target].variables.min(body.variables.len());
         let locals = body.variables[start..].iter().map(|variable| variable.local).collect();
@@ -1652,7 +1690,26 @@ impl Checker<'_> {
             )));
         }
         if let Some((Ownership::Copy, span)) = each.ownership {
-            return Err(self.not_yet(span, "`Copy` on a loop".to_string()));
+            return Err(self.error(Diagnostic::not_designed(
+                span.to(each.source.span),
+                "`Copy` on a loop's collection",
+                NOT_DECIDED,
+            )));
+        }
+        if word == Some(Ownership::Give) && !super::expressions::is_held(&each.source) {
+            return Err(self.error(Diagnostic::refused(
+                each.source.span,
+                "a fresh value takes no word",
+                "a fresh value that has no holder yet takes no word (D2)",
+            )));
+        }
+        if word == Some(Ownership::LendMut) && matches!(each.source.kind, ExpressionKind::Field { .. }) {
+            let shown = self.slice(each.source.span).to_string();
+            return Err(self.error(Diagnostic::not_designed(
+                each.source.span,
+                format!("whether `for` over `{shown}` uses all of what holds it"),
+                "not decided yet (standard 12.1)",
+            )));
         }
         let reached = self.reach(body, &each.source)?;
         let (local, steps, collection, root) = match reached {
@@ -1683,6 +1740,13 @@ impl Checker<'_> {
             }
         };
         if let Some((root, root_span)) = &root {
+            if word == Some(Ownership::Give) && body.lent.contains(&root.local) {
+                return Err(self.error(Diagnostic::refused(
+                    *root_span,
+                    format!("`{}` is only lent here, so it can't be given away", root.name),
+                    "`Lend` is temporary access, and the caller keeps it (D2)",
+                )));
+            }
             if word == Some(Ownership::LendMut) && !root.mutable {
                 return Err(self.error(Diagnostic::refused(
                     *root_span,
@@ -1769,11 +1833,37 @@ impl Checker<'_> {
             });
         }
         let reading = root.as_ref().map(|(root, _)| root.name.clone());
-        body.reading.extend(reading.clone());
+        let changing = word == Some(Ownership::LendMut);
+        let part = !steps.is_empty();
+        if changing {
+            body.changing.extend(reading.clone());
+        } else if part {
+            body.reading_parts.extend(reading.clone());
+        } else {
+            body.reading.extend(reading.clone());
+        }
+        let giving = word == Some(Ownership::Give) && self.must_give(&item_type);
+        if giving && let Some((root, _)) = &root {
+            let given_span = each.ownership.map_or(each.source.span, |(_, span)| span.to(each.source.span));
+            body.give_loops.push((body.loops.len(), root.name.clone(), given_span));
+        }
         let start = body.states[..before].to_vec();
-        let (id, loop_body, breaks) = self.loop_body(body, each.label.as_ref(), &each.body);
+        let (id, mut loop_body, breaks) = self.loop_body(body, each.label.as_ref(), &each.body);
+        if giving && root.is_some() {
+            body.give_loops.pop();
+        }
         if reading.is_some() {
-            body.reading.pop();
+            if changing {
+                body.changing.pop();
+            } else if part {
+                body.reading_parts.pop();
+            } else {
+                body.reading.pop();
+            }
+        }
+        // Each item a `Give` loop hands out has to be given away or finished in its round (D180).
+        if word == Some(Ownership::Give) && self.must_give(&item_type) {
+            loop_body.push(checked::Statement::Flow(vec![crate::flow::Event::Expire { local: item }]));
         }
         body.scopes.pop();
         body.forget_after(before);
@@ -1955,11 +2045,32 @@ impl Checker<'_> {
         let end_result = self.expression(body, end, from_result.as_ref().ok().map(|typed| &typed.value_type));
         let (mut from_typed, mut end_typed) = (from_result?, end_result?);
         self.range_number(&end_typed, end)?;
-        // A literal end takes the other's type.
+        // A literal end takes the other's type, and its unit, as `range[from: 1, to: $xs.len]` does (D142).
         if from_typed.literal.is_some() && end_typed.literal.is_none() {
+            let unit = if from_typed.value_type.unit().is_none() { end_typed.value_type.unit().cloned() } else { None };
             from_typed = self.expression(body, from, Some(&end_typed.value_type.plain()))?;
+            if unit.is_some() {
+                from_typed.value_type = from_typed.value_type.with_unit(unit);
+            }
         } else if end_typed.literal.is_some() && from_typed.literal.is_none() {
+            let unit = if end_typed.value_type.unit().is_none() { from_typed.value_type.unit().cloned() } else { None };
             end_typed = self.expression(body, end, Some(&from_typed.value_type.plain()))?;
+            if unit.is_some() {
+                end_typed.value_type = end_typed.value_type.with_unit(unit);
+            }
+        }
+        // A plain variable at one end and a number in `items` at the other isn't decided.
+        let same_width = from_typed.value_type.with_unit(None).plain() == end_typed.value_type.with_unit(None).plain();
+        if same_width && from_typed.value_type.unit().is_some() != end_typed.value_type.unit().is_some() {
+            let (plain, plain_span) =
+                if from_typed.value_type.unit().is_none() { (&from_typed, from.span) } else { (&end_typed, end.span) };
+            if plain.literal.is_none() {
+                return Err(self.error(Diagnostic::not_designed(
+                    plain_span,
+                    "a range mixing a plain variable with a number in `items`",
+                    NOT_DECIDED,
+                )));
+            }
         }
         if from_typed.value_type.plain() != end_typed.value_type.plain() {
             return Err(self.error(Diagnostic::refused(

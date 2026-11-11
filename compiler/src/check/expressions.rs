@@ -495,6 +495,13 @@ impl Checker<'_> {
     }
 
     fn read_variable(&mut self, body: &mut Body, name: &syntax::Name) -> Check<Typed> {
+        if body.changing.iter().any(|each| *each == name.text) {
+            return Err(self.error(Diagnostic::refused(
+                name.span,
+                format!("a `for` is changing `{}` through its items here", name.text),
+                "`Lend.mut` means nothing else uses it meanwhile, and the `for` is using it (D2, D180)",
+            )));
+        }
         if body.lent_receiver.as_deref() == Some(name.text.as_str()) {
             return Err(self.error(Diagnostic::not_designed(
                 name.span,
@@ -1390,7 +1397,19 @@ impl Checker<'_> {
             )));
         }
         // The receiver, then the rest, matched by the method's labels without its receiver.
-        let receiver_argument = if changes {
+        let receiver_argument = if changes && is_item(receiver) {
+            let Some(root) = root_name(receiver) else { return Err(Reported) };
+            let Some(variable) = body.lookup(&root.text).cloned() else { return Err(Reported) };
+            if !variable.mutable {
+                return Err(self.error(Diagnostic::refused(
+                    receiver.span,
+                    format!("`{}` can't change, so neither can its item", root.text),
+                    "a field or item can be changed if the whole variable is `let mut`, or the parameter `Lent.mut` (D125, D133)",
+                )));
+            }
+            let Some(reached) = self.reach(body, receiver)? else { return Err(Reported) };
+            checked::Argument::Place(checked::Place { local: variable.local, steps: reached.steps })
+        } else if changes {
             let ExpressionKind::Variable(name) = &receiver.kind else {
                 if let Some((local, path, root)) = self.field_place(body, receiver) {
                     let Some(variable) = body.lookup(&root).cloned() else { return Err(Reported) };
@@ -1781,6 +1800,9 @@ impl Checker<'_> {
                         )));
                     }
                 }
+                if is_item(&argument.value) {
+                    return self.lend_item(body, argument, parameter_type, handed);
+                }
                 let (Some((local, path)), Some(root)) =
                     (self.any_place(body, &argument.value), root_name(&argument.value))
                 else {
@@ -1871,6 +1893,13 @@ impl Checker<'_> {
                     self.hand_in_call(handed, &root.text, &path, argument.span, word == Some(Ownership::Give))?;
                 }
                 let typed = self.expression(body, &argument.value, Some(parameter_type))?;
+                if word == Some(Ownership::Give) && is_item(&argument.value) {
+                    return Err(self.error(Diagnostic::not_designed(
+                        argument.value.span,
+                        "giving away one item of a collection",
+                        NOT_DECIDED,
+                    )));
+                }
                 if word == Some(Ownership::Give)
                     && let Some((local, path)) = self.any_place(body, &argument.value)
                     && let Some(root) = root_name(&argument.value)
@@ -1907,13 +1936,28 @@ impl Checker<'_> {
                         )));
                     }
                 }
-                if let Some(root) = root_name(&argument.value)
-                    && let Some((_, path)) = self.any_place(body, &argument.value)
-                {
+                if let Some(root) = root_name(&argument.value) {
+                    // An item counts as all of its list (D172).
+                    let path = self.any_place(body, &argument.value).map(|(_, path)| path).unwrap_or_default();
                     self.hand_in_call(handed, &root.text, &path, argument.span, false)?;
                 }
                 let typed = self.expression(body, &argument.value, Some(parameter_type))?;
                 let typed_type = typed.value_type.clone();
+                if let (
+                    Type::List { item: a, min: x, max: y, len_type: p },
+                    Type::List { item: b, min: z, max: w, len_type: q },
+                ) = (&typed_type, parameter_type)
+                    && a == b
+                    && x == z
+                    && y == w
+                    && p != q
+                {
+                    return Err(self.error(Diagnostic::not_designed(
+                        argument.span,
+                        format!("whether `{typed_type}` is accepted where `{parameter_type}` is asked for"),
+                        NOT_DECIDED,
+                    )));
+                }
                 if typed_type != *parameter_type && !typed_type.is_unknown() {
                     return Err(self.error(Diagnostic::refused(
                         argument.value.span,
@@ -1928,6 +1972,41 @@ impl Checker<'_> {
                 }
             }
         }
+    }
+
+    /// `Lend.mut $a[offset.items: 0]`: an item lent to change, which counts as all of its list (D133, D172).
+    fn lend_item(
+        &mut self,
+        body: &mut Body,
+        argument: &syntax::Argument,
+        parameter_type: &Type,
+        handed: &mut Vec<Handed>,
+    ) -> Check<checked::Argument> {
+        let Some(root) = root_name(&argument.value) else { return Err(Reported) };
+        self.hand_in_call(handed, &root.text, &[], argument.span, true)?;
+        let Some(variable) = body.lookup(&root.text).cloned() else { return Err(Reported) };
+        if !variable.mutable {
+            return Err(self.error(Diagnostic::refused(
+                argument.value.span,
+                format!("`{}` can't change, so neither can its item", root.text),
+                "a field or item can be changed if the whole variable is `let mut`, or the parameter `Lent.mut` (D125, D133)",
+            )));
+        }
+        self.not_while_reading(body, &root.text, argument.value.span)?;
+        let Some(reached) = self.reach(body, &argument.value)? else { return Err(Reported) };
+        if reached.value_type != *parameter_type && !reached.value_type.is_unknown() {
+            return Err(self.error(Diagnostic::refused(
+                argument.span,
+                format!("this is `{}`, where `{parameter_type}` is needed", reached.value_type),
+                CONVERT_WHY,
+            )));
+        }
+        let site = body.site(root.span);
+        body.events.push(crate::flow::Event::LendMut {
+            place: crate::flow::Place { local: variable.local, path: Vec::new(), shown: root.text.clone() },
+            spot: crate::flow::Spot { variable: root.span, place: argument.value.span, site, marker: site },
+        });
+        Ok(checked::Argument::Place(checked::Place { local: variable.local, steps: reached.steps }))
     }
 
     /// Within one call, `Lend.mut` or `Give` of something means nothing else in the call can use it. Different fields
@@ -2202,6 +2281,13 @@ impl Checker<'_> {
         if let ExpressionKind::As { value: inner, keyword, written_type } = &value.kind {
             return self.owned_as(body, ownership, ownership_span, value, inner, keyword, written_type);
         }
+        if ownership == syntax::Ownership::Give && is_item(value) {
+            return Err(self.error(Diagnostic::not_designed(
+                value.span,
+                "giving away one item of a collection",
+                NOT_DECIDED,
+            )));
+        }
         let typed = self.expression(body, value, expected)?;
         if typed.value_type.is_copied() {
             let written = self.slice(value.span).to_string();
@@ -2469,7 +2555,7 @@ fn operator_word(operator: &BinaryOperator) -> &'static str {
 
 /// Whether a value is held somewhere, a variable or a field of one, rather than fresh, so handing it over needs a
 /// word (D3, D182).
-fn is_held(expression: &syntax::Expression) -> bool {
+pub fn is_held(expression: &syntax::Expression) -> bool {
     match &expression.kind {
         ExpressionKind::Variable(_) => true,
         ExpressionKind::Field { base, .. } => is_held(base),
@@ -2522,6 +2608,15 @@ fn same_number(a: &Type, b: &Type) -> bool {
     match (a, b) {
         (Type::Integer { kind: x, .. }, Type::Integer { kind: y, .. }) => x == y,
         (Type::Float { bits: x, kind: p, .. }, Type::Float { bits: y, kind: q, .. }) => x == y && p == q,
+        _ => false,
+    }
+}
+
+/// Whether a value is one item of a list or array, as in `$a[pos: 1]`.
+pub fn is_item(expression: &syntax::Expression) -> bool {
+    match &expression.kind {
+        ExpressionKind::Bracket { base, .. } => !matches!(base.kind, ExpressionKind::Path(_)),
+        ExpressionKind::Group(inner) => is_item(inner),
         _ => false,
     }
 }

@@ -2028,7 +2028,18 @@ impl<'source> Parser<'source> {
                 }
                 Some(TokenKind::LeftSquare) if !self.gap_before_current() => {
                     let bracket_start = self.current_span();
-                    let labels = self.bracket_labels()?;
+                    // After a value, brackets get one item, by one position (D133).
+                    let labels = if matches!(value.kind, ExpressionKind::Path(_)) {
+                        self.bracket_labels()?
+                    } else {
+                        self.advance();
+                        let label = self.label()?;
+                        if !self.is(TokenKind::RightSquare) {
+                            return Err(self.error_expected("`]`"));
+                        }
+                        self.advance();
+                        vec![label]
+                    };
                     let bracket_span = bracket_start.to(self.previous_span());
                     let span = value.span.to(bracket_span);
                     value = Expression {

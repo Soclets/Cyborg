@@ -1269,6 +1269,7 @@ impl<'context, 'module> Generator<'context, 'module> {
                         Argument::Value(value) => self.expression(frame, value)?,
                         Argument::Address(local) => frame.slots[*local],
                         Argument::FieldAddress { local, path } => self.field_place(frame, *local, path)?,
+                        Argument::Place(place) => self.place_pointer(frame, place)?.0,
                         Argument::Temporary(value) => {
                             let generated = self.expression(frame, value)?;
                             let slot_type = self.machine_type(&value.machine_type);
