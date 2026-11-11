@@ -17,16 +17,16 @@
 **Rule:** a function that can fail lists its failures in its header, after the return type. The list can mix named sets and one-off failures, and a failure can carry data in `[ ]`.
 
 ```
-fn load [$path: str] returns config fails [file_failed, bad_syntax]:
+fn load [$path: str] -> config fails [file_failed, bad_syntax]:
     …
 end fn load
 
-fn half [$n: i32] returns i32 fails [odd, negative[val: i32]]:
+fn half [$n: i32] -> i32 fails [odd, negative[val: i32]]:
     …
 end fn half
 ```
 
-**Refused:** `-> i32`, with `fix: returns i32`, `-> i32 or fail[…]`, an older spelling, and `fails` in the body, with the fix moving it into the header.
+**Refused:** `returns i32`, with `fix: -> i32`, `-> i32 or fail[…]`, an older spelling, and `fails` in the body, with the fix moving it into the header.
 
 **From:** D47, D52, D209.
 

@@ -32,7 +32,7 @@ import std;
 import os;
 use std::io::fmt_print as fmt_print;
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     let mut $out: os::stdout.buffered = os::stdout.buffered(size: 1024 bytes);
     fmt_print(Lend.mut $out, "Hello, World!{newln}");
     os::done(Give $out);
@@ -51,7 +51,7 @@ Its manifest says `need std` and `need os`. Examples elsewhere in the standard a
 **Rule:** `;` ends a statement, `:` opens a block, and `end` closes it. The closer repeats what it closes, including the name.
 
 ```
-fn total [$xs: std::list<i32>[len.max: inf items]] returns i32:
+fn total [$xs: std::list<i32>[len.max: inf items]] -> i32:
     …
 end fn total
 
@@ -164,7 +164,7 @@ std::list<i32>[len.min: 1 items, len.max: 8 items]
 **Rule:** your own names are bare, and any name is allowed. A name clashes when it's the same as a keyword, a word operator, a base type, or `main`. It's written with `my::` everywhere: its declaration, its closer and every use.
 
 ```
-fn my::x [$a: i32, $b: i32] returns i32:
+fn my::x [$a: i32, $b: i32] -> i32:
     …
 end fn my::x
 
@@ -228,7 +228,7 @@ Units keep the matching name, as in `use std::units::time.seconds as seconds;`.
 
 ```
 /// Adds up every item in the list.
-fn total [$xs: std::list<i32>[len.max: inf items]] returns i32:
+fn total [$xs: std::list<i32>[len.max: inf items]] -> i32:
     // a note for whoever reads this
     …
 end fn total

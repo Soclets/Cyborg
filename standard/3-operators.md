@@ -150,7 +150,7 @@ Unary `-` negates, so `-$x` and `-7` are both allowed. A comparison chain means 
 **Rule:** a struct or union can define an operator for itself, as a function named by the operator. It keeps the operator's usual precedence, and applies only where its parameters' types match. This is how a type gets what an interface asks for ([5.8](5-functions.md#58-generics)).
 
 ```
-op below [$a: reading, $b: reading] returns bool:
+op below [$a: reading, $b: reading] -> bool:
     return $a.celsius below $b.celsius;
 end op below
 

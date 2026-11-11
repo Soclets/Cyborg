@@ -274,7 +274,7 @@ let $x: i32 = 3600;
 A label can carry the unit instead, when the writer declares it that way. A plain number takes the label's unit, and a value in another unit is refused.
 
 ```
-fn draw [$x: i32[unit: screen.pixels]] returns void:
+fn draw [$x: i32[unit: screen.pixels]] -> void:
     labels [$x as at.screen.pixels];
     …
 end fn draw
@@ -345,7 +345,7 @@ let $s: f64.stable = std::math::sin($a as f64.stable[unit: radians]);
 A generic can work for any unit and keep it, with a unit parameter. `any.unit` means any unit, and a family's name, like `length`, means any unit in that family:
 
 ```
-fn average<?u: any.unit> [$xs: std::list<f64.stable[unit: ?u]>[len.min: 1 items]] returns f64.stable[unit: ?u]:
+fn average<?u: any.unit> [$xs: std::list<f64.stable[unit: ?u]>[len.min: 1 items]] -> f64.stable[unit: ?u]:
     …
 end fn average
 

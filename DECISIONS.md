@@ -1074,6 +1074,8 @@ A `type_set` is a closed list of types that nothing can join later, as in `type_
 
 **D286. Not built yet is its own error: `NotBuiltYet`.** When the oracle or the compiler reaches something that is decided but that it doesn't handle yet, it says `NotBuiltYet`, never `NotDesignedYet`. `NotDesignedYet` only ever means the design isn't decided (rule 4), so a reader, the owner or check claude can tell a design gap from an implementation gap at a glance. Compiler claude's milestone 1 used `NotDesignedYet` with the why "this compiler doesn't handle it yet"; Claude suggested a separate error, with `NotBuiltYet` as its name; the owner chose: "yes". (Owner, 2026-11-11)
 
+**D287. `->` is back for a function's result.** A function's header says `->` again, as in `fn half [$n: i32] -> i32 fails [odd]:` and `fn.main [none] -> void:`, since a symbol is an anchor the eye can skip straight to, the same reason `==` and `!=` stayed in D278. In a long header, `->` marks exactly where the result starts, while `returns` looked like every other word on the line. `fails` stays a word, and is easy to find since it always comes last. `returns` is refused, with `fix: ->`. This replaces D275. The owner asked "should we change back to `->`?", said "You can skip straight to the symbol", and chose: "yes". (Owner, 2026-11-11)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude
