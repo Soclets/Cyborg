@@ -244,6 +244,7 @@ d183_hello_world
 d183_leaves_out_okay
 d187_kit_and_limb_halves
 d188_import_pkg
+d188_limb_half_alone_isnt_the_kit
 d194_a_bare_float_literal_as_a_value
 d194_a_bool
 d194_a_number_needs_no_as
@@ -282,6 +283,7 @@ d194_unknown_escape
 d194_width_in_points
 d194_width_with_no_unit
 d194_zeros_with_no_width
+d196_math_dot_sin
 d197_a_bare_brace
 d197_a_bare_closing_brace
 d197_short_name_with_narrowing
@@ -309,6 +311,8 @@ d205_comment_before_the_rules
 d205_trailing_comments
 d205_trailing_needs_a_space
 d206_trailing_doc_comment
+d207_a_cascade
+d207_a_fix_written_elsewhere
 d207_errors_in_two_functions
 d207_every_error
 d207_no_fix_stays_independent
@@ -334,6 +338,7 @@ d213_after_dollar
 d213_after_the_limb_mark
 d213_after_unary_minus
 d213_after_unary_minus_on_a_number
+d213_around_a_dot
 d213_around_double_colon
 d213_around_the_dot_in_a_name
 d213_before_a_closing_parenthesis
@@ -380,6 +385,7 @@ d265_a_rule_line
 d265_hello_world
 d26_division_by_zero
 d26_remainder_by_zero
+d271_os_is_imported
 d271_os_needs_a_need_line
 d273_buffered_stderr
 d273_flush_keeps_it_going
@@ -417,5 +423,6 @@ d7_colon_doesnt_convert
 d7_conversion_isnt_decided
 d7_unknown_type
 d80_imports_are_in_the_file
+d82_std_not_imported
 d93_use_a_short_name
 d97_bare_mod

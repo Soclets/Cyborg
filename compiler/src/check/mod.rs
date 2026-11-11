@@ -292,6 +292,34 @@ impl Checker<'_> {
         self.uses.insert(short.short.text.clone(), short.path.text());
     }
 
+    /// A path into `std`, `os` or a limb needs its import (D82, D271). The fix adds the import at the top.
+    pub fn require_import(&mut self, path: &str, span: Span) -> Check<()> {
+        let (package, why) = if path.starts_with("std::") {
+            ("std", "everything gets imported, including `std` (D82)")
+        } else if path.starts_with("os::") {
+            ("os", "a program that uses `os` says `need os` in its manifest and `import os;` in its files (D271, D82)")
+        } else if let Some(limb) = path.strip_prefix('@').and_then(|rest| rest.split("::").next()) {
+            let key = format!("@{limb}");
+            if self.imports.iter().any(|import| *import == key) {
+                return Ok(());
+            }
+            let shown = format!("import @{limb};");
+            let edit = crate::diagnostic::Edit { span: Span::new(self.file, 0, 0), replacement: format!("{shown}\n") };
+            return Err(self.error(
+                Diagnostic::refused_fix(span, shown, "everything gets imported, including limbs (D82)")
+                    .with_edits(vec![edit]),
+            ));
+        } else {
+            return Ok(());
+        };
+        if self.imports.iter().any(|import| import == package || *import == format!("pkg {package}")) {
+            return Ok(());
+        }
+        let shown = format!("import {package};");
+        let edit = crate::diagnostic::Edit { span: Span::new(self.file, 0, 0), replacement: format!("{shown}\n") };
+        Err(self.error(Diagnostic::refused_fix(span, shown, why).with_edits(vec![edit])))
+    }
+
     /// The full path a written path stands for, through any `use`.
     #[must_use]
     pub fn resolve_path(&self, path: &Path) -> String {
@@ -481,6 +509,7 @@ impl Checker<'_> {
             "str" => Ok(Type::Str),
             "void" => Ok(Type::Void),
             "os::stdout.buffered" | "os::stdout.unbuffered" | "os::stderr.buffered" | "os::stderr.unbuffered" => {
+                self.require_import(&text, path.span)?;
                 let stream = if text.starts_with("os::stdout") { checked::Stream::Out } else { checked::Stream::Error };
                 Ok(Type::Writer(types::WriterKind { stream, buffered: text.ends_with(".buffered") }))
             }

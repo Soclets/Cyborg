@@ -1028,6 +1028,16 @@ impl Checker<'_> {
             return Err(self.not_yet(callee.span, "calling this".to_string()));
         };
         let name = self.resolve_path(path);
+        if name.starts_with("std::") && name.contains('.') && !self.functions.contains_key(&name) {
+            // `std` is grouped with `::`, and a `.` after a function is a narrowing (D196).
+            let fixed = name.replacen('.', "::", 1);
+            return Err(self.error(Diagnostic::refused_fix(
+                callee.span,
+                fixed,
+                "`std` is grouped with `::`, and `.` after a function is a narrowing (D196)",
+            )));
+        }
+        self.require_import(&name, path.span)?;
         let Some(signature) = self.functions.get(&name).cloned() else {
             return Err(self.error(Diagnostic::refused(
                 callee.span,

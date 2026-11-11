@@ -3,7 +3,7 @@
 use std::path::Path;
 
 use crate::diagnostic::{Diagnostic, render_all};
-use crate::source::{SourceFile, Sources, Span};
+use crate::source::{FileId, SourceFile, Sources, Span};
 use crate::target::{Mode, Target};
 use crate::{check, codegen, lexer, manifest, parser, spacing};
 
@@ -45,16 +45,8 @@ pub fn build(file: &Path, target: Target, mode: Mode, output: &Path) -> Outcome 
         ));
         manifest::Manifest::default()
     };
-    let mut program_errors = Vec::new();
-    let lexed = lexer::lex(program_id, &text, &mut program_errors);
-    let (parsed, parse_errors) = parser::parse(program_id, &text, &lexed.tokens);
-    // After a parse error, the parser's view of what each token does can't be trusted, so line breaks aren't judged.
-    let parsed_cleanly = parse_errors.is_empty();
-    program_errors.extend(parse_errors);
-    program_errors.extend(spacing::check(program_id, &text, &lexed.tokens, &parsed.roles, parsed_cleanly));
-    let (program, check_errors) = check::check(program_id, &sources, &manifest, &parsed.file, target, mode);
-    program_errors.extend(check_errors);
-    program_errors.sort_by_key(|error| error.span.start);
+    let (program, mut program_errors) = check_program(&mut sources, program_id, &text, &manifest, target, mode);
+    cascades(&mut program_errors, &mut sources, program_id, &text, &manifest, target, mode);
     errors.extend(program_errors);
     if !errors.is_empty() {
         return Outcome::Refused(render_all(&errors, &sources));
@@ -99,4 +91,105 @@ pub fn build(file: &Path, target: Target, mode: Mode, output: &Path) -> Outcome 
         Ok(_) => Outcome::Built,
         Err(error) => Outcome::Failed(format!("linking: {}", error.message())),
     }
+}
+
+/// Checks a program's text, giving the checked program if nothing was refused, and every error in order.
+fn check_program(
+    sources: &mut Sources,
+    program_id: FileId,
+    text: &str,
+    manifest: &manifest::Manifest,
+    target: Target,
+    mode: Mode,
+) -> (Option<crate::checked::Program>, Vec<Diagnostic>) {
+    if let Some(file) = sources.get_mut(program_id) {
+        let name = file.name.clone();
+        *file = SourceFile::new(name, text.to_string());
+    }
+    let mut errors = Vec::new();
+    let lexed = lexer::lex(program_id, text, &mut errors);
+    let (parsed, parse_errors) = parser::parse(program_id, text, &lexed.tokens);
+    // After a parse error, the parser's view of what each token does can't be trusted, so line breaks aren't judged.
+    let parsed_cleanly = parse_errors.is_empty();
+    errors.extend(parse_errors);
+    errors.extend(spacing::check(program_id, text, &lexed.tokens, &parsed.roles, parsed_cleanly));
+    let (program, check_errors) = check::check(program_id, sources, manifest, &parsed.file, target, mode);
+    errors.extend(check_errors);
+    errors.sort_by_key(|error| error.span.start);
+    (program, errors)
+}
+
+/// Finds which errors an earlier one caused (D207, standard 11.7): each error with a fix has it applied in memory,
+/// the program is checked again, and a later error that goes away points back at the fix with `because:`.
+fn cascades(
+    errors: &mut [Diagnostic],
+    sources: &mut Sources,
+    program_id: FileId,
+    text: &str,
+    manifest: &manifest::Manifest,
+    target: Target,
+    mode: Mode,
+) {
+    for index in 0..errors.len() {
+        let Some(fix) = errors[index].fix.clone() else { continue };
+        if index + 1 >= errors.len() || fix.edits.iter().any(|edit| edit.span.file != program_id) {
+            continue;
+        }
+        let Some((fixed_text, shift)) = apply(text, &fix.edits) else { continue };
+        let (_, after) = check_program(sources, program_id, &fixed_text, manifest, target, mode);
+        for later in index + 1..errors.len() {
+            let moved = shift(errors[later].span);
+            let still_there = after.iter().any(|other| same_error(other, &errors[later], moved));
+            if !still_there {
+                let note = format!("with `{}` here, this error goes away", fix.shown);
+                errors[later].because.push(crate::diagnostic::Because { span: errors[index].span, note });
+            }
+        }
+    }
+    // The program's text is the original again, for printing.
+    if let Some(file) = sources.get_mut(program_id) {
+        let name = file.name.clone();
+        *file = SourceFile::new(name, text.to_string());
+    }
+}
+
+/// Applies edits to a text, giving the new text and how a span after them moves.
+fn apply(text: &str, edits: &[crate::diagnostic::Edit]) -> Option<(String, impl Fn(Span) -> Span)> {
+    let mut sorted: Vec<&crate::diagnostic::Edit> = edits.iter().collect();
+    sorted.sort_by_key(|edit| edit.span.start);
+    let mut result = String::with_capacity(text.len());
+    let mut at = 0usize;
+    let mut moves: Vec<(u32, i64)> = Vec::new();
+    for edit in &sorted {
+        let start = edit.span.start as usize;
+        let end = edit.span.end as usize;
+        if start < at || end > text.len() {
+            return None;
+        }
+        result.push_str(text.get(at..start)?);
+        result.push_str(&edit.replacement);
+        at = end;
+        let change = i64::try_from(edit.replacement.len()).ok()? - i64::try_from(end - start).ok()?;
+        moves.push((edit.span.end, change));
+    }
+    result.push_str(text.get(at..)?);
+    // A span after every edit moves by their changes, and one that overlaps an edit keeps its length from its end.
+    let shift = move |span: Span| {
+        let delta_at =
+            |position: u32| -> i64 { moves.iter().filter(|(end, _)| position >= *end).map(|(_, change)| change).sum() };
+        let moved = |position: u32, delta: i64| u32::try_from(i64::from(position) + delta).unwrap_or(position);
+        let end = moved(span.end, delta_at(span.end));
+        let start = end.saturating_sub(span.end - span.start);
+        Span { file: span.file, start, end }
+    };
+    Some((result, shift))
+}
+
+/// Whether an error after a fix is the same as one before it, where it has moved to.
+fn same_error(after: &Diagnostic, before: &Diagnostic, moved: Span) -> bool {
+    after.kind == before.kind
+        && after.span == moved
+        && after.what == before.what
+        && after.why == before.why
+        && after.fix.as_ref().map(|fix| &fix.shown) == before.fix.as_ref().map(|fix| &fix.shown)
 }

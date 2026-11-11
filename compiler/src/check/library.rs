@@ -28,6 +28,7 @@ impl Checker<'_> {
             return Err(self.not_yet(callee.span, "this writer".to_string()));
         };
         let made = self.resolve_path(path);
+        self.require_import(&made, path.span)?;
         if made != writer.name() {
             return Err(self.not_yet(callee.span, format!("`{made}` going into `{}`", writer.name())));
         }
@@ -85,7 +86,11 @@ impl Checker<'_> {
         let ExpressionKind::Path(path) = &callee.kind else {
             return Ok(None);
         };
-        match self.resolve_path(path).as_str() {
+        let resolved = self.resolve_path(path);
+        if matches!(resolved.as_str(), "std::io::fmt_print" | "std::io::fmt_print.stored" | "os::done") {
+            self.require_import(&resolved, path.span)?;
+        }
+        match resolved.as_str() {
             "std::io::fmt_print" => self.print(body, callee.span, arguments, *arguments_span, false).map(Some),
             "std::io::fmt_print.stored" => self.print(body, callee.span, arguments, *arguments_span, true).map(Some),
             "os::done" => {
