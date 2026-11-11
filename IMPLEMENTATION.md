@@ -57,7 +57,8 @@ Each works in its own clone, on `main` with no branch, and runs `git pull --reba
 16. **Keep up with decisions.** Every pull, read any new entries in `DECISIONS.md`. A small one in your area, like a renamed
     word or a new refusal, just build it. A big one, like a change to most of your tests or how a whole part works, build
     after finishing what you're doing, and ask design claude if it's unclear. Design claude messages only for what's urgent,
-    needs explaining, or to wake an idle session. (D284)
+    needs explaining, or to wake an idle session. A message to a busy session waits until its turn ends, so for something
+    urgent, design claude queues it and asks the owner to stop that session. (D284, D289)
 
 ## Tracing
 
