@@ -2,7 +2,7 @@
 
 | Section | What | In short |
 |---|---|---|
-| [5.1](#51-declaring) | `fn name [ ] -> T:` | `[ ]` describes the parameters |
+| [5.1](#51-declaring) | `fn name [ ] returns T:` | `[ ]` describes the parameters |
 | [5.2](#52-calling) | `name( )` | `( )` runs it |
 | [5.3](#53-return) | `return` | |
 | [5.4](#54-the-top-of-the-body) | `labels`, `defaults`, `requires`, `ensures` | In that order, first in the body |
@@ -19,14 +19,14 @@
 **Rule:** a function is declared with `[ ]`, and its parameters are lent unless they say otherwise ([6.1](6-ownership.md#61-the-words)).
 
 ```
-fn total [$xs: std::list<i32>[len.max: inf items]] -> i32:
+fn total [$xs: std::list<i32>[len.max: inf items]] returns i32:
     …
 end fn total
 ```
 
 Declarations work in any order, so a function can call one declared later in the file. The linter can enforce an order.
 
-**From:** D2, D23, D120.
+**From:** D2, D23, D120, D275.
 
 ## 5.2 Calling
 
@@ -62,7 +62,7 @@ In `std`, the first argument, the thing being worked on, stays bare, and every o
 **Rule:** `labels`, `defaults`, `requires` and `ensures` go first in the body, in that order, then the code. So the top of a body says how to call it, and what it promises. `fails` goes in the header ([8.1](8-failures.md#81-fails)).
 
 ```
-fn first_word [$text: str, $limit: i32] -> str fails [too_long]:
+fn first_word [$text: str, $limit: i32] returns str fails [too_long]:
     labels [$limit as limit];
     defaults [$limit = 40];
     requires $limit at_least 1;
@@ -74,7 +74,7 @@ end fn first_word
 A fuller example of contracts:
 
 ```
-fn half [$n: i32] -> i32 fails [odd]:
+fn half [$n: i32] returns i32 fails [odd]:
     requires $n at_least 0;
     ensures result at_least 0;
 
@@ -117,7 +117,7 @@ $x.@csup::%name();
 A method is declared as a normal function with its type in the name. The first parameter is the receiver, and says how it's held, which has to match the `%` or `%%` in the name.
 
 ```
-fn reading.%%warm_up [$r: Lent.mut reading, $by: i32] -> void:
+fn reading.%%warm_up [$r: Lent.mut reading, $by: i32] returns void:
     labels [$by as by];
     change $r.celsius = $r.celsius + $by;
     return void;
@@ -147,7 +147,7 @@ A receiver that's `Given` is refused, because methods only borrow.
 **Rule:** a generic function or type makes a copy per type, which runs as fast as hand-written code. What it needs from a type parameter is a requirement, and it's checked once, at its definition. It can take values as parameters, can be specialized for one type, and can be extended by outsiders through requirements.
 
 ```
-fn largest<?item: ordered> [$a: ?item, $b: ?item] -> ?item:
+fn largest<?item: ordered> [$a: ?item, $b: ?item] returns ?item:
     if $a > $b:
         return Copy $a;
     end if
@@ -169,7 +169,7 @@ A requirement is one of two kinds, never mixed. An `interface` lists operations 
 ```
 interface ordered<?self>:
     includes equatable;
-    op < [$a: ?self, $b: ?self] -> bool;
+    op < [$a: ?self, $b: ?self] returns bool;
     law if $a < $b and $b < $c then $a < $c;
 end interface ordered
 
@@ -180,7 +180,7 @@ end type_set whole
 
 reading satisfies ordered;
 
-fn smaller<?item: whole and ordered> [$a: ?item, $b: ?item] -> ?item:
+fn smaller<?item: whole and ordered> [$a: ?item, $b: ?item] returns ?item:
 ```
 
 Requirements combine with `and`. Only an interface gives operations, so a body can't use `+` on a `?item` whose requirement is only a type set: it writes `<?item: whole and addable>`. `std` declares which interfaces its own types satisfy. A type fits an interface only through a `satisfies` line, which only the type's package or the interface's package can write. `reading .|. ordered;` means exactly the same: an easter egg, on purpose.
@@ -196,7 +196,7 @@ Requirements combine with `and`. Only an interface gives operations, so a body c
 **Rule:** a pure function always gives the same output for the same input, and changes nothing else.
 
 ```
-fn.pure area [$w: i32, $h: i32] -> i32:
+fn.pure area [$w: i32, $h: i32] returns i32:
     return $w x $h;
 end fn.pure area
 ```
@@ -236,7 +236,7 @@ Generating whole functions or structs waits. A separate compile-time language co
 **Rule:** a value known while compiling comes from `const` or `bake` ([5.10](#510-compile-time-features)). A `const`'s value is worked out while compiling, and `bake` works out one value in place. It can call normal functions marked `fn.pure.baked`, and only those, and they also run normally.
 
 ```
-fn.pure.baked seconds_in [$days: i32] -> i32:
+fn.pure.baked seconds_in [$days: i32] returns i32:
     return $days x 86_400;
 end fn.pure.baked seconds_in
 

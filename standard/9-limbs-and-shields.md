@@ -195,8 +195,8 @@ With its rule on, the limb also picks the type for `:=` ([2.20](2-values-and-typ
 **Rule:** anything a package declares is private to that package unless it starts with `pub`. `pub` is a separate word in front, not a narrowing, and it works on anything a package declares.
 
 ```
-pub fn total [$xs: std::list<i32>[len.max: inf items]] -> i32:
-pub fn.pure area [$w: i32, $h: i32] -> i32:
+pub fn total [$xs: std::list<i32>[len.max: inf items]] returns i32:
+pub fn.pure area [$w: i32, $h: i32] returns i32:
 pub struct reading:
 pub const $max: i32 = 100;
 ```

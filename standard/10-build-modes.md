@@ -98,7 +98,7 @@ Whether `-` and `x` follow the same table isn't stated ([12.3](12-not-decided.md
 **Rule:** `FinalPerf` and `FinalShit` treat contracts and bounds as facts for the optimizer, so it can delete code based on them. `FinalPerf` does this because it assumes you've tested thoroughly. It isn't comedic: it keeps every compile-time safety rule, and has no curse.
 
 ```
-fn clamp [$n: i32[min: 0, max: 100]] -> i32:
+fn clamp [$n: i32[min: 0, max: 100]] returns i32:
     if $n at_least 101:
         return 100;
     end if

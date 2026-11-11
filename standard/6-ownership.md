@@ -34,7 +34,7 @@ These are Radium's words, unchanged.
 **Rule:** `Give` moves ownership, and the value can't be used afterwards, on any path.
 
 ```
-fn close [$f: Given open_file] -> void:
+fn close [$f: Given open_file] returns void:
     …
 end fn close
 
@@ -58,7 +58,7 @@ close(Give $f);
 **Rule:** a bare parameter is lent, read-only, and the call still writes `Lend`.
 
 ```
-fn total [$xs: std::list<i32>[len.max: inf items]] -> i32:
+fn total [$xs: std::list<i32>[len.max: inf items]] returns i32:
     …
 end fn total
 
@@ -74,7 +74,7 @@ let $t: i32 = total(Lend $xs);
 **Rule:** the function may change the value, the caller keeps it, and nothing else uses it meanwhile.
 
 ```
-fn add_row [$t: Lent.mut transaction] -> void:
+fn add_row [$t: Lent.mut transaction] returns void:
     …
 end fn add_row
 
@@ -88,7 +88,7 @@ add_row(Lend.mut $t);
 **Rule:** they're always copied, and take no word. That covers `i32`, `f64`, bounded integers, numbers with units and `d32`. The one exception is `Lend.mut`, which lets a function change one:
 
 ```
-fn bump [$n: Lent.mut i32] -> void:
+fn bump [$n: Lent.mut i32] returns void:
     change $n = $n + 1;
     return void;
 end fn bump
@@ -144,7 +144,7 @@ end struct.must_Give open_file
 Giving it to a function passes the duty along. `finish` ends it, and only the kit or file that declared the type can write that.
 
 ```
-fn close [$f: Given open_file] -> void:
+fn close [$f: Given open_file] returns void:
     …
     finish $f;
     return void;
@@ -154,7 +154,7 @@ end fn close
 A function can return one, which hands the duty to the caller. A struct holding one is `must_Give` too, and says so:
 
 ```
-fn open [$path: str] -> open_file:
+fn open [$path: str] returns open_file:
     …
 end fn open
 
@@ -166,7 +166,7 @@ end struct.must_Give log
 A field can be moved out of something you own. After that, the only things left are moving out its other fields, or `finish`:
 
 ```
-fn close_log [$l: Given log] -> void:
+fn close_log [$l: Given log] returns void:
     close(Give $l.file);
     finish $l;
     return void;
@@ -205,7 +205,7 @@ The `change` is fine, because `$view` isn't used after the print. After `$lock`,
 A function can return a borrow by naming where it comes from. That's Cyborg's lifetime: `from $a` means it lives as long as `$a`.
 
 ```
-fn warmer [$a: reading, $b: reading] -> Lend from <$a, $b> reading:
+fn warmer [$a: reading, $b: reading] returns Lend from <$a, $b> reading:
     if $a.celsius > $b.celsius:
         return Lend $a;
     end if
@@ -220,7 +220,7 @@ let $w: Lend from <$x, $y> reading = warmer(Lend $x, Lend $y);
 - `<$a, $b>` lasts only while both do.
 - At the call, the result's sources become the arguments, and each of those has to be a named value.
 
-**Refused:** borrowing a local or a `Given` parameter, returning `Lend $b` from `-> Lend from $a`, a fresh argument the result borrows from, and a borrow of a plain number ([6.6](#66-plain-numbers-and-bool)).
+**Refused:** borrowing a local or a `Given` parameter, returning `Lend $b` from `returns Lend from $a`, a fresh argument the result borrows from, and a borrow of a plain number ([6.6](#66-plain-numbers-and-bool)).
 
 A struct can hold a borrow. It names its sources in backticks, and a type fills them in, in the declared order:
 
@@ -230,7 +230,7 @@ struct index <`text`, `table`: lasts_at_least `text`>:
     lookup: Lend from `table` reading;
 end struct index
 
-fn build [$article: reading, $list: reading] -> index<`text`: $article, `table`: $list>:
+fn build [$article: reading, $list: reading] returns index<`text`: $article, `table`: $list>:
     requires $list lasts_at_least $article;
     return index[words = Lend $article, lookup = Lend $list];
 end fn build
@@ -255,7 +255,7 @@ end union.tagged lookup
 Lending an item locks the whole list, and its type names the list:
 
 ```
-fn first [$xs: std::list<reading>[len.min: 1 items]] -> Lend from $xs reading:
+fn first [$xs: std::list<reading>[len.min: 1 items]] returns Lend from $xs reading:
     return Lend $xs[pos: 1];
 end fn first
 ```

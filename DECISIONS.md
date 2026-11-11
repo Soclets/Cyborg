@@ -1050,6 +1050,8 @@ A `type_set` is a closed list of types that nothing can join later, as in `type_
 
 **D274. A crash flushes buffered output first.** When a program crashes, including from an unhandled failure (D96) or a failed check, every buffered writer that still holds output is flushed before the crash message, so the last thing printed before a crash always shows. In `FinalShit`, an unhandled failure is UB (D107), so nothing is promised there. If a flush itself fails during a crash, the crash goes on and says so. Oracle claude found it open, and noted Zig loses that output; Claude proposed this; the owner asked "what?", and chose: "yes". (Owner, 2026-11-11)
 
+**D275. `returns` instead of `->`.** A function's header says `returns`, as in `fn half [$n: i32] returns i32 fails [odd]:` and `fn.main [none] returns void:`, so the whole header reads as words, alongside `fails` (D209), the way `at_least` replaces `>=`. `->` is refused, with `fix: returns`. The owner said "Kinda wanna change `->` to `returns`, how does that look", then "I personally read it better, tbh", asked what `Lend from <$a, $b> reading` means, and chose: "yes". (Owner, 2026-11-11)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude
