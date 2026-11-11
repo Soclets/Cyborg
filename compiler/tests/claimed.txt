@@ -1,5 +1,4 @@
 # Tests this compiler claims to pass. Every one must pass before a push (rule 5).
-
 d101_plain_i32_needs_no_unit
 d104_change_is_allowed
 d106_only_in_working_is_checked_here
@@ -140,6 +139,7 @@ d128_while_can_finish_so_it_needs_a_return
 d128_while_needs_a_bool
 d128_while_on_a_call_isnt_a_name
 d128_while_that_leaves_doesnt_go_round
+d129_finish_clashes
 d129_my_finish
 d130_bare_receiver_keeps_trust
 d130_called_by_its_full_name
@@ -181,7 +181,9 @@ d132_right_side_is_one_value
 d132_sticks_to_its_call
 d132_two_in_a_row
 d134_struct_with_a_family_members_name
+d134_type_clashes
 d135_a_function_called_narrowings
+d135_fam_clashes
 d139_arm_can_run_off_on_one_path
 d139_arm_returns_breaks_or_fails
 d139_arm_says_nothing
@@ -193,16 +195,20 @@ d139_data_with_copy
 d139_failure_as_a_whole
 d139_handler_with_instead
 d139_instead_checks_a_bound
+d139_instead_clashes
 d139_instead_gives_the_value
 d139_instead_in_a_chain
 d139_instead_in_a_match_arm_alone
+d139_instead_inside_a_loop_in_its_arm
 d139_instead_of_the_wrong_type
 d139_instead_on_a_void_call
 d139_instead_outside_an_arm
 d139_match_name_can_be_lent_and_copied
 d139_match_name_cant_change
 d139_match_names_its_case
+d139_match_without_a_name
 d139_name_already_taken
+d139_name_in_the_test
 d139_name_only_in_its_arm
 d139_nested_arms
 d139_no_such_data
@@ -518,6 +524,7 @@ d213_spaced_runs
 d213_word_operator
 d214_a_function_called_main
 d214_closer_says_my_too
+d214_main_called_bare
 d215_a_header_stops_checking
 d215_a_skipped_return_still_leaves
 d219_a_header_broken_in_its_brackets
@@ -610,6 +617,7 @@ d44_question_passes_it_up
 d44_use_this_instead
 d44_use_this_instead_with_a_call
 d44_use_this_wrong_type
+d46_arm_ending_in_a_value
 d46_arm_for_impossible_failure
 d46_arm_missing
 d46_handler_on_a_void_call
@@ -646,8 +654,10 @@ d57_field_named_x
 d57_field_of_a_call
 d57_field_that_doesnt_exist
 d57_name_out_of_scope
+d57_name_taken_by_a_constant
 d57_name_without_a_dollar
 d57_nested_structs
+d57_shadowing_isnt_in_the_standard
 d57_struct_build_and_read
 d57_undeclared_variable
 d59_exact_in_f64_not_f32
@@ -655,6 +665,8 @@ d59_exact_needs_no_mark
 d59_exact_refuses_the_mark
 d59_inexact_needs_the_mark
 d59_negative_inexact
+d75_bare_x_call
+d75_inf_clashes
 d75_my_names
 d7_colon_doesnt_convert
 d7_conversion_isnt_decided

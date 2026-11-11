@@ -106,6 +106,9 @@ pub struct Loop {
     pub breaks: Option<Vec<Vec<State>>>,
 }
 
+/// The `why` for something nobody has decided yet.
+pub const NOT_DECIDED: &str = "not decided yet, and the standard doesn't say";
+
 /// What's in scope while checking one function's body.
 #[derive(Default)]
 pub struct Body {
@@ -139,6 +142,8 @@ pub struct Body {
     pub in_contract: bool,
     /// `const`s declared in this body, by their locals, with their values (D83).
     pub known: HashMap<checked::LocalId, bake::Constant>,
+    /// The variables a `match` arm is inside, since reading a case's field through one isn't decided (D139).
+    pub matching: Vec<String>,
 }
 
 /// How pure a function is (D86, D91).

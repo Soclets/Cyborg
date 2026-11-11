@@ -1381,6 +1381,14 @@ impl Checker<'_> {
                 )));
             }
         }
+        if super::clashes(&name) || self.functions.contains_key(&format!("my::{name}")) {
+            let shown = self.slice(expression.span).to_string();
+            return Err(self.error(Diagnostic::refused_fix(
+                expression.span,
+                format!("my::{shown}"),
+                "a name of yours that clashes is written with `my::` (D75)",
+            )));
+        }
         let Some(signature) = self.functions.get(&name).cloned() else {
             return Err(self.error(Diagnostic::refused(
                 callee.span,

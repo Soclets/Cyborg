@@ -7,11 +7,10 @@ use crate::syntax::{self, Condition, ExpressionKind, StatementKind};
 
 use super::expressions::{CONVERT_WHY, Typed, When, failure};
 use super::types::Type;
-use super::{Body, Check, Checker, Loop, Origin, Reported, State, Variable};
+use super::{Body, Check, Checker, Loop, NOT_DECIDED, Origin, Reported, State, Variable};
 
 const RANGE_ORDER_WHY: &str =
     "`from:` is required, `to:` or `before:` says where it ends, and `step_by:` comes after them, in that order (D128)";
-const NOT_DECIDED: &str = "not decided yet, and the standard doesn't say";
 
 /// A checked block, and whether every path through it leaves: by `return`, `break`, or a loop that never ends.
 pub struct Checked {
@@ -136,6 +135,13 @@ impl Checker<'_> {
     }
 
     fn let_statement(&mut self, body: &mut Body, binding: &syntax::Let, block: &mut checked::Block) -> Check<()> {
+        if body.find(&binding.name.text).is_some() || self.constants.contains_key(&binding.name.text) {
+            return Err(self.error(Diagnostic::not_designed(
+                binding.name.span,
+                format!("declaring `{}` again while the first is in scope", binding.name.text),
+                NOT_DECIDED,
+            )));
+        }
         if binding.constant {
             return self.local_constant(body, binding, block);
         }
@@ -511,6 +517,23 @@ impl Checker<'_> {
             block.push(statement);
             return Ok(());
         }
+        if !body.handlers.is_empty()
+            && matches!(
+                expression.kind,
+                ExpressionKind::Text(_)
+                    | ExpressionKind::Integer(_)
+                    | ExpressionKind::Float(_)
+                    | ExpressionKind::Variable(_)
+                    | ExpressionKind::Bool(_)
+            )
+        {
+            let shown = self.slice(expression.span).to_string();
+            return Err(self.error(Diagnostic::refused_fix(
+                expression.span,
+                format!("instead {shown}"),
+                "`instead` gives the value used in place of a failed call (D139)",
+            )));
+        }
         let typed = self.expression(body, expression, None)?;
         match &typed.value_type {
             Type::Void | Type::Unknown => {}
@@ -540,6 +563,23 @@ impl Checker<'_> {
             body.scopes.push(Vec::new());
             if let Ok((_, Some(narrowed))) = &condition {
                 body.declare(narrowed.clone(), State::Assigned);
+            }
+            // A refused name on a test still exists inside, so reading it isn't a second error.
+            if let (Err(_), Condition::Test { binding: Some(binding), .. }) = (&condition, &branch.condition) {
+                let local = body.new_local(Type::Unknown.machine());
+                body.declare(
+                    Variable {
+                        name: binding.text.clone(),
+                        value_type: Type::Unknown,
+                        mutable: false,
+                        origin: Origin::Let,
+                        local,
+                        declared: binding.span,
+                        given: None,
+                        known_case: None,
+                    },
+                    State::Assigned,
+                );
             }
             let checked = self.block(body, &branch.body);
             body.scopes.pop();
@@ -654,7 +694,15 @@ impl Checker<'_> {
                     State::Assigned,
                 );
             }
+            let subject = match &choice.subject.kind {
+                ExpressionKind::Variable(variable) => Some(variable.text.clone()),
+                _ => None,
+            };
+            body.matching.extend(subject.clone());
             let checked = self.block(body, &arm.body);
+            if subject.is_some() {
+                body.matching.pop();
+            }
             body.scopes.pop();
             body.forget_after(start);
             if !checked.leaves {
@@ -723,7 +771,11 @@ impl Checker<'_> {
             Condition::Plain(expression) => Ok((self.condition_value(body, expression)?.value, None)),
             Condition::Test { subject, written_type, binding } => {
                 if let Some(binding) = binding {
-                    return Err(self.not_yet(binding.span, "a name on the test".to_string()));
+                    return Err(self.error(Diagnostic::not_designed(
+                        binding.span,
+                        "naming the case in a test, which D139 only shows on `case`",
+                        NOT_DECIDED,
+                    )));
                 }
                 let ExpressionKind::Variable(name) = &subject.kind else {
                     return Err(self.not_yet(subject.span, "the test on something that isn't a variable".to_string()));

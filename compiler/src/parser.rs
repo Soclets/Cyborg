@@ -1002,19 +1002,19 @@ impl<'source> Parser<'source> {
                 self.expect(TokenKind::Semicolon, ";")?;
                 StatementKind::Break(label)
             }
-            Some("fail") => {
+            Some("fail") if self.kind_at(1) != Some(TokenKind::LeftParen) => {
                 self.advance();
                 let value = self.expression()?;
                 self.expect(TokenKind::Semicolon, ";")?;
                 StatementKind::Fail(value)
             }
-            Some("instead") => {
+            Some("instead") if self.kind_at(1) != Some(TokenKind::LeftParen) => {
                 self.advance();
                 let value = self.expression()?;
                 self.expect(TokenKind::Semicolon, ";")?;
                 StatementKind::Instead(value)
             }
-            Some("finish") => {
+            Some("finish") if self.kind_at(1) != Some(TokenKind::LeftParen) => {
                 self.advance();
                 let value = self.expression()?;
                 self.expect(TokenKind::Semicolon, ";")?;
@@ -2164,11 +2164,11 @@ impl<'source> Parser<'source> {
                 self.advance();
                 return Ok(Expression { kind: ExpressionKind::Bool(false), span: start });
             }
-            Some("empty") if !self.followed_by_path_joint() => {
+            Some("empty") if !self.followed_by_path_joint() && self.kind_at(1) != Some(TokenKind::LeftParen) => {
                 self.advance();
                 return Ok(Expression { kind: ExpressionKind::Empty, span: start });
             }
-            Some("inf") if !self.followed_by_path_joint() => {
+            Some("inf") if !self.followed_by_path_joint() && self.kind_at(1) != Some(TokenKind::LeftParen) => {
                 self.advance();
                 return self.unit_after(Expression { kind: ExpressionKind::Infinity, span: start });
             }
@@ -2183,7 +2183,7 @@ impl<'source> Parser<'source> {
                 let _ = self.unary()?;
                 return Err(Reported);
             }
-            Some("result") if !self.followed_by_path_joint() => {
+            Some("result") if !self.followed_by_path_joint() && self.kind_at(1) != Some(TokenKind::LeftParen) => {
                 self.advance();
                 return Ok(Expression { kind: ExpressionKind::Result, span: start });
             }

@@ -324,6 +324,15 @@ impl Checker<'_> {
                         let value_type = info.cases[case].fields[index].value_type.clone();
                         Ok(Typed::new(value_type, Kind::CaseField { base: Box::new(typed.value), case, index }))
                     }
+                    (_, Some(_)) if matches!(&base.kind, ExpressionKind::Variable(variable) if body.matching.contains(&variable.text)) =>
+                    {
+                        let shown = self.slice(base.span.to(field.span)).to_string();
+                        Err(self.error(Diagnostic::not_designed(
+                            base.span.to(field.span),
+                            format!("reading `{shown}` in a `match` arm, rather than through a name for the case"),
+                            super::NOT_DECIDED,
+                        )))
+                    }
                     (_, Some(case)) => {
                         let shown = self.slice(base.span).to_string();
                         Err(self.error(Diagnostic::refused(

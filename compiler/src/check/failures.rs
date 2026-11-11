@@ -41,6 +41,8 @@ pub struct ResultLayout {
 pub struct Handler {
     pub value_type: Type,
     pub result: checked::LocalId,
+    /// How many loops were open when the arm started, since `instead` inside a loop in its arm isn't decided.
+    pub loops: usize,
 }
 
 /// The named sets of failures, `fam.failure` (D47).
@@ -530,12 +532,14 @@ impl Checker<'_> {
                     State::Assigned,
                 );
             }
-            body.handlers.push(Handler { value_type: signature.returns.clone(), result });
+            body.handlers.push(Handler { value_type: signature.returns.clone(), result, loops: body.loops.len() });
+            let errors_before = self.errors.len();
             let checked = self.block(body, &arm.body);
             body.handlers.pop();
             body.scopes.pop();
             body.forget_after(start);
-            if !checked.leaves && signature.returns != Type::Void {
+            // An arm with its own error already said what's wrong with its end.
+            if !checked.leaves && signature.returns != Type::Void && self.errors.len() == errors_before {
                 self.error(Diagnostic::refused(
                     arm.pattern.span,
                     format!("this arm can run off its end, and `{}` is needed here", signature.returns),
@@ -630,6 +634,13 @@ impl Checker<'_> {
                 "`instead` gives the value used in place of a failed call (D139)",
             )));
         };
+        if body.loops.len() > handler.loops {
+            return Err(self.error(Diagnostic::not_designed(
+                span,
+                "`instead` inside a loop inside its arm",
+                super::NOT_DECIDED,
+            )));
+        }
         if handler.value_type == Type::Void {
             return Err(self.error(Diagnostic::refused(
                 span,
