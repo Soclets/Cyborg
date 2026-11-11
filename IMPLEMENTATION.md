@@ -53,6 +53,10 @@ Each works in its own clone, on `main` with no branch, and runs `git pull --reba
 14. **Scratchpad.** Scratch space is for what can be lost. Anything needed later goes in the repository and gets committed. (D70)
 15. **Downloads are free.** A dependency or tool is chosen on maturity, safety, maintenance and speed. A less mature or less safe
     option never wins because the better one needs installing. If an install needs the owner's approval, ask for it. (D70)
+16. **Keep up with decisions.** Every pull, read any new entries in `DECISIONS.md`. A small one in your area, like a renamed
+    word or a new refusal, just build it. A big one, like a change to most of your tests or how a whole part works, build
+    after finishing what you're doing, and ask design claude if it's unclear. Design claude messages only for what's urgent,
+    needs explaining, or to wake an idle session. (D284)
 
 ## Tracing
 
