@@ -177,13 +177,21 @@ let $next: ptr.raw.mut<u32> = $reg.%moved(offset.items: 1);
 let $odd: ptr.raw.mut<u32> = $reg.%moved(offset.bytes: 2);
 ```
 
-How volatile memory, exact layouts and allocators are spelled, isn't decided.
+A volatile pointer, `ptr.volatile<T>` or `ptr.volatile.mut<T>`, is for hardware registers: every read and write through it happens, exactly once and in order, and the compiler never skips, merges or reorders them. It works like `ptr.raw`, with `.at`, `.of`, `.%read()`, `.%%write(val:)` and `.%moved`.
+
+```
+let $led: ptr.volatile.mut<u32> = ptr.volatile.mut<u32>.at(address: 0x4004_0000);
+$led.%%write(val: 1);
+$led.%%write(val: 0);
+```
+
+How exact layouts and allocators are spelled, isn't decided.
 
 Using a limb doesn't need a shield by itself: `@` says it's a compiler extension, and a shield says it's dangerous.
 
-**Refused:** any of these outside a shield, except in `FinalShit`; writing through a `ptr.raw`; and `.%moved` with a bare `offset:`, with `fix: offset.items:`.
+**Refused:** any of these outside a shield, except in `FinalShit`; writing through a `ptr.raw` or a `ptr.volatile`; and `.%moved` with a bare `offset:`, with `fix: offset.items:`.
 
-**From:** D38, D40, D226, D314, D315, D316.
+**From:** D38, D40, D226, D314, D315, D316, D317.
 
 ## 9.9 A shield's walls
 
