@@ -1,0 +1,9 @@
+== java -cp build/java Steady
+fib 9227465 mean 0.0125 sd 0.0002 min 0.0121
+loop 5000000050000000 mean 0.0242 sd 0.0006 min 0.0236
+== node js/steady.js
+fib 9227465 mean 0.0406 sd 0.0009 min 0.0398
+loop 5000000050000000 mean 0.0539 sd 0.0010 min 0.0526
+== luajit lua/steady.lua
+fib 9227465 mean 0.0300 sd 0.0003 min 0.0298
+loop 5000000050000000 mean 0.0529 sd 0.0009 min 0.0517

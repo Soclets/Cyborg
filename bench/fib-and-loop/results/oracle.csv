@@ -1,0 +1,3 @@
+command,time_wall_clock_unit,time_wall_clock_mean,time_wall_clock_stddev,time_wall_clock_median,time_wall_clock_min,time_wall_clock_max,memory_peak_resident_unit,memory_peak_resident_mean,memory_peak_resident_stddev,memory_peak_resident_median,memory_peak_resident_min,memory_peak_resident_max
+Oracle fib,s,3.714915379,0.06424439596373432,3.7034103125,3.623644958,3.827747458,B,3394764.8,18600.63108128921,3391488,3358720,3424256
+Oracle loop,s,7.064106912600001,0.07320866013415922,7.051015521,6.964378333,7.224878584,B,3219456,11585.237502960395,3227648,3194880,3227648
