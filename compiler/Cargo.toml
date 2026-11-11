@@ -1,0 +1,21 @@
+[package]
+name = "okay"
+version = "0.1.0"
+edition = "2024"
+license = "Apache-2.0 WITH LLVM-exception"
+description = "OKAY\\n, the Cyborg compiler"
+publish = false
+
+[[bin]]
+name = "okay"
+path = "src/main.rs"
+
+[dependencies]
+lyftar = { git = "https://github.com/Soclets/Lyftar" }
+unicode-segmentation = "1"
+
+[profile.dev]
+opt-level = 1
+
+[profile.dev.package."*"]
+opt-level = 2
