@@ -547,6 +547,17 @@ end for
 
 With `.leftovers`, the `leftovers` section runs once for each leftover item, after every chunk, and doesn't run when there are none. The loop isn't complete without it. `break` stops the whole loop, leftovers included.
 
-**Refused:** a bare `simd_chunks`, asking which of the three; `.leftovers` without a `leftovers` section; and a `leftovers` section on any other loop.
+Comparisons work lane by lane: `==`, `!=`, `below`, `above`, `at_least` and `at_most` on two `simd` values give a `simd<bool>` of the same count. "Every lane" and "any lane" are written out, so the code chooses.
 
-**From:** D255, D291, D292, D293, D296, D297, D298, D299, D300.
+```
+let $a: simd<i32>[lanes: 4] = [1, 8, 3, 6];
+let $b: simd<i32>[lanes: 4] = [5, 5, 5, 5];
+let $m: simd<bool>[lanes: 4] = $a above $b;
+if ($a == $b).%all_true():
+```
+
+`$m` holds `[false, true, false, true]`.
+
+**Refused:** `if` on a `simd<bool>`, with `fix: .%all_true()` or `.%any_true()`; a bare `simd_chunks`, asking which of the three; `.leftovers` without a `leftovers` section; and a `leftovers` section on any other loop.
+
+**From:** D255, D291, D292, D293, D296, D297, D298, D299, D300, D301.
