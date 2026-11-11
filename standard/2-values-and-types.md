@@ -574,6 +574,16 @@ let $big: simd<i32>[lanes: 4] = $m.%pick(if_true: $a, if_false: $b);
 
 `$big` holds `[5, 8, 5, 6]`. Both sides are worked out in full, for every lane, before picking, and every lane is checked, so `$m.%pick(if_true: $x div.trunc $y, if_false: 0)` fails if any lane of `$y` is 0, even one that `if_false` picks.
 
-**Refused:** changing a chunk from `simd_chunks`; `.%%simd_chunks`, with `fix: .%`, and `.%simd_chunks_mut`, with `fix: .%%`; `if` on a `simd<bool>`, with `fix: .%all_true()` or `.%any_true()`; a bare `simd_chunks`, asking which of the three; `.leftovers` without a `leftovers` section; and a `leftovers` section on any other loop.
+`.%shuffle` builds a new vector by listing, for each lane of the result, which lane it comes from, with `pos:` counting from 1 or `offset:` from 0 ([2.17](#217-getting-an-item)). The list is fixed when compiling, since CPUs bake the pattern into the instruction. The result can have a different count, and a lane can repeat.
 
-**From:** D255, D291, D292, D293, D296, D297, D298, D299, D300, D301, D302, D303.
+```
+let $v: simd<i32>[lanes: 4] = [10, 20, 30, 40];
+let $r: simd<i32>[lanes: 4] = $v.%shuffle(pos: [4, 3, 2, 1]);
+let $s: simd<i32>[lanes: 2] = $v.%shuffle(offset: [0, 0]);
+```
+
+`$r` holds `[40, 30, 20, 10]`, and `$s` holds `[10, 10]`.
+
+**Refused:** a shuffle list only known while running; a lane that doesn't exist, like `pos: [5]` on 4 lanes; a shuffle with neither `pos:` nor `offset:`; changing a chunk from `simd_chunks`; `.%%simd_chunks`, with `fix: .%`, and `.%simd_chunks_mut`, with `fix: .%%`; `if` on a `simd<bool>`, with `fix: .%all_true()` or `.%any_true()`; a bare `simd_chunks`, asking which of the three; `.leftovers` without a `leftovers` section; and a `leftovers` section on any other loop.
+
+**From:** D255, D291, D292, D293, D296, D297, D298, D299, D300, D301, D302, D303, D304.
