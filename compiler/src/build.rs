@@ -5,7 +5,7 @@ use std::path::Path;
 use crate::diagnostic::{Diagnostic, render_all};
 use crate::source::{SourceFile, Sources, Span};
 use crate::target::{Mode, Target};
-use crate::{check, codegen, lexer, manifest, parser};
+use crate::{check, codegen, lexer, manifest, parser, spacing};
 
 /// musl's MIT notice, which every Linux program `okay` links carries.
 const MUSL_NOTICE: &str = include_str!("../licenses/LICENSE-musl.txt");
@@ -48,7 +48,10 @@ pub fn build(file: &Path, target: Target, mode: Mode, output: &Path) -> Outcome 
     let mut program_errors = Vec::new();
     let lexed = lexer::lex(program_id, &text, &mut program_errors);
     let (parsed, parse_errors) = parser::parse(program_id, &text, &lexed.tokens);
+    // After a parse error, the parser's view of what each token does can't be trusted, so line breaks aren't judged.
+    let parsed_cleanly = parse_errors.is_empty();
     program_errors.extend(parse_errors);
+    program_errors.extend(spacing::check(program_id, &text, &lexed.tokens, &parsed.roles, parsed_cleanly));
     let (program, check_errors) = check::check(program_id, &sources, &manifest, &parsed.file, target, mode);
     program_errors.extend(check_errors);
     program_errors.sort_by_key(|error| error.span.start);

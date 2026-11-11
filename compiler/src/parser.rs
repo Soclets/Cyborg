@@ -28,6 +28,8 @@ pub enum Role {
     LabelColon,
     /// A `:` that opens a block.
     BlockColon,
+    /// The last token of a line that ends with no `;` or `:`, like a closer, `end if`.
+    LineEnd,
 }
 
 pub struct Parsed {
@@ -503,6 +505,10 @@ impl<'source> Parser<'source> {
                 self.closer()?;
                 break;
             }
+            // Its insides aren't read yet, so its lines aren't held to the line-break rule.
+            if let Some(role) = self.roles.get_mut(self.at) {
+                *role = Role::LineEnd;
+            }
             self.advance();
         }
         let block = crate::syntax::Block { keyword, name, span: start.to(self.previous_span()) };
@@ -519,7 +525,10 @@ impl<'source> Parser<'source> {
         let mut words = Vec::new();
         let mut keyword = None;
         let mut name = None;
-        if !self.starts_line() && self.peek().is_some() {
+        // `end` alone on its line is never a whole closer, so the next line finishes it, and the spacing check
+        // refuses the break (D219).
+        let broken = self.starts_line() && self.peek().is_some();
+        if (!self.starts_line() || broken) && self.peek().is_some() {
             let first = self.at;
             if let Ok(path) = self.path() {
                 keyword = Some(path);
@@ -542,6 +551,9 @@ impl<'source> Parser<'source> {
         // Anything else on the line belongs to the closer, and is refused by the check on closers.
         while self.peek().is_some() && !self.starts_line() {
             self.advance();
+        }
+        if let Some(role) = self.at.checked_sub(1).and_then(|last| self.roles.get_mut(last)) {
+            *role = Role::LineEnd;
         }
         Ok(Closer { span: start.to(self.previous_span()), words, name, keyword })
     }
@@ -1338,6 +1350,9 @@ impl<'source> Parser<'source> {
         if self.is_word("reason") {
             self.advance();
             reason = Some(self.primary()?);
+            if let Some(role) = self.at.checked_sub(1).and_then(|last| self.roles.get_mut(last)) {
+                *role = Role::LineEnd;
+            }
         }
         let body = self.block(&["end"])?;
         let end = self.closer()?;

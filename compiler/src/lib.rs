@@ -13,5 +13,6 @@ pub mod lexer;
 pub mod manifest;
 pub mod parser;
 pub mod source;
+pub mod spacing;
 pub mod syntax;
 pub mod target;
