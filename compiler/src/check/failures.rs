@@ -403,12 +403,16 @@ impl Checker<'_> {
                 let fallback_value = self.value_into(body, fallback, &signature.returns)?;
                 Ok(self.handled(&signature, call, checked::OnFailure::Fallback(fallback_value)))
             }
-            ExpressionKind::Otherwise { handling: syntax::Handling::Arms { arms, end }, .. } => {
+            ExpressionKind::Otherwise { value, keyword, handling: syntax::Handling::Arms { arms, end } } => {
                 self.check_closer(end, "end otherwise", super::CLOSER_WHY);
-                self.arms(body, &signature, call, arms)
+                // The arms' opener: from the call to `otherwise:`.
+                let call_span = Span { file: value.span.file, start: value.span.start, end: keyword.end + 1 };
+                self.arms(body, &signature, call, arms, call_span)
             }
-            ExpressionKind::Otherwise { handling: syntax::Handling::Handler(path), .. } => {
-                Err(self.not_yet(path.span, "a handler narrowing".to_string()))
+            ExpressionKind::Otherwise { value, keyword, handling: syntax::Handling::Handler(path) } => {
+                let arms = self.handler_arms(path)?;
+                let call_span = Span { file: value.span.file, start: value.span.start, end: keyword.end };
+                self.arms(body, &signature, call, &arms, call_span)
             }
             _ => Err(Reported),
         }
@@ -468,6 +472,7 @@ impl Checker<'_> {
         signature: &super::Signature,
         call: checked::Expression,
         arms: &[syntax::Arm],
+        call_span: Span,
     ) -> Check<Typed> {
         let layout = signature.result.unwrap_or(ResultLayout { structure: 0, union: 0 });
         let result = body.new_local(signature.returns.machine());
@@ -480,7 +485,11 @@ impl Checker<'_> {
         for arm in arms {
             let name = arm.pattern.text();
             let Some(index) = Self::find_failure(&signature.failures, &name) else {
-                self.not_yet(arm.pattern.span, format!("the failure `{name}` here"));
+                self.error(Diagnostic::refused(
+                    arm.pattern.span,
+                    format!("this call can't fail with `{name}`"),
+                    "an arm handles a failure still possible at that call (D46)",
+                ));
                 failed = true;
                 continue;
             };
@@ -488,10 +497,29 @@ impl Checker<'_> {
             let before = body.states.clone();
             body.scopes.push(Vec::new());
             if let Some(binding) = &arm.binding {
+                if body.find(&binding.text).is_some() {
+                    self.error(Diagnostic::not_designed(
+                        binding.span,
+                        format!("declaring `{}` again while the first is in scope", binding.text),
+                        "not decided yet, and the standard doesn't say",
+                    ));
+                    failed = true;
+                    body.scopes.pop();
+                    continue;
+                }
+                let fields = signature.failures[index]
+                    .fields
+                    .iter()
+                    .map(|field| (field.name.clone(), field.value_type.clone()))
+                    .collect();
                 body.declare(
                     Variable {
                         name: binding.text.clone(),
-                        value_type: Type::Union { id: layout.union, name: signature.failures[index].full.clone() },
+                        value_type: Type::Failure {
+                            union: layout.union,
+                            name: signature.failures[index].short.clone(),
+                            fields,
+                        },
                         mutable: false,
                         origin: Origin::Let,
                         local: union_local,
@@ -525,15 +553,66 @@ impl Checker<'_> {
             return Err(Reported);
         }
         if let Some(missing) = covered.iter().position(|done| !done) {
-            return Err(self.not_yet(
-                arms.first().map_or(Span::new(self.file, 0, 0), |arm| arm.span),
-                format!("`otherwise` arms that leave out `{}`", signature.failures[missing].short),
-            ));
+            return Err(self.error(Diagnostic::refused(
+                call_span,
+                format!("this doesn't handle `{}`", signature.failures[missing].short),
+                "the arms must cover every failure still possible at that call (D46)",
+            )));
         }
         if let Some(first) = ends.first().cloned() {
             body.states = ends.iter().skip(1).fold(first, |joined, each| Body::join_states(&joined, each));
         }
         Ok(self.handled(signature, call, checked::OnFailure::Arms { arms: checked_arms, result, union_local }))
+    }
+
+    /// A handler narrowing's arms, used at a call as if written there (D46). A handler that can `return` or `break`
+    /// is marked `*` where it's used, and one that can't isn't.
+    fn handler_arms(&mut self, path: &syntax::Path) -> Check<Vec<syntax::Arm>> {
+        let written = path.text();
+        let starred = path.last().is_some_and(|segment| segment.mark == syntax::Mark::Star);
+        let plain = written.replacen(".*", ".", 1);
+        let Some(arms) = self.handlers.get(&plain).cloned() else {
+            return Err(self.error(Diagnostic::refused(
+                path.span,
+                format!("there's no handler `{plain}`"),
+                "a handler narrowing is a named set of `otherwise` arms (D46)",
+            )));
+        };
+        let jumps = arms.iter().any(|arm| arm_jumps(&arm.body));
+        if jumps && !starred {
+            let fixed = match plain.rsplit_once('.') {
+                Some((set, name)) => format!("{set}.*{name}"),
+                None => plain.clone(),
+            };
+            return Err(self.error(Diagnostic::refused_fix(
+                path.span,
+                fixed,
+                "a handler that can `return` or `break` is marked `*` where it's used (D46, D128)",
+            )));
+        }
+        if !jumps && starred {
+            return Err(self.error(Diagnostic::refused_fix(
+                path.span,
+                plain,
+                "the compiler refuses `*` on a handler that can't jump (D46)",
+            )));
+        }
+        Ok(arms)
+    }
+
+    /// Reads every `fam.handler` (D46).
+    pub fn declare_handlers(&mut self, file: &syntax::File) {
+        for item in &file.items {
+            let syntax::ItemKind::Family(family) = &item.kind else { continue };
+            if family.keyword.text() != "fam.handler" {
+                continue;
+            }
+            for entry in &family.entries {
+                if let syntax::FamilyEntryKind::Handler { arms, .. } = &entry.kind {
+                    self.handlers.insert(entry.name.text(), arms.clone());
+                }
+            }
+        }
     }
 
     /// `instead value;`: the value used in place of the failed call (D139).
@@ -588,4 +667,16 @@ pub fn result_machine_type(layout: ResultLayout) -> MachineType {
 #[must_use]
 pub fn place_type() -> MachineType {
     Type::Integer { kind: IntegerKind::I32, bounds: None }.machine()
+}
+
+/// Whether an arm's code can `return` or `break` out of it.
+fn arm_jumps(statements: &[syntax::Statement]) -> bool {
+    statements.iter().any(|statement| match &statement.kind {
+        syntax::StatementKind::Return(_) | syntax::StatementKind::Break(_) => true,
+        syntax::StatementKind::If(chain) => {
+            chain.branches.iter().any(|branch| arm_jumps(&branch.body))
+                || chain.otherwise.as_ref().is_some_and(|(_, body)| arm_jumps(body))
+        }
+        _ => false,
+    })
 }

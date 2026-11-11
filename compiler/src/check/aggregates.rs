@@ -269,6 +269,25 @@ impl Checker<'_> {
 
     /// A field read, `$r.celsius` (D57). A union's field is read only where its case is known (D9).
     pub fn field(&mut self, body: &mut Body, base: &syntax::Expression, field: &syntax::Name) -> Check<Typed> {
+        // A failure named in an arm is read through its fields (D139).
+        if let ExpressionKind::Variable(name) = &base.kind
+            && let Some(variable) = body.lookup(&name.text).cloned()
+            && let Type::Failure { name: failure, fields, .. } = &variable.value_type
+        {
+            let Some(index) = fields.iter().position(|(each, _)| *each == field.text) else {
+                return Err(self.error(Diagnostic::refused(
+                    field.span,
+                    format!("`{failure}` carries no `{}`", field.text),
+                    "a failure can carry data in `[ ]`, and `case negative $f:` reads it (D47, D139)",
+                )));
+            };
+            let case = variable.known_case.unwrap_or(0);
+            let value =
+                checked::Expression { kind: Kind::Local(variable.local), machine_type: variable.value_type.machine() };
+            let mut typed = Typed::new(fields[index].1.clone(), Kind::CaseField { base: Box::new(value), case, index });
+            typed.variable = Some(format!("{}.{}", name.text, field.text));
+            return Ok(typed);
+        }
         let typed = self.expression(body, base, None)?;
         match &typed.value_type {
             Type::Struct { id, name } => {
@@ -293,6 +312,12 @@ impl Checker<'_> {
                 };
                 let holding = info.cases.iter().position(|case| case.fields.iter().any(|each| each.name == field.text));
                 match (known, holding) {
+                    (Some(case), _) if !info.cases[case].fields.iter().any(|each| each.name == field.text) => Err(self
+                        .error(Diagnostic::refused(
+                            field.span,
+                            format!("`{name}.{}` has no field `{}`", info.cases[case].name, field.text),
+                            "a field read is a plain `.` (D57)",
+                        ))),
                     (Some(case), _) if info.cases[case].fields.iter().any(|each| each.name == field.text) => {
                         let index =
                             info.cases[case].fields.iter().position(|each| each.name == field.text).unwrap_or(0);

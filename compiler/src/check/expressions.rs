@@ -457,6 +457,13 @@ impl Checker<'_> {
             )));
         };
         let variable = body.variables[index].clone();
+        if let Type::Failure { .. } = variable.value_type {
+            return Err(self.error(Diagnostic::refused(
+                name.span,
+                format!("`{}` names a failure, which is for reading its data", name.text),
+                "`case negative $f:` names the failure, so `$f.val` reads its data (D139)",
+            )));
+        }
         match (body.states[index], variable.origin) {
             (State::Assigned, _) => {}
             (_, Origin::RefusedLet) => {
@@ -1598,6 +1605,15 @@ impl Checker<'_> {
         let typed = self.expression(body, expression, Some(into))?;
         if !typed.value_type.is_copied() && !typed.handed && is_held(expression) && !typed.value_type.is_unknown() {
             let shown = self.slice(expression.span).to_string();
+            if let Some(root) = root_variable(expression)
+                && body.lookup(&root).is_some_and(|variable| matches!(variable.value_type, Type::Failure { .. }))
+            {
+                return Err(self.error(Diagnostic::refused_fix(
+                    expression.span,
+                    format!("Copy {shown}"),
+                    "every hand-off shows on the page, including one into a name, a `return` or a field (D3)",
+                )));
+            }
             return Err(self.error(Diagnostic::refused(
                 expression.span,
                 format!("`{shown}` is `{}`, so this needs `Give` or `Copy`", typed.value_type),
@@ -1798,4 +1814,13 @@ fn signature_for(checker: &Checker<'_>, owner: &str, bare: &str) -> (String, sup
         }
     }
     (String::new(), super::Signature::default())
+}
+
+/// The variable a held value is in, through any fields.
+fn root_variable(expression: &syntax::Expression) -> Option<String> {
+    match &expression.kind {
+        ExpressionKind::Variable(name) => Some(name.text.clone()),
+        ExpressionKind::Field { base, .. } | ExpressionKind::Group(base) => root_variable(base),
+        _ => None,
+    }
 }

@@ -221,6 +221,8 @@ pub struct Checker<'a> {
     /// The program's `const`s, with their types and values (D83).
     pub constants: HashMap<String, (Type, bake::Constant)>,
     pub failure_sets: failures::FailureSets,
+    /// Handler narrowings, by their full name, with their arms (D46).
+    pub handlers: HashMap<String, Vec<syntax::Arm>>,
     pub program: checked::Program,
 }
 
@@ -249,6 +251,7 @@ pub fn check(
         aggregates: aggregates::Aggregates::default(),
         constants: HashMap::new(),
         failure_sets: failures::FailureSets::default(),
+        handlers: HashMap::new(),
         program: checked::Program::default(),
     };
     checker.check_file(parsed);
@@ -278,6 +281,7 @@ impl Checker<'_> {
         }
         self.declare_aggregates(file);
         self.declare_failure_sets(file);
+        self.declare_handlers(file);
         let mut bodies = Vec::new();
         let mut main = None;
         let mut header_failed = false;

@@ -138,6 +138,13 @@ pub enum Type {
         id: usize,
         name: String,
     },
+    /// A failure named in an `otherwise:` arm, which is for reading its data (D139): the union of the call's
+    /// failures, the failure's name, and its fields' names and types.
+    Failure {
+        union: usize,
+        name: String,
+        fields: Vec<(String, Type)>,
+    },
     /// After an error, so nothing more is said about it.
     Unknown,
 }
@@ -181,6 +188,7 @@ impl Type {
             Type::Writer(_) => checked::MachineType::Writer,
             Type::Struct { id, .. } => checked::MachineType::Struct(*id),
             Type::Union { id, .. } => checked::MachineType::Union(*id),
+            Type::Failure { union, .. } => checked::MachineType::Union(*union),
             Type::Str => checked::MachineType::Text,
             Type::Void | Type::Unknown => checked::MachineType::Void,
         }
@@ -210,7 +218,9 @@ impl fmt::Display for Type {
             Type::Str => write!(formatter, "str"),
             Type::Void => write!(formatter, "void"),
             Type::Writer(writer) => write!(formatter, "{}", writer.name()),
-            Type::Struct { name, .. } | Type::Union { name, .. } => write!(formatter, "{name}"),
+            Type::Struct { name, .. } | Type::Union { name, .. } | Type::Failure { name, .. } => {
+                write!(formatter, "{name}")
+            }
             Type::Unknown => write!(formatter, "?"),
         }
     }
