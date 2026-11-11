@@ -399,6 +399,21 @@ impl<'context, 'module> Generator<'context, 'module> {
                 let done = self.runtime("__cyborg_writer_done")?;
                 frame.builder.call(done, &[frame.slots[*writer]], "");
             }
+            Statement::CheckAtSite { condition, failure, operands, site } => {
+                let mut values = Vec::new();
+                for operand in operands {
+                    values.push((self.expression(frame, operand)?, operand.machine_type.clone()));
+                }
+                let site = self.expression(frame, site)?;
+                let holds = self.expression(frame, condition)?;
+                let fine = frame.function.append_basic_block("fine");
+                let failed = frame.function.append_basic_block("failed");
+                frame.builder.conditional_branch(holds, fine, failed);
+                frame.builder.position_at_end(failed);
+                self.crash_with_site(frame, failure, &values, site)?;
+                frame.builder.unreachable();
+                frame.builder.position_at_end(fine);
+            }
             Statement::Check { condition, failure, operands } => {
                 let mut values = Vec::new();
                 for operand in operands {

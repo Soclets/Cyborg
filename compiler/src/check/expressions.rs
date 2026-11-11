@@ -52,12 +52,12 @@ pub enum When {
 /// Builds what a failed check prints: the error rendered now, with operand values filled in while running.
 #[must_use]
 pub fn failure(checker: &Checker<'_>, diagnostic: Diagnostic, when: &[When]) -> checked::CheckFailure {
-    const MARKS: [char; 2] = ['\u{1}', '\u{2}'];
+    const MARKS: [char; 8] = ['\u{1}', '\u{2}', '\u{3}', '\u{4}', '\u{5}', '\u{6}', '\u{7}', '\u{8}'];
     let mut template = String::new();
     for part in when {
         match part {
             When::Text(text) => template.push_str(text),
-            When::Operand(index) => template.push(MARKS[(*index).min(1)]),
+            When::Operand(index) => template.push(MARKS[(*index).min(MARKS.len() - 1)]),
         }
     }
     let diagnostic = if when.is_empty() { diagnostic } else { diagnostic.with_when(template) };
@@ -121,6 +121,13 @@ impl Checker<'_> {
                 Ok(Typed::new(Type::Str, Kind::Text(text.unwrap_or_default())))
             }
             ExpressionKind::Variable(name) => self.read_variable(body, name),
+            ExpressionKind::Result => match &body.result_value {
+                Some((local, value_type)) => {
+                    let value_type = value_type.clone();
+                    Ok(Typed::new(value_type, Kind::Local(*local)))
+                }
+                None => Err(self.not_yet(expression.span, "`result` outside `ensures`".to_string())),
+            },
             ExpressionKind::Group(inner) => self.expression(body, inner, expected),
             ExpressionKind::Unary { operator, operand, operator_span } => {
                 self.unary(body, expression, *operator, operand, *operator_span, expected)
@@ -1123,25 +1130,34 @@ impl Checker<'_> {
                 "a function is declared with `fn` and `[ ]` (D23)",
             )));
         };
-        if arguments.len() != signature.parameters.len() {
-            return Err(self.not_yet(expression.span, "a call with a different number of arguments".to_string()));
-        }
+        let matched = self.match_arguments(expression.span, &signature, arguments)?;
         let mut values = Vec::new();
         let mut failed = false;
         let mut changed: Vec<String> = Vec::new();
-        for (argument, (parameter_name, parameter_type, ownership)) in arguments.iter().zip(&signature.parameters) {
-            if argument.label.is_some() {
-                failed = true;
-                self.not_yet(argument.span, "a labelled argument".to_string());
-                continue;
-            }
-            match self.argument(body, argument, parameter_name, parameter_type, *ownership, &mut changed) {
+        for (each, (parameter_name, parameter_type, ownership)) in matched.iter().zip(&signature.parameters) {
+            let result = match each {
+                super::contracts::Matched::Argument(argument) => {
+                    self.argument(body, argument, parameter_name, parameter_type, *ownership, &mut changed)
+                }
+                super::contracts::Matched::Default(default) => {
+                    self.value_into(body, default, parameter_type).map(checked::Argument::Value)
+                }
+            };
+            match result {
                 Ok(value) => values.push(value),
                 Err(Reported) => failed = true,
             }
         }
         if failed {
             return Err(Reported);
+        }
+        if super::contracts::needs_site(&signature.top) {
+            let site = self.program.sites.len();
+            self.program.sites.push(crate::diagnostic::render_because(self.sources, expression.span, "called here"));
+            values.push(checked::Argument::Value(checked::Expression {
+                kind: Kind::Integer(i128::try_from(site).unwrap_or(0)),
+                machine_type: MachineType::Integer { bits: 32, signed: true },
+            }));
         }
         let mut typed = Typed::new(signature.returns.clone(), Kind::Call { function: signature.id, arguments: values });
         if let Some(layout) = signature.result {

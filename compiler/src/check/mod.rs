@@ -4,6 +4,7 @@
 //! (standard 11.7), and a skipped `let` still declares its variable, with the type it wrote.
 
 pub mod aggregates;
+pub mod contracts;
 pub mod failures;
 pub mod floats;
 pub mod format;
@@ -44,6 +45,8 @@ pub struct Signature {
     /// The failures it lists, and its result's layout if there are any (standard 8).
     pub failures: Vec<failures::FailureInfo>,
     pub result: Option<failures::ResultLayout>,
+    /// Its labels, defaults and contracts (D114).
+    pub top: contracts::TopOfBody,
 }
 
 /// Whether a variable has its value on the path being checked (D203).
@@ -120,6 +123,10 @@ pub struct Body {
     pub result: Option<failures::ResultLayout>,
     /// The `otherwise:` arms around this, innermost last, for `instead`.
     pub handlers: Vec<failures::Handler>,
+    /// The function's labels, defaults and contracts, for `ensures` at each `return`.
+    pub top: contracts::TopOfBody,
+    /// The value being returned, for `result` in `ensures`.
+    pub result_value: Option<(checked::LocalId, Type)>,
 }
 
 impl Default for Type {
@@ -402,7 +409,8 @@ impl Checker<'_> {
             locals: Vec::new(),
             body: Vec::new(),
         });
-        Ok(Signature { name, id, parameters, returns, span: function.header_span, failures, result })
+        let top = self.top_of_body(function);
+        Ok(Signature { name, id, parameters, returns, span: function.header_span, failures, result, top })
     }
 
     fn function_body(&mut self, function: &syntax::Function, signature: &Signature) {
@@ -413,6 +421,7 @@ impl Checker<'_> {
             is_main: function.keyword.text() == "fn.main",
             failures: signature.failures.clone(),
             result: signature.result,
+            top: signature.top.clone(),
             ..Body::default()
         };
         let mut parameters = Vec::new();
@@ -447,7 +456,15 @@ impl Checker<'_> {
             (None, None) => format!("end {keyword}"),
         };
         self.check_closer(&function.end, &expected, CLOSER_WHY);
+        // A function with `requires` is told where it was called from, for its crash message (D29).
+        let mut prelude = Vec::new();
+        if contracts::needs_site(&signature.top) {
+            let site = body.new_local(checked::MachineType::Integer { bits: 32, signed: true });
+            parameters.push(checked::Parameter { local: site, passing: checked::Passing::Value });
+            prelude = self.requires_checks(&mut body, &signature.top, site);
+        }
         let (statements, leaves) = self.function_block(&mut body, &function.body);
+        let statements: Vec<checked::Statement> = prelude.into_iter().chain(statements).collect();
         if !leaves && !contains_broken(&function.body) {
             self.function_end(&body, function);
         }

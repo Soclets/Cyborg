@@ -2,8 +2,19 @@
 
 d101_plain_i32_needs_no_unit
 d104_change_is_allowed
+d106_only_in_working_is_checked_here
 d10_i32_alias_chain
 d10_other_integer_widths
+d113_label_must_be_written
+d113_label_not_declared
+d114_any_order
+d114_default_needs_a_label
+d114_labels_and_defaults
+d114_labels_in_order_is_the_default
+d114_labels_keep_order
+d114_leaving_off_with_no_default
+d114_top_of_body_after_code
+d114_top_of_body_in_order
 d116_as_after_a_division
 d116_as_on_a_comparison
 d116_as_on_a_division_needs_group
@@ -244,6 +255,7 @@ d160_comparing_two_of_ieee
 d160_equal_works
 d160_f32
 d160_ieee_doesnt_mix_in_a_comparison
+d160_in_a_contract
 d160_infinity_compares
 d160_negative_zero_as_a_bound
 d160_negative_zero_equals_zero
@@ -251,6 +263,7 @@ d160_negative_zero_in_a_test
 d160_negative_zero_literal_at_a_bound
 d160_negative_zero_while_running
 d160_sum_isnt_the_literal
+d161_a_message_shows_the_same_text
 d161_bounded_as_str
 d161_f32_shortest_for_its_width
 d161_float_as_str
@@ -415,6 +428,7 @@ d207_spacing_and_checking
 d208_case_without_a_semicolon
 d208_cases_end_with_semicolons
 d209_a_result_type_isnt_used
+d209_fails_in_the_header
 d209_fails_with_a_void_return
 d20_bounded_goes_into_plain
 d20_literal_cant_fit
@@ -501,6 +515,9 @@ d274_unhandled_failure_flushes_first
 d278_words_and_a_chain
 d283_set_to_is_refused
 d287_returns_is_refused
+d29_ensures_false
+d29_ensures_true
+d29_requires_false
 d2_change_a_lent_parameter
 d2_copy_keeps_the_original
 d2_copy_on_integer
@@ -588,6 +605,7 @@ d7_conversion_isnt_decided
 d7_unknown_type
 d80_imports_are_in_the_file
 d82_std_not_imported
+d86_contract_calls_pure
 d93_use_a_short_name
 d96_ignored_on_purpose
 d96_print_can_be_passed_up

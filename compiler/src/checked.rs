@@ -87,6 +87,13 @@ pub enum Statement {
         local: LocalId,
         value: Expression,
     },
+    /// A check whose crash message ends with where the function was called from, from the sites table (D29).
+    CheckAtSite {
+        condition: Expression,
+        failure: CheckFailure,
+        operands: Vec<Expression>,
+        site: Expression,
+    },
     /// `instead value;` in an `otherwise:` arm: the value used in place of the failed call (D139).
     Instead {
         local: LocalId,

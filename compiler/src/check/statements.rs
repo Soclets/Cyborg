@@ -122,6 +122,11 @@ impl Checker<'_> {
             StatementKind::Break(label) => {
                 self.break_statement(body, statement.span, label.as_ref(), block).map(|()| true)
             }
+            // The top of a body is read with the function's header (D114).
+            StatementKind::Labels(_)
+            | StatementKind::Defaults(_)
+            | StatementKind::Requires { .. }
+            | StatementKind::Ensures { .. } => Ok(false),
             StatementKind::Broken => Err(Reported),
             _ => Err(self.not_yet(statement.span, "this statement".to_string())),
         }
@@ -360,13 +365,24 @@ impl Checker<'_> {
             }
             Some(expression) => {
                 body.statement = Some(expression.span);
-                self.value_into(body, expression, &returns).map(|value| {
-                    checked::Statement::Return(Some(if body.result.is_some() {
-                        self.succeed(body, Some(value))
-                    } else {
-                        value
-                    }))
-                })
+                match self.value_into(body, expression, &returns) {
+                    Ok(value) if !body.top.ensures.is_empty() => {
+                        // `ensures` reads the value being returned as `result` (D29).
+                        let local = body.new_local(returns.machine());
+                        block.push(checked::Statement::Let { local, value });
+                        let top = body.top.clone();
+                        let checks = self.ensures_checks(body, &top, local, statement.span);
+                        block.extend(checks);
+                        let value = checked::Expression { kind: Kind::Local(local), machine_type: returns.machine() };
+                        let value = if body.result.is_some() { self.succeed(body, Some(value)) } else { value };
+                        Ok(checked::Statement::Return(Some(value)))
+                    }
+                    Ok(value) => {
+                        let value = if body.result.is_some() { self.succeed(body, Some(value)) } else { value };
+                        Ok(checked::Statement::Return(Some(value)))
+                    }
+                    Err(Reported) => Err(Reported),
+                }
             }
             None => Err(self.not_yet(statement.span, "`return` with nothing after it".to_string())),
         };
