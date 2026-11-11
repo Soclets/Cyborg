@@ -9,7 +9,7 @@
 | [3.5](#35-comparison) | `==`, `!=`, `below`, `above`, `at_least`, `at_most` | |
 | [3.6](#36-logic) | `and`, `or`, `not` | |
 | [3.7](#37-bits-and-shifts) | `bit_and`, `bit_or`, `bit_xor`, `bit_not`, `shl`, `shr` | |
-| [3.8](#38-wrapping-pluswrap) | `plus.wrap` | Wraps in every mode |
+| [3.8](#38-wrapping-and-saturating-pluswrap-plussaturate) | `plus.wrap`, `plus.saturate` | Wraps or sticks, in every mode |
 | [3.9](#39-grouping-and-precedence) | `( )`, precedence | Follows maths |
 | [3.10](#310-operators-for-your-own-types-op) | `op below` | A struct defines an operator for itself |
 
@@ -107,16 +107,19 @@ if $n != 0 and 10 div.trunc $n above 1:
 
 **From:** D49.
 
-## 3.8 Wrapping: `plus.wrap`
+## 3.8 Wrapping and saturating: `plus.wrap`, `plus.saturate`
 
-**Rule:** a wrapping operator wraps in every mode, including `Working`. `plus.wrap` is a placeholder spelling.
+**Rule:** `+`, `-` and `x` are written as words, `plus`, `minus` and `times`, followed by how they handle overflow, the same shape as `div.trunc`. Plain `+`, `-` and `x` stay the checked defaults.
 
 ```
-$a plus.wrap $b
+$a plus.wrap $b       $a plus.saturate $b
+$a minus.wrap $b      $a minus.saturate $b
+$a times.wrap $b      $a times.saturate $b
 ```
 
-A saturating operator sticks at the type's own bounds instead of overflowing, including a written `min:` and `max:`, on one value or on every lane of a `simd` (D291). On a type with no written bounds, like `u8`, those are the hardware's, so it's one native instruction; written bounds add a `min` and a `max`. `plus.saturate` is a placeholder spelling.
+A wrapping operator wraps in every mode, including `Working`.
 
+A saturating operator sticks at the type's own bounds instead of overflowing, including a written `min:` and `max:`, on one value or on every lane of a `simd` (D291). On a type with no written bounds, like `u8`, those are the hardware's, so it's one native instruction; written bounds add a `min` and a `max`. 
 ```
 let $volume: u8[min: 0, max: 100] = 95;
 let $louder: u8[min: 0, max: 100] = $volume plus.saturate 10;
@@ -124,7 +127,9 @@ let $louder: u8[min: 0, max: 100] = $volume plus.saturate 10;
 
 `$louder` is 100. To stick at the hardware's limit and check a bound afterwards, saturate in the plain type first, then assign.
 
-**From:** D42, D294.
+**Refused:** `+.wrap` and other narrowings on a symbol, with `fix: plus.wrap`, and a bare `plus`, `minus` or `times`, with `fix: +`, `-` or `x`.
+
+**From:** D42, D294, D295.
 
 ## 3.9 Grouping and precedence
 

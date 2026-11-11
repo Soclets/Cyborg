@@ -24,7 +24,7 @@ These are places where decisions leave a real gap or pull against each other. No
 
 Waiting on the owner, most needed first. Each is `NotDesignedYet` unless it says otherwise.
 
-- **Precedence fixes.** What `??`, `?` and `otherwise` catch on more than one call, like `(f() + g()) ?? 0`. `as` and `plus.wrap` have no level; the oracle treats `as` as tight, and `plus.wrap` as level with `+`.
+- **Precedence fixes.** What `??`, `?` and `otherwise` catch on more than one call, like `(f() + g()) ?? 0`. `as` and the word operators like `plus.wrap` have no level; the oracle treats `as` as tight, and `plus.wrap` as level with `+`.
 - **`*` on handlers.** Whether `fail` and `?` count as jumps. Today they don't.
 - **Fields.** Whether `for` over `$b.items` uses all of `$b`; `change $s.code` inside its test, and whether trust survives. The oracle allows `change` through a stored `Lend.mut`, which is its reading.
 - **Trust in `else:`.** With two cases, whether `else:` knows `$s` is the other one, and whether trust carries on after a block that always leaves. Both are refused today.
@@ -91,7 +91,6 @@ Waiting on the owner, most needed first. Each is `NotDesignedYet` unless it says
 ## 12.3 Operators and conversion
 
 - Whether `-` and `x` follow [10.4](10-build-modes.md#104-what-happens-when-something-goes-wrong)'s overflow row, which D42 states for `+`.
-- The real spelling for wrapping and saturating, and their forms of `-` and `x`.
 - The full list of `div` narrowings, and what `div.exact` does in each mode.
 - Shifting by too much.
 - What can convert to what with `as`.
@@ -159,7 +158,6 @@ These are inherited from Radium with D2:
 These have a working name, but aren't chosen:
 
 - `key` and `val` in `std::map`.
-- `plus.wrap`.
 - `held` on a stored borrow.
 - `exponent` in front of a literal.
 - `result`.
