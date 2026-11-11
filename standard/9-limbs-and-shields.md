@@ -159,13 +159,22 @@ end shield sensor_driver
 
 So inside a shield, Cyborg goes as low as C, and a bare-metal program can run with no allocator at all.
 
-A raw pointer is `ptr.raw<T>`, which can only read, or `ptr.raw.mut<T>`, which can read and write. `ptr` is a family, so other kinds of pointer can join it as narrowings. How pointers are made, read, written and moved, and how volatile memory, exact layouts and allocators are spelled, isn't decided.
+A raw pointer is `ptr.raw<T>`, which can only read, or `ptr.raw.mut<T>`, which can read and write. `ptr` is a family, so other kinds of pointer can join it as narrowings.
+
+```
+let $reg: ptr.raw.mut<u32> = ptr.raw.mut<u32>.at(address: 0x4004_0000);
+let $p: ptr.raw.mut<i32> = ptr.raw.mut<i32>.of(Lend.mut $count);
+let $now: u32 = $reg.%read();
+$reg.%%write(val: 1);
+```
+
+`.at(address:)` makes a pointer from a number, for hardware registers and memory maps. `.of` takes a variable's address, with `Lend` for `ptr.raw` and `Lend.mut` for `ptr.raw.mut`, and the variable stays lent for as long as the pointer exists, while containment keeps the pointer in the shield ([9.9](#99-a-shields-walls)). `.%read()` reads, and `.%%write(val:)` writes, where `%%` marks the change to what the pointer stands for. How pointers move, and how volatile memory, exact layouts and allocators are spelled, isn't decided.
 
 Using a limb doesn't need a shield by itself: `@` says it's a compiler extension, and a shield says it's dangerous.
 
 **Refused:** any of these outside a shield, except in `FinalShit`.
 
-**From:** D38, D40, D226, D314.
+**From:** D38, D40, D226, D314, D315.
 
 ## 9.9 A shield's walls
 

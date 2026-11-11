@@ -1130,6 +1130,8 @@ A `type_set` is a closed list of types that nothing can join later, as in `type_
 
 **D314. Raw pointers are `ptr.raw<T>` and `ptr.raw.mut<T>`.** A raw pointer, which only lives in a shield (D38, D226), is `ptr.raw<u32>`, which can only read, or `ptr.raw.mut<u32>`, which can read and write, like Rust's `*const` and `*mut`. Writing through a `ptr.raw` is refused, since even without a safety net that mistake is cheap to catch, and `mut` is Cyborg's word for "can change". `ptr` names the thing first and `raw` narrows it, like `div.trunc`, so `ptr` is a family that other kinds of pointer can join. How pointers are made, read, written and moved is not settled here. Claude proposed `raw<T>` and `raw.mut<T>`; the owner asked "Shouldn't it be ptr.raw or something?", and chose: "yea". (Owner, 2026-11-11)
 
+**D315. Making, reading and writing a raw pointer.** `ptr.raw.mut<u32>.at(address: 0x4004_0000)` makes a pointer from a number, for hardware registers and memory maps. `ptr.raw.mut<i32>.of(Lend.mut $count)` takes a variable's address, with the ownership word saying the access: `Lend` for `ptr.raw` and `Lend.mut` for `ptr.raw.mut`. The borrow checker treats the variable as lent for as long as the pointer exists, and containment (D39) keeps the pointer in its shield, so safe code never sees one dangle. `$p.%read()` reads, and `$p.%%write(val: 1)` writes. Strictly, the pointer itself doesn't change, but `%%` stands for the change to its memory, so a search for `%%` finds every write. Pointer arithmetic is not settled here. Claude proposed the four; the owner chose: "yea". (Owner, 2026-11-11)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude
