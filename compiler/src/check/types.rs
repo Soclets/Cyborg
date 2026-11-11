@@ -115,7 +115,7 @@ impl FloatBounds {
 
 /// A number's unit (D99, D100, D242): the units it's made of, each with its power, in the order maths met them.
 /// `time.seconds` is one unit to the power 1, and `length.meters per time.seconds` two.
-#[derive(Clone, Debug, Eq, Hash)]
+#[derive(Clone, Debug, Eq)]
 pub struct Unit {
     pub factors: Vec<(String, i32)>,
 }
@@ -159,6 +159,13 @@ impl Unit {
 impl PartialEq for Unit {
     fn eq(&self, other: &Unit) -> bool {
         self.sorted() == other.sorted()
+    }
+}
+
+// Hashed the way it compares, so equal units hash the same whatever order maths met them in.
+impl std::hash::Hash for Unit {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.sorted().hash(state);
     }
 }
 
