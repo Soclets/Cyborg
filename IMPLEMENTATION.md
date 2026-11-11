@@ -43,7 +43,7 @@ Each works in its own clone, on `main` with no branch, and runs `git pull --reba
    tests, as in `cargo build -j 3`, `CARGO_BUILD_JOBS=3` and `cargo test -- --test-threads=3`. (D279)
 10. **Optimizations from the start.** The compiler is built with its optimizations as it goes, never as a plain version sped up
     later. The oracle stays plain. The owner learnt this reimplementing Lua in SPARK.
-    The first compiler has LLVM's standard optimizations and Precog dropping checks, and compiles fast: incremental,
+    The first compiler has LLVM's standard optimizations and drops checks it proves itself, from known values and ranges, which isn't Precog (D312), and compiles fast: incremental,
     parallel, cached, and with a lighter `Working` build. (D168)
 11. **Prompting.** Before prompting a subagent or a new session, a session reads the current prompting guide for that AI, in
     full and itself, and again after every compaction. Messaging another session isn't prompting, and isn't written like

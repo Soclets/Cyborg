@@ -91,7 +91,7 @@ end fn half
 
 ## 5.5 Contracts
 
-**Rule:** `requires` and `ensures` are in the base language. They're checked at runtime unless Precog proves them, following the build mode ([10.3](10-build-modes.md#103-what-gets-checked)).
+**Rule:** `requires` and `ensures` are in the base language. They're checked at runtime unless they're proven, by `OKAY\n` or Precog, following the build mode ([10.3](10-build-modes.md#103-what-gets-checked)).
 
 Contracts can only call pure functions ([5.9](#59-pure-functions)), so turning checks off can't change what a correct program does.
 

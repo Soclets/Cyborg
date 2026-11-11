@@ -56,7 +56,7 @@ okay run --Working --opt=O0
 
 ## 10.3 What gets checked
 
-**Rule:** anything Precog proves can drop its check, in every mode except `Working`, which keeps every check, proven or not, so a wrong proof shows up as a crash while developing.
+**Rule:** anything proven, by `OKAY\n` itself or by the Precog limb ([9.10](9-limbs-and-shields.md#910-precog)), can drop its check, in every mode except `Working`, which keeps every check, proven or not, so a wrong proof shows up as a crash while developing.
 
 | Check | `Working` | `FinalSafe` | `FinalPerf` | `FinalShit` | `FinalSmall` | `Literal` |
 |---|---|---|---|---|---|---|

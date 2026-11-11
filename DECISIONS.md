@@ -1124,6 +1124,8 @@ A `type_set` is a closed list of types that nothing can join later, as in `type_
 
 **D311. Plain Cyborg can't use a package written in a Dialect.** A `dialect original` project that needs a package whose own manifest names a Dialect is stopped by CyJet when installing, as in "cool_lib is written in dialect mc_mod, and this project is dialect original". That code needs another compiler, and none of Cyborg's checks cover it, so allowing it would hide unchecked code inside a project that says `original`. Whether a Dialect project can use plain Cyborg packages is up to the Dialect. Claude proposed it; the owner asked "What?", Claude explained it more simply, and the owner chose: "yea". (Owner, 2026-11-11)
 
+**D312. Precog means only the limb.** The name Precog belongs to the `@precog` limb alone: Z3 and CVC5, invariants, lemmas, proof levels and `@precog::set_to_best`. Working out known values and ranges, and dropping checks that can't fail, which D14 and D29 called Precog's layers 1 and 2 in the core, is just `OKAY\n`'s own optimization, like folding constants, and has no name of its own. So "Precog" always means the thing written with an `@`, and a program without `import @precog;` has no Precog. Rules about proven checks, like D280's `Working` keeping them all, cover proofs by either. D168's "Precog dropping checks" in the first compiler is `OKAY\n` dropping them. Claude explained the split as "layers 1 and 2 are in the core"; the owner said "That's confusing, why not just say included is OKAY\n's?", and chose: "yes". (Owner, 2026-11-11)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude

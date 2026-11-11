@@ -171,7 +171,7 @@ Using a limb doesn't need a shield by itself: `@` says it's a compiler extension
 
 | Wall | What it does | How it's enforced |
 |---|---|---|
-| Entry | The caller meets `requires` | At runtime unless Precog proves it, following the build mode |
+| Entry | The caller meets `requires` | At runtime unless it's proven, by `OKAY\n` or Precog, following the build mode |
 | Exit | `ensures` holds | [10.3](10-build-modes.md#103-what-gets-checked) |
 | Containment | Raw pointers and unchecked borrows can't leave | A compile error, except in `FinalShit` |
 
@@ -179,11 +179,11 @@ Using a limb doesn't need a shield by itself: `@` says it's a compiler extension
 
 ## 9.10 Precog
 
-**Rule:** Precog proves things about a program. Layers 1 and 2, known values and ranges, are in the core. Layer 3, Z3 and CVC5, is a limb. That limb adds invariants, `assert` hints, ghost code, lemmas, proofs that loops end and that stack and heap fit their budgets, proof levels, and a "prove everything or refuse" mode as an option. Anything Precog proves can drop its check, in every mode except `Working`, which keeps them all.
+**Rule:** Precog is a limb, `@precog`, and only the limb has the name. Without it, `OKAY\n` still works out known values and ranges itself, and drops checks that can't fail, as its own optimization, the way it folds constants. Precog adds Z3 and CVC5, and with them invariants, `assert` hints, ghost code, lemmas, proofs that loops end and that stack and heap fit their budgets, proof levels, and a "prove everything or refuse" mode as an option. Anything `OKAY\n` or Precog proves can drop its check, in every mode except `Working`, which keeps them all.
 
 With its rule on, the limb also picks a variable's type, with `@precog::set_to_best` ([2.20](2-values-and-types.md#220-types-are-always-written-and-precogs-pick-precogset_to_best)).
 
-**From:** D14, D29.
+**From:** D14, D29, D312.
 
 ## 9.11 The linter
 
