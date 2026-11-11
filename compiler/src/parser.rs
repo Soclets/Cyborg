@@ -635,19 +635,17 @@ impl<'source> Parser<'source> {
         let parameters = self.parameters()?;
         let returns_word;
         let mut returns = None;
-        if self.is_word("returns") {
+        if self.is(TokenKind::Arrow) {
             returns_word = self.current_span();
             self.advance();
             returns = Some(self.parse_type()?);
-        } else if self.is(TokenKind::Arrow) {
+        } else if self.is_word("returns") {
+            // trace: D287
             returns_word = self.current_span();
-            // trace: D275
-            // D287 brings `->` back and refuses `returns`, and this follows the oracle's tests, which still say
-            // `returns`, so the two agree until they move together.
             self.errors.push(Diagnostic::refused_fix(
                 returns_word,
-                "returns",
-                "a header reads as words, `returns` alongside `fails`, so `->` is never written (D275)",
+                "->",
+                "`->` is an anchor the eye skips straight to, marking where the result starts, so `returns` is never written (D287)",
             ));
             self.advance();
             returns = Some(self.parse_type()?);

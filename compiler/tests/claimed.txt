@@ -473,9 +473,9 @@ d273_buffered_stderr
 d273_flush_keeps_it_going
 d273_forgetting_done
 d273_unbuffered_has_no_flush
-d275_arrow_is_refused
 d278_words_and_a_chain
 d283_set_to_is_refused
+d287_returns_is_refused
 d2_change_a_lent_parameter
 d2_copy_keeps_the_original
 d2_copy_on_integer
