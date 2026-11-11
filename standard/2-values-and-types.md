@@ -498,4 +498,10 @@ let $c: simd<i32>[lanes: 4] = $a + $b;
 
 `$c` holds `[11, 22, 33, 44]`. Instructions for one CPU only go in `inline.asm`.
 
-**From:** D291.
+`lanes:` takes any count, and the compiler splits a `simd` into as many instructions as the CPU needs, which never changes the answers, since lanes are independent. Or it takes `max`, the most lanes one instruction works on for the target being built, like 4 `i32`s on the Mac or 1 on the Uno R4 WiFi's Cortex-M4. `max` is fixed for each target, and the build report says what each target got.
+
+```
+let $d: simd<i32>[lanes: max] = all 0;
+```
+
+**From:** D291, D292.
