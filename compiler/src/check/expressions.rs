@@ -21,13 +21,21 @@ pub struct Typed {
     pub literal: Option<i128>,
     /// The variable, if this reads one plainly, so errors can name it.
     pub variable: Option<String>,
+    /// The value, if this is a float literal, so where it lands can check it fits while building (D158).
+    pub float_literal: Option<f64>,
 }
 
 impl Typed {
     #[must_use]
     pub fn new(value_type: Type, kind: Kind) -> Typed {
         let machine_type = value_type.machine();
-        Typed { value_type, value: checked::Expression { kind, machine_type }, literal: None, variable: None }
+        Typed {
+            value_type,
+            value: checked::Expression { kind, machine_type },
+            literal: None,
+            variable: None,
+            float_literal: None,
+        }
     }
 }
 
@@ -90,6 +98,14 @@ impl Checker<'_> {
             {
                 self.integer_literal(expression, expected)
             }
+            ExpressionKind::Float(_) | ExpressionKind::Inexact { .. } | ExpressionKind::Exponent(_) => {
+                self.float_literal(expression, expected)
+            }
+            ExpressionKind::Unary { operator: UnaryOperator::Negate, operand, .. }
+                if matches!(operand.kind, ExpressionKind::Float(_)) =>
+            {
+                self.float_literal(expression, expected)
+            }
             ExpressionKind::Bool(value) => Ok(Typed::new(Type::Bool, Kind::Bool(*value))),
             ExpressionKind::Text(raw) => {
                 let mut errors = Vec::new();
@@ -110,6 +126,9 @@ impl Checker<'_> {
                 self.binary(body, expression, operator, *operator_span, left, right, expected)
             }
             ExpressionKind::Chain { operands, operators } => self.chain(body, operands, operators),
+            ExpressionKind::As { value, keyword, written_type } => {
+                self.conversion(body, expression, value, keyword, written_type)
+            }
             ExpressionKind::Call { callee, arguments, .. } => self.call(body, expression, callee, arguments),
             _ => Err(self.not_yet(expression.span, "this kind of value".to_string())),
         }
@@ -130,6 +149,13 @@ impl Checker<'_> {
             return Err(self.not_yet(expression.span, format!("the number `{written}`")));
         };
         let value = if negative { -magnitude } else { magnitude };
+        if let Some(Type::Float { .. }) = expected {
+            return Err(self.error(Diagnostic::not_designed(
+                expression.span,
+                "an integer literal where a float is needed",
+                NOT_DECIDED,
+            )));
+        }
         let kind = match expected {
             Some(Type::Integer { kind, .. }) => *kind,
             _ => IntegerKind::I32,
@@ -145,6 +171,189 @@ impl Checker<'_> {
         let mut typed = Typed::new(Type::Integer { kind, bounds: None }, Kind::Integer(value));
         typed.literal = Some(value);
         Ok(typed)
+    }
+
+    /// A float literal: `0.5`, `~0.1`, `-1.5`, `exponent ~6.02214076e23` (D59, D158, D165).
+    #[allow(clippy::too_many_lines)]
+    fn float_literal(&mut self, expression: &syntax::Expression, expected: Option<&Type>) -> Check<Typed> {
+        // Peel off what's written around the digits.
+        let (mut inner, negative) = match &expression.kind {
+            ExpressionKind::Unary { operand, .. } => (operand.as_ref(), true),
+            _ => (expression, false),
+        };
+        let mut marked = false;
+        let mut exponent_word = None;
+        let mut negative = negative;
+        match &inner.kind {
+            ExpressionKind::Inexact { literal, exponent } => {
+                marked = true;
+                exponent_word = *exponent;
+                inner = literal.as_ref();
+                if let ExpressionKind::Unary { operand, .. } = &inner.kind {
+                    negative = true;
+                    inner = operand.as_ref();
+                }
+            }
+            ExpressionKind::Exponent(literal) => {
+                exponent_word = Some(expression.span);
+                inner = literal.as_ref();
+            }
+            _ => {}
+        }
+        let digits_span = inner.span;
+        let digits = self.slice(digits_span).to_string();
+        let has_exponent = digits.contains(['e', 'E']);
+        if has_exponent && digits.contains("e-") {
+            return Err(self.error(Diagnostic::not_designed(
+                digits_span,
+                "a negative exponent",
+                "not decided yet (standard 12.2)",
+            )));
+        }
+        if has_exponent && digits.contains("e+") {
+            return Err(self.error(Diagnostic::not_designed(
+                digits_span,
+                "an exponent written with `+`",
+                "not decided yet (standard 12.2)",
+            )));
+        }
+        if has_exponent && matches!(inner.kind, ExpressionKind::Integer(_)) {
+            return Err(self.error(Diagnostic::not_designed(
+                digits_span,
+                "an exponent on an integer",
+                "not decided yet (standard 12.2)",
+            )));
+        }
+        if exponent_word.is_some() && !has_exponent {
+            return Err(self.error(Diagnostic::refused(
+                expression.span,
+                "`exponent` goes only on a literal with an exponent",
+                "the word says the literal has an `e` in it (D165)",
+            )));
+        }
+        let Some(Type::Float { bits, kind, .. }) = expected else {
+            if let Some(Type::Integer { .. }) = expected {
+                let value_type = Type::Float { bits: 64, kind: super::types::FloatKind::Stable, bounds: None };
+                let mut typed = Typed::new(value_type, Kind::Float(0.0));
+                typed.float_literal = Some(0.0);
+                return Ok(typed);
+            }
+            return Err(self.error(Diagnostic::not_designed(
+                expression.span,
+                "which float type a literal has when nothing around it says",
+                NOT_DECIDED,
+            )));
+        };
+        let (bits, kind) = (*bits, *kind);
+        let Some(literal) = super::floats::read(&digits, bits, negative) else {
+            return Err(self.not_yet(digits_span, format!("the number `{digits}`")));
+        };
+        let sign = if negative { "-" } else { "" };
+        if literal.too_large {
+            if kind == super::types::FloatKind::Ieee {
+                return Err(self.error(Diagnostic::not_designed(
+                    expression.span,
+                    format!("a literal too large for `f{bits}.ieee`"),
+                    NOT_DECIDED,
+                )));
+            }
+            return Err(self.error(Diagnostic::refused(
+                expression.span,
+                format!("this literal is too large for `f{bits}`"),
+                "a float can't be infinity, and a literal that can't fit is a compile error (D158, D20)",
+            )));
+        }
+        if has_exponent && exponent_word.is_none() {
+            let mark = if literal.exact { "" } else { "~" };
+            return Err(self.error(Diagnostic::refused_fix(
+                expression.span,
+                format!("exponent {mark}{sign}{digits}"),
+                "a stray `e` can't quietly change a number, so the word goes in front (D165)",
+            )));
+        }
+        let written = if has_exponent { format!("exponent {sign}{digits}") } else { format!("{sign}{digits}") };
+        if literal.exact && marked {
+            return Err(self.error(Diagnostic::refused_fix(
+                expression.span,
+                written,
+                format!("f{bits} holds {sign}{digits} exactly (D59)"),
+            )));
+        }
+        if !literal.exact && !marked {
+            let fixed = if has_exponent { format!("exponent ~{sign}{digits}") } else { format!("~{sign}{digits}") };
+            return Err(self.error(Diagnostic::refused_fix(
+                expression.span,
+                fixed,
+                format!("f{bits} can't hold {sign}{digits} exactly (D59)"),
+            )));
+        }
+        let value_type = Type::Float { bits, kind, bounds: None };
+        let mut typed = Typed::new(value_type, Kind::Float(literal.value));
+        typed.float_literal = Some(literal.value);
+        Ok(typed)
+    }
+
+    /// `as` builds a new value of another type (D7). What converts to what isn't decided (standard 12.3), past a
+    /// number's text (D122, D161) and `.ieee` crossing back (D159).
+    fn conversion(
+        &mut self,
+        body: &mut Body,
+        expression: &syntax::Expression,
+        value: &syntax::Expression,
+        keyword: &syntax::Path,
+        written_type: &syntax::Type,
+    ) -> Check<Typed> {
+        if keyword.segments.len() > 1 {
+            return Err(self.not_yet(keyword.span, format!("`{}`", keyword.text())));
+        }
+        let typed = self.expression(body, value, None)?;
+        let into = self.resolve_type(written_type)?;
+        let undecided = |from: &Type, into: &Type| {
+            Diagnostic::not_designed(
+                expression.span,
+                format!("converting `{from}` to `{into}` with `as`"),
+                "not decided yet (standard 12.3)",
+            )
+        };
+        match (&typed.value_type, &into) {
+            (Type::Unknown, _) => Err(Reported),
+            (Type::Integer { .. }, Type::Str) => Ok(Typed::new(Type::Str, Kind::TextOf(Box::new(typed.value)))),
+            (Type::Float { kind, .. }, Type::Str) if *kind != super::types::FloatKind::Fast => {
+                Ok(Typed::new(Type::Str, Kind::TextOf(Box::new(typed.value))))
+            }
+            (
+                Type::Float { bits: from_bits, kind: super::types::FloatKind::Ieee, .. },
+                Type::Float { bits, kind, bounds: None },
+            ) if from_bits == bits && *kind != super::types::FloatKind::Ieee => {
+                let why =
+                    format!("`as` out of `f{bits}.ieee` is a real conversion, and it fails on NaN or infinity (D159)");
+                let nan = failure(
+                    self,
+                    Diagnostic::new(
+                        DiagnosticKind::CheckFailed,
+                        expression.span,
+                        format!("this is NaN, so it can't become `{into}`"),
+                        why.clone(),
+                    ),
+                    &[],
+                );
+                let infinity = failure(
+                    self,
+                    Diagnostic::new(
+                        DiagnosticKind::CheckFailed,
+                        expression.span,
+                        format!("this is infinity, so it can't become `{into}`"),
+                        why,
+                    ),
+                    &[],
+                );
+                Ok(Typed::new(
+                    into.clone(),
+                    Kind::FromIeee { value: Box::new(typed.value), nan: Box::new(nan), infinity: Box::new(infinity) },
+                ))
+            }
+            (from, into) => Err(self.error(undecided(from, into))),
+        }
     }
 
     fn read_variable(&mut self, body: &mut Body, name: &syntax::Name) -> Check<Typed> {
@@ -262,7 +471,10 @@ impl Checker<'_> {
     /// Whether an expression is a number written straight out, which takes its type from the other side.
     fn is_literal_number(expression: &syntax::Expression) -> bool {
         match &expression.kind {
-            ExpressionKind::Integer(_) => true,
+            ExpressionKind::Integer(_)
+            | ExpressionKind::Float(_)
+            | ExpressionKind::Inexact { .. }
+            | ExpressionKind::Exponent(_) => true,
             ExpressionKind::Unary { operator: UnaryOperator::Negate | UnaryOperator::BitNot, operand, .. } => {
                 Self::is_literal_number(operand)
             }
@@ -380,7 +592,9 @@ impl Checker<'_> {
         }
         match (left_type, right_type) {
             (Type::Integer { kind: a, .. }, Type::Integer { kind: b, .. }) if a == b => Ok(comparison),
-            (Type::Float { bits: a, kind: x }, Type::Float { bits: b, kind: y }) if a == b && x == y => Ok(comparison),
+            (Type::Float { bits: a, kind: x, .. }, Type::Float { bits: b, kind: y, .. }) if a == b && x == y => {
+                Ok(comparison)
+            }
             (Type::Bool, Type::Bool) => {
                 if matches!(comparison, Comparison::Equal | Comparison::NotEqual) {
                     Ok(comparison)
@@ -431,6 +645,25 @@ impl Checker<'_> {
                 CONVERT_WHY,
             )));
         }
+        if let (Type::Float { bits: a, kind: x, .. }, Type::Float { bits: b, kind: y, .. }) = (&left_type, &right_type)
+            && a == b
+            && x != y
+        {
+            use super::types::FloatKind;
+            let kinds = [*x, *y];
+            if kinds.contains(&FloatKind::Ieee) {
+                return Err(self.error(Diagnostic::refused(
+                    expression.span,
+                    format!("this mixes `{}` and `{}`", left_type.plain(), right_type.plain()),
+                    format!("`f{a}.ieee` is a different type from `f{a}`, and `as` is the wall between them (D159)"),
+                )));
+            }
+            return Err(self.error(Diagnostic::not_designed(
+                expression.span,
+                format!("how `f{a}.fast` and `f{a}.stable` mix"),
+                "not decided yet (standard 12.2)",
+            )));
+        }
         if left_type.plain() != right_type.plain() {
             return Err(self.error(Diagnostic::refused(
                 expression.span,
@@ -440,7 +673,7 @@ impl Checker<'_> {
         }
         let value_type = left_type.plain();
         let Type::Integer { kind, .. } = value_type else {
-            return Err(self.not_yet(expression.span, "maths on floats".to_string()));
+            return self.float_arithmetic(expression, operator, operator_span, value_type, left_typed, right_typed);
         };
         let type_name = kind.name();
         let both = |text: &str| {
@@ -604,6 +837,84 @@ impl Checker<'_> {
                 right: Box::new(right_typed.value),
                 failure: first,
                 more,
+            },
+        ))
+    }
+
+    /// Float arithmetic: `+`, `-`, `x` and bare `div` (D164). A `.stable` or `.fast` float that becomes infinity or NaN
+    /// is a failure (D158), and `.ieee` follows IEEE 754 (D159).
+    fn float_arithmetic(
+        &mut self,
+        expression: &syntax::Expression,
+        operator: &BinaryOperator,
+        operator_span: Span,
+        value_type: Type,
+        left: Typed,
+        right: Typed,
+    ) -> Check<Typed> {
+        let Type::Float { bits, kind, .. } = value_type else { return Err(Reported) };
+        let arithmetic = match operator {
+            BinaryOperator::Add => checked::FloatArithmetic::Add,
+            BinaryOperator::Subtract => checked::FloatArithmetic::Subtract,
+            BinaryOperator::Multiply => checked::FloatArithmetic::Multiply,
+            BinaryOperator::Divide(None) => checked::FloatArithmetic::Divide,
+            BinaryOperator::Divide(Some(narrowing)) => {
+                return Err(self.error(Diagnostic::not_designed(
+                    expression.span,
+                    format!("`div.{narrowing}` on floats"),
+                    "not decided yet (standard 12.2)",
+                )));
+            }
+            BinaryOperator::Remainder(None) => {
+                return Err(self.error(Diagnostic::refused(
+                    operator_span,
+                    "there's no bare `mod`, so pick a narrowing",
+                    "`mod` has no single right answer, so you pick one (D97)",
+                )));
+            }
+            BinaryOperator::Remainder(Some(_)) => {
+                return Err(self.error(Diagnostic::not_designed(
+                    expression.span,
+                    "`mod` on floats",
+                    "not decided yet (standard 12.2)",
+                )));
+            }
+            _ => {
+                let name = self.slice(operator_span).to_string();
+                return Err(self.not_yet(operator_span, format!("`{name}` on floats")));
+            }
+        };
+        let (infinity, nan) = if kind == super::types::FloatKind::Ieee {
+            (None, None)
+        } else {
+            let when = [
+                When::Text("`".into()),
+                When::Operand(0),
+                When::Text("` and `".into()),
+                When::Operand(1),
+                When::Text(format!("` in `f{bits}`")),
+            ];
+            let why = "a float can't be NaN or infinity, and making one is a failure (D158)";
+            let infinity = failure(
+                self,
+                Diagnostic::new(DiagnosticKind::CheckFailed, expression.span, "this makes infinity", why),
+                &when,
+            );
+            let nan = failure(
+                self,
+                Diagnostic::new(DiagnosticKind::CheckFailed, expression.span, "this makes NaN", why),
+                &when,
+            );
+            (Some(Box::new(infinity)), Some(Box::new(nan)))
+        };
+        Ok(Typed::new(
+            value_type,
+            Kind::FloatArithmetic {
+                operator: arithmetic,
+                left: Box::new(left.value),
+                right: Box::new(right.value),
+                infinity,
+                nan,
             },
         ))
     }
@@ -794,12 +1105,95 @@ impl Checker<'_> {
                 }
                 Ok(self.fit(span, typed, into, *bounds))
             }
+            (
+                Type::Float { bits: from_bits, kind: from_kind, bounds: from_bounds },
+                Type::Float { bits: to_bits, kind: to_kind, bounds: to_bounds },
+            ) if from_bits == to_bits => {
+                use super::types::FloatKind;
+                if from_kind != to_kind {
+                    let from_type = typed.value_type.plain();
+                    if *from_kind == FloatKind::Ieee {
+                        let written = self.slice(span).to_string();
+                        return Err(self.error(Diagnostic::refused_fix(
+                            span,
+                            format!("{written} as {}", into.plain()),
+                            format!("`f{from_bits}.ieee` is a different type from `f{from_bits}`, and `as` is the wall between them (D159)"),
+                        )));
+                    }
+                    if *to_kind == FloatKind::Ieee {
+                        return Err(self.error(Diagnostic::refused(
+                            span,
+                            format!("this is `{from_type}`, where `{into}` is needed"),
+                            CONVERT_WHY,
+                        )));
+                    }
+                    return Err(self.error(Diagnostic::not_designed(
+                        span,
+                        format!("how `f{from_bits}.fast` and `f{from_bits}.stable` mix"),
+                        "not decided yet (standard 12.2)",
+                    )));
+                }
+                let Some(bounds) = to_bounds else { return Ok(typed.value) };
+                if let Some(literal) = typed.float_literal {
+                    if literal < bounds.min() || literal > bounds.max() {
+                        return Err(self.error(Diagnostic::refused(
+                            span,
+                            format!("`{}` doesn't fit `{into}`", self.slice(span)),
+                            "a literal that can't fit is a compile error (D20, D158)",
+                        )));
+                    }
+                    return Ok(typed.value);
+                }
+                if let Some(from_bounds) = from_bounds
+                    && from_bounds.min() >= bounds.min()
+                    && from_bounds.max() <= bounds.max()
+                {
+                    return Ok(typed.value);
+                }
+                Ok(self.fit_float(span, typed, into, *bounds))
+            }
             (from, to) if from == to && !matches!(from, Type::Integer { .. }) => Ok(typed.value),
             (from, to) => Err(self.error(Diagnostic::refused(
                 span,
                 format!("this is `{from}`, where `{to}` is needed"),
                 CONVERT_WHY,
             ))),
+        }
+    }
+
+    /// Checks while running that a float fits a bound (D20, D158).
+    pub fn fit_float(
+        &mut self,
+        span: Span,
+        typed: Typed,
+        into: &Type,
+        bounds: super::types::FloatBounds,
+    ) -> checked::Expression {
+        let (what, when) = match &typed.variable {
+            Some(name) => {
+                (format!("`{name}` doesn't fit `{into}`"), vec![When::Text(format!("`{name}` is ")), When::Operand(0)])
+            }
+            None => (format!("this doesn't fit `{into}`"), vec![When::Text("it is ".into()), When::Operand(0)]),
+        };
+        let failure = failure(
+            self,
+            Diagnostic::new(
+                DiagnosticKind::CheckFailed,
+                span,
+                what,
+                "a plain `=`, `change` or argument checks a bound when the compiler can't see it fits (D20, D158)",
+            ),
+            &when,
+        );
+        let machine_type = typed.value.machine_type.clone();
+        checked::Expression {
+            kind: Kind::FitFloat {
+                value: Box::new(typed.value),
+                min: bounds.min(),
+                max: bounds.max(),
+                failure: Box::new(failure),
+            },
+            machine_type,
         }
     }
 

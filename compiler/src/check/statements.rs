@@ -145,8 +145,7 @@ impl Checker<'_> {
         block: &mut checked::Block,
     ) -> Check<()> {
         if declared.is_unknown() {
-            // The type was refused, but the value is still checked for its own errors.
-            let _ = self.expression(body, &binding.value, None)?;
+            // The type was refused, so its value can't be judged against it.
             return Err(Reported);
         }
         if let Type::Writer(writer) = declared {
@@ -439,6 +438,31 @@ impl Checker<'_> {
                         let narrowed = Variable { value_type: tested.clone(), mutable: false, ..original };
                         Ok((condition, Some(narrowed)))
                     }
+                    (
+                        Type::Float { bits: from_bits, kind: from_kind, bounds: None },
+                        Type::Float { bits, kind, bounds: Some(bounds) },
+                    ) if from_bits == bits && from_kind == kind => {
+                        let machine_type = typed.value.machine_type.clone();
+                        let bound = |value: f64| checked::Expression {
+                            kind: Kind::Float(value),
+                            machine_type: machine_type.clone(),
+                        };
+                        let low = compare(checked::Comparison::AtLeast, typed.value.clone(), bound(bounds.min()));
+                        let high = compare(checked::Comparison::AtMost, typed.value.clone(), bound(bounds.max()));
+                        let condition = checked::Expression {
+                            kind: Kind::And(Box::new(low), Box::new(high)),
+                            machine_type: MachineType::Bool,
+                        };
+                        let Some(original) = body.lookup(&name.text).cloned() else { return Err(Reported) };
+                        let narrowed = Variable { value_type: tested.clone(), mutable: false, ..original };
+                        Ok((condition, Some(narrowed)))
+                    }
+                    (Type::Float { .. } | Type::Integer { .. }, Type::Float { .. } | Type::Integer { .. }) => Err(self
+                        .error(Diagnostic::not_designed(
+                            written_type.span,
+                            format!("the test for `{tested}` on `{}`", typed.value_type),
+                            "not decided yet (standard 12.2)",
+                        ))),
                     _ => Err(self.not_yet(subject.span.to(written_type.span), "this test".to_string())),
                 }
             }

@@ -13,7 +13,6 @@ declare i64 @write(i32, ptr, i64)
 declare ptr @malloc(i64)
 declare void @free(ptr)
 declare void @exit(i32) noreturn
-declare void @llvm.memcpy.p0.p0.i64(ptr, ptr, i64, i1)
 
 ; Writes every byte, carrying on after a short write.
 define void @__cyborg_write_all(i32 %descriptor, ptr %data, i64 %length) {
@@ -284,4 +283,77 @@ entry:
   call void @__cyborg_writer_write(ptr %writer, ptr %data, i64 %length)
   call void @__cyborg_print_repeat(ptr %writer, i8 32, i64 %after)
   ret void
+}
+
+; Prints formatted text padded to a width, aligned 0 left, 1 right or 2 center. With %zeros, zeros fill the width
+; after any sign the text starts with, as a number's do.
+define void @__cyborg_print_padded(ptr %writer, ptr %text, i64 %length, i64 %width, i32 %align, i1 %zeros) {
+entry:
+  br i1 %zeros, label %zero_fill, label %spaces
+spaces:
+  call void @__cyborg_print_text(ptr %writer, ptr %text, i64 %length, i64 %length, i64 %width, i32 %align)
+  ret void
+zero_fill:
+  %pad = sub i64 %width, %length
+  %padded = icmp sgt i64 %pad, 0
+  %padding = select i1 %padded, i64 %pad, i64 0
+  %first = load i8, ptr %text
+  %is_minus = icmp eq i8 %first, 45
+  %is_plus = icmp eq i8 %first, 43
+  %has_sign = or i1 %is_minus, %is_plus
+  br i1 %has_sign, label %sign, label %digits
+sign:
+  call void @__cyborg_writer_write(ptr %writer, ptr %text, i64 1)
+  br label %digits
+digits:
+  %skip = zext i1 %has_sign to i64
+  %rest = getelementptr i8, ptr %text, i64 %skip
+  %rest_length = sub i64 %length, %skip
+  call void @__cyborg_print_repeat(ptr %writer, i8 48, i64 %padding)
+  call void @__cyborg_writer_write(ptr %writer, ptr %rest, i64 %rest_length)
+  ret void
+}
+
+; `as str` on a number builds new text, which can allocate (D7, D122). It's never freed yet.
+define { ptr, i64 } @__cyborg_text_of_integer(i64 %magnitude, i1 %negative) {
+entry:
+  %text = call ptr @malloc(i64 24)
+  %writer = alloca %writer
+  ; Write the digits through a buffer, then copy them in.
+  %digits = alloca [24 x i8]
+  %end = getelementptr i8, ptr %digits, i64 24
+  br label %digit
+digit:
+  %value = phi i64 [ %magnitude, %entry ], [ %rest, %digit ]
+  %at = phi ptr [ %end, %entry ], [ %here, %digit ]
+  %rest = udiv i64 %value, 10
+  %remainder = urem i64 %value, 10
+  %code = add i64 %remainder, 48
+  %byte = trunc i64 %code to i8
+  %here = getelementptr i8, ptr %at, i64 -1
+  store i8 %byte, ptr %here
+  %more = icmp ne i64 %rest, 0
+  br i1 %more, label %digit, label %signed
+signed:
+  %minus_at = getelementptr i8, ptr %here, i64 -1
+  store i8 45, ptr %minus_at
+  %start = select i1 %negative, ptr %minus_at, ptr %here
+  %start_int = ptrtoint ptr %start to i64
+  %end_int = ptrtoint ptr %end to i64
+  %length = sub i64 %end_int, %start_int
+  call void @llvm.memcpy.p0.p0.i64(ptr %text, ptr %start, i64 %length, i1 false)
+  %with_data = insertvalue { ptr, i64 } undef, ptr %text, 0
+  %result = insertvalue { ptr, i64 } %with_data, i64 %length, 1
+  ret { ptr, i64 } %result
+}
+
+define { ptr, i64 } @__cyborg_text_of_float(double %value, i32 %bits) {
+entry:
+  %buffer = alloca [1400 x i8]
+  %length = call i64 @__cyborg_format_float(double %value, i32 %bits, i32 0, i32 0, i1 false, ptr %buffer)
+  %text = call ptr @malloc(i64 %length)
+  call void @llvm.memcpy.p0.p0.i64(ptr %text, ptr %buffer, i64 %length, i1 false)
+  %with_data = insertvalue { ptr, i64 } undef, ptr %text, 0
+  %result = insertvalue { ptr, i64 } %with_data, i64 %length, 1
+  ret { ptr, i64 } %result
 }

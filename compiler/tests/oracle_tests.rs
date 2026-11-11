@@ -55,7 +55,7 @@ fn run(test: &Test) -> Result<(), String> {
         Err(_) => 1,
     };
     let output = Command::new(env!("CARGO_BIN_EXE_okay"))
-        .args(["run", "--Working", &test.program])
+        .args(["run", "--Working", "--opt=O0", &test.program])
         .current_dir(&test.folder)
         .output()
         .map_err(|error| format!("couldn't run okay: {error}"))?;

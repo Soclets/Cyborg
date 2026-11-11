@@ -9,7 +9,7 @@ use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 
 use okay::build::{self, Outcome};
-use okay::target::{Mode, Target};
+use okay::target::{Mode, Optimization, Target};
 
 const USAGE: &str =
     "usage: okay comp|run --Working|--FinalSafe|--FinalPerf|--FinalShit|--FinalSmall|--Literal [--target=…] file.cy";
@@ -29,6 +29,7 @@ fn main() -> ExitCode {
         }
     };
     let mut mode = None;
+    let mut optimization = None;
     let mut target = Target::host();
     let mut file = None;
     for argument in &arguments[1..] {
@@ -38,6 +39,11 @@ fn main() -> ExitCode {
                 return ExitCode::from(2);
             }
             mode = Some(chosen);
+        } else if let Some(level) = Optimization::from_flag(argument) {
+            optimization = Some(level);
+        } else if argument.starts_with("--opt=") {
+            eprintln!("okay: `{argument}` isn't a level; `--opt=` takes LLVM's: O0, O1, O2, O3, Os or Oz (D288)");
+            return ExitCode::from(2);
         } else if argument == "--mode" {
             eprintln!("okay: the build mode is a flag of its own, as in `--FinalSafe` (D224)");
             return ExitCode::from(2);
@@ -58,6 +64,23 @@ fn main() -> ExitCode {
     let Some(mode) = mode else {
         eprintln!("okay: there's no default build mode, so say which, as in `okay {command} --FinalSafe` (D26)");
         return ExitCode::from(2);
+    };
+    let mode = match (mode, optimization) {
+        (Mode::Working(_), Some(level)) => Mode::Working(level),
+        (Mode::Working(_), None) => {
+            eprintln!(
+                "okay: `--Working` says how much it optimizes: `--opt=O0` for debugging, or `--opt=O1` for quick runs (D288)"
+            );
+            return ExitCode::from(2);
+        }
+        (other, Some(_)) => {
+            eprintln!(
+                "okay: `--opt=` goes only with `--Working`, since `--{}` optimizes as it says (D288)",
+                other.name()
+            );
+            return ExitCode::from(2);
+        }
+        (other, None) => other,
     };
     let Some(file) = file else {
         eprintln!("{USAGE}");

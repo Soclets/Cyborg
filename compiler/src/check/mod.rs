@@ -3,6 +3,7 @@
 //! Checking goes item by item, then statement by statement. After an error, only that statement is skipped
 //! (standard 11.7), and a skipped `let` still declares its variable, with the type it wrote.
 
+pub mod floats;
 pub mod format;
 pub mod types;
 
@@ -472,10 +473,8 @@ impl Checker<'_> {
                     )));
                 }
             };
-            if !labels.is_empty() {
-                return Err(self.not_yet(written.span, "a float with bounds".to_string()));
-            }
-            return Ok(Type::Float { bits, kind });
+            let bounds = self.float_bounds(written.span, bits, kind, labels)?;
+            return Ok(Type::Float { bits, kind, bounds });
         }
         match text.as_str() {
             "bool" => Ok(Type::Bool),
@@ -494,6 +493,82 @@ impl Checker<'_> {
                 "a type is built in, or declared with `struct` or `union.tagged` (D33, D57)",
             ))),
         }
+    }
+
+    /// A float's bounds, `f64.stable[min: -40.0, max: 125.0]`, whose literals follow D59 (D158).
+    fn float_bounds(
+        &mut self,
+        span: Span,
+        bits: u32,
+        kind: types::FloatKind,
+        labels: &[syntax::Label],
+    ) -> Check<Option<types::FloatBounds>> {
+        if labels.is_empty() {
+            return Ok(None);
+        }
+        if kind != types::FloatKind::Stable {
+            return Err(self.error(Diagnostic::not_designed(
+                span,
+                format!("a bound on `f{bits}.{}`", kind.word()),
+                "not decided yet (standard 12.2)",
+            )));
+        }
+        let mut min = None;
+        let mut max = None;
+        let plain = Type::Float { bits, kind, bounds: None };
+        for label in labels {
+            let name = label.name.text();
+            if name != "min" && name != "max" {
+                return Err(self.error(Diagnostic::refused(
+                    label.name.span,
+                    format!("a float has no `{name}`"),
+                    format!("`f{bits}[min: -40.0, max: 125.0]` is still {bits} bits, and holds only that range (D158)"),
+                )));
+            }
+            if !matches!(
+                label.value.kind,
+                syntax::ExpressionKind::Float(_)
+                    | syntax::ExpressionKind::Integer(_)
+                    | syntax::ExpressionKind::Inexact { .. }
+                    | syntax::ExpressionKind::Exponent(_)
+                    | syntax::ExpressionKind::Unary { .. }
+            ) {
+                return Err(self.error(Diagnostic::not_designed(
+                    label.value.span,
+                    "a bound that isn't a literal",
+                    "not decided yet, and the standard doesn't say",
+                )));
+            }
+            let mut body = Body::default();
+            let typed = self.expression(&mut body, &label.value, Some(&plain))?;
+            let Some(value) = typed.float_literal else {
+                return Err(self.error(Diagnostic::not_designed(
+                    label.value.span,
+                    "a bound that isn't a literal",
+                    "not decided yet, and the standard doesn't say",
+                )));
+            };
+            if name == "min" {
+                min = Some(value);
+            } else {
+                max = Some(value);
+            }
+        }
+        let (Some(min), Some(max)) = (min, max) else {
+            return Err(self.error(Diagnostic::not_designed(
+                span,
+                "a bound with only `min` or only `max`",
+                "not decided yet, and the standard doesn't say",
+            )));
+        };
+        if min > max {
+            return Err(self.error(Diagnostic::refused(
+                span,
+                "`min` is above `max`, so nothing fits",
+                "a bounded float holds only its range (D158)",
+            )));
+        }
+        Ok(Some(types::FloatBounds::new(min, max)))
     }
 
     fn integer_bounds(&mut self, span: Span, labels: &[syntax::Label]) -> Check<Option<types::Bounds>> {

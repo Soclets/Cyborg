@@ -77,10 +77,36 @@ impl Target {
     }
 }
 
-/// A build mode, always chosen with its own flag (D26, D224, D282).
+/// How much `Working` optimizes, with LLVM's own levels (D288).
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub enum Optimization {
+    O0,
+    O1,
+    O2,
+    O3,
+    Os,
+    Oz,
+}
+
+impl Optimization {
+    #[must_use]
+    pub fn from_flag(flag: &str) -> Option<Optimization> {
+        match flag {
+            "--opt=O0" => Some(Optimization::O0),
+            "--opt=O1" => Some(Optimization::O1),
+            "--opt=O2" => Some(Optimization::O2),
+            "--opt=O3" => Some(Optimization::O3),
+            "--opt=Os" => Some(Optimization::Os),
+            "--opt=Oz" => Some(Optimization::Oz),
+            _ => None,
+        }
+    }
+}
+
+/// A build mode, always chosen with its own flag (D26, D224, D282). `Working` says how much it optimizes (D288).
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum Mode {
-    Working,
+    Working(Optimization),
     FinalSafe,
     FinalPerf,
     FinalShit,
@@ -92,7 +118,7 @@ impl Mode {
     #[must_use]
     pub fn from_flag(flag: &str) -> Option<Mode> {
         match flag {
-            "--Working" => Some(Mode::Working),
+            "--Working" => Some(Mode::Working(Optimization::O0)),
             "--FinalSafe" => Some(Mode::FinalSafe),
             "--FinalPerf" => Some(Mode::FinalPerf),
             "--FinalShit" => Some(Mode::FinalShit),
@@ -105,7 +131,7 @@ impl Mode {
     #[must_use]
     pub fn name(self) -> &'static str {
         match self {
-            Mode::Working => "Working",
+            Mode::Working(_) => "Working",
             Mode::FinalSafe => "FinalSafe",
             Mode::FinalPerf => "FinalPerf",
             Mode::FinalShit => "FinalShit",
@@ -114,12 +140,17 @@ impl Mode {
         }
     }
 
-    /// LLVM's pass pipeline. `Working` runs a lighter one so it builds faster (D168), and `Literal` runs only what
-    /// turns stack slots into registers, rewriting nothing the code says (D282).
+    /// LLVM's pass pipeline. `Working` runs the level it says (D288), and `Literal` runs only what turns stack slots
+    /// into registers, rewriting nothing the code says (D282).
     #[must_use]
     pub fn pipeline(self) -> &'static str {
         match self {
-            Mode::Working => "default<O1>",
+            Mode::Working(Optimization::O0) => "default<O0>",
+            Mode::Working(Optimization::O1) => "default<O1>",
+            Mode::Working(Optimization::O2) => "default<O2>",
+            Mode::Working(Optimization::O3) => "default<O3>",
+            Mode::Working(Optimization::Os) => "default<Os>",
+            Mode::Working(Optimization::Oz) => "default<Oz>",
             Mode::FinalSafe | Mode::FinalPerf | Mode::FinalShit => "default<O3>",
             Mode::FinalSmall => "default<Oz>",
             Mode::Literal => "mem2reg",
@@ -129,6 +160,6 @@ impl Mode {
     /// Whether runtime checks stay: overflow, bounds and division by zero (standard 10.3, 10.4).
     #[must_use]
     pub fn keeps_checks(self) -> bool {
-        matches!(self, Mode::Working | Mode::FinalSafe | Mode::FinalSmall | Mode::Literal)
+        matches!(self, Mode::Working(_) | Mode::FinalSafe | Mode::FinalSmall | Mode::Literal)
     }
 }

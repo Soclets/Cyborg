@@ -5,6 +5,7 @@ use crate::diagnostic::Diagnostic;
 use crate::source::Span;
 use crate::syntax::{self, ExpressionKind, Ownership};
 
+use super::expressions::{When, failure};
 use super::format::{self, Part, ShapeWord, Takes};
 use super::types::{Type, WriterKind};
 use super::{Body, Check, Checker};
@@ -301,10 +302,70 @@ impl Checker<'_> {
                 NOT_DECIDED,
             )));
         }
+        if let Type::Integer { kind, .. } = &value_type
+            && kind.signed
+            && shape.base != checked::Base::Decimal
+        {
+            // A negative number in another base isn't decided, so a signed one is checked while running.
+            return Ok(checked::Piece::Value {
+                value,
+                shape,
+                failures: Some(Box::new(checked::FloatPrintFailures {
+                    halfway: failure(
+                        self,
+                        Diagnostic::not_designed(
+                            hole.shapes_span,
+                            "how a negative number prints with `base:`",
+                            NOT_DECIDED,
+                        ),
+                        &[],
+                    ),
+                    science: failure(self, Diagnostic::not_designed(hole.span, "", NOT_DECIDED), &[]),
+                    nan: failure(self, Diagnostic::not_designed(hole.span, "", NOT_DECIDED), &[]),
+                })),
+            });
+        }
+        if let Type::Float { kind, .. } = &value_type {
+            if stored && (shape.places.is_some() || shape.science) {
+                return Err(self.error(Diagnostic::not_designed(
+                    argument.value.span,
+                    "`places:` or `form:` in a `.stored` print",
+                    "not decided yet (standard 12.2)",
+                )));
+            }
+            let failures = checked::FloatPrintFailures {
+                halfway: failure(
+                    self,
+                    Diagnostic::not_designed(hole.shapes_span, "which way a value exactly halfway rounds", NOT_DECIDED),
+                    &[When::Text("the value is ".into()), When::Operand(0)],
+                ),
+                science: failure(
+                    self,
+                    Diagnostic::not_designed(
+                        hole.shapes_span,
+                        "a negative exponent, or zero, in `form: science`",
+                        "not decided yet (standard 12.2)",
+                    ),
+                    &[],
+                ),
+                nan: failure(
+                    self,
+                    Diagnostic::not_designed(hole.shapes_span, "how `NaN` prints with shapes on it", NOT_DECIDED),
+                    &[],
+                ),
+            };
+            let _ = kind;
+            return Ok(checked::Piece::Value { value, shape, failures: Some(Box::new(failures)) });
+        }
         match value_type {
-            Type::Integer { .. } => Ok(checked::Piece::Value { value, shape }),
-            Type::Str if matches!(value.kind, checked::ExpressionKind::Text(_)) => {
-                Ok(checked::Piece::Value { value, shape })
+            Type::Integer { .. } => Ok(checked::Piece::Value { value, shape, failures: None }),
+            Type::Str => {
+                if shape.width.is_some() && !matches!(value.kind, checked::ExpressionKind::Text(_)) {
+                    return Err(
+                        self.not_yet(argument.value.span, "a width on text known only while running".to_string())
+                    );
+                }
+                Ok(checked::Piece::Value { value, shape, failures: None })
             }
             Type::Bool => Err(self.error(Diagnostic::not_designed(
                 argument.value.span,

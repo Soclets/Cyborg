@@ -21,6 +21,7 @@ use crate::target::{Mode, Target};
 
 const OS_RUNTIME: &str = include_str!("runtime/os.ll");
 const BARE_RUNTIME: &str = include_str!("runtime/bare.ll");
+const FLOAT_RUNTIME: &str = include_str!("runtime/floats.ll");
 const BOARD_STARTUP: &str = include_str!("runtime/arduino_uno_r4_wifi/startup.ll");
 
 /// The linker script for the Arduino Uno R4 `WiFi` (D261, D281).
@@ -34,15 +35,22 @@ pub fn object_file(program: &Program, target: Target, mode: Mode) -> Result<Vec<
     with_context(|context| {
         let triple = target.triple();
         let level = match mode {
-            Mode::Literal => CodeGenerationOptimizationLevel::None,
-            Mode::Working => CodeGenerationOptimizationLevel::Less,
+            Mode::Literal | Mode::Working(crate::target::Optimization::O0) => CodeGenerationOptimizationLevel::None,
+            Mode::Working(crate::target::Optimization::O1) => CodeGenerationOptimizationLevel::Less,
+            Mode::Working(
+                crate::target::Optimization::O2 | crate::target::Optimization::Os | crate::target::Optimization::Oz,
+            ) => CodeGenerationOptimizationLevel::Default,
             _ => CodeGenerationOptimizationLevel::Aggressive,
         };
         let relocation = if target.has_os() { RelocationMode::PositionIndependentCode } else { RelocationMode::Static };
         let machine = LlvmTarget::from_triple(triple)
             .map_err(|error| error.message().to_string())?
             .create_target_machine(triple, target.cpu(), "", level, relocation, CodeModel::Default);
-        let runtime = if target.has_os() { OS_RUNTIME.to_string() } else { format!("{BARE_RUNTIME}\n{BOARD_STARTUP}") };
+        let runtime = if target.has_os() {
+            format!("{OS_RUNTIME}\n{FLOAT_RUNTIME}")
+        } else {
+            format!("{BARE_RUNTIME}\n{BOARD_STARTUP}")
+        };
         let mut module =
             context.parse_ir_text(&runtime).map_err(|error| format!("the runtime: {}", error.message()))?;
         {
@@ -328,13 +336,28 @@ impl<'context, 'module> Generator<'context, 'module> {
         for piece in pieces {
             match piece {
                 Piece::Text(text) => self.text(frame, writer, text)?,
-                Piece::Value { value, shape } => {
+                Piece::Value { value, shape, failures } => {
                     let generated = self.expression(frame, value)?;
                     match &value.machine_type {
+                        MachineType::Float { bits } => {
+                            self.print_float(frame, writer, generated, *bits, shape, failures.as_deref())?;
+                        }
+                        MachineType::Integer { signed: true, bits } if failures.is_some() => {
+                            if let Some(failures) = failures {
+                                let zero = integer_constant(self.context, *bits, 0);
+                                let fine = frame
+                                    .builder
+                                    .integer_compare(IntegerPredicate::SignedGreaterOrEqual, generated, zero, "")
+                                    .to_dynamic();
+                                self.check(frame, fine, &failures.halfway, &[])?;
+                            }
+                            self.print_number(frame, writer, generated, &value.machine_type, shape)?;
+                        }
                         MachineType::Text => {
                             let columns = match &value.kind {
                                 ExpressionKind::Text(text) => shape.columns_of(text),
-                                _ => return Err("printing a string that isn't a literal".to_string()),
+                                // With no width, columns aren't needed.
+                                _ => 0,
                             };
                             let data = frame.builder.extract_value(generated, 0, "").to_dynamic();
                             let length = frame.builder.extract_value(generated, 1, "").to_dynamic();
@@ -389,6 +412,75 @@ impl<'context, 'module> Generator<'context, 'module> {
     }
 
     /// Prints a number or a `bool` with its shape.
+    /// Formats a float with the runtime and prints it, crashing on what isn't decided (D161, D162, D194).
+    fn print_float(
+        &mut self,
+        frame: &mut Frame<'context, 'module>,
+        writer: Value<'context, 'module>,
+        value: Value<'context, 'module>,
+        bits: u32,
+        shape: &Shape,
+        failures: Option<&crate::checked::FloatPrintFailures>,
+    ) -> Result<()> {
+        let wide = if bits == 32 {
+            frame.builder.float_extend(value, self.context.get_type::<F64>(), "").to_dynamic()
+        } else {
+            value
+        };
+        let shaped = shape.places.is_some() || shape.science || shape.width.is_some() || shape.sign || shape.zeros;
+        if shaped && let Some(failures) = failures {
+            // NaN with shapes on it isn't decided.
+            let is_number =
+                frame.builder.float_compare(lyftar::enums::FloatPredicate::Ordered, wide, wide, "").to_dynamic();
+            self.check(frame, is_number, &failures.nan, &[])?;
+        }
+        let form = match (shape.stored, shape.places.is_some(), shape.science) {
+            (true, _, _) => 1,
+            (false, true, false) => 2,
+            (false, false, true) => 3,
+            (false, true, true) => 4,
+            (false, false, false) => 0,
+        };
+        let places = shape.places.unwrap_or(0);
+        let buffer_type = self.context.integer_type(8).to_dynamic().array_type(1400 + u64::from(places));
+        let buffer = frame.builder.stack_allocate(buffer_type, "").to_dynamic();
+        let arguments = [
+            wide,
+            self.integer(32, u64::from(bits)),
+            self.integer(32, form),
+            self.integer(32, u64::from(places)),
+            self.integer(1, u64::from(shape.sign)),
+            buffer,
+        ];
+        let length = frame.builder.call(self.runtime("__cyborg_format_float")?, &arguments, "").to_dynamic();
+        if let Some(failures) = failures {
+            let zero = self.integer(64, 0);
+            let not_halfway = frame
+                .builder
+                .integer_compare(IntegerPredicate::NotEqual, length, integer_constant(self.context, 64, -1), "")
+                .to_dynamic();
+            self.check(frame, not_halfway, &failures.halfway, &[(value, MachineType::Float { bits })])?;
+            let fine =
+                frame.builder.integer_compare(IntegerPredicate::SignedGreaterOrEqual, length, zero, "").to_dynamic();
+            self.check(frame, fine, &failures.science, &[])?;
+        }
+        let align = match shape.align {
+            Some(crate::checked::Align::Left) => 0,
+            Some(crate::checked::Align::Center) => 2,
+            _ => 1,
+        };
+        let arguments = [
+            writer,
+            buffer,
+            length,
+            self.integer(64, shape.width.unwrap_or(0)),
+            self.integer(32, align),
+            self.integer(1, u64::from(shape.zeros)),
+        ];
+        frame.builder.call(self.runtime("__cyborg_print_padded")?, &arguments, "");
+        Ok(())
+    }
+
     fn print_number(
         &mut self,
         frame: &mut Frame<'context, 'module>,
@@ -397,6 +489,9 @@ impl<'context, 'module> Generator<'context, 'module> {
         machine_type: &MachineType,
         shape: &Shape,
     ) -> Result<()> {
+        if let MachineType::Float { bits } = *machine_type {
+            return self.print_float(frame, writer, value, bits, shape, None);
+        }
         let MachineType::Integer { bits, signed } = *machine_type else {
             return Err(format!("printing {machine_type:?} isn't generated yet"));
         };
@@ -455,7 +550,10 @@ impl<'context, 'module> Generator<'context, 'module> {
                 };
                 integer_constant(self.context, bits, *value)
             }
-            ExpressionKind::Float(value) => self.context.get_type::<F64>().constant_float(*value).to_dynamic(),
+            ExpressionKind::Float(value) => match expression.machine_type {
+                MachineType::Float { bits: 32 } => self.context.get_type::<F32>().constant_float(*value).to_dynamic(),
+                _ => self.context.get_type::<F64>().constant_float(*value).to_dynamic(),
+            },
             ExpressionKind::Bool(value) => self.integer(1, u64::from(*value)),
             ExpressionKind::Text(text) => {
                 let bytes = self.constant_bytes(text);
@@ -496,6 +594,144 @@ impl<'context, 'module> Generator<'context, 'module> {
                     MachineType::Float { .. } => frame.builder.float_negate(operand, "").to_dynamic(),
                     _ => frame.builder.integer_negate(operand, "").to_dynamic(),
                 }
+            }
+            ExpressionKind::Compare { operator, left, right }
+                if matches!(left.machine_type, MachineType::Float { .. }) =>
+            {
+                use lyftar::enums::FloatPredicate;
+                let left = self.expression(frame, left)?;
+                let right = self.expression(frame, right)?;
+                // IEEE 754 decides comparing (D167): anything with NaN is false, except `!=`.
+                let predicate = match operator {
+                    Comparison::Equal => FloatPredicate::OrderedEqual,
+                    Comparison::NotEqual => FloatPredicate::UnorderedNotEqual,
+                    Comparison::Below => FloatPredicate::OrderedLessThan,
+                    Comparison::Above => FloatPredicate::OrderedGreaterThan,
+                    Comparison::AtLeast => FloatPredicate::OrderedGreaterOrEqual,
+                    Comparison::AtMost => FloatPredicate::OrderedLessOrEqual,
+                };
+                frame.builder.float_compare(predicate, left, right, "").to_dynamic()
+            }
+            ExpressionKind::FloatArithmetic { operator, left, right, infinity, nan } => {
+                use crate::checked::FloatArithmetic;
+                let left_value = self.expression(frame, left)?;
+                let right_value = self.expression(frame, right)?;
+                let result = match operator {
+                    FloatArithmetic::Add => frame.builder.float_add(left_value, right_value, "").to_dynamic(),
+                    FloatArithmetic::Subtract => frame.builder.float_subtract(left_value, right_value, "").to_dynamic(),
+                    FloatArithmetic::Multiply => frame.builder.float_multiply(left_value, right_value, "").to_dynamic(),
+                    FloatArithmetic::Divide => frame.builder.float_divide(left_value, right_value, "").to_dynamic(),
+                };
+                let operands = [(left_value, left.machine_type.clone()), (right_value, right.machine_type.clone())];
+                if let Some(infinity) = infinity {
+                    let MachineType::Float { bits } = expression.machine_type else {
+                        return Err("float maths on a non-float".into());
+                    };
+                    let magnitude = self.float_magnitude(frame, result, bits)?;
+                    let infinite = if bits == 32 {
+                        self.context.get_type::<F32>().constant_float(f64::INFINITY).to_dynamic()
+                    } else {
+                        self.context.get_type::<F64>().constant_float(f64::INFINITY).to_dynamic()
+                    };
+                    let finite = frame
+                        .builder
+                        .float_compare(lyftar::enums::FloatPredicate::UnorderedNotEqual, magnitude, infinite, "")
+                        .to_dynamic();
+                    self.check(frame, finite, infinity, &operands)?;
+                }
+                if let Some(nan) = nan {
+                    let ordered = frame
+                        .builder
+                        .float_compare(lyftar::enums::FloatPredicate::Ordered, result, result, "")
+                        .to_dynamic();
+                    self.check(frame, ordered, nan, &operands)?;
+                }
+                result
+            }
+            ExpressionKind::TextOf(value) => {
+                let generated = self.expression(frame, value)?;
+                match value.machine_type {
+                    MachineType::Float { bits } => {
+                        let wide = if bits == 32 {
+                            frame.builder.float_extend(generated, self.context.get_type::<F64>(), "").to_dynamic()
+                        } else {
+                            generated
+                        };
+                        let arguments = [wide, self.integer(32, u64::from(bits))];
+                        frame.builder.call(self.runtime("__cyborg_text_of_float")?, &arguments, "").to_dynamic()
+                    }
+                    MachineType::Integer { bits, signed } => {
+                        let i64_type = self.context.integer_type(64);
+                        let wide = match bits.cmp(&64) {
+                            std::cmp::Ordering::Equal => generated,
+                            std::cmp::Ordering::Greater => frame.builder.truncate(generated, i64_type, "").to_dynamic(),
+                            std::cmp::Ordering::Less if signed => {
+                                frame.builder.sign_extend(generated, i64_type, "").to_dynamic()
+                            }
+                            std::cmp::Ordering::Less => frame.builder.zero_extend(generated, i64_type, "").to_dynamic(),
+                        };
+                        let zero = self.integer(64, 0);
+                        let (magnitude, negative) = if signed {
+                            let negative = frame
+                                .builder
+                                .integer_compare(IntegerPredicate::SignedLessThan, wide, zero, "")
+                                .to_dynamic();
+                            let flipped = frame.builder.integer_subtract(zero, wide, "").to_dynamic();
+                            (frame.builder.select(negative, flipped, wide, "").to_dynamic(), negative)
+                        } else {
+                            (wide, self.integer(1, 0))
+                        };
+                        frame
+                            .builder
+                            .call(self.runtime("__cyborg_text_of_integer")?, &[magnitude, negative], "")
+                            .to_dynamic()
+                    }
+                    _ => return Err("text of something that isn't a number".to_string()),
+                }
+            }
+            ExpressionKind::FromIeee { value, nan, infinity } => {
+                use lyftar::enums::FloatPredicate;
+                let MachineType::Float { bits } = value.machine_type else {
+                    return Err("`as` from a non-float".into());
+                };
+                let generated = self.expression(frame, value)?;
+                let ordered =
+                    frame.builder.float_compare(FloatPredicate::Ordered, generated, generated, "").to_dynamic();
+                self.check(frame, ordered, nan, &[])?;
+                let magnitude = self.float_magnitude(frame, generated, bits)?;
+                let infinite = if bits == 32 {
+                    self.context.get_type::<F32>().constant_float(f64::INFINITY).to_dynamic()
+                } else {
+                    self.context.get_type::<F64>().constant_float(f64::INFINITY).to_dynamic()
+                };
+                let finite = frame
+                    .builder
+                    .float_compare(FloatPredicate::UnorderedNotEqual, magnitude, infinite, "")
+                    .to_dynamic();
+                self.check(frame, finite, infinity, &[])?;
+                generated
+            }
+            ExpressionKind::FitFloat { value, min, max, failure } => {
+                use lyftar::enums::FloatPredicate;
+                let MachineType::Float { bits } = value.machine_type else {
+                    return Err("a float bound on a non-float".into());
+                };
+                let generated = self.expression(frame, value)?;
+                let constant = |number: f64| {
+                    if bits == 32 {
+                        self.context.get_type::<F32>().constant_float(number).to_dynamic()
+                    } else {
+                        self.context.get_type::<F64>().constant_float(number).to_dynamic()
+                    }
+                };
+                let (low, high) = (constant(*min), constant(*max));
+                let above_min =
+                    frame.builder.float_compare(FloatPredicate::OrderedGreaterOrEqual, generated, low, "").to_dynamic();
+                let below_max =
+                    frame.builder.float_compare(FloatPredicate::OrderedLessOrEqual, generated, high, "").to_dynamic();
+                let fits = frame.builder.and(above_min, below_max, "").to_dynamic();
+                self.check(frame, fits, failure, &[(generated, value.machine_type.clone())])?;
+                generated
             }
             ExpressionKind::Compare { operator, left, right } => {
                 let signed = matches!(left.machine_type, MachineType::Integer { signed: true, .. });
@@ -764,6 +1000,20 @@ impl<'context, 'module> Generator<'context, 'module> {
             Arithmetic::BitOr => Ok(frame.builder.or(left, right, "").to_dynamic()),
             Arithmetic::BitXor => Ok(frame.builder.exclusive_or(left, right, "").to_dynamic()),
         }
+    }
+}
+
+impl<'context, 'module> Generator<'context, 'module> {
+    /// A float's magnitude, through LLVM's `fabs`.
+    fn float_magnitude(
+        &mut self,
+        frame: &mut Frame<'context, 'module>,
+        value: Value<'context, 'module>,
+        _bits: u32,
+    ) -> Result<Value<'context, 'module>> {
+        let intrinsic = Intrinsic::find("llvm.fabs").ok_or("LLVM has no `llvm.fabs`")?;
+        let declaration = self.module.intrinsic_declaration(intrinsic, &[value.get_type()]);
+        Ok(frame.builder.call(declaration, &[value], "").to_dynamic())
     }
 }
 

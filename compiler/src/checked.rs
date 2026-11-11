@@ -137,7 +137,21 @@ impl Stream {
 #[derive(Clone, Debug)]
 pub enum Piece {
     Text(String),
-    Value { value: Expression, shape: Shape },
+    /// A value with its shape. A float's print can fail in ways that aren't decided: a value exactly halfway for
+    /// `places:`, `form: science` with an exponent of 0 or below, and NaN with shapes (standard 12.2).
+    Value {
+        value: Expression,
+        shape: Shape,
+        failures: Option<Box<FloatPrintFailures>>,
+    },
+}
+
+/// What a float's print says when it reaches something undecided.
+#[derive(Clone, Debug)]
+pub struct FloatPrintFailures {
+    pub halfway: CheckFailure,
+    pub science: CheckFailure,
+    pub nan: CheckFailure,
 }
 
 /// How a hole prints its value (D194).
@@ -233,6 +247,14 @@ pub enum Arithmetic {
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum FloatArithmetic {
+    Add,
+    Subtract,
+    Multiply,
+    Divide,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Comparison {
     Equal,
     NotEqual,
@@ -284,6 +306,29 @@ pub enum ExpressionKind {
     Call {
         function: FunctionId,
         arguments: Vec<Argument>,
+    },
+    /// Float arithmetic, with the checks that a `.stable` or `.fast` result isn't infinity or NaN (D158).
+    FloatArithmetic {
+        operator: FloatArithmetic,
+        left: Box<Expression>,
+        right: Box<Expression>,
+        infinity: Option<Box<CheckFailure>>,
+        nan: Option<Box<CheckFailure>>,
+    },
+    /// A number's text, from `as str` (D122, D161).
+    TextOf(Box<Expression>),
+    /// An `.ieee` float crossing into `.stable` or `.fast` with `as`, which fails on NaN and infinity (D159).
+    FromIeee {
+        value: Box<Expression>,
+        nan: Box<CheckFailure>,
+        infinity: Box<CheckFailure>,
+    },
+    /// A float checked to be within a bound while running (D158).
+    FitFloat {
+        value: Box<Expression>,
+        min: f64,
+        max: f64,
+        failure: Box<CheckFailure>,
     },
     /// A value checked to be within a bound while running (D20).
     Fit {

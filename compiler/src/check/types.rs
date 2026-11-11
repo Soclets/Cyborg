@@ -89,6 +89,30 @@ pub struct Bounds {
     pub max: i128,
 }
 
+/// Float bounds (D158), kept as the bits of `f64`s that hold them exactly, so types compare and hash.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub struct FloatBounds {
+    pub min: u64,
+    pub max: u64,
+}
+
+impl FloatBounds {
+    #[must_use]
+    pub fn new(min: f64, max: f64) -> FloatBounds {
+        FloatBounds { min: min.to_bits(), max: max.to_bits() }
+    }
+
+    #[must_use]
+    pub fn min(self) -> f64 {
+        f64::from_bits(self.min)
+    }
+
+    #[must_use]
+    pub fn max(self) -> f64 {
+        f64::from_bits(self.max)
+    }
+}
+
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub enum Type {
     Integer {
@@ -98,6 +122,7 @@ pub enum Type {
     Float {
         bits: u32,
         kind: FloatKind,
+        bounds: Option<FloatBounds>,
     },
     Bool,
     Str,
@@ -131,6 +156,7 @@ impl Type {
     pub fn plain(&self) -> Type {
         match self {
             Type::Integer { kind, .. } => Type::Integer { kind: *kind, bounds: None },
+            Type::Float { bits, kind, .. } => Type::Float { bits: *bits, kind: *kind, bounds: None },
             other => other.clone(),
         }
     }
@@ -158,7 +184,15 @@ impl fmt::Display for Type {
                 }
                 Ok(())
             }
-            Type::Float { bits, kind } => write!(formatter, "f{bits}.{}", kind.word()),
+            Type::Float { bits, kind, bounds } => {
+                write!(formatter, "f{bits}.{}", kind.word())?;
+                if let Some(bounds) = bounds {
+                    let min = super::floats::shortest(bounds.min(), *bits);
+                    let max = super::floats::shortest(bounds.max(), *bits);
+                    write!(formatter, "[min: {min}, max: {max}]")?;
+                }
+                Ok(())
+            }
             Type::Bool => write!(formatter, "bool"),
             Type::Str => write!(formatter, "str"),
             Type::Void => write!(formatter, "void"),
