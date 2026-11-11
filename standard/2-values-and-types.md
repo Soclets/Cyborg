@@ -201,9 +201,21 @@ The list doesn't hold its allocator: every call that allocates is handed it, so 
 
 A list that can allocate, one with `len.max: inf items`, is `must_Give` ([6.9](6-ownership.md#69-must_give)), so its memory can't leak: it ends with `std::list.done(Give $xs, alloc: Lend $alloc);`, which frees it with the same allocator. A struct holding one is `must_Give` too. `std::list.done` is a placeholder name.
 
+An allocator is anything that satisfies the `allocator` interface ([5.8](5-functions.md#58-generics)), written in a shield, since it deals in raw pointers:
+
+```
+interface allocator:
+    fn ?self.%allocate [$bytes: u64[unit: bytes], $align: u64[unit: bytes]] -> ptr.raw.mut<u8> fails [out_of_memory];
+    fn ?self.%resize [$p: ptr.raw.mut<u8>, $old: u64[unit: bytes], $new: u64[unit: bytes]] -> bool;
+    fn ?self.%free [$p: ptr.raw.mut<u8>, $bytes: u64[unit: bytes]] -> void;
+end interface allocator
+```
+
+`allocate` gives a block or fails with `out_of_memory`, the failure lists pass on. `resize` tries to change a block where it is and says whether it could, and `free` hands one back.
+
 **Refused:** `std::list<i32>` with no `len.max`, a list with a bare `len`, in favour of `array`, `= empty` on a list with `len.min` above 0, `[]`, with `fix: empty`, and too few or too many items.
 
-**From:** D11, D12, D13, D24, D102, D103, D140, D321, D322, D323.
+**From:** D11, D12, D13, D24, D102, D103, D140, D321, D322, D323, D324.
 
 ## 2.11 Arrays
 
