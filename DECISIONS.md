@@ -1062,6 +1062,8 @@ A `type_set` is a closed list of types that nothing can join later, as in `type_
 
 **D280. `Working` keeps every check, even proven ones.** In `Working`, Precog's proofs don't remove checks, so a check Precog wrongly "proved" turns a Precog bug into a loud crash while developing, instead of a silent hole in a release build. Kespar's fuzzer found about a dozen such bugs in its own Precog. Every other mode still drops what Precog proves. This narrows 10.3's "in any mode". The owner asked "Would Precog keep runtime checks in `working`?"; Claude proposed this; the owner chose: "yea". (Owner, 2026-11-11)
 
+**D281. A bare-metal target names the exact board.** A bare-metal build names the board it's for, accurately, since the linker script needs its exact memory map, and its startup code and pins are the board's, not just the chip's. The owner's board is `--target=arduino_uno_r4_wifi`, replacing D261's example `arduino_uno_r4`, since the WiFi and Minima versions differ: on the WiFi, the USB port goes through a separate chip. Chip-level targets, like a plain Cortex-M4, could come later as a building block for new boards. Compiler claude asked; Claude proposed naming the board; the owner chose: "The accurate name, whatever it is, man". (Owner, 2026-11-11)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude
