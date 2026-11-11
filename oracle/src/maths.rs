@@ -419,25 +419,27 @@ mod tests {
         assert_eq!(checked(Function::Cos, -0.0).to_bits(), 1.0_f64.to_bits());
     }
 
-    /// Within two steps of the platform's own, which is close but not correctly rounded: its
-    /// `tan` of 7.23129999999994 is two steps low, where `bc` at 70 digits agrees with this.
+    /// Every answer from -40 to 40, checked again at far more bits, and held to identities that
+    /// only need IEEE `+`, `*` and `/`, which round the same on every machine. The platform's
+    /// own `sin` isn't used, since it isn't correctly rounded and differs between machines.
     /// trace: D256
     #[test]
-    fn near_the_platform() {
+    fn sweep_keeps_the_identities() {
         let mut x: f64 = -40.0;
         while x < 40.0 {
-            for function in [Function::Sin, Function::Cos, Function::Tan] {
-                let found = checked(function, x);
-                let platform = match function {
-                    Function::Sin => x.sin(),
-                    Function::Cos => x.cos(),
-                    Function::Tan => x.tan(),
-                };
-                let steps = found.to_bits().abs_diff(platform.to_bits());
+            let sine = checked(Sin, x);
+            let cosine = checked(Cos, x);
+            let tangent = checked(Tan, x);
+            let one = sine.mul_add(sine, cosine * cosine);
+            assert!(
+                (one - 1.0).abs() <= 4.0 * f64::EPSILON,
+                "sin and cos of {x}: {sine} and {cosine}"
+            );
+            if cosine.abs() > 1e-3 {
+                let ratio = sine / cosine;
                 assert!(
-                    steps <= 2,
-                    "{} of {x}: {found} and {platform}",
-                    function.word()
+                    ((tangent - ratio) / tangent).abs() <= 4.0 * f64::EPSILON,
+                    "tan of {x}: {tangent}, where sin over cos is {ratio}"
                 );
             }
             x += 0.371_9;
@@ -627,39 +629,144 @@ mod tests {
         }
     }
 
-    /// Big arguments, where taking away multiples of π/2 needs π to over a thousand bits:
-    /// the largest `f64`, 10^22, and the `f64` with the smallest cosine, 6381956970095103 ×
-    /// 2^797, whose cosine is about 4.7e-19 (Lefèvre and Muller, section 2.3).
+    /// sin, cos and tan from `bc -l` at 1200 digits, rounded once to the nearest `f64` with exact
+    /// fractions: inputs in every quadrant, `tan` of 7.23129999999994, which macOS's libm
+    /// gets two steps low, and big arguments, where taking away multiples of π/2 needs π to
+    /// over a thousand bits. Those are the largest `f64`, 10^22, 10^300, and the `f64` with the
+    /// smallest cosine, 6381956970095103 × 2^797, whose cosine is about 4.7e-19 (Lefèvre and
+    /// Muller, section 2.3), and which Linux's libm gets several steps off. Each row is the
+    /// input's bits, then sin's, cos's and tan's.
+    const FROM_BC: &[(u64, u64, u64, u64)] = &[
+        // 0.5: sin 0.479425538604203 cos 0.8775825618903728 tan 0.5463024898437905
+        (
+            0x3fe0_0000_0000_0000,
+            0x3fde_aee8_744b_05f0,
+            0x3fec_1528_065b_7d50,
+            0x3fe1_7b4f_5bf3_474a,
+        ),
+        // 1.0: sin 0.8414709848078965 cos 0.5403023058681398 tan 1.5574077246549023
+        (
+            0x3ff0_0000_0000_0000,
+            0x3fea_ed54_8f09_0cee,
+            0x3fe1_4a28_0fb5_068c,
+            0x3ff8_eb24_5cbe_e3a6,
+        ),
+        // 2.0: sin 0.9092974268256817 cos -0.4161468365471424 tan -2.185039863261519
+        (
+            0x4000_0000_0000_0000,
+            0x3fed_18f6_ead1_b446,
+            0xbfda_a226_5753_7205,
+            0xc001_7af6_2e09_50f8,
+        ),
+        // 3.0: sin 0.1411200080598672 cos -0.9899924966004454 tan -0.1425465430742778
+        (
+            0x4008_0000_0000_0000,
+            0x3fc2_1038_6db6_d55b,
+            0xbfef_ae04_be85_e5d2,
+            0xbfc2_3ef7_1254_b86f,
+        ),
+        // 4.0: sin -0.7568024953079282 cos -0.6536436208636119 tan 1.1578212823495775
+        (
+            0x4010_0000_0000_0000,
+            0xbfe8_37b9_dddc_1eae,
+            0xbfe4_eaa6_06db_24c1,
+            0x3ff2_866f_9be4_de13,
+        ),
+        // 5.0: sin -0.9589242746631385 cos 0.28366218546322625 tan -3.380515006246586
+        (
+            0x4014_0000_0000_0000,
+            0xbfee_af81_f5e0_9933,
+            0x3fd2_2785_706b_4ad9,
+            0xc00b_0b4b_739b_bb07,
+        ),
+        // 6.0: sin -0.27941549819892586 cos 0.960170286650366 tan -0.29100619138474915
+        (
+            0x4018_0000_0000_0000,
+            0xbfd1_e1f1_8ab0_a2c0,
+            0x3fee_b9b7_0978_22f5,
+            0xbfd2_9fd8_6ebb_95be,
+        ),
+        // -2.5: sin -0.5984721441039565 cos -0.8011436155469337 tan 0.7470222972386603
+        (
+            0xc004_0000_0000_0000,
+            0xbfe3_26af_0dcf_cab1,
+            0xbfe9_a2f7_ef85_8b7d,
+            0x3fe7_e79b_4e00_bb15,
+        ),
+        // 10.0: sin -0.5440211108893698 cos -0.8390715290764524 tan 0.6483608274590866
+        (
+            0x4024_0000_0000_0000,
+            0xbfe1_689e_f5f3_4f52,
+            0xbfea_d9ac_890c_6b1f,
+            0x3fe4_bf5f_34be_3782,
+        ),
+        // 100.0: sin -0.5063656411097588 cos 0.8623188722876839 tan -0.5872139151569291
+        (
+            0x4059_0000_0000_0000,
+            0xbfe0_3425_b78c_4db8,
+            0x3feb_981d_bf66_5fdf,
+            0xbfe2_ca74_d62b_5d38,
+        ),
+        // 7.23129999999994: sin 0.8123174085394228 cos 0.5832155928846523 tan 1.3928252578460842
+        (
+            0x401c_ecd9_e83e_4217,
+            0x3fe9_fe81_13f4_becf,
+            0x3fe2_a9b3_bf3e_9e5e,
+            0x3ff6_4903_2337_de00,
+        ),
+        // 1e+22: sin -0.8522008497671888 cos 0.523214785395139 tan -1.6287782256068988
+        (
+            0x4480_f0cf_064d_d592,
+            0xbfeb_453a_b76b_f397,
+            0x3fe0_be2c_ef01_c8f4,
+            0xbffa_0f79_c1b6_b257,
+        ),
+        // -1e+22: sin 0.8522008497671888 cos 0.523214785395139 tan 1.6287782256068988
+        (
+            0xc480_f0cf_064d_d592,
+            0x3feb_453a_b76b_f397,
+            0x3fe0_be2c_ef01_c8f4,
+            0x3ffa_0f79_c1b6_b257,
+        ),
+        // 1.7976931348623157e+308: sin 0.004961954789184062 cos -0.9999876894265599 tan -0.004962015874444895
+        (
+            0x7fef_ffff_ffff_ffff,
+            0x3f74_52fc_98b3_4e97,
+            0xbfef_ffe6_2ecf_ab75,
+            0xbf74_530c_fe72_9484,
+        ),
+        // 1e+300: sin -0.8178819121159085 cos -0.5753861119575491 tan 1.4214488238747245
+        (
+            0x7e37_e43c_8800_759c,
+            0xbfea_2c16_b010_e385,
+            0xbfe2_6990_22ad_c4c1,
+            0x3ff6_be41_1f37_ac77,
+        ),
+        // 5.319372648326541e+255: sin 1.0 cos -4.687165924254628e-19 tan -2.133485385753704e+18
+        (
+            0x7506_ac5b_262c_a1ff,
+            0x3ff0_0000_0000_0000,
+            0xbc21_4ae7_2e6b_a22f,
+            0xc3bd_9ba9_a797_5636,
+        ),
+    ];
+
     /// trace: D256
     #[test]
-    fn big_arguments() {
-        let smallest_cosine = 6_381_956_970_095_103.0 * 2_f64.powi(797);
-        for x in [f64::MAX, 1e22, -1e22, smallest_cosine, 1e300] {
-            for function in [Function::Sin, Function::Cos, Function::Tan] {
+    fn against_bc() {
+        for (input, sine, cosine, tangent) in FROM_BC {
+            let x = f64::from_bits(*input);
+            for (function, wanted) in [(Sin, sine), (Cos, cosine), (Tan, tangent)] {
                 let found = checked(function, x);
-                let platform = match function {
-                    Function::Sin => x.sin(),
-                    Function::Cos => x.cos(),
-                    Function::Tan => x.tan(),
-                };
-                let steps = found.to_bits().abs_diff(platform.to_bits());
-                assert!(
-                    steps <= 2,
-                    "{} of {x:e}: {found:e} and {platform:e}",
-                    function.word()
+                assert_eq!(
+                    found.to_bits(),
+                    *wanted,
+                    "{} of {x:e}: {found:e}, where bc gives {:e}",
+                    function.word(),
+                    f64::from_bits(*wanted)
                 );
             }
         }
-        let cosine = checked(Function::Cos, smallest_cosine);
-        assert!(
-            cosine.abs() > 4.6e-19 && cosine.abs() < 4.8e-19,
-            "{cosine:e}"
-        );
-        // sin(10^22), the classic test of range reduction.
-        assert_eq!(
-            checked(Function::Sin, 1e22).to_bits(),
-            (-0.852_200_849_767_188_8_f64).to_bits()
-        );
     }
 
     /// Tiny arguments, past what Lefèvre and Muller's Table 2 says rounds to the argument
