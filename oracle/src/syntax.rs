@@ -3020,11 +3020,13 @@ impl Parser {
         if !self.at_symbol("<") {
             return Ok(Vec::new());
         }
+        // Generics' spelling is decided, so anything else here is refused. (D234, D286)
+        // trace: D234, D286
         if !matches!(self.peek_at(1).lexeme, Lexeme::Source(_)) {
-            return Err(Report::not_designed(
+            return Err(Report::refused(
                 self.span(),
-                "the spelling of generics",
-                "12.5",
+                "`< >` after a name holds its sources in backticks, or type parameters straight after the name",
+                "a function's sources are written like ``<`text`>`` after a space, and its type parameters like `total<?item>`, touching the name (D171, D234)",
             ));
         }
         self.advance(); // `<`

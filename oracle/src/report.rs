@@ -30,6 +30,8 @@ pub enum Kind {
     /// Not one of 11.2's kinds. Rule 4 of `IMPLEMENTATION.md` asks for a `NotDesignedYet` error,
     /// and the design session has been told it's printed this way.
     NotDesignedYet,
+    /// Decided, but the oracle doesn't handle it yet, which isn't a design gap. (D286)
+    NotBuiltYet,
 }
 
 impl Kind {
@@ -38,6 +40,7 @@ impl Kind {
             Kind::Refused => "refused",
             Kind::CheckFailed => "check failed",
             Kind::NotDesignedYet => "NotDesignedYet",
+            Kind::NotBuiltYet => "NotBuiltYet",
         }
     }
 }
@@ -97,6 +100,22 @@ impl Report {
         Box::new(Self {
             kind: Kind::NotDesignedYet,
             ..*Self::refused(span, what, why)
+        })
+    }
+}
+
+impl Report {
+    /// Something decided that the oracle doesn't handle yet, so a reader can tell it from a
+    /// design gap at a glance. (D286)
+    /// trace: D286
+    pub fn not_built(span: Span, what: impl Into<String>) -> Box<Self> {
+        Box::new(Self {
+            kind: Kind::NotBuiltYet,
+            ..*Self::refused(
+                span,
+                what,
+                "decided, but the oracle doesn't handle it yet (D286)",
+            )
         })
     }
 }

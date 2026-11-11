@@ -467,10 +467,9 @@ impl Scale {
 /// A fraction in lowest terms, or the oracle saying it's too big to hold.
 fn fraction(top: Option<i128>, bottom: Option<i128>, span: Span) -> Outcome<Scale> {
     let (Some(top), Some(bottom)) = (top, bottom) else {
-        return Err(Report::not_designed(
+        return Err(Report::not_built(
             span,
             "a unit scale too big for the oracle to hold exactly",
-            "",
         ));
     };
     if bottom == 0 || top == 0 {
@@ -929,10 +928,9 @@ impl Checker<'_> {
         let (up, down) = self.bound_links(from, to, span)?;
         let (top, bottom) = exact_ratio(&up, &down, span)?;
         let Some(scaled) = value.checked_mul(top) else {
-            return Err(Report::not_designed(
+            return Err(Report::not_built(
                 span,
                 "a bound too big for the oracle to convert",
-                "",
             ));
         };
         if scaled % bottom != 0 {

@@ -1,0 +1,5 @@
+refused: d234_angle_brackets_hold_sources_or_types.cy:4:10, line 4 column 10
+ 4 | fn first <i32> [$x: i32] -> i32:
+   |          ^
+ what: `< >` after a name holds its sources in backticks, or type parameters straight after the name
+ why:  a function's sources are written like ``<`text`>`` after a space, and its type parameters like `total<?item>`, touching the name (D171, D234)
