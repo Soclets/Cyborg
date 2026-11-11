@@ -132,6 +132,10 @@ These are inherited from Radium with D2:
 
 - Whether a C function's `Given` parameter ends a `must_Give` duty.
 
+And one of Cyborg's own:
+
+- Concurrency: threads, sharing data between them, and anything like Go's goroutines or async. Nothing is designed yet, and how it fits ownership and reproducibility is open.
+
 ## 12.9 Limbs and projects
 
 - Modules, and how files see each other.
