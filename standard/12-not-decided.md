@@ -87,7 +87,7 @@ Waiting on the owner, most needed first. Each is `NotDesignedYet` unless it says
 - `str` narrowings other than `str.utf16`, and how string literals work.
 - The test on a value already known to be that type, like `if $n: bool:` on a `bool`. Claude suggested refusing it.
 
-- Strings (D326): what a bare `str` with no `len.max` means, as for literals and parameters, how `as str` gets an allocator when it needs one, and the name of `std::text.done`.
+- Strings (D326): how `as str` gets an allocator when it needs one, and the name of `std::text.done`.
 
 ## 12.3 Operators and conversion
 

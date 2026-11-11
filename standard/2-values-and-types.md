@@ -171,11 +171,27 @@ let mut $log: str[len.max: inf bytes] = empty;
 defer std::text.done(Give $log, alloc: Lend $alloc);
 ```
 
-What a bare `str` with no `len.max` means, as for a literal like `"hi"`, isn't decided yet ([12.2](12-not-decided.md#122-types)).
+A bare `str` is a read-only view of text: any length, never owning memory, never changing and never `must_Give`. A literal is one that lasts the whole program, and lending any string gives one, so a function that takes `str` reads every kind of string. A view of another string is a borrow, following the rules for stored borrows ([6.10](6-ownership.md#610-stored-borrows)).
+
+```
+fn load [$path: str] -> config fails [file_failed, bad_syntax]:
+    …
+end fn load
+
+load("data.txt");
+load(Lend $name);
+load(Lend $log);
+```
+
+| Type | Owns memory | Can change |
+|---|---|---|
+| `str` | No, a view | No |
+| `str[len.max: 32 bytes]` | Yes, inside the value | Yes |
+| `str[len.max: inf bytes]` | Yes, on the heap, `must_Give` | Yes |
 
 **Refused:** `str.utf8`, because it's the default ([1.7](1-programs.md#17-bare-names)), and `""`, with `fix: empty`, because it could look like unfinished work.
 
-**From:** D48, D50, D51, D103, D326.
+**From:** D48, D50, D51, D103, D326, D327.
 
 ## 2.10 Lists
 
