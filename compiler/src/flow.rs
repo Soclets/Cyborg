@@ -20,10 +20,12 @@ const HELD_WHY: &str = "`.held` means nobody touches what it borrows for the who
 const PARTIAL_WHY: &str = "after a field is moved out, the value is incomplete (D185)";
 
 /// A variable, or a field inside one.
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, Default)]
 pub struct Place {
     pub local: LocalId,
     pub path: Vec<usize>,
+    /// As written, `$l.file`, for messages.
+    pub shown: String,
 }
 
 /// How a variable came to hold its value, which decides whether it carries a duty and how errors name it.
@@ -76,9 +78,11 @@ pub enum Event {
         place: Place,
         spot: Spot,
     },
+    /// `finish`, with the `must_Give` fields inside that have to be moved out first (D177, D185).
     Finish {
         local: LocalId,
         spot: Spot,
+        duties: Vec<Place>,
     },
     /// A stored borrow made in `borrower`, from `sources`.
     Borrow {
@@ -316,9 +320,9 @@ enum Holding {
         at: Span,
         maybe: bool,
     },
-    /// A field was moved out (D185).
+    /// Fields were moved out (D185): each one's path, where, and whether on every path.
     Partial {
-        at: Span,
+        moved: Vec<(Vec<usize>, Span, bool)>,
     },
 }
 
@@ -355,7 +359,24 @@ fn join_holding(a: &Holding, b: &Holding) -> Holding {
         (Holding::Gone { finished, at, .. }, _) | (_, Holding::Gone { finished, at, .. }) => {
             Holding::Gone { finished: *finished, at: *at, maybe: true }
         }
-        (Holding::Partial { at }, _) | (_, Holding::Partial { at }) => Holding::Partial { at: *at },
+        (Holding::Partial { moved: mine }, Holding::Partial { moved: theirs }) => {
+            let mut moved: Vec<(Vec<usize>, Span, bool)> = mine
+                .iter()
+                .map(|(path, at, every)| {
+                    let both = theirs.iter().any(|(other, _, also)| other == path && *also);
+                    (path.clone(), *at, *every && both)
+                })
+                .collect();
+            for (path, at, _) in theirs {
+                if !moved.iter().any(|(other, _, _)| other == path) {
+                    moved.push((path.clone(), *at, false));
+                }
+            }
+            Holding::Partial { moved }
+        }
+        (Holding::Partial { moved }, Holding::Alive) | (Holding::Alive, Holding::Partial { moved }) => {
+            Holding::Partial { moved: moved.iter().map(|(path, at, _)| (path.clone(), *at, false)).collect() }
+        }
     }
 }
 
@@ -469,23 +490,35 @@ impl Checker<'_> {
                     self.spoil(state, place.local, spot, false);
                 }
             }
+            Event::Give { place, spot } if !place.path.is_empty() => self.move_out(state, place, spot),
             Event::Give { place, spot } => {
                 if self.usable(state, place, spot, false) {
                     self.spoil(state, place.local, spot, false);
-                    let holding = if place.path.is_empty() {
-                        Holding::Gone { finished: false, at: spot.marker, maybe: false }
-                    } else {
-                        Holding::Partial { at: spot.marker }
-                    };
-                    state.holding.insert(place.local, holding);
+                    state.holding.insert(place.local, Holding::Gone { finished: false, at: spot.marker, maybe: false });
                 }
             }
-            Event::Finish { local, spot } => {
-                let place = Place { local: *local, path: Vec::new() };
-                if self.usable(state, &place, spot, true) {
-                    self.spoil(state, *local, spot, false);
-                    state.holding.insert(*local, Holding::Gone { finished: true, at: spot.site, maybe: false });
+            Event::Finish { local, spot, duties } => {
+                let place = Place { local: *local, ..Place::default() };
+                if !self.usable(state, &place, spot, true) {
+                    return;
                 }
+                // Every `must_Give` field inside has to be moved out first, on every path (D177, D185).
+                let moved = match state.holding.get(local) {
+                    Some(Holding::Partial { moved }) => moved.clone(),
+                    _ => Vec::new(),
+                };
+                if let Some(waiting) =
+                    duties.iter().find(|duty| !moved.iter().any(|(path, _, every)| *path == duty.path && *every))
+                {
+                    self.say(Diagnostic::refused(
+                        spot.variable,
+                        format!("`{}` hasn't been given away, so `finish` waits for it", waiting.shown),
+                        "`finish` ends a value's own duty, after every `must_Give` value inside it is given away (D129, D177)",
+                    ));
+                    return;
+                }
+                self.spoil(state, *local, spot, false);
+                state.holding.insert(*local, Holding::Gone { finished: true, at: spot.site, maybe: false });
             }
             Event::Borrow { borrower, sources, mutable, held } => {
                 state.loans.insert(
@@ -553,7 +586,8 @@ impl Checker<'_> {
                 }
                 false
             }
-            Some(Holding::Partial { at }) if place.path.is_empty() && !finishing => {
+            Some(Holding::Partial { moved }) if !finishing => {
+                let at = moved.first().map_or(spot.site, |(_, at, _)| *at);
                 self.say(
                     Diagnostic::refused(
                         spot.variable,
@@ -562,12 +596,42 @@ impl Checker<'_> {
                         ),
                         PARTIAL_WHY,
                     )
-                    .with_because(*at, "it was moved out here"),
+                    .with_because(at, "it was moved out here"),
                 );
                 false
             }
             _ => true,
         }
+    }
+
+    /// `Give $l.file`: moving one field out, which leaves the rest incomplete (D185).
+    fn move_out(&mut self, state: &mut State, place: &Place, spot: &Spot) {
+        let mut moved = match state.holding.get(&place.local) {
+            Some(Holding::Partial { moved }) => moved.clone(),
+            Some(Holding::Alive) | None => Vec::new(),
+            Some(Holding::Gone { .. }) => {
+                self.usable(state, place, spot, false);
+                return;
+            }
+        };
+        if let Some((_, at, _)) = moved.iter().find(|(path, _, _)| *path == place.path) {
+            self.say(
+                Diagnostic::refused(
+                    spot.place,
+                    format!("`{}` was already moved out", place.shown),
+                    "a given value is dead afterwards (D2, D185)",
+                )
+                .with_because(*at, "it was moved out here"),
+            );
+            return;
+        }
+        if state.loans.get(&place.local).is_some_and(|loan| loan.spoiled.is_some()) {
+            self.usable(state, place, spot, false);
+            return;
+        }
+        self.spoil(state, place.local, spot, false);
+        moved.push((place.path.clone(), spot.marker, true));
+        state.holding.insert(place.local, Holding::Partial { moved });
     }
 
     /// A use of `local` spoils the stored borrows of it that it conflicts with: any use, for one lent to change,

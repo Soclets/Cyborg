@@ -90,6 +90,22 @@ impl Checker<'_> {
                         "fields",
                         "a field read is a plain `.`, so a field's name says which (D57)",
                     );
+                    // A struct holding a `must_Give` value says so itself (D177).
+                    let says_it = declared.keyword.text() == "struct.must_Give";
+                    if !says_it
+                        && let Some(field) = declared
+                            .fields
+                            .iter()
+                            .zip(&fields)
+                            .find(|(_, info)| self.must_give(&info.value_type))
+                            .map(|(field, _)| field)
+                    {
+                        self.error(Diagnostic::refused_fix(
+                            field.written_type.span,
+                            format!("struct.must_Give {name}"),
+                            "a struct holding a `must_Give` value is `must_Give` itself, and nothing is implicit (D177, D3)",
+                        ));
+                    }
                     if let Some(info) = self.aggregates.structs.get_mut(struct_id) {
                         info.fields = fields;
                     }
@@ -115,6 +131,15 @@ impl Checker<'_> {
                             "fields",
                             "a field read is a plain `.`, so a field's name says which (D57)",
                         );
+                        if let Some(field) =
+                            case.fields.iter().zip(&fields).find(|(_, info)| self.must_give(&info.value_type))
+                        {
+                            self.error(Diagnostic::not_designed(
+                                field.0.written_type.span,
+                                "a `must_Give` value in a `union.tagged` case",
+                                "not decided yet (standard 12.8)",
+                            ));
+                        }
                         cases.push(CaseInfo { name: case.name.text.clone(), fields });
                     }
                     if let Some(info) = self.aggregates.unions.get_mut(union_id) {

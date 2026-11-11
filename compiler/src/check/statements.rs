@@ -47,7 +47,8 @@ impl Checker<'_> {
                 body.events.push(crate::flow::Event::Leave { span: statement.span, locals: None });
             }
             let events = std::mem::take(&mut body.events);
-            if !events.is_empty() {
+            // A refused statement didn't happen, as far as ownership goes.
+            if result.is_ok() && !events.is_empty() {
                 block.insert(mark.min(block.len()), checked::Statement::Flow(events));
             }
             // A `return` or `break` leaves even when what it hands back is refused.
@@ -381,7 +382,7 @@ impl Checker<'_> {
         body.take_read(root_variable.local);
         let site = body.site(root.span);
         let spot = crate::flow::Spot { variable: root.span, place: lent.span, site, marker: site };
-        let place = crate::flow::Place { local: root_variable.local, path: path.clone() };
+        let place = crate::flow::Place { local: root_variable.local, path: path.clone(), shown: String::new() };
         body.events.push(if *mutable {
             crate::flow::Event::LendMut { place, spot }
         } else {
@@ -474,7 +475,7 @@ impl Checker<'_> {
         body.take_read(variable.local);
         let site = body.site(root.span);
         let spot = crate::flow::Spot { variable: root.span, place: lent.span, site, marker: site };
-        let place = crate::flow::Place { local: variable.local, path: path.clone() };
+        let place = crate::flow::Place { local: variable.local, path: path.clone(), shown: String::new() };
         body.events.push(if mutable {
             crate::flow::Event::LendMut { place, spot }
         } else {
@@ -566,9 +567,25 @@ impl Checker<'_> {
                 "`Lend` is temporary access, and the caller keeps it (D2, D129)",
             )));
         }
+        // The `must_Give` fields inside have to be moved out first (D177, D185).
+        let mut duties = Vec::new();
+        if let Type::Struct { id, .. } = variable.value_type.read_as()
+            && let Some(info) = self.aggregates.structs.get(*id).cloned()
+        {
+            for (index, field) in info.fields.iter().enumerate() {
+                if self.must_give(&field.value_type) {
+                    duties.push(crate::flow::Place {
+                        local: variable.local,
+                        path: vec![index],
+                        shown: format!("{}.{}", name.text, field.name),
+                    });
+                }
+            }
+        }
         body.events.push(crate::flow::Event::Finish {
             local: variable.local,
             spot: crate::flow::Spot { variable: name.span, place: name.span, site: span, marker: span },
+            duties,
         });
         Ok(())
     }
@@ -640,7 +657,7 @@ impl Checker<'_> {
         if !variable.value_type.is_copied() {
             let spot = crate::flow::Spot { variable: name.span, place: name.span, site: name.span, marker: name.span };
             body.events.push(crate::flow::Event::Change {
-                place: crate::flow::Place { local: variable.local, path: Vec::new() },
+                place: crate::flow::Place { local: variable.local, path: Vec::new(), shown: String::new() },
                 spot,
             });
         }
@@ -733,7 +750,7 @@ impl Checker<'_> {
         let value = self.value_into(body, value, &current)?;
         let spot = crate::flow::Spot { variable: root.span, place: target.span, site: root.span, marker: target.span };
         body.events.push(crate::flow::Event::Change {
-            place: crate::flow::Place { local: variable.local, path: path.clone() },
+            place: crate::flow::Place { local: variable.local, path: path.clone(), shown: String::new() },
             spot,
         });
         block.push(checked::Statement::SetField { local: variable.local, path, value });

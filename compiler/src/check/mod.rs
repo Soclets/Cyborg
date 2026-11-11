@@ -564,7 +564,6 @@ impl Checker<'_> {
     }
 
     fn function_body(&mut self, function: &syntax::Function, signature: &Signature) {
-        let errors_before = self.errors.len();
         let mut body = Body {
             scopes: vec![Vec::new()],
             returns: signature.returns.clone(),
@@ -639,12 +638,11 @@ impl Checker<'_> {
         if !leaves && !contains_broken(&function.body) {
             self.function_end(&body, function);
         }
-        // Ownership is checked over every path, once the function is otherwise sound (D2, D285).
-        if self.errors.len() == errors_before {
-            let graph = crate::flow::lower(&statements);
-            let found = crate::flow::check(&graph);
-            self.errors.extend(found);
-        }
+        // Ownership is checked over every path (D2, D285).
+        // A refused statement left no events, so the rest is still checked as written (D2, D285).
+        let graph = crate::flow::lower(&statements);
+        let found = crate::flow::check(&graph);
+        self.errors.extend(found);
         if let Some(target) = self.program.functions.get_mut(signature.id) {
             target.parameters = parameters;
             target.locals = body.locals;

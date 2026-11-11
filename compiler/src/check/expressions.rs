@@ -503,7 +503,7 @@ impl Checker<'_> {
         if !variable.value_type.is_copied() && variable.origin != Origin::Constant {
             let site = body.site(name.span);
             body.events.push(crate::flow::Event::Read {
-                place: crate::flow::Place { local: variable.local, path: Vec::new() },
+                place: crate::flow::Place { local: variable.local, path: Vec::new(), shown: String::new() },
                 spot: crate::flow::Spot { variable: name.span, place: name.span, site, marker: site },
             });
         }
@@ -1623,7 +1623,7 @@ impl Checker<'_> {
                 body.take_read(variable.local);
                 let site = body.site(name.span);
                 body.events.push(crate::flow::Event::LendMut {
-                    place: crate::flow::Place { local: variable.local, path: Vec::new() },
+                    place: crate::flow::Place { local: variable.local, path: Vec::new(), shown: String::new() },
                     spot: crate::flow::Spot { variable: name.span, place: name.span, site, marker: site },
                 });
                 Ok(checked::Argument::Address(variable.local))
@@ -1658,14 +1658,15 @@ impl Checker<'_> {
                 }
                 let typed = self.expression(body, &argument.value, Some(parameter_type))?;
                 if word == Some(Ownership::Give)
-                    && let Some((local, path)) = place_of(body, &argument.value)
+                    && let Some((local, path)) = self.any_place(body, &argument.value)
                     && let Some(root) = root_name(&argument.value)
                 {
-                    self.only_lent(body, local, root)?;
+                    self.only_lent(body, local, root, &path, argument.value.span)?;
                     body.take_read(local);
                     let site = body.site(root.span);
+                    let shown = self.slice(argument.value.span).to_string();
                     body.events.push(crate::flow::Event::Give {
-                        place: crate::flow::Place { local, path },
+                        place: crate::flow::Place { local, path, shown },
                         spot: crate::flow::Spot { variable: root.span, place: argument.value.span, site, marker: site },
                     });
                 }
@@ -1705,8 +1706,27 @@ impl Checker<'_> {
         }
     }
 
+    /// The place an expression names: a variable, or a field inside one.
+    pub fn any_place(&self, body: &Body, expression: &syntax::Expression) -> Option<(checked::LocalId, Vec<usize>)> {
+        place_of(body, expression).or_else(|| self.field_place(body, expression).map(|(local, path, _)| (local, path)))
+    }
+
     /// Refuses giving away what's only lent: a bare or `Lent.mut` parameter, or a stored borrow (D2).
-    fn only_lent(&mut self, body: &Body, local: checked::LocalId, root: &syntax::Name) -> Check<()> {
+    fn only_lent(
+        &mut self,
+        body: &Body,
+        local: checked::LocalId,
+        root: &syntax::Name,
+        path: &[usize],
+        place: Span,
+    ) -> Check<()> {
+        if body.lent.contains(&local) && !path.is_empty() {
+            return Err(self.error(Diagnostic::refused(
+                place,
+                format!("`{}` is only borrowed here, so a field can't be moved out of it", root.text),
+                "a field moves out only of something you own, a `Given` parameter or your own `let` (D185)",
+            )));
+        }
         if body.lent.contains(&local) {
             return Err(self.error(Diagnostic::refused(
                 root.span,
@@ -1743,15 +1763,16 @@ impl Checker<'_> {
             )));
         }
         if ownership == syntax::Ownership::Give
-            && let Some((local, path)) = place_of(body, value)
+            && let Some((local, path)) = self.any_place(body, value)
             && let Some(root) = root_name(value)
         {
-            self.only_lent(body, local, root)?;
+            self.only_lent(body, local, root, &path, value.span)?;
             body.take_read(local);
             let site = body.site(root.span);
             let marker = body.calls.last().copied().unwrap_or(ownership_span.to(value.span));
+            let shown = self.slice(value.span).to_string();
             body.events.push(crate::flow::Event::Give {
-                place: crate::flow::Place { local, path },
+                place: crate::flow::Place { local, path, shown },
                 spot: crate::flow::Spot { variable: root.span, place: value.span, site, marker },
             });
         }
