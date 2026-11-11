@@ -35,7 +35,7 @@ Waiting on the owner, most needed first. Each is `NotDesignedYet` unless it says
 - **Handlers and loops.** Today a handler only needs `*` if its `break` leaves the arm, and `while true:` still needs a `return` after it, because only `forever` promises not to finish. Both are readings.
 - **`finish`.** Whether a value can be used after `finish`. `finish` on no duty, a lent value and a fresh value is refused today, and it's allowed on a local you made, which are readings. Its two other refusals can't be reached yet: one needs modules, and one needs a `must_Give` in a field.
 - **Methods.** On a type you didn't declare, like `fn i32.%double`, or a list. Calling one by its full name, `box.%read(Lend $b)`. `$b.%%add(by: $b.n)`, reading the receiver in an argument while it's lent with `Lend.mut`, which people will write a lot, and Rust calls two-phase borrows. `Lent.mut` on a fresh value.
-- **`??` and `otherwise`.** `read() ?? -$x` is refused and asks for `( )`, and `read() ?? 1 as str` is refused too, so should a `??` count as a single value? `otherwise` has no level in 3.9, so `$a + read() otherwise:` isn't decided.
+- **`??` and `otherwise`.** `read() ?? -$x` is refused and asks for `( )`, and `read() ?? 1 as str[len.max: 20 bytes]` is refused too, so should a `??` count as a single value? `otherwise` has no level in 3.9, so `$a + read() otherwise:` isn't decided.
 - **Positions.** `$a[pos: 0]` and `$a[pos: 9]` on an array of 3 are `check failed:` today, but D20 refuses a literal that can't fit a bound, so maybe they should be refused too. Two items lent at once, like a swap, and changing one item while a `for` goes through another. `Give $a[pos: 1]`, and taking something out of a list. `change $xs[pos: 1] = grow(Lend.mut $xs);`. Handing something off inside a position.
 - **`type.new`.** Whether maths and `==` work between two of the same one.
 - **Type names, readings.** `type.alias int.signed.32_bit = i32;` works, with dots in the name. An alias works everywhere its target does, including cases. A `type.new` over a number takes no word, over a struct needs one, and over a `must_Give` carries the duty.
@@ -87,7 +87,7 @@ Waiting on the owner, most needed first. Each is `NotDesignedYet` unless it says
 - `str` narrowings other than `str.utf16`, and how string literals work.
 - The test on a value already known to be that type, like `if $n: bool:` on a `bool`. Claude suggested refusing it.
 
-- Strings (D326): how `as str` gets an allocator when it needs one, and the name of `std::text.done`.
+- Strings (D326): the names of `std::text.done` and `std::text.from`.
 
 ## 12.3 Operators and conversion
 

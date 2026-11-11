@@ -280,17 +280,21 @@ The label names are a placeholder.
 
 ## 2.14 Conversion: `as`
 
-**Rule:** `as` builds a new value of another type, which can allocate memory or fail. `:` doesn't convert.
+**Rule:** `as` builds a new value of another type, which can fail but never allocates memory. `:` doesn't convert.
 
 ```
-let $text: str = $t as str;
+let $text: str[len.max: 20 bytes] = $t as str[len.max: 20 bytes];
 ```
 
 A failed `as` is a failure, so it crashes unless handled ([8.9](8-failures.md#89-crash-by-default)). What can convert to what isn't decided ([12.3](12-not-decided.md#123-operators-and-conversion)).
 
-A number converts bare, with no unit, so `$xs.len as str` gives `3`. A narrowing asks for the unit: `as str.with_unit`, a placeholder.
+A number converts bare, with no unit, so `$xs.len as str[len.max: 20 bytes]` gives `3`. A narrowing asks for the unit: `as str.with_unit`, a placeholder.
 
-**From:** D7, D96, D122.
+Text from `as` goes into a bounded `str`, held inside the value, so no allocator is needed. Too much text is a failure, but for numbers the compiler knows the most bytes a type can need, 20 for an `i64` and 11 for an `i32`, so with a big enough bound it can't fail. Heap text comes from a function that takes an allocator, like `std::text.from($n, alloc: Lend $alloc)`, a placeholder, so every allocation is a visible call.
+
+**Refused:** `as str`, since a view has to point at text that already exists, with `fix: as str[len.max: 20 bytes]` giving the size the type needs, or `fix: Lend $name` when the value is already a string; and `as str[len.max: inf bytes]`, with `fix: std::text.from`.
+
+**From:** D7, D96, D122, D328.
 
 ## 2.15 `void` and `bool`
 

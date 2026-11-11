@@ -149,11 +149,11 @@ let $louder: u8[min: 0, max: 100] = $volume plus.saturate 10;
 ```
 $a + $b x 2
 ($a + $b) x 2
-($a + $b) as str
+($a + $b) as str[len.max: 20 bytes]
 $a + read() ?? 0
 ```
 
-**Refused:** where maths gives no order, so bit operators and shifts mixed with anything, as in `$a shl 2 + 1`, and `as` on anything but a single value, as in `$a + $b as str`.
+**Refused:** where maths gives no order, so bit operators and shifts mixed with anything, as in `$a shl 2 + 1`, and `as` on anything but a single value, as in `$a + $b as str[len.max: 20 bytes]`.
 
 Unary `-` negates, so `-$x` and `-7` are both allowed. A comparison chain means all of it is true, and each value is evaluated once: `1 below $x below 5` means `1 below $x and $x below 5`. It stops at its first false. The linter can ask for parentheses.
 
