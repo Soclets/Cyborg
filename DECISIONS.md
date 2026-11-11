@@ -1080,6 +1080,8 @@ A `type_set` is a closed list of types that nothing can join later, as in `type_
 
 **D289. An urgent message needs the owner to stop the session.** A message to a session that's busy is queued, and only arrives when its turn ends, which can be a long time in long work. So for something urgent, design claude queues the message and asks the owner to stop that session, so it reads the message straight away. This extends D284 and rule 16. The owner said "msg can't be for urgent either, if they're working, it gets queued. From experience, it's msg to get queue, and then force stop"; Claude proposed the wording; the owner chose: "yes". (Owner, 2026-11-11)
 
+**D290. Sessions in long work keep going.** A finished milestone, a report or a wrap-up isn't a reason for a session in long work to stop: it sends the report and goes straight on. It stops only when it's blocked on a design question with nothing else to work on, when a gap in Lyftar blocks everything, when a test's expected output looks wrong, or at 8:30 PM (rule 12). This is rule 17 in `IMPLEMENTATION.md`, since a session's first prompt is lost to compaction while that file is printed again afterwards. Compiler claude stopped after milestone 3, though its prompt said not to; the owner said "It has already gone through compaction"; Claude proposed the rule; the owner chose: "yes". (Owner, 2026-11-11)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude

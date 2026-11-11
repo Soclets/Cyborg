@@ -59,6 +59,10 @@ Each works in its own clone, on `main` with no branch, and runs `git pull --reba
     after finishing what you're doing, and ask design claude if it's unclear. Design claude messages only for what's urgent,
     needs explaining, or to wake an idle session. A message to a busy session waits until its turn ends, so for something
     urgent, design claude queues it and asks the owner to stop that session. (D284, D289)
+17. **Keep going.** In long work, a finished milestone, a report or a wrap-up isn't a reason to stop. Send the report and go
+    straight on. Stop only when you're blocked on a design question with nothing else to work on, when a gap in Lyftar
+    blocks everything, when a test's expected output looks wrong, or at 8:30 PM. This is here because a session's first
+    prompt doesn't survive compaction, and this file does. (D290)
 
 ## Tracing
 
