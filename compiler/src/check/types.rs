@@ -145,6 +145,11 @@ pub enum Type {
         name: String,
         fields: Vec<(String, Type)>,
     },
+    /// A `type.new`: the same data as its inner type, but a type of its own (D134).
+    New {
+        name: String,
+        inner: Box<Type>,
+    },
     /// After an error, so nothing more is said about it.
     Unknown,
 }
@@ -165,7 +170,10 @@ impl Type {
     /// Always copied, taking no ownership word (D184): numbers and `bool`.
     #[must_use]
     pub fn is_copied(&self) -> bool {
-        matches!(self, Type::Integer { .. } | Type::Float { .. } | Type::Bool)
+        match self {
+            Type::New { inner, .. } => inner.is_copied(),
+            _ => matches!(self, Type::Integer { .. } | Type::Float { .. } | Type::Bool),
+        }
     }
 
     /// The same type with no bounds, which is what arithmetic gives back (D20).
@@ -189,6 +197,7 @@ impl Type {
             Type::Struct { id, .. } => checked::MachineType::Struct(*id),
             Type::Union { id, .. } => checked::MachineType::Union(*id),
             Type::Failure { union, .. } => checked::MachineType::Union(*union),
+            Type::New { inner, .. } => inner.machine(),
             Type::Str => checked::MachineType::Text,
             Type::Void | Type::Unknown => checked::MachineType::Void,
         }
@@ -218,7 +227,10 @@ impl fmt::Display for Type {
             Type::Str => write!(formatter, "str"),
             Type::Void => write!(formatter, "void"),
             Type::Writer(writer) => write!(formatter, "{}", writer.name()),
-            Type::Struct { name, .. } | Type::Union { name, .. } | Type::Failure { name, .. } => {
+            Type::Struct { name, .. }
+            | Type::Union { name, .. }
+            | Type::Failure { name, .. }
+            | Type::New { name, .. } => {
                 write!(formatter, "{name}")
             }
             Type::Unknown => write!(formatter, "?"),

@@ -393,6 +393,16 @@ impl<'source> Parser<'source> {
             "union" => ItemKind::Union(self.union_item()?),
             "fam" => ItemKind::Family(self.family()?),
             "type" if self.kind_at(1) == Some(TokenKind::Dot) => self.type_name()?,
+            "type" if self.word_at(1).is_some() => {
+                // trace: D134
+                self.errors.push(Diagnostic::refused(
+                    self.current_span(),
+                    "there's no bare `type`, so pick `type.alias` or `type.new`",
+                    "`type.alias` is another name and `type.new` a different type, and no default is obvious (D134)",
+                ));
+                self.recover();
+                return Err(Reported);
+            }
             "interface" | "type_set" => self.skipped_block(word)?,
             _ if self.is_satisfies() => self.satisfies()?,
             _ => {
@@ -842,8 +852,10 @@ impl<'source> Parser<'source> {
         let name = self.path()?;
         self.expect_block_colon()?;
         let mut entries = Vec::new();
+        // In a family of types, what follows `=` is always a type, even a plain name like `point` (D134).
+        let types = keyword.text().starts_with("fam.type");
         while self.peek().is_some() && !self.is_word("end") {
-            match self.family_entry() {
+            match self.family_entry(types) {
                 Ok(entry) => entries.push(entry),
                 Err(Reported) => self.recover(),
             }
@@ -852,8 +864,16 @@ impl<'source> Parser<'source> {
         Ok(Family { keyword, name, entries, span: start.to(self.previous_span()), end })
     }
 
-    fn family_entry(&mut self) -> Parse<FamilyEntry> {
+    fn family_entry(&mut self, types: bool) -> Parse<FamilyEntry> {
         let start = self.current_span();
+        if self.is_word("type") && self.kind_at(1) == Some(TokenKind::Dot) {
+            self.errors.push(Diagnostic::refused(
+                start,
+                "a family of types states its kind once",
+                "a family doesn't mix `type.alias` and `type.new` (D134)",
+            ));
+            return Err(Reported);
+        }
         let name = self.path()?;
         let kind = if self.is(TokenKind::Colon) && self.word_at(1) == Some("base") {
             self.roles[self.at] = Role::LabelColon;
@@ -875,7 +895,7 @@ impl<'source> Parser<'source> {
             FamilyEntryKind::Handler { arms, end }
         } else if self.at_setter() {
             self.take_setter();
-            let value = if self.looks_like_type() {
+            let value = if types || self.looks_like_type() {
                 let written_type = self.parse_type()?;
                 self.expect(TokenKind::Semicolon, ";")?;
                 return Ok(FamilyEntry {
@@ -932,6 +952,15 @@ impl<'source> Parser<'source> {
 
     pub fn statement(&mut self) -> Parse<Statement> {
         let start = self.current_span();
+        if self.is_word("type") && self.kind_at(1) == Some(TokenKind::Dot) {
+            self.errors.push(Diagnostic::not_designed(
+                start,
+                "`type` inside a function",
+                "not decided yet, and the standard doesn't say",
+            ));
+            self.recover();
+            return Err(Reported);
+        }
         let kind = match self.word() {
             Some("let" | "const") => StatementKind::Let(self.let_statement()?),
             Some("decl") => {

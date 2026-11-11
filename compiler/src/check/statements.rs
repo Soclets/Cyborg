@@ -702,7 +702,7 @@ impl Checker<'_> {
         let mut ends = Vec::new();
         let mut failed = false;
         for arm in &choice.arms {
-            let written = self.resolve_path(&arm.pattern);
+            let written = self.union_case_written(&arm.pattern);
             let case_name = match written.strip_prefix(&format!("{name}.")) {
                 Some(case_name) => case_name.to_string(),
                 None if union.cases.iter().any(|case| case.name == written) => {
@@ -838,7 +838,7 @@ impl Checker<'_> {
                     && let syntax::TypeKind::Named { path, .. } = &written_type.kind
                 {
                     let union = self.aggregates.unions[*id].clone();
-                    let written = self.resolve_path(path);
+                    let written = self.union_case_written(path);
                     let Some(case_name) = written.strip_prefix(&format!("{union_name}.")) else {
                         return Err(self.not_yet(written_type.span, format!("the test for `{written}`")));
                     };

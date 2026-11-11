@@ -13,6 +13,7 @@ pub mod types;
 
 mod expressions;
 pub mod library;
+pub mod names;
 mod statements;
 
 use std::collections::HashMap;
@@ -228,6 +229,8 @@ pub struct Checker<'a> {
     pub failure_sets: failures::FailureSets,
     /// Handler narrowings, by their full name, with their arms (D46).
     pub handlers: HashMap<String, Vec<syntax::Arm>>,
+    /// `type.alias` and `type.new` (D134).
+    pub type_names: names::TypeNames,
     pub program: checked::Program,
 }
 
@@ -257,6 +260,7 @@ pub fn check(
         constants: HashMap::new(),
         failure_sets: failures::FailureSets::default(),
         handlers: HashMap::new(),
+        type_names: names::TypeNames::default(),
         program: checked::Program::default(),
     };
     checker.check_file(parsed);
@@ -284,7 +288,9 @@ impl Checker<'_> {
                 _ => {}
             }
         }
+        self.declare_type_names(file);
         self.declare_aggregates(file);
+        self.resolve_type_names();
         self.declare_failure_sets(file);
         self.declare_handlers(file);
         let mut bodies = Vec::new();
@@ -600,11 +606,16 @@ impl Checker<'_> {
             true,
         )?;
         let checked = self.value_into(body, value, into)?;
-        self.run_at_compile_time(body, &checked)
+        self.run_at_compile_time(body, &checked, value.span)
     }
 
     /// Runs checked code at compile time.
-    pub fn run_at_compile_time(&mut self, body: &Body, checked: &checked::Expression) -> Check<bake::Constant> {
+    pub fn run_at_compile_time(
+        &mut self,
+        body: &Body,
+        checked: &checked::Expression,
+        span: Span,
+    ) -> Check<bake::Constant> {
         let mut interpreter = bake::Interpreter::new(&self.program);
         interpreter.known.clone_from(&body.known);
         match interpreter.evaluate(checked) {
@@ -615,7 +626,7 @@ impl Checker<'_> {
                 "compile-time work didn't finish within its step limit",
                 "compile-time code always finishes, through a step limit that refuses it (D89, D91)",
             ))),
-            Err(bake::Stop::NotBuilt(what)) => Err(self.not_yet(Span::default(), what)),
+            Err(bake::Stop::NotBuilt(what)) => Err(self.not_yet(span, what)),
         }
     }
 
@@ -664,6 +675,20 @@ impl Checker<'_> {
             syntax::ExpressionKind::Unary { operand, .. } | syntax::ExpressionKind::Group(operand) => {
                 self.known_at_compile_time(body, operand, why, constant)
             }
+            // A crossing is the same data, and is known when its value is (D141), but text from `as` is built
+            // while running.
+            syntax::ExpressionKind::As { value: inner, written_type, .. } => {
+                if let syntax::TypeKind::Named { path, .. } = &written_type.kind
+                    && self.resolve_path(path) == "str"
+                {
+                    return Err(self.error(Diagnostic::refused(
+                        value.span,
+                        "this `as` isn't known at compile time",
+                        "a `const`'s value must be fully known at compile time (D83, D91)",
+                    )));
+                }
+                self.known_at_compile_time(body, inner, why, constant)
+            }
             _ => Ok(()),
         }
     }
@@ -678,7 +703,10 @@ impl Checker<'_> {
     ) -> Check<()> {
         let Some(path) = &function.name else { return Ok(()) };
         let Some((owner, method)) = name.rsplit_once('.') else { return Ok(()) };
-        let owned_type = self.aggregates.names.get(owner).cloned();
+        let mut owned_type = self.aggregates.names.get(owner).cloned();
+        if let Some(named) = self.method_owner(owner, path.span) {
+            owned_type = Some(named?);
+        }
         let Some(owned_type) = owned_type else {
             if method.starts_with('%') {
                 if IntegerKind::from_name(owner).is_some()
@@ -790,6 +818,9 @@ impl Checker<'_> {
             return Err(self.not_yet(written.span, "this kind of type".to_string()));
         };
         let text = self.resolve_path(path);
+        if let Some(named) = self.named_type(written, &text) {
+            return named;
+        }
         if let Some(kind) = IntegerKind::from_name(&text) {
             if !matches!(text.as_str(), "i32" | "i64" | "u8" | "u32" | "u64") {
                 return Err(self.error(Diagnostic::not_designed(
@@ -856,6 +887,7 @@ impl Checker<'_> {
                 )))
             }
             _ if self.aggregates.names.contains_key(&text) => Ok(self.aggregates.names[&text].clone()),
+            _ if let Some(reported) = self.bare_member(path, &text) => Err(reported),
             _ if text.contains("::") || text.contains('.') => {
                 Err(self.not_yet(written.span, format!("the type `{text}`")))
             }

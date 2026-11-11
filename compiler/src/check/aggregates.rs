@@ -166,8 +166,17 @@ impl Checker<'_> {
     pub fn union_case(&self, path: &syntax::Path) -> Option<(usize, String, String)> {
         let text = self.resolve_path(path);
         let (union_name, case_name) = text.rsplit_once('.')?;
-        let Some(Type::Union { id, .. }) = self.aggregates.names.get(union_name) else { return None };
-        Some((*id, union_name.to_string(), case_name.to_string()))
+        // An alias names the union's cases too, which are still the union's own (D134).
+        let Some(Type::Union { id, name }) = self.aggregates.names.get(union_name) else { return None };
+        Some((*id, name.clone(), case_name.to_string()))
+    }
+
+    /// A case as written, with an alias of the union read as the union (D134).
+    pub fn union_case_written(&self, path: &syntax::Path) -> String {
+        match self.union_case(path) {
+            Some((_, union_name, case_name)) => format!("{union_name}.{case_name}"),
+            None => self.resolve_path(path),
+        }
     }
 
     /// `status.ok`: a case with no values.
@@ -202,6 +211,13 @@ impl Checker<'_> {
         labels: &[syntax::Label],
     ) -> Check<Option<Typed>> {
         let name = self.resolve_path(path);
+        if self.type_names.declared.get(&name).is_some_and(|named| named.new) {
+            return Err(self.error(Diagnostic::not_designed(
+                expression.span,
+                "building a `type.new` by its own name, rather than crossing with `as`",
+                "not decided yet (standard 12.1)",
+            )));
+        }
         let (fields, value_type, owner, case) = match self.aggregates.names.get(&name).cloned() {
             Some(Type::Struct { id, name }) => {
                 (self.aggregates.structs[id].fields.clone(), Type::Struct { id, name: name.clone() }, name, None)
@@ -290,6 +306,11 @@ impl Checker<'_> {
         }
         let typed = self.expression(body, base, None)?;
         match &typed.value_type {
+            Type::New { .. } => Err(self.error(Diagnostic::not_designed(
+                field.span,
+                "a field of a `type.new`, rather than crossing with `as` first",
+                "not decided yet (standard 12.1)",
+            ))),
             Type::Struct { id, name } => {
                 let info = self.aggregates.structs[*id].clone();
                 let Some(index) = info.fields.iter().position(|each| each.name == field.text) else {

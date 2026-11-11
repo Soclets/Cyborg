@@ -8,6 +8,8 @@ use crate::syntax::{self, BinaryOperator, ExpressionKind, UnaryOperator};
 use super::types::{Bounds, IntegerKind, Type};
 use super::{Body, Check, Checker, Origin, Reported, State};
 
+use super::names::NEW_WHY;
+
 pub const CONVERT_WHY: &str = "`:` doesn't convert, and `as` builds a new value of another type (D7)";
 const NOT_DECIDED: &str = "not decided yet, and the standard doesn't say";
 const NOT_DECIDED_OPERATORS: &str = "not decided yet (standard 12.3)";
@@ -183,7 +185,7 @@ impl Checker<'_> {
                     false,
                 )?;
                 let typed = self.expression(body, inner, expected)?;
-                let value = self.run_at_compile_time(body, &typed.value)?;
+                let value = self.run_at_compile_time(body, &typed.value, inner.span)?;
                 let machine_type = typed.value.machine_type.clone();
                 Ok(Typed::new(typed.value_type, value.expression(machine_type).kind))
             }
@@ -398,6 +400,16 @@ impl Checker<'_> {
         };
         match (&typed.value_type, &into) {
             (Type::Unknown, _) => Err(Reported),
+            // Crossing in or out of a `type.new` is the same data, so it can't fail (D141). One over a bound only goes
+            // out, since going in would have to check it.
+            (Type::New { inner, .. }, to) if **inner == *to || inner.plain() == *to => {
+                Ok(Typed::new(into.clone(), typed.value.kind))
+            }
+            (from, Type::New { inner, .. })
+                if inner.plain() == **inner && from.plain() == **inner && !matches!(from, Type::New { .. }) =>
+            {
+                Ok(Typed::new(into.clone(), typed.value.kind))
+            }
             (Type::Integer { .. } | Type::Float { .. }, Type::Str) if body.purity != super::Purity::Plain => Err(self
                 .error(Diagnostic::not_designed(
                     expression.span,
@@ -689,6 +701,9 @@ impl Checker<'_> {
         if left_type.is_unknown() || right_type.is_unknown() {
             return Err(Reported);
         }
+        if let Some(reported) = self.new_in_operation(span, left, right, true) {
+            return Err(reported);
+        }
         match (left_type, right_type) {
             (Type::Integer { kind: a, .. }, Type::Integer { kind: b, .. }) if a == b => Ok(comparison),
             (Type::Float { bits: a, kind: x, .. }, Type::Float { bits: b, kind: y, .. }) if a == b && x == y => {
@@ -742,6 +757,9 @@ impl Checker<'_> {
         let (left_type, right_type) = (left_typed.value_type.clone(), right_typed.value_type.clone());
         if left_type.is_unknown() || right_type.is_unknown() {
             return Err(Reported);
+        }
+        if let Some(reported) = self.new_in_operation(expression.span, &left_typed, &right_typed, false) {
+            return Err(reported);
         }
         let numbers = |value_type: &Type| matches!(value_type, Type::Integer { .. } | Type::Float { .. });
         if !numbers(&left_type) || !numbers(&right_type) {
@@ -1166,7 +1184,7 @@ impl Checker<'_> {
         }
         let receiver_typed = self.expression(body, receiver, None)?;
         let owner = match &receiver_typed.value_type {
-            Type::Struct { name, .. } | Type::Union { name, .. } => name.clone(),
+            Type::Struct { name, .. } | Type::Union { name, .. } | Type::New { name, .. } => name.clone(),
             Type::Unknown => return Err(Reported),
             other => return Err(self.not_yet(method.span, format!("a method on `{other}`"))),
         };
@@ -1225,6 +1243,9 @@ impl Checker<'_> {
                 )));
             }
             checked::Argument::Address(variable.local)
+        } else if receiver_typed.value_type.is_copied() {
+            // A lent number is passed as its value, as its parameter takes it.
+            checked::Argument::Value(receiver_typed.value)
         } else {
             match place_of(body, receiver) {
                 Some((local, path)) if path.is_empty() => checked::Argument::Address(local),
@@ -1610,6 +1631,13 @@ impl Checker<'_> {
         expression: &syntax::Expression,
         into: &Type,
     ) -> Check<checked::Expression> {
+        // A literal lands in a `type.new` as what it's made from (D141).
+        if let Type::New { inner, .. } = into
+            && (Self::is_literal_number(expression)
+                || matches!(expression.kind, ExpressionKind::Text(_) | ExpressionKind::Bool(_)))
+        {
+            return self.value_into(body, expression, inner);
+        }
         let typed = self.expression(body, expression, Some(into))?;
         if !typed.value_type.is_copied() && !typed.handed && is_held(expression) && !typed.value_type.is_unknown() {
             let shown = self.slice(expression.span).to_string();
@@ -1707,11 +1735,14 @@ impl Checker<'_> {
                 Ok(self.fit_float(span, typed, into, *bounds))
             }
             (from, to) if from == to && !matches!(from, Type::Integer { .. }) => Ok(typed.value),
-            (from, to) => Err(self.error(Diagnostic::refused(
-                span,
-                format!("this is `{from}`, where `{to}` is needed"),
-                CONVERT_WHY,
-            ))),
+            (from, to) => {
+                let why = if matches!(from, Type::New { .. }) || matches!(to, Type::New { .. }) {
+                    NEW_WHY
+                } else {
+                    CONVERT_WHY
+                };
+                Err(self.error(Diagnostic::refused(span, format!("this is `{from}`, where `{to}` is needed"), why)))
+            }
         }
     }
 

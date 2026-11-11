@@ -350,6 +350,23 @@ impl Checker<'_> {
                 self.functions.values().find(|signature| signature.id == *function).cloned().ok_or(Reported)?;
             return self.handle_call(body, expression, expected, signature, *call);
         }
+        // Crossing a `type.new` with `as` can't fail (D141), so nothing is caught.
+        if let ExpressionKind::As { value, .. } = &inner.kind
+            && let Ok(crossed) = self.expression(body, inner, None)
+            && let Ok(source) = self.expression(body, value, None)
+            && (matches!(crossed.value_type, Type::New { .. }) || matches!(source.value_type, Type::New { .. }))
+        {
+            let word = match &expression.kind {
+                ExpressionKind::Pass { .. } => "?",
+                ExpressionKind::Instead { .. } => "??",
+                _ => "otherwise",
+            };
+            return Err(self.error(Diagnostic::not_designed(
+                expression.span,
+                format!("`{word}` on a call that can't fail"),
+                super::NOT_DECIDED,
+            )));
+        }
         let ExpressionKind::Call { callee, arguments, .. } = &inner.kind else {
             return Err(self.error(Diagnostic::not_designed(
                 inner.span,
