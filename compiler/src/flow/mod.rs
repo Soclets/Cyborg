@@ -12,6 +12,9 @@ use crate::checked::{self, Block, ExpressionKind, LocalId, LoopId, OnFailure, St
 use crate::diagnostic::Diagnostic;
 use crate::source::Span;
 
+pub mod checks;
+use checks::Kind;
+
 const GIVEN_WHY: &str = "a given value is dead afterwards (D2)";
 const DUTY_WHY: &str = "a `must_Give` value is handed off with `Give` exactly once, or `finish` ends it (D2, D129)";
 const BORROW_WHY: &str =
@@ -351,16 +354,39 @@ struct Variable {
     origin: Origin,
 }
 
+impl Holding {
+    /// What the proven checks decide on.
+    fn kind(&self) -> Kind {
+        match self {
+            Holding::Alive => Kind::Alive,
+            Holding::Partial { .. } => Kind::Partial,
+            Holding::Gone { maybe: true, .. } => Kind::MaybeGone,
+            Holding::Gone { maybe: false, .. } => Kind::Gone,
+        }
+    }
+}
+
+/// Where two sets of paths meet. Which kind comes out is `checks::join`'s, which is proven never to lose a path that
+/// gave the value away; this only carries the spans that messages point at.
 fn join_holding(a: &Holding, b: &Holding) -> Holding {
-    match (a, b) {
-        (Holding::Alive, Holding::Alive) => Holding::Alive,
-        (Holding::Gone { finished, at, maybe }, Holding::Gone { maybe: other, .. }) => {
-            Holding::Gone { finished: *finished, at: *at, maybe: *maybe || *other }
-        }
-        (Holding::Gone { finished, at, .. }, _) | (_, Holding::Gone { finished, at, .. }) => {
-            Holding::Gone { finished: *finished, at: *at, maybe: true }
-        }
-        (Holding::Partial { moved: mine }, Holding::Partial { moved: theirs }) => {
+    let kind = checks::join(a.kind(), b.kind());
+    let gone = [a, b].into_iter().find_map(|holding| match holding {
+        Holding::Gone { finished, at, .. } => Some((*finished, *at)),
+        _ => None,
+    });
+    match (kind, gone) {
+        (Kind::Gone, Some((finished, at))) => Holding::Gone { finished, at, maybe: false },
+        (Kind::MaybeGone, Some((finished, at))) => Holding::Gone { finished, at, maybe: true },
+        (Kind::Partial, _) => {
+            let mine = match a {
+                Holding::Partial { moved } => moved.clone(),
+                _ => Vec::new(),
+            };
+            let theirs = match b {
+                Holding::Partial { moved } => moved.clone(),
+                _ => Vec::new(),
+            };
+            // A field counts as moved out on every path only if both sides moved it on every path.
             let mut moved: Vec<(Vec<usize>, Span, bool)> = mine
                 .iter()
                 .map(|(path, at, every)| {
@@ -369,15 +395,13 @@ fn join_holding(a: &Holding, b: &Holding) -> Holding {
                 })
                 .collect();
             for (path, at, _) in theirs {
-                if !moved.iter().any(|(other, _, _)| other == path) {
-                    moved.push((path.clone(), *at, false));
+                if !moved.iter().any(|(other, _, _)| *other == path) {
+                    moved.push((path, at, false));
                 }
             }
             Holding::Partial { moved }
         }
-        (Holding::Partial { moved }, Holding::Alive) | (Holding::Alive, Holding::Partial { moved }) => {
-            Holding::Partial { moved: moved.iter().map(|(path, at, _)| (path.clone(), *at, false)).collect() }
-        }
+        _ => Holding::Alive,
     }
 }
 
@@ -393,7 +417,7 @@ fn join(a: &State, b: &State) -> State {
     for (local, loan) in &b.loans {
         match joined.loans.get_mut(local) {
             Some(mine) => {
-                if mine.spoiled.is_none() {
+                if checks::join_spoiled(mine.spoiled.is_some(), loan.spoiled.is_some()) && mine.spoiled.is_none() {
                     mine.spoiled = loan.spoiled;
                 }
             }
@@ -559,9 +583,15 @@ impl Checker<'_> {
             );
             return false;
         }
-        match state.holding.get(&place.local) {
+        // Whether it's usable is `checks::whole_usable`'s call, proven to refuse anything given away on any path; this
+        // only picks the words.
+        let holding = state.holding.get(&place.local).cloned().unwrap_or(Holding::Alive);
+        if checks::whole_usable(holding.kind()) || (finishing && holding.kind() == Kind::Partial) {
+            return true;
+        }
+        match Some(&holding) {
             Some(Holding::Gone { finished: false, at, .. }) => {
-                let span = if finishing { spot.site } else { spot.site };
+                let span = spot.site;
                 self.say(
                     Diagnostic::refused(span, format!("`{name}` was already given away"), GIVEN_WHY)
                         .with_because(*at, format!("`{name}` was given away here")),
@@ -640,14 +670,12 @@ impl Checker<'_> {
     fn spoil(&mut self, state: &mut State, place: &Place, spot: &Spot, reading: bool) {
         let local = place.local;
         // Different fields are separate, so only a use that overlaps the borrowed field spoils it (D173).
-        let overlaps = |(source, path): &(LocalId, Vec<usize>)| {
-            *source == local && (path.starts_with(&place.path) || place.path.starts_with(path))
-        };
+        let overlaps = |(source, path): &(LocalId, Vec<usize>)| *source == local && checks::overlaps(path, &place.path);
         let borrowers: Vec<LocalId> = state
             .loans
             .iter()
             .filter(|(_, loan)| {
-                loan.sources.iter().any(overlaps) && loan.spoiled.is_none() && (loan.mutable || !reading)
+                loan.sources.iter().any(overlaps) && loan.spoiled.is_none() && checks::spoils(loan.mutable, reading)
             })
             .map(|(borrower, _)| *borrower)
             .collect();
@@ -681,7 +709,13 @@ impl Checker<'_> {
                 continue;
             }
             let name = &variable.name;
-            match state.holding.get(local) {
+            // One a `break` or `instead` left behind was checked there.
+            let Some(holding) = state.holding.get(local).cloned() else { continue };
+            // Whether the duty is open is `checks::duty_open`'s call, proven to catch it open on any path.
+            if !checks::duty_open(holding.kind()) {
+                continue;
+            }
+            match Some(&holding) {
                 Some(Holding::Alive | Holding::Partial { .. }) => {
                     let note = if variable.origin == Origin::Given {
                         format!("`{name}` was given to this function here")

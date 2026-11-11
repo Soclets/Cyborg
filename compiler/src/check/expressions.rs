@@ -1786,7 +1786,7 @@ impl Checker<'_> {
         span: Span,
         exclusive: bool,
     ) -> Check<()> {
-        let overlaps = |other: &[usize]| other.starts_with(path) || path.starts_with(other);
+        let overlaps = |other: &[usize]| crate::flow::checks::overlaps(other, path);
         if let Some((_, _, earlier, _)) = handed.iter().find(|(name, other, _, other_exclusive)| {
             name == root && overlaps(other) && (exclusive || *other_exclusive)
         }) {
