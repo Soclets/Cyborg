@@ -1,0 +1,10 @@
+about to halve 3
+check failed: d274_unhandled_failure_flushes_first.cy:19:52, line 19 column 52
+19 |     std::io::fmt_print(Lend.mut $out, "{}{newln}", half(3));
+   |                                                    ^^^^^^^
+ what: `odd` failed, and nothing handled it
+ why:  a failure nothing handles stops the program (D96)
+ because: d274_unhandled_failure_flushes_first.cy:9:9, line 9 column 9
+ 9 |         fail odd;
+   |         ^^^^^^^^^
+     it was raised here

@@ -227,22 +227,23 @@ pub fn run(code: &Code) -> Outcome<()> {
         }
     }
     let result = runner.call(code.main, Vec::new(), Vec::new(), Span::new(0, 0));
+    // A crash flushes every buffered writer still holding output before its message, so the
+    // last thing printed before a crash always shows. (D274)
+    // trace: D274
+    let crashed_at = match &result {
+        Err(Stop::Report(report)) if report.kind == Kind::CheckFailed => Some(report.span),
+        Err(Stop::Raised(raised)) => Some(raised.span),
+        _ => None,
+    };
+    let crash_flushed = crashed_at.map(|span| runner.flush_every_writer(span));
     let flushed = runner.out.flush();
-    // A buffered writer always reaches `os::done`, unless a failure stops the program first,
-    // and what happens to its output then isn't decided. (D273)
-    // trace: D273
-    if result.is_err() && runner.writers.iter().any(|writer| !writer.held.is_empty()) {
-        let span = match &result {
-            Err(Stop::Report(report)) => report.span,
-            Err(Stop::Raised(raised)) => raised.span,
-            _ => Span::new(0, 0),
-        };
-        return Err(Report::not_designed(
+    let crash_note = |report: Box<Report>| match (crashed_at, crash_flushed) {
+        (Some(span), Some(false)) => report.because(
             span,
-            "what happens to a buffered writer's output when a failure stops the program before `os::done`",
-            "",
-        ));
-    }
+            "and a buffered writer's output couldn't be written as the program crashed",
+        ),
+        _ => report,
+    };
     match result {
         Ok(_) => flushed.map_err(|error| {
             Report::check_failed(
@@ -251,12 +252,12 @@ pub fn run(code: &Code) -> Outcome<()> {
                 "a failure nothing handles stops the program (D96)",
             )
         }),
-        Err(Stop::Report(report)) => Err(report),
-        Err(Stop::Raised(raised)) => Err(Report::check_failed(
+        Err(Stop::Report(report)) => Err(crash_note(report)),
+        Err(Stop::Raised(raised)) => Err(crash_note(Report::check_failed(
             raised.span,
             format!("{}, and nothing handled it", raised.shown),
             "a failure nothing handles stops the program (D96)",
-        )),
+        ))),
         Err(Stop::Return(..) | Stop::ReturnBorrow(..) | Stop::Break(_) | Stop::Instead(_)) => {
             Ok(())
         }
@@ -1140,6 +1141,16 @@ impl<'c> Runner<'c> {
         } else {
             Err(print_failed(span))
         }
+    }
+
+    /// Every buffered writer's held output, pushed out in the order the writers were made, as
+    /// a crash starts. Whether every one of them was written. (D274)
+    fn flush_every_writer(&mut self, span: Span) -> bool {
+        let mut all = true;
+        for number in 0..self.writers.len() {
+            all &= self.flush_writer(number, span).is_ok();
+        }
+        all
     }
 
     /// Pushes what a buffered writer holds out now. (D273)

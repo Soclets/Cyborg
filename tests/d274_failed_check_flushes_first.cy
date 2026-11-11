@@ -1,5 +1,6 @@
-// What a buffered writer's output does when a failure stops the program first isn't decided.
-// trace: D273
+// A failed check flushes every buffered writer still holding output before its message, so
+// the last thing printed before the crash shows.
+// trace: D274, D273
 import std;
 import os;
 
