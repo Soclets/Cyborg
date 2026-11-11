@@ -708,7 +708,7 @@ impl Checker<'_> {
             return Err(self.error(Diagnostic::refused(
                 target.span,
                 "`change` works on a variable, or a field of one",
-                "`change` reassigns a variable or one field of it (D125)",
+                "`change` reassigns a variable or one field of it (D3, D125)",
             )));
         };
         let Some(variable) = body.lookup(&root.text).cloned() else {

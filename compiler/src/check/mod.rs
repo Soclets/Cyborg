@@ -154,6 +154,8 @@ pub struct Body {
     pub calls: Vec<Span>,
     /// Parameters that are only lent, bare or `Lent.mut`, so their duties are the caller's (D2).
     pub lent: Vec<checked::LocalId>,
+    /// The receiver a method call is lending with `Lend.mut`, while its arguments are checked.
+    pub lent_receiver: Option<String>,
     /// What fills each source of the struct or union being built, from the type it goes into (D171).
     pub expected_fills: Option<Vec<(String, String)>>,
     /// What fills each source of the function's result, for its `return` (D171).

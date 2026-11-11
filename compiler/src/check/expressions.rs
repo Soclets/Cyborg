@@ -489,6 +489,13 @@ impl Checker<'_> {
     }
 
     fn read_variable(&mut self, body: &mut Body, name: &syntax::Name) -> Check<Typed> {
+        if body.lent_receiver.as_deref() == Some(name.text.as_str()) {
+            return Err(self.error(Diagnostic::not_designed(
+                name.span,
+                format!("reading `{}` in a call that lends it with `Lend.mut`", name.text),
+                NOT_DECIDED,
+            )));
+        }
         let Some(index) = body.find(&name.text) else {
             if let Some((value_type, value)) = self.constants.get(&name.text).cloned() {
                 let mut typed = Typed::new(value_type.clone(), value.expression(value_type.machine()).kind);
@@ -1335,6 +1342,37 @@ impl Checker<'_> {
         arguments: &[syntax::Argument],
     ) -> Check<Typed> {
         let (full, signature) = (found.0.clone(), found.1.clone());
+        if body.in_contract && signature.purity == super::Purity::Plain {
+            return Err(self.error(Diagnostic::refused(
+                expression.span,
+                format!("`{full}` isn't pure, so a contract can't call it"),
+                "contracts can only call pure functions (D86)",
+            )));
+        }
+        // Reading a receiver lent with `Lend.mut` in its own call's arguments isn't decided (standard 12.6).
+        let lent_receiver = match (&receiver_argument, &expression.kind) {
+            (checked::Argument::Address(_), ExpressionKind::MethodCall { receiver, .. }) if full.contains(".%%") => {
+                root_name(receiver).map(|name| name.text.clone())
+            }
+            _ => None,
+        };
+        let outer = std::mem::replace(&mut body.lent_receiver, lent_receiver);
+        let result = self.finish_method_inside(body, expression, &full, &signature, receiver_argument, arguments);
+        body.lent_receiver = outer;
+        result
+    }
+
+    fn finish_method_inside(
+        &mut self,
+        body: &mut Body,
+        expression: &syntax::Expression,
+        full: &str,
+        signature: &super::Signature,
+        receiver_argument: checked::Argument,
+        arguments: &[syntax::Argument],
+    ) -> Check<Typed> {
+        let full = full.to_string();
+        let signature = signature.clone();
         let mut rest = signature.clone();
         rest.parameters.remove(0);
         rest.top.labels.remove(0);

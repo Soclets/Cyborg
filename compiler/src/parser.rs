@@ -2056,6 +2056,17 @@ impl<'source> Parser<'source> {
                 self.roles[self.at] = Role::LabelColon;
                 self.advance();
             }
+            if self.is(TokenKind::Percent) {
+                // trace: D5
+                self.errors.push(Diagnostic::refused(
+                    self.current_span(),
+                    "`%` goes only on a method call",
+                    "`%` goes only on a method call, never on an argument (D5)",
+                ));
+                self.advance();
+                self.expression()?;
+                return Err(Reported);
+            }
             let ownership = self.ownership_word()?;
             let value = self.expression()?;
             arguments.push(Argument { label, ownership, value, span: argument_start.to(self.previous_span()) });

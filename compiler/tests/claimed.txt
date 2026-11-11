@@ -66,6 +66,7 @@ d125_field_literal_cant_fit
 d125_field_needs_the_word
 d125_field_of_a_bare_parameter
 d125_field_of_a_dead_value
+d125_field_of_a_fresh_value
 d125_field_of_a_given_parameter
 d125_field_of_a_let
 d125_field_of_a_local_in_pure
@@ -197,6 +198,7 @@ d130_declared_twice
 d130_declaring_and_calling
 d130_dot_never_runs_code
 d130_given_receiver
+d130_impure_method_in_a_contract
 d130_label_left_off
 d130_labels_and_defaults
 d130_lent_mut_ends_trust
@@ -212,6 +214,7 @@ d130_needs_its_percent
 d130_no_receiver
 d130_on_a_base_type
 d130_pure_closer
+d130_reading_the_receiver_in_an_argument
 d130_receiver_of_the_wrong_type
 d130_receiver_with_a_label
 d130_same_name_on_two_types
@@ -950,6 +953,7 @@ d59_exact_needs_no_mark
 d59_exact_refuses_the_mark
 d59_inexact_needs_the_mark
 d59_negative_inexact
+d5_percent_on_argument
 d75_bare_x_call
 d75_inf_clashes
 d75_my_names
