@@ -38,7 +38,8 @@ Each works in its own clone, on `main` with no branch, and runs `git pull --reba
 8. **Commits.** `kind.folder.narrowing: sentence (owner: "their words"; D1)`. Kinds: `decision`, `design`, `feature`, `fix`,
    `test`, `house`. Each commit ends with its session's trailer, such as
    `Co-Authored-By: oracle claude <noreply@anthropic.com>`.
-9. **Cores.** No limit.
+9. **Cores.** On the owner's 10-core Mac: design claude 1, oracle claude 3, compiler claude 3. That covers builds and
+   tests, as in `cargo build -j 3`, `CARGO_BUILD_JOBS=3` and `cargo test -- --test-threads=3`. (D279)
 10. **Optimizations from the start.** The compiler is built with its optimizations as it goes, never as a plain version sped up
     later. The oracle stays plain. The owner learnt this reimplementing Lua in SPARK.
     The first compiler has LLVM's standard optimizations and Precog dropping checks, and compiles fast: incremental,

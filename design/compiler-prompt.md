@@ -44,6 +44,8 @@ oracle's source isn't.
   script itself. A compiler with LLVM inside ships LLVM's licence text, and
   Linux programs carry musl's notice: Lyftar's README section "A
   self-contained compiler" lists the files.
+- Use at most 3 CPU cores for builds and tests (rule 9): `cargo build -j 3`,
+  `CARGO_BUILD_JOBS=3`, and `cargo test -- --test-threads=3`.
 - Build optimizations in from the start, never as a plain version sped up
   later (rule 10), with D168's fast compiling: incremental, parallel,
   cached, and a lighter `Working` build.
