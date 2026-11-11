@@ -3,6 +3,7 @@
 //! Checking goes item by item, then statement by statement. After an error, only that statement is skipped
 //! (standard 11.7), and a skipped `let` still declares its variable, with the type it wrote.
 
+pub mod aggregates;
 pub mod floats;
 pub mod format;
 pub mod types;
@@ -81,6 +82,8 @@ pub struct Variable {
     pub declared: Span,
     /// For a `must_Give` value, like a buffered writer: where it was given away or finished, if it was.
     pub given: Option<Span>,
+    /// For a union, the case it's known to hold here, inside the test or a `match` arm (D9).
+    pub known_case: Option<usize>,
 }
 
 /// A loop being checked, for `break` (D128).
@@ -177,6 +180,7 @@ pub struct Checker<'a> {
     /// Short names from `use`, to the path they stand for.
     pub uses: HashMap<String, String>,
     pub functions: HashMap<String, Signature>,
+    pub aggregates: aggregates::Aggregates,
     pub program: checked::Program,
 }
 
@@ -202,6 +206,7 @@ pub fn check(
         imports: Vec::new(),
         uses: HashMap::new(),
         functions: HashMap::new(),
+        aggregates: aggregates::Aggregates::default(),
         program: checked::Program::default(),
     };
     checker.check_file(parsed);
@@ -229,6 +234,7 @@ impl Checker<'_> {
                 _ => {}
             }
         }
+        self.declare_aggregates(file);
         let mut bodies = Vec::new();
         let mut main = None;
         let mut header_failed = false;
@@ -392,7 +398,9 @@ impl Checker<'_> {
         let mut parameters = Vec::new();
         for (parameter, (name, value_type, ownership)) in function.parameters.list.iter().zip(&signature.parameters) {
             let local = body.new_local(value_type.machine());
-            let passing = if value_type.is_copied() && *ownership != syntax::ParameterOwnership::LentMut {
+            let passing = if *ownership == syntax::ParameterOwnership::Given
+                || (value_type.is_copied() && *ownership != syntax::ParameterOwnership::LentMut)
+            {
                 checked::Passing::Value
             } else {
                 checked::Passing::Address
@@ -407,6 +415,7 @@ impl Checker<'_> {
                     local,
                     declared: parameter.name.span,
                     given: None,
+                    known_case: None,
                 },
                 State::Assigned,
             );
@@ -541,6 +550,7 @@ impl Checker<'_> {
                     library::WRITER_KINDS_WHY,
                 )))
             }
+            _ if self.aggregates.names.contains_key(&text) => Ok(self.aggregates.names[&text].clone()),
             _ if text.contains("::") || text.contains('.') => {
                 Err(self.not_yet(written.span, format!("the type `{text}`")))
             }

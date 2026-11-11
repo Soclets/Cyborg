@@ -19,6 +19,10 @@ pub enum MachineType {
     Text,
     /// A writer from `os`, buffered or not (D272, D273). Its runtime record is the same for both.
     Writer,
+    /// A struct, by its number in the program.
+    Struct(usize),
+    /// A tagged union: a tag saying which case, then room for the largest case.
+    Union(usize),
 }
 
 impl MachineType {
@@ -34,6 +38,10 @@ pub type LoopId = usize;
 #[derive(Clone, Debug, Default)]
 pub struct Program {
     pub functions: Vec<Function>,
+    /// Each struct's fields.
+    pub structs: Vec<Vec<MachineType>>,
+    /// Each union's cases, and each case's fields.
+    pub unions: Vec<Vec<Vec<MachineType>>>,
     /// `fn.main`.
     pub entry: FunctionId,
 }
@@ -75,6 +83,12 @@ pub enum Statement {
     /// Changes a local.
     Set {
         local: LocalId,
+        value: Expression,
+    },
+    /// Changes one field, maybe deep inside a local: `change $r.celsius = 22;` (D125).
+    SetField {
+        local: LocalId,
+        path: Vec<usize>,
         value: Expression,
     },
     Evaluate(Expression),
@@ -330,6 +344,26 @@ pub enum ExpressionKind {
         max: f64,
         failure: Box<CheckFailure>,
     },
+    /// A struct built from its fields' values, in their declared order.
+    Build(Vec<Expression>),
+    /// One field of a struct value.
+    Field {
+        base: Box<Expression>,
+        index: usize,
+    },
+    /// A union's case, built from its values.
+    BuildCase {
+        case: usize,
+        fields: Vec<Expression>,
+    },
+    /// Which case a union holds.
+    Tag(Box<Expression>),
+    /// One field of the case a union is known to hold.
+    CaseField {
+        base: Box<Expression>,
+        case: usize,
+        index: usize,
+    },
     /// A value checked to be within a bound while running (D20).
     Fit {
         value: Box<Expression>,
@@ -350,4 +384,11 @@ pub enum Argument {
     Value(Expression),
     /// The address of a local, for a lent or changed parameter.
     Address(LocalId),
+    /// The address of a field inside a local, for a lent field: `Lend $o.b`.
+    FieldAddress {
+        local: LocalId,
+        path: Vec<usize>,
+    },
+    /// A fresh value lent for the call: it's put in a temporary, whose address is passed.
+    Temporary(Expression),
 }

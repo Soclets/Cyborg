@@ -56,8 +56,16 @@ pub fn object_file(program: &Program, target: Target, mode: Mode) -> Result<Vec<
         {
             let view = context.module(&module);
             view.set_target_machine(&machine);
-            let mut generator =
-                Generator { context, module: view, mode, bare_metal: !target.has_os(), functions: Vec::new() };
+            let mut generator = Generator {
+                context,
+                module: view,
+                mode,
+                bare_metal: !target.has_os(),
+                functions: Vec::new(),
+                structs: Vec::new(),
+                struct_fields: Vec::new(),
+                unions: Vec::new(),
+            };
             generator.program(program)?;
             view.verify().map_err(|error| format!("the generated code: {}", error.message()))?;
         }
@@ -86,6 +94,10 @@ struct Generator<'context, 'module> {
     /// With no operating system, a failed check traps, since there's nowhere decided to print to.
     bare_metal: bool,
     functions: Vec<Function<'context, 'module>>,
+    /// Each struct's LLVM type, and each union's, with each union's cases as LLVM structs.
+    structs: Vec<lyftar::types::Type<'context>>,
+    struct_fields: Vec<Vec<MachineType>>,
+    unions: Vec<(lyftar::types::Type<'context>, Vec<lyftar::types::Type<'context>>)>,
 }
 
 /// Where each local lives while generating one function.
@@ -96,6 +108,8 @@ struct Frame<'context, 'module> {
     builder: Builder<'context, 'module>,
     /// Whether this is `fn.main`, which returns 0 to the system.
     is_main: bool,
+    /// Each local's machine type.
+    local_types: Vec<MachineType>,
 }
 
 /// A value with its machine type, which a failure's `when:` line prints.
@@ -119,6 +133,12 @@ impl<'context, 'module> Generator<'context, 'module> {
             MachineType::Writer => {
                 self.context.get_named_struct("writer").unwrap_or_else(|| self.context.integer_type(8).to_dynamic())
             }
+            MachineType::Struct(id) => {
+                self.structs.get(*id).copied().unwrap_or_else(|| self.context.integer_type(8).to_dynamic())
+            }
+            MachineType::Union(id) => {
+                self.unions.get(*id).map_or_else(|| self.context.integer_type(8).to_dynamic(), |(union, _)| *union)
+            }
         }
     }
 
@@ -126,7 +146,38 @@ impl<'context, 'module> Generator<'context, 'module> {
         self.context.integer_type(bits).constant_integer(value, false).to_dynamic()
     }
 
+    /// Makes the program's struct and union types, before anything uses them.
+    fn aggregates(&mut self, program: &Program) {
+        self.struct_fields.clone_from(&program.structs);
+        for id in 0..program.structs.len() {
+            self.structs.push(self.context.create_named_struct(&format!("struct.{id}")));
+        }
+        for (id, fields) in program.structs.iter().enumerate() {
+            let fields: Vec<_> = fields.iter().map(|field| self.machine_type(field)).collect();
+            self.structs[id].set_struct_body(&fields, false);
+        }
+        for (id, cases) in program.unions.iter().enumerate() {
+            let union = self.context.create_named_struct(&format!("union.{id}"));
+            let case_types: Vec<_> = cases
+                .iter()
+                .map(|fields| {
+                    let fields: Vec<_> = fields.iter().map(|field| self.machine_type(field)).collect();
+                    self.context.struct_type(&fields, false)
+                })
+                .collect();
+            let words = cases
+                .iter()
+                .map(|fields| fields.iter().map(|field| size_in_words(field, program)).sum::<u64>())
+                .max()
+                .unwrap_or(0);
+            let payload = self.context.integer_type(64).to_dynamic().array_type(words.max(1));
+            union.set_struct_body(&[self.context.integer_type(32).to_dynamic(), payload], false);
+            self.unions.push((union, case_types));
+        }
+    }
+
     fn program(&mut self, program: &Program) -> Result<()> {
+        self.aggregates(program);
         let pointer = self.context.pointer_type(0);
         for (index, function) in program.functions.iter().enumerate() {
             let is_main = index == program.entry;
@@ -174,7 +225,14 @@ impl<'context, 'module> Generator<'context, 'module> {
                 Passing::Address => slots[parameter.local] = incoming,
             }
         }
-        let mut frame = Frame { function: declared, slots, loops: HashMap::new(), builder, is_main };
+        let mut frame = Frame {
+            function: declared,
+            slots,
+            loops: HashMap::new(),
+            builder,
+            is_main,
+            local_types: function.locals.clone(),
+        };
         self.block(&mut frame, &function.body)?;
         // The end of a body the checker let run off its end can't be reached, since every function returns.
         if frame.builder.insertion_basic_block().terminator().is_none() {
@@ -219,6 +277,11 @@ impl<'context, 'module> Generator<'context, 'module> {
             }
             Statement::Evaluate(value) => {
                 self.expression(frame, value)?;
+            }
+            Statement::SetField { local, path, value } => {
+                let value = self.expression(frame, value)?;
+                let place = self.field_place(frame, *local, path)?;
+                frame.builder.store(value, place);
             }
             Statement::If { condition, then, otherwise } => {
                 let condition = self.expression(frame, condition)?;
@@ -412,6 +475,30 @@ impl<'context, 'module> Generator<'context, 'module> {
     }
 
     /// Prints a number or a `bool` with its shape.
+    /// The address of a field, maybe deep, inside a local.
+    fn field_place(
+        &mut self,
+        frame: &mut Frame<'context, 'module>,
+        local: usize,
+        path: &[usize],
+    ) -> Result<Value<'context, 'module>> {
+        let mut place = frame.slots[local];
+        let mut machine_type = frame.local_types.get(local).cloned().ok_or("a field of a missing local")?;
+        for index in path {
+            let MachineType::Struct(id) = machine_type else {
+                return Err("a field of something that isn't a struct".into());
+            };
+            let struct_type = *self.structs.get(id).ok_or("a struct that wasn't made")?;
+            place = frame
+                .builder
+                .struct_get_element_pointer(struct_type, place, u32::try_from(*index).unwrap_or(0), "")
+                .to_dynamic();
+            machine_type =
+                self.struct_fields.get(id).and_then(|fields| fields.get(*index)).cloned().ok_or("a missing field")?;
+        }
+        Ok(place)
+    }
+
     /// Formats a float with the runtime and prints it, crashing on what isn't decided (D161, D162, D194).
     fn print_float(
         &mut self,
@@ -804,6 +891,14 @@ impl<'context, 'module> Generator<'context, 'module> {
                     values.push(match argument {
                         Argument::Value(value) => self.expression(frame, value)?,
                         Argument::Address(local) => frame.slots[*local],
+                        Argument::FieldAddress { local, path } => self.field_place(frame, *local, path)?,
+                        Argument::Temporary(value) => {
+                            let generated = self.expression(frame, value)?;
+                            let slot_type = self.machine_type(&value.machine_type);
+                            let slot = frame.builder.stack_allocate(slot_type, "").to_dynamic();
+                            frame.builder.store(generated, slot);
+                            slot
+                        }
                     });
                 }
                 frame.builder.call(callee, &values, "").to_dynamic()
@@ -829,6 +924,55 @@ impl<'context, 'module> Generator<'context, 'module> {
                 let fits = frame.builder.and(above_min, below_max, "").to_dynamic();
                 self.check(frame, fits, failure, &[(generated, value.machine_type.clone())])?;
                 generated
+            }
+            ExpressionKind::Build(fields) => {
+                let mut built = self.machine_type(&expression.machine_type).undefined().to_dynamic();
+                for (index, field) in fields.iter().enumerate() {
+                    let value = self.expression(frame, field)?;
+                    built =
+                        frame.builder.insert_value(built, value, u32::try_from(index).unwrap_or(0), "").to_dynamic();
+                }
+                built
+            }
+            ExpressionKind::Field { base, index } => {
+                let base = self.expression(frame, base)?;
+                frame.builder.extract_value(base, u32::try_from(*index).unwrap_or(0), "").to_dynamic()
+            }
+            ExpressionKind::BuildCase { case, fields } => {
+                let MachineType::Union(id) = expression.machine_type else {
+                    return Err("a case of something that isn't a union".into());
+                };
+                let (union_type, case_types) = self.unions.get(id).cloned().ok_or("a union that wasn't made")?;
+                let case_type = *case_types.get(*case).ok_or("a case that wasn't made")?;
+                let mut built = case_type.undefined().to_dynamic();
+                for (index, field) in fields.iter().enumerate() {
+                    let value = self.expression(frame, field)?;
+                    built =
+                        frame.builder.insert_value(built, value, u32::try_from(index).unwrap_or(0), "").to_dynamic();
+                }
+                let slot = frame.builder.stack_allocate(union_type, "").to_dynamic();
+                let tag_place = frame.builder.struct_get_element_pointer(union_type, slot, 0, "").to_dynamic();
+                frame.builder.store(self.integer(32, *case as u64), tag_place);
+                let payload = frame.builder.struct_get_element_pointer(union_type, slot, 1, "").to_dynamic();
+                frame.builder.store(built, payload);
+                frame.builder.load(union_type, slot, "").to_dynamic()
+            }
+            ExpressionKind::Tag(base) => {
+                let base = self.expression(frame, base)?;
+                frame.builder.extract_value(base, 0, "").to_dynamic()
+            }
+            ExpressionKind::CaseField { base, case, index } => {
+                let MachineType::Union(id) = base.machine_type else {
+                    return Err("a case field of something that isn't a union".into());
+                };
+                let (union_type, case_types) = self.unions.get(id).cloned().ok_or("a union that wasn't made")?;
+                let case_type = *case_types.get(*case).ok_or("a case that wasn't made")?;
+                let value = self.expression(frame, base)?;
+                let slot = frame.builder.stack_allocate(union_type, "").to_dynamic();
+                frame.builder.store(value, slot);
+                let payload = frame.builder.struct_get_element_pointer(union_type, slot, 1, "").to_dynamic();
+                let case_value = frame.builder.load(case_type, payload, "").to_dynamic();
+                frame.builder.extract_value(case_value, u32::try_from(*index).unwrap_or(0), "").to_dynamic()
             }
             ExpressionKind::Bind { local, value, body } => {
                 let generated = self.expression(frame, value)?;
@@ -1027,4 +1171,27 @@ fn integer_constant<'context>(
     let words = [value as u64, (value >> 64) as u64];
     let words = if bits > 64 { &words[..] } else { &words[..1] };
     context.integer_type(bits).constant_integer_from_words(words).to_dynamic()
+}
+
+/// A conservative size, in 8-byte words, for a value of a machine type, so a union's room fits its largest case.
+fn size_in_words(machine_type: &MachineType, program: &Program) -> u64 {
+    match machine_type {
+        MachineType::Integer { bits, .. } => u64::from(bits.div_ceil(64)).max(1),
+        MachineType::Float { .. } | MachineType::Bool | MachineType::Void => 1,
+        MachineType::Text => 2,
+        MachineType::Writer => 6,
+        MachineType::Struct(id) => program
+            .structs
+            .get(*id)
+            .map_or(1, |fields| fields.iter().map(|field| size_in_words(field, program)).sum::<u64>().max(1)),
+        MachineType::Union(id) => {
+            1 + program.unions.get(*id).map_or(1, |cases| {
+                cases
+                    .iter()
+                    .map(|fields| fields.iter().map(|field| size_in_words(field, program)).sum::<u64>())
+                    .max()
+                    .unwrap_or(1)
+            })
+        }
+    }
 }

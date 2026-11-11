@@ -63,6 +63,7 @@ impl Checker<'_> {
                         local,
                         declared: name.span,
                         given: None,
+                        known_case: None,
                     },
                     State::Unassigned,
                 );
@@ -92,6 +93,7 @@ impl Checker<'_> {
                 }
                 self.forever(body, label.as_ref(), inner, block)
             }
+            StatementKind::Match(choice) => self.match_statement(body, statement.span, choice, block),
             StatementKind::For(each) => {
                 match &each.label {
                     Some(label) => self.check_closer(&each.end, &format!("end for {}", label.text), super::CLOSER_WHY),
@@ -130,6 +132,7 @@ impl Checker<'_> {
                 local,
                 declared: binding.name.span,
                 given: None,
+                known_case: None,
             },
             state,
         );
@@ -208,6 +211,9 @@ impl Checker<'_> {
         value: &syntax::Expression,
         block: &mut checked::Block,
     ) -> Check<()> {
+        if let ExpressionKind::Field { .. } = &target.kind {
+            return self.change_field(body, target, value, block);
+        }
         let ExpressionKind::Variable(name) = &target.kind else {
             return Err(self.not_yet(target.span, "`change` on this".to_string()));
         };
@@ -247,6 +253,65 @@ impl Checker<'_> {
         let value = self.value_into(body, value, &variable.value_type)?;
         block.push(checked::Statement::Set { local: variable.local, value });
         body.states[index] = State::Assigned;
+        Ok(())
+    }
+
+    /// `change $r.celsius = 22;`: one field, if the whole variable can change (D125).
+    fn change_field(
+        &mut self,
+        body: &mut Body,
+        target: &syntax::Expression,
+        value: &syntax::Expression,
+        block: &mut checked::Block,
+    ) -> Check<()> {
+        // Walk down to the variable, then back up through the fields.
+        let mut names = Vec::new();
+        let mut at = target;
+        while let ExpressionKind::Field { base, field } = &at.kind {
+            names.push(field);
+            at = base;
+        }
+        names.reverse();
+        let ExpressionKind::Variable(root) = &at.kind else {
+            return Err(self.error(Diagnostic::refused(
+                target.span,
+                "`change` works on a variable, or a field of one",
+                "`change` reassigns a variable or one field of it (D125)",
+            )));
+        };
+        let Some(variable) = body.lookup(&root.text).cloned() else {
+            return Err(self.error(Diagnostic::refused(
+                root.span,
+                format!("`{}` isn't declared", root.text),
+                "`let` declares a variable (D2)",
+            )));
+        };
+        let mut path = Vec::new();
+        let mut current = variable.value_type.clone();
+        for field in names {
+            let Type::Struct { id, name } = &current else {
+                return Err(self.not_yet(field.span, "changing a field of this".to_string()));
+            };
+            let info = self.aggregates.structs[*id].clone();
+            let Some(index) = info.fields.iter().position(|each| each.name == field.text) else {
+                return Err(self.error(Diagnostic::refused(
+                    field.span,
+                    format!("`{name}` has no field `{}`", field.text),
+                    "a field read is a plain `.` (D57)",
+                )));
+            };
+            path.push(index);
+            current = info.fields[index].value_type.clone();
+        }
+        if !variable.mutable {
+            return Err(self.error(Diagnostic::refused(
+                target.span,
+                format!("`{}` can't change, so neither can its field", root.text),
+                "a field or item can be changed if the whole variable is `let mut`, or the parameter `Lent.mut` (D125, D133)",
+            )));
+        }
+        let value = self.value_into(body, value, &current)?;
+        block.push(checked::Statement::SetField { local: variable.local, path, value });
         Ok(())
     }
 
@@ -402,6 +467,135 @@ impl Checker<'_> {
         Ok(all_leave)
     }
 
+    /// `match`: a union's cases, every one covered (D9, D33, D139).
+    fn match_statement(
+        &mut self,
+        body: &mut Body,
+        span: Span,
+        choice: &syntax::Match,
+        block: &mut checked::Block,
+    ) -> Check<bool> {
+        self.check_closer(&choice.end, "end match", super::CLOSER_WHY);
+        let typed = self.expression(body, &choice.subject, None)?;
+        let Type::Union { id, name } = typed.value_type.clone() else {
+            if typed.value_type.is_unknown() {
+                return Err(Reported);
+            }
+            return Err(self.not_yet(choice.subject.span, format!("`match` on `{}`", typed.value_type)));
+        };
+        let union = self.aggregates.unions[id].clone();
+        let local = body.new_local(typed.value.machine_type.clone());
+        block.push(checked::Statement::Let { local, value: typed.value });
+        let start = body.states.len();
+        let mut covered = vec![false; union.cases.len()];
+        let mut arms = Vec::new();
+        let mut ends = Vec::new();
+        let mut failed = false;
+        for arm in &choice.arms {
+            let written = self.resolve_path(&arm.pattern);
+            let case_name = match written.strip_prefix(&format!("{name}.")) {
+                Some(case_name) => case_name.to_string(),
+                None if union.cases.iter().any(|case| case.name == written) => {
+                    self.error(Diagnostic::refused_fix(
+                        arm.pattern.span,
+                        format!("{name}.{written}"),
+                        "a union's cases are narrowings, such as `status.failed` (D9, D33)",
+                    ));
+                    failed = true;
+                    continue;
+                }
+                None => {
+                    self.not_yet(arm.pattern.span, format!("the case `{written}`"));
+                    failed = true;
+                    continue;
+                }
+            };
+            let Some(case) = union.cases.iter().position(|each| each.name == case_name) else {
+                self.error(Diagnostic::refused(
+                    arm.pattern.span,
+                    format!("`{name}` has no case `{case_name}`"),
+                    "a union's cases are narrowings (D33)",
+                ));
+                failed = true;
+                continue;
+            };
+            covered[case] = true;
+            let before = body.states.clone();
+            body.scopes.push(Vec::new());
+            if let Some(binding) = &arm.binding {
+                body.declare(
+                    Variable {
+                        name: binding.text.clone(),
+                        value_type: Type::Union { id, name: name.clone() },
+                        mutable: false,
+                        origin: Origin::Let,
+                        local,
+                        declared: binding.span,
+                        given: None,
+                        known_case: Some(case),
+                    },
+                    State::Assigned,
+                );
+            }
+            let checked = self.block(body, &arm.body);
+            body.scopes.pop();
+            body.forget_after(start);
+            if !checked.leaves {
+                ends.push(body.states.clone());
+            }
+            body.states.clone_from(&before);
+            arms.push((case, checked.block));
+        }
+        let missing: Vec<String> = union
+            .cases
+            .iter()
+            .zip(&covered)
+            .filter(|(_, done)| !**done)
+            .map(|(case, _)| format!("`{name}.{}`", case.name))
+            .collect();
+        if !missing.is_empty() && !failed {
+            let opener = Span::new(self.file, span.start as usize, choice.subject.span.end as usize + 1);
+            let list = match missing.as_slice() {
+                [one] => one.clone(),
+                [rest @ .., last] => format!("{} and {last}", rest.join(", ")),
+                [] => String::new(),
+            };
+            return Err(self.error(Diagnostic::refused(
+                opener,
+                format!("this `match` misses {list}"),
+                "`match` must cover every case (D9)",
+            )));
+        }
+        if failed {
+            return Err(Reported);
+        }
+        let all_leave = ends.is_empty();
+        if let Some(first) = ends.first().cloned() {
+            body.states = ends.iter().skip(1).fold(first, |joined, each| Body::join_states(&joined, each));
+        }
+        let tag = checked::Expression {
+            kind: Kind::Tag(Box::new(checked::Expression {
+                kind: Kind::Local(local),
+                machine_type: MachineType::Union(id),
+            })),
+            machine_type: MachineType::Integer { bits: 32, signed: true },
+        };
+        let mut built: checked::Block = Vec::new();
+        for (case, statements) in arms.into_iter().rev() {
+            let number = checked::Expression {
+                kind: Kind::Integer(i128::try_from(case).unwrap_or(0)),
+                machine_type: MachineType::Integer { bits: 32, signed: true },
+            };
+            built = vec![checked::Statement::If {
+                condition: compare(checked::Comparison::Equal, tag.clone(), number),
+                then: statements,
+                otherwise: built,
+            }];
+        }
+        block.extend(built);
+        Ok(all_leave)
+    }
+
     /// A branch's condition: a `bool`, or the test on a bound, which narrows the variable inside (D20).
     fn branch_condition(
         &mut self,
@@ -418,6 +612,33 @@ impl Checker<'_> {
                     return Err(self.not_yet(subject.span, "the test on something that isn't a variable".to_string()));
                 };
                 let typed = self.expression(body, subject, None)?;
+                if let Type::Union { id, name: union_name } = &typed.value_type
+                    && let syntax::TypeKind::Named { path, .. } = &written_type.kind
+                {
+                    let union = self.aggregates.unions[*id].clone();
+                    let written = self.resolve_path(path);
+                    let Some(case_name) = written.strip_prefix(&format!("{union_name}.")) else {
+                        return Err(self.not_yet(written_type.span, format!("the test for `{written}`")));
+                    };
+                    let Some(case) = union.cases.iter().position(|each| each.name == case_name) else {
+                        return Err(self.error(Diagnostic::refused(
+                            written_type.span,
+                            format!("`{union_name}` has no case `{case_name}`"),
+                            "a union's cases are narrowings (D33)",
+                        )));
+                    };
+                    let tag = checked::Expression {
+                        kind: Kind::Tag(Box::new(typed.value.clone())),
+                        machine_type: MachineType::Integer { bits: 32, signed: true },
+                    };
+                    let number = checked::Expression {
+                        kind: Kind::Integer(i128::try_from(case).unwrap_or(0)),
+                        machine_type: MachineType::Integer { bits: 32, signed: true },
+                    };
+                    let Some(original) = body.lookup(&name.text).cloned() else { return Err(Reported) };
+                    let narrowed = Variable { known_case: Some(case), ..original };
+                    return Ok((compare(checked::Comparison::Equal, tag, number), Some(narrowed)));
+                }
                 let tested = self.resolve_type(written_type)?;
                 match (&typed.value_type, &tested) {
                     (Type::Integer { kind: from, .. }, Type::Integer { kind: to, bounds: Some(bounds) })
@@ -704,6 +925,7 @@ impl Checker<'_> {
                 local: item,
                 declared: each.name.span,
                 given: None,
+                known_case: None,
             },
             State::Assigned,
         );

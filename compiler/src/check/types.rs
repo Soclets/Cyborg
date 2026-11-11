@@ -128,6 +128,16 @@ pub enum Type {
     Str,
     Void,
     Writer(WriterKind),
+    /// A struct of the program's own, by its number and name (D57).
+    Struct {
+        id: usize,
+        name: String,
+    },
+    /// A tagged union of the program's own, by its number and name (D33).
+    Union {
+        id: usize,
+        name: String,
+    },
     /// After an error, so nothing more is said about it.
     Unknown,
 }
@@ -169,6 +179,8 @@ impl Type {
             Type::Float { bits, .. } => checked::MachineType::Float { bits: *bits },
             Type::Bool => checked::MachineType::Bool,
             Type::Writer(_) => checked::MachineType::Writer,
+            Type::Struct { id, .. } => checked::MachineType::Struct(*id),
+            Type::Union { id, .. } => checked::MachineType::Union(*id),
             Type::Str => checked::MachineType::Text,
             Type::Void | Type::Unknown => checked::MachineType::Void,
         }
@@ -198,6 +210,7 @@ impl fmt::Display for Type {
             Type::Str => write!(formatter, "str"),
             Type::Void => write!(formatter, "void"),
             Type::Writer(writer) => write!(formatter, "{}", writer.name()),
+            Type::Struct { name, .. } | Type::Union { name, .. } => write!(formatter, "{name}"),
             Type::Unknown => write!(formatter, "?"),
         }
     }

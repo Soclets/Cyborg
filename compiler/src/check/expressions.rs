@@ -23,6 +23,8 @@ pub struct Typed {
     pub variable: Option<String>,
     /// The value, if this is a float literal, so where it lands can check it fits while building (D158).
     pub float_literal: Option<f64>,
+    /// Whether it says `Give` or `Copy`, handing it over (D3).
+    pub handed: bool,
 }
 
 impl Typed {
@@ -35,6 +37,7 @@ impl Typed {
             literal: None,
             variable: None,
             float_literal: None,
+            handed: false,
         }
     }
 }
@@ -126,6 +129,40 @@ impl Checker<'_> {
                 self.binary(body, expression, operator, *operator_span, left, right, expected)
             }
             ExpressionKind::Chain { operands, operators } => self.chain(body, operands, operators),
+            ExpressionKind::Path(path) => {
+                if let Some(typed) = self.case_value(expression, path)? {
+                    return Ok(typed);
+                }
+                if path.is_single("void") {
+                    return Ok(Typed::new(Type::Void, Kind::Integer(0)));
+                }
+                if path.segments.len() == 1 && !super::clashes(&path.text()) {
+                    return Err(self.error(Diagnostic::refused(
+                        path.span,
+                        format!("`{}` isn't known", path.text()),
+                        "variables, parameters and constants start with `$` (D57, D58)",
+                    )));
+                }
+                Err(self.not_yet(expression.span, format!("the value `{}`", path.text())))
+            }
+            ExpressionKind::Bracket { base, labels, .. } if matches!(base.kind, ExpressionKind::Path(_)) => {
+                let ExpressionKind::Path(path) = &base.kind else { return Err(Reported) };
+                if let Some(typed) = self.build(body, expression, path, labels)? {
+                    return Ok(typed);
+                }
+                if path.is_single("range") {
+                    return Err(self.error(Diagnostic::not_designed(
+                        base.span,
+                        "a range anywhere but straight after `in`",
+                        NOT_DECIDED,
+                    )));
+                }
+                Err(self.not_yet(expression.span, format!("building `{}`", path.text())))
+            }
+            ExpressionKind::Field { base, field } => self.field(body, base, field),
+            ExpressionKind::Owned { ownership, ownership_span, value } => {
+                self.owned(body, *ownership, *ownership_span, value, expected)
+            }
             ExpressionKind::Bracket { base, .. } if matches!(&base.kind, ExpressionKind::Path(path) if path.is_single("range")) => {
                 Err(self.error(Diagnostic::not_designed(
                     base.span,
@@ -1069,22 +1106,15 @@ impl Checker<'_> {
         }
         let mut values = Vec::new();
         let mut failed = false;
-        for (argument, (_, parameter_type, ownership)) in arguments.iter().zip(&signature.parameters) {
-            if argument.label.is_some()
-                || argument.ownership.is_some()
-                || *ownership != syntax::ParameterOwnership::Lent
-            {
+        let mut changed: Vec<String> = Vec::new();
+        for (argument, (parameter_name, parameter_type, ownership)) in arguments.iter().zip(&signature.parameters) {
+            if argument.label.is_some() {
                 failed = true;
-                self.not_yet(argument.span, "this argument".to_string());
+                self.not_yet(argument.span, "a labelled argument".to_string());
                 continue;
             }
-            if !parameter_type.is_copied() {
-                failed = true;
-                self.not_yet(argument.span, "an argument that isn't a number or `bool`".to_string());
-                continue;
-            }
-            match self.value_into(body, &argument.value, parameter_type) {
-                Ok(value) => values.push(checked::Argument::Value(value)),
+            match self.argument(body, argument, parameter_name, parameter_type, *ownership, &mut changed) {
+                Ok(value) => values.push(value),
                 Err(Reported) => failed = true,
             }
         }
@@ -1092,6 +1122,169 @@ impl Checker<'_> {
             return Err(Reported);
         }
         Ok(Typed::new(signature.returns.clone(), Kind::Call { function: signature.id, arguments: values }))
+    }
+
+    /// One argument, with the ownership word the parameter asks for (D2, D3, D184).
+    fn argument(
+        &mut self,
+        body: &mut Body,
+        argument: &syntax::Argument,
+        parameter_name: &str,
+        parameter_type: &Type,
+        ownership: syntax::ParameterOwnership,
+        changed: &mut Vec<String>,
+    ) -> Check<checked::Argument> {
+        use syntax::{Ownership, ParameterOwnership};
+        let word = argument.ownership.map(|(word, _)| word);
+        let shown = self.slice(argument.value.span).to_string();
+        let held = is_held(&argument.value);
+        match ownership {
+            ParameterOwnership::LentMut => {
+                let number_why =
+                    "a number lent to change says `Lend.mut`, and it's the one word a number takes (D184, D3)";
+                match word {
+                    Some(Ownership::LendMut) => {}
+                    None if !held => {
+                        return Err(self.error(Diagnostic::refused(
+                            argument.span,
+                            format!("`{parameter_name}` changes this, so it says `Lend.mut`"),
+                            number_why,
+                        )));
+                    }
+                    _ => {
+                        let why = if parameter_type.is_copied() {
+                            number_why
+                        } else {
+                            "every hand-off shows on the page (D3)"
+                        };
+                        return Err(self.error(Diagnostic::refused_fix(
+                            argument.span,
+                            format!("Lend.mut {shown}"),
+                            why,
+                        )));
+                    }
+                }
+                let ExpressionKind::Variable(name) = &argument.value.kind else {
+                    return Err(self.not_yet(argument.value.span, "lending this with `Lend.mut`".to_string()));
+                };
+                if changed.contains(&name.text) {
+                    return Err(self.error(Diagnostic::refused(
+                        argument.span,
+                        format!("`{}` is already handed off with `Lend.mut` in this call", name.text),
+                        "`Lend.mut` means nothing else uses it meanwhile, and `Give` means it's gone (D2)",
+                    )));
+                }
+                changed.push(name.text.clone());
+                let typed = self.expression(body, &argument.value, Some(parameter_type))?;
+                let Some(variable) = body.lookup(&name.text).cloned() else { return Err(Reported) };
+                if !variable.mutable {
+                    return Err(self.error(Diagnostic::refused(
+                        argument.value.span,
+                        format!("`{}` can't change, so it can't be lent with `Lend.mut`", name.text),
+                        "`let` declares a variable that can't change, and `let mut` one that can (D3)",
+                    )));
+                }
+                if typed.value_type != *parameter_type && !typed.value_type.is_unknown() {
+                    return Err(self.error(Diagnostic::refused(
+                        argument.value.span,
+                        format!("this is `{}`, where `{parameter_type}` is needed", typed.value_type),
+                        CONVERT_WHY,
+                    )));
+                }
+                Ok(checked::Argument::Address(variable.local))
+            }
+            _ if parameter_type.is_copied() => {
+                if let Some((_, span)) = argument.ownership {
+                    return Err(self.error(Diagnostic::refused_fix(
+                        span.to(argument.value.span),
+                        shown,
+                        "plain numbers and `bool` are always copied, and take no word (D2, D123)",
+                    )));
+                }
+                Ok(checked::Argument::Value(self.value_into(body, &argument.value, parameter_type)?))
+            }
+            ParameterOwnership::Given => {
+                match word {
+                    Some(Ownership::Give | Ownership::Copy) | None => {}
+                    Some(_) => {
+                        return Err(self.error(Diagnostic::refused(
+                            argument.span,
+                            "this parameter is `Given`, so the call says `Give` or `Copy`",
+                            "the call and the parameter both say it, and they must match (D2)",
+                        )));
+                    }
+                }
+                if word.is_none() && held {
+                    return Err(self.error(Diagnostic::refused(
+                        argument.span,
+                        "this parameter is `Given`, so the call says `Give` or `Copy`",
+                        "the call and the parameter both say it, and they must match (D2)",
+                    )));
+                }
+                let typed = self.expression(body, &argument.value, Some(parameter_type))?;
+                Ok(checked::Argument::Value(self.convert_into(argument.value.span, typed, parameter_type)?))
+            }
+            ParameterOwnership::Lent | ParameterOwnership::LentWritten => {
+                match word {
+                    Some(Ownership::Lend) => {}
+                    None if held => {
+                        return Err(self.error(Diagnostic::refused_fix(
+                            argument.span,
+                            format!("Lend {shown}"),
+                            "every hand-off shows on the page (D3)",
+                        )));
+                    }
+                    None => {
+                        let value = self.value_into(body, &argument.value, parameter_type)?;
+                        return Ok(checked::Argument::Temporary(value));
+                    }
+                    Some(_) => return Err(self.not_yet(argument.span, "this word on a lent parameter".to_string())),
+                }
+                let typed = self.expression(body, &argument.value, Some(parameter_type))?;
+                let typed_type = typed.value_type.clone();
+                if typed_type != *parameter_type && !typed_type.is_unknown() {
+                    return Err(self.error(Diagnostic::refused(
+                        argument.value.span,
+                        format!("this is `{typed_type}`, where `{parameter_type}` is needed"),
+                        CONVERT_WHY,
+                    )));
+                }
+                match place_of(body, &argument.value) {
+                    Some((local, path)) if path.is_empty() => Ok(checked::Argument::Address(local)),
+                    Some((local, path)) => Ok(checked::Argument::FieldAddress { local, path }),
+                    None => Ok(checked::Argument::Temporary(typed.value)),
+                }
+            }
+        }
+    }
+
+    /// `Give $x` or `Copy $x` where a value is handed over (D2, D3).
+    fn owned(
+        &mut self,
+        body: &mut Body,
+        ownership: syntax::Ownership,
+        ownership_span: Span,
+        value: &syntax::Expression,
+        expected: Option<&Type>,
+    ) -> Check<Typed> {
+        let typed = self.expression(body, value, expected)?;
+        if typed.value_type.is_copied() {
+            let written = self.slice(value.span).to_string();
+            return Err(self.error(Diagnostic::refused_fix(
+                ownership_span.to(value.span),
+                written,
+                "plain numbers and `bool` are always copied, and take no word (D2, D123)",
+            )));
+        }
+        match ownership {
+            syntax::Ownership::Give | syntax::Ownership::Copy => {
+                let mut typed = typed;
+                typed.variable = None;
+                typed.handed = true;
+                Ok(typed)
+            }
+            _ => Err(self.not_yet(ownership_span, format!("`{}` here", ownership.word()))),
+        }
     }
 
     /// A value going into a place of type `into`: a `let`, a `change`, an argument or a `return`. A literal has to fit
@@ -1103,6 +1296,14 @@ impl Checker<'_> {
         into: &Type,
     ) -> Check<checked::Expression> {
         let typed = self.expression(body, expression, Some(into))?;
+        if !typed.value_type.is_copied() && !typed.handed && is_held(expression) && !typed.value_type.is_unknown() {
+            let shown = self.slice(expression.span).to_string();
+            return Err(self.error(Diagnostic::refused(
+                expression.span,
+                format!("`{shown}` is `{}`, so this needs `Give` or `Copy`", typed.value_type),
+                "every hand-off shows on the page, including one into a name, a `return` or a field (D3)",
+            )));
+        }
         self.convert_into(expression.span, typed, into)
     }
 
@@ -1266,5 +1467,25 @@ fn operator_word(operator: &BinaryOperator) -> &'static str {
         BinaryOperator::AtMost => "at_most",
         BinaryOperator::Equal => "==",
         _ => "!=",
+    }
+}
+
+/// Whether a value is held somewhere, a variable or a field of one, rather than fresh, so handing it over needs a
+/// word (D3, D182).
+fn is_held(expression: &syntax::Expression) -> bool {
+    match &expression.kind {
+        ExpressionKind::Variable(_) => true,
+        ExpressionKind::Field { base, .. } => is_held(base),
+        ExpressionKind::Group(inner) => is_held(inner),
+        _ => false,
+    }
+}
+
+/// Where a held value lives: its variable's local, and the fields down to it, by their numbers.
+fn place_of(body: &Body, expression: &syntax::Expression) -> Option<(checked::LocalId, Vec<usize>)> {
+    match &expression.kind {
+        ExpressionKind::Variable(name) => body.lookup(&name.text).map(|variable| (variable.local, Vec::new())),
+        ExpressionKind::Group(inner) => place_of(body, inner),
+        _ => None,
     }
 }
