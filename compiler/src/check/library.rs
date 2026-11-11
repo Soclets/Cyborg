@@ -248,7 +248,8 @@ impl Checker<'_> {
                 NOT_DECIDED,
             )));
         }
-        let (value_type, value) = self.expression(body, &argument.value, None)?;
+        let typed = self.expression(body, &argument.value, None)?;
+        let (value_type, value) = (typed.value_type, typed.value);
         let mut shape = checked::Shape { stored, ..checked::Shape::default() };
         for word in &hole.shapes {
             let applies = match (word, &value_type) {
@@ -267,7 +268,15 @@ impl Checker<'_> {
             }
             match word {
                 ShapeWord::Align(align) => shape.align = Some(*align),
-                ShapeWord::Width(width, _) => shape.width = Some(*width),
+                ShapeWord::Width(width, unit) => {
+                    shape.width = Some(*width);
+                    shape.width_unit = match unit {
+                        format::WidthUnit::Columns => checked::WidthUnit::Columns,
+                        format::WidthUnit::ColumnsEastAsian => checked::WidthUnit::ColumnsEastAsian,
+                        format::WidthUnit::Graphemes => checked::WidthUnit::Graphemes,
+                        format::WidthUnit::Bytes => checked::WidthUnit::Bytes,
+                    };
+                }
                 ShapeWord::Places(places) => shape.places = Some(*places),
                 ShapeWord::Base(base) => shape.base = *base,
                 ShapeWord::Science => shape.science = true,
@@ -294,6 +303,9 @@ impl Checker<'_> {
         }
         match value_type {
             Type::Integer { .. } => Ok(checked::Piece::Value { value, shape }),
+            Type::Str if matches!(value.kind, checked::ExpressionKind::Text(_)) => {
+                Ok(checked::Piece::Value { value, shape })
+            }
             Type::Bool => Err(self.error(Diagnostic::not_designed(
                 argument.value.span,
                 "how a `bool` prints",

@@ -42,7 +42,9 @@ fn main() -> ExitCode {
             eprintln!("okay: the build mode is a flag of its own, as in `--FinalSafe` (D224)");
             return ExitCode::from(2);
         } else if let Some(name) = argument.strip_prefix("--target=") {
-            if let Some(chosen) = Target::from_name(name) { target = chosen } else {
+            if let Some(chosen) = Target::from_name(name) {
+                target = chosen
+            } else {
                 eprintln!("okay: `{name}` isn't a target this compiler builds for");
                 return ExitCode::from(2);
             }

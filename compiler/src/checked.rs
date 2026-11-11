@@ -15,6 +15,8 @@ pub enum MachineType {
     },
     Bool,
     Void,
+    /// A string: its address and its length in bytes.
+    Text,
     /// A writer from `os`, buffered or not (D272, D273). Its runtime record is the same for both.
     Writer,
 }
@@ -106,10 +108,12 @@ pub enum Statement {
     Done {
         writer: LocalId,
     },
-    /// Stops the program with a `check failed:` message unless the condition holds.
+    /// Stops the program with its failure's message unless the condition holds. The operands are the values its
+    /// `when:` line prints.
     Check {
         condition: Expression,
         failure: CheckFailure,
+        operands: Vec<Expression>,
     },
 }
 
@@ -140,6 +144,8 @@ pub enum Piece {
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct Shape {
     pub width: Option<u64>,
+    /// What a width counts (D194).
+    pub width_unit: WidthUnit,
     pub align: Option<Align>,
     pub zeros: bool,
     pub sign: bool,
@@ -147,6 +153,34 @@ pub struct Shape {
     pub places: Option<u32>,
     pub science: bool,
     pub stored: bool,
+}
+
+/// What a width in a print counts (D194).
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub enum WidthUnit {
+    /// Terminal columns, where East Asian wide characters take two.
+    #[default]
+    Columns,
+    /// Columns, where characters of ambiguous width take two as well, as East Asian terminals show them.
+    ColumnsEastAsian,
+    Graphemes,
+    Bytes,
+}
+
+impl Shape {
+    /// How wide a piece of text is, in the width's unit.
+    #[must_use]
+    pub fn columns_of(&self, text: &str) -> u64 {
+        use unicode_segmentation::UnicodeSegmentation;
+        use unicode_width::UnicodeWidthStr;
+        let count = match self.width_unit {
+            WidthUnit::Columns => text.width(),
+            WidthUnit::ColumnsEastAsian => text.width_cjk(),
+            WidthUnit::Graphemes => text.graphemes(true).count(),
+            WidthUnit::Bytes => text.len(),
+        };
+        count as u64
+    }
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -172,8 +206,8 @@ pub enum Base {
 pub struct CheckFailure {
     /// The text before the `when:` values, or the whole message.
     pub before: String,
-    /// `when:` parts: text, then a value, alternating, then `after`.
-    pub when: Vec<(String, Expression)>,
+    /// `when:` parts: text, then which operand's value, then `after`.
+    pub when: Vec<(String, usize)>,
     pub after: String,
 }
 
@@ -186,6 +220,8 @@ pub enum Arithmetic {
     DivideTruncate,
     /// `div.floor`.
     DivideFloor,
+    /// `div.exact`, whose inexact case isn't decided (standard 12.3).
+    DivideExact,
     RemainderTruncate,
     RemainderFloor,
     WrappingAdd,
@@ -217,13 +253,17 @@ pub enum ExpressionKind {
     Integer(i128),
     Float(f64),
     Bool(bool),
+    /// A string literal's text.
+    Text(String),
     Local(LocalId),
-    /// Arithmetic, with the check that stops overflow and division by zero, where the mode keeps one.
+    /// Arithmetic, with the check that stops overflow and division by zero, where the mode keeps one, and any more
+    /// checks that come after it, like shifting too far.
     Arithmetic {
         operator: Arithmetic,
         left: Box<Expression>,
         right: Box<Expression>,
         failure: Option<Box<CheckFailure>>,
+        more: Vec<CheckFailure>,
     },
     Negate {
         operand: Box<Expression>,
@@ -244,6 +284,19 @@ pub enum ExpressionKind {
     Call {
         function: FunctionId,
         arguments: Vec<Argument>,
+    },
+    /// A value checked to be within a bound while running (D20).
+    Fit {
+        value: Box<Expression>,
+        min: i128,
+        max: i128,
+        failure: Box<CheckFailure>,
+    },
+    /// Puts a value in a local, then gives `body`, so a value used twice is evaluated once.
+    Bind {
+        local: LocalId,
+        value: Box<Expression>,
+        body: Box<Expression>,
     },
 }
 

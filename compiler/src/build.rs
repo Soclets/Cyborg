@@ -49,7 +49,7 @@ pub fn build(file: &Path, target: Target, mode: Mode, output: &Path) -> Outcome 
     let lexed = lexer::lex(program_id, &text, &mut program_errors);
     let (parsed, parse_errors) = parser::parse(program_id, &text, &lexed.tokens);
     program_errors.extend(parse_errors);
-    let (program, check_errors) = check::check(program_id, &text, &manifest, &parsed.file, target);
+    let (program, check_errors) = check::check(program_id, &sources, &manifest, &parsed.file, target, mode);
     program_errors.extend(check_errors);
     program_errors.sort_by_key(|error| error.span.start);
     errors.extend(program_errors);

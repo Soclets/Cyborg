@@ -219,10 +219,16 @@ impl<'source> Parser<'source> {
     /// Skips to the end of the statement after an error: past the next `;` at this depth, or to the start of the
     /// next line, whichever comes first.
     fn recover(&mut self) {
-        let mut depth = 0usize;
         let start = self.at;
+        self.recover_from(start);
+    }
+
+    /// Skips to the end of a broken statement that began at token `begin`: past the next `;` at its depth, or to
+    /// the start of the next line, whichever comes first.
+    fn recover_from(&mut self, begin: usize) {
+        let mut depth = 0usize;
         while let Some(token) = self.peek() {
-            if self.at > start && depth == 0 && self.starts_line() {
+            if self.at > begin && depth == 0 && self.starts_line() {
                 return;
             }
             match token.kind {
@@ -265,7 +271,7 @@ impl<'source> Parser<'source> {
         }
         self.advance();
         let name = self.name()?;
-        Ok(Name { text: name.text, span: start.to(name.span) })
+        Ok(Name { text: format!("${}", name.text), span: start.to(name.span) })
     }
 
     /// A path: segments joined by `::` and `.`, a limb's `@` on any segment, and `%` or `%%` marks on methods.
@@ -333,7 +339,9 @@ impl<'source> Parser<'source> {
         let mut items = Vec::new();
         while self.peek().is_some() {
             let before = self.at;
-            if let Ok(item) = self.item() { items.push(item) } else {
+            if let Ok(item) = self.item() {
+                items.push(item)
+            } else {
                 if self.at == before {
                     self.advance();
                 }
@@ -621,6 +629,14 @@ impl<'source> Parser<'source> {
             returns = Some(self.parse_type()?);
         } else if self.is(TokenKind::Arrow) {
             returns_word = self.current_span();
+            // trace: D275
+            // D287 brings `->` back and refuses `returns`, and this follows the oracle's tests, which still say
+            // `returns`, so the two agree until they move together.
+            self.errors.push(Diagnostic::refused_fix(
+                returns_word,
+                "returns",
+                "a header reads as words, `returns` alongside `fails`, so `->` is never written (D275)",
+            ));
             self.advance();
             returns = Some(self.parse_type()?);
         } else {
@@ -879,11 +895,13 @@ impl<'source> Parser<'source> {
                 break;
             }
             let before = self.at;
-            if let Ok(statement) = self.statement() { statements.push(statement) } else {
+            if let Ok(statement) = self.statement() {
+                statements.push(statement)
+            } else {
                 if self.at == before {
                     self.advance();
                 }
-                self.recover();
+                self.recover_from(before);
                 statements.push(Statement { kind: StatementKind::Broken, span: self.previous_span() });
             }
         }
@@ -953,7 +971,12 @@ impl<'source> Parser<'source> {
             }
             Some("break") => {
                 self.advance();
-                let label = if self.is(TokenKind::Word) { Some(self.name()?) } else { None };
+                let label = if self.is(TokenKind::Word) {
+                    let path = self.path()?;
+                    Some(Name { text: path.text(), span: path.span })
+                } else {
+                    None
+                };
                 self.expect(TokenKind::Semicolon, ";")?;
                 StatementKind::Break(label)
             }
@@ -996,6 +1019,51 @@ impl<'source> Parser<'source> {
                 }
             }
             Some("shield") if self.kind_at(1) == Some(TokenKind::Word) => StatementKind::Shield(self.shield()?),
+            Some("loop") if self.kind_at(1) == Some(TokenKind::Colon) => {
+                // There's no `loop`: an endless loop is `forever` (D128). Read on as one.
+                let span = self.current_span();
+                self.errors.push(Diagnostic::refused_fix(
+                    span,
+                    "forever",
+                    "`forever` has no end unless you `break`, so one word finds every endless loop (D128)",
+                ));
+                self.advance();
+                self.advance();
+                let _ = self.block(&["end"])?;
+                let _ = self.closer()?;
+                return Err(Reported);
+            }
+            Some("else") => {
+                let span = self.current_span();
+                self.errors.push(Diagnostic::refused(
+                    span,
+                    "`else` continues an `if`, and there's none open here",
+                    "`else if` and `else:` continue an `if`, and one `end if` closes the chain (D126)",
+                ));
+                // Read on as if the `if` were there, up to its `end if`.
+                self.advance();
+                if self.is_word("if") {
+                    self.advance();
+                    let _ = self.condition();
+                }
+                if self.is(TokenKind::Colon) {
+                    self.advance();
+                }
+                let _ = self.block(&["end"])?;
+                let _ = self.closer()?;
+                return Err(Reported);
+            }
+            Some("continue") if self.kind_at(1) == Some(TokenKind::Semicolon) => {
+                let span = self.current_span();
+                self.errors.push(Diagnostic::refused(
+                    span,
+                    "there is no `continue`, so wrap the work in an `if`",
+                    "each loop says how it ends, and there is no `continue` (D128)",
+                ));
+                self.advance();
+                self.advance();
+                return Err(Reported);
+            }
             _ => {
                 let value = self.expression()?;
                 self.statement_end(&value)?;
@@ -1148,14 +1216,60 @@ impl<'source> Parser<'source> {
                 }
                 let else_span = self.current_span();
                 self.advance();
+                if !self.is(TokenKind::Colon) {
+                    let found = self.found();
+                    let span = self.current_span();
+                    self.errors.push(Diagnostic::refused(
+                        span,
+                        format!("expected `if` or `:` after `else`, but found {found}"),
+                        STATEMENT_WHY,
+                    ));
+                    // Read on as if the `:` were there, so the rest of the chain isn't misread.
+                    let body = self.block(&["end", "else"])?;
+                    otherwise = Some((else_span, body));
+                    self.statements_after_else(else_span)?;
+                    let end = self.closer()?;
+                    return Err(self.reported_after(end));
+                }
                 self.expect_block_colon()?;
                 let body = self.block(&["end", "else"])?;
                 otherwise = Some((else_span, body));
+                self.statements_after_else(else_span)?;
             }
             break;
         }
         let end = self.closer()?;
         Ok(If { branches, otherwise, end })
+    }
+
+    /// A broken statement that has already read its whole block.
+    fn reported_after(&mut self, _end: Closer) -> Reported {
+        Reported
+    }
+
+    /// Anything but `end if` after `else:` is refused, and read on so the chain still closes (D126).
+    fn statements_after_else(&mut self, else_span: Span) -> Parse<()> {
+        while self.is_word("else") {
+            let span = self.current_span();
+            self.errors.push(
+                Diagnostic::refused(
+                    span,
+                    "nothing follows `else:` but `end if`",
+                    "`else if` and `else:` continue an `if`, and one `end if` closes the chain (D126)",
+                )
+                .with_because(else_span, "the `else:` is here"),
+            );
+            self.advance();
+            if self.is_word("if") {
+                self.advance();
+                let _ = self.condition();
+            }
+            if self.is(TokenKind::Colon) {
+                self.advance();
+            }
+            let _ = self.block(&["end", "else"])?;
+        }
+        Ok(())
     }
 
     /// A plain condition, or the test, `$s: status.failed`.
@@ -1563,7 +1677,7 @@ impl<'source> Parser<'source> {
     }
 
     fn comparison(&mut self) -> Parse<Expression> {
-        let first = self.bits()?;
+        let first = self.additive()?;
         let mut operands = vec![first];
         let mut operators = Vec::new();
         while let Some(operator) = self.comparison_operator() {
@@ -1572,7 +1686,7 @@ impl<'source> Parser<'source> {
             self.advance();
             self.mark_binary_word(index, index);
             operators.push((operator, span));
-            operands.push(self.bits()?);
+            operands.push(self.additive()?);
         }
         if operators.len() == 1 {
             let right = operands.pop().ok_or(Reported)?;
@@ -1598,15 +1712,16 @@ impl<'source> Parser<'source> {
         }
     }
 
-    /// Bit operators sit between arithmetic and comparison, and mixing them is refused by the checker (D131).
+    /// Bit operators bind tightest of the binary operators, and mixing them with anything is refused by the checker
+    /// (D116).
     fn bits(&mut self) -> Parse<Expression> {
-        let mut left = self.additive()?;
+        let mut left = self.unary()?;
         while let Some(operator) = self.bit_operator() {
             let index = self.at;
             let span = self.current_span();
             self.advance();
             self.mark_binary_word(index, index);
-            let right = self.additive()?;
+            let right = self.unary()?;
             left = binary(operator, span, left, right);
         }
         Ok(left)
@@ -1637,7 +1752,7 @@ impl<'source> Parser<'source> {
     }
 
     fn multiplicative(&mut self) -> Parse<Expression> {
-        let mut left = self.unary()?;
+        let mut left = self.bits()?;
         loop {
             let (operator, span) = match self.word() {
                 Some("x") => {
@@ -1651,7 +1766,7 @@ impl<'source> Parser<'source> {
                 Some("mod") => self.operator_word("mod", BinaryOperator::Remainder),
                 _ => break,
             };
-            let right = self.unary()?;
+            let right = self.bits()?;
             left = binary(operator, span, left, right);
         }
         Ok(left)

@@ -14,6 +14,8 @@ pub enum Kind {
     CheckFailed,
     Warning,
     NotDesignedYet,
+    /// Decided, but not built in this compiler yet (D286).
+    NotBuiltYet,
 }
 
 impl Kind {
@@ -25,6 +27,7 @@ impl Kind {
             Kind::CheckFailed => "check failed",
             Kind::Warning => "warning",
             Kind::NotDesignedYet => "NotDesignedYet",
+            Kind::NotBuiltYet => "NotBuiltYet",
         }
     }
 }
