@@ -1,6 +1,6 @@
 # Cyborg
 
-Syslang that has safety & repro over perf.
+Okay performance, reproducible. Made for long-lived codebases, not quick scripts.
 
 ## Licences
 
