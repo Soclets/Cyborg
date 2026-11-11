@@ -12,6 +12,12 @@ What's waiting for when the owner unpauses Cyborg, written down on 2026-11-11 so
 - **Concurrency:** threads, sharing data, and anything like goroutines or async (12.8).
 - **A secret type** for constant-time code (12.7).
 
+- **Tuning for one machine: PGO and friends.** Profile-guided optimization (build with counters, run real work, rebuild
+  with the profile), BOLT, and specialized copies of hot functions, which are JIT strategies done ahead of time. The
+  owner's direction (2026-11-11): "Repro is general for us, but we will very much support you, if you want to tune best
+  perf for a specific machine". Open: how a profile stays reproducible, like a committed profile file, and which modes
+  and flags turn it on.
+
 ## compiler claude
 
 - `FinalPerf` and `FinalShit` still keep overflow checks, where 10.1 says none (`bench/okay-vs-rust`).
