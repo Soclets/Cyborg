@@ -527,4 +527,6 @@ let $a: std::array<i32>[len: 4 items] = [3, 9, 1, 7];
 let $v: simd<i32>[lanes: 4] = $a as simd<i32>[lanes: 4];
 ```
 
-**From:** D255, D291, D292, D293, D296, D297, D298.
+Walking a list or array in `simd`-sized chunks always says how the leftovers are handled, when the length isn't a multiple of the lane count: padding the last chunk with a value you give, requiring an exact multiple, or handing the leftover items over one at a time after the chunks. There's no bare form, since silently dropping the leftovers is a classic SIMD bug.
+
+**From:** D255, D291, D292, D293, D296, D297, D298, D299.

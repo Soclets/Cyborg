@@ -1098,6 +1098,8 @@ A `type_set` is a closed list of types that nothing can join later, as in `type_
 
 **D298. `as` converts between an array and a `simd` of the same count.** `$a as simd<i32>[lanes: 4]` turns a `std::array<i32>[len: 4 items]` into a vector, and `as std::array<i32>[len: 4 items]` turns it back. The counts must match, so it can't fail (D255), and a different count is refused when compiling. Walking a longer list or array in chunks is not settled here. Claude proposed it; the owner chose: "yea". (Owner, 2026-11-11)
 
+**D299. Walking in `simd` chunks always says how the leftovers are handled.** When a list or array is walked in chunks of `lanes:`, and its length isn't a multiple of that, the code says which of three ways to handle the rest. Padding fills the last chunk with a value the code gives, like 0 for a sum. Exact requires a multiple, checked when compiling for an array, whose `len` is known, and while running for a list. Leftovers apart hands the leftover items over one at a time after the chunks, as Rust's `chunks_exact` and its remainder do. There's no bare form, since silently dropping the leftovers is a classic SIMD bug that compiles, runs and gives a quietly wrong answer, which is D182's test. The spelling is not settled here. Claude proposed it; the owner chose: "yes". (Owner, 2026-11-11)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude
