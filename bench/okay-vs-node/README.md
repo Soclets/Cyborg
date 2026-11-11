@@ -1,6 +1,6 @@
-# `okay` against Node
+# `OKAY\n` against Node
 
-The first compiled Cyborg numbers: fib(35) and the 100M loop, built by `okay` in every build mode, against JavaScript on
+The first compiled Cyborg numbers: fib(35) and the 100M loop, built by `OKAY\n`, typed `okay`, in every build mode, against JavaScript on
 Node (V8). Timed with hyperfine on 2026-11-11 by design claude, after the owner asked for Cyborg against V8 only.
 
 Every version prints the same answers, 9227465 and 5000000050000000, checked before timing.
