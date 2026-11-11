@@ -153,6 +153,11 @@ impl<'source> Parser<'source> {
         self.peek().map_or(self.end_span(), |token| token.span)
     }
 
+    /// The span of the token `ahead` places on.
+    fn span_at(&self, ahead: usize) -> Span {
+        self.tokens.get(self.at + ahead).map_or(self.end_span(), |token| token.span)
+    }
+
     /// Whether the current token starts a new line.
     fn starts_line(&self) -> bool {
         self.starts_line_at(self.at)
@@ -378,6 +383,12 @@ impl<'source> Parser<'source> {
         let mut public = None;
         if self.is_word("pub") {
             public = Some(self.current_span());
+            self.advance();
+        }
+        if self.is(TokenKind::At) && self.word_at(1) == Some("import") {
+            // trace: D56
+            let span = self.current_span().to(self.span_at(1));
+            self.errors.push(Diagnostic::refused_fix(span, "import", "importing is a plain keyword (D56, D92)"));
             self.advance();
         }
         let Some(word) = self.word() else {
@@ -672,6 +683,17 @@ impl<'source> Parser<'source> {
             returns_word = self.current_span();
         }
         let mut fails = None;
+        if self.is_word("or") {
+            // trace: D52
+            self.errors.push(Diagnostic::refused(
+                self.current_span(),
+                "`or fail[…]` is the older spelling",
+                "a function lists its failures in its header, after its return type, with `fails` (D52, D209)",
+            ));
+            while self.peek().is_some() && !self.is(TokenKind::Colon) {
+                self.advance();
+            }
+        }
         if self.is_word("fails") {
             fails = Some(self.fail_list()?);
         }
@@ -705,6 +727,14 @@ impl<'source> Parser<'source> {
         while !self.is(TokenKind::RightSquare) && self.peek().is_some() && parameters.none.is_none() {
             let parameter_start = self.current_span();
             let name = self.variable_name()?;
+            if self.is(TokenKind::ColonEqual) {
+                self.errors.push(Diagnostic::refused(
+                    self.current_span(),
+                    "`:=` is gone, and a parameter always writes its type",
+                    "there's no type inference in the base language, so everything writes its type (D277)",
+                ));
+                return Err(Reported);
+            }
             if self.is(TokenKind::Colon) {
                 self.roles[self.at] = Role::LabelColon;
             }
@@ -811,6 +841,14 @@ impl<'source> Parser<'source> {
             let start = self.current_span();
             let result = (|| {
                 let name = self.name()?;
+                if self.is(TokenKind::ColonEqual) {
+                    self.errors.push(Diagnostic::refused(
+                        self.current_span(),
+                        "`:=` is gone, and a struct field always writes its type",
+                        "there's no type inference in the base language, so everything writes its type (D277)",
+                    ));
+                    return Err(Reported);
+                }
                 if self.is(TokenKind::Colon) {
                     self.roles[self.at] = Role::LabelColon;
                 }
@@ -1066,6 +1104,20 @@ impl<'source> Parser<'source> {
                 start,
                 "`type` inside a function",
                 "not decided yet, and the standard doesn't say",
+            ));
+            self.recover();
+            return Err(Reported);
+        }
+        if let Some(old @ ("precond" | "postcond")) = self.word()
+            && self.kind_at(1) == Some(TokenKind::FatArrow)
+        {
+            // trace: D84
+            let fixed = if old == "precond" { "requires" } else { "ensures" };
+            let span = start.to(self.span_at(1));
+            self.errors.push(Diagnostic::refused_fix(
+                span,
+                fixed,
+                "contracts are `requires` and `ensures`, with no `=>` (D84)",
             ));
             self.recover();
             return Err(Reported);
@@ -1354,6 +1406,35 @@ impl<'source> Parser<'source> {
             self.roles[self.at] = Role::LabelColon;
             self.advance();
             written_type = Some(self.parse_type()?);
+        }
+        // trace: D277
+        const LET_WHY: &str = "every `let` and `const` writes its type, so a reader never has to work one out, and there's no type inference in the base language (D277)";
+        if written_type.is_none() {
+            if self.is(TokenKind::ColonEqual) {
+                self.errors.push(Diagnostic::refused_fix(self.current_span(), "=", LET_WHY));
+                self.advance();
+                let value = self.expression()?;
+                self.statement_end(&value)?;
+                return Err(Reported);
+            }
+            if self.is(TokenKind::At) {
+                self.errors.push(Diagnostic::not_designed(
+                    self.current_span(),
+                    "Precog's `@precog::set_to_best`, which needs its `rule` line, and `rule` lines aren't designed",
+                    "not decided yet (standard 12.9)",
+                ));
+                self.recover();
+                return Err(Reported);
+            }
+            if self.is(TokenKind::Equal) {
+                self.errors.push(Diagnostic::refused(
+                    self.current_span(),
+                    "this `let` doesn't write its type",
+                    LET_WHY,
+                ));
+                self.recover();
+                return Err(Reported);
+            }
         }
         let setter = self.setter()?;
         let value = self.expression()?;
@@ -1690,7 +1771,7 @@ impl<'source> Parser<'source> {
                 let name = self.source_name()?;
                 Expression { span: name.span, kind: ExpressionKind::Variable(name) }
             } else {
-                self.expression()?
+                self.or_expression()?
             };
             return Ok(TypeArgument {
                 label: Some(label),
@@ -1788,7 +1869,35 @@ impl<'source> Parser<'source> {
     }
 
     pub fn expression(&mut self) -> Parse<Expression> {
-        self.or_expression()
+        let value = self.or_expression()?;
+        self.no_symbol_operator()?;
+        Ok(value)
+    }
+
+    /// Operators are words, so a symbol left after a value is refused with the word (D43, D48, D49, D278).
+    fn no_symbol_operator(&mut self) -> Parse<()> {
+        const ORDER_WHY: &str = "`below`, `above`, `at_least` and `at_most` say their direction outright, and `<` and `>` only mean brackets (D278)";
+        const WORDS_WHY: &str = "`at_least` and `at_most` are words, and there is no `<=` or `>=` (D49)";
+        let span = self.current_span();
+        let spaced = |word: &str, tight: bool| if tight { format!(" {word} ") } else { word.to_string() };
+        let tight = !self.gap_before_current();
+        let error = match self.kind() {
+            Some(TokenKind::LeftAngle) => Diagnostic::refused_fix(span, spaced("below", tight), ORDER_WHY),
+            Some(TokenKind::RightAngle) => Diagnostic::refused_fix(span, spaced("above", tight), ORDER_WHY),
+            Some(TokenKind::LessEqual) => Diagnostic::refused_fix(span, "at_most", WORDS_WHY),
+            Some(TokenKind::GreaterEqual) => Diagnostic::refused_fix(span, "at_least", WORDS_WHY),
+            Some(TokenKind::Star) => Diagnostic::refused_fix(span, "x", "multiply is `x`, as in `$a x $b` (D43)"),
+            Some(TokenKind::Slash) => Diagnostic::refused(
+                span,
+                "divide has a narrowing, and no symbol",
+                "division has no single right answer, so you pick one (D48)",
+            ),
+            _ => return Ok(()),
+        };
+        self.errors.push(error);
+        // Past the symbol, so recovering doesn't take a `<` for an open bracket.
+        self.advance();
+        Err(Reported)
     }
 
     fn or_expression(&mut self) -> Parse<Expression> {

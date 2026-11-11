@@ -198,6 +198,22 @@ impl Checker<'_> {
                 self.method_call(body, expression, receiver, method, arguments)
             }
             ExpressionKind::WithUnit { value, unit } => self.with_unit(body, expression, value, unit, expected),
+            // A builtin looks like a call and can't be written as a Cyborg function, and none are chosen yet (D56).
+            ExpressionKind::Builtin { name, .. } => {
+                let bare = name.text.trim_start_matches('@');
+                if matches!(bare, "let" | "fn" | "if" | "for" | "as" | "return" | "struct" | "import" | "mut") {
+                    return Err(self.error(Diagnostic::refused(
+                        name.span,
+                        format!("`@{bare}` can't happen"),
+                        "a builtin looks like a function call and can't be written as a Cyborg function, so `let`, `+` and `as` aren't builtins (D56)",
+                    )));
+                }
+                Err(self.error(Diagnostic::not_designed(
+                    name.span,
+                    format!("the builtin `@{bare}`"),
+                    "not decided yet (standard 12.9)",
+                )))
+            }
             ExpressionKind::Owned { ownership, ownership_span, value } => {
                 self.owned(body, *ownership, *ownership_span, value, expected)
             }

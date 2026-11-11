@@ -1043,6 +1043,21 @@ impl Checker<'_> {
         if let Some(named) = self.named_type(written, &text) {
             return named;
         }
+        // A decimal float is `d32`, from a limb nobody has chosen (D54).
+        if matches!(text.as_str(), "f32.decimal" | "f64.decimal") {
+            return Err(self.error(Diagnostic::refused(
+                path.span,
+                format!("`{text}` doesn't exist"),
+                "a narrowing means \"this, made more specific\", so a decimal float is `d32`, not `f32.decimal` (D54)",
+            )));
+        }
+        if matches!(text.as_str(), "d32" | "d64") {
+            return Err(self.error(Diagnostic::not_designed(
+                path.span,
+                format!("which limb `{text}` comes from"),
+                "not decided yet (standard 12.9)",
+            )));
+        }
         // A unit was once written after the type, as `i32.length.meters` (D258).
         if let Some((number, unit)) = text.split_once('.')
             && (IntegerKind::from_name(number).is_some() || matches!(number, "f32" | "f64"))

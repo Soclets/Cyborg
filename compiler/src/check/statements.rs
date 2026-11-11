@@ -152,6 +152,7 @@ impl Checker<'_> {
             | StatementKind::Requires { .. }
             | StatementKind::Ensures { .. } => Ok(false),
             StatementKind::Finish(value) => self.finish_statement(body, statement.span, value).map(|()| false),
+            StatementKind::Shield(shield) => self.shield_statement(body, shield, block),
             StatementKind::Broken => Err(Reported),
             _ => Err(self.not_yet(statement.span, "this statement".to_string())),
         }
@@ -591,6 +592,38 @@ impl Checker<'_> {
         body.states[index] = State::Assigned;
         self.bind_event(body, variable.local, &name.text, variable.declared, &variable.value_type);
         Ok(())
+    }
+
+    /// `shield sensor: reason "…" … end shield sensor`: a named block with a written reason, whose code runs as it
+    /// stands (D34).
+    fn shield_statement(
+        &mut self,
+        body: &mut Body,
+        shield: &syntax::Shield,
+        block: &mut checked::Block,
+    ) -> Check<bool> {
+        self.check_closer(&shield.end, &format!("end shield {}", shield.name.text), super::CLOSER_WHY);
+        if shield.reason.is_none() {
+            self.error(Diagnostic::refused(
+                shield.name.span,
+                format!("the shield `{}` has no reason", shield.name.text),
+                "a shield is a named block with a written reason (D34)",
+            ));
+        }
+        if let Some(first) = shield.body.first()
+            && matches!(first.kind, StatementKind::Requires { .. } | StatementKind::Ensures { .. })
+        {
+            let keyword = self.slice(first.span).split_whitespace().next().unwrap_or("").len();
+            let span = Span::new(self.file, first.span.start as usize, first.span.start as usize + keyword);
+            return Err(self.error(Diagnostic::not_designed(
+                span,
+                "how a shield's own entry and exit are written",
+                "not decided yet (standard 12.9)",
+            )));
+        }
+        let checked = self.block(body, &shield.body);
+        block.extend(checked.block);
+        Ok(checked.leaves)
     }
 
     /// `finish $f;` ends a `must_Give` duty (D129).
