@@ -529,4 +529,24 @@ let $v: simd<i32>[lanes: 4] = $a as simd<i32>[lanes: 4];
 
 Walking a list or array in `simd`-sized chunks always says how the leftovers are handled, when the length isn't a multiple of the lane count: padding the last chunk with a value you give, requiring an exact multiple, or handing the leftover items over one at a time after the chunks. There's no bare form, since silently dropping the leftovers is a classic SIMD bug.
 
-**From:** D255, D291, D292, D293, D296, D297, D298, D299.
+```
+for $chunk in $xs.%simd_chunks.pad(lanes: 4, pad: 0):
+    change $total = $total + $chunk;
+end for
+
+for $chunk in $ys.%simd_chunks.exact(lanes: 4):
+    change $total = $total + $chunk;
+end for
+
+for $chunk in $zs.%simd_chunks.leftovers(lanes: 4):
+    change $total = $total + $chunk;
+leftovers $x:
+    change $rest = $rest + $x;
+end for
+```
+
+With `.leftovers`, the `leftovers` section runs once for each leftover item, after every chunk, and doesn't run when there are none. The loop isn't complete without it. `break` stops the whole loop, leftovers included.
+
+**Refused:** a bare `simd_chunks`, asking which of the three; `.leftovers` without a `leftovers` section; and a `leftovers` section on any other loop.
+
+**From:** D255, D291, D292, D293, D296, D297, D298, D299, D300.
