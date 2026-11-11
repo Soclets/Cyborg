@@ -4,8 +4,9 @@ What's waiting for when the owner unpauses Cyborg, written down on 2026-11-11 so
 
 ## Design
 
-- **Allocators' details:** pointers, volatile, layouts and explicit allocation were designed on 2026-11-11 (D314 to
-  D321). Left: allocator names, what one must provide, how a list holds one, the out-of-memory failure, and arenas.
+- **Arenas, next:** whether a list from an arena still ends with `done`, which frees nothing, with ending the arena
+  early a failed check (Claude's pick), or borrows the arena and needs no `done`. Then the placeholder names: `os::heap`,
+  `std::list.done`, `std::text.done` and `std::text.from`. Memory up to there is D314 to D328.
 - **How limbs connect to the compiler:** what a limb is to `OKAY\n`, and what it can see and change. The Precog limb,
   `@csup` and every `inline.@limb::lang` wait on it.
 - **Concurrency:** threads, sharing data, and anything like goroutines or async (12.8).
@@ -17,11 +18,11 @@ What's waiting for when the owner unpauses Cyborg, written down on 2026-11-11 so
 - `FinalSmall` doesn't build: LLVM 23 has removed the `Oz` pipeline name (`bench/okay-vs-node`).
 - Compile speed from D168: incremental, parallel and cached builds, which shape the compiler, so they come before
   programs get big (rule 10).
-- Decisions since it stopped, D288 to D321, picked up under rule 16. Then its own plan: generics, inline assembly, the
+- Decisions since it stopped, D288 to D328, picked up under rule 16. Then its own plan: generics, inline assembly, the
   rest of baking and `use`, then SIMD.
 
 ## oracle claude
 
-- Decisions since it stopped, D288 to D321, under rule 16. Its test `d42_minus_wrap_isnt_decided` is out of date since
+- Decisions since it stopped, D288 to D328, under rule 16. Its test `d42_minus_wrap_isnt_decided` is out of date since
   D295.
 - Then the random generator and the live comparison with the compiler, in `check/` (D313).
