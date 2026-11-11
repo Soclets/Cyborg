@@ -21,14 +21,14 @@
 | [2.17](#217-getting-an-item) | `$xs[pos: 1]`, `$xs[offset.items: 0]` | Counting from 1, or from 0 |
 | [2.18](#218-naming-a-type) | `type.alias`, `type.new` | Another name, or a different type |
 | [2.19](#219-decl-and-assign) | `decl`, `assign` | A value given later, once |
-| [2.20](#220-types-are-always-written-and-precogs-pick-precogset_to) | `@precog::set_to` | Precog picks the type |
+| [2.20](#220-types-are-always-written-and-precogs-pick-precogset_to_best) | `@precog::set_to_best` | Precog picks the type |
 
 ## 2.1 `let`
 
 **Rule:** `let` declares a variable with its type and value, and it can't change.
 
 ```
-let $t: i32 set_to total(Lend $xs);
+let $t: i32 = total(Lend $xs);
 ```
 
 **From:** the sketch.
@@ -38,8 +38,8 @@ let $t: i32 set_to total(Lend $xs);
 **Rule:** `let mut` declares a variable that can change, and `change` reassigns it.
 
 ```
-let mut $sum: i32 set_to 0;
-change $sum set_to $sum + $x;
+let mut $sum: i32 = 0;
+change $sum = $sum + $x;
 ```
 
 `change` only reassigns, a variable or one field of it ([7.3](7-structs-and-unions.md#73-reading-a-field)). It doesn't stand in for `Lend.mut`.
@@ -51,13 +51,13 @@ change $sum set_to $sum + $x;
 **Rule:** `const` declares a constant, with no `let`. Its value must be fully known at compile time.
 
 ```
-const $b: i32 set_to 60 x 60;
-const $pi: f64.stable set_to ~3.14159265358979323846;
+const $b: i32 = 60 x 60;
+const $pi: f64.stable = ~3.14159265358979323846;
 ```
 
 It can call `fn.pure.baked` functions ([5.11](5-functions.md#511-baking)).
 
-**Refused:** `const $a: i32 set_to read();`.
+**Refused:** `const $a: i32 = read();`.
 
 **From:** D58, D59, D83, D91.
 
@@ -72,20 +72,20 @@ It can call `fn.pure.baked` functions ([5.11](5-functions.md#511-baking)).
 **Rule:** `i32[min: 0, max: 100]` is still 32 bits, and holds only that range.
 
 - A literal the compiler can see fits needs no check.
-- When the compiler can't see a value fits, a plain `set_to`, `change` or argument does a runtime check.
+- When the compiler can't see a value fits, a plain `=`, `change` or argument does a runtime check.
 - An out-of-range value crashes, or is UB in a mode with no checks ([10.4](10-build-modes.md#104-what-happens-when-something-goes-wrong)).
 - Arithmetic gives back a plain `i32`.
 - A bounded value goes into a plain `i32` with no check.
 - To handle a bad value yourself, use the test in [4.2](4-control-flow.md#42-the-test-if-n-t).
 
 ```
-let $a: i32[min: 0, max: 100] set_to 50;
-let $b: i32[min: 0, max: 100] set_to $n;
-change $b set_to $b + 1;
+let $a: i32[min: 0, max: 100] = 50;
+let $b: i32[min: 0, max: 100] = $n;
+change $b = $b + 1;
 use_score($n);
 ```
 
-**Refused:** `let $a: i32[min: 0, max: 100] set_to 150;`.
+**Refused:** `let $a: i32[min: 0, max: 100] = 150;`.
 
 **From:** D20.
 
@@ -94,17 +94,17 @@ use_score($n);
 **Rule:** a 32-bit binary float is `f32`, and `f64` is 64-bit. Every float type says which kind it is, straight after the type: `.stable` gives the same bits on every machine, `.fast` allows merged and reordered maths, and `.ieee` allows NaN and infinity. A bare `f64` is refused, asking which. A float can have bounds, like an integer. A `.stable` or `.fast` float can't be NaN or infinity: making one is a failure, a runtime check in `FinalSafe`. It gives the same bits on every machine.
 
 ```
-let $t: f64.stable[min: -40.0, max: 125.0] set_to 21.5;
+let $t: f64.stable[min: -40.0, max: 125.0] = 21.5;
 ```
 
 Narrowings opt out, with placeholder names: `f64.ieee` allows NaN and infinity, and `f64.fast` allows merged and reordered maths. Merged maths can change an answer slightly, or whether a program crashes, and that isn't a bug. `f64.ieee` needs no shield, since it's a different type, and `as` is the wall:
 
 ```
-let $reading: f64.ieee set_to read_sensor();
-let $clean: f64.stable set_to $reading as f64.stable;
+let $reading: f64.ieee = read_sensor();
+let $clean: f64.stable = $reading as f64.stable;
 ```
 
-**Refused:** `let $x: f64.stable set_to $reading;`.
+**Refused:** `let $x: f64.stable = $reading;`.
 
 Comparing works as usual, and `-0.0 == 0.0` is true. The linter can flag comparing floats with `==`.
 
@@ -113,7 +113,7 @@ IEEE 754 is the authority on how `f64.ieee` behaves, including comparing, arithm
 A float prints as the shortest text that means its value, and `std::io::fmt_print.stored` prints what's actually in memory:
 
 ```
-let $x: f64.stable set_to ~0.1;
+let $x: f64.stable = ~0.1;
 std::io::fmt_print(Lend.mut $out, "{}{newln}", $x);
 std::io::fmt_print.stored(Lend.mut $out, "{}{newln}", $x);
 ```
@@ -131,17 +131,17 @@ On `f64.ieee`, both print NaN and infinity as the words `NaN`, `inf` and `-inf`.
 **Rule:** a float literal the type can't hold exactly must say so with `~`. An exact one has no mark. A negative is `~-0.1`. There's no limit on digits. `~` covers literals only, not arithmetic.
 
 ```
-let $a: f64.stable set_to 0.5;
-let $b: f64.stable set_to ~0.1;
+let $a: f64.stable = 0.5;
+let $b: f64.stable = ~0.1;
 ```
 
 A literal with an exponent says so in front of the value, with `exponent` as a placeholder name. It's still a plain float, and it doesn't remember how it was written, so it prints as plain digits, however long.
 
 ```
-let $avogadro: f64.stable set_to exponent ~6.02214076e23;
+let $avogadro: f64.stable = exponent ~6.02214076e23;
 ```
 
-**Refused:** `let $b: f64.stable set_to 0.1;` and `let $a: f64.stable set_to ~0.5;`, each with the fix shown, and `~6.02214076e23` without `exponent`.
+**Refused:** `let $b: f64.stable = 0.1;` and `let $a: f64.stable = ~0.5;`, each with the fix shown, and `~6.02214076e23` without `exponent`.
 
 **From:** D59, D165.
 
@@ -158,8 +158,8 @@ let $avogadro: f64.stable set_to exponent ~6.02214076e23;
 An empty string is `empty`.
 
 ```
-let $a: str set_to "hi";
-let $b: str set_to empty;
+let $a: str = "hi";
+let $b: str = empty;
 ```
 
 **Refused:** `str.utf8`, because it's the default ([1.7](1-programs.md#17-bare-names)), and `""`, with `fix: empty`, because it could look like unfinished work.
@@ -171,8 +171,8 @@ let $b: str set_to empty;
 **Rule:** a list holds its element type in `< >`, and always writes its `len.max`, with `inf` for unbounded. It can also have a `len.min`. An empty list always writes `= empty`.
 
 ```
-let mut $xs: std::list<i32>[len.max: inf items] set_to empty;
-let mut $ys: std::list<i32>[len.max: 8 items] set_to empty;
+let mut $xs: std::list<i32>[len.max: inf items] = empty;
+let mut $ys: std::list<i32>[len.max: 8 items] = empty;
 std::list<i32>[len.min: 1 items, len.max: 8 items]
 ```
 
@@ -185,7 +185,7 @@ std::list<i32>[len.max: inf items, len.type: u32]
 `[ ]` gives it items, and the count is checked against the type:
 
 ```
-let $b: std::list<i32>[len.min: 1 items, len.max: 8 items] set_to [4, 6];
+let $b: std::list<i32>[len.min: 1 items, len.max: 8 items] = [4, 6];
 ```
 
 **Refused:** `std::list<i32>` with no `len.max`, a list with a bare `len`, in favour of `array`, `= empty` on a list with `len.min` above 0, `[]`, with `fix: empty`, and too few or too many items.
@@ -199,8 +199,8 @@ let $b: std::list<i32>[len.min: 1 items, len.max: 8 items] set_to [4, 6];
 `[ ]` gives it items, and `all` fills it with one value.
 
 ```
-let $a: std::array<i32>[len: 3 items] set_to [1, 2, 3];
-let mut $d: std::array<u8>[len: 4096 items] set_to all 0;
+let $a: std::array<i32>[len: 3 items] = [1, 2, 3];
+let mut $d: std::array<u8>[len: 4096 items] = all 0;
 ```
 
 **Refused:** `len.always`, which doesn't exist, the wrong number of items, and `= empty`.
@@ -232,7 +232,7 @@ The label names are a placeholder.
 **Rule:** `as` builds a new value of another type, which can allocate memory or fail. `:` doesn't convert.
 
 ```
-let $text: str set_to $t as str;
+let $text: str = $t as str;
 ```
 
 A failed `as` is a failure, so it crashes unless handled ([8.9](8-failures.md#89-crash-by-default)). What can convert to what isn't decided ([12.3](12-not-decided.md#123-operators-and-conversion)).
@@ -254,19 +254,19 @@ These examples assume `time` and `storage` are declared with `fam.unit`, further
 **Rule:** a number says its unit, behind it where possible. Where the unit can't go behind, it goes in front. A unit always says its family, or its path from a kit, and `items` is base language, so it stays bare. The compiler checks units: a unit is part of the type, written as a label in its brackets, next to any bounds, as in `i32[unit: time.seconds]` and `f64.stable[unit: length.meters, min: 0.0 length.meters, max: 1.0 length.kilometers]`. The labels go `unit:`, then `min:`, then `max:`. A bound writes its unit like any value, in any unit with the same base, converted when compiling, and exactly for an integer type. The same units can add and compare.
 
 ```
-let $a: i32[unit: time.seconds] set_to 3600 time.seconds;
-let $b: i32[unit: time.seconds] set_to 5 time.seconds;
-let $c: i32[unit: time.seconds] set_to $a + $b;
+let $a: i32[unit: time.seconds] = 3600 time.seconds;
+let $b: i32[unit: time.seconds] = 5 time.seconds;
+let $c: i32[unit: time.seconds] = $a + $b;
 
 use std::units::time.seconds as seconds;
-let $d: i32[unit: seconds] set_to 3600 seconds;
+let $d: i32[unit: seconds] = 3600 seconds;
 ```
 
 A unit is required only where the type asks for one. A plain `i32` means just a number. The language and `std` ask for units on things that have them, like lengths, sizes and durations, and your own code opts in with a type like `i32[unit: time.seconds]`.
 
 ```
 std::array<u8>[len: 4096 items]
-let $x: i32 set_to 3600;
+let $x: i32 = 3600;
 ```
 
 `as` takes a unit off a value, or puts one on: `$xs.len as u64`, `$n as u64[unit: items]`.
@@ -282,17 +282,17 @@ end fn draw
 draw(at.screen.pixels: 5);
 ```
 
-**Refused:** a bound with no unit on a unit type, a bound in another base, an integer bound that doesn't convert exactly, a type's labels out of order, a plain `as` from an integer to a bigger unit, a point plus a point, a value with neither `.point` nor `.span` in a family that needs one, mixing units, as in `$a + 5 storage.bytes`, a missing unit, as in `let $b: i32[unit: time.seconds] set_to 3600;`, a bare `3600 seconds` with no `use`, and storing a value whose units don't match the declared unit, as in `let $s: f64.stable[unit: motion.speed] set_to $time div $dist;`.
+**Refused:** a bound with no unit on a unit type, a bound in another base, an integer bound that doesn't convert exactly, a type's labels out of order, a plain `as` from an integer to a bigger unit, a point plus a point, a value with neither `.point` nor `.span` in a family that needs one, mixing units, as in `$a + 5 storage.bytes`, a missing unit, as in `let $b: i32[unit: time.seconds] = 3600;`, a bare `3600 seconds` with no `use`, and storing a value whose units don't match the declared unit, as in `let $s: f64.stable[unit: motion.speed] = $time div $dist;`.
 
-You define units in a collection. Every unit says what it is: `: base`, or `set_to` with a conversion, which can point at a unit in any family. Two units convert if they trace back to the same base, and otherwise they don't.
+You define units in a collection. Every unit says what it is: `: base`, or `=` with a conversion, which can point at a unit in any family. Two units convert if they trace back to the same base, and otherwise they don't.
 
 ```
 fam.unit money:
     money.cents: base;
-    money.dollars set_to 100 money.cents;
+    money.dollars = 100 money.cents;
 
     money.euro_cents: base;
-    money.euros set_to 100 money.euro_cents;
+    money.euros = 100 money.euro_cents;
 end fam.unit money
 ```
 
@@ -300,34 +300,34 @@ Prefixes are declared once, and a unit opts in with `with`, which creates its pr
 
 ```
 fam.prefix metric:
-    metric.kilo set_to 1000;
-    metric.milli set_to 1 per 1000;
+    metric.kilo = 1000;
+    metric.milli = 1 per 1000;
 end fam.prefix metric
 
 fam.unit length:
     length.meters: base with metric;
 end fam.unit length
 
-let $road: f64.stable[unit: length.kilometers] set_to 2.5 length.kilometers;
+let $road: f64.stable[unit: length.kilometers] = 2.5 length.kilometers;
 ```
 
 `std` ships `metric` and `binary`, as in `storage.bytes: base with binary;` giving `storage.kibibytes`. `fam.prefix` and `with` are placeholders.
 
 A family is only a group of related names that a generic can ask for. A unit from a kit is written with its path, `name::unit`.
 
-**Refused:** a unit that says neither `base` nor `set_to`, a loop of `set_to` lines, and converting between units with different bases.
+**Refused:** a unit that says neither `base` nor `=`, a loop of `=` lines, and converting between units with different bases.
 
 A unit made of others is declared once, with `per` and `x`, which describe what it's made of rather than calculate anything. The compiler tracks every unit as powers of its bases, so maths can make any combination, but storing a value needs a declared unit whose powers match.
 
 ```
 fam.unit motion:
-    motion.speed set_to length.meters per time.seconds;
-    motion.accel set_to motion.speed per time.seconds;
-    motion.area set_to length.meters x length.meters;
+    motion.speed = length.meters per time.seconds;
+    motion.accel = motion.speed per time.seconds;
+    motion.area = length.meters x length.meters;
 end fam.unit motion
 
-let $speed: f64.stable[unit: motion.speed] set_to $dist div $time;
-let $accel: f64.stable[unit: motion.accel] set_to $speed div $time;
+let $speed: f64.stable[unit: motion.speed] = $dist div $time;
+let $accel: f64.stable[unit: motion.accel] = $speed div $time;
 ```
 
 `std` has an `angle` family, with radians as the base, degrees and turns:
@@ -336,8 +336,8 @@ let $accel: f64.stable[unit: motion.accel] set_to $speed div $time;
 use std::units::angle.degrees as degrees;
 use std::units::angle.radians as radians;
 
-let $a: f64.stable[unit: degrees] set_to 90.0 degrees;
-let $s: f64.stable set_to std::math::sin($a as f64.stable[unit: radians]);
+let $a: f64.stable[unit: degrees] = 90.0 degrees;
+let $s: f64.stable = std::math::sin($a as f64.stable[unit: radians]);
 ```
 
 `std::math::sin` asks for radians, so `std::math::sin(90.0)` is refused, asking for an angle.
@@ -349,7 +349,7 @@ fn average<?u: any.unit> [$xs: std::list<f64.stable[unit: ?u]>[len.min: 1 items]
     …
 end fn average
 
-let $t: f64.stable[unit: time.seconds] set_to average($times);
+let $t: f64.stable[unit: time.seconds] = average($times);
 ```
 
 A unit parameter goes only where a unit goes, after a number type. A body can add and compare values of the same `?u`.
@@ -359,14 +359,14 @@ In a family with an offset, like temperature, and in `std`'s `time`, every value
 ```
 fam.unit temperature:
     temperature.kelvin: base;
-    temperature.celsius set_to temperature.kelvin offset ~-273.15;
+    temperature.celsius = temperature.kelvin offset ~-273.15;
 end fam.unit temperature
 
 use my::temperature.celsius as celsius;
 
-let $now: f64.stable[unit: celsius.point] set_to 20.0 celsius;
-let $rise: f64.stable[unit: celsius.span] set_to 10.0 celsius;
-let $later: f64.stable[unit: celsius.point] set_to $now + $rise;
+let $now: f64.stable[unit: celsius.point] = 20.0 celsius;
+let $rise: f64.stable[unit: celsius.span] = 10.0 celsius;
+let $later: f64.stable[unit: celsius.point] = $now + $rise;
 ```
 
 A point plus a span is a point, a point minus a point is a span, and spans add. Converting a point applies the offset, while converting a span only scales, so a rise of 10 °C is a rise of 10 K. `offset` is a placeholder.
@@ -374,8 +374,8 @@ A point plus a span is a point, a point minus a point is a span, and spans add. 
 A value changes unit with `as`. A float rounds to the nearest, like any float maths. An integer converting to a smaller unit is exact, and to a bigger one says how with a narrowing:
 
 ```
-let $m: f64.stable[unit: length.meters] set_to $km as f64.stable[unit: length.meters];
-let $k: i32[unit: length.kilometers] set_to $big as.trunc i32[unit: length.kilometers];
+let $m: f64.stable[unit: length.meters] = $km as f64.stable[unit: length.meters];
+let $k: i32[unit: length.kilometers] = $big as.trunc i32[unit: length.kilometers];
 ```
 
 `as.trunc`, `as.floor` and `as.exact`, which fails if anything would be lost, follow integer `div` ([3.3](3-operators.md#33-division-div)).
@@ -385,12 +385,12 @@ Logarithmic units, like decibels, use the same split. A level is a point and a g
 ```
 fam.unit power:
     power.milliwatts: base;
-    power.dbm set_to decibels of 1 power.milliwatts;
+    power.dbm = decibels of 1 power.milliwatts;
 end fam.unit power
 
-let $input: f64.stable[unit: power.dbm.point] set_to 10.0 power.dbm;
-let $gain: f64.stable[unit: power.dbm.span] set_to 3.0 power.dbm;
-let $output: f64.stable[unit: power.dbm.point] set_to $input + $gain;
+let $input: f64.stable[unit: power.dbm.point] = 10.0 power.dbm;
+let $gain: f64.stable[unit: power.dbm.span] = 3.0 power.dbm;
+let $output: f64.stable[unit: power.dbm.point] = $input + $gain;
 ```
 
 Two levels can't be added, since in dB that would mean multiplying two powers, so you convert to watts, add, and convert back.
@@ -402,9 +402,9 @@ Two levels can't be added, since in dB that would mean multiplying two powers, s
 **Rule:** `pos:` counts from 1, and `offset:` counts from 0, so the word says which you mean. Both work on lists and arrays.
 
 ```
-let $first: i32 set_to $xs[pos: 1];
-let $same: i32 set_to $xs[offset.items: 0];
-change $xs[pos: 3] set_to 10;
+let $first: i32 = $xs[pos: 1];
+let $same: i32 = $xs[offset.items: 0];
+change $xs[pos: 3] = 10;
 ```
 
 A bad position is a bounds check ([10.4](10-build-modes.md#104-what-happens-when-something-goes-wrong)). Changing an item needs what changing a field needs ([7.3](7-structs-and-unions.md#73-reading-a-field)).
@@ -420,30 +420,30 @@ A bad position is a bounds check ([10.4](10-build-modes.md#104-what-happens-when
 **Rule:** `type.alias` gives a type another name, fully interchangeable. `type.new` makes a different type from the same data, which doesn't mix with others. There's no bare `type`.
 
 ```
-type.alias numbers set_to std::list<i32>[len.max: inf items];
-type.new user_id set_to i64;
+type.alias numbers = std::list<i32>[len.max: inf items];
+type.new user_id = i64;
 ```
 
 A family of them states its kind once, and they're always used with the family:
 
 ```
 fam.type.new ids:
-    ids.user set_to i64;
-    ids.order set_to i64;
+    ids.user = i64;
+    ids.order = i64;
 end fam.type.new ids
 
-let $u: ids.user set_to get_user();
+let $u: ids.user = get_user();
 ```
 
 A literal takes its type from where it lands. A value that already has a type crosses with `as`, which can't fail, since it's the same data.
 
 ```
-let $u: user_id set_to 5;
-let $v: user_id set_to $n as user_id;
-let $m: i64 set_to $u as i64;
+let $u: user_id = 5;
+let $v: user_id = $n as user_id;
+let $m: i64 = $u as i64;
 ```
 
-**Refused:** a bare `type`, mixing `ids.user` and `ids.order`, mixing the two kinds in one family, and a value crossing with no `as`, as in `let $u: user_id set_to $n;`.
+**Refused:** a bare `type`, mixing `ids.user` and `ids.order`, mixing the two kinds in one family, and a value crossing with no `as`, as in `let $u: user_id = $n;`.
 
 A struct, list or string in a variable says what happens to it: `Give $r as wrapped`, or `Copy $r as wrapped`. A plain number or a fresh value needs no word.
 
@@ -456,9 +456,9 @@ A struct, list or string in a variable says what happens to it: `Give $r as wrap
 ```
 decl $x: i32;
 if $hot:
-    assign $x set_to 1;
+    assign $x = 1;
 else:
-    assign $x set_to 2;
+    assign $x = 2;
 end if
 std::io::fmt_print(Lend.mut $out, "{}{newln}", $x);
 ```
@@ -469,18 +469,18 @@ It isn't uninitialized memory, since nothing can read it empty, so it needs no s
 
 **From:** D203.
 
-## 2.20 Types are always written, and Precog's pick: `@precog::set_to`
+## 2.20 Types are always written, and Precog's pick: `@precog::set_to_best`
 
-**Rule:** every `let` writes its type. There's no type inference in the base language, so a reader never has to work out a type. With `import @precog;` and its `rule` line on in the manifest, `@precog::set_to` leaves the type out, and Precog picks the narrowest plain width that holds every value the variable ever holds:
+**Rule:** every `let` writes its type. There's no type inference in the base language, so a reader never has to work out a type. With `import @precog;` and its `rule` line on in the manifest, `@precog::set_to_best` leaves the type out, and Precog picks the narrowest plain width that holds every value the variable ever holds:
 
 ```
 import @precog;
 
-let $count @precog::set_to 0;
+let $count @precog::set_to_best 0;
 ```
 
-The `@` and the path mark that a limb chose the type. In Precog's mode, a bound it can't prove is a compile error, with no wide fallback, so you write the type there. The same program and target always get the same pick, and the build report lists each one. `@precog::set_to` can't be shortened to a bare `set_to` with `use`, since that would clash with the base word.
+The `@` and the path mark that a limb chose the type. In Precog's mode, a bound it can't prove is a compile error, with no wide fallback, so you write the type there. The same program and target always get the same pick, and the build report lists each one.
 
-**Refused:** a `let` with no type and no Precog, asking for one; `:=`, with `fix: set_to` and a type; and `@precog::set_to` on a parameter, a return type or a struct field.
+**Refused:** a `let` with no type and no Precog, asking for one; `:=`, with `fix: =` and a type; and `@precog::set_to_best` on a parameter, a return type or a struct field.
 
-**From:** D50, D215, D216, D265, D277, and CyborgPL's `:=`.
+**From:** D50, D215, D216, D265, D277, D283, and CyborgPL's `:=`.

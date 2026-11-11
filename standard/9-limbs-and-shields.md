@@ -84,14 +84,14 @@ on.target aarch64:
     shield mul_add:
         reason "one madd instruction computes a times b plus c"
         inline.asm:
-            reads: [x0 set_to $a, x1 set_to $b, x2 set_to $c];
+            reads: [x0 = $a, x1 = $b, x2 = $c];
             writes: [x0 => $r];
             clobbers: [none];
             madd x0, x0, x1, x2
         end inline.asm
     end shield mul_add
 else:
-    let $r: i64 set_to $a x $b + $c;
+    let $r: i64 = $a x $b + $c;
 end on.target
 ```
 
@@ -180,7 +180,7 @@ Using a limb doesn't need a shield by itself: `@` says it's a compiler extension
 
 **Rule:** Precog proves things about a program. Layers 1 and 2, known values and ranges, are in the core. Layer 3, Z3 and CVC5, is a limb. That limb adds invariants, `assert` hints, ghost code, lemmas, proofs that loops end and that stack and heap fit their budgets, proof levels, and a "prove everything or refuse" mode as an option. Anything Precog proves can drop its check, in every mode except `Working`, which keeps them all.
 
-With its rule on, the limb also picks a variable's type, with `@precog::set_to` ([2.20](2-values-and-types.md#220-types-are-always-written-and-precogs-pick-precogset_to)).
+With its rule on, the limb also picks a variable's type, with `@precog::set_to_best` ([2.20](2-values-and-types.md#220-types-are-always-written-and-precogs-pick-precogset_to_best)).
 
 **From:** D14, D29.
 
@@ -198,7 +198,7 @@ With its rule on, the limb also picks a variable's type, with `@precog::set_to` 
 pub fn total [$xs: std::list<i32>[len.max: inf items]] returns i32:
 pub fn.pure area [$w: i32, $h: i32] returns i32:
 pub struct reading:
-pub const $max: i32 set_to 100;
+pub const $max: i32 = 100;
 ```
 
 `fn.main` needs no `pub`.

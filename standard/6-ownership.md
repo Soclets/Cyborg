@@ -62,7 +62,7 @@ fn total [$xs: std::list<i32>[len.max: inf items]] returns i32:
     …
 end fn total
 
-let $t: i32 set_to total(Lend $xs);
+let $t: i32 = total(Lend $xs);
 ```
 
 **Refused:** writing `Lent` alone on a parameter, because it's the default.
@@ -89,7 +89,7 @@ add_row(Lend.mut $t);
 
 ```
 fn bump [$n: Lent.mut i32] returns void:
-    change $n set_to $n + 1;
+    change $n = $n + 1;
     return void;
 end fn bump
 
@@ -109,12 +109,12 @@ A plain number parameter can't be changed, so a function can't quietly change it
 `change` doesn't stand in for an ownership word. A value handed into a name, a `return` or a field takes `Give` or `Copy`. `Lend` needs a type that's a stored borrow ([6.10](#610-stored-borrows)).
 
 ```
-let $k: str set_to Copy $s;
+let $k: str = Copy $s;
 return Give $t;
-name_tag[text set_to Give $s]
+name_tag[text = Give $s]
 ```
 
-**Refused:** `change $xs set_to $xs.append(val: 4)`, and a whole struct or list passed or stored with no word.
+**Refused:** `change $xs = $xs.append(val: 4)`, and a whole struct or list passed or stored with no word.
 
 **From:** D2, D3.
 
@@ -191,12 +191,12 @@ Lend.mut from $r reading
 A stored borrow ends at its last use. `.held` makes it last until the end of its block instead, even if it's never used again:
 
 ```
-let mut $r: reading set_to reading[celsius set_to 21, time set_to 3600 std::units::time.seconds];
-let $view: Lend from $r reading set_to Lend $r;
+let mut $r: reading = reading[celsius = 21, time = 3600 std::units::time.seconds];
+let $view: Lend from $r reading = Lend $r;
 std::io::fmt_print(Lend.mut $out, "{}{newln}", $view.celsius);
-change $r.celsius set_to 22;
+change $r.celsius = 22;
 
-let $lock: Lend.held from $r reading set_to Lend $r;
+let $lock: Lend.held from $r reading = Lend $r;
 std::io::fmt_print(Lend.mut $out, "{}{newln}", $lock.celsius);
 ```
 
@@ -212,7 +212,7 @@ fn warmer [$a: reading, $b: reading] returns Lend from <$a, $b> reading:
     return Lend $b;
 end fn warmer
 
-let $w: Lend from <$x, $y> reading set_to warmer(Lend $x, Lend $y);
+let $w: Lend from <$x, $y> reading = warmer(Lend $x, Lend $y);
 ```
 
 - It comes only from a parameter, a named source or `program`.
@@ -232,7 +232,7 @@ end struct index
 
 fn build [$article: reading, $list: reading] returns index<`text`: $article, `table`: $list>:
     requires $list lasts_at_least $article;
-    return index[words set_to Lend $article, lookup set_to Lend $list];
+    return index[words = Lend $article, lookup = Lend $list];
 end fn build
 ```
 
@@ -271,9 +271,9 @@ adjust(Lend.mut $r.celsius, Lend.mut $r.time);
 A stored borrow can be lent on, and the new borrow names the original value:
 
 ```
-let $m: Lend.mut from $r reading set_to Lend.mut $r;
+let $m: Lend.mut from $r reading = Lend.mut $r;
 warm_up(Lend.mut $m);
-change $m.celsius set_to 30;
+change $m.celsius = 30;
 ```
 
 While `Lend.mut $m` is held, `$m` can't be used. While `Lend $m` is held, `$m` can be read but not changed. `Give $m` is refused.
@@ -291,7 +291,7 @@ A parameter is never typed as a stored borrow, because a bare parameter already 
 ```
 $xs.len
 for $x in $xs:
-reading[celsius set_to 21, time set_to 3600 std::units::time.seconds]
+reading[celsius = 21, time = 3600 std::units::time.seconds]
 ```
 
 **From:** D2, D182.

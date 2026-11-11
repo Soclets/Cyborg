@@ -29,16 +29,16 @@ Waiting on the owner, most needed first. Each is `NotDesignedYet` unless it says
 - **Fields.** Whether `for` over `$b.items` uses all of `$b`; `change $s.code` inside its test, and whether trust survives. The oracle allows `change` through a stored `Lend.mut`, which is its reading.
 - **Trust in `else:`.** With two cases, whether `else:` knows `$s` is the other one, and whether trust carries on after a block that always leaves. Both are refused today.
 - **What `$i` is** in `range[from: 1, to: $xs.len]`. It's `u64[unit: items]` today, which is a reading.
-- **`as`, readings.** Crossing only goes between a `type.new` and exactly what it's made from, or a unit on or off the same width. A `type.new` over a bound can go out but not in, since crossing can't fail. A literal lands on numbers, strings, `[ ]`, `empty` and `true`, but `wrapped[celsius set_to 1]` isn't one.
+- **`as`, readings.** Crossing only goes between a `type.new` and exactly what it's made from, or a unit on or off the same width. A `type.new` over a bound can go out but not in, since crossing can't fail. A literal lands on numbers, strings, `[ ]`, `empty` and `true`, but `wrapped[celsius = 1]` isn't one.
 - **Unit labels, readings.** The unit in a label has to match the parameter's type. A plain variable takes the label's unit too. `pos.items:` is `NotDesignedYet`. `range[from: $n, to: $xs.len]` mixing a plain variable and a length is `NotDesignedYet`.
 - **Ranges.** How to name `while` and `forever`, like `forever rows:`. A `step_by` that jumps past the end runs 1, 3, 5 today, and `range[from: 2, before: 2]` runs zero times, which are readings. Ranges of floats, units and lengths. A range anywhere but after `in`. A nested loop reusing an outer one's name.
 - **Handlers and loops.** Today a handler only needs `*` if its `break` leaves the arm, and `while true:` still needs a `return` after it, because only `forever` promises not to finish. Both are readings.
 - **`finish`.** Whether a value can be used after `finish`. `finish` on no duty, a lent value and a fresh value is refused today, and it's allowed on a local you made, which are readings. Its two other refusals can't be reached yet: one needs modules, and one needs a `must_Give` in a field.
 - **Methods.** On a type you didn't declare, like `fn i32.%double`, or a list. Calling one by its full name, `box.%read(Lend $b)`. `$b.%%add(by: $b.n)`, reading the receiver in an argument while it's lent with `Lend.mut`, which people will write a lot, and Rust calls two-phase borrows. `Lent.mut` on a fresh value.
 - **`??` and `otherwise`.** `read() ?? -$x` is refused and asks for `( )`, and `read() ?? 1 as str` is refused too, so should a `??` count as a single value? `otherwise` has no level in 3.9, so `$a + read() otherwise:` isn't decided.
-- **Positions.** `$a[pos: 0]` and `$a[pos: 9]` on an array of 3 are `check failed:` today, but D20 refuses a literal that can't fit a bound, so maybe they should be refused too. Two items lent at once, like a swap, and changing one item while a `for` goes through another. `Give $a[pos: 1]`, and taking something out of a list. `change $xs[pos: 1] set_to grow(Lend.mut $xs);`. Handing something off inside a position.
+- **Positions.** `$a[pos: 0]` and `$a[pos: 9]` on an array of 3 are `check failed:` today, but D20 refuses a literal that can't fit a bound, so maybe they should be refused too. Two items lent at once, like a swap, and changing one item while a `for` goes through another. `Give $a[pos: 1]`, and taking something out of a list. `change $xs[pos: 1] = grow(Lend.mut $xs);`. Handing something off inside a position.
 - **`type.new`.** Whether maths and `==` work between two of the same one.
-- **Type names, readings.** `type.alias int.signed.32_bit set_to i32;` works, with dots in the name. An alias works everywhere its target does, including cases. A `type.new` over a number takes no word, over a struct needs one, and over a `must_Give` carries the duty.
+- **Type names, readings.** `type.alias int.signed.32_bit = i32;` works, with dots in the name. An alias works everywhere its target does, including cases. A `type.new` over a number takes no word, over a struct needs one, and over a `must_Give` carries the duty.
 - **Type names, smaller.** A method on an alias or a family's type. A narrowing or bounds on a name. `type.…` inside a function. A `type.new` holding itself through a list. An alias named like a struct. Declaring a name twice.
 - **`fam.fn`.** D135 includes `fn` collections, but no spelling's shown.
 - **`Copy`'s depth.** Whether copying a struct holding a list copies the list too. Other languages disagree on this.
@@ -51,14 +51,14 @@ Waiting on the owner, most needed first. Each is `NotDesignedYet` unless it says
 - **Floats, what's stuck.** `$x as f64.ieee`, which can't fail. A bound on `f64.ieee`. `$reading as f64.stable[min: 0.0, max: 2.0]`. How `f64.fast` mixes with `f64.stable`. A literal too large for `f64.ieee`.
 - **Floats, readings.** NaN or infinity is a `check failed:` nothing can handle, and refused in a `const`. A failed `$reading as f64.stable` is a `check failed:` too. Float bounds behave like integers, and D59 applies, so `f64.stable[min: 0.1, …]` needs `~0.1`. `f32.ieee` and `f32.fast` work too. `f64.fast` can't be NaN or infinity either.
 - **`use`, readings.** D151 refuses every reserved word, including `"i32"`, plus `"2nd"` and `"$say"`. A limb still needs its `import`, and a short name still needs a shield where the limb would. `use @csup::union.untagged as untagged;` gives `untagged number:`, closed with `end untagged number`.
-- **Dead variables.** Whether `eat(Give $s); change $s set_to "b";` is allowed. It's refused today.
+- **Dead variables.** Whether `eat(Give $s); change $s = "b";` is allowed. It's refused today.
 - **Names.** Declaring a name already in scope, or hiding an outer one.
 - **`ensures` on a `fail` path.** Checked only on `return` today, which is a guess.
 - **Evaluation order.** Left to right today, which is a guess.
 - **Dropped values.** `read();` and `read() ?? void;` on a call that returns something.
 - **Handling what can't fail.** `?`, `??` and `otherwise` on a call that can't fail.
 - **A failed `as`.** What the failure is called.
-- **`Given` parameters.** They can't change without `let mut $ys: … set_to Give $xs;`. This follows the rules, and is only flagged.
+- **`Given` parameters.** They can't change without `let mut $ys: … = Give $xs;`. This follows the rules, and is only flagged.
 - **Smaller ones.** A bound with only `min` or only `max`; `my::` on a name that doesn't clash; building fields out of order; two `case`s for one failure; `case file_failed:` covering a set; `match` on a non-union; a variable typed `status.failed`; `==` on `str` or structs; `<` on `bool`; `shr` on a negative; `shl` into the sign bit; the lowest `i32` divided by -1; `all` with something other than a plain number; `std::io::fmt_print()` with no text; a struct holding itself.
 - **The oracle's own limits**, so they don't get pinned by accident: 2000 levels of nesting, 10,000 call depth, 10 million compile-time steps, 16 million items in `all`, exit code 0 or 1, and stopping at the first error. Running out of stack may want a row in [10.4](10-build-modes.md#104-what-happens-when-something-goes-wrong).
 - **The `NotDesignedYet:` layout**, as a first word in the D16 format.
@@ -74,9 +74,9 @@ Waiting on the owner, most needed first. Each is `NotDesignedYet` unless it says
 - Whether lint rules are proven with Verus under rule 13 (D202).
 - `pub` (D200): whether a closer repeats it, and finer levels like Rust's `pub(crate)`.
 - Importing one thing (D198): alongside `import std;`, and with `@` or `pkg`.
-- `@precog::set_to` (D277): the spelling of Precog's rule, list items and struct fields in Precog's mode, and Precog's pick on a borrow.
+- `@precog::set_to_best` (D277, D283): whether `use` can shorten it, the spelling of Precog's rule, list items and struct fields in Precog's mode, and Precog's pick on a borrow.
 - Checking past an error (D215): an error in a block's opening line, like `if` or `for`, or in a function's header.
-- Spacing (D213): indentation, line length, and the space before an opening `[`, which `fn total [$xs: …]` has and `reading[celsius set_to 21]` doesn't.
+- Spacing (D213): indentation, line length, and the space before an opening `[`, which `fn total [$xs: …]` has and `reading[celsius = 21]` doesn't.
 - `os` and writers (D271 to D273): what else goes in `os`, and a bare-metal program's writers, like a board's serial port.
 - Print (D194): how the fill character is written, a per-value `form: stored`, formatting to a `str` without printing, and what the output is on bare metal. `form: science` is how a float prints with an exponent.
 - How to check a float's sign.

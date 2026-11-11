@@ -33,7 +33,7 @@ import os;
 use std::io::fmt_print as fmt_print;
 
 fn.main [none] returns void:
-    let mut $out: os::stdout.buffered set_to os::stdout.buffered(size: 1024 bytes);
+    let mut $out: os::stdout.buffered = os::stdout.buffered(size: 1024 bytes);
     fmt_print(Lend.mut $out, "Hello, World!{newln}");
     os::done(Give $out);
     return void;
@@ -67,7 +67,7 @@ end if
 **Rule:** variables, parameters and constants start with `$`. Struct fields don't.
 
 ```
-let $r: reading set_to reading[celsius set_to 21, time set_to 3600 std::units::time.seconds];
+let $r: reading = reading[celsius = 21, time = 3600 std::units::time.seconds];
 std::io::fmt_print(Lend.mut $out, "{}{newln}", $r.celsius);
 ```
 
@@ -122,7 +122,7 @@ Shapes in a format hole are labels, so they go in any order.
 A default the language or `std` fixes can't be written out. In a collection you write yourself, it can.
 
 ```
-let $a: str set_to "hi";
+let $a: str = "hi";
 std::io::fmt_print(Lend.mut $out, "hi{newln}");
 7 div.trunc 2
 ```
@@ -151,7 +151,7 @@ An opening `<` has no space after it, and a closing `>` has none before it. `<` 
 
 ## 1.9 Labels: `:`
 
-**Rule:** a label names a value inside brackets, as in `val: 4` or `len: 8 items`. A label can be narrowed where a type's writer defines that, as in `len.max`. `set_to` sets a field instead ([7.2](7-structs-and-unions.md#72-building-a-struct)).
+**Rule:** a label names a value inside brackets, as in `val: 4` or `len: 8 items`. A label can be narrowed where a type's writer defines that, as in `len.max`. `=` sets a field instead ([7.2](7-structs-and-unions.md#72-building-a-struct)).
 
 ```
 std::list<i32>[len.min: 1 items, len.max: 8 items]
@@ -168,8 +168,8 @@ fn my::x [$a: i32, $b: i32] returns i32:
     …
 end fn my::x
 
-let $area: i32 set_to $width x $height;
-let $mine: i32 set_to my::x($width, $height);
+let $area: i32 = $width x $height;
+let $mine: i32 = my::x($width, $height);
 ```
 
 `std::` things don't clash, because they have a path, and variables don't, because they have `$`.
@@ -190,7 +190,7 @@ If Cyborg later adds a built-in with the same name, old code gets a compile erro
 use std::units::time.seconds as seconds;
 use std::io::fmt_print as "say";
 
-let $a: i32[unit: seconds] set_to 3600 seconds;
+let $a: i32[unit: seconds] = 3600 seconds;
 say(Lend.mut $out, "hi{newln}");
 ```
 
@@ -224,7 +224,7 @@ Units keep the matching name, as in `use std::units::time.seconds as seconds;`.
 
 ## 1.12 Comments
 
-**Rule:** comments can go anywhere. `//` is a line comment, a note for whoever reads the code, and it can trail code on the same line, as in `let $x: i32 set_to 1; // a note`. `///` is a doc comment, attached to what's below it, which tools can show and build documentation from.
+**Rule:** comments can go anywhere. `//` is a line comment, a note for whoever reads the code, and it can trail code on the same line, as in `let $x: i32 = 1; // a note`. `///` is a doc comment, attached to what's below it, which tools can show and build documentation from.
 
 ```
 /// Adds up every item in the list.
@@ -284,7 +284,7 @@ A literal format is checked when building.
 | Around `.`, `::`, `%`, `%%`, `@` | None | `fn.main`, `std::io::fmt_print`, `$p.%area()` |
 | After `$`, a unary `-`, a `~` on a literal, an opening `(`, `[`, `<` | None | `-$x`, `~0.1`, `total(Lend $xs)`, `std::list<i32>` |
 | Before a closing bracket, or a postfix `?` | None | `read()?` |
-| Around a binary operator, word operators and `set_to` included | One on each side | `1 below 8`, `$a + $b`, `$x at_least 0` |
+| Around a binary operator, word operators and `=` included | One on each side | `1 below 8`, `$a + $b`, `$x at_least 0` |
 | After a comma, or a label's `:` | One | `range[from: 1, to: 3]` |
 
 **Refused:** `fn . main`, `std :: io`, `$a+$b`, `$a  +  $b`, and `( $x )`, each with the spaced version as its fix, and a line break anywhere else, such as between `end` and `fn.main`, with a fix that joins the line.
