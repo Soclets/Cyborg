@@ -926,8 +926,8 @@ impl<'source> Parser<'source> {
             }
         } else {
             let first = self.path()?;
-            let mut factors = vec![(first, 1)];
-            let mut offset = false;
+            let mut factors = vec![(first.clone(), 1)];
+            let mut offset = None;
             loop {
                 if self.is_word("per") {
                     self.advance();
@@ -935,16 +935,16 @@ impl<'source> Parser<'source> {
                 } else if self.is_word("x") {
                     self.advance();
                     factors.push((self.path()?, 1));
-                } else if self.is_word("offset") {
-                    offset = true;
-                    self.skip_to_semicolon();
+                } else if self.is_word("offset") && factors.len() == 1 {
+                    self.advance();
+                    offset = Some(self.expression()?);
                     break;
                 } else {
                     break;
                 }
             }
-            if offset {
-                UnitDefinition::Offset(value_start.to(self.previous_span()))
+            if let Some(amount) = offset {
+                UnitDefinition::Offset { unit: first, amount, span: value_start.to(self.previous_span()) }
             } else if self.is(TokenKind::Semicolon) {
                 UnitDefinition::Made { factors }
             } else {

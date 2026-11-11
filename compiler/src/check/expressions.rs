@@ -856,6 +856,12 @@ impl Checker<'_> {
         let (left_unit, right_unit) = (left_typed.value_type.unit(), right_typed.value_type.unit());
         let literal = |typed: &Typed| typed.literal.is_some() || typed.float_literal.is_some();
         match operator {
+            BinaryOperator::Add | BinaryOperator::Subtract
+                if left_unit.and_then(super::units::unit_mark).is_some()
+                    || right_unit.and_then(super::units::unit_mark).is_some() =>
+            {
+                self.point_maths(expression, operator, left, right, (left_typed, right_typed))
+            }
             BinaryOperator::Add | BinaryOperator::Subtract => {
                 if self.same_unit(left_unit, right_unit) {
                     return Ok(left_unit.cloned());
@@ -894,6 +900,65 @@ impl Checker<'_> {
         }
     }
 
+    /// `+` and `-` on points and spans: a point plus a span is a point, a point minus a point is a span, and spans add
+    /// (D249, D251).
+    fn point_maths(
+        &mut self,
+        expression: &syntax::Expression,
+        operator: &BinaryOperator,
+        left: &syntax::Expression,
+        right: &syntax::Expression,
+        (left_typed, right_typed): (&Typed, &Typed),
+    ) -> Check<Option<super::types::Unit>> {
+        use super::units::{unit_mark, unmarked};
+        let (left_unit, right_unit) = (left_typed.value_type.unit(), right_typed.value_type.unit());
+        for (side, typed) in [(left, left_typed), (right, right_typed)] {
+            let bare = typed.value_type.unit().is_some_and(|unit| unit_mark(unit).is_none());
+            if bare && (typed.literal.is_some() || typed.float_literal.is_some()) {
+                let shown = self.slice(side.span).to_string();
+                return Err(self.error(Diagnostic::not_designed(
+                    side.span,
+                    format!("whether `{shown}` in maths is a point or a span"),
+                    "not decided yet (standard 12.2)",
+                )));
+            }
+        }
+        let (Some(base), Some(other)) = (left_unit.and_then(unmarked), right_unit.and_then(unmarked)) else {
+            return Err(self.error(Diagnostic::refused(
+                expression.span,
+                format!("this mixes `{}` and `{}`", left_typed.value_type, right_typed.value_type),
+                "the same units can add and compare, and mixing them is refused (D100)",
+            )));
+        };
+        if base != other {
+            return Err(self.error(Diagnostic::refused(
+                expression.span,
+                format!("this mixes `{}` and `{}`", left_typed.value_type, right_typed.value_type),
+                "the same units can add and compare, and mixing them is refused (D100)",
+            )));
+        }
+        let adding = matches!(operator, BinaryOperator::Add);
+        let mark = match (left_unit.and_then(unit_mark), right_unit.and_then(unit_mark), adding) {
+            (Some("point"), Some("span"), _) | (Some("span"), Some("point"), true) => "point",
+            (Some("span"), Some("span"), _) | (Some("point"), Some("point"), false) => "span",
+            (Some("point"), Some("point"), true) => {
+                return Err(self.error(Diagnostic::refused(
+                    expression.span,
+                    "this adds a point to a point",
+                    "a point plus a span is a point, a point minus a point is a span, and spans add, while a point plus a point is refused (D249, D251)",
+                )));
+            }
+            _ => {
+                return Err(self.error(Diagnostic::not_designed(
+                    expression.span,
+                    "taking a point from a span",
+                    NOT_DECIDED,
+                )));
+            }
+        };
+        Ok(Some(super::types::Unit::named(&format!("{base}.{mark}"))))
+    }
+
     /// A number with its unit: `3600 time.seconds` (D99, D101).
     fn with_unit(
         &mut self,
@@ -903,7 +968,7 @@ impl Checker<'_> {
         unit: &syntax::Path,
         expected: Option<&Type>,
     ) -> Check<Typed> {
-        let unit = self.resolve_unit(unit)?;
+        let unit = self.resolve_unit(unit, true)?;
         if !Self::is_literal_number(value) {
             return Err(self.not_yet(expression.span, "a unit after something other than a number".to_string()));
         }
@@ -2055,6 +2120,22 @@ impl Checker<'_> {
         let (Some(a), Some(b)) = (self.units.expand(&from_unit), self.units.expand(&into_unit)) else {
             return Some(Err(Reported));
         };
+        let (from_mark, into_mark) = (super::units::unit_mark(&from_unit), super::units::unit_mark(&into_unit));
+        if from_mark != into_mark {
+            return Some(Err(self.error(Diagnostic::refused(
+                expression.span,
+                format!("`{from_unit}` and `{into_unit}` aren't both points or both spans"),
+                "a point converts to a point and a span to a span, since a point applies offsets and a span only scales (D249, D255)",
+            ))));
+        }
+        // A point moves its zero as it converts, and a span only scales (D250, D255).
+        let (from_offset, into_offset) = if from_mark == Some("point") {
+            let named = |unit: &super::types::Unit| unit.single().map_or(0.0, |name| self.units.offset(name));
+            (named(&from_unit), named(&into_unit))
+        } else {
+            (0.0, 0.0)
+        };
+        let pi = a.pi - b.pi;
         if a.powers != b.powers {
             return Some(Err(self.error(Diagnostic::refused(
                 expression.span,
@@ -2071,6 +2152,9 @@ impl Checker<'_> {
         let machine = typed.value.machine_type.clone();
         let constant = |kind| checked::Expression { kind, machine_type: machine.clone() };
         let value = match from {
+            Type::Integer { .. } if pi != 0 || from_offset != 0.0 || into_offset != 0.0 => {
+                return Some(Err(self.not_yet(expression.span, "this conversion of a whole number".to_string())));
+            }
             Type::Integer { .. } => {
                 if ratio.bottom != 1 {
                     let times = ratio.bottom / ratio.top.max(1);
@@ -2093,14 +2177,27 @@ impl Checker<'_> {
                 }
             }
             _ => {
-                // A float rounds to the nearest, once for each step that isn't 1.
+                // A float rounds to the nearest, once for each step that does something.
                 let mut value = typed.value.clone();
+                let pi_steps = usize::try_from(pi.unsigned_abs()).unwrap_or(0);
+                let pi_operator =
+                    if pi > 0 { checked::FloatArithmetic::Multiply } else { checked::FloatArithmetic::Divide };
                 #[allow(clippy::cast_precision_loss)]
-                for (operator, by) in [
+                let steps: Vec<(checked::FloatArithmetic, f64)> = [
+                    (checked::FloatArithmetic::Subtract, from_offset),
                     (checked::FloatArithmetic::Multiply, ratio.top as f64),
                     (checked::FloatArithmetic::Divide, ratio.bottom as f64),
-                ] {
-                    if (by - 1.0).abs() > f64::EPSILON {
+                ]
+                .into_iter()
+                .chain(std::iter::repeat_n((pi_operator, std::f64::consts::PI), pi_steps))
+                .chain([(checked::FloatArithmetic::Add, into_offset)])
+                .collect();
+                for (operator, by) in steps {
+                    let does_nothing = match operator {
+                        checked::FloatArithmetic::Add | checked::FloatArithmetic::Subtract => by == 0.0,
+                        _ => (by - 1.0).abs() <= f64::EPSILON && !matches!(by, std::f64::consts::PI),
+                    };
+                    if !does_nothing {
                         value = constant(Kind::FloatArithmetic {
                             operator,
                             left: Box::new(value),
@@ -2384,7 +2481,12 @@ impl Checker<'_> {
             && (typed.value_type.unit().is_some() || into.unit().is_some())
             && same_number(&typed.value_type, into)
         {
-            if !self.same_unit(typed.value_type.unit(), into.unit()) {
+            let literal = typed.literal.is_some() || typed.float_literal.is_some();
+            let takes_mark = literal
+                && typed.value_type.unit().is_some_and(|unit| super::units::unit_mark(unit).is_none())
+                && typed.value_type.unit().and_then(super::units::unmarked)
+                    == into.unit().and_then(super::units::unmarked);
+            if !takes_mark && !self.same_unit(typed.value_type.unit(), into.unit()) {
                 return Err(self.unit_mismatch(span, &typed, into));
             }
             let mut typed = typed;

@@ -280,6 +280,49 @@ impl Checker<'_> {
                 "`{1}`, `{2}` are numbered holes, and they can't be mixed with plain ones (D194)",
             )));
         }
+        // A hole that names its variable reads it straight from the format, and then every hole does (D210, D247).
+        let named = holes.iter().any(|hole| matches!(hole.takes, Takes::Named { .. }));
+        if named {
+            if let Some(other) = holes.iter().find(|hole| !matches!(hole.takes, Takes::Named { .. })) {
+                return Err(self.error(Diagnostic::refused(
+                    other.span,
+                    "this format mixes named holes with `{}` or numbered ones",
+                    "named holes can't be mixed with `{}` or numbered holes in one format (D247)",
+                )));
+            }
+            if let Some(value) = values.first() {
+                return Err(self.error(Diagnostic::refused(
+                    value.value.span,
+                    "every hole in this format names its variable, so it takes no values",
+                    "a literal format is checked when building, including how many values it takes (D194, D210)",
+                )));
+            }
+            let mut pieces = Vec::new();
+            for part in &parts {
+                match part {
+                    Part::Text(text) => pieces.push(checked::Piece::Text(text.clone())),
+                    Part::Hole(hole) => {
+                        let Takes::Named { name, fields, .. } = &hole.takes else { continue };
+                        let mut value = syntax::Expression {
+                            kind: ExpressionKind::Variable(syntax::Name { text: format!("${name}"), span: hole.span }),
+                            span: hole.span,
+                        };
+                        for field in fields {
+                            value = syntax::Expression {
+                                kind: ExpressionKind::Field {
+                                    base: Box::new(value),
+                                    field: syntax::Name { text: field.clone(), span: hole.span },
+                                },
+                                span: hole.span,
+                            };
+                        }
+                        let argument = syntax::Argument { label: None, ownership: None, value, span: hole.span };
+                        self.print_into(body, hole, &argument, stored, &mut pieces)?;
+                    }
+                }
+            }
+            return Ok(checked::Statement::Print { writer, pieces });
+        }
         // Which value each hole prints.
         let mut taken = Vec::new();
         let mut next = 0;
@@ -290,9 +333,7 @@ impl Checker<'_> {
                     next += 1;
                 }
                 Takes::Numbered(number) => taken.push(number - 1),
-                Takes::Named { span, .. } => {
-                    return Err(self.not_yet(*span, "a named hole".to_string()));
-                }
+                Takes::Named { .. } => {}
             }
         }
         let needed = if numbered { taken.iter().max().map_or(0, |most| most + 1) } else { next };
@@ -319,11 +360,38 @@ impl Checker<'_> {
                 Part::Hole(hole) => {
                     let value = &values[taken[hole_index]];
                     hole_index += 1;
-                    pieces.push(self.print_value(body, hole, value, stored)?);
+                    self.print_into(body, hole, value, stored, &mut pieces)?;
                 }
             }
         }
         Ok(checked::Statement::Print { writer, pieces })
+    }
+
+    /// One value in a hole, then its unit if the hole says `unit` (D255).
+    fn print_into(
+        &mut self,
+        body: &mut Body,
+        hole: &format::Hole,
+        argument: &syntax::Argument,
+        stored: bool,
+        pieces: &mut Vec<checked::Piece>,
+    ) -> Check<()> {
+        let mark = body.events.len();
+        let piece = self.print_value(body, hole, argument, stored)?;
+        pieces.push(piece);
+        if hole.shapes.iter().any(|word| matches!(word, ShapeWord::Unit)) {
+            // The unit is the value's, so the value is checked again only for its type, with nothing recorded twice.
+            let events = body.events.split_off(mark.min(body.events.len()));
+            let unit =
+                self.expression(body, &argument.value, None).ok().and_then(|typed| typed.value_type.unit().cloned());
+            body.events.truncate(mark);
+            body.events.extend(events);
+            if let Some(unit) = unit {
+                let shown = self.shown(&unit);
+                pieces.push(checked::Piece::Text(format!(" {shown}")));
+            }
+        }
+        Ok(())
     }
 
     /// One value in a hole, with its shapes checked against its type.
@@ -350,6 +418,7 @@ impl Checker<'_> {
                 (ShapeWord::Zeros | ShapeWord::Sign | ShapeWord::Base(_), Type::Integer { .. }) => true,
                 (ShapeWord::Places(_) | ShapeWord::Science, Type::Float { .. }) => true,
                 (ShapeWord::Zeros | ShapeWord::Sign, Type::Float { .. }) => true,
+                (ShapeWord::Unit, Type::Integer { unit: Some(_), .. } | Type::Float { unit: Some(_), .. }) => true,
                 _ => false,
             };
             if !applies {
@@ -375,9 +444,8 @@ impl Checker<'_> {
                 ShapeWord::Science => shape.science = true,
                 ShapeWord::Zeros => shape.zeros = true,
                 ShapeWord::Sign => shape.sign = true,
-                ShapeWord::Unit => {
-                    return Err(self.not_yet(hole.span, "`unit` in a hole".to_string()));
-                }
+                // Printed after the value, by the caller (D255).
+                ShapeWord::Unit => {}
             }
         }
         if shape.zeros && shape.width.is_none() {

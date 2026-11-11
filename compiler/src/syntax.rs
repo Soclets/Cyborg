@@ -331,8 +331,8 @@ pub enum UnitDefinition {
     Multiple { amount: Expression, unit: Path },
     /// `length.meters per time.seconds`, `length.meters x length.meters`: each unit with its power.
     Made { factors: Vec<(Path, i32)> },
-    /// `kelvin offset ~-273.15`.
-    Offset(Span),
+    /// `temperature.kelvin offset ~-273.15`: the unit it's measured from, and how far its zero is.
+    Offset { unit: Path, amount: Expression, span: Span },
     /// `decibels of 1 power.milliwatts`.
     Decibels(Span),
     /// Anything else, such as `1 heat.kelvin + 273`, kept for its error.

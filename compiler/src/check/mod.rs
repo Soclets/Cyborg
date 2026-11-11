@@ -1050,6 +1050,13 @@ impl Checker<'_> {
                 }
             };
             let (unit, labels) = self.unit_label(labels)?;
+            if !labels.is_empty() && unit.as_ref().and_then(units::unit_mark) == Some("point") {
+                return Err(self.error(Diagnostic::not_designed(
+                    written.span,
+                    "a bound on a `.point` type",
+                    NOT_DECIDED,
+                )));
+            }
             let bounds = self.float_bounds(written.span, bits, kind, labels)?;
             return Ok(Type::Float { bits, kind, bounds, unit });
         }
@@ -1425,7 +1432,7 @@ impl Checker<'_> {
     fn bound_integer(&mut self, expression: &syntax::Expression, unit: Option<&types::Unit>) -> Check<i128> {
         match (&expression.kind, unit) {
             (syntax::ExpressionKind::WithUnit { value, unit: written }, Some(unit)) => {
-                let written = self.resolve_unit(written)?;
+                let written = self.resolve_unit(written, true)?;
                 if written != *unit {
                     return Err(self.not_yet(expression.span, "a bound in another unit".to_string()));
                 }

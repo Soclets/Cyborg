@@ -63,6 +63,12 @@ enum Definition {
         of_span: Span,
     },
     Made(Vec<(String, i32, Span)>),
+    /// The same size as another unit, with its zero moved: `celsius = kelvin offset ~-273.15` (D250).
+    Offset {
+        of: String,
+        of_span: Span,
+        offset: f64,
+    },
     /// Refused or not built, so nothing more is said about it.
     Broken,
 }
@@ -72,13 +78,31 @@ struct UnitInfo {
     family: String,
     span: Span,
     definition: Definition,
+    /// Whether its family says whether each value is a point or a span: one with an offset, or `std`'s `time`
+    /// (D249).
+    split: bool,
+    /// Where its zero is, in its own unit, from its base's zero: -273.15 for celsius.
+    offset: f64,
 }
 
-/// A unit as an exact scale times powers of bases: `length.kilometers` is 1000 times `length.meters`.
+/// A unit as an exact scale times powers of bases, and of π for angles: `length.kilometers` is 1000 times
+/// `length.meters`, and `angle.degrees` is π/180 of `angle.radians`.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Expansion {
     pub scale: Ratio,
+    pub pi: i32,
     pub powers: Vec<(String, i32)>,
+}
+
+/// `.point` or `.span` at the end of a unit's name, split off (D249).
+#[must_use]
+pub fn mark_of(name: &str) -> (&str, Option<&str>) {
+    for mark in ["point", "span"] {
+        if let Some(base) = name.strip_suffix(&format!(".{mark}")) {
+            return (base, Some(mark));
+        }
+    }
+    (name, None)
 }
 
 /// Every declared unit, with `items`, which is base language (D101).
@@ -91,13 +115,44 @@ pub struct Units {
 impl Default for Units {
     fn default() -> Units {
         let mut units = Units { infos: HashMap::new(), order: Vec::new(), expansions: HashMap::new() };
-        units.infos.insert(
-            "items".to_string(),
-            UnitInfo { family: String::new(), span: Span::default(), definition: Definition::Base },
-        );
-        units
-            .expansions
-            .insert("items".to_string(), Some(Expansion { scale: Ratio::ONE, powers: vec![("items".to_string(), 1)] }));
+        // `items` is base language (D101), and `std` has `time`, whose values are points or spans (D249), and
+        // `angle`, with radians as its base (standard 2.16).
+        let builtin: [(&str, &str, bool, Ratio, i32, &str); 5] = [
+            ("items", "", false, Ratio::ONE, 0, "items"),
+            ("std::units::time.seconds", "std::units::time", true, Ratio::ONE, 0, "std::units::time.seconds"),
+            ("std::units::angle.radians", "std::units::angle", false, Ratio::ONE, 0, "std::units::angle.radians"),
+            (
+                "std::units::angle.degrees",
+                "std::units::angle",
+                false,
+                Ratio { top: 1, bottom: 180 },
+                1,
+                "std::units::angle.radians",
+            ),
+            (
+                "std::units::angle.turns",
+                "std::units::angle",
+                false,
+                Ratio { top: 2, bottom: 1 },
+                1,
+                "std::units::angle.radians",
+            ),
+        ];
+        for (name, family, split, scale, pi, base) in builtin {
+            units.infos.insert(
+                name.to_string(),
+                UnitInfo {
+                    family: family.to_string(),
+                    span: Span::default(),
+                    definition: Definition::Base,
+                    split,
+                    offset: 0.0,
+                },
+            );
+            units
+                .expansions
+                .insert(name.to_string(), Some(Expansion { scale, pi, powers: vec![(base.to_string(), 1)] }));
+        }
         units
     }
 }
@@ -106,6 +161,18 @@ impl Units {
     #[must_use]
     pub fn knows(&self, name: &str) -> bool {
         self.infos.contains_key(name)
+    }
+
+    /// Whether a unit's family says whether each value is a point or a span (D249).
+    #[must_use]
+    pub fn split(&self, name: &str) -> bool {
+        self.infos.get(mark_of(name).0).is_some_and(|info| info.split)
+    }
+
+    /// Where a unit's zero is, from its base's zero, in its own unit (D250).
+    #[must_use]
+    pub fn offset(&self, name: &str) -> f64 {
+        self.infos.get(mark_of(name).0).map_or(0.0, |info| info.offset)
     }
 
     /// The unit's family, `time` for `time.seconds`.
@@ -119,9 +186,11 @@ impl Units {
     pub fn expand(&self, unit: &Unit) -> Option<Expansion> {
         let mut scale = Ratio::ONE;
         let mut powers: Vec<(String, i32)> = Vec::new();
+        let mut pi = 0;
         for (name, power) in &unit.factors {
-            let expansion = self.expansions.get(name)?.as_ref()?;
+            let expansion = self.expansions.get(mark_of(name).0)?.as_ref()?;
             scale = scale.times(expansion.scale.power(*power)?)?;
+            pi += expansion.pi * power;
             for (base, inner) in &expansion.powers {
                 match powers.iter_mut().find(|(each, _)| each == base) {
                     Some((_, mine)) => *mine += inner * power,
@@ -131,7 +200,7 @@ impl Units {
         }
         powers.retain(|(_, power)| *power != 0);
         powers.sort();
-        Some(Expansion { scale, powers })
+        Some(Expansion { scale, pi, powers })
     }
 }
 
@@ -145,8 +214,27 @@ impl Checker<'_> {
             }
             let set = family.name.text();
             self.check_closer(&family.end, &format!("end fam.unit {set}"), super::CLOSER_WHY);
+            let split = family.entries.iter().any(|entry| {
+                matches!(
+                    entry.kind,
+                    syntax::FamilyEntryKind::UnitSetTo(
+                        syntax::UnitDefinition::Offset { .. } | syntax::UnitDefinition::Decibels(_)
+                    )
+                )
+            });
             for entry in &family.entries {
                 let name = entry.name.text();
+                // A family is one level deep (D161).
+                if let Some(rest) = name.strip_prefix(&format!("{set}."))
+                    && rest.contains('.')
+                {
+                    self.error(Diagnostic::refused(
+                        entry.name.span,
+                        format!("`{name}` goes more than one level into `{set}`"),
+                        "a family is one level deep, so a family can't hold a family (D161)",
+                    ));
+                    continue;
+                }
                 if self.units.infos.contains_key(&name) {
                     self.error(Diagnostic::refused(
                         entry.name.span,
@@ -156,8 +244,14 @@ impl Checker<'_> {
                     continue;
                 }
                 let definition = self.unit_definition(entry);
+                let offset = match &definition {
+                    Definition::Offset { offset, .. } => *offset,
+                    _ => 0.0,
+                };
                 self.units.order.push(name.clone());
-                self.units.infos.insert(name, UnitInfo { family: set.clone(), span: entry.name.span, definition });
+                self.units
+                    .infos
+                    .insert(name, UnitInfo { family: set.clone(), span: entry.name.span, definition, split, offset });
             }
         }
         for name in self.units.order.clone() {
@@ -195,9 +289,13 @@ impl Checker<'_> {
             syntax::FamilyEntryKind::UnitSetTo(syntax::UnitDefinition::Made { factors }) => Definition::Made(
                 factors.iter().map(|(path, power)| (self.resolve_path(path), *power, path.span)).collect(),
             ),
-            syntax::FamilyEntryKind::UnitSetTo(syntax::UnitDefinition::Offset(span)) => {
-                self.not_yet(*span, "a unit with an offset".to_string());
-                Definition::Broken
+            syntax::FamilyEntryKind::UnitSetTo(syntax::UnitDefinition::Offset { unit, amount, span }) => {
+                let written = self.slice(amount.span).trim_start_matches('~').replace('_', "");
+                let Ok(offset) = written.parse::<f64>() else {
+                    self.not_yet(*span, "this offset".to_string());
+                    return Definition::Broken;
+                };
+                Definition::Offset { of: self.resolve_path(unit), of_span: unit.span, offset }
             }
             syntax::FamilyEntryKind::UnitSetTo(syntax::UnitDefinition::Decibels(span)) => {
                 self.not_yet(*span, "a log unit, with `decibels of`".to_string());
@@ -233,13 +331,22 @@ impl Checker<'_> {
         }
         visiting.push(name.to_string());
         let result = match &info.definition {
-            Definition::Base => Some(Expansion { scale: Ratio::ONE, powers: vec![(name.to_string(), 1)] }),
+            Definition::Base => Some(Expansion { scale: Ratio::ONE, pi: 0, powers: vec![(name.to_string(), 1)] }),
+            Definition::Offset { of, of_span, .. } => {
+                if self.units.knows(of) {
+                    self.expand_declared(of, visiting)
+                } else {
+                    self.error(Diagnostic::refused(
+                        *of_span,
+                        format!("the unit `{of}` isn't known"),
+                        "`=` points at a unit, in any family (D109)",
+                    ));
+                    None
+                }
+            }
             Definition::Broken => None,
             Definition::Multiple { ratio, of, of_span } => {
-                if of.starts_with("std::") {
-                    self.not_yet(*of_span, format!("the unit `{of}`, from `std`"));
-                    None
-                } else if !self.units.knows(of) {
+                if !self.units.knows(of) {
                     self.error(Diagnostic::refused(
                         *of_span,
                         format!("the unit `{of}` isn't known"),
@@ -250,8 +357,9 @@ impl Checker<'_> {
                     self.loop_error(visiting, name, info.span, false);
                     None
                 } else {
-                    self.expand_declared(of, visiting)
-                        .and_then(|inner| Some(Expansion { scale: inner.scale.times(*ratio)?, powers: inner.powers }))
+                    self.expand_declared(of, visiting).and_then(|inner| {
+                        Some(Expansion { scale: inner.scale.times(*ratio)?, pi: inner.pi, powers: inner.powers })
+                    })
                 }
             }
             Definition::Made(factors) => {
@@ -305,32 +413,46 @@ impl Checker<'_> {
         }
     }
 
-    /// The unit a type or a number names: `time.seconds`, `items`, or one shortened by `use` (D112).
-    pub fn resolve_unit(&mut self, path: &syntax::Path) -> Check<Unit> {
+    /// The unit a type or a number names: `time.seconds`, `items`, or one shortened by `use` (D112). A number's unit
+    /// can be bare in a family with points and spans, taking its mark from where it lands, and a type's can't (D249).
+    pub fn resolve_unit(&mut self, path: &syntax::Path, bare_ok: bool) -> Check<Unit> {
         let text = self.resolve_path(path);
         let text = text.strip_prefix("my::").unwrap_or(&text).to_string();
-        if text.starts_with("std::") {
-            return Err(self.not_yet(path.span, format!("the unit `{text}`, from `std`")));
+        if let Some(rest) = text.strip_prefix("std::")
+            && !rest.starts_with("units::")
+        {
+            return Err(self.error(Diagnostic::refused_fix(
+                path.span,
+                format!("std::units::{rest}"),
+                "a unit family in `std` sits in the `units` group (D199, D196)",
+            )));
         }
-        if text.contains("::") {
+        if text.contains("::") && !text.starts_with("std::units::") {
             return Err(self.error(Diagnostic::not_designed(
                 path.span,
                 format!("the unit `{text}`, from another kit"),
                 "not decided yet (standard 12.9)",
             )));
         }
-        if self.units.knows(&text) {
-            return Ok(Unit::named(&text));
-        }
-        for split in [".point", ".span"] {
-            if let Some(unit) = text.strip_suffix(split)
-                && self.units.knows(unit)
-            {
-                return Err(self.error(Diagnostic::refused(
-                    path.span,
-                    format!("`{unit}` has no points and spans, so it takes no `{split}`"),
-                    "only a family with an offset or a log unit, and `std`'s `time`, has points and spans (D249)",
-                )));
+        let (base, mark) = mark_of(&text);
+        if self.units.knows(base) {
+            let split = self.units.split(base);
+            match mark {
+                Some(mark) if !split => {
+                    return Err(self.error(Diagnostic::refused(
+                        path.span,
+                        format!("`{base}` has no points and spans, so it takes no `.{mark}`"),
+                        "only a family with an offset or a log unit, and `std`'s `time`, has points and spans (D249)",
+                    )));
+                }
+                None if split && !bare_ok => {
+                    return Err(self.error(Diagnostic::refused(
+                        path.span,
+                        format!("`{base}` says whether it's a `.point` or a `.span`"),
+                        "in a family with an offset or a log unit, and in `std`'s `time`, every value says whether it's a point or a span (D249, D251)",
+                    )));
+                }
+                _ => return Ok(Unit::named(&text)),
             }
         }
         if !text.contains('.')
@@ -352,6 +474,24 @@ impl Checker<'_> {
         )))
     }
 
+    /// A unit as a print shows it: the way the file writes it, with a `use`'s short name, and without `std`'s path
+    /// (D246).
+    #[must_use]
+    pub fn shown(&self, unit: &Unit) -> String {
+        let named = |name: &str| -> String {
+            let (base, _) = mark_of(name);
+            for (short, full) in &self.uses {
+                let full = full.strip_prefix("my::").unwrap_or(full);
+                if full == base {
+                    return short.clone();
+                }
+            }
+            base.strip_prefix("std::units::").unwrap_or(base).to_string()
+        };
+        let shown = Unit { factors: unit.factors.iter().map(|(name, power)| (named(name), *power)).collect() };
+        shown.to_string()
+    }
+
     /// The `unit:` label on a number type, which comes first, before `min:` and `max:` (D255).
     pub fn unit_label<'labels>(
         &mut self,
@@ -369,7 +509,7 @@ impl Checker<'_> {
             return Ok((None, labels));
         }
         let unit = match &first.value.kind {
-            syntax::ExpressionKind::Path(path) => self.resolve_unit(path)?,
+            syntax::ExpressionKind::Path(path) => self.resolve_unit(path, false)?,
             syntax::ExpressionKind::Variable(name) if name.text.starts_with('?') => {
                 return Err(self.not_yet(first.value.span, "a unit parameter".to_string()));
             }
@@ -384,7 +524,9 @@ impl Checker<'_> {
         match (a, b) {
             (None, None) => true,
             (Some(a), Some(b)) => {
-                a == b || matches!((self.units.expand(a), self.units.expand(b)), (Some(x), Some(y)) if x == y)
+                // A point and a span are never the same, whatever their units (D249).
+                unit_mark(a) == unit_mark(b)
+                    && (a == b || matches!((self.units.expand(a), self.units.expand(b)), (Some(x), Some(y)) if x == y))
             }
             _ => false,
         }
@@ -403,4 +545,16 @@ impl Checker<'_> {
     pub fn unit_not_designed(&mut self, span: Span, what: String) -> Reported {
         self.error(Diagnostic::not_designed(span, what, NOT_DECIDED))
     }
+}
+
+/// A unit's `.point` or `.span`, if it's one unit that says it.
+#[must_use]
+pub fn unit_mark(unit: &Unit) -> Option<&str> {
+    unit.single().and_then(|name| mark_of(name).1)
+}
+
+/// A unit without its mark: `temperature.celsius` for `temperature.celsius.point`.
+#[must_use]
+pub fn unmarked(unit: &Unit) -> Option<&str> {
+    unit.single().map(|name| mark_of(name).0)
 }
