@@ -6,7 +6,7 @@ fam.unit power:
     power.dbm = decibels of 1 power.milliwatts;
 end fam.unit power
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     let $a: f64.stable[unit: power.dbm.point] = 10.0 power.dbm;
     let $b: f64.stable[unit: power.dbm.point] = 10.0 power.dbm;
     let $c: f64.stable[unit: power.dbm.point] = $a + $b;

@@ -11,7 +11,7 @@ struct index <`text`, `table`: lasts_at_least `text`>:
     lookup: Lend from `table` reading;
 end struct index
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     let $list: reading = reading[celsius = 2];
     let $article: reading = reading[celsius = 1];

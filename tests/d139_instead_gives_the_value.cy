@@ -2,14 +2,14 @@
 import std;
 import os;
 
-fn word [$bad: bool] returns str fails [too_long]:
+fn word [$bad: bool] -> str fails [too_long]:
     if $bad:
         fail too_long;
     end if
     return "fine";
 end fn word
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     let $a: str = word(false) otherwise:
         case too_long:

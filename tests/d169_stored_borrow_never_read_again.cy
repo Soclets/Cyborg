@@ -5,11 +5,11 @@ struct reading:
     celsius: i32;
 end struct reading
 
-fn eat [$r: Given reading] returns void:
+fn eat [$r: Given reading] -> void:
     return void;
 end fn eat
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     let $r: reading = reading[celsius = 21];
     let $b: Lend from $r reading = Lend $r;
     let $n: i32 = $b.celsius;

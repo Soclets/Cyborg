@@ -1,7 +1,7 @@
 // A limb adds its own inline language as `inline.@limb::lang`.
 // trace: D227
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     shield low:
         reason "talks to the chip"
         inline.@llvm::ir();

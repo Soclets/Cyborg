@@ -4,7 +4,7 @@ import os;
 
 const $b: i32 = 60 x 60;
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     const $c: i32 = $b + 1;
     std::io::fmt_print(Lend.mut $out, "{}{newln}", $b);

@@ -2,7 +2,7 @@
 import std::io::fmt_print;
 import os;
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     let mut $err: os::stderr.unbuffered = os::stderr.unbuffered();
     std::io::fmt_print(Lend.mut $out, "only this{newln}");

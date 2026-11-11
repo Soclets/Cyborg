@@ -3,11 +3,11 @@
 import std;
 import os;
 
-fn eat [$s: Given str] returns bool:
+fn eat [$s: Given str] -> bool:
     return 1 below 2;
 end fn eat
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     let $s: str = "a";
     if 1 below 2:

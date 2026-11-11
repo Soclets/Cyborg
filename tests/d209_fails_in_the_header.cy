@@ -2,7 +2,7 @@
 import std;
 import os;
 
-fn half [$n: i32] returns i32 fails [odd, negative[val: i32]]:
+fn half [$n: i32] -> i32 fails [odd, negative[val: i32]]:
     requires $n at_least -100;
     if $n below 0:
         fail negative[val = $n];
@@ -13,7 +13,7 @@ fn half [$n: i32] returns i32 fails [odd, negative[val: i32]]:
     return $n div.trunc 2;
 end fn half
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     let $h: i32 = half(8) ?? 0;
     std::io::fmt_print(Lend.mut $out, "{}{newln}", $h);

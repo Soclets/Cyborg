@@ -4,7 +4,7 @@ import os;
 
 type.new user_id = i32;
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     let $n: i32 = 1;
     let $u: user_id = $n as user_id;

@@ -2,7 +2,7 @@
 import std; // for the print
 import os;
 
-fn.main [none] returns void: // where it starts
+fn.main [none] -> void: // where it starts
     let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     let $x: i32 = 1; // a note
     if $x above 0: // always

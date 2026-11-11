@@ -1,5 +1,5 @@
-refused: d170_borrowing_a_local.cy:7:24, line 7 column 24
- 7 | fn make [none] returns Lend from $r reading:
-   |                        ^^^^^^^^^^^^^^^^^^^^
+refused: d170_borrowing_a_local.cy:7:19, line 7 column 19
+ 7 | fn make [none] -> Lend from $r reading:
+   |                   ^^^^^^^^^^^^^^^^^^^^
  what: `$r` isn't a parameter, and a returned borrow comes from one
  why:  a function hands back a borrow only of a parameter, a named source or `program` (D170)

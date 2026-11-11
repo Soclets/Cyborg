@@ -11,7 +11,7 @@ fam.unit length:
     length.feet = 12 length.inches;
 end fam.unit length
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     let $km: f64.stable[unit: length.kilometers] = 2.5 length.kilometers;
     let $m: f64.stable[unit: length.meters] = $km as f64.stable[unit: length.meters];

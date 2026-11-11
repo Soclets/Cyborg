@@ -1,6 +1,6 @@
 // trace: D128
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     loop:
         return void;
     end loop

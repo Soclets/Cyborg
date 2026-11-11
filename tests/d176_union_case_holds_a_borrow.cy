@@ -11,7 +11,7 @@ union.tagged lookup <`text`>:
     missing;
 end union.tagged lookup
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     let $a: reading = reading[celsius = 4];
     let $l: lookup<`text`: $a> = lookup.found[item = Lend $a];

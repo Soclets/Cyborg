@@ -2,7 +2,7 @@
 // trace: D233
 import std;
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     let $a: i64 = 6;
     let $b: i64 = 7;
     let $c: i64 = 8;

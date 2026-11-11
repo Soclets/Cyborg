@@ -4,6 +4,6 @@ union.untagged number:
     i: i32
 end union.untagged number
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     return void;
 end fn.main

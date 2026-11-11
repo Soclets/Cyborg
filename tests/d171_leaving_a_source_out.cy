@@ -9,7 +9,7 @@ struct index <`text`, `table`: lasts_at_least `text`>:
     lookup: Lend from `table` reading;
 end struct index
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     let $article: reading = reading[celsius = 1];
     let $i: index<`text`: $article> = index[words = Lend $article, lookup = Lend $article];
     return void;

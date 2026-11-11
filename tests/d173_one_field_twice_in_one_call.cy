@@ -9,11 +9,11 @@ struct pair:
     b: inner;
 end struct pair
 
-fn adjust [$x: Lent.mut inner, $y: Lent.mut inner] returns void:
+fn adjust [$x: Lent.mut inner, $y: Lent.mut inner] -> void:
     return void;
 end fn adjust
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     let mut $p: pair = pair[a = inner[n = 1], b = inner[n = 2]];
     adjust(Lend.mut $p.a, Lend.mut $p.a);
     return void;

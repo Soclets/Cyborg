@@ -2,7 +2,7 @@
 // trace: D213
 import std;
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     let $a: i32 = 7;
     let $b: i32 = $a div.trunc  2;
     return void;

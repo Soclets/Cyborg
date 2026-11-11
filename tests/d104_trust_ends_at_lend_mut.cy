@@ -5,12 +5,12 @@ union.tagged status:
     failed[code: i32];
 end union.tagged status
 
-fn reset [$s: Lent.mut status] returns void:
+fn reset [$s: Lent.mut status] -> void:
     change $s = status.ok;
     return void;
 end fn reset
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     let mut $s: status = status.failed[code = 3];
     if $s: status.failed:
         reset(Lend.mut $s);

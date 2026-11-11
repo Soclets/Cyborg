@@ -7,7 +7,7 @@ fam.failure file_failed:
     file_failed.denied;
 end fam.failure file_failed
 
-fn load [$which: i32] returns i32 fails [file_failed, bad_syntax]:
+fn load [$which: i32] -> i32 fails [file_failed, bad_syntax]:
     if $which == 1:
         fail file_failed.not_found;
     end if
@@ -20,7 +20,7 @@ fn load [$which: i32] returns i32 fails [file_failed, bad_syntax]:
     return 0;
 end fn load
 
-fn name_of [$which: i32] returns void:
+fn name_of [$which: i32] -> void:
     let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     let $n: i32 = load($which) otherwise:
         case not_found:
@@ -37,7 +37,7 @@ fn name_of [$which: i32] returns void:
     return void;
 end fn name_of
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     name_of(1);
     name_of(2);
     name_of(3);

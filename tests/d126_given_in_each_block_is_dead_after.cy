@@ -1,10 +1,10 @@
 // trace: D126, D2
 
-fn eat [$s: Given str] returns void:
+fn eat [$s: Given str] -> void:
     return void;
 end fn eat
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     let $s: str = "a";
     if 1 below 2:
         eat(Give $s);

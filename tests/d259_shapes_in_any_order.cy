@@ -3,7 +3,7 @@
 import std;
 import os;
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     let $n: i32[min: 0, max: 99] = 7;
     std::io::fmt_print(Lend.mut $out, "[{$n, width: 4 cols, align: right}] [{$n, align: right, width: 4 cols}]{newln}");

@@ -7,13 +7,13 @@ struct box:
     n: i32;
 end struct box
 
-fn show [$b: box] returns void:
+fn show [$b: box] -> void:
     let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     std::io::fmt_print(Lend.mut $out, "{}{newln}", $b.n);
     return void;
 end fn show
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     let mut $b: box = box[n = 1];
     let $l: Lend.mut from $b box = Lend.mut $b;
     change $l.n = 2;

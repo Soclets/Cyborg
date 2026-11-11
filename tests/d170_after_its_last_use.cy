@@ -6,14 +6,14 @@ struct reading:
     celsius: i32;
 end struct reading
 
-fn warmer [$a: reading, $b: reading] returns Lend from <$a, $b> reading:
+fn warmer [$a: reading, $b: reading] -> Lend from <$a, $b> reading:
     if $a.celsius above $b.celsius:
         return Lend $a;
     end if
     return Lend $b;
 end fn warmer
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     let $x: reading = reading[celsius = 21];
     let mut $y: reading = reading[celsius = 25];

@@ -2,7 +2,7 @@
 import std;
 import os;
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     if 1 below 2:
         std::io::fmt_print(Lend.mut $out, "yes{newln}");

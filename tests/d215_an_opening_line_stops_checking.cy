@@ -2,7 +2,7 @@
 // trace: D215
 import std;
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     let $a: i32 = 1;
     if $a below "x":
         let $b: i64 = $a;

@@ -11,7 +11,7 @@ fam.unit length:
     length.feet = 12 length.inches;
 end fam.unit length
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     let $y: i32[unit: length.yards] = 2 length.yards;
     let $f: i32[unit: length.feet] = $y as i32[unit: length.feet];

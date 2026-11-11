@@ -1,5 +1,5 @@
-refused: d237_less_gives_a_bool.cy:8:41, line 8 column 41
- 8 | op below [$a: money, $b: money] returns i64:
-   |                                         ^^^
+refused: d237_less_gives_a_bool.cy:8:36, line 8 column 36
+ 8 | op below [$a: money, $b: money] -> i64:
+   |                                    ^^^
  what: `op below` gives a `bool`
  why:  `!=`, `above`, `at_least` and `at_most` follow from `==` and `below`, so those compare and give a `bool` (D237, D278)

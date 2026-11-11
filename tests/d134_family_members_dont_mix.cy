@@ -5,11 +5,11 @@ fam.type.new ids:
     ids.order = i64;
 end fam.type.new ids
 
-fn f [$u: ids.user] returns void:
+fn f [$u: ids.user] -> void:
     let $o: ids.order = $u;
     return void;
 end fn f
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     return void;
 end fn.main

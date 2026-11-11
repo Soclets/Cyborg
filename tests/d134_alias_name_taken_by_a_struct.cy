@@ -6,6 +6,6 @@ end struct score
 
 type.alias score = i32;
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     return void;
 end fn.main

@@ -2,7 +2,7 @@
 import std;
 import os;
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     let $t: f64.stable[min: -40.0, max: 125.0] = 21.5;
     let $x: f64.stable = $t;

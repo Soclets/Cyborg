@@ -1,6 +1,6 @@
 // trace: D128, D7
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     while 1:
         return void;
     end while

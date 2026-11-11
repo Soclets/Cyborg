@@ -2,12 +2,12 @@
 import std;
 import os;
 
-fn add [$xs: Lent.mut std::list<i32>[len.max: inf items]] returns void:
+fn add [$xs: Lent.mut std::list<i32>[len.max: inf items]] -> void:
     $xs.std::%%append(val: 1);
     return void;
 end fn add
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     let mut $xs: std::list<i32>[len.max: inf items] = empty;
     add(Lend.mut $xs);

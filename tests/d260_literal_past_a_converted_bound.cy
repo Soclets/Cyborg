@@ -6,7 +6,7 @@ fam.unit length:
     length.kilometers = 1000 length.meters;
 end fam.unit length
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     let $far: i32[unit: length.meters, min: 0 length.meters, max: 1 length.kilometers] = 1001 length.meters;
     return void;
 end fn.main

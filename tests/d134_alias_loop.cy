@@ -3,6 +3,6 @@
 type.alias a = b;
 type.alias b = a;
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     return void;
 end fn.main

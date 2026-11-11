@@ -2,11 +2,11 @@
 import std;
 import os;
 
-fn f [none] returns i32[min: 0, max: 9] fails [a]:
+fn f [none] -> i32[min: 0, max: 9] fails [a]:
     fail a;
 end fn f
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     let $big: i32 = 50;
     std::io::fmt_print(Lend.mut $out, "before{newln}");

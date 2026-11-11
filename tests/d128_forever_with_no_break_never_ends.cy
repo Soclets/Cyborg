@@ -3,7 +3,7 @@
 import std;
 import os;
 
-fn first_over [$limit: i32] returns i32:
+fn first_over [$limit: i32] -> i32:
     let mut $n: i32 = 0;
     forever:
         change $n = $n + 7;
@@ -13,7 +13,7 @@ fn first_over [$limit: i32] returns i32:
     end forever
 end fn first_over
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     std::io::fmt_print(Lend.mut $out, "{}{newln}", first_over(10));
     return void;

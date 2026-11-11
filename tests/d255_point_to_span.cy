@@ -6,7 +6,7 @@ fam.unit temperature:
     temperature.celsius = temperature.kelvin offset ~-273.15;
 end fam.unit temperature
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     let $now: f64.stable[unit: temperature.celsius.point] = 20.0 temperature.celsius;
     let $k: f64.stable[unit: temperature.kelvin.span] = $now as f64.stable[unit: temperature.kelvin.span];
     return void;

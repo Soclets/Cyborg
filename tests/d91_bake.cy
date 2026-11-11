@@ -2,13 +2,13 @@
 import std;
 import os;
 
-fn.pure.baked seconds_in [$days: i32] returns i32:
+fn.pure.baked seconds_in [$days: i32] -> i32:
     return $days x 86_400;
 end fn.pure.baked seconds_in
 
 const $week: i32 = seconds_in(7);
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     let $day: i32 = bake seconds_in(1);
     let $d: i32 = 2;

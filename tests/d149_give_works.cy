@@ -8,7 +8,7 @@ end struct reading
 
 type.new wrapped = reading;
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     let $r: reading = reading[celsius = 7];
     let $w: wrapped = Give $r as wrapped;

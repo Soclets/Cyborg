@@ -5,6 +5,6 @@ import std;
 const $primes: std::array<i32>[len: 3 items] = [2, 3, 5];
 const $nope: i32 = $primes[pos: 9];
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     return void;
 end fn.main

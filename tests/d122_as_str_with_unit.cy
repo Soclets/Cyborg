@@ -5,7 +5,7 @@ fam.unit time:
     time.seconds: base;
 end fam.unit time
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     let $a: i32[unit: time.seconds] = 1 time.seconds;
     let $s: str = $a as str.with_unit;
     return void;

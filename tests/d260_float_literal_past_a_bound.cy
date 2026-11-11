@@ -6,7 +6,7 @@ fam.unit length:
     length.kilometers = 1000 length.meters;
 end fam.unit length
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     let $far: f64.stable[unit: length.meters, min: 0.0 length.meters, max: 0.5 length.kilometers] = 500.5 length.meters;
     return void;
 end fn.main

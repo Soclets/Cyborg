@@ -6,18 +6,18 @@ struct.must_Give open_file:
     fd: i32;
 end struct.must_Give open_file
 
-fn close [$f: Given open_file] returns void:
+fn close [$f: Given open_file] -> void:
     let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     std::io::fmt_print(Lend.mut $out, "closing {}{newln}", $f.fd);
     finish $f;
     return void;
 end fn close
 
-fn open [$fd: i32] returns open_file:
+fn open [$fd: i32] -> open_file:
     return open_file[fd = $fd];
 end fn open
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     open(3);
     return void;
 end fn.main

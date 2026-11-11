@@ -2,7 +2,7 @@
 // trace: D2
 import std;
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     let mut $xs: std::list<i32>[len.max: inf items] = [1, 2];
     for $x in $xs:
         $xs.std::%%append(val: $x);

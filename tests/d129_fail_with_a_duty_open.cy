@@ -5,11 +5,11 @@ struct.must_Give open_file:
     fd: i32;
 end struct.must_Give open_file
 
-fn f [none] returns void fails [nope]:
+fn f [none] -> void fails [nope]:
     let $g: open_file = open_file[fd = 3];
     fail nope;
 end fn f
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     return void;
 end fn.main

@@ -1,0 +1,5 @@
+refused: d287_returns_is_refused.cy:3:19, line 3 column 19
+ 3 | fn half [$n: i32] returns i32:
+   |                   ^^^^^^^
+ fix:  `->`
+ why:  `->` is an anchor the eye skips straight to, marking where the result starts, so `returns` is never written (D287)

@@ -2,11 +2,11 @@
 import std;
 import os;
 
-fn.pure again [none] returns bool:
+fn.pure again [none] -> bool:
     return false;
 end fn.pure again
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     while again():
         return void;

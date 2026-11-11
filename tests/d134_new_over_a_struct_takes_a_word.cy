@@ -6,10 +6,10 @@ end struct reading
 
 type.new wrapped = reading;
 
-fn f [$w: Given wrapped] returns wrapped:
+fn f [$w: Given wrapped] -> wrapped:
     return $w;
 end fn f
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     return void;
 end fn.main

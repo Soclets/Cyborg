@@ -11,6 +11,6 @@ shield c_number:
     end untagged number
 end shield c_number
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     return void;
 end fn.main

@@ -1,5 +1,5 @@
 refused: d278_op_less_than_is_refused.cy:7:4, line 7 column 4
- 7 | op < [$a: money, $b: money] returns bool:
+ 7 | op < [$a: money, $b: money] -> bool:
    |    ^
  fix:  `below`
  why:  ordering is written in words, and a type defines `==` and `below`, which the others follow from (D278, D237)

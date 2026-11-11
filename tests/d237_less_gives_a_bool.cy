@@ -5,10 +5,10 @@ struct money:
     cents: i64;
 end struct money
 
-op below [$a: money, $b: money] returns i64:
+op below [$a: money, $b: money] -> i64:
     return 0;
 end op below
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     return void;
 end fn.main

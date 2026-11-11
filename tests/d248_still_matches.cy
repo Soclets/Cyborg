@@ -7,6 +7,6 @@ end fam.unit length
 
 use my::length.meters as metres;
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     return void;
 end fn.main

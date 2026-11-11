@@ -3,7 +3,7 @@
 import std;
 import os;
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     let $grid: std::list<std::list<i32>[len.max: 2 items]>[len.max: 2 items] = [[1, 2], [3, 4]];
     let $target: i32 = 3;

@@ -6,7 +6,7 @@ fam.unit screen:
     screen.pixels: base;
 end fam.unit screen
 
-fn draw [$x: i32[unit: screen.pixels]] returns void:
+fn draw [$x: i32[unit: screen.pixels]] -> void:
     labels [$x as at.screen.pixels];
     defaults [$x = 3];
     let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
@@ -15,7 +15,7 @@ fn draw [$x: i32[unit: screen.pixels]] returns void:
     return void;
 end fn draw
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     draw();
     draw(at.screen.pixels: 4);
     return void;

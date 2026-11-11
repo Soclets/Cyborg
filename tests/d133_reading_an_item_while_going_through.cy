@@ -2,7 +2,7 @@
 import std;
 import os;
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     let $a: std::array<i32>[len: 3 items] = [1, 2, 3];
     let mut $total: i32 = 0;

@@ -6,7 +6,7 @@ end struct reading
 
 type.new wrapped = reading;
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     let $w: wrapped = wrapped[celsius = 1];
     return void;
 end fn.main

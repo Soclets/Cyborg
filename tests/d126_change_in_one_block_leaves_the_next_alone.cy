@@ -8,7 +8,7 @@ union.tagged status:
     failed[code: i32];
 end union.tagged status
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     let mut $s: status = status.failed[code = 3];
     if $s: status.ok:

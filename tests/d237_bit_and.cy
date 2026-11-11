@@ -5,10 +5,10 @@ struct money:
     cents: i64;
 end struct money
 
-op bit_and [$a: money, $b: money] returns money:
+op bit_and [$a: money, $b: money] -> money:
     return $a;
 end op bit_and
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     return void;
 end fn.main

@@ -2,7 +2,7 @@
 // trace: D3
 import std;
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     let $s: str = "a";
     let mut $t: str = "b";
     change $t = $s;

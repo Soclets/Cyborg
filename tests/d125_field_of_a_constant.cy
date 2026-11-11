@@ -6,7 +6,7 @@ end struct box
 
 const $b: box = box[n = 1];
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     change $b.n = 2;
     return void;
 end fn.main

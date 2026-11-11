@@ -6,10 +6,10 @@ end struct.must_Give open_file
 
 type.new log_file = open_file;
 
-fn f [$l: Given log_file] returns void:
+fn f [$l: Given log_file] -> void:
     return void;
 end fn f
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     return void;
 end fn.main

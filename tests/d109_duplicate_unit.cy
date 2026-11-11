@@ -5,6 +5,6 @@ fam.unit money:
     money.cents: base;
 end fam.unit money
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     return void;
 end fn.main

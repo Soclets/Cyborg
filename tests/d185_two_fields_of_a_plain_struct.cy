@@ -8,13 +8,13 @@ struct pair:
     b: str;
 end struct pair
 
-fn eat [$s: Given str] returns void:
+fn eat [$s: Given str] -> void:
     let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     std::io::fmt_print(Lend.mut $out, "{}{newln}", $s);
     return void;
 end fn eat
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     let $p: pair = pair[a = "x", b = "y"];
     eat(Give $p.a);
     eat(Give $p.b);

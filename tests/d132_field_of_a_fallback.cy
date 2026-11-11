@@ -5,11 +5,11 @@ struct box:
     n: i32;
 end struct box
 
-fn make [none] returns box fails [none]:
+fn make [none] -> box fails [none]:
     return box[n = 1];
 end fn make
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     let $a: i32 = make().n ?? 3;
     return void;
 end fn.main

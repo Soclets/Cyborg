@@ -9,7 +9,7 @@ struct outer:
     a: inner;
 end struct outer
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     let $o: outer = outer[a = inner[n = 1]];
     let $l: Lend from $o inner = Lend $o.a;
     return void;

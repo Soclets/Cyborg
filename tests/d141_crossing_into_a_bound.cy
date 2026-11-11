@@ -3,7 +3,7 @@
 
 type.new percent = i32[min: 0, max: 100];
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     let $n: i32 = 150;
     let $p: percent = $n as percent;
     return void;

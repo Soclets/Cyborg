@@ -4,6 +4,6 @@ fam.type.new ids:
     ids.user = i64;
 end fam.type ids
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     return void;
 end fn.main

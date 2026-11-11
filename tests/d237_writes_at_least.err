@@ -1,5 +1,5 @@
 refused: d237_writes_at_least.cy:8:4, line 8 column 4
- 8 | op at_least [$a: money, $b: money] returns bool:
+ 8 | op at_least [$a: money, $b: money] -> bool:
    |    ^^^^^^^^
  what: `at_least` follows from `==` and `below`, so a type doesn't write it
  why:  `!=`, `above`, `at_least` and `at_most` follow from `==` and `below`, so they can never disagree, and aren't written (D237, D278)

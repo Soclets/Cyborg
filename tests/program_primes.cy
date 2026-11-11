@@ -3,7 +3,7 @@
 import std;
 import os;
 
-fn is_prime [$n: i32] returns bool:
+fn is_prime [$n: i32] -> bool:
     if $n below 2:
         return false;
     end if
@@ -17,7 +17,7 @@ fn is_prime [$n: i32] returns bool:
     return true;
 end fn is_prime
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     let mut $found: std::list<i32>[len.max: 8 items] = empty;
     for $n in range[from: 1, to: 30]:

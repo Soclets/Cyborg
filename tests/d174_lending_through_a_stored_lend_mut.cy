@@ -6,12 +6,12 @@ struct reading:
     celsius: i32;
 end struct reading
 
-fn replace [$r: Lent.mut reading] returns void:
+fn replace [$r: Lent.mut reading] -> void:
     change $r = reading[celsius = 0];
     return void;
 end fn replace
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     let mut $r: reading = reading[celsius = 21];
     let $b: Lend.mut from $r reading = Lend.mut $r;

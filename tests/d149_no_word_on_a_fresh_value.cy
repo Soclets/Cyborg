@@ -6,11 +6,11 @@ end struct reading
 
 type.new wrapped = reading;
 
-fn make [none] returns reading:
+fn make [none] -> reading:
     return reading[celsius = 3];
 end fn make
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     let $w: wrapped = Give make() as wrapped;
     return void;
 end fn.main

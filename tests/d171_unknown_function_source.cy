@@ -8,10 +8,10 @@ struct view <`text`>:
     words: Lend from `text` reading;
 end struct view
 
-fn shown <`t`> [$v: view<`text`: `u`>] returns i32:
+fn shown <`t`> [$v: view<`text`: `u`>] -> i32:
     return 0;
 end fn shown
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     return void;
 end fn.main

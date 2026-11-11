@@ -1,5 +1,5 @@
 NotDesignedYet: d236_given_value.cy:8:11, line 8 column 11
- 8 | op + [$a: Given money, $b: money] returns money:
+ 8 | op + [$a: Given money, $b: money] -> money:
    |           ^^^^^
  what: an operator's value that's `Given` or `Lent.mut`, since the operator shows no word
  why:  not decided yet, and the standard doesn't say

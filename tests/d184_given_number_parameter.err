@@ -1,5 +1,5 @@
 refused: d184_given_number_parameter.cy:3:14, line 3 column 14
- 3 | fn take [$n: Given i32] returns void:
+ 3 | fn take [$n: Given i32] -> void:
    |              ^^^^^
  what: `i32` is always copied, and takes no word
  why:  plain numbers and `bool` are always copied, and take no word (D2, D123)

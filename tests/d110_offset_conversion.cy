@@ -6,6 +6,6 @@ fam.unit heat:
     heat.celsius = 1 heat.kelvin + 273;
 end fam.unit heat
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     return void;
 end fn.main

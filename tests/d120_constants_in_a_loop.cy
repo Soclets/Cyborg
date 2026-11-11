@@ -3,6 +3,6 @@
 const $a: i32 = $b;
 const $b: i32 = $a;
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     return void;
 end fn.main

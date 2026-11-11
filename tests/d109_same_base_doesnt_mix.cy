@@ -6,7 +6,7 @@ fam.unit money:
     money.dollars = 100 money.cents;
 end fam.unit money
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     let $a: i32[unit: money.dollars] = 2 money.dollars;
     let $b: i32[unit: money.dollars] = $a + 1 money.cents;
     return void;

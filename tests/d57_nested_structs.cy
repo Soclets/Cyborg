@@ -11,11 +11,11 @@ struct outer:
     b: inner;
 end struct outer
 
-fn read [$i: inner] returns i32:
+fn read [$i: inner] -> i32:
     return $i.n;
 end fn read
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     let $first: inner = inner[n = 1];
     let $o: outer = outer[a = Give $first, b = inner[n = 2]];

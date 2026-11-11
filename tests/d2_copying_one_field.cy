@@ -6,11 +6,11 @@ struct box:
     s: str;
 end struct box
 
-fn keep [$s: Given str] returns str:
+fn keep [$s: Given str] -> str:
     return Give $s;
 end fn keep
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     let $b: box = box[s = "a"];
     let $k: str = keep(Copy $b.s);

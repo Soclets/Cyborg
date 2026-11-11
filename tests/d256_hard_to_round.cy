@@ -6,7 +6,7 @@ import os;
 use std::units::angle.radians as radians;
 use std::units::angle.degrees as degrees;
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     let $near: f64.stable[unit: radians] = ~1.5707963267948966 radians;
     let $tiny: f64.stable[unit: radians] = 0.0000000149011611938476562500 radians;

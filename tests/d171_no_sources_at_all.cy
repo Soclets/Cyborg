@@ -9,10 +9,10 @@ struct index <`text`, `table`: lasts_at_least `text`>:
     lookup: Lend from `table` reading;
 end struct index
 
-fn take [$i: index] returns void:
+fn take [$i: index] -> void:
     return void;
 end fn take
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     return void;
 end fn.main

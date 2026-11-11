@@ -3,7 +3,7 @@
 import std;
 import os;
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     let mut $out: os::stdout.buffered = os::stdout.buffered(size: 1024);
     os::done(Give $out);
     return void;

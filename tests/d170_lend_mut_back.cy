@@ -7,14 +7,14 @@ struct reading:
     celsius: i32;
 end struct reading
 
-fn colder [$a: Lent.mut reading, $b: Lent.mut reading] returns Lend.mut from <$a, $b> reading:
+fn colder [$a: Lent.mut reading, $b: Lent.mut reading] -> Lend.mut from <$a, $b> reading:
     if $a.celsius below $b.celsius:
         return Lend.mut $a;
     end if
     return Lend.mut $b;
 end fn colder
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     let mut $x: reading = reading[celsius = 21];
     let mut $y: reading = reading[celsius = 5];

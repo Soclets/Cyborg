@@ -6,14 +6,14 @@ struct box:
     n: i32;
 end struct box
 
-fn box.%half [$b: box] returns i32 fails [odd]:
+fn box.%half [$b: box] -> i32 fails [odd]:
     if $b.n mod.trunc 2 != 0:
         fail odd;
     end if
     return $b.n div.trunc 2;
 end fn box.%half
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     let $even: box = box[n = 4];
     let $odd: box = box[n = 3];

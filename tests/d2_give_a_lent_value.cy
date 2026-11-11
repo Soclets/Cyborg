@@ -4,15 +4,15 @@ struct box:
     n: i32;
 end struct box
 
-fn eat [$b: Given box] returns void:
+fn eat [$b: Given box] -> void:
     return void;
 end fn eat
 
-fn pass [$b: box] returns void:
+fn pass [$b: box] -> void:
     eat(Give $b);
     return void;
 end fn pass
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     return void;
 end fn.main

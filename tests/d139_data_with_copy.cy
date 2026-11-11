@@ -2,11 +2,11 @@
 import std;
 import os;
 
-fn f [none] returns str fails [a[label: str]]:
+fn f [none] -> str fails [a[label: str]]:
     fail a[label = "from the failure"];
 end fn f
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     let $s: str = f() otherwise:
         case a $x:

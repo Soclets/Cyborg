@@ -8,6 +8,6 @@ fam.type.alias ids:
     ids.order = i64;
 end fam.type.alias ids
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     return void;
 end fn.main

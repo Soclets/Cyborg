@@ -1,6 +1,6 @@
 // `>` is refused with `above` as its fix.
 // trace: D278
-fn.main [none] returns void:
+fn.main [none] -> void:
     let $a: i32 = 1;
     let $b: i32 = 2;
     let $c: bool = $a > $b;

@@ -2,7 +2,7 @@
 
 const $a: i32 = 1;
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     let $a: i32 = 2;
     return void;
 end fn.main

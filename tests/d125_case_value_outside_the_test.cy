@@ -5,7 +5,7 @@ union.tagged status:
     failed[code: i32];
 end union.tagged status
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     let mut $s: status = status.ok;
     change $s.code = 1;
     return void;

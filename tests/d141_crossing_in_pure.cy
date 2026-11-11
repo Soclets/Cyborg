@@ -5,11 +5,11 @@ import os;
 
 type.new user_id = i64;
 
-fn.pure raw [$u: user_id] returns i64:
+fn.pure raw [$u: user_id] -> i64:
     return $u as i64;
 end fn.pure raw
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     std::io::fmt_print(Lend.mut $out, "{}{newln}", raw(3));
     return void;

@@ -2,7 +2,7 @@
 // trace: D269, D233
 import std;
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     let $a: i64 = 6;
     let $b: i64 = 7;
     on.target aarch64:

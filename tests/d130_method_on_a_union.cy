@@ -7,14 +7,14 @@ union.tagged status:
     failed[code: i32];
 end union.tagged status
 
-fn status.%code_or_zero [$s: status] returns i32:
+fn status.%code_or_zero [$s: status] -> i32:
     if $s: status.failed:
         return $s.code;
     end if
     return 0;
 end fn status.%code_or_zero
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     let $a: status = status.failed[code = 7];
     let $b: status = status.ok;

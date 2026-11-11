@@ -2,10 +2,10 @@
 
 type.new user_id = i64;
 
-fn f [$a: user_id] returns str:
+fn f [$a: user_id] -> str:
     return $a as str;
 end fn f
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     return void;
 end fn.main

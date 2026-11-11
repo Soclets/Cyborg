@@ -6,7 +6,7 @@ struct flags:
     on: bool;
 end struct flags
 
-fn yes_or_no [$b: bool] returns void:
+fn yes_or_no [$b: bool] -> void:
     let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     if $b:
         std::io::fmt_print(Lend.mut $out, "yes{newln}");
@@ -16,7 +16,7 @@ fn yes_or_no [$b: bool] returns void:
     return void;
 end fn yes_or_no
 
-fn pick [$b: bool] returns bool:
+fn pick [$b: bool] -> bool:
     labels [$b as flag];
     defaults [$b = true];
 
@@ -25,7 +25,7 @@ end fn pick
 
 const $always: bool = true;
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     let $a: bool = true;
     let mut $b: bool = false;
     yes_or_no($a);

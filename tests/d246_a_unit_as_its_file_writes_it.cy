@@ -10,7 +10,7 @@ end fam.unit length
 
 use my::length.feet as feet;
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     let $m: i32[unit: length.meters] = 5 length.meters;
     let $f: f64.stable[unit: feet] = 2.5 feet;

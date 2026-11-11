@@ -8,13 +8,13 @@ struct reading:
     time: i32;
 end struct reading
 
-fn adjust [$c: Lent.mut i32, $t: Lent.mut i32] returns void:
+fn adjust [$c: Lent.mut i32, $t: Lent.mut i32] -> void:
     change $c = $c + 1;
     change $t = $t x 2;
     return void;
 end fn adjust
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     let mut $r: reading = reading[celsius = 21, time = 3600];
     adjust(Lend.mut $r.celsius, Lend.mut $r.time);

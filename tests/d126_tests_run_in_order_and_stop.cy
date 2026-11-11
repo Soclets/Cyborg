@@ -2,13 +2,13 @@
 import std;
 import os;
 
-fn say [$n: i32] returns bool:
+fn say [$n: i32] -> bool:
     let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     std::io::fmt_print(Lend.mut $out, "test {}{newln}", $n);
     return $n == 2;
 end fn say
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     if say(1):
         std::io::fmt_print(Lend.mut $out, "one{newln}");

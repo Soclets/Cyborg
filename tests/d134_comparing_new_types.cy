@@ -2,10 +2,10 @@
 
 type.new user_id = i64;
 
-fn f [$a: user_id, $b: user_id] returns bool:
+fn f [$a: user_id, $b: user_id] -> bool:
     return $a == $b;
 end fn f
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     return void;
 end fn.main

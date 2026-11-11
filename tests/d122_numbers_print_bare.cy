@@ -6,7 +6,7 @@ fam.unit time:
     time.seconds: base;
 end fam.unit time
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     let $a: i64 = 9000000000;
     let $b: u8 = 200;

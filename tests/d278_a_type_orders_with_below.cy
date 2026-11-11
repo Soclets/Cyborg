@@ -7,15 +7,15 @@ struct money:
     cents: i64;
 end struct money
 
-op == [$a: money, $b: money] returns bool:
+op == [$a: money, $b: money] -> bool:
     return $a.cents == $b.cents;
 end op ==
 
-op below [$a: money, $b: money] returns bool:
+op below [$a: money, $b: money] -> bool:
     return $a.cents below $b.cents;
 end op below
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     let $small: money = money[cents = 5];
     let $big: money = money[cents = 9];

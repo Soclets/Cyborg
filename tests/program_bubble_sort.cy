@@ -3,7 +3,7 @@
 import std;
 import os;
 
-fn sort [$xs: Lent.mut std::array<i32>[len: 6 items]] returns void:
+fn sort [$xs: Lent.mut std::array<i32>[len: 6 items]] -> void:
     let mut $swapped: bool = true;
     while $swapped:
         change $swapped = false;
@@ -19,7 +19,7 @@ fn sort [$xs: Lent.mut std::array<i32>[len: 6 items]] returns void:
     return void;
 end fn sort
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     let mut $xs: std::array<i32>[len: 6 items] = [5, 2, 9, 1, 7, 3];
     sort(Lend.mut $xs);

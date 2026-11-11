@@ -1,5 +1,5 @@
 refused: d236_on_built_in_types.cy:8:1, line 8 column 1
- 8 | op + [$a: i32, $b: i32] returns i32:
+ 8 | op + [$a: i32, $b: i32] -> i32:
    | ^^^^
  what: `op +` here is for `i32` and `i32`, which are built in
  why:  a struct or union can define an operator for itself, but an operator is never defined for, or changed on, built-in types (D236)

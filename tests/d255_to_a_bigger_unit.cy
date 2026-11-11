@@ -11,7 +11,7 @@ fam.unit length:
     length.feet = 12 length.inches;
 end fam.unit length
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     let $up: i32[unit: length.meters] = 1500 length.meters;
     let $down: i32[unit: length.meters] = -1500 length.meters;

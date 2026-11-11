@@ -4,7 +4,7 @@ import std;
 
 use std::io::read_line as "readu";
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     readu();
     return void;
 end fn.main

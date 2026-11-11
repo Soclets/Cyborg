@@ -21,6 +21,6 @@ fam.unit odd:
     odd.loop = odd.loop per time.seconds;
 end fam.unit odd
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     return void;
 end fn.main

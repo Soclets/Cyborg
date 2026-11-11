@@ -7,23 +7,23 @@ struct.must_Give open_file:
     fd: i32;
 end struct.must_Give open_file
 
-fn read_from [$f: open_file] returns i32:
+fn read_from [$f: open_file] -> i32:
     return $f.fd + 1;
 end fn read_from
 
-fn pass_on [$f: Given open_file] returns void:
+fn pass_on [$f: Given open_file] -> void:
     close(Give $f);
     return void;
 end fn pass_on
 
-fn close [$f: Given open_file] returns void:
+fn close [$f: Given open_file] -> void:
     let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     std::io::fmt_print(Lend.mut $out, "closing {}{newln}", $f.fd);
     finish $f;
     return void;
 end fn close
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     let $f: open_file = open_file[fd = 3];
     std::io::fmt_print(Lend.mut $out, "{}{newln}", read_from(Lend $f));

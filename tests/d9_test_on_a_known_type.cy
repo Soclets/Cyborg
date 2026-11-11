@@ -1,6 +1,6 @@
 // trace: D9
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     let $b: bool = 1 below 2;
     if $b: bool:
         return void;

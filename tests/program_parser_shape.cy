@@ -9,7 +9,7 @@ union.tagged token:
     done;
 end union.tagged token
 
-fn describe [$t: Given token] returns str:
+fn describe [$t: Given token] -> str:
     match $t:
         case token.number $n:
             return $n.value as str;
@@ -20,11 +20,11 @@ fn describe [$t: Given token] returns str:
     end match
 end fn describe
 
-fn make_word [$text: Given str] returns token:
+fn make_word [$text: Given str] -> token:
     return token.word[text = Give $text];
 end fn make_word
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     let $name: str = "hello";
     std::io::fmt_print(Lend.mut $out, "{}{newln}", describe(token.number[value = 42]));

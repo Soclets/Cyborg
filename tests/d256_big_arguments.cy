@@ -6,7 +6,7 @@ import os;
 use std::units::angle.radians as radians;
 use std::units::angle.degrees as degrees;
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     let $big: f64.stable[unit: radians] = 10000000000000000000000.0 radians;
     let $huge: f64.stable[unit: radians] = exponent ~1.7976931348623157e308 radians;

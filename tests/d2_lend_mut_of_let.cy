@@ -4,11 +4,11 @@ struct box:
     n: i32;
 end struct box
 
-fn replace [$b: Lent.mut box] returns void:
+fn replace [$b: Lent.mut box] -> void:
     return void;
 end fn replace
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     let $b: box = box[n = 1];
     replace(Lend.mut $b);
     return void;

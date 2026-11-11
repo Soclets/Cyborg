@@ -9,6 +9,6 @@ struct view <`text`>:
     other: Lend from $r reading;
 end struct view
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     return void;
 end fn.main

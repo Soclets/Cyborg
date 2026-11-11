@@ -10,14 +10,14 @@ end fam.unit length
 
 use std::units::time.seconds as seconds;
 
-fn longer<?u: any.unit> [$a: f64.stable[unit: ?u], $b: f64.stable[unit: ?u]] returns f64.stable[unit: ?u]:
+fn longer<?u: any.unit> [$a: f64.stable[unit: ?u], $b: f64.stable[unit: ?u]] -> f64.stable[unit: ?u]:
     if $a above $b:
         return $a;
     end if
     return $b;
 end fn longer
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     let $km: f64.stable[unit: length.kilometers] = 2.5 length.kilometers;
     let $m: f64.stable[unit: length.meters] = $km as f64.stable[unit: length.meters];

@@ -2,11 +2,11 @@
 import std;
 import os;
 
-fn read [none] returns i32 fails [none]:
+fn read [none] -> i32 fails [none]:
     fail none;
 end fn read
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     let $x: i32 = 5;
     std::io::fmt_print(Lend.mut $out, "{}{newln}", (read() ?? -1));

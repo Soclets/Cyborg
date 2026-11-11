@@ -2,7 +2,7 @@
 // trace: D133, D3
 import std;
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     let $a: std::array<str>[len: 1 items] = ["hi"];
     let $s: str = $a[pos: 1];
     return void;

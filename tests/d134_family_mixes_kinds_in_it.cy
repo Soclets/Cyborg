@@ -5,6 +5,6 @@ fam.type.new ids:
     type.alias ids.other = i64;
 end fam.type.new ids
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     return void;
 end fn.main

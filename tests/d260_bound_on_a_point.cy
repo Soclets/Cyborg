@@ -8,7 +8,7 @@ end fam.unit temperature
 
 use my::temperature.celsius as celsius;
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     let $now: f64.stable[unit: celsius.point, min: 0.0 celsius, max: 100.0 celsius] = 20.0 celsius;
     return void;
 end fn.main

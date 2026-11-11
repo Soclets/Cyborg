@@ -3,14 +3,14 @@
 import std;
 import os;
 
-fn half [$n: i32] returns i32 fails [negative[value: i32]]:
+fn half [$n: i32] -> i32 fails [negative[value: i32]]:
     if $n below 0:
         fail negative[value = $n];
     end if
     return $n;
 end fn half
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     let $n: i32 = half(-3);
     std::io::fmt_print(Lend.mut $out, "{}{newln}", $n);

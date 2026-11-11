@@ -4,7 +4,7 @@ import std;
 
 use std::units::time.seconds as seconds;
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     let $t: i32[unit: seconds.span] = 5 seconds;
     return void;
 end fn.main

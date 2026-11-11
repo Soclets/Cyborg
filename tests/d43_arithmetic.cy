@@ -2,7 +2,7 @@
 import std;
 import os;
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     let $a: i32 = 2 + 3 x 4;
     let $b: i32 = (2 + 3) x 4;

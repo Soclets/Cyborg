@@ -3,7 +3,7 @@
 import std;
 import os;
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     let $xs: std::array<i32>[len: 2 items] = [4, 5];
     for $i in range[from: 1 items, to: 3 items]:

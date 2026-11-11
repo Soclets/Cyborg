@@ -5,6 +5,6 @@ union.tagged status:
     failed[code: i32];
 end union.tagged status
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     return void;
 end fn.main

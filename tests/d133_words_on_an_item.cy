@@ -2,22 +2,22 @@
 import std;
 import os;
 
-fn show [$s: str] returns void:
+fn show [$s: str] -> void:
     let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     std::io::fmt_print(Lend.mut $out, "{}{newln}", $s);
     return void;
 end fn show
 
-fn keep [$s: Given str] returns str:
+fn keep [$s: Given str] -> str:
     return Give $s;
 end fn keep
 
-fn replace [$s: Lent.mut str] returns void:
+fn replace [$s: Lent.mut str] -> void:
     change $s = "changed";
     return void;
 end fn replace
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     let mut $a: std::array<str>[len: 2 items] = ["one", "two"];
     show(Lend $a[pos: 1]);
     let $k: str = keep(Copy $a[pos: 2]);

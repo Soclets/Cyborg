@@ -5,11 +5,11 @@ union.tagged status:
     failed[code: i32];
 end union.tagged status
 
-fn eat [$s: Given status] returns void:
+fn eat [$s: Given status] -> void:
     return void;
 end fn eat
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     let $s: status = status.failed[code = 1];
     match $s:
         case status.failed $f:

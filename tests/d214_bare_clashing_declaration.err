@@ -1,5 +1,5 @@
 refused: d214_bare_clashing_declaration.cy:3:4, line 3 column 4
- 3 | fn x [$a: i32] returns i32:
+ 3 | fn x [$a: i32] -> i32:
    |    ^
  fix:  `my::x`
  why:  a clashing name is written `my::x` everywhere, its declaration and closer included (D214, D75)

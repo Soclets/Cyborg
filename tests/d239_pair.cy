@@ -8,11 +8,11 @@ struct pair<?left: any.type, ?right: any.type>:
     second: ?right;
 end struct pair
 
-fn first_of<?left: any.type, ?right: any.type> [$p: Given pair<?left, ?right>] returns ?left:
+fn first_of<?left: any.type, ?right: any.type> [$p: Given pair<?left, ?right>] -> ?left:
     return Give $p.first;
 end fn first_of
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     let $p: pair<i32, str> = pair[first = 7, second = "seven"];
     let $q: pair<str, f64.stable> = pair[first = "half", second = 0.5];

@@ -1,9 +1,9 @@
 // trace: D2
 
-fn f [$s: Copy str] returns void:
+fn f [$s: Copy str] -> void:
     return void;
 end fn f
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     return void;
 end fn.main

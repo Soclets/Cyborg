@@ -8,7 +8,7 @@ struct view <`text`>:
     words: Lend from `text` reading;
 end struct view
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     let $a: reading = reading[celsius = 1];
     let $v: view<`text`: program> = view[words = Lend $a];
     return void;

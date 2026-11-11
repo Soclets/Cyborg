@@ -10,12 +10,12 @@ struct outer:
     a: inner;
 end struct outer
 
-fn inner.%%bump [$i: Lent.mut inner] returns void:
+fn inner.%%bump [$i: Lent.mut inner] -> void:
     change $i.n = $i.n + 1;
     return void;
 end fn inner.%%bump
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     let mut $o: outer = outer[a = inner[n = 1]];
     $o.a.%%bump();

@@ -17,7 +17,7 @@ end fam.unit speed
 
 together length.meters / time.seconds = speed.meters_per_second;
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     let $d: i32[unit: length.meters] = 100 length.meters;
     let $t: i32[unit: time.seconds] = 8 time.seconds;

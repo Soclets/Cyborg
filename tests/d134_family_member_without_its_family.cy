@@ -4,6 +4,6 @@ fam.type.alias sizes:
     small = i32;
 end fam.type.alias sizes
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     return void;
 end fn.main

@@ -4,7 +4,7 @@ import os;
 
 use std::io::fmt_print as "say_2";
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     say_2(Lend.mut $out, "hi{newln}");
     return void;

@@ -1,6 +1,6 @@
 // trace: D126
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     if 1 below 2:
         return void;
     else:

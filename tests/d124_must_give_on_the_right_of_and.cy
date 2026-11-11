@@ -5,12 +5,12 @@ struct.must_Give open_file:
     fd: i32;
 end struct.must_Give open_file
 
-fn close [$f: Given open_file] returns bool:
+fn close [$f: Given open_file] -> bool:
     finish $f;
     return 1 below 2;
 end fn close
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     let $f: open_file = open_file[fd = 3];
     if 2 below 1 and close(Give $f):
         return void;

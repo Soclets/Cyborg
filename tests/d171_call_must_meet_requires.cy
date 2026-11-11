@@ -10,12 +10,12 @@ struct index <`text`, `table`: lasts_at_least `text`>:
     lookup: Lend from `table` reading;
 end struct index
 
-fn build [$article: reading, $list: reading] returns index<`text`: $article, `table`: $list>:
+fn build [$article: reading, $list: reading] -> index<`text`: $article, `table`: $list>:
     requires $list lasts_at_least $article;
     return index[words = Lend $article, lookup = Lend $list];
 end fn build
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     let $article: reading = reading[celsius = 1];
     if $article.celsius above 0:
         let $list: reading = reading[celsius = 2];

@@ -5,12 +5,12 @@ import std;
 import os;
 
 interface equatable<?self>:
-    op == [$a: ?self, $b: ?self] returns bool;
+    op == [$a: ?self, $b: ?self] -> bool;
 end interface equatable
 
 interface ordered<?self>:
     includes equatable;
-    op below [$a: ?self, $b: ?self] returns bool;
+    op below [$a: ?self, $b: ?self] -> bool;
     law if $a below $b and $b below $c then $a below $c;
 end interface ordered
 
@@ -18,25 +18,25 @@ struct reading:
     celsius: i32;
 end struct reading
 
-op below [$a: reading, $b: reading] returns bool:
+op below [$a: reading, $b: reading] -> bool:
     return $a.celsius below $b.celsius;
 end op below
 
-op == [$a: reading, $b: reading] returns bool:
+op == [$a: reading, $b: reading] -> bool:
     return $a.celsius == $b.celsius;
 end op ==
 
 i32 satisfies ordered;
 reading .|. ordered;
 
-fn largest<?item: ordered> [$a: ?item, $b: ?item] returns ?item:
+fn largest<?item: ordered> [$a: ?item, $b: ?item] -> ?item:
     if $a above $b:
         return Copy $a;
     end if
     return Copy $b;
 end fn largest
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     let $x: i32 = largest(3, 5);
     let $y: i32 = 9;

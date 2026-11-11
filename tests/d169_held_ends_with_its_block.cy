@@ -7,7 +7,7 @@ struct reading:
     time: i32;
 end struct reading
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     let mut $r: reading = reading[celsius = 21, time = 3600];
     if $r.celsius above 0:

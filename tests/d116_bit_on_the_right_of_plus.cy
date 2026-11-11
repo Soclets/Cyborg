@@ -1,6 +1,6 @@
 // trace: D116
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     let $a: i32 = 1;
     let $b: i32 = 1 + $a shl 2;
     return void;

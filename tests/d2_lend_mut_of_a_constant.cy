@@ -2,11 +2,11 @@
 
 const $s: str = "a";
 
-fn f [$s: Lent.mut str] returns void:
+fn f [$s: Lent.mut str] -> void:
     return void;
 end fn f
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     f(Lend.mut $s);
     return void;
 end fn.main

@@ -4,6 +4,6 @@ struct view <`text>:
     n: i32;
 end struct view
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     return void;
 end fn.main

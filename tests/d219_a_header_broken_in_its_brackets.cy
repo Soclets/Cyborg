@@ -6,11 +6,11 @@ import os;
 fn total [
     $a: i32,
     $b: i32
-] returns i32:
+] -> i32:
     return $a + $b;
 end fn total
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     std::io::fmt_print(Lend.mut $out, "{}{newln}", total(2, 3));
     return void;

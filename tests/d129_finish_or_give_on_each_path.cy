@@ -6,12 +6,12 @@ struct.must_Give open_file:
     fd: i32;
 end struct.must_Give open_file
 
-fn close [$f: Given open_file] returns void:
+fn close [$f: Given open_file] -> void:
     finish $f;
     return void;
 end fn close
 
-fn end_it [$f: Given open_file, $quick: bool] returns void:
+fn end_it [$f: Given open_file, $quick: bool] -> void:
     let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     if $quick:
         finish $f;
@@ -22,7 +22,7 @@ fn end_it [$f: Given open_file, $quick: bool] returns void:
     return void;
 end fn end_it
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     end_it(open_file[fd = 1], true);
     end_it(open_file[fd = 2], false);
     return void;

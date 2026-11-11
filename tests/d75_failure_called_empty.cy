@@ -3,14 +3,14 @@
 import std;
 import os;
 
-fn first_word [$bad: bool] returns void fails [too_long, empty]:
+fn first_word [$bad: bool] -> void fails [too_long, empty]:
     if $bad:
         fail my::empty;
     end if
     return void;
 end fn first_word
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     first_word(1 below 2) otherwise:
         case too_long:

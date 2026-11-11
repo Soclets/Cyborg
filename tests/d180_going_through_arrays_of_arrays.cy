@@ -2,7 +2,7 @@
 import std;
 import os;
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     let $grid: std::array<std::array<i32>[len: 1 items]>[len: 1 items] = [[1]];
     for rows $row in $grid:

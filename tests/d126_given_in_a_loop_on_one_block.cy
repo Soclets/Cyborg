@@ -2,11 +2,11 @@
 import std;
 import os;
 
-fn eat [$s: Given str] returns void:
+fn eat [$s: Given str] -> void:
     return void;
 end fn eat
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     let $xs: std::array<i32>[len: 2 items] = [1, 2];
     let $s: str = "a";

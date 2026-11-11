@@ -8,7 +8,7 @@ end fam.unit time
 
 type.alias secs = i32[unit: time.seconds];
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     let $a: secs = 3 time.seconds;
     let $b: i32[unit: time.seconds] = $a + 1 time.seconds;

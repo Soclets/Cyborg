@@ -8,11 +8,11 @@ end struct reading
 
 type.new wrapped = reading;
 
-fn make [none] returns reading:
+fn make [none] -> reading:
     return reading[celsius = 3];
 end fn make
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     let $w: wrapped = make() as wrapped;
     let $v: wrapped = reading[celsius = 4] as wrapped;

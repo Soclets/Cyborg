@@ -7,7 +7,7 @@ union.tagged status:
     failed[code: i32];
 end union.tagged status
 
-fn show [$s: status] returns void:
+fn show [$s: status] -> void:
     let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     match $s:
         case status.ok:
@@ -18,7 +18,7 @@ fn show [$s: status] returns void:
     return void;
 end fn show
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     show(status.ok);
     show(status.failed[code = 7]);
     return void;

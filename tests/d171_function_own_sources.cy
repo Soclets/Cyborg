@@ -11,11 +11,11 @@ struct view <`text`>:
     words: Lend from `text` reading;
 end struct view
 
-fn shown <`t`> [$v: view<`text`: `t`>] returns i32:
+fn shown <`t`> [$v: view<`text`: `t`>] -> i32:
     return $v.words.celsius;
 end fn shown
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     let $a: reading = reading[celsius = 9];
     let $v: view<`text`: $a> = view[words = Lend $a];

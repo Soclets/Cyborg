@@ -2,18 +2,18 @@
 import std;
 import os;
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     std::io::fmt_print(Lend.mut $out, "{}{newln}", first());
     std::io::fmt_print(Lend.mut $out, "{}{newln}", $later);
     return void;
 end fn.main
 
-fn first [none] returns i32:
+fn first [none] -> i32:
     return second() + 1;
 end fn first
 
-fn second [none] returns i32:
+fn second [none] -> i32:
     return 41;
 end fn second
 

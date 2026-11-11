@@ -7,7 +7,7 @@ union.tagged status:
     failed[code: i32];
 end union.tagged status
 
-fn code_of [$s: status] returns i32:
+fn code_of [$s: status] -> i32:
     decl $n: i32;
     match $s:
         case status.ok:
@@ -18,7 +18,7 @@ fn code_of [$s: status] returns i32:
     return $n;
 end fn code_of
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     std::io::fmt_print(Lend.mut $out, "{}{newln}", code_of(status.failed[code = 7]));
     return void;

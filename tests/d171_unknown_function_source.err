@@ -1,5 +1,5 @@
 refused: d171_unknown_function_source.cy:11:34, line 11 column 34
-11 | fn shown <`t`> [$v: view<`text`: `u`>] returns i32:
+11 | fn shown <`t`> [$v: view<`text`: `u`>] -> i32:
    |                                  ^^^
  what: `u` isn't a source here
  why:  a source is declared in backticks on the struct, union or function it belongs to (D171)

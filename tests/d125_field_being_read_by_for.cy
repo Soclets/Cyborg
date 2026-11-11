@@ -5,7 +5,7 @@ struct bag:
     items: std::array<i32>[len: 2 items];
 end struct bag
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     let mut $b: bag = bag[items = [1, 2]];
     for $x in $b.items:
         change $b.items = [3, 4];

@@ -3,15 +3,15 @@
 import std;
 import os;
 
-fn f [none] returns i32 fails [a]:
+fn f [none] -> i32 fails [a]:
     fail a;
 end fn f
 
-fn g [none] returns i32 fails [b]:
+fn g [none] -> i32 fails [b]:
     fail b;
 end fn g
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     let $n: i32 = f() otherwise:
         case a:

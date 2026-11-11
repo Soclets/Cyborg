@@ -2,7 +2,7 @@
 import std;
 import os;
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     let $b: std::list<i32>[len.min: 1 items, len.max: 8 items] = [4, 6];
     std::io::fmt_print(Lend.mut $out, "{}{newln}", $b.len);

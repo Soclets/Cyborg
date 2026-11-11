@@ -2,7 +2,7 @@
 import std;
 import os;
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     let $start: i32[min: 1, max: 3] = 2;
     for $i in range[from: $start, to: 3]:

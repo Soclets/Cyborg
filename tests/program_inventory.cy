@@ -18,7 +18,7 @@ struct line:
     count: i32[unit: stock.pieces];
 end struct line
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     let $bolts: line = line[name = "bolts", count = 40 stock.pieces];
     let $nuts: line = line[name = "nuts", count = 3 stock.pieces];
@@ -33,7 +33,7 @@ fn.main [none] returns void:
     return void;
 end fn.main
 
-fn level_of [$l: line] returns level:
+fn level_of [$l: line] -> level:
     if $l.count == 0 stock.pieces:
         return level.out;
     end if
@@ -43,7 +43,7 @@ fn level_of [$l: line] returns level:
     return level.plenty;
 end fn level_of
 
-fn report [$l: line] returns void:
+fn report [$l: line] -> void:
     let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     let $level: level = level_of(Lend $l);
     match $level:
@@ -57,18 +57,18 @@ fn report [$l: line] returns void:
     return void;
 end fn report
 
-fn total_of [$a: line, $b: line] returns i32[unit: stock.pieces]:
+fn total_of [$a: line, $b: line] -> i32[unit: stock.pieces]:
     return $a.count + $b.count;
 end fn total_of
 
-fn order_size [$l: line] returns i32[unit: stock.pieces] fails [nothing_needed]:
+fn order_size [$l: line] -> i32[unit: stock.pieces] fails [nothing_needed]:
     if $l.count at_least 10 stock.pieces:
         fail nothing_needed;
     end if
     return 10 stock.pieces - $l.count;
 end fn order_size
 
-fn show_restock [$l: line] returns void:
+fn show_restock [$l: line] -> void:
     let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     let $n: i32[unit: stock.pieces] = order_size(Lend $l) otherwise:
         case nothing_needed:

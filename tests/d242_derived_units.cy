@@ -18,7 +18,7 @@ fam.unit motion:
     motion.area = length.meters x length.meters;
 end fam.unit motion
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     let $dist: f64.stable[unit: length.meters] = 100.0 length.meters;
     let $time: f64.stable[unit: time.seconds] = 8.0 time.seconds;

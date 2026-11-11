@@ -6,13 +6,13 @@ struct box:
     n: i32;
 end struct box
 
-fn eat [$b: Given box] returns i32:
+fn eat [$b: Given box] -> i32:
     labels [$b as val];
 
     return $b.n;
 end fn eat
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     let $r: box = box[n = 5];
     std::io::fmt_print(Lend.mut $out, "{}{newln}", eat(val: Give $r));

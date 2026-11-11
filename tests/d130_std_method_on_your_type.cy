@@ -5,7 +5,7 @@ struct box:
     n: i32;
 end struct box
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     let $b: box = box[n = 1];
     $b.std::%read();
     return void;

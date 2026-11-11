@@ -11,7 +11,7 @@ fam.type.alias sizes:
     sizes.small = i32;
 end fam.type.alias sizes
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     let $a: small = small[n = 1];
     std::io::fmt_print(Lend.mut $out, "{}{newln}", $a.n);

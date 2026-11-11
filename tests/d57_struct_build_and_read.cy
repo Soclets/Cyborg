@@ -7,7 +7,7 @@ struct reading:
     label: str;
 end struct reading
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     let $r: reading = reading[celsius = 21, label = "kitchen"];
     std::io::fmt_print(Lend.mut $out, "{}: {}{newln}", $r.label, $r.celsius);

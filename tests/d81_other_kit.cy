@@ -2,6 +2,6 @@
 // trace: D81
 import json;
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     return void;
 end fn.main

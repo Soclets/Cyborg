@@ -3,13 +3,13 @@
 import std;
 import os;
 
-fn eat [$s: Given str] returns void:
+fn eat [$s: Given str] -> void:
     let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     std::io::fmt_print(Lend.mut $out, "{}{newln}", $s);
     return void;
 end fn eat
 
-fn pick [$s: Given str, $first: bool] returns void:
+fn pick [$s: Given str, $first: bool] -> void:
     if $first:
         eat(Give $s);
     else:
@@ -18,7 +18,7 @@ fn pick [$s: Given str, $first: bool] returns void:
     return void;
 end fn pick
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     pick("one", 1 below 2);
     pick("two", 2 below 1);
     return void;

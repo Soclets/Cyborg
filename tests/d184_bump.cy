@@ -2,12 +2,12 @@
 import std;
 import os;
 
-fn bump [$n: Lent.mut i32] returns void:
+fn bump [$n: Lent.mut i32] -> void:
     change $n = $n + 1;
     return void;
 end fn bump
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     let mut $count: i32 = 1;
     bump(Lend.mut $count);

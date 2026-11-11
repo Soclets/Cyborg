@@ -3,6 +3,6 @@ import std;
 import std::io::fmt_print;
 import os;
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     return void;
 end fn.main

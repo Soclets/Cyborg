@@ -2,6 +2,6 @@
 
 const $s: str = 5 as str;
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     return void;
 end fn.main

@@ -3,6 +3,6 @@ import std;
 
 use std::list.%%append as append;
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     return void;
 end fn.main

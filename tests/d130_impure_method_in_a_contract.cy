@@ -4,16 +4,16 @@ struct box:
     n: i32;
 end struct box
 
-fn box.%positive [$b: box] returns bool:
+fn box.%positive [$b: box] -> bool:
     return $b.n above 0;
 end fn box.%positive
 
-fn take [$b: box] returns i32:
+fn take [$b: box] -> i32:
     requires $b.%positive();
 
     return $b.n;
 end fn take
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     return void;
 end fn.main

@@ -4,6 +4,6 @@ comment one:
     text
 end comment two
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     return void;
 end fn.main

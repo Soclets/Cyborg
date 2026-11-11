@@ -3,7 +3,7 @@
 import std;
 import os;
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     let $a: std::array<i32>[len: 2 items, len.type: u8] = [1, 2];
     let $n: u8[unit: items] = $a.len;

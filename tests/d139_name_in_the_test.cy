@@ -6,7 +6,7 @@ union.tagged status:
     failed[code: i32];
 end union.tagged status
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     let $s: status = status.ok;
     if $s: status.failed $f:
         let $n: i32 = $f.code;

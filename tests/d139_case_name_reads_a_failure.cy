@@ -2,7 +2,7 @@
 import std;
 import os;
 
-fn half [$n: i32] returns i32 fails [negative[val: i32], odd]:
+fn half [$n: i32] -> i32 fails [negative[val: i32], odd]:
     if $n below 0:
         fail negative[val = $n];
     end if
@@ -12,7 +12,7 @@ fn half [$n: i32] returns i32 fails [negative[val: i32], odd]:
     return $n div.trunc 2;
 end fn half
 
-fn show [$n: i32] returns void:
+fn show [$n: i32] -> void:
     let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     let $h: i32 = half($n) otherwise:
         case negative $f:
@@ -25,7 +25,7 @@ fn show [$n: i32] returns void:
     return void;
 end fn show
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     show(4);
     show(-3);
     show(3);

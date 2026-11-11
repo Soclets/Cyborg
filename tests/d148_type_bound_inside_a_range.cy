@@ -1,6 +1,6 @@
 // trace: D148
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     let $start: i32 = 1;
     for $i in range[from: $start: i32[min: 1, max: 3], to: 5]:
         return void;

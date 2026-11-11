@@ -1,5 +1,5 @@
 refused: d209_fails_after_requires_in_the_body.cy:5:5, line 5 column 5
  5 |     fails [odd, negative[val: i32]];
    |     ^^^^^
- fix:  `fn half [$n: i32] returns i32 fails [odd, negative[val: i32]]:`
+ fix:  `fn half [$n: i32] -> i32 fails [odd, negative[val: i32]]:`
  why:  the header says a function can fail, so its failures are listed there (D209)

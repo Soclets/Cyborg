@@ -4,7 +4,7 @@ import std;
 
 use std::list.%%append as %%append;
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     let mut $a: std::array<i32>[len: 2 items] = [1, 2];
     $a.%%append(val: 4);
     return void;

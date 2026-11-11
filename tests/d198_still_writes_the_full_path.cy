@@ -3,7 +3,7 @@
 import std::io::fmt_print;
 import os;
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     fmt_print(Lend.mut $out, "hi{newln}");
     return void;

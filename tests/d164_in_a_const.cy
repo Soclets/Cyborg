@@ -2,6 +2,6 @@
 
 const $a: f64.stable = 1.0 div 0.0;
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     return void;
 end fn.main

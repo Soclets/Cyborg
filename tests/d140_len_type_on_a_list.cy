@@ -2,11 +2,11 @@
 import std;
 import os;
 
-fn total [$xs: std::list<i32>[len.max: inf items, len.type: u32]] returns u32[unit: items]:
+fn total [$xs: std::list<i32>[len.max: inf items, len.type: u32]] -> u32[unit: items]:
     return $xs.len;
 end fn total
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     let mut $xs: std::list<i32>[len.max: inf items, len.type: u32] = empty;
     $xs.std::%%append(val: 1);

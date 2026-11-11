@@ -1,6 +1,6 @@
 // trace: D128
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     while rows 1 below 2:
         break rows;
     end while rows

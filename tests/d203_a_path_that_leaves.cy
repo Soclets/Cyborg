@@ -3,7 +3,7 @@
 import std;
 import os;
 
-fn pick [$hot: bool] returns void:
+fn pick [$hot: bool] -> void:
     let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     decl $x: i32;
     if $hot:
@@ -15,7 +15,7 @@ fn pick [$hot: bool] returns void:
     return void;
 end fn pick
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     pick(true);
     return void;
 end fn.main

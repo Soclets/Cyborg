@@ -1,6 +1,6 @@
 // trace: D158, D116
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     let $a: f64.stable[min: 0.0, max: 1.0] = 0.5;
     let $b: f64.stable[min: 0.0, max: 1.0] = -$a;
     return void;

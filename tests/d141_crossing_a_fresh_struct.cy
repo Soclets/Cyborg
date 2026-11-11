@@ -9,11 +9,11 @@ end struct reading
 
 type.new wrapped = reading;
 
-fn make [none] returns wrapped:
+fn make [none] -> wrapped:
     return reading[celsius = 4] as wrapped;
 end fn make
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     let $r: reading = make() as reading;
     std::io::fmt_print(Lend.mut $out, "{}{newln}", $r.celsius);

@@ -1,7 +1,7 @@
 // An assembly block closes with `end inline.asm`.
 // trace: D233
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     on.target aarch64:
         shield add:
             reason "one add"

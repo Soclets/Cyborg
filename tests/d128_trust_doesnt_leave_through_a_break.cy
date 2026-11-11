@@ -6,7 +6,7 @@ union.tagged status:
     failed[code: i32];
 end union.tagged status
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     let $s: status = status.failed[code = 1];
     forever:
         if $s: status.failed:

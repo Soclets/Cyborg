@@ -1,7 +1,7 @@
 // Only `inline.asm` is in the base language.
 // trace: D227
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     shield low:
         reason "talks to the chip"
         inline.c();

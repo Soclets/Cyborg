@@ -5,7 +5,7 @@ struct point:
     x: i32;
 end struct point
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     let $p: point = point[x = 1];
     $p.%area();
     return void;

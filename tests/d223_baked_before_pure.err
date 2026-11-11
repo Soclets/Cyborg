@@ -1,5 +1,5 @@
 refused: d223_baked_before_pure.cy:4:1, line 4 column 1
- 4 | fn.baked.pure twice [$n: i32] returns i32:
+ 4 | fn.baked.pure twice [$n: i32] -> i32:
    | ^^^^^^^^^^^^^
  fix:  `fn.pure.baked`
  why:  narrowings go strongest first in a fixed order, and `fn.pure.baked` is how this one is spelled (D223, D91)

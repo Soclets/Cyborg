@@ -1,6 +1,6 @@
 // trace: D164
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     let $a: str = "a";
     let $b: str = $a div $a;
     return void;

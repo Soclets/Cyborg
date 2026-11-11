@@ -17,7 +17,7 @@ fam.unit motion:
     motion.area = length.meters x length.meters;
 end fam.unit motion
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     let $dist: f64.stable[unit: length.kilometers] = 1.0 length.kilometers;
     let $time: f64.stable[unit: time.seconds] = 8.0 time.seconds;
     let $speed: f64.stable[unit: motion.speed] = $dist div $time;

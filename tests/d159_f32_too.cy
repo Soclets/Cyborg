@@ -2,7 +2,7 @@
 import std;
 import os;
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     let $reading: f32.ieee = 0.5;
     let $clean: f32.stable = $reading as f32.stable;

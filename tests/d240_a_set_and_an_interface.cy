@@ -4,11 +4,11 @@ import std;
 import os;
 
 interface ordered<?self>:
-    op below [$a: ?self, $b: ?self] returns bool;
+    op below [$a: ?self, $b: ?self] -> bool;
 end interface ordered
 
 interface addable<?self>:
-    op + [$a: ?self, $b: ?self] returns ?self;
+    op + [$a: ?self, $b: ?self] -> ?self;
 end interface addable
 
 type_set whole:
@@ -19,11 +19,11 @@ end type_set whole
 i32 satisfies addable;
 i64 satisfies addable;
 
-fn total<?item: whole and addable> [$a: ?item, $b: ?item] returns ?item:
+fn total<?item: whole and addable> [$a: ?item, $b: ?item] -> ?item:
     return $a + $b;
 end fn total
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     let $a: i64 = 40;
     let $b: i64 = 2;

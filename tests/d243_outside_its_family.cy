@@ -11,14 +11,14 @@ fam.unit time:
     time.seconds: base;
 end fam.unit time
 
-fn larger<?u: length> [$a: f64.stable[unit: ?u], $b: f64.stable[unit: ?u]] returns f64.stable[unit: ?u]:
+fn larger<?u: length> [$a: f64.stable[unit: ?u], $b: f64.stable[unit: ?u]] -> f64.stable[unit: ?u]:
     if $a above $b:
         return $a;
     end if
     return $b;
 end fn larger
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     let $t: f64.stable[unit: time.seconds] = 3.0 time.seconds;
     let $u: f64.stable[unit: time.seconds] = larger($t, $t);
     return void;

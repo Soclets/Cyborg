@@ -2,7 +2,7 @@
 // trace: D213
 import std;
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     let $a: bool = true;
     let $b: bool = $a and  $a;
     return void;

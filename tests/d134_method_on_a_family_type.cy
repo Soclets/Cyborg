@@ -4,10 +4,10 @@ fam.type.new ids:
     ids.user = i64;
 end fam.type.new ids
 
-fn ids.user.%same [$u: ids.user] returns ids.user:
+fn ids.user.%same [$u: ids.user] -> ids.user:
     return $u;
 end fn ids.user.%same
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     return void;
 end fn.main

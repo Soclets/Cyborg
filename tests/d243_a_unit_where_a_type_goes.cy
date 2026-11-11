@@ -11,10 +11,10 @@ fam.unit time:
     time.seconds: base;
 end fam.unit time
 
-fn keep<?u: any.unit> [$a: ?u] returns f64.stable:
+fn keep<?u: any.unit> [$a: ?u] -> f64.stable:
     return 1.0;
 end fn keep
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     return void;
 end fn.main

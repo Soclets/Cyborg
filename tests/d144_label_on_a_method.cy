@@ -10,14 +10,14 @@ struct cursor:
     x: i32[unit: screen.pixels];
 end struct cursor
 
-fn cursor.%%move [$c: Lent.mut cursor, $by: i32[unit: screen.pixels]] returns void:
+fn cursor.%%move [$c: Lent.mut cursor, $by: i32[unit: screen.pixels]] -> void:
     labels [$by as by.screen.pixels];
 
     change $c.x = $c.x + $by;
     return void;
 end fn cursor.%%move
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     let mut $c: cursor = cursor[x = 1 screen.pixels];
     $c.%%move(by.screen.pixels: 2);

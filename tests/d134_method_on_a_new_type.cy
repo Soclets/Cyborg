@@ -3,14 +3,14 @@
 
 type.new user_id = i64;
 
-fn user_id.%same [$u: user_id] returns user_id:
+fn user_id.%same [$u: user_id] -> user_id:
     return $u;
 end fn user_id.%same
 
-fn f [$u: user_id] returns user_id:
+fn f [$u: user_id] -> user_id:
     return $u.%same();
 end fn f
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     return void;
 end fn.main

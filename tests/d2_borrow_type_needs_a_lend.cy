@@ -5,7 +5,7 @@ struct reading:
     celsius: i32;
 end struct reading
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     let $r: reading = reading[celsius = 21];
     let $b: reading = Lend $r;
     return void;

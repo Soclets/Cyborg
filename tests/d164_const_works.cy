@@ -4,7 +4,7 @@ import os;
 
 const $half: f64.stable = 1.0 div 2.0;
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     std::io::fmt_print(Lend.mut $out, "{}{newln}", $half);
     return void;

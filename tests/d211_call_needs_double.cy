@@ -5,11 +5,11 @@ struct reading:
     celsius: i32;
 end struct reading
 
-fn reading.%%warm_up [$r: Lent.mut reading, $by: i32] returns void:
+fn reading.%%warm_up [$r: Lent.mut reading, $by: i32] -> void:
     return void;
 end fn reading.%%warm_up
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     let mut $r: reading = reading[celsius = 20];
     $r.%warm_up(by: 3);
     return void;

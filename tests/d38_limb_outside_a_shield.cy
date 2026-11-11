@@ -1,7 +1,7 @@
 // trace: D38
 import @csup;
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     @csup::call();
     return void;
 end fn.main

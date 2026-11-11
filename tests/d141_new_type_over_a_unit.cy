@@ -7,7 +7,7 @@ end fam.unit time
 
 type.new timeout = i32[unit: time.seconds];
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     let $good: timeout = 5 time.seconds;
     let $bad: timeout = 5;
     return void;

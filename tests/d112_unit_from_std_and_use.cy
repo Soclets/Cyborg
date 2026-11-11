@@ -8,7 +8,7 @@ struct reading:
     time: i64[unit: std::units::time.seconds.span];
 end struct reading
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     let $d: i32[unit: seconds.span] = 3600 seconds;
     let $r: reading = reading[time = 3600 std::units::time.seconds];

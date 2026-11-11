@@ -4,7 +4,7 @@ import os;
 
 type.new sensor = f64.ieee;
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     let $r: sensor = 0.5;
     let $i: f64.ieee = $r as f64.ieee;

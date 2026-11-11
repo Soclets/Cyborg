@@ -2,14 +2,14 @@
 import std;
 import os;
 
-fn f [$which: i32] returns i32 fails [a]:
+fn f [$which: i32] -> i32 fails [a]:
     if $which above 0:
         fail a;
     end if
     return 1;
 end fn f
 
-fn g [none] returns i32 fails [b]:
+fn g [none] -> i32 fails [b]:
     let $n: i32 = f(1) otherwise:
         case a:
             fail b;
@@ -17,7 +17,7 @@ fn g [none] returns i32 fails [b]:
     return $n;
 end fn g
 
-fn h [none] returns i32:
+fn h [none] -> i32:
     let $n: i32 = f(1) otherwise:
         case a:
             return 7;
@@ -25,7 +25,7 @@ fn h [none] returns i32:
     return $n;
 end fn h
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     std::io::fmt_print(Lend.mut $out, "{}{newln}", (g() ?? 5));
     std::io::fmt_print(Lend.mut $out, "{}{newln}", h());

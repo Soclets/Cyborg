@@ -1,7 +1,7 @@
 // How a shield's own entry and exit are written isn't decided.
 // trace: D37, D39
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     shield sensor:
         reason "talks to the chip"
         requires 1 below 2;

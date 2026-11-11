@@ -15,7 +15,7 @@ end union.tagged status
 type.alias r = reading;
 type.alias s = status;
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     let $a: r = r[celsius = 21];
     let $b: reading = Copy $a;

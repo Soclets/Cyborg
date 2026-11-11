@@ -10,7 +10,7 @@ fam.unit length:
     length.feet = 12 length.inches;
 end fam.unit length
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     let $n: i32 = 7;
     let $s: str = $n as.trunc str;
     return void;

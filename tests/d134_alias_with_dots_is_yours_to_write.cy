@@ -5,7 +5,7 @@ import os;
 
 type.alias int.signed.32_bit = i32;
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     let $a: int.signed.32_bit = 1;
     let $b: i32 = $a;

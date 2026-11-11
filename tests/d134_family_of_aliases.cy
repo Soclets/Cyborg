@@ -7,7 +7,7 @@ fam.type.alias sizes:
     sizes.large = i64;
 end fam.type.alias sizes
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     let $a: sizes.small = 1;
     let $b: i32 = $a;

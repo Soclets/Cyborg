@@ -1,7 +1,7 @@
 // trace: D180, D2
 import std;
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     let $xs: std::array<i32>[len: 3 items] = [1, 2, 3];
     for $n in Lend.mut $xs:
         change $n = 0;

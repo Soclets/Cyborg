@@ -3,7 +3,7 @@
 
 use inline.asm as asm;
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     shield low:
         reason "talks to the chip"
         asm();

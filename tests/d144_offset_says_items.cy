@@ -2,7 +2,7 @@
 import std;
 import os;
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     let $xs: std::array<i32>[len: 3 items] = [4, 5, 6];
     std::io::fmt_print(Lend.mut $out, "{}{newln}", $xs[offset.items: 0]);

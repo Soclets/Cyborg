@@ -6,12 +6,12 @@ end struct reading
 
 type.new wrapped = reading;
 
-fn look [$r: reading] returns void:
+fn look [$r: reading] -> void:
     let $w: wrapped = Give $r as wrapped;
     return void;
 end fn look
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     let $a: reading = reading[celsius = 1];
     look(Lend $a);
     return void;

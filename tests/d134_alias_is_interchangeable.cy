@@ -5,7 +5,7 @@ import os;
 type.alias score = i32;
 type.alias numbers = std::list<i32>[len.max: inf items];
 
-fn total [$xs: numbers] returns score:
+fn total [$xs: numbers] -> score:
     let mut $sum: i32 = 0;
     for $x in $xs:
         change $sum = $sum + $x;
@@ -13,7 +13,7 @@ fn total [$xs: numbers] returns score:
     return $sum;
 end fn total
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     let $a: score = 5;
     let $b: i32 = $a;

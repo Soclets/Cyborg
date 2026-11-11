@@ -6,7 +6,7 @@ struct reading:
     celsius: i32;
 end struct reading
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     decl $r: reading;
     assign $r = reading[celsius = 5];

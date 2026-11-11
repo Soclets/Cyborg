@@ -1,6 +1,6 @@
 // trace: D129
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     finish $f;
     return void;
 end fn.main

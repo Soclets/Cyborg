@@ -2,7 +2,7 @@
 import std;
 import os;
 
-fn pick [$x: f64.stable] returns void:
+fn pick [$x: f64.stable] -> void:
     let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     if $x: f64.stable[min: 100.0, max: 200.0]:
         std::io::fmt_print(Lend.mut $out, "inside{newln}");
@@ -12,7 +12,7 @@ fn pick [$x: f64.stable] returns void:
     return void;
 end fn pick
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     pick(150.5);
     pick(99.5);
     pick(200.0);

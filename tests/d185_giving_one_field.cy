@@ -4,11 +4,11 @@ struct box:
     s: str;
 end struct box
 
-fn eat [$s: Given str] returns void:
+fn eat [$s: Given str] -> void:
     return void;
 end fn eat
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     let $b: box = box[s = "a"];
     eat(Give $b.s);
     return void;

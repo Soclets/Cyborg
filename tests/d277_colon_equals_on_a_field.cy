@@ -5,6 +5,6 @@ struct reading:
     celsius := i32;
 end struct reading
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     return void;
 end fn.main

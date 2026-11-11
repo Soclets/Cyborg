@@ -10,7 +10,7 @@ fam.unit length:
     length.feet = 12 length.inches;
 end fam.unit length
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     let $m: f64.stable[unit: length.meters] = 1500.0 length.meters;
     let $k: f64.stable[unit: length.kilometers] = $m as.trunc f64.stable[unit: length.kilometers];
     return void;

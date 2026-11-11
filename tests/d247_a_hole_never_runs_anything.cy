@@ -3,7 +3,7 @@
 import std;
 import os;
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     let $count: i32 = 3;
     std::io::fmt_print(Lend.mut $out, "{$count + 1}{newln}");

@@ -9,7 +9,7 @@ fam.unit money:
     money.dollars: base;
 end fam.unit money
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     let $d: i32[unit: length.meters] = 100 length.meters;
     let $m: i32[unit: money.dollars] = 8 money.dollars;
     let $v: i32 = $d x $m;

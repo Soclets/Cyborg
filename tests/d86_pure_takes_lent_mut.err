@@ -1,5 +1,5 @@
 refused: d86_pure_takes_lent_mut.cy:7:16, line 7 column 16
- 7 | fn.pure f [$b: Lent.mut box] returns i32:
+ 7 | fn.pure f [$b: Lent.mut box] -> i32:
    |                ^^^^
  what: a pure function can't take `Lent.mut`
  why:  a pure function changes nothing outside itself (D86)

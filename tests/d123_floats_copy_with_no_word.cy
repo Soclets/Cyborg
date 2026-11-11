@@ -2,11 +2,11 @@
 import std;
 import os;
 
-fn twice [$x: f64.stable] returns f64.stable:
+fn twice [$x: f64.stable] -> f64.stable:
     return $x + $x;
 end fn twice
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     let $a: f64.stable = 0.5;
     let $b: f64.stable = $a;

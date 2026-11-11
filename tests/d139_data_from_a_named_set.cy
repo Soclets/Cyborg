@@ -7,11 +7,11 @@ fam.failure file_failed:
     file_failed.disk_full[free: i32, label: str];
 end fam.failure file_failed
 
-fn save [none] returns void fails [file_failed]:
+fn save [none] -> void fails [file_failed]:
     fail file_failed.disk_full[free = 7, label = "scratch"];
 end fn save
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     save() otherwise:
         case not_found:

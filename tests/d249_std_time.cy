@@ -12,7 +12,7 @@ use my::temperature.celsius as celsius;
 
 use std::units::time.seconds as seconds;
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     let $start: i64[unit: seconds.point] = 1000 seconds;
     let $wait: i64[unit: seconds.span] = 30 seconds;

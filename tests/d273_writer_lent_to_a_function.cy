@@ -3,12 +3,12 @@
 import std;
 import os;
 
-fn report [$out: Lent.mut os::stdout.buffered, $n: i32] returns void:
+fn report [$out: Lent.mut os::stdout.buffered, $n: i32] -> void:
     std::io::fmt_print(Lend.mut $out, "n is {$n}{newln}");
     return void;
 end fn report
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     let mut $out: os::stdout.buffered = os::stdout.buffered(size: 1024 bytes);
     report(Lend.mut $out, 1);
     report(Lend.mut $out, 2);

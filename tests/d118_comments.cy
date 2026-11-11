@@ -4,7 +4,7 @@ import std;
 import os;
 
 /// Says hello.
-fn hello [none] returns void:
+fn hello [none] -> void:
     let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     // a note inside
     std::io::fmt_print(Lend.mut $out, "hello{newln}"); // and one after code
@@ -20,7 +20,7 @@ comment why_this_exists:
     comment:is not an opener, because it isn't alone like that
 end comment why_this_exists
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     hello();
     return void;
 end fn.main

@@ -7,7 +7,7 @@ struct inner:
     n: i32;
 end struct inner
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     let mut $xs: std::list<inner>[len.max: inf items] = [inner[n = 1], inner[n = 2]];
     let $first: Lend from $xs inner = Lend $xs[pos: 1];

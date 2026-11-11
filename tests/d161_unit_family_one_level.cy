@@ -4,6 +4,6 @@ fam.unit time:
     time.clock.seconds: base;
 end fam.unit time
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     return void;
 end fn.main

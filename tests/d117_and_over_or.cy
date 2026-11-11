@@ -2,15 +2,15 @@
 import std;
 import os;
 
-fn.pure yes [none] returns bool:
+fn.pure yes [none] -> bool:
     return 1 below 2;
 end fn.pure yes
 
-fn.pure no [none] returns bool:
+fn.pure no [none] -> bool:
     return 2 below 1;
 end fn.pure no
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     if yes() or no() and no():
         std::io::fmt_print(Lend.mut $out, "and binds tighter{newln}");

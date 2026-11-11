@@ -3,6 +3,6 @@
 
 const $a: i32 = 2147483647 + 1;
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     return void;
 end fn.main

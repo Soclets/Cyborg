@@ -2,7 +2,7 @@
 // trace: D38, D34
 import @csup;
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     shield c_call:
         reason "calls libfoo"
         @csup::call();

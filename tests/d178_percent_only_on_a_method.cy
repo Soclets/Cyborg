@@ -4,6 +4,6 @@ import os;
 
 use std::io::fmt_print as %fmt_print;
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     return void;
 end fn.main

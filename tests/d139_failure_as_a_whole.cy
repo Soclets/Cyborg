@@ -3,11 +3,11 @@
 import std;
 import os;
 
-fn f [none] returns void fails [a[val: i32]]:
+fn f [none] -> void fails [a[val: i32]]:
     return void;
 end fn f
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     f() otherwise:
         case a $x:

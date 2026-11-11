@@ -2,7 +2,7 @@
 
 type.new temperature = f64.stable;
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     let $a: temperature = 1.5;
     let $b: temperature = 2.5;
     if $a == $b:

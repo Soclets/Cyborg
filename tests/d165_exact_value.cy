@@ -2,7 +2,7 @@
 import std;
 import os;
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     let $a: f64.stable = exponent 1.5e3;
     let $b: f64.stable = exponent 0.0001e4;

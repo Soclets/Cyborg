@@ -1,6 +1,6 @@
 // trace: D160, D159
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     let $reading: f64.ieee = 1.5;
     let $x: f64.stable = 1.5;
     if $reading == $x:

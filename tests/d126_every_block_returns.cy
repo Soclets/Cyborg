@@ -3,7 +3,7 @@
 import std;
 import os;
 
-fn sign [$n: i32] returns i32:
+fn sign [$n: i32] -> i32:
     if $n above 0:
         return 1;
     else if $n below 0:
@@ -13,7 +13,7 @@ fn sign [$n: i32] returns i32:
     end if
 end fn sign
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     std::io::fmt_print(Lend.mut $out, "{}{newln}", sign(5));
     std::io::fmt_print(Lend.mut $out, "{}{newln}", sign(-5));

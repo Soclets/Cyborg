@@ -1,5 +1,5 @@
-refused: d170_borrowing_a_given_parameter.cy:7:37, line 7 column 37
- 7 | fn keep [$a: Given reading] returns Lend from $a reading:
-   |                                     ^^^^^^^^^^^^^^^^^^^^
+refused: d170_borrowing_a_given_parameter.cy:7:32, line 7 column 32
+ 7 | fn keep [$a: Given reading] -> Lend from $a reading:
+   |                                ^^^^^^^^^^^^^^^^^^^^
  what: `$a` is given to this function, so it ends when the function does
  why:  a returned borrow can't come from a `Given` parameter, which ends with the function (D170)

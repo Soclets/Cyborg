@@ -6,7 +6,7 @@ fam.unit time:
     time.seconds: base;
 end fam.unit time
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     let $xs: std::array<i32>[len: 3 items] = [1, 2, 3];
     let $plain: u64 = $xs.len as u64;

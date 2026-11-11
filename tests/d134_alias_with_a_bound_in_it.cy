@@ -4,7 +4,7 @@ import os;
 
 type.alias percent = i32[min: 0, max: 100];
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     let $a: percent = 50;
     std::io::fmt_print(Lend.mut $out, "{}{newln}", $a);

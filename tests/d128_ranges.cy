@@ -2,13 +2,13 @@
 import std;
 import os;
 
-fn show [$label: str, $n: i32] returns void:
+fn show [$label: str, $n: i32] -> void:
     let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     std::io::fmt_print(Lend.mut $out, "{}{}{newln}", $label, $n);
     return void;
 end fn show
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     for $i in range[from: 1, to: 3]:
         show("to ", $i);
     end for

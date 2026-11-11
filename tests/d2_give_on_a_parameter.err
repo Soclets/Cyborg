@@ -1,5 +1,5 @@
 refused: d2_give_on_a_parameter.cy:3:11, line 3 column 11
- 3 | fn f [$s: Give str] returns void:
+ 3 | fn f [$s: Give str] -> void:
    |           ^^^^
  fix:  `Given`
  why:  `Give` goes at the call, and `Given` on the parameter (D2)

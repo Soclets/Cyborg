@@ -7,11 +7,11 @@ struct point:
     x: i32;
 end struct point
 
-fn point.%x [$p: point] returns i32:
+fn point.%x [$p: point] -> i32:
     return $p.x;
 end fn point.%x
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     let $p: point = point[x = 3];
     std::io::fmt_print(Lend.mut $out, "{}{newln}", ($p.%x() x 2));

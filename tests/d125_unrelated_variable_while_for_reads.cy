@@ -6,7 +6,7 @@ struct tally:
     total: i32;
 end struct tally
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     let $xs: std::array<i32>[len: 2 items] = [1, 2];
     let mut $t: tally = tally[total = 0];

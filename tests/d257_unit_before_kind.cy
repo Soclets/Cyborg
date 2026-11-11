@@ -6,7 +6,7 @@ fam.unit length:
     length.meters: base;
 end fam.unit length
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     let $d: f64.length.meters.stable = 2.5 length.meters;
     return void;
 end fn.main

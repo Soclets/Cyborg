@@ -70,7 +70,6 @@ const CLASHING_WORDS: &[&str] = &[
     "x",
     "div",
     "mod",
-    "returns",
     "below",
     "above",
     "at_least",
@@ -1314,21 +1313,20 @@ impl Parser {
         self.at_word("set_to") || self.at_symbol("=")
     }
 
-    /// `returns` in a function's header. `->` is refused, with `returns` as its fix. (D275)
-    /// trace: D275
-    fn expect_returns(&mut self) -> Outcome<()> {
-        if self.at_symbol("->") {
+    /// `->` in a function's header, before its result. `returns` is refused, with `->` as its
+    /// fix. (D287)
+    /// trace: D287
+    fn expect_arrow(&mut self) -> Outcome<()> {
+        if self.at_word("returns") {
             return Err(Report::refused(
                 self.span(),
-                "a function's header says `returns`",
-                "a header reads as words, `returns` alongside `fails`, so `->` is never written (D275)",
+                "a function's header says `->`",
+                "`->` is an anchor the eye skips straight to, marking where the result starts, so `returns` is never written (D287)",
             )
-            .fix("returns"));
+            .fix("->"));
         }
-        if self.eat_word("returns") {
-            return Ok(());
-        }
-        Err(self.expected("`returns`"))
+        self.expect_symbol("->")?;
+        Ok(())
     }
 
     /// The token about to be read starts a line of its own. (D219)
@@ -2073,7 +2071,7 @@ impl Parser {
         let type_parameters = self.parse_type_parameters()?;
         let sources = self.parse_source_declarations()?;
         let parameters = self.parse_parameters()?;
-        self.expect_returns()?;
+        self.expect_arrow()?;
         let return_type = self.parse_type()?;
         let header_end = self.previous_span();
         // trace: D52
@@ -5218,7 +5216,7 @@ impl Parser {
                 "12.3",
             ));
         }
-        self.expect_returns()?;
+        self.expect_arrow()?;
         let return_type = self.parse_type()?;
         let header_end = self.previous_span();
         self.expect_symbol(":")?;
@@ -5491,7 +5489,7 @@ impl Parser {
                 let op_start = self.advance().span;
                 let (operator, operator_span) = self.parse_operator_word()?;
                 let parameters = self.parse_parameters()?;
-                self.expect_returns()?;
+                self.expect_arrow()?;
                 let return_type = self.parse_type()?;
                 self.expect_semicolon()?;
                 operators.push(InterfaceOperator {

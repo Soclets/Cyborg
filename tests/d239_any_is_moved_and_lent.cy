@@ -4,11 +4,11 @@ import std;
 import os;
 
 interface ordered<?self>:
-    op below [$a: ?self, $b: ?self] returns bool;
+    op below [$a: ?self, $b: ?self] -> bool;
 end interface ordered
 
 interface addable<?self>:
-    op + [$a: ?self, $b: ?self] returns ?self;
+    op + [$a: ?self, $b: ?self] -> ?self;
 end interface addable
 
 type_set whole:
@@ -20,12 +20,12 @@ struct box<?item: any.type>:
     held: ?item;
 end struct box
 
-fn keep<?item: any.type> [$a: Given ?item] returns ?item:
+fn keep<?item: any.type> [$a: Given ?item] -> ?item:
     let $b: ?item = Give $a;
     return Give $b;
 end fn keep
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     let $text: str = "kept";
     let $k: str = keep(Give $text);

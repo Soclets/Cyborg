@@ -5,7 +5,7 @@ struct.must_Give open_file:
     fd: i32;
 end struct.must_Give open_file
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     let mut $f: open_file = open_file[fd = 3];
     change $f.fd = 4;
     return void;

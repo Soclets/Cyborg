@@ -7,11 +7,11 @@ struct reading:
     celsius: i32;
 end struct reading
 
-fn first [$a: reading] returns Lend from $a reading:
+fn first [$a: reading] -> Lend from $a reading:
     return Lend $a;
 end fn first
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     let $x: reading = reading[celsius = 4];
     let $v: Lend from $x reading = Lend $x;

@@ -22,7 +22,7 @@ end struct reading
 
 const $limit: i32 = 40;
 
-fn capped [$n: i32, $cap: i32] returns i32:
+fn capped [$n: i32, $cap: i32] -> i32:
     labels [$cap as cap];
     defaults [$cap = 10];
     if $n above $cap:
@@ -31,7 +31,7 @@ fn capped [$n: i32, $cap: i32] returns i32:
     return $n;
 end fn capped
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     let mut $total: i32 = 0;
     change $total = $total + $limit;

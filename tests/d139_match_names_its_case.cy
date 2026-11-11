@@ -8,7 +8,7 @@ union.tagged status:
     lost[where: str];
 end union.tagged status
 
-fn show [$s: status] returns void:
+fn show [$s: status] -> void:
     let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     match $s:
         case status.failed $f:
@@ -21,11 +21,11 @@ fn show [$s: status] returns void:
     return void;
 end fn show
 
-fn make [none] returns status:
+fn make [none] -> status:
     return status.failed[code = 8];
 end fn make
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     show(status.failed[code = 7]);
     show(status.lost[where = "home"]);

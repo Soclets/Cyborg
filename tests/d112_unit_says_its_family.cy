@@ -7,7 +7,7 @@ fam.unit time:
     time.minutes = 60 time.seconds;
 end fam.unit time
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     let $a: i32[unit: time.seconds] = 3600 time.seconds;
     let $b: i32[unit: time.seconds] = 5 time.seconds;

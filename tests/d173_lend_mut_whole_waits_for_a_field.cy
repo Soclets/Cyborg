@@ -11,11 +11,11 @@ struct pair:
     b: inner;
 end struct pair
 
-fn reset [$p: Lent.mut pair] returns void:
+fn reset [$p: Lent.mut pair] -> void:
     return void;
 end fn reset
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     let mut $p: pair = pair[a = inner[n = 1], b = inner[n = 2]];
     let $l: Lend from $p inner = Lend $p.a;

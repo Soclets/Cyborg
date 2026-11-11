@@ -1,7 +1,7 @@
 // trace: D203
 import std;
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     let mut $x: i32 = 1;
     assign $x = 2;
     return void;

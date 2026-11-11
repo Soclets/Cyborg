@@ -4,7 +4,7 @@ import os;
 
 type.new title = str;
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     let $s: str = "a";
     let $t: title = Copy $s as title;

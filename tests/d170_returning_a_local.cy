@@ -4,11 +4,11 @@ struct reading:
     celsius: i32;
 end struct reading
 
-fn make [$a: reading] returns Lend from $a reading:
+fn make [$a: reading] -> Lend from $a reading:
     let $r: reading = reading[celsius = 1];
     return Lend $r;
 end fn make
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     return void;
 end fn.main

@@ -8,7 +8,7 @@ fam.unit length:
     length.kilometers = 1000 length.meters;
 end fam.unit length
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     let $walked: i32[unit: length.meters] = 1500 length.meters;
     let $short: i32[unit: length.meters, min: 0 length.meters, max: 1 length.kilometers] = $walked;

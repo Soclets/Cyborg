@@ -1,10 +1,10 @@
 // trace: D128, D2
 
-fn eat [$s: Given str] returns void:
+fn eat [$s: Given str] -> void:
     return void;
 end fn eat
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     let $s: str = "a";
     let mut $n: i32 = 2;
     while $n above 0:

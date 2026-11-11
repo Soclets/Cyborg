@@ -3,7 +3,7 @@
 import std;
 import os;
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     let mut $xs: std::list<i32>[len.max: inf items, len.type: u8] = empty;
     for $i in range[from: 1, to: 255]:

@@ -2,7 +2,7 @@
 
 type.new title = str;
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     let $s: str = "a";
     let $t: title = $s as title;
     return void;

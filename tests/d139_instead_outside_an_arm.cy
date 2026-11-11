@@ -1,6 +1,6 @@
 // trace: D139
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     instead 0;
     return void;
 end fn.main

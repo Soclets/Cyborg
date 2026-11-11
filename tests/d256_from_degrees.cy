@@ -6,7 +6,7 @@ import os;
 use std::units::angle.radians as radians;
 use std::units::angle.degrees as degrees;
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     let $right: f64.stable[unit: degrees] = 90.0 degrees;
     let $half_turn: f64.stable[unit: degrees] = 180.0 degrees;

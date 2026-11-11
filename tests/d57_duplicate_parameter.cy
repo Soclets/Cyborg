@@ -1,9 +1,9 @@
 // trace: D57
 
-fn f [$a: i32, $a: i32] returns void:
+fn f [$a: i32, $a: i32] -> void:
     return void;
 end fn f
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     return void;
 end fn.main

@@ -10,11 +10,11 @@ fam.failure net_failed:
     net_failed.denied;
 end fam.failure net_failed
 
-fn load [none] returns i32 fails [file_failed.denied, net_failed.denied]:
+fn load [none] -> i32 fails [file_failed.denied, net_failed.denied]:
     fail net_failed.denied;
 end fn load
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     let $n: i32 = load() otherwise:
         case file_failed.denied:

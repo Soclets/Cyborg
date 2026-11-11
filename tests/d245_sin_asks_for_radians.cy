@@ -2,7 +2,7 @@
 // trace: D245
 import std;
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     let $s: f64.stable = std::math::sin(90.0);
     return void;
 end fn.main

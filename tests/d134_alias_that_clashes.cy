@@ -5,7 +5,7 @@ import os;
 
 type.alias str = i32;
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     let $a: my::str = 5;
     let $b: str = "still a string";

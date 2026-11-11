@@ -7,13 +7,13 @@ struct reading:
     time: i32;
 end struct reading
 
-fn show [$v: reading] returns void:
+fn show [$v: reading] -> void:
     let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     std::io::fmt_print(Lend.mut $out, "{}{newln}", $v.celsius);
     return void;
 end fn show
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     let mut $r: reading = reading[celsius = 21, time = 3600];
     let $view: Lend from $r reading = Lend $r;
     show(Lend $view);

@@ -1,7 +1,7 @@
 // `$i` follows the range, and the step leaves no mark on it.
 // trace: D146
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     let $by: i64 = 1;
     let $from: i32 = 1;
     for $i in range[from: $from, to: 3, step_by: $by]:

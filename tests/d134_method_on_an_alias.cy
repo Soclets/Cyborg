@@ -2,10 +2,10 @@
 
 type.alias score = i32;
 
-fn score.%same [$s: score] returns score:
+fn score.%same [$s: score] -> score:
     return $s;
 end fn score.%same
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     return void;
 end fn.main

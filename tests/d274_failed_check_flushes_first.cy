@@ -4,7 +4,7 @@
 import std;
 import os;
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     let mut $out: os::stdout.buffered = os::stdout.buffered(size: 1024 bytes);
     let $big: i32 = 2147483647;
     std::io::fmt_print(Lend.mut $out, "before{newln}");

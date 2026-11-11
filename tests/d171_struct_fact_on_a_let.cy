@@ -9,7 +9,7 @@ struct index <`text`, `table`: lasts_at_least `text`>:
     lookup: Lend from `table` reading;
 end struct index
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     let $article: reading = reading[celsius = 1];
     if $article.celsius above 0:
         let $list: reading = reading[celsius = 2];

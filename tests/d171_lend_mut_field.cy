@@ -8,6 +8,6 @@ struct editor <`text`>:
     words: Lend.mut from `text` reading;
 end struct editor
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     return void;
 end fn.main

@@ -9,7 +9,7 @@ fam.unit length:
     length.kilometers = 1000 length.meters;
 end fam.unit length
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     let $near: f64.stable[unit: length.meters, min: 0.0 length.meters, max: 1.0 length.kilometers] = 999.5 length.meters;
     let $whole: i32[unit: length.meters, min: 0 length.meters, max: 2 length.kilometers] = 2000 length.meters;

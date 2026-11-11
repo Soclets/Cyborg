@@ -2,7 +2,7 @@
 // trace: D197, D194
 import std;
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     std::print("hi{newln}");
     return void;
 end fn.main

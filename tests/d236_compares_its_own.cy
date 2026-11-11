@@ -7,22 +7,22 @@ struct reading:
     celsius: i32;
 end struct reading
 
-op below [$a: reading, $b: reading] returns bool:
+op below [$a: reading, $b: reading] -> bool:
     return $a.celsius below $b.celsius;
 end op below
 
-op == [$a: reading, $b: reading] returns bool:
+op == [$a: reading, $b: reading] -> bool:
     return $a.celsius == $b.celsius;
 end op ==
 
-fn shown [$yes: bool] returns str:
+fn shown [$yes: bool] -> str:
     if $yes:
         return "yes";
     end if
     return "no";
 end fn shown
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     let $cold: reading = reading[celsius = 3];
     let $warm: reading = reading[celsius = 21];

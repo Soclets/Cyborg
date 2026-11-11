@@ -1,9 +1,9 @@
 // trace: D130
 
-fn widget.%f [$b: i32] returns i32:
+fn widget.%f [$b: i32] -> i32:
     return $b;
 end fn widget.%f
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     return void;
 end fn.main

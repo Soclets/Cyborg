@@ -2,7 +2,7 @@
 import std;
 import os;
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     let $x: f32.stable = ~0.1;
     if $x: f32.stable[min: ~0.1, max: ~0.1]:

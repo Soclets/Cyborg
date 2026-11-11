@@ -6,7 +6,7 @@ union.tagged status:
     lost;
 end union.tagged status
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     let $s: status = status.ok;
     match $s:
         case status.ok:

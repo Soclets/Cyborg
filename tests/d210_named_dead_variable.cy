@@ -3,11 +3,11 @@
 import std;
 import os;
 
-fn eat [$s: Given str] returns void:
+fn eat [$s: Given str] -> void:
     return void;
 end fn eat
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     let $s: str = "a";
     eat(Give $s);

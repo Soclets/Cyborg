@@ -10,11 +10,11 @@ struct outer:
     a: inner;
 end struct outer
 
-fn part [$o: outer] returns Lend from $o inner:
+fn part [$o: outer] -> Lend from $o inner:
     return Lend $o.a;
 end fn part
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     let $o: outer = outer[a = inner[n = 7]];
     let $p: Lend from $o inner = part(Lend $o);

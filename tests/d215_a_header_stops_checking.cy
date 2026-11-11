@@ -2,12 +2,12 @@
 // trace: D215
 import std;
 
-fn half [$n: nope] returns i32:
+fn half [$n: nope] -> i32:
     let $a: i64 = 1;
     return 1;
 end fn half
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     let $b: i32 = 1;
     let $c: i64 = $b;
     return void;

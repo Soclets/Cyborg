@@ -4,15 +4,15 @@ struct box:
     n: i32;
 end struct box
 
-fn box.%%bump [$b: Lent.mut box] returns void:
+fn box.%%bump [$b: Lent.mut box] -> void:
     return void;
 end fn box.%%bump
 
-fn make [none] returns box:
+fn make [none] -> box:
     return box[n = 1];
 end fn make
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     make().%%bump();
     return void;
 end fn.main

@@ -7,12 +7,12 @@ struct name_tag:
     text: str;
 end struct name_tag
 
-fn make [$s: Given str] returns name_tag:
+fn make [$s: Given str] -> name_tag:
     let $t: name_tag = name_tag[text = Give $s];
     return Give $t;
 end fn make
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     let $s: str = "hello";
     let $k: str = Copy $s;

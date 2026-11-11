@@ -1,5 +1,0 @@
-refused: d275_arrow_is_refused.cy:3:19, line 3 column 19
- 3 | fn half [$n: i32] -> i32:
-   |                   ^^
- fix:  `returns`
- why:  a header reads as words, `returns` alongside `fails`, so `->` is never written (D275)

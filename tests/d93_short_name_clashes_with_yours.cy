@@ -4,10 +4,10 @@ import os;
 
 use std::io::fmt_print as "say";
 
-fn say [none] returns void:
+fn say [none] -> void:
     return void;
 end fn say
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     return void;
 end fn.main

@@ -12,7 +12,7 @@ struct holder:
     inner: wrapped;
 end struct holder
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     let $a: reading = reading[celsius = 1];
     let $h: holder = holder[inner = Give $a as wrapped];

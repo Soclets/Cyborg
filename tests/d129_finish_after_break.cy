@@ -7,7 +7,7 @@ struct.must_Give open_file:
     fd: i32;
 end struct.must_Give open_file
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     let $f: open_file = open_file[fd = 3];
     forever:

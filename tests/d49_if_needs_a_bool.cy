@@ -1,6 +1,6 @@
 // trace: D7
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     if 1:
         return void;
     end if

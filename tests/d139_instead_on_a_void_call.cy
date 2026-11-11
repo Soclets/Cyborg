@@ -1,10 +1,10 @@
 // trace: D139
 
-fn f [none] returns void fails [a]:
+fn f [none] -> void fails [a]:
     return void;
 end fn f
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     f() otherwise:
         case a:
             instead 1;

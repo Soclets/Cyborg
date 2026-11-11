@@ -7,7 +7,7 @@ struct box:
     n: i32;
 end struct box
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     let $xs: std::list<box>[len.max: inf items] = [box[n = 1]];
     for $b in $xs:

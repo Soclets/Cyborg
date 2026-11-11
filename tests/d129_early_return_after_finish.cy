@@ -6,7 +6,7 @@ struct.must_Give open_file:
     fd: i32;
 end struct.must_Give open_file
 
-fn f [$quick: bool] returns void:
+fn f [$quick: bool] -> void:
     let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     let $g: open_file = open_file[fd = 3];
     if $quick:
@@ -18,7 +18,7 @@ fn f [$quick: bool] returns void:
     return void;
 end fn f
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     f(true);
     f(false);
     return void;

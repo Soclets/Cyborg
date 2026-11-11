@@ -10,7 +10,7 @@ struct holder:
     inner: reading;
 end struct holder
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     let $h: holder = holder[inner = reading[celsius = 1]];
     let $w: wrapped = $h.inner as wrapped;
     return void;

@@ -6,7 +6,7 @@ struct box:
     n: i32[min: 0, max: 10];
 end struct box
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     let mut $b: box = box[n = 10];
     std::io::fmt_print(Lend.mut $out, "before{newln}");

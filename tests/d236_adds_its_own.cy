@@ -7,19 +7,19 @@ struct money:
     cents: i64;
 end struct money
 
-op + [$a: money, $b: money] returns money:
+op + [$a: money, $b: money] -> money:
     return money[cents = $a.cents + $b.cents];
 end op +
 
-op x [$a: money, $b: i64] returns money:
+op x [$a: money, $b: i64] -> money:
     return money[cents = $a.cents x $b];
 end op x
 
-op div.floor [$a: money, $b: i64] returns money:
+op div.floor [$a: money, $b: i64] -> money:
     return money[cents = $a.cents div.floor $b];
 end op div.floor
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     let $price: money = money[cents = 250];
     let $fee: money = money[cents = 30];

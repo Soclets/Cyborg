@@ -7,7 +7,7 @@ fam.unit length:
     length.spans = 9 length.inches;
 end fam.unit length
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     let $f: i32[unit: length.feet] = 3 length.feet;
     let $s: i32[unit: length.spans] = $f as.trunc i32[unit: length.spans];
     return void;

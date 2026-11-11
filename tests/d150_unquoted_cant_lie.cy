@@ -3,6 +3,6 @@ import std;
 
 use std::units::time.seconds as minutes;
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     return void;
 end fn.main

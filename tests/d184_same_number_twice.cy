@@ -1,10 +1,10 @@
 // trace: D184, D2
 
-fn both [$a: Lent.mut i32, $b: Lent.mut i32] returns void:
+fn both [$a: Lent.mut i32, $b: Lent.mut i32] -> void:
     return void;
 end fn both
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     let mut $n: i32 = 1;
     both(Lend.mut $n, Lend.mut $n);
     return void;

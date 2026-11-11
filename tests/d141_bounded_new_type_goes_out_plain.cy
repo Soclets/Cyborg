@@ -4,7 +4,7 @@ import os;
 
 type.new percent = i32[min: 0, max: 100];
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     let $p: percent = 40;
     let $n: i32 = $p as i32;

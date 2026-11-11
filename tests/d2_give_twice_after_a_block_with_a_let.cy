@@ -5,11 +5,11 @@ struct box:
     n: i32;
 end struct box
 
-fn eat [$b: Given box] returns void:
+fn eat [$b: Given box] -> void:
     return void;
 end fn eat
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     if 1 below 2:
         let $inner: i32 = 1;
     end if

@@ -4,11 +4,11 @@ import std;
 import os;
 
 interface ordered<?self>:
-    op below [$a: ?self, $b: ?self] returns bool;
+    op below [$a: ?self, $b: ?self] -> bool;
 end interface ordered
 
 interface addable<?self>:
-    op + [$a: ?self, $b: ?self] returns ?self;
+    op + [$a: ?self, $b: ?self] -> ?self;
 end interface addable
 
 type_set whole:
@@ -18,22 +18,22 @@ end type_set whole
 
 i32 satisfies ordered;
 
-fn larger<?item: ordered> [$a: ?item, $b: ?item] returns bool:
+fn larger<?item: ordered> [$a: ?item, $b: ?item] -> bool:
     return $a above $b;
 end fn larger
 
-fn smaller<?thing: ordered> [$a: ?thing, $b: ?thing] returns bool:
+fn smaller<?thing: ordered> [$a: ?thing, $b: ?thing] -> bool:
     return larger(Lend $b, Lend $a);
 end fn smaller
 
-fn shown [$yes: bool] returns str:
+fn shown [$yes: bool] -> str:
     if $yes:
         return "yes";
     end if
     return "no";
 end fn shown
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     let $a: i32 = 3;
     let $b: i32 = 8;

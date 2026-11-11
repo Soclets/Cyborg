@@ -5,11 +5,11 @@ struct box:
     n: i32;
 end struct box
 
-fn replace [$b: box] returns void:
+fn replace [$b: box] -> void:
     change $b = box[n = 9];
     return void;
 end fn replace
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     return void;
 end fn.main

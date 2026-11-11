@@ -17,12 +17,12 @@ struct reading:
     deep: inner;
 end struct reading
 
-fn warm [$r: Lent.mut reading] returns void:
+fn warm [$r: Lent.mut reading] -> void:
     change $r.celsius = $r.celsius + 1;
     return void;
 end fn warm
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     let mut $r: reading = reading[celsius = 21, label = "a", at = 1 time.seconds, deep = inner[n = 1]];
     change $r.celsius = 22;

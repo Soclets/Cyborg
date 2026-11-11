@@ -5,7 +5,7 @@ struct reading:
     time: i32;
 end struct reading
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     let mut $r: reading = reading[celsius = 21, time = 3600];
     let $lock: Lend.held.mut from $r reading = Lend.mut $r;
     return void;

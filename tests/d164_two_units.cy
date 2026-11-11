@@ -5,7 +5,7 @@ fam.unit time:
     time.seconds: base;
 end fam.unit time
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     let $a: f64.stable[unit: time.seconds] = 1.5 time.seconds;
     let $b: f64.stable[unit: time.seconds] = 0.5 time.seconds;
     let $c: f64.stable = $a div $b;

@@ -2,7 +2,7 @@
 // trace: D4, D3
 import std;
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     let $xs: std::list<i32>[len.max: inf items] = empty;
     $xs.std::%%append(val: 1);
     return void;

@@ -9,7 +9,7 @@ fam.type.alias shoes:
     shoes.small = i32;
 end fam.type.alias shoes
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     let $a: small = 1;
     return void;
 end fn.main

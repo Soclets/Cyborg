@@ -7,12 +7,12 @@ struct box:
     t: str;
 end struct box
 
-fn replace [$s: Lent.mut str] returns void:
+fn replace [$s: Lent.mut str] -> void:
     change $s = "changed";
     return void;
 end fn replace
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     let mut $b: box = box[s = "a", t = "b"];
     replace(Lend.mut $b.t);

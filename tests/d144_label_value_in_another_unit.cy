@@ -5,13 +5,13 @@ fam.unit screen:
     screen.points: base;
 end fam.unit screen
 
-fn draw [$x: i32[unit: screen.pixels]] returns void:
+fn draw [$x: i32[unit: screen.pixels]] -> void:
     labels [$x as at.screen.pixels];
 
     return void;
 end fn draw
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     draw(at.screen.pixels: 5 screen.points);
     return void;
 end fn.main

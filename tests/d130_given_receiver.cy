@@ -4,11 +4,11 @@ struct.must_Give open_file:
     fd: i32;
 end struct.must_Give open_file
 
-fn open_file.%close [$f: Given open_file] returns void:
+fn open_file.%close [$f: Given open_file] -> void:
     finish $f;
     return void;
 end fn open_file.%close
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     return void;
 end fn.main

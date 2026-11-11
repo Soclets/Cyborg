@@ -11,7 +11,7 @@ struct job:
     state: status;
 end struct job
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     let mut $j: job = job[state = status.ok];
     change $j.state = status.failed[code = 7];

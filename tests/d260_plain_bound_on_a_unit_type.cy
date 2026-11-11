@@ -5,7 +5,7 @@ fam.unit time:
     time.seconds: base;
 end fam.unit time
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     let $t: i32[unit: time.seconds, min: 0, max: 3600 time.seconds] = 60 time.seconds;
     return void;
 end fn.main

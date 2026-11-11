@@ -3,15 +3,15 @@
 
 type.new user_id = i64;
 
-fn g [$u: user_id] returns user_id:
+fn g [$u: user_id] -> user_id:
     let $same: user_id = $u;
     return $same;
 end fn g
 
-fn f [$u: user_id] returns user_id:
+fn f [$u: user_id] -> user_id:
     return g($u);
 end fn f
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     return void;
 end fn.main

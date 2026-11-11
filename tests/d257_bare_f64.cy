@@ -2,7 +2,7 @@
 // trace: D257
 import std;
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     let $x: f64 = 0.5;
     return void;
 end fn.main

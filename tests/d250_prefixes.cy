@@ -12,7 +12,7 @@ fam.unit length:
     length.meters: base with metric;
 end fam.unit length
 
-fn.main [none] returns void:
+fn.main [none] -> void:
     let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     let $road: f64.stable[unit: length.kilometers] = 2.5 length.kilometers;
     let $hair: f64.stable[unit: length.millimeters] = 0.5 length.millimeters;
