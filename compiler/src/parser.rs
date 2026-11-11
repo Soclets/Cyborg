@@ -11,7 +11,7 @@ use crate::syntax::{
     Family, FamilyEntry, FamilyEntryKind, Field, File, For, Function, Generic, GenericKind, Handling, If, Import, Item,
     ItemKind, Joint, Label, Let, Mark, Match, Name, Ownership, Parameter, ParameterOwnership, Parameters, Path,
     Requirement, Segment, Shield, ShortName, Statement, StatementKind, Struct, Type, TypeArgument, TypeArgumentValue,
-    TypeKind, UnaryOperator, Union, Use,
+    TypeKind, UnaryOperator, Union, UnitDefinition, Use,
 };
 
 /// What a token does, for the spacing checks.
@@ -872,9 +872,18 @@ impl<'source> Parser<'source> {
         let name = self.path()?;
         self.expect_block_colon()?;
         let mut entries = Vec::new();
-        // In a family of types, what follows `=` is always a type, even a plain name like `point` (D134).
+        // In a family of types, what follows `=` is always a type, even a plain name like `point` (D134), and in a
+        // family of units, a unit's definition (D109).
         let types = keyword.text().starts_with("fam.type");
+        let units = keyword.text() == "fam.unit";
         while self.peek().is_some() && !self.is_word("end") {
+            if units && self.unit_entry_ahead() {
+                match self.unit_entry() {
+                    Ok(entry) => entries.push(entry),
+                    Err(Reported) => self.recover(),
+                }
+                continue;
+            }
             match self.family_entry(types) {
                 Ok(entry) => entries.push(entry),
                 Err(Reported) => self.recover(),
@@ -882,6 +891,86 @@ impl<'source> Parser<'source> {
         }
         let end = self.closer()?;
         Ok(Family { keyword, name, entries, span: start.to(self.previous_span()), end })
+    }
+
+    /// Whether a `fam.unit` line ahead is `name = …;`.
+    fn unit_entry_ahead(&self) -> bool {
+        let mut at = self.at;
+        while let Some(token) = self.tokens.get(at) {
+            match token.kind {
+                TokenKind::Word | TokenKind::Dot | TokenKind::DoubleColon => at += 1,
+                _ => return self.text_of(*token) == "=",
+            }
+        }
+        false
+    }
+
+    /// `money.dollars = 100 money.cents;`, `motion.speed = length.meters per time.seconds;`, and the forms kept for
+    /// their errors (D109, D242, D249).
+    fn unit_entry(&mut self) -> Parse<FamilyEntry> {
+        let start = self.current_span();
+        let name = self.path()?;
+        self.take_setter();
+        let value_start = self.current_span();
+        let definition = if self.is_word("decibels") {
+            self.skip_to_semicolon();
+            UnitDefinition::Decibels(value_start.to(self.previous_span()))
+        } else if matches!(self.kind(), Some(TokenKind::Integer | TokenKind::Float)) {
+            let amount = self.primary_number()?;
+            let unit = self.path()?;
+            if self.is(TokenKind::Semicolon) {
+                UnitDefinition::Multiple { amount, unit }
+            } else {
+                self.skip_to_semicolon();
+                UnitDefinition::Other(value_start.to(self.previous_span()))
+            }
+        } else {
+            let first = self.path()?;
+            let mut factors = vec![(first, 1)];
+            let mut offset = false;
+            loop {
+                if self.is_word("per") {
+                    self.advance();
+                    factors.push((self.path()?, -1));
+                } else if self.is_word("x") {
+                    self.advance();
+                    factors.push((self.path()?, 1));
+                } else if self.is_word("offset") {
+                    offset = true;
+                    self.skip_to_semicolon();
+                    break;
+                } else {
+                    break;
+                }
+            }
+            if offset {
+                UnitDefinition::Offset(value_start.to(self.previous_span()))
+            } else if self.is(TokenKind::Semicolon) {
+                UnitDefinition::Made { factors }
+            } else {
+                self.skip_to_semicolon();
+                UnitDefinition::Other(value_start.to(self.previous_span()))
+            }
+        };
+        self.expect(TokenKind::Semicolon, ";")?;
+        Ok(FamilyEntry { name, kind: FamilyEntryKind::UnitSetTo(definition), span: start.to(self.previous_span()) })
+    }
+
+    /// Moves to the `;` that ends this line, without passing it.
+    fn skip_to_semicolon(&mut self) {
+        while self.peek().is_some() && !self.is(TokenKind::Semicolon) && !self.is_word("end") {
+            self.advance();
+        }
+    }
+
+    /// A number literal, as a unit's amount.
+    fn primary_number(&mut self) -> Parse<Expression> {
+        let span = self.current_span();
+        let text = self.text_of(self.peek().ok_or(Reported)?).to_string();
+        let kind =
+            if self.is(TokenKind::Integer) { ExpressionKind::Integer(text) } else { ExpressionKind::Float(text) };
+        self.advance();
+        Ok(Expression { kind, span })
     }
 
     fn family_entry(&mut self, types: bool) -> Parse<FamilyEntry> {

@@ -1,12 +1,29 @@
 # Tests this compiler claims to pass. Every one must pass before a push (rule 5).
+d100_comparing_mixed_units
+d100_mixing_units
+d101_adding_a_plain_number
+d101_missing_unit
 d101_plain_i32_needs_no_unit
+d101_plain_value_where_unit_is_asked
+d101_scaling_by_a_plain_number
 d104_change_is_allowed
 d104_trust_ends_at_change
 d104_trust_ends_at_lend_mut
 d104_trust_ends_on_one_path
 d106_only_in_working_is_checked_here
+d108_unit_from_another_kit
+d109_conversion_isnt_spelled
+d109_duplicate_unit
+d109_loop_of_units
+d109_same_base_doesnt_mix
+d109_unit_across_families
+d109_unit_says_neither
+d109_unknown_unit_in_a_conversion
 d10_i32_alias_chain
 d10_other_integer_widths
+d111_no_together_line
+d112_bare_unit_with_no_use
+d112_unit_says_its_family
 d113_label_must_be_written
 d113_label_not_declared
 d114_any_order
@@ -48,6 +65,7 @@ d11_value_function_can_reach_its_end
 d11_void_function_without_return
 d121_closer_leaves_out_the_narrowing
 d121_closer_repeats_all_of_it
+d122_numbers_print_bare
 d123_floats_copy_with_no_word
 d123_word_on_a_float
 d124_and_both_runs_both
@@ -61,6 +79,7 @@ d124_or_both_runs_both
 d124_or_stops_early
 d125_case_value_inside_the_test
 d125_case_value_outside_the_test
+d125_change_a_field
 d125_field_checks_its_bound
 d125_field_literal_cant_fit
 d125_field_needs_the_word
@@ -239,6 +258,7 @@ d134_alias_literal_cant_fit
 d134_alias_loop
 d134_alias_name_taken_by_a_struct
 d134_alias_of_a_struct_and_a_union
+d134_alias_of_a_unit
 d134_alias_of_nothing_known
 d134_alias_that_clashes
 d134_alias_with_a_bound_in_it
@@ -280,6 +300,7 @@ d134_struct_with_a_family_members_name
 d134_type_clashes
 d134_type_inside_a_function
 d135_a_function_called_narrowings
+d135_closer_says_fam
 d135_fam_clashes
 d139_arm_can_run_off_on_one_path
 d139_arm_returns_breaks_or_fails
@@ -332,7 +353,13 @@ d141_crossing_to_another_new
 d141_crossing_with_as
 d141_literal_has_to_fit
 d141_literal_has_to_fit_a_bound
+d141_literal_with_a_unit_lands
 d141_new_type_as_str_goes_through_its_data
+d141_unit_to_another_unit
+d142_range_never_reaches_in_items
+d144_label_left_off
+d144_label_written_without_its_unit
+d144_unit_behind_the_number_instead
 d145_counting_down_that_cant_reach
 d145_literal_range_still_refused
 d145_range_unreachable_only_while_running
@@ -416,6 +443,7 @@ d158_plain_into_a_bound_passes
 d158_test_on_a_bounded_value
 d158_test_on_a_float
 d158_test_on_another_width
+d158_two_narrowings
 d158_unknown_label
 d158_wide_into_narrow_is_checked
 d158_widths_dont_mix
@@ -464,6 +492,7 @@ d161_shortest_text
 d161_stored_exact
 d161_stored_is_a_call_that_can_fail
 d161_sum_shows_its_rounding
+d161_unit_as_str
 d162_stored_every_digit
 d162_the_smallest_float
 d163_fast_runs_in_order
@@ -487,6 +516,7 @@ d164_on_strings
 d164_order_of_maths
 d164_overflow_makes_infinity
 d164_rounds_to_nearest
+d164_two_units
 d164_with_x_needs_no_group
 d164_zero_by_zero_makes_nan
 d165_a_giant_exponent
@@ -807,6 +837,14 @@ d231_unlabelled_date
 d23_argument_of_the_wrong_type
 d23_comparison_needs_spaces
 d23_unknown_function
+d242_a_combination_with_no_name
+d242_derived_units
+d242_made_of_itself
+d242_needs_a_conversion
+d242_powers_dont_match
+d255_different_bases
+d255_plain_as_to_a_bigger_unit
+d255_through_a_shared_base
 d257_bare_f32
 d257_bare_f64
 d257_messages_name_the_kind
@@ -994,4 +1032,5 @@ d9_test_on_a_known_type
 d9_test_on_wrong_field
 d9_test_trusts_inside
 program_contracts_in_use
+program_inventory
 program_parser_shape

@@ -707,7 +707,7 @@ pub fn result_machine_type(layout: ResultLayout) -> MachineType {
 /// The machine type of a plain `i32`, for places.
 #[must_use]
 pub fn place_type() -> MachineType {
-    Type::Integer { kind: IntegerKind::I32, bounds: None }.machine()
+    Type::Integer { kind: IntegerKind::I32, bounds: None, unit: None }.machine()
 }
 
 /// Whether an arm's code can `return` or `break` out of it.

@@ -318,8 +318,25 @@ pub enum FamilyEntryKind {
     Handler { arms: Vec<Arm>, end: Closer },
     /// `ids.user = i64;` in `fam.type.new`.
     TypeSetTo(Type),
+    /// `money.dollars = 100 money.cents;` or `motion.speed = length.meters per time.seconds;` in `fam.unit`.
+    UnitSetTo(UnitDefinition),
     /// Nothing after the name.
     Bare,
+}
+
+/// What a unit is, after its `=` (D109, D242).
+#[derive(Clone, Debug)]
+pub enum UnitDefinition {
+    /// `100 money.cents`.
+    Multiple { amount: Expression, unit: Path },
+    /// `length.meters per time.seconds`, `length.meters x length.meters`: each unit with its power.
+    Made { factors: Vec<(Path, i32)> },
+    /// `kelvin offset ~-273.15`.
+    Offset(Span),
+    /// `decibels of 1 power.milliwatts`.
+    Decibels(Span),
+    /// Anything else, such as `1 heat.kelvin + 273`, kept for its error.
+    Other(Span),
 }
 
 /// A type as written.

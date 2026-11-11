@@ -196,6 +196,7 @@ impl Checker<'_> {
             ExpressionKind::MethodCall { receiver, method, arguments, .. } => {
                 self.method_call(body, expression, receiver, method, arguments)
             }
+            ExpressionKind::WithUnit { value, unit } => self.with_unit(body, expression, value, unit, expected),
             ExpressionKind::Owned { ownership, ownership_span, value } => {
                 self.owned(body, *ownership, *ownership_span, value, expected)
             }
@@ -251,7 +252,7 @@ impl Checker<'_> {
                 "a literal that can't fit is a compile error (D20)",
             )));
         }
-        let mut typed = Typed::new(Type::Integer { kind, bounds: None }, Kind::Integer(value));
+        let mut typed = Typed::new(Type::Integer { kind, bounds: None, unit: None }, Kind::Integer(value));
         typed.literal = Some(value);
         Ok(typed)
     }
@@ -320,7 +321,8 @@ impl Checker<'_> {
         }
         let Some(Type::Float { bits, kind, .. }) = expected else {
             if let Some(Type::Integer { .. }) = expected {
-                let value_type = Type::Float { bits: 64, kind: super::types::FloatKind::Stable, bounds: None };
+                let value_type =
+                    Type::Float { bits: 64, kind: super::types::FloatKind::Stable, bounds: None, unit: None };
                 let mut typed = Typed::new(value_type, Kind::Float(0.0));
                 typed.float_literal = Some(0.0);
                 return Ok(typed);
@@ -374,7 +376,7 @@ impl Checker<'_> {
                 format!("f{bits} can't hold {sign}{digits} exactly (D59)"),
             )));
         }
-        let value_type = Type::Float { bits, kind, bounds: None };
+        let value_type = Type::Float { bits, kind, bounds: None, unit: None };
         let mut typed = Typed::new(value_type, Kind::Float(literal.value));
         typed.float_literal = Some(literal.value);
         Ok(typed)
@@ -430,6 +432,9 @@ impl Checker<'_> {
                 "not decided yet (standard 12.3)",
             )
         };
+        if let Some(converted) = self.unit_conversion(expression, &typed, &into) {
+            return converted;
+        }
         match (&typed.value_type, &into) {
             (Type::Unknown, _) => Err(Reported),
             // Crossing in or out of a `type.new` is the same data, so it can't fail (D141). One over a bound only goes
@@ -455,7 +460,7 @@ impl Checker<'_> {
             }
             (
                 Type::Float { bits: from_bits, kind: super::types::FloatKind::Ieee, .. },
-                Type::Float { bits, kind, bounds: None },
+                Type::Float { bits, kind, bounds: None, .. },
             ) if from_bits == bits && *kind != super::types::FloatKind::Ieee => {
                 let why =
                     format!("`as` out of `f{bits}.ieee` is a real conversion, and it fails on NaN or infinity (D159)");
@@ -755,6 +760,20 @@ impl Checker<'_> {
         if let Some(reported) = self.new_in_operation(span, left, right, true) {
             return Err(reported);
         }
+        // The same units compare, and then it's the numbers that do (D100).
+        if left_type.unit().is_some() || right_type.unit().is_some() {
+            if !self.same_unit(left_type.unit(), right_type.unit()) {
+                return Err(self.error(Diagnostic::refused(
+                    span,
+                    format!("this compares `{left_type}` and `{right_type}`"),
+                    "the same units can add and compare, and mixing them is refused (D100)",
+                )));
+            }
+            let (mut left, mut right) = (left.clone(), right.clone());
+            left.value_type = left.value_type.with_unit(None);
+            right.value_type = right.value_type.with_unit(None);
+            return self.comparison(span, operator, &left, &right);
+        }
         match (left_type, right_type) {
             (Type::Integer { kind: a, .. }, Type::Integer { kind: b, .. }) if a == b => Ok(comparison),
             (Type::Float { bits: a, kind: x, .. }, Type::Float { bits: b, kind: y, .. }) if a == b && x == y => {
@@ -800,11 +819,100 @@ impl Checker<'_> {
         right: &syntax::Expression,
         expected: Option<&Type>,
     ) -> Check<Typed> {
-        let operator_name = self.slice(operator_span).to_string();
-        if let BinaryOperator::Divide(None) = operator {
-            // A bare `div` is fine on floats (D164), so this waits for the operands' types.
+        let (mut left_typed, mut right_typed) = self.operands(body, left, right, expected)?;
+        // Units are checked first, then the maths runs on the numbers, and the result gets its unit (D100, D242).
+        let left_unit = left_typed.value_type.unit().cloned();
+        let right_unit = right_typed.value_type.unit().cloned();
+        if left_unit.is_none() && right_unit.is_none() {
+            return self.arithmetic_on(expression, operator, operator_span, (left_typed, right_typed));
         }
-        let (left_typed, right_typed) = self.operands(body, left, right, expected)?;
+        let unit = self.maths_unit(expression, operator, left, right, (&left_typed, &right_typed))?;
+        left_typed.value_type = left_typed.value_type.with_unit(None);
+        right_typed.value_type = right_typed.value_type.with_unit(None);
+        let mut typed = self.arithmetic_on(expression, operator, operator_span, (left_typed, right_typed))?;
+        typed.value_type = typed.value_type.with_unit(unit);
+        Ok(typed)
+    }
+
+    /// The unit maths on units gives: `+` and `-` keep one unit, and `x` and `div` combine them (D100, D242).
+    fn maths_unit(
+        &mut self,
+        expression: &syntax::Expression,
+        operator: &BinaryOperator,
+        left: &syntax::Expression,
+        right: &syntax::Expression,
+        (left_typed, right_typed): (&Typed, &Typed),
+    ) -> Check<Option<super::types::Unit>> {
+        use super::types::Unit;
+        let (left_unit, right_unit) = (left_typed.value_type.unit(), right_typed.value_type.unit());
+        let literal = |typed: &Typed| typed.literal.is_some() || typed.float_literal.is_some();
+        match operator {
+            BinaryOperator::Add | BinaryOperator::Subtract => {
+                if self.same_unit(left_unit, right_unit) {
+                    return Ok(left_unit.cloned());
+                }
+                for (side, typed, other) in [(right, right_typed, left_unit), (left, left_typed, right_unit)] {
+                    if typed.value_type.unit().is_none()
+                        && literal(typed)
+                        && let Some(other) = other
+                    {
+                        let shown = self.slice(side.span).to_string();
+                        return Err(self.error(Diagnostic::refused_fix(
+                            side.span,
+                            format!("{shown} {other}"),
+                            "the compiler checks units, and a unit is required where the type asks for one (D100, D101)",
+                        )));
+                    }
+                }
+                Err(self.error(Diagnostic::refused(
+                    expression.span,
+                    format!("this mixes `{}` and `{}`", left_typed.value_type, right_typed.value_type),
+                    "the same units can add and compare, and mixing them is refused (D100)",
+                )))
+            }
+            BinaryOperator::Multiply | BinaryOperator::Divide(_) => {
+                if left_unit.is_none() || right_unit.is_none() {
+                    return Err(self.error(Diagnostic::not_designed(
+                        expression.span,
+                        "scaling a unit by a plain number, and what unit comes back",
+                        NOT_DECIDED,
+                    )));
+                }
+                let sign = if matches!(operator, BinaryOperator::Multiply) { 1 } else { -1 };
+                Ok(Unit::combine(left_unit, right_unit, sign))
+            }
+            _ => Err(self.not_yet(expression.span, "this maths on numbers with units".to_string())),
+        }
+    }
+
+    /// A number with its unit: `3600 time.seconds` (D99, D101).
+    fn with_unit(
+        &mut self,
+        body: &mut Body,
+        expression: &syntax::Expression,
+        value: &syntax::Expression,
+        unit: &syntax::Path,
+        expected: Option<&Type>,
+    ) -> Check<Typed> {
+        let unit = self.resolve_unit(unit)?;
+        if !Self::is_literal_number(value) {
+            return Err(self.not_yet(expression.span, "a unit after something other than a number".to_string()));
+        }
+        let hint = expected.map(|hint| hint.with_unit(None));
+        let mut typed = self.expression(body, value, hint.as_ref())?;
+        typed.value_type = typed.value_type.with_unit(Some(unit));
+        Ok(typed)
+    }
+
+    #[allow(clippy::too_many_lines)]
+    fn arithmetic_on(
+        &mut self,
+        expression: &syntax::Expression,
+        operator: &BinaryOperator,
+        operator_span: Span,
+        (left_typed, right_typed): (Typed, Typed),
+    ) -> Check<Typed> {
+        let operator_name = self.slice(operator_span).to_string();
         let (left_type, right_type) = (left_typed.value_type.clone(), right_typed.value_type.clone());
         if left_type.is_unknown() || right_type.is_unknown() {
             return Err(Reported);
@@ -1847,6 +1955,119 @@ impl Checker<'_> {
         Ok(())
     }
 
+    /// `as` on a number with a unit, or into one: taking it off, putting it on, or changing to another unit with the
+    /// same base, by its exact ratio (D141, D255). `None` when units aren't involved.
+    fn unit_conversion(&mut self, expression: &syntax::Expression, typed: &Typed, into: &Type) -> Option<Check<Typed>> {
+        let from = &typed.value_type;
+        if from.unit().is_none() && into.unit().is_none() {
+            return None;
+        }
+        // Only between the same number type; another width isn't decided (standard 12.3).
+        if from.with_unit(None).plain() != into.with_unit(None).plain() {
+            return None;
+        }
+        let (from_unit, into_unit) = match (from.unit(), into.unit()) {
+            (Some(a), Some(b)) => (a.clone(), b.clone()),
+            // Taking a unit off, or putting one on, is the same number (D141).
+            _ => return Some(Ok(Typed::new(into.clone(), typed.value.kind.clone()))),
+        };
+        let (Some(a), Some(b)) = (self.units.expand(&from_unit), self.units.expand(&into_unit)) else {
+            return Some(Err(Reported));
+        };
+        if a.powers != b.powers {
+            return Some(Err(self.error(Diagnostic::refused(
+                expression.span,
+                format!("`{from_unit}` and `{into_unit}` don't trace back to the same base"),
+                "two units convert if they trace back to the same base, and otherwise they don't (D109)",
+            ))));
+        }
+        // From one unit to the other, `from` is `ratio` times `into`.
+        let Some(ratio) = super::units::Ratio::new(a.scale.top, a.scale.bottom)
+            .and_then(|scale| scale.times(super::units::Ratio::new(b.scale.bottom, b.scale.top)?))
+        else {
+            return Some(Err(self.not_yet(expression.span, "this conversion".to_string())));
+        };
+        let machine = typed.value.machine_type.clone();
+        let constant = |kind| checked::Expression { kind, machine_type: machine.clone() };
+        let value = match from {
+            Type::Integer { .. } => {
+                if ratio.bottom != 1 {
+                    let times = ratio.bottom / ratio.top.max(1);
+                    return Some(Err(self.error(Diagnostic::refused(
+                        expression.span,
+                        format!("this goes to a unit {times} times bigger, which can lose something, so `as` says how it rounds"),
+                        "a value changes unit with `as`: a float rounds to the nearest, an integer going to a smaller unit is exact, and one going to a bigger unit says how it rounds with `as.trunc`, `as.floor` or `as.exact` (D255)",
+                    ))));
+                }
+                if ratio.top == 1 {
+                    typed.value.clone()
+                } else {
+                    constant(Kind::Arithmetic {
+                        operator: checked::Arithmetic::Multiply,
+                        left: Box::new(typed.value.clone()),
+                        right: Box::new(constant(Kind::Integer(ratio.top))),
+                        failure: None,
+                        more: Vec::new(),
+                    })
+                }
+            }
+            _ => {
+                // A float rounds to the nearest, once for each step that isn't 1.
+                let mut value = typed.value.clone();
+                #[allow(clippy::cast_precision_loss)]
+                for (operator, by) in [
+                    (checked::FloatArithmetic::Multiply, ratio.top as f64),
+                    (checked::FloatArithmetic::Divide, ratio.bottom as f64),
+                ] {
+                    if (by - 1.0).abs() > f64::EPSILON {
+                        value = constant(Kind::FloatArithmetic {
+                            operator,
+                            left: Box::new(value),
+                            right: Box::new(constant(Kind::Float(by))),
+                            infinity: None,
+                            nan: None,
+                        });
+                    }
+                }
+                value
+            }
+        };
+        Some(Ok(Typed::new(into.clone(), value.kind)))
+    }
+
+    /// Why a value's unit doesn't fit where it's going.
+    fn unit_mismatch(&mut self, span: Span, typed: &Typed, into: &Type) -> Reported {
+        let from = &typed.value_type;
+        if from.unit().is_none()
+            && (typed.literal.is_some() || typed.float_literal.is_some())
+            && let Some(unit) = into.unit()
+        {
+            let shown = self.slice(span).to_string();
+            return self.error(Diagnostic::refused_fix(
+                span,
+                format!("{shown} {unit}"),
+                "a unit is required where the type asks for one (D101)",
+            ));
+        }
+        if let (Some(from_unit), Some(into_unit)) = (from.unit(), into.unit())
+            && let (Some(a), Some(b)) = (self.units.expand(from_unit), self.units.expand(into_unit))
+            && a.powers == b.powers
+            && self.is_compound(from_unit)
+        {
+            return self.error(Diagnostic::not_designed(
+                span,
+                format!("converting `{from_unit}` to `{into_unit}`, which a derived unit's conversion would do"),
+                "not decided yet (standard 12.2)",
+            ));
+        }
+        let why = if from.unit().is_some_and(|unit| self.is_compound(unit)) {
+            "storing a value needs a declared unit whose powers match (D242)"
+        } else {
+            "the compiler checks units, and mixing them is refused (D100, D101)"
+        };
+        self.error(Diagnostic::refused(span, format!("this is `{from}`, where `{into}` is needed"), why))
+    }
+
     /// The place an expression names: a variable, or a field inside one.
     pub fn any_place(&self, body: &Body, expression: &syntax::Expression) -> Option<(checked::LocalId, Vec<usize>)> {
         place_of(body, expression).or_else(|| self.field_place(body, expression).map(|(local, path, _)| (local, path)))
@@ -2065,10 +2286,23 @@ impl Checker<'_> {
         if typed.value_type.is_unknown() || into.is_unknown() {
             return Ok(typed.value);
         }
+        // A unit has to match where it's stored, as written or once expanded (D100, D101, D242).
+        if matches!(into, Type::Integer { .. } | Type::Float { .. })
+            && matches!(typed.value_type, Type::Integer { .. } | Type::Float { .. })
+            && (typed.value_type.unit().is_some() || into.unit().is_some())
+        {
+            if !self.same_unit(typed.value_type.unit(), into.unit()) {
+                return Err(self.unit_mismatch(span, &typed, into));
+            }
+            let mut typed = typed;
+            typed.value_type = typed.value_type.with_unit(None);
+            return self.convert_into(span, typed, &into.with_unit(None));
+        }
         match (&typed.value_type, into) {
-            (Type::Integer { kind: from, bounds: from_bounds }, Type::Integer { kind: to, bounds: to_bounds })
-                if from == to =>
-            {
+            (
+                Type::Integer { kind: from, bounds: from_bounds, .. },
+                Type::Integer { kind: to, bounds: to_bounds, .. },
+            ) if from == to => {
                 let Some(bounds) = to_bounds else { return Ok(typed.value) };
                 if let Some(literal) = typed.literal {
                     if literal < bounds.min || literal > bounds.max {
@@ -2089,8 +2323,8 @@ impl Checker<'_> {
                 Ok(self.fit(span, typed, into, *bounds))
             }
             (
-                Type::Float { bits: from_bits, kind: from_kind, bounds: from_bounds },
-                Type::Float { bits: to_bits, kind: to_kind, bounds: to_bounds },
+                Type::Float { bits: from_bits, kind: from_kind, bounds: from_bounds, .. },
+                Type::Float { bits: to_bits, kind: to_kind, bounds: to_bounds, .. },
             ) if from_bits == to_bits => {
                 use super::types::FloatKind;
                 if from_kind != to_kind {

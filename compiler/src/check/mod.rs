@@ -16,6 +16,7 @@ pub mod library;
 pub mod names;
 pub mod sources;
 mod statements;
+pub mod units;
 
 use std::collections::HashMap;
 
@@ -278,6 +279,8 @@ pub struct Checker<'a> {
     pub type_names: names::TypeNames,
     /// The sources a borrow in a type being read can name (D171).
     pub source_scope: Option<sources::SourceScope>,
+    /// Every unit, from `fam.unit` and the base language (D99, D109).
+    pub units: units::Units,
     pub program: checked::Program,
 }
 
@@ -309,6 +312,7 @@ pub fn check(
         handlers: HashMap::new(),
         type_names: names::TypeNames::default(),
         source_scope: None,
+        units: units::Units::default(),
         program: checked::Program::default(),
     };
     checker.check_file(parsed);
@@ -337,6 +341,7 @@ impl Checker<'_> {
             }
         }
         self.declare_type_names(file);
+        self.declare_units(file);
         self.declare_aggregates(file);
         self.resolve_type_names();
         self.declare_failure_sets(file);
@@ -997,8 +1002,9 @@ impl Checker<'_> {
             if !fill.is_empty() {
                 return Err(self.not_yet(written.span, format!("`{text}` filled in with `< >`")));
             }
-            let bounds = self.integer_bounds(written.span, labels)?;
-            return Ok(Type::Integer { kind, bounds });
+            let (unit, labels) = self.unit_label(labels)?;
+            let bounds = self.integer_bounds(written.span, labels, unit.as_ref())?;
+            return Ok(Type::Integer { kind, bounds, unit });
         }
         if let Some((base, kind)) = text.rsplit_once('.')
             && IntegerKind::from_name(base).is_some()
@@ -1031,8 +1037,9 @@ impl Checker<'_> {
                     )));
                 }
             };
+            let (unit, labels) = self.unit_label(labels)?;
             let bounds = self.float_bounds(written.span, bits, kind, labels)?;
-            return Ok(Type::Float { bits, kind, bounds });
+            return Ok(Type::Float { bits, kind, bounds, unit });
         }
         match text.as_str() {
             "bool" => Ok(Type::Bool),
@@ -1185,7 +1192,7 @@ impl Checker<'_> {
         }
         let mut min = None;
         let mut max = None;
-        let plain = Type::Float { bits, kind, bounds: None };
+        let plain = Type::Float { bits, kind, bounds: None, unit: None };
         for label in labels {
             let name = label.name.text();
             if name != "min" && name != "max" {
@@ -1241,14 +1248,19 @@ impl Checker<'_> {
         Ok(Some(types::FloatBounds::new(min, max)))
     }
 
-    fn integer_bounds(&mut self, span: Span, labels: &[syntax::Label]) -> Check<Option<types::Bounds>> {
+    fn integer_bounds(
+        &mut self,
+        span: Span,
+        labels: &[syntax::Label],
+        unit: Option<&types::Unit>,
+    ) -> Check<Option<types::Bounds>> {
         if labels.is_empty() {
             return Ok(None);
         }
         let mut min = None;
         let mut max = None;
         for label in labels {
-            let value = self.constant_integer(&label.value)?;
+            let value = self.bound_integer(&label.value, unit)?;
             match label.name.text().as_str() {
                 "min" => min = Some(value),
                 "max" => max = Some(value),
@@ -1272,6 +1284,31 @@ impl Checker<'_> {
             )));
         }
         Ok(Some(types::Bounds { min, max }))
+    }
+
+    /// A bound on an integer type, which says its unit if the type has one (D255).
+    fn bound_integer(&mut self, expression: &syntax::Expression, unit: Option<&types::Unit>) -> Check<i128> {
+        match (&expression.kind, unit) {
+            (syntax::ExpressionKind::WithUnit { value, unit: written }, Some(unit)) => {
+                let written = self.resolve_unit(written)?;
+                if written != *unit {
+                    return Err(self.not_yet(expression.span, "a bound in another unit".to_string()));
+                }
+                self.constant_integer(value)
+            }
+            (syntax::ExpressionKind::WithUnit { .. }, None) => {
+                Err(self.not_yet(expression.span, "a bound with a unit on a type without one".to_string()))
+            }
+            (_, Some(unit)) => {
+                let shown = self.slice(expression.span).to_string();
+                Err(self.error(Diagnostic::refused_fix(
+                    expression.span,
+                    format!("{shown} {unit}"),
+                    "a bound on a type with a unit says its unit (D255)",
+                )))
+            }
+            (_, None) => self.constant_integer(expression),
+        }
     }
 
     /// An integer known while compiling, such as a bound.

@@ -113,16 +113,89 @@ impl FloatBounds {
     }
 }
 
+/// A number's unit (D99, D100, D242): the units it's made of, each with its power, in the order maths met them.
+/// `time.seconds` is one unit to the power 1, and `length.meters per time.seconds` two.
+#[derive(Clone, Debug, Eq, Hash)]
+pub struct Unit {
+    pub factors: Vec<(String, i32)>,
+}
+
+impl Unit {
+    #[must_use]
+    pub fn named(name: &str) -> Unit {
+        Unit { factors: vec![(name.to_string(), 1)] }
+    }
+
+    /// The unit of a product, or with `sign` -1 a quotient. `None` when every power cancels, as in `$t div $t`.
+    #[must_use]
+    pub fn combine(left: Option<&Unit>, right: Option<&Unit>, sign: i32) -> Option<Unit> {
+        let mut factors: Vec<(String, i32)> = left.map(|unit| unit.factors.clone()).unwrap_or_default();
+        for (name, power) in right.map(|unit| unit.factors.clone()).unwrap_or_default() {
+            match factors.iter_mut().find(|(each, _)| *each == name) {
+                Some((_, mine)) => *mine += sign * power,
+                None => factors.push((name, sign * power)),
+            }
+        }
+        factors.retain(|(_, power)| *power != 0);
+        if factors.is_empty() { None } else { Some(Unit { factors }) }
+    }
+
+    /// Whether it's one declared unit, rather than one made by maths.
+    #[must_use]
+    pub fn single(&self) -> Option<&str> {
+        match self.factors.as_slice() {
+            [(name, 1)] => Some(name),
+            _ => None,
+        }
+    }
+
+    fn sorted(&self) -> Vec<(String, i32)> {
+        let mut factors = self.factors.clone();
+        factors.sort();
+        factors
+    }
+}
+
+impl PartialEq for Unit {
+    fn eq(&self, other: &Unit) -> bool {
+        self.sorted() == other.sorted()
+    }
+}
+
+impl fmt::Display for Unit {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let repeat =
+            |power: i32, name: &str| vec![name.to_string(); usize::try_from(power.unsigned_abs()).unwrap_or(0)];
+        let above: Vec<String> = self
+            .factors
+            .iter()
+            .filter(|(_, power)| *power > 0)
+            .flat_map(|(name, power)| repeat(*power, name))
+            .collect();
+        let below: Vec<String> = self
+            .factors
+            .iter()
+            .filter(|(_, power)| *power < 0)
+            .flat_map(|(name, power)| repeat(*power, name))
+            .collect();
+        let top = if above.is_empty() { "1".to_string() } else { above.join(" x ") };
+        if below.is_empty() { write!(formatter, "{top}") } else { write!(formatter, "{top} per {}", below.join(" x ")) }
+    }
+}
+
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub enum Type {
     Integer {
         kind: IntegerKind,
         bounds: Option<Bounds>,
+        /// Its unit, if the type asks for one (D101).
+        unit: Option<Unit>,
     },
     Float {
         bits: u32,
         kind: FloatKind,
         bounds: Option<FloatBounds>,
+        unit: Option<Unit>,
     },
     Bool,
     Str,
@@ -164,7 +237,7 @@ pub enum Type {
 }
 
 impl Type {
-    pub const I32: Type = Type::Integer { kind: IntegerKind::I32, bounds: None };
+    pub const I32: Type = Type::Integer { kind: IntegerKind::I32, bounds: None, unit: None };
 
     #[must_use]
     pub fn is_unknown(&self) -> bool {
@@ -189,8 +262,31 @@ impl Type {
     #[must_use]
     pub fn plain(&self) -> Type {
         match self {
-            Type::Integer { kind, .. } => Type::Integer { kind: *kind, bounds: None },
-            Type::Float { bits, kind, .. } => Type::Float { bits: *bits, kind: *kind, bounds: None },
+            Type::Integer { kind, unit, .. } => Type::Integer { kind: *kind, bounds: None, unit: unit.clone() },
+            Type::Float { bits, kind, unit, .. } => {
+                Type::Float { bits: *bits, kind: *kind, bounds: None, unit: unit.clone() }
+            }
+            other => other.clone(),
+        }
+    }
+
+    /// A number's unit, if it has one.
+    #[must_use]
+    pub fn unit(&self) -> Option<&Unit> {
+        match self {
+            Type::Integer { unit, .. } | Type::Float { unit, .. } => unit.as_ref(),
+            _ => None,
+        }
+    }
+
+    /// The same number type with another unit, or none.
+    #[must_use]
+    pub fn with_unit(&self, new: Option<Unit>) -> Type {
+        match self {
+            Type::Integer { kind, bounds, .. } => Type::Integer { kind: *kind, bounds: *bounds, unit: new },
+            Type::Float { bits, kind, bounds, .. } => {
+                Type::Float { bits: *bits, kind: *kind, bounds: *bounds, unit: new }
+            }
             other => other.clone(),
         }
     }
@@ -225,21 +321,39 @@ impl Type {
 impl fmt::Display for Type {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Type::Integer { kind, bounds } => {
+            Type::Integer { kind, bounds, unit } => {
                 write!(formatter, "{}", kind.name())?;
-                if let Some(bounds) = bounds {
-                    write!(formatter, "[min: {}, max: {}]", bounds.min, bounds.max)?;
+                let shown = |value: i128| match unit {
+                    Some(unit) => format!("{value} {unit}"),
+                    None => value.to_string(),
+                };
+                match (unit, bounds) {
+                    (Some(unit), Some(bounds)) => {
+                        write!(formatter, "[unit: {unit}, min: {}, max: {}]", shown(bounds.min), shown(bounds.max))
+                    }
+                    (Some(unit), None) => write!(formatter, "[unit: {unit}]"),
+                    (None, Some(bounds)) => write!(formatter, "[min: {}, max: {}]", bounds.min, bounds.max),
+                    (None, None) => Ok(()),
                 }
-                Ok(())
             }
-            Type::Float { bits, kind, bounds } => {
+            Type::Float { bits, kind, bounds, unit } => {
                 write!(formatter, "f{bits}.{}", kind.word())?;
-                if let Some(bounds) = bounds {
-                    let min = super::floats::shortest(bounds.min(), *bits);
-                    let max = super::floats::shortest(bounds.max(), *bits);
-                    write!(formatter, "[min: {min}, max: {max}]")?;
+                let with_unit = |value: String| match unit {
+                    Some(unit) => format!("{value} {unit}"),
+                    None => value,
+                };
+                match (unit, bounds) {
+                    (unit, Some(bounds)) => {
+                        let min = with_unit(super::floats::shortest(bounds.min(), *bits));
+                        let max = with_unit(super::floats::shortest(bounds.max(), *bits));
+                        match unit {
+                            Some(unit) => write!(formatter, "[unit: {unit}, min: {min}, max: {max}]"),
+                            None => write!(formatter, "[min: {min}, max: {max}]"),
+                        }
+                    }
+                    (Some(unit), None) => write!(formatter, "[unit: {unit}]"),
+                    (None, None) => Ok(()),
                 }
-                Ok(())
             }
             Type::Bool => write!(formatter, "bool"),
             Type::Str => write!(formatter, "str"),

@@ -1281,7 +1281,7 @@ impl Checker<'_> {
                 }
                 let tested = self.resolve_type(written_type)?;
                 match (&typed.value_type, &tested) {
-                    (Type::Integer { kind: from, .. }, Type::Integer { kind: to, bounds: Some(bounds) })
+                    (Type::Integer { kind: from, .. }, Type::Integer { kind: to, bounds: Some(bounds), .. })
                         if from == to =>
                     {
                         let machine_type = typed.value.machine_type.clone();
@@ -1300,8 +1300,8 @@ impl Checker<'_> {
                         Ok((condition, Some(narrowed)))
                     }
                     (
-                        Type::Float { bits: from_bits, kind: from_kind, bounds: None },
-                        Type::Float { bits, kind, bounds: Some(bounds) },
+                        Type::Float { bits: from_bits, kind: from_kind, bounds: None, .. },
+                        Type::Float { bits, kind, bounds: Some(bounds), .. },
                     ) if from_bits == bits && from_kind == kind => {
                         let machine_type = typed.value.machine_type.clone();
                         let bound = |value: f64| checked::Expression {
