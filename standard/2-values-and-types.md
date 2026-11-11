@@ -163,9 +163,19 @@ let $a: str = "hi";
 let $b: str = empty;
 ```
 
+A string's memory works like a list's ([2.10](#210-lists)), with a `len.max` in bytes, since UTF-8 characters vary in size. A finite `len.max` holds the bytes inside the value: no allocator, nothing to free, and too much text is a failure. `len.max: inf bytes` grows on the heap, takes an allocator on each call that grows it, and is `must_Give` ([6.9](6-ownership.md#69-must_give)). `std::text.done` is a placeholder name.
+
+```
+let $name: str[len.max: 32 bytes] = "Tankun";
+let mut $log: str[len.max: inf bytes] = empty;
+defer std::text.done(Give $log, alloc: Lend $alloc);
+```
+
+What a bare `str` with no `len.max` means, as for a literal like `"hi"`, isn't decided yet ([12.2](12-not-decided.md#122-types)).
+
 **Refused:** `str.utf8`, because it's the default ([1.7](1-programs.md#17-bare-names)), and `""`, with `fix: empty`, because it could look like unfinished work.
 
-**From:** D48, D50, D51, D103.
+**From:** D48, D50, D51, D103, D326.
 
 ## 2.10 Lists
 
