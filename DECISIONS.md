@@ -1112,6 +1112,8 @@ A `type_set` is a closed list of types that nothing can join later, as in `type_
 
 **D305. A shuffle counting from 0 says `offset.lanes:`.** `$v.%shuffle(offset.lanes: [3, 2, 1, 0])`, replacing D304's bare `offset:`, which 2.17 already refuses because it could read as bytes. The unit is `lanes`, matching the type's `lanes:`, rather than `offset.items:` as on lists. A bare `offset:` is refused, with `fix: offset.lanes:`. `pos:` is unchanged. Claude found its own mistake in D304; the owner chose: "yes". (Owner, 2026-11-11)
 
+**D306. `.%lookup` takes lanes worked out while running.** `$table.%lookup(pos: $which)`, or `offset.lanes:`, builds a vector whose lanes come from `$table` at the positions in another `simd`, `$which`, which can change each time, for decoders, hex printing and some cryptography. It has its own name, not `shuffle`, since it's a slower table lookup and can fail: a lane of `$which` pointing past the end is a bounds failure that says which lane (D293), where ARM's `tbl` quietly gives 0 and x86's `pshufb` follows another rule. Bounds on `$which`'s type, like `simd<u8[min: 1, max: 16]>`, prove every lane in range, so the check can be dropped. A `shuffle` list only known while running is refused, with `fix: .%lookup`. Claude proposed it; the owner chose: "yes". (Owner, 2026-11-11)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude

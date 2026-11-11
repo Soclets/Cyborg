@@ -584,6 +584,13 @@ let $s: simd<i32>[lanes: 2] = $v.%shuffle(offset.lanes: [0, 0]);
 
 `$r` holds `[40, 30, 20, 10]`, and `$s` holds `[10, 10]`.
 
-**Refused:** a shuffle list only known while running; a lane that doesn't exist, like `pos: [5]` on 4 lanes; a shuffle with neither `pos:` nor `offset.lanes:`; a bare `offset:`, with `fix: offset.lanes:`; changing a chunk from `simd_chunks`; `.%%simd_chunks`, with `fix: .%`, and `.%simd_chunks_mut`, with `fix: .%%`; `if` on a `simd<bool>`, with `fix: .%all_true()` or `.%any_true()`; a bare `simd_chunks`, asking which of the three; `.leftovers` without a `leftovers` section; and a `leftovers` section on any other loop.
+`.%lookup` takes its lanes from another `simd`, worked out while running, with `pos:` or `offset.lanes:`. A lane pointing past the end is a bounds failure that says which lane, where CPUs quietly give 0 or something else. Bounds on the index type prove every lane in range, so the check can be dropped.
 
-**From:** D255, D291, D292, D293, D296, D297, D298, D299, D300, D301, D302, D303, D304, D305.
+```
+let $which: simd<u8[min: 1, max: 16]>[lanes: 16] = …;
+let $out: simd<u8>[lanes: 16] = $table.%lookup(pos: $which);
+```
+
+**Refused:** a shuffle list only known while running, with `fix: .%lookup`; a lane that doesn't exist, like `pos: [5]` on 4 lanes; a shuffle with neither `pos:` nor `offset.lanes:`; a bare `offset:`, with `fix: offset.lanes:`; changing a chunk from `simd_chunks`; `.%%simd_chunks`, with `fix: .%`, and `.%simd_chunks_mut`, with `fix: .%%`; `if` on a `simd<bool>`, with `fix: .%all_true()` or `.%any_true()`; a bare `simd_chunks`, asking which of the three; `.leftovers` without a `leftovers` section; and a `leftovers` section on any other loop.
+
+**From:** D255, D291, D292, D293, D296, D297, D298, D299, D300, D301, D302, D303, D304, D305, D306.
