@@ -504,4 +504,6 @@ let $c: simd<i32>[lanes: 4] = $a + $b;
 let $d: simd<i32>[lanes: max] = all 0;
 ```
 
-**From:** D291, D292.
+A lane follows its type's rules exactly: if any lane overflows or breaks its bound, it's the same failure as for one value of that type, and the message says which lane. `simd<i32[min: 0, max: 100]>` checks every lane's bounds. Precog drops a check it proves, and the modes treat these checks like any other.
+
+**From:** D291, D292, D293.
