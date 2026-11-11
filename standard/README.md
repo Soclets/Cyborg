@@ -17,7 +17,7 @@ What Cyborg does now, in one place. The oracle, the compiler and check claude fo
 | [7. Structs and unions](7-structs-and-unions.md) | `struct`, `union.tagged` |
 | [8. Failures](8-failures.md) | `fails`, `fail`, `?`, `??`, `otherwise`, handlers |
 | [9. Limbs and shields](9-limbs-and-shields.md) | `@`, `std`, `@csup`, `shield`, Precog, the linter |
-| [10. Build modes](10-build-modes.md) | The five modes, and **the one table of what's UB where** |
+| [10. Build modes](10-build-modes.md) | The six modes, and **the one table of what's UB where** |
 | [11. Errors](11-errors.md) | The message format |
 | [12. Not decided](12-not-decided.md) | Anything here means `NotDesignedYet` |
 

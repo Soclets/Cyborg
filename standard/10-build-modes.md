@@ -2,7 +2,7 @@
 
 | Section | What | In short |
 |---|---|---|
-| [10.1](#101-the-modes) | The five modes | One table |
+| [10.1](#101-the-modes) | The six modes | One table |
 | [10.2](#102-no-default) | `--mode` | Always say which |
 | [10.3](#103-what-gets-checked) | Checks | What stays in each mode |
 | [10.4](#104-what-happens-when-something-goes-wrong) | UB | **The one table of what's UB where** |
@@ -23,8 +23,9 @@
 | `FinalPerf` | Max | None | Trust your tests |
 | `FinalShit` | Max | None | A joke, with more UB possible than C |
 | `FinalSmall` | For size | Whatever makes it smaller | Size only, with UB and bad speed allowed |
+| `Literal` | Only what's needed to make machine code | Same as `FinalSafe` | Exactly what the code says, with no SIMD, inlining, unrolling, reordering or deleting it didn't ask for |
 
-**From:** D14, D26.
+**From:** D14, D26, D282.
 
 ## 10.2 No default
 
@@ -34,7 +35,7 @@
 okay comp --FinalSafe
 ```
 
-`--FeelLucky` picks one of the five modes at random, `FinalShit` included, and always prints which one first:
+`--FeelLucky` picks one of the six modes at random, `FinalShit` included, and always prints which one first:
 
 ```
 $ okay comp --FeelLucky
@@ -51,13 +52,13 @@ It counts as choosing a mode. In a language about reproducibility, a build that'
 
 **Rule:** anything Precog proves can drop its check, in every mode except `Working`, which keeps every check, proven or not, so a wrong proof shows up as a crash while developing.
 
-| Check | `Working` | `FinalSafe` | `FinalPerf` | `FinalShit` | `FinalSmall` |
-|---|---|---|---|---|---|
-| Overflow, bounds, division by zero | Kept | Kept, as traps | Gone | Gone | If smaller |
-| A shield's exit (`ensures`) | Kept | Kept, even if expensive | Gone | Gone | Gone if smaller |
-| A shield's entry (`requires`) | Kept | Follows the mode | Gone | Gone | If smaller |
-| Other contracts | Kept | Kept, unless marked | Gone | Gone | If smaller |
-| `if $n: T:` on a plain value | Kept | Kept | Kept | Kept | Kept |
+| Check | `Working` | `FinalSafe` | `FinalPerf` | `FinalShit` | `FinalSmall` | `Literal` |
+|---|---|---|---|---|---|---|
+| Overflow, bounds, division by zero | Kept | Kept, as traps | Gone | Gone | If smaller | Kept, as traps |
+| A shield's exit (`ensures`) | Kept | Kept, even if expensive | Gone | Gone | Gone if smaller | Kept, even if expensive |
+| A shield's entry (`requires`) | Kept | Follows the mode | Gone | Gone | If smaller | Follows the mode |
+| Other contracts | Kept | Kept, unless marked | Gone | Gone | If smaller | Kept, unless marked |
+| `if $n: T:` on a plain value | Kept | Kept | Kept | Kept | Kept | Kept |
 
 A check in `Working` is kept no matter the cost. `.only_in_working` on `requires` or `ensures` marks a contract as checked in `Working` only:
 
@@ -71,15 +72,15 @@ requires.only_in_working is_sorted(Lend $xs);
 
 **Rule:** this is the one table of what's UB where.
 
-| What goes wrong | `Working` | `FinalSafe` | `FinalPerf` | `FinalShit` | `FinalSmall` |
-|---|---|---|---|---|---|
-| A plain `+` overflows | Trap | Trap | Wraps | UB | Whatever's smaller |
-| A value is out of bounds | Crash | Trap | UB | UB | UB allowed |
-| Division by zero | Trap | Trap | UB | UB | UB allowed |
-| A contract is false | Crash | See [10.3](#103-what-gets-checked) | UB | UB | UB allowed |
-| A float becomes NaN or infinity | Crash | Trap | UB | UB | UB allowed |
-| A failure nothing handles | Crash | Crash | Crash | UB | Crash |
-| A compile-time safety rule is broken | Refused | Refused | Refused | UB | Refused |
+| What goes wrong | `Working` | `FinalSafe` | `FinalPerf` | `FinalShit` | `FinalSmall` | `Literal` |
+|---|---|---|---|---|---|---|
+| A plain `+` overflows | Trap | Trap | Wraps | UB | Whatever's smaller | Trap |
+| A value is out of bounds | Crash | Trap | UB | UB | UB allowed | Trap |
+| Division by zero | Trap | Trap | UB | UB | UB allowed | Trap |
+| A contract is false | Crash | See [10.3](#103-what-gets-checked) | UB | UB | UB allowed | See [10.3](#103-what-gets-checked) |
+| A float becomes NaN or infinity | Crash | Trap | UB | UB | UB allowed | Trap |
+| A failure nothing handles | Crash | Crash | Crash | UB | Crash | Crash |
+| A compile-time safety rule is broken | Refused | Refused | Refused | UB | Refused | Refused |
 
 The `FinalPerf` entries follow from D14 having no checks there; the owner's answer was "you test your shit throughly first".
 
