@@ -36,6 +36,5 @@ typedef unsigned __int128 u128;
 
 ## Compiling the C at all
 
-`okay` has no C compiler (rule 1 keeps C++ out, and Lyftar has LLVM and lld but not clang). CORE-MATH can be compiled
-ahead of time, once per target, with clang 14 or later, and shipped as object files inside `okay`. That needs nothing new
-from Lyftar.
+`okay` compiles CORE-MATH itself, through clang embedded in Lyftar (D308), so it needs clang 14 or later there for the
+`_BitInt` path.

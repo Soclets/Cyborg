@@ -1116,6 +1116,8 @@ A `type_set` is a closed list of types that nothing can join later, as in `type_
 
 **D307. Four named shuffles: `reverse`, `rotate`, `join` and `interleave`.** `$v.%reverse()`, `$v.%rotate.left(by: 1)` and `$v.%rotate.right(by: 1)`, `$a.%join(then: $b)`, which puts two vectors end to end, and `$a.%interleave(with: $b)`, which alternates their lanes. `rotate` says its direction as a narrowing, so no one guesses which way a positive number turns, and `by:` is fixed when compiling, like a shuffle list (D304). `join` and `interleave` give one vector with both counts added. Everything else is a `shuffle`, since these four cover most real code and each extra name is one more thing to learn. Claude proposed them; the owner chose: "tea", a typo for "yea". (Owner, 2026-11-11)
 
+**D308. Lyftar embeds clang, and `okay` compiles CORE-MATH itself.** CORE-MATH's C (D161, D256) is compiled by `okay` when a program needs it, for whatever target it's building, through clang embedded in Lyftar the way lld is (D261). So every target `okay` supports gets correctly rounded maths with nothing prebuilt and nothing else installed. Clang is C++, so it goes in Lyftar, as rule 1 says. This is only for the third-party C inside `std` (D161): Cyborg code still can't call users' C, since D225 dropped `extern.c`. `std` ships the small freestanding headers CORE-MATH needs, as `design/core-math-on-cortex-m4.md` lists. Claude recommended compiling CORE-MATH ahead of time and shipping object files instead; the owner chose: "2". (Owner, 2026-11-11)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude
