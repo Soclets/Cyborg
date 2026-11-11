@@ -5,6 +5,6 @@ union.tagged status:
 end union.tagged status
 
 fn.main [none] returns void:
-    let $s: status set_to status.lost;
+    let $s: status = status.lost;
     return void;
 end fn.main

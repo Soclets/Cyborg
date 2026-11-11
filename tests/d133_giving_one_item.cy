@@ -7,7 +7,7 @@ fn eat [$s: Given str] returns void:
 end fn eat
 
 fn.main [none] returns void:
-    let $a: std::array<str>[len: 1 items] set_to ["hi"];
+    let $a: std::array<str>[len: 1 items] = ["hi"];
     eat(Give $a[pos: 1]);
     return void;
 end fn.main

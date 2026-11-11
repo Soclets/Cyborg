@@ -19,10 +19,10 @@ struct line:
 end struct line
 
 fn.main [none] returns void:
-    let mut $out: os::stdout.unbuffered set_to os::stdout.unbuffered();
-    let $bolts: line set_to line[name set_to "bolts", count set_to 40 stock.pieces];
-    let $nuts: line set_to line[name set_to "nuts", count set_to 3 stock.pieces];
-    let $pins: line set_to line[name set_to "pins", count set_to 0 stock.pieces];
+    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
+    let $bolts: line = line[name = "bolts", count = 40 stock.pieces];
+    let $nuts: line = line[name = "nuts", count = 3 stock.pieces];
+    let $pins: line = line[name = "pins", count = 0 stock.pieces];
     report(Lend $bolts);
     report(Lend $nuts);
     report(Lend $pins);
@@ -38,14 +38,14 @@ fn level_of [$l: line] returns level:
         return level.out;
     end if
     if $l.count below 10 stock.pieces:
-        return level.low[left set_to $l.count];
+        return level.low[left = $l.count];
     end if
     return level.plenty;
 end fn level_of
 
 fn report [$l: line] returns void:
-    let mut $out: os::stdout.unbuffered set_to os::stdout.unbuffered();
-    let $level: level set_to level_of(Lend $l);
+    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
+    let $level: level = level_of(Lend $l);
     match $level:
         case level.plenty:
             std::io::fmt_print(Lend.mut $out, "{}: plenty{newln}", $l.name);
@@ -69,8 +69,8 @@ fn order_size [$l: line] returns i32[unit: stock.pieces] fails [nothing_needed]:
 end fn order_size
 
 fn show_restock [$l: line] returns void:
-    let mut $out: os::stdout.unbuffered set_to os::stdout.unbuffered();
-    let $n: i32[unit: stock.pieces] set_to order_size(Lend $l) otherwise:
+    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
+    let $n: i32[unit: stock.pieces] = order_size(Lend $l) otherwise:
         case nothing_needed:
             std::io::fmt_print(Lend.mut $out, "{}: no order{newln}", $l.name);
             return void;

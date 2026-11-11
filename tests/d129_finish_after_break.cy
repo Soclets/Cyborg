@@ -8,8 +8,8 @@ struct.must_Give open_file:
 end struct.must_Give open_file
 
 fn.main [none] returns void:
-    let mut $out: os::stdout.unbuffered set_to os::stdout.unbuffered();
-    let $f: open_file set_to open_file[fd set_to 3];
+    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
+    let $f: open_file = open_file[fd = 3];
     forever:
         finish $f;
         break;

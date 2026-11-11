@@ -12,10 +12,10 @@ fn g [none] returns i32 fails [b]:
 end fn g
 
 fn.main [none] returns void:
-    let mut $out: os::stdout.unbuffered set_to os::stdout.unbuffered();
-    let $n: i32 set_to f() otherwise:
+    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
+    let $n: i32 = f() otherwise:
         case a:
-            let $m: i32 set_to g() otherwise:
+            let $m: i32 = g() otherwise:
                 case b:
                     instead 2;
             end otherwise

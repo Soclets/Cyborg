@@ -1,6 +1,6 @@
-refused: d139_given_in_one_arm_is_maybe_gone.cy:14:29, line 14 column 29
-14 |     let $u: str set_to Give $s;
-   |                             ^^
+refused: d139_given_in_one_arm_is_maybe_gone.cy:14:24, line 14 column 24
+14 |     let $u: str = Give $s;
+   |                        ^^
  what: `$s` was already given away
  why:  a given value is dead afterwards (D2)
  because: d139_given_in_one_arm_is_maybe_gone.cy:12:21, line 12 column 21

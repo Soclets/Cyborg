@@ -1,8 +1,8 @@
 // trace: D134
 
 fam.type.new ids:
-    ids.user set_to i64;
-    type.alias ids.other set_to i64;
+    ids.user = i64;
+    type.alias ids.other = i64;
 end fam.type.new ids
 
 fn.main [none] returns void:

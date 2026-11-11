@@ -11,7 +11,7 @@ fn close [$f: Given open_file] returns bool:
 end fn close
 
 fn.main [none] returns void:
-    let $f: open_file set_to open_file[fd set_to 3];
+    let $f: open_file = open_file[fd = 3];
     if 2 below 1 and.both close(Give $f):
         return void;
     end if

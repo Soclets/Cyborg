@@ -3,7 +3,7 @@ import std;
 import os;
 
 fn my::finish [none] returns void:
-    let mut $out: os::stdout.unbuffered set_to os::stdout.unbuffered();
+    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     std::io::fmt_print(Lend.mut $out, "mine{newln}");
     return void;
 end fn my::finish

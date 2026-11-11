@@ -6,8 +6,8 @@ fn eat [$s: Given str] returns i32:
 end fn eat
 
 fn.main [none] returns void:
-    let $s: str set_to "a";
-    let $a: std::array<i32>[len: 1 items] set_to [1];
-    let $n: i32 set_to $a[pos: eat(Give $s)];
+    let $s: str = "a";
+    let $a: std::array<i32>[len: 1 items] = [1];
+    let $n: i32 = $a[pos: eat(Give $s)];
     return void;
 end fn.main

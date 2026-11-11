@@ -3,10 +3,10 @@
 
 fam.unit length:
     length.meters: base;
-    length.kilometers set_to 1000 length.meters;
+    length.kilometers = 1000 length.meters;
 end fam.unit length
 
 fn.main [none] returns void:
-    let $far: f64.stable[unit: length.meters, min: 0.0 length.meters, max: 0.5 length.kilometers] set_to 500.5 length.meters;
+    let $far: f64.stable[unit: length.meters, min: 0.0 length.meters, max: 0.5 length.kilometers] = 500.5 length.meters;
     return void;
 end fn.main

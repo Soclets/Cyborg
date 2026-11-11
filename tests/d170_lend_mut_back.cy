@@ -15,11 +15,11 @@ fn colder [$a: Lent.mut reading, $b: Lent.mut reading] returns Lend.mut from <$a
 end fn colder
 
 fn.main [none] returns void:
-    let mut $out: os::stdout.unbuffered set_to os::stdout.unbuffered();
-    let mut $x: reading set_to reading[celsius set_to 21];
-    let mut $y: reading set_to reading[celsius set_to 5];
-    let $c: Lend.mut from <$x, $y> reading set_to colder(Lend.mut $x, Lend.mut $y);
-    change $c.celsius set_to 100;
+    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
+    let mut $x: reading = reading[celsius = 21];
+    let mut $y: reading = reading[celsius = 5];
+    let $c: Lend.mut from <$x, $y> reading = colder(Lend.mut $x, Lend.mut $y);
+    change $c.celsius = 100;
     std::io::fmt_print(Lend.mut $out, "{} {}{newln}", $x.celsius, $y.celsius);
     return void;
 end fn.main

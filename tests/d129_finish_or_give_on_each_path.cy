@@ -12,7 +12,7 @@ fn close [$f: Given open_file] returns void:
 end fn close
 
 fn end_it [$f: Given open_file, $quick: bool] returns void:
-    let mut $out: os::stdout.unbuffered set_to os::stdout.unbuffered();
+    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     if $quick:
         finish $f;
     else:
@@ -23,7 +23,7 @@ fn end_it [$f: Given open_file, $quick: bool] returns void:
 end fn end_it
 
 fn.main [none] returns void:
-    end_it(open_file[fd set_to 1], true);
-    end_it(open_file[fd set_to 2], false);
+    end_it(open_file[fd = 1], true);
+    end_it(open_file[fd = 2], false);
     return void;
 end fn.main

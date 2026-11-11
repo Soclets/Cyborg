@@ -11,7 +11,7 @@ struct index <`text`, `table`: lasts_at_least `text`>:
 end struct index
 
 fn build [$article: reading, $list: reading] returns index<`text`: $article, `table`: $list>:
-    return index[words set_to Lend $article, lookup set_to Lend $list];
+    return index[words = Lend $article, lookup = Lend $list];
 end fn build
 
 fn.main [none] returns void:

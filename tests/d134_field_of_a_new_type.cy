@@ -4,7 +4,7 @@ struct reading:
     celsius: i32;
 end struct reading
 
-type.new wrapped set_to reading;
+type.new wrapped = reading;
 
 fn f [$w: wrapped] returns i32:
     return $w.celsius;

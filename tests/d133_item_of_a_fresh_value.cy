@@ -7,7 +7,7 @@ fn make [none] returns std::array<i32>[len: 2 items]:
 end fn make
 
 fn.main [none] returns void:
-    let mut $out: os::stdout.unbuffered set_to os::stdout.unbuffered();
+    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     std::io::fmt_print(Lend.mut $out, "{}{newln}", make()[pos: 2]);
     return void;
 end fn.main

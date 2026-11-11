@@ -1,6 +1,6 @@
 // trace: D134, D122
 
-type.new user_id set_to i64;
+type.new user_id = i64;
 
 fn f [$a: user_id] returns str:
     return $a as str;

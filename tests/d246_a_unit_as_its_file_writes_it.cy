@@ -11,9 +11,9 @@ end fam.unit length
 use my::length.feet as feet;
 
 fn.main [none] returns void:
-    let mut $out: os::stdout.unbuffered set_to os::stdout.unbuffered();
-    let $m: i32[unit: length.meters] set_to 5 length.meters;
-    let $f: f64.stable[unit: feet] set_to 2.5 feet;
+    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
+    let $m: i32[unit: length.meters] = 5 length.meters;
+    let $f: f64.stable[unit: feet] = 2.5 feet;
     std::io::fmt_print(Lend.mut $out, "{$m, unit} and {$f, unit}{newln}");
     std::io::fmt_print(Lend.mut $out, "{unit}{newln}", $m);
     return void;

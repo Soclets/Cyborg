@@ -1,5 +1,5 @@
-refused: d43_star_is_x.cy:4:26, line 4 column 26
- 4 |     let $a: i32 set_to 2 * 3;
-   |                          ^
+refused: d43_star_is_x.cy:4:21, line 4 column 21
+ 4 |     let $a: i32 = 2 * 3;
+   |                     ^
  fix:  `x`
  why:  multiply is `x`, as in `$a x $b` (D43)

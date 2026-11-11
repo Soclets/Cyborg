@@ -4,6 +4,6 @@ refused: d174_lend_on_stops_changes.cy:16:52, line 16 column 52
  what: `$n` can't be used after what it borrows was used
  why:  a stored `Lend.mut` means nothing else uses it meanwhile, and a `Lend` means it can't change (D2)
  because: d174_lend_on_stops_changes.cy:15:12, line 15 column 12
-15 |     change $m.celsius set_to 1;
+15 |     change $m.celsius = 1;
    |            ^^^^^^^^^^
      what it borrows was used here

@@ -2,6 +2,6 @@
 import std;
 
 fn.main [none] returns void:
-    let $d: std::list<u8>[len.max: 3 items] set_to all 0;
+    let $d: std::list<u8>[len.max: 3 items] = all 0;
     return void;
 end fn.main

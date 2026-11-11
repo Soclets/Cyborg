@@ -7,9 +7,9 @@ struct inner:
 end struct inner
 
 fn.main [none] returns void:
-    let mut $out: os::stdout.unbuffered set_to os::stdout.unbuffered();
-    let $xs: std::list<inner>[len.max: inf items] set_to [inner[n set_to 1], inner[n set_to 2]];
-    let $first: Lend from $xs inner set_to Lend $xs[pos: 1];
+    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
+    let $xs: std::list<inner>[len.max: inf items] = [inner[n = 1], inner[n = 2]];
+    let $first: Lend from $xs inner = Lend $xs[pos: 1];
     std::io::fmt_print(Lend.mut $out, "{}{newln}", $first.n);
     return void;
 end fn.main

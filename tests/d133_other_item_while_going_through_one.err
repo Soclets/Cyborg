@@ -1,5 +1,5 @@
 NotDesignedYet: d133_other_item_while_going_through_one.cy:8:16, line 8 column 16
- 8 |         change $g[pos: 2] set_to [3];
+ 8 |         change $g[pos: 2] = [3];
    |                ^^^^^^^^^^
  what: changing one part of `$g` while a `for` reads another
  why:  not decided yet, and the standard doesn't say

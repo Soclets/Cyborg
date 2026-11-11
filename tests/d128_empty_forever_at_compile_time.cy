@@ -6,7 +6,7 @@ fn.pure.baked spin [none] returns i32:
     end forever
 end fn.pure.baked spin
 
-const $a: i32 set_to spin();
+const $a: i32 = spin();
 
 fn.main [none] returns void:
     return void;

@@ -1,5 +1,5 @@
 refused: d158_min_above_max.cy:4:13, line 4 column 13
- 4 |     let $t: f64.stable[min: 2.0, max: 1.0] set_to 1.5;
+ 4 |     let $t: f64.stable[min: 2.0, max: 1.0] = 1.5;
    |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
  what: `min` is above `max`, so nothing fits
  why:  a bounded float holds only its range (D158)

@@ -1,5 +1,5 @@
-refused: d255_plain_as_to_a_bigger_unit.cy:15:49, line 15 column 49
-15 |     let $k: i32[unit: length.kilometers] set_to $m as i32[unit: length.kilometers];
-   |                                                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+refused: d255_plain_as_to_a_bigger_unit.cy:15:44, line 15 column 44
+15 |     let $k: i32[unit: length.kilometers] = $m as i32[unit: length.kilometers];
+   |                                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
  what: this goes to a unit 1000 times bigger, which can lose something, so `as` says how it rounds
  why:  a value changes unit with `as`: a float rounds to the nearest, an integer going to a smaller unit is exact, and one going to a bigger unit says how it rounds with `as.trunc`, `as.floor` or `as.exact` (D255)

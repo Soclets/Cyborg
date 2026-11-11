@@ -15,8 +15,8 @@ fn load [none] returns i32 fails [file_failed.denied, net_failed.denied]:
 end fn load
 
 fn.main [none] returns void:
-    let mut $out: os::stdout.unbuffered set_to os::stdout.unbuffered();
-    let $n: i32 set_to load() otherwise:
+    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
+    let $n: i32 = load() otherwise:
         case file_failed.denied:
             std::io::fmt_print(Lend.mut $out, "file{newln}");
             return void;

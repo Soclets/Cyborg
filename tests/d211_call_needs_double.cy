@@ -10,7 +10,7 @@ fn reading.%%warm_up [$r: Lent.mut reading, $by: i32] returns void:
 end fn reading.%%warm_up
 
 fn.main [none] returns void:
-    let mut $r: reading set_to reading[celsius set_to 20];
+    let mut $r: reading = reading[celsius = 20];
     $r.%warm_up(by: 3);
     return void;
 end fn.main

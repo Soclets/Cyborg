@@ -1138,8 +1138,8 @@ impl Checker<'_> {
                     UnitMeaning::Unsaid => {
                         return Err(Report::refused(
                             member.path.span,
-                            "this unit says neither `base` nor `set_to`",
-                            "every unit says what it is, `: base` or `set_to` with a conversion (D109, D276)",
+                            "this unit says neither `base` nor `=`",
+                            "every unit says what it is, `: base` or `=` with a conversion (D109)",
                         ));
                     }
                 };
@@ -1167,7 +1167,7 @@ impl Checker<'_> {
                 return Err(Report::refused(
                     line.span,
                     "`together` lines are gone",
-                    "a unit made of others is declared once, inside a family, with `per` and `x`, as in `motion.speed set_to length.meters per time.seconds;` (D242, D276)",
+                    "a unit made of others is declared once, inside a family, with `per` and `x`, as in `motion.speed = length.meters per time.seconds;` (D242)",
                 ));
             }
         }
@@ -1209,7 +1209,7 @@ impl Checker<'_> {
                     return Err(Report::refused(
                         target_span,
                         format!("the unit `{target}` isn't known"),
-                        "`set_to` points at a unit, in any family (D109, D276)",
+                        "`=` points at a unit, in any family (D109)",
                     ));
                 }
                 if seen.contains(&target) {

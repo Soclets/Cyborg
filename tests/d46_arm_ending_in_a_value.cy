@@ -6,7 +6,7 @@ fn first_word [none] returns str fails [too_long]:
 end fn first_word
 
 fn.main [none] returns void:
-    let $w: str set_to first_word() otherwise:
+    let $w: str = first_word() otherwise:
         case too_long:
             "…";
     end otherwise

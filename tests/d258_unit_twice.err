@@ -1,5 +1,5 @@
 refused: d258_unit_twice.cy:11:38, line 11 column 38
-11 |     let $d: i32[unit: length.meters, unit: length.kilometers] set_to 5 length.meters;
+11 |     let $d: i32[unit: length.meters, unit: length.kilometers] = 5 length.meters;
    |                                      ^^^^
  what: this type says `unit:` twice
  why:  a type's unit is a `unit:` label in its brackets (D258)

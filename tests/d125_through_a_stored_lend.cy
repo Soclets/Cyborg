@@ -5,8 +5,8 @@ struct box:
 end struct box
 
 fn.main [none] returns void:
-    let mut $b: box set_to box[n set_to 1];
-    let $l: Lend from $b box set_to Lend $b;
-    change $l.n set_to 2;
+    let mut $b: box = box[n = 1];
+    let $l: Lend from $b box = Lend $b;
+    change $l.n = 2;
     return void;
 end fn.main

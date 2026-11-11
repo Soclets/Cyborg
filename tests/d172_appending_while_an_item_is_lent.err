@@ -4,6 +4,6 @@ refused: d172_appending_while_an_item_is_lent.cy:14:52, line 14 column 52
  what: `$first` can't be used after what it borrows was used
  why:  a stored `Lend.mut` means nothing else uses it meanwhile, and a `Lend` means it can't change (D2)
  because: d172_appending_while_an_item_is_lent.cy:13:5, line 13 column 5
-13 |     $xs.std::%%append(val: inner[n set_to 2]);
+13 |     $xs.std::%%append(val: inner[n = 2]);
    |     ^^^
      what it borrows was used here

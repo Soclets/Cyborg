@@ -5,7 +5,7 @@ fn f [none] returns str fails [a[label: str]]:
 end fn f
 
 fn.main [none] returns void:
-    let $s: str set_to f() otherwise:
+    let $s: str = f() otherwise:
         case a $x:
             instead $x.label;
     end otherwise

@@ -9,9 +9,9 @@ struct reading:
 end struct reading
 
 fn.main [none] returns void:
-    let mut $out: os::stdout.unbuffered set_to os::stdout.unbuffered();
-    let $d: i32[unit: seconds.span] set_to 3600 seconds;
-    let $r: reading set_to reading[time set_to 3600 std::units::time.seconds];
+    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
+    let $d: i32[unit: seconds.span] = 3600 seconds;
+    let $r: reading = reading[time = 3600 std::units::time.seconds];
     std::io::fmt_print(Lend.mut $out, "{}{newln}", $d);
     return void;
 end fn.main

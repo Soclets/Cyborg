@@ -7,12 +7,12 @@ union.tagged status:
 end union.tagged status
 
 fn.main [none] returns void:
-    let $s: status set_to status.failed[code set_to 1];
+    let $s: status = status.failed[code = 1];
     forever:
         if $s: status.failed:
             break;
         end if
     end forever
-    let $n: i32 set_to $s.code;
+    let $n: i32 = $s.code;
     return void;
 end fn.main

@@ -4,11 +4,11 @@ import std;
 import os;
 
 fn.main [none] returns void:
-    let mut $out: os::stdout.unbuffered set_to os::stdout.unbuffered();
-    let $name: str set_to "rope";
-    let $count: i32 set_to 3;
-    let $price: f64.stable set_to 12.5;
-    let $tenth: f64.stable set_to ~0.1;
+    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
+    let $name: str = "rope";
+    let $count: i32 = 3;
+    let $price: f64.stable = 12.5;
+    let $tenth: f64.stable = ~0.1;
     std::io::fmt_print(Lend.mut $out, "hi{newln}");
     std::io::fmt_print(Lend.mut $out, "{}: {} at ${places: 2}{newln}", $name, $count, $price);
     std::io::fmt_print(Lend.mut $out, "0x{base: hex.upper, zeros, width: 4 cols}{newln}", 255);

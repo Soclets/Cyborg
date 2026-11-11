@@ -5,6 +5,6 @@ fam.unit time:
 end fam.unit time
 
 fn.main [none] returns void:
-    let $t: f64.stable[unit: time.seconds, min: 0.0, max: 1.0] set_to 0.5 time.seconds;
+    let $t: f64.stable[unit: time.seconds, min: 0.0, max: 1.0] = 0.5 time.seconds;
     return void;
 end fn.main

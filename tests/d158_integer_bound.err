@@ -1,5 +1,5 @@
 NotDesignedYet: d158_integer_bound.cy:4:29, line 4 column 29
- 4 |     let $t: f64.stable[min: 0, max: 1] set_to 0.5;
+ 4 |     let $t: f64.stable[min: 0, max: 1] = 0.5;
    |                             ^
  what: an integer literal where a float is needed
  why:  not decided yet, and the standard doesn't say

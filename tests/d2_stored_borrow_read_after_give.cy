@@ -9,9 +9,9 @@ fn eat [$r: Given reading] returns void:
 end fn eat
 
 fn.main [none] returns void:
-    let $r: reading set_to reading[celsius set_to 21];
-    let $b: Lend from $r reading set_to Lend $r;
+    let $r: reading = reading[celsius = 21];
+    let $b: Lend from $r reading = Lend $r;
     eat(Give $r);
-    let $n: i32 set_to $b.celsius;
+    let $n: i32 = $b.celsius;
     return void;
 end fn.main

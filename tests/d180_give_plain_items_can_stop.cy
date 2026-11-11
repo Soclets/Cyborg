@@ -4,8 +4,8 @@ import std;
 import os;
 
 fn.main [none] returns void:
-    let mut $out: os::stdout.unbuffered set_to os::stdout.unbuffered();
-    let $xs: std::list<i32>[len.max: inf items] set_to [1, 2, 3];
+    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
+    let $xs: std::list<i32>[len.max: inf items] = [1, 2, 3];
     for $n in Give $xs:
         if $n == 2:
             break;

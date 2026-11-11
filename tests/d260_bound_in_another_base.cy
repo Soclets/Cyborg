@@ -10,6 +10,6 @@ fam.unit time:
 end fam.unit time
 
 fn.main [none] returns void:
-    let $d: f64.stable[unit: length.meters, min: 0.0 length.meters, max: 5.0 time.seconds] set_to 1.0 length.meters;
+    let $d: f64.stable[unit: length.meters, min: 0.0 length.meters, max: 5.0 time.seconds] = 1.0 length.meters;
     return void;
 end fn.main

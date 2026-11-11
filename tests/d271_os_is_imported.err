@@ -1,5 +1,5 @@
 refused: d271_os_is_imported.cy:6:19, line 6 column 19
- 6 |     let mut $out: os::stdout.unbuffered set_to os::stdout.unbuffered();
+ 6 |     let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
    |                   ^^^^^^^^^^^^^^^^^^^^^
  fix:  `import os;`
  why:  a program that uses `os` says `need os` in its manifest and `import os;` in its files (D271, D82)

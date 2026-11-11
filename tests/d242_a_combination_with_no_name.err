@@ -1,5 +1,5 @@
-refused: d242_a_combination_with_no_name.cy:23:33, line 23 column 33
-23 |     let $odd: f64.stable set_to $dist x $time;
-   |                                 ^^^^^^^^^^^^^
+refused: d242_a_combination_with_no_name.cy:23:28, line 23 column 28
+23 |     let $odd: f64.stable = $dist x $time;
+   |                            ^^^^^^^^^^^^^
  what: this is `f64.stable[unit: length.meters x time.seconds]`, where `f64.stable` is needed
  why:  storing a value needs a declared unit whose powers match (D242)

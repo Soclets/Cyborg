@@ -3,6 +3,6 @@
 import std;
 
 fn.main [none] returns void:
-    let $s: str set_to "a\\b";
+    let $s: str = "a\\b";
     return void;
 end fn.main

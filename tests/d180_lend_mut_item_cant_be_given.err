@@ -10,6 +10,6 @@ refused: d180_lend_mut_item_cant_be_given.cy:21:5, line 21 column 5
  what: this leaves with `$files` never given away or finished
  why:  a `must_Give` value is handed off with `Give` exactly once, or `finish` ends it (D2, D129)
  because: d180_lend_mut_item_cant_be_given.cy:17:13, line 17 column 13
-17 |     let mut $files: std::list<open_file>[len.max: inf items] set_to [open_file[fd set_to 3]];
+17 |     let mut $files: std::list<open_file>[len.max: inf items] = [open_file[fd = 3]];
    |             ^^^^^^
      `$files` was made here

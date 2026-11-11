@@ -7,7 +7,7 @@ struct.must_Give open_file:
 end struct.must_Give open_file
 
 fn close [$f: Given open_file] returns void:
-    let mut $out: os::stdout.unbuffered set_to os::stdout.unbuffered();
+    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     std::io::fmt_print(Lend.mut $out, "closing {}{newln}", $f.fd);
     finish $f;
     return void;

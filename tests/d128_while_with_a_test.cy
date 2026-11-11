@@ -6,7 +6,7 @@ union.tagged status:
 end union.tagged status
 
 fn.main [none] returns void:
-    let $s: status set_to status.ok;
+    let $s: status = status.ok;
     while $s: status.ok:
         return void;
     end while

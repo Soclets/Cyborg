@@ -590,7 +590,7 @@ impl Checker<'_> {
                     _ => {
                         return Err(Report::refused(
                             span,
-                            format!("nothing here says which type `?{name}` is, so this line says one, as in `: i32 set_to`"),
+                            format!("nothing here says which type `?{name}` is, so this line says one, as in `: i32 =`"),
                             "a call fills a type parameter from its arguments, and bare literals from the type the result goes into (D241, D50)",
                         ));
                     }

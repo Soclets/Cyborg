@@ -7,13 +7,13 @@ struct box:
 end struct box
 
 fn replace [$b: Lent.mut box] returns void:
-    change $b set_to box[n set_to 9];
+    change $b = box[n = 9];
     return void;
 end fn replace
 
 fn.main [none] returns void:
-    let mut $out: os::stdout.unbuffered set_to os::stdout.unbuffered();
-    let mut $b: box set_to box[n set_to 1];
+    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
+    let mut $b: box = box[n = 1];
     replace(Lend.mut $b);
     std::io::fmt_print(Lend.mut $out, "{}{newln}", $b.n);
     return void;

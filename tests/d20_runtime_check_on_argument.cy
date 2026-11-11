@@ -5,7 +5,7 @@ fn use_score [$s: i32[min: 0, max: 100]] returns void:
 end fn use_score
 
 fn.main [none] returns void:
-    let $n: i32 set_to -1;
+    let $n: i32 = -1;
     use_score($n);
     return void;
 end fn.main

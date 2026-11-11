@@ -9,7 +9,7 @@ fn box.%%bump [$b: Lent.mut box] returns void:
 end fn box.%%bump
 
 fn make [none] returns box:
-    return box[n set_to 1];
+    return box[n = 1];
 end fn make
 
 fn.main [none] returns void:

@@ -2,7 +2,7 @@
 import std;
 
 fn f [$a: std::array<i32>[len: 2 items]] returns void:
-    change $a[pos: 1] set_to 9;
+    change $a[pos: 1] = 9;
     return void;
 end fn f
 

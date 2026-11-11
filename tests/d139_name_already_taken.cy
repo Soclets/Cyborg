@@ -6,8 +6,8 @@ fn f [none] returns i32 fails [a[val: i32]]:
 end fn f
 
 fn.main [none] returns void:
-    let $x: i32 set_to 1;
-    let $n: i32 set_to f() otherwise:
+    let $x: i32 = 1;
+    let $n: i32 = f() otherwise:
         case a $x:
             instead 1;
     end otherwise

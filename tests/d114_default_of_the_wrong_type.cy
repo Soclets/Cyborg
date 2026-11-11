@@ -2,7 +2,7 @@
 
 fn f [$a: i32] returns i32:
     labels [$a as first];
-    defaults [$a set_to "x"];
+    defaults [$a = "x"];
 
     return $a;
 end fn f

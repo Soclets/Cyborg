@@ -1,5 +1,5 @@
-refused: d206_trailing_doc_comment.cy:4:27, line 4 column 27
- 4 |     let $x: i32 set_to 1; /// a doc
-   |                           ^^^^^^^^^
+refused: d206_trailing_doc_comment.cy:4:22, line 4 column 22
+ 4 |     let $x: i32 = 1; /// a doc
+   |                      ^^^^^^^^^
  fix:  `/// a doc`
  why:  a `///` sits above what it describes, so it can't trail code, though a `//` can (D206, D205)

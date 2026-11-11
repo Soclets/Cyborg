@@ -1,5 +1,5 @@
-refused: d141_crossing_needs_as.cy:7:28, line 7 column 28
- 7 |     let $u: user_id set_to $n;
-   |                            ^^
+refused: d141_crossing_needs_as.cy:7:23, line 7 column 23
+ 7 |     let $u: user_id = $n;
+   |                       ^^
  what: this is `i64`, where `user_id` is needed
  why:  a `type.new` is a different type, so it doesn't mix with another, or with what it's made from (D134)

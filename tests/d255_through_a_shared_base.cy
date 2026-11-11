@@ -5,17 +5,17 @@ import os;
 
 fam.unit length:
     length.meters: base;
-    length.kilometers set_to 1000 length.meters;
+    length.kilometers = 1000 length.meters;
     length.inches: base;
-    length.yards set_to 36 length.inches;
-    length.feet set_to 12 length.inches;
+    length.yards = 36 length.inches;
+    length.feet = 12 length.inches;
 end fam.unit length
 
 fn.main [none] returns void:
-    let mut $out: os::stdout.unbuffered set_to os::stdout.unbuffered();
-    let $y: i32[unit: length.yards] set_to 2 length.yards;
-    let $f: i32[unit: length.feet] set_to $y as i32[unit: length.feet];
-    let $i: i32[unit: length.inches] set_to $y as i32[unit: length.inches];
+    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
+    let $y: i32[unit: length.yards] = 2 length.yards;
+    let $f: i32[unit: length.feet] = $y as i32[unit: length.feet];
+    let $i: i32[unit: length.inches] = $y as i32[unit: length.inches];
     std::io::fmt_print(Lend.mut $out, "{} {}{newln}", $f, $i);
     return void;
 end fn.main

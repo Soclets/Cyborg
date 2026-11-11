@@ -1,5 +1,5 @@
 NotDesignedYet: d171_built_with_nothing_saying_its_sources.cy:16:52, line 16 column 52
-16 |     std::io::fmt_print(Lend.mut $out, "{}{newln}", view[words set_to Lend $a].words.celsius);
-   |                                                    ^^^^^^^^^^^^^^^^^^^^^^^^^^
+16 |     std::io::fmt_print(Lend.mut $out, "{}{newln}", view[words = Lend $a].words.celsius);
+   |                                                    ^^^^^^^^^^^^^^^^^^^^^
  what: building `view`, which holds borrows, where nothing says its sources
  why:  not decided yet, and the standard doesn't say

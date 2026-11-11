@@ -1,5 +1,5 @@
-refused: d159_always_copied.cy:5:33, line 5 column 33
- 5 |     let $again: f64.ieee set_to Copy $reading;
-   |                                 ^^^^^^^^^^^^^
+refused: d159_always_copied.cy:5:28, line 5 column 28
+ 5 |     let $again: f64.ieee = Copy $reading;
+   |                            ^^^^^^^^^^^^^
  fix:  `$reading`
  why:  plain numbers and `bool` are always copied, and take no word (D2, D123)

@@ -1,5 +1,5 @@
-refused: d134_new_doesnt_mix_with_another.cy:7:29, line 7 column 29
- 7 |     let $o: order_id set_to $u;
-   |                             ^^
+refused: d134_new_doesnt_mix_with_another.cy:7:24, line 7 column 24
+ 7 |     let $o: order_id = $u;
+   |                        ^^
  what: this is `user_id`, where `order_id` is needed
  why:  a `type.new` is a different type, so it doesn't mix with another, or with what it's made from (D134)

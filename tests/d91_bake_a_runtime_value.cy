@@ -5,7 +5,7 @@ fn.pure.baked f [$w: i32] returns i32:
 end fn.pure.baked f
 
 fn.main [none] returns void:
-    let $d: i32 set_to 2;
-    let $a: i32 set_to bake f($d);
+    let $d: i32 = 2;
+    let $a: i32 = bake f($d);
     return void;
 end fn.main

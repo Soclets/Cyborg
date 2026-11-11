@@ -1,6 +1,6 @@
-refused: d185_moving_a_number_field.cy:24:24, line 24 column 24
-24 |     let $n: i32 set_to Give $l.lines;
-   |                        ^^^^^^^^^^^^^
+refused: d185_moving_a_number_field.cy:24:19, line 24 column 19
+24 |     let $n: i32 = Give $l.lines;
+   |                   ^^^^^^^^^^^^^
  fix:  `$l.lines`
  why:  plain numbers and `bool` are always copied, and take no word (D2, D123)
 
@@ -10,6 +10,6 @@ refused: d185_moving_a_number_field.cy:25:5, line 25 column 5
  what: this leaves with `$l` never given away or finished
  why:  a `must_Give` value is handed off with `Give` exactly once, or `finish` ends it (D2, D129)
  because: d185_moving_a_number_field.cy:23:9, line 23 column 9
-23 |     let $l: log set_to log[file set_to open_file[fd set_to 4], lines set_to 7];
+23 |     let $l: log = log[file = open_file[fd = 4], lines = 7];
    |         ^^
      `$l` was made here

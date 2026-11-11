@@ -2,6 +2,6 @@
 import std;
 
 fn.main [none] returns void:
-    let $b: std::list<i32>[len.max: 8 items] set_to [];
+    let $b: std::list<i32>[len.max: 8 items] = [];
     return void;
 end fn.main

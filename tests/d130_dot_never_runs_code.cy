@@ -9,7 +9,7 @@ fn box.%f [$b: box] returns i32:
 end fn box.%f
 
 fn.main [none] returns void:
-    let $b: box set_to box[n set_to 1];
-    let $n: i32 set_to $b.f();
+    let $b: box = box[n = 1];
+    let $n: i32 = $b.f();
     return void;
 end fn.main

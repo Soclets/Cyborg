@@ -10,8 +10,8 @@ op == [$a: money, $b: money] returns bool:
 end op ==
 
 fn.main [none] returns void:
-    let $a: money set_to money[cents set_to 1];
-    let $b: money set_to money[cents set_to 2];
-    let $c: bool set_to $a above $b;
+    let $a: money = money[cents = 1];
+    let $b: money = money[cents = 2];
+    let $c: bool = $a above $b;
     return void;
 end fn.main

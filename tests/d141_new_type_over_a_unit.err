@@ -1,5 +1,5 @@
-refused: d141_new_type_over_a_unit.cy:12:30, line 12 column 30
-12 |     let $bad: timeout set_to 5;
-   |                              ^
+refused: d141_new_type_over_a_unit.cy:12:25, line 12 column 25
+12 |     let $bad: timeout = 5;
+   |                         ^
  fix:  `5 time.seconds`
  why:  a unit is required where the type asks for one (D101)

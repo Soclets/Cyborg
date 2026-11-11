@@ -1,5 +1,5 @@
 NotDesignedYet: d159_bound_on_ieee.cy:4:19, line 4 column 19
- 4 |     let $reading: f64.ieee[min: 0.0, max: 1.0] set_to 0.5;
+ 4 |     let $reading: f64.ieee[min: 0.0, max: 1.0] = 0.5;
    |                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
  what: a bound on `f64.ieee`
  why:  not decided yet (standard 12.2)

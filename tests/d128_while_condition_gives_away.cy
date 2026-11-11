@@ -6,9 +6,9 @@ fn eat [$s: Given str] returns bool:
 end fn eat
 
 fn.main [none] returns void:
-    let $s: str set_to "a";
+    let $s: str = "a";
     while eat(Give $s):
-        let $n: i32 set_to 1;
+        let $n: i32 = 1;
     end while
     return void;
 end fn.main

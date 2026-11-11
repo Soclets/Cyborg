@@ -1,6 +1,6 @@
-NotDesignedYet: d42_minus_overflow_isnt_decided.cy:5:24, line 5 column 24
- 5 |     let $b: i32 set_to $a - 1;
-   |                        ^^^^^^
+NotDesignedYet: d42_minus_overflow_isnt_decided.cy:5:19, line 5 column 19
+ 5 |     let $b: i32 = $a - 1;
+   |                   ^^^^^^
  what: what happens when `-` overflows
  why:  not decided yet (standard 12.3)
  when: `-2147483648` and `1` in `i32`

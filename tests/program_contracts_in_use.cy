@@ -3,7 +3,7 @@
 import std;
 import os;
 
-const $week: i32 set_to days(7);
+const $week: i32 = days(7);
 
 fn.pure.baked days [$n: i32] returns i32:
     return $n x 86_400;
@@ -15,7 +15,7 @@ end fn.pure is_positive
 
 fn per_day [$total: i32, $n: i32] returns i32 fails [nothing_to_share]:
     labels [$n as days];
-    defaults [$n set_to 7];
+    defaults [$n = 7];
     requires is_positive($n);
     ensures result x $n at_most $total;
 
@@ -26,7 +26,7 @@ fn per_day [$total: i32, $n: i32] returns i32 fails [nothing_to_share]:
 end fn per_day
 
 fn.main [none] returns void:
-    let mut $out: os::stdout.unbuffered set_to os::stdout.unbuffered();
+    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     std::io::fmt_print(Lend.mut $out, "{}{newln}", $week);
     std::io::fmt_print(Lend.mut $out, "{}{newln}", per_day($week));
     std::io::fmt_print(Lend.mut $out, "{}{newln}", per_day($week, days: 2));

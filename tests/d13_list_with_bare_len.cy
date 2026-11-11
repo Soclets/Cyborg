@@ -2,6 +2,6 @@
 import std;
 
 fn.main [none] returns void:
-    let $xs: std::list<i32>[len: 3 items] set_to [1, 2, 3];
+    let $xs: std::list<i32>[len: 3 items] = [1, 2, 3];
     return void;
 end fn.main

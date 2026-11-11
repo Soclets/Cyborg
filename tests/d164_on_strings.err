@@ -1,5 +1,5 @@
-refused: d164_on_strings.cy:5:24, line 5 column 24
- 5 |     let $b: str set_to $a div $a;
-   |                        ^^^^^^^^^
+refused: d164_on_strings.cy:5:19, line 5 column 19
+ 5 |     let $b: str = $a div $a;
+   |                   ^^^^^^^^^
  what: maths needs numbers, and this has `str` and `str`
  why:  `:` doesn't convert, and `as` builds a new value of another type (D7)

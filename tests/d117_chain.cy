@@ -3,8 +3,8 @@ import std;
 import os;
 
 fn.main [none] returns void:
-    let mut $out: os::stdout.unbuffered set_to os::stdout.unbuffered();
-    let $x: i32 set_to 3;
+    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
+    let $x: i32 = 3;
     if 1 below $x below 5:
         std::io::fmt_print(Lend.mut $out, "between{newln}");
     end if

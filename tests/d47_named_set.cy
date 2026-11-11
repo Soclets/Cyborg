@@ -21,8 +21,8 @@ fn load [$which: i32] returns i32 fails [file_failed, bad_syntax]:
 end fn load
 
 fn name_of [$which: i32] returns void:
-    let mut $out: os::stdout.unbuffered set_to os::stdout.unbuffered();
-    let $n: i32 set_to load($which) otherwise:
+    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
+    let $n: i32 = load($which) otherwise:
         case not_found:
             std::io::fmt_print(Lend.mut $out, "not found{newln}");
             return void;

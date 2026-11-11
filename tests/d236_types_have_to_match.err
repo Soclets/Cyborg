@@ -1,5 +1,5 @@
-refused: d236_types_have_to_match.cy:15:26, line 15 column 26
-15 |     let $c: money set_to $a + $n;
-   |                          ^^^^^^^
+refused: d236_types_have_to_match.cy:15:21, line 15 column 21
+15 |     let $c: money = $a + $n;
+   |                     ^^^^^^^
  what: there's no `op +` for `money` and `i64`
  why:  a struct or union gets an operator by defining it with `op`, and it applies only where its values' types match (D236, D237)

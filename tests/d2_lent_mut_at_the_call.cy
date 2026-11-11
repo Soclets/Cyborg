@@ -5,7 +5,7 @@ fn f [$s: Lent.mut str] returns void:
 end fn f
 
 fn.main [none] returns void:
-    let mut $s: str set_to "a";
+    let mut $s: str = "a";
     f(Lent.mut $s);
     return void;
 end fn.main

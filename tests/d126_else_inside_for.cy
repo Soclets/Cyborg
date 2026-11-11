@@ -4,8 +4,8 @@ import std;
 import os;
 
 fn.main [none] returns void:
-    let mut $out: os::stdout.unbuffered set_to os::stdout.unbuffered();
-    let $xs: std::array<i32>[len: 1 items] set_to [1];
+    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
+    let $xs: std::array<i32>[len: 1 items] = [1];
     if 1 below 2:
         for $x in $xs:
             std::io::fmt_print(Lend.mut $out, "x{newln}");

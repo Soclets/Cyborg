@@ -8,8 +8,8 @@ end struct.must_Give open_file
 
 fn.main [none] returns void:
     decl $x: open_file;
-    assign $x set_to open_file[fd set_to 3];
-    let $n: i64 set_to $x.fd;
+    assign $x = open_file[fd = 3];
+    let $n: i64 = $x.fd;
     finish $x;
     return void;
 end fn.main

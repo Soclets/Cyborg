@@ -7,6 +7,6 @@ fn wrong [$n: i32] returns i32:
 end fn wrong
 
 fn.main [none] returns void:
-    let $a: i32 set_to wrong(5);
+    let $a: i32 = wrong(5);
     return void;
 end fn.main

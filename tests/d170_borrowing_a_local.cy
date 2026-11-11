@@ -5,7 +5,7 @@ struct reading:
 end struct reading
 
 fn make [none] returns Lend from $r reading:
-    let $r: reading set_to reading[celsius set_to 1];
+    let $r: reading = reading[celsius = 1];
     return Lend $r;
 end fn make
 

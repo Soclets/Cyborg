@@ -4,17 +4,17 @@ import std;
 import os;
 
 fn print_backwards [$xs: std::list<str>[len.max: 8 items]] returns void:
-    let mut $out: os::stdout.unbuffered set_to os::stdout.unbuffered();
-    let mut $at: u64 set_to $xs.len as u64;
+    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
+    let mut $at: u64 = $xs.len as u64;
     while $at above 0:
         std::io::fmt_print(Lend.mut $out, "{}{newln}", $xs[pos: $at]);
-        change $at set_to $at - 1;
+        change $at = $at - 1;
     end while
     return void;
 end fn print_backwards
 
 fn.main [none] returns void:
-    let mut $lines: std::list<str>[len.max: 8 items] set_to empty;
+    let mut $lines: std::list<str>[len.max: 8 items] = empty;
     $lines.std::%%append(val: "first");
     $lines.std::%%append(val: "second");
     $lines.std::%%append(val: "third");

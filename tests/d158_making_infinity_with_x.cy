@@ -4,11 +4,11 @@ import std;
 import os;
 
 fn.main [none] returns void:
-    let mut $out: os::stdout.unbuffered set_to os::stdout.unbuffered();
-    let mut $x: f64.stable set_to 2.0;
+    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
+    let mut $x: f64.stable = 2.0;
     for $i in range[from: 1, to: 10]:
         std::io::fmt_print(Lend.mut $out, "{}{newln}", $i);
-        change $x set_to $x x $x;
+        change $x = $x x $x;
     end for
     return void;
 end fn.main

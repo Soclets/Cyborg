@@ -1,5 +1,5 @@
-refused: d2_stored_borrow_from_something_else.cy:10:41, line 10 column 41
-10 |     let $b: Lend from $a reading set_to Lend $c;
-   |                                         ^^^^^^^
+refused: d2_stored_borrow_from_something_else.cy:10:36, line 10 column 36
+10 |     let $b: Lend from $a reading = Lend $c;
+   |                                    ^^^^^^^
  what: this borrow says it's from `$a`
  why:  a stored borrow's type says what it borrows (D2)

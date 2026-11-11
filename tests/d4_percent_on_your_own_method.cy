@@ -6,7 +6,7 @@ struct point:
 end struct point
 
 fn.main [none] returns void:
-    let $p: point set_to point[x set_to 1];
+    let $p: point = point[x = 1];
     $p.%area();
     return void;
 end fn.main

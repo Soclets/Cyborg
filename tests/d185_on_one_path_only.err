@@ -10,6 +10,6 @@ refused: d185_on_one_path_only.cy:27:5, line 27 column 5
  what: this leaves with `$l` never given away or finished
  why:  a `must_Give` value is handed off with `Give` exactly once, or `finish` ends it (D2, D129)
  because: d185_on_one_path_only.cy:22:9, line 22 column 9
-22 |     let $l: log set_to log[file set_to open_file[fd set_to 4], lines set_to 7];
+22 |     let $l: log = log[file = open_file[fd = 4], lines = 7];
    |         ^^
      `$l` was made here

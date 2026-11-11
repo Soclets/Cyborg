@@ -1,5 +1,5 @@
-refused: d23_unknown_function.cy:4:24, line 4 column 24
- 4 |     let $a: i32 set_to nothing();
-   |                        ^^^^^^^
+refused: d23_unknown_function.cy:4:19, line 4 column 19
+ 4 |     let $a: i32 = nothing();
+   |                   ^^^^^^^
  what: the function `nothing` isn't declared
  why:  a function is declared with `fn` and `[ ]` (D23)

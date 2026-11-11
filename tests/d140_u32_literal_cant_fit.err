@@ -1,5 +1,5 @@
-refused: d140_u32_literal_cant_fit.cy:4:24, line 4 column 24
- 4 |     let $a: u32 set_to 4294967296;
-   |                        ^^^^^^^^^^
+refused: d140_u32_literal_cant_fit.cy:4:19, line 4 column 19
+ 4 |     let $a: u32 = 4294967296;
+   |                   ^^^^^^^^^^
  what: `4294967296` doesn't fit `u32`
  why:  a literal that can't fit is a compile error (D20)

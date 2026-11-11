@@ -1,5 +1,5 @@
 refused: d213_after_a_label.cy:6:20, line 6 column 20
- 6 |     let $a: i32[min:0, max: 9] set_to 1;
+ 6 |     let $a: i32[min:0, max: 9] = 1;
    |                    ^^
  fix:  `: 0`
  why:  a comma or a label's `:` is followed by one space (D213)

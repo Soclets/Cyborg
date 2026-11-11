@@ -8,8 +8,8 @@ end fam.unit screen
 
 fn draw [$x: i32[unit: screen.pixels]] returns void:
     labels [$x as at.screen.pixels];
-    defaults [$x set_to 3];
-    let mut $out: os::stdout.unbuffered set_to os::stdout.unbuffered();
+    defaults [$x = 3];
+    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
 
     std::io::fmt_print(Lend.mut $out, "{}{newln}", ($x as i32));
     return void;

@@ -6,9 +6,9 @@ struct holder:
 end struct holder
 
 fn.main [none] returns void:
-    let mut $h: holder set_to holder[items set_to [1, 2]];
+    let mut $h: holder = holder[items = [1, 2]];
     for $n in Lend.mut $h.items:
-        change $n set_to 0;
+        change $n = 0;
     end for
     return void;
 end fn.main

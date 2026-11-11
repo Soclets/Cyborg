@@ -3,7 +3,7 @@ import std;
 import os;
 
 fn inner [none] returns i32 fails [lost[where: i32]]:
-    fail lost[where set_to 9];
+    fail lost[where = 9];
 end fn inner
 
 fn outer [none] returns i32 fails [lost[where: i32]]:
@@ -11,8 +11,8 @@ fn outer [none] returns i32 fails [lost[where: i32]]:
 end fn outer
 
 fn.main [none] returns void:
-    let mut $out: os::stdout.unbuffered set_to os::stdout.unbuffered();
-    let $n: i32 set_to outer() otherwise:
+    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
+    let $n: i32 = outer() otherwise:
         case lost $l:
             instead $l.where;
     end otherwise

@@ -19,8 +19,8 @@ fn pick [$b: Given box, $early: bool] returns i32:
 end fn pick
 
 fn.main [none] returns void:
-    let mut $out: os::stdout.unbuffered set_to os::stdout.unbuffered();
-    std::io::fmt_print(Lend.mut $out, "{}{newln}", pick(box[n set_to 1], 1 below 2));
-    std::io::fmt_print(Lend.mut $out, "{}{newln}", pick(box[n set_to 1], 2 below 1));
+    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
+    std::io::fmt_print(Lend.mut $out, "{}{newln}", pick(box[n = 1], 1 below 2));
+    std::io::fmt_print(Lend.mut $out, "{}{newln}", pick(box[n = 1], 2 below 1));
     return void;
 end fn.main

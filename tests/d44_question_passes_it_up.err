@@ -1,6 +1,6 @@
-check failed: d44_question_passes_it_up.cy:21:24, line 21 column 24
-21 |     let $b: i32 set_to outer(3);
-   |                        ^^^^^^^^
+check failed: d44_question_passes_it_up.cy:21:19, line 21 column 19
+21 |     let $b: i32 = outer(3);
+   |                   ^^^^^^^^
  what: `odd` failed, and nothing handled it
  why:  a failure nothing handles stops the program (D96)
  because: d44_question_passes_it_up.cy:7:9, line 7 column 9

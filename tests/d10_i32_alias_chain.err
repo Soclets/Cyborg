@@ -1,5 +1,5 @@
 refused: d10_i32_alias_chain.cy:4:13, line 4 column 13
- 4 |     let $a: int.signed.32_bit set_to 1;
+ 4 |     let $a: int.signed.32_bit = 1;
    |             ^^^^^^^^^^^^^^^^^
  fix:  `i32`
  why:  a 32-bit signed integer is `i32`, with one spelling and no alias (D10)

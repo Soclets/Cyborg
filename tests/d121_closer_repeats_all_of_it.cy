@@ -11,7 +11,7 @@ fn.pure.baked seconds_in [$days: i32] returns i32:
 end fn.pure.baked seconds_in
 
 fn.main [none] returns void:
-    let mut $out: os::stdout.unbuffered set_to os::stdout.unbuffered();
+    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     std::io::fmt_print(Lend.mut $out, "{}{newln}", area(3, 4));
     std::io::fmt_print(Lend.mut $out, "{}{newln}", seconds_in(2));
     return void;

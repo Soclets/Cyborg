@@ -4,6 +4,6 @@ refused: d125_field_of_a_must_give.cy:11:5, line 11 column 5
  what: this leaves with `$f` never given away or finished
  why:  a `must_Give` value is handed off with `Give` exactly once, or `finish` ends it (D2, D129)
  because: d125_field_of_a_must_give.cy:9:13, line 9 column 13
- 9 |     let mut $f: open_file set_to open_file[fd set_to 3];
+ 9 |     let mut $f: open_file = open_file[fd = 3];
    |             ^^
      `$f` was made here

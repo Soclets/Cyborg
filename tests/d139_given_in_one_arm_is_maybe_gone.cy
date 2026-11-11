@@ -6,11 +6,11 @@ fn f [none] returns str fails [a]:
 end fn f
 
 fn.main [none] returns void:
-    let $s: str set_to "y";
-    let $t: str set_to f() otherwise:
+    let $s: str = "y";
+    let $t: str = f() otherwise:
         case a:
             instead Give $s;
     end otherwise
-    let $u: str set_to Give $s;
+    let $u: str = Give $s;
     return void;
 end fn.main

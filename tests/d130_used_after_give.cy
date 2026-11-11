@@ -13,8 +13,8 @@ fn eat [$b: Given box] returns void:
 end fn eat
 
 fn.main [none] returns void:
-    let $b: box set_to box[n set_to 1];
+    let $b: box = box[n = 1];
     eat(Give $b);
-    let $n: i32 set_to $b.%read();
+    let $n: i32 = $b.%read();
     return void;
 end fn.main

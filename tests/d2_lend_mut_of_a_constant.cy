@@ -1,6 +1,6 @@
 // trace: D2, D83
 
-const $s: str set_to "a";
+const $s: str = "a";
 
 fn f [$s: Lent.mut str] returns void:
     return void;

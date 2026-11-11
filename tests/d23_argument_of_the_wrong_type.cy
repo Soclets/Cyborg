@@ -5,6 +5,6 @@ fn f [$a: i32] returns i32:
 end fn f
 
 fn.main [none] returns void:
-    let $a: i32 set_to f("x");
+    let $a: i32 = f("x");
     return void;
 end fn.main

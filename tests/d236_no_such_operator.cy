@@ -6,8 +6,8 @@ struct money:
 end struct money
 
 fn.main [none] returns void:
-    let $a: money set_to money[cents set_to 1];
-    let $b: money set_to money[cents set_to 2];
-    let $c: money set_to $a + $b;
+    let $a: money = money[cents = 1];
+    let $b: money = money[cents = 2];
+    let $c: money = $a + $b;
     return void;
 end fn.main

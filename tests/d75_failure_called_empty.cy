@@ -11,7 +11,7 @@ fn first_word [$bad: bool] returns void fails [too_long, empty]:
 end fn first_word
 
 fn.main [none] returns void:
-    let mut $out: os::stdout.unbuffered set_to os::stdout.unbuffered();
+    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     first_word(1 below 2) otherwise:
         case too_long:
             std::io::fmt_print(Lend.mut $out, "too long{newln}");

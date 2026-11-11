@@ -12,14 +12,14 @@ end struct index
 
 fn build [$article: reading, $list: reading] returns index<`text`: $article, `table`: $list>:
     requires $list lasts_at_least $article;
-    return index[words set_to Lend $article, lookup set_to Lend $list];
+    return index[words = Lend $article, lookup = Lend $list];
 end fn build
 
 fn.main [none] returns void:
-    let $article: reading set_to reading[celsius set_to 1];
+    let $article: reading = reading[celsius = 1];
     if $article.celsius above 0:
-        let $list: reading set_to reading[celsius set_to 2];
-        let $i: index<`text`: $article, `table`: $list> set_to build(Lend $article, Lend $list);
+        let $list: reading = reading[celsius = 2];
+        let $i: index<`text`: $article, `table`: $list> = build(Lend $article, Lend $list);
     end if
     return void;
 end fn.main

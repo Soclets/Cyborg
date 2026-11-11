@@ -4,9 +4,9 @@ import std;
 import os;
 
 fn.main [none] returns void:
-    let mut $out: os::stdout.unbuffered set_to os::stdout.unbuffered();
-    let $a: f64.fast set_to 1.5;
-    let $b: f64.fast set_to $a + $a x 2.0;
+    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
+    let $a: f64.fast = 1.5;
+    let $b: f64.fast = $a + $a x 2.0;
     std::io::fmt_print(Lend.mut $out, "ran{newln}");
     return void;
 end fn.main

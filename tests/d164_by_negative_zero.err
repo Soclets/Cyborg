@@ -1,6 +1,6 @@
-check failed: d164_by_negative_zero.cy:5:31, line 5 column 31
- 5 |     let $a: f64.stable set_to 1.0 div $zero;
-   |                               ^^^^^^^^^^^^^
+check failed: d164_by_negative_zero.cy:5:26, line 5 column 26
+ 5 |     let $a: f64.stable = 1.0 div $zero;
+   |                          ^^^^^^^^^^^^^
  what: this makes infinity
  why:  a float can't be NaN or infinity, and making one is a failure (D158)
  when: `1.0` and `-0.0` in `f64`

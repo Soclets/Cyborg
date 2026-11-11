@@ -6,6 +6,6 @@ fn read [none] returns i32 fails [none]:
 end fn read
 
 fn.main [none] returns void:
-    let $a: i32 set_to (read() + read()) ?? 0;
+    let $a: i32 = (read() + read()) ?? 0;
     return void;
 end fn.main

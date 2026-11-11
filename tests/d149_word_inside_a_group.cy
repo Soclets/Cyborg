@@ -4,10 +4,10 @@ struct reading:
     celsius: i32;
 end struct reading
 
-type.new wrapped set_to reading;
+type.new wrapped = reading;
 
 fn.main [none] returns void:
-    let $r: reading set_to reading[celsius set_to 1];
-    let $w: wrapped set_to (Give $r) as wrapped;
+    let $r: reading = reading[celsius = 1];
+    let $w: wrapped = (Give $r) as wrapped;
     return void;
 end fn.main

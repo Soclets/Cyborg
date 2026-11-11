@@ -6,11 +6,11 @@ union.tagged status:
 end union.tagged status
 
 fn.main [none] returns void:
-    let mut $s: status set_to status.failed[code set_to 3];
+    let mut $s: status = status.failed[code = 3];
     if $s: status.failed:
-        let $a: i32 set_to $s.code;
-        change $s set_to status.ok;
-        let $b: i32 set_to $s.code;
+        let $a: i32 = $s.code;
+        change $s = status.ok;
+        let $b: i32 = $s.code;
     end if
     return void;
 end fn.main

@@ -5,10 +5,10 @@ struct box:
 end struct box
 
 fn make [none] returns box:
-    return box[n set_to 1];
+    return box[n = 1];
 end fn make
 
 fn.main [none] returns void:
-    change make().n set_to 2;
+    change make().n = 2;
     return void;
 end fn.main

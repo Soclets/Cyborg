@@ -6,7 +6,7 @@ fn eat [$s: Given str] returns void:
 end fn eat
 
 fn.main [none] returns void:
-    let $s: str set_to "a";
+    let $s: str = "a";
     for $i in range[from: 1, to: 3]:
         eat(Give $s);
         break;

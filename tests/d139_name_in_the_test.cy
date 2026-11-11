@@ -7,9 +7,9 @@ union.tagged status:
 end union.tagged status
 
 fn.main [none] returns void:
-    let $s: status set_to status.ok;
+    let $s: status = status.ok;
     if $s: status.failed $f:
-        let $n: i32 set_to $f.code;
+        let $n: i32 = $f.code;
     end if
     return void;
 end fn.main

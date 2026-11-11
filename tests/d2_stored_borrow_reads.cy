@@ -11,9 +11,9 @@ fn read [$r: reading] returns i32:
 end fn read
 
 fn.main [none] returns void:
-    let mut $out: os::stdout.unbuffered set_to os::stdout.unbuffered();
-    let $r: reading set_to reading[celsius set_to 21];
-    let $b: Lend from $r reading set_to Lend $r;
+    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
+    let $r: reading = reading[celsius = 21];
+    let $b: Lend from $r reading = Lend $r;
     std::io::fmt_print(Lend.mut $out, "{}{newln}", $b.celsius);
     std::io::fmt_print(Lend.mut $out, "{}{newln}", read(Lend $b));
     std::io::fmt_print(Lend.mut $out, "{}{newln}", $r.celsius);

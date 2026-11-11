@@ -1,5 +1,5 @@
 refused: d158_unknown_label.cy:4:24, line 4 column 24
- 4 |     let $t: f64.stable[lowest: 0.0, max: 1.0] set_to 0.5;
+ 4 |     let $t: f64.stable[lowest: 0.0, max: 1.0] = 0.5;
    |                        ^^^^^^
  what: a float has no `lowest`
  why:  `f64[min: -40.0, max: 125.0]` is still 64 bits, and holds only that range (D158)

@@ -1,7 +1,7 @@
 // trace: D83, D120
 
-const $a: i32 set_to $b;
-const $b: i32 set_to $a;
+const $a: i32 = $b;
+const $b: i32 = $a;
 
 fn.main [none] returns void:
     return void;

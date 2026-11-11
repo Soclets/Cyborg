@@ -3,7 +3,7 @@
 import std;
 
 fn.main [none] returns void:
-    let $a: f64.stable set_to 0.1;
-    let $b: f64.stable set_to $a;
+    let $a: f64.stable = 0.1;
+    let $b: f64.stable = $a;
     return void;
 end fn.main

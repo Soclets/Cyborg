@@ -3,7 +3,7 @@ import std;
 import os;
 
 fn show [$label: str, $n: i32] returns void:
-    let mut $out: os::stdout.unbuffered set_to os::stdout.unbuffered();
+    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     std::io::fmt_print(Lend.mut $out, "{}{}{newln}", $label, $n);
     return void;
 end fn show

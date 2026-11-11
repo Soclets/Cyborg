@@ -10,7 +10,7 @@ fn read [$s: str] returns void:
 end fn read
 
 fn.main [none] returns void:
-    let $s: str set_to "a";
+    let $s: str = "a";
     if eat(Give $s):
         return void;
     else:

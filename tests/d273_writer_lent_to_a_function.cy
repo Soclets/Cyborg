@@ -9,7 +9,7 @@ fn report [$out: Lent.mut os::stdout.buffered, $n: i32] returns void:
 end fn report
 
 fn.main [none] returns void:
-    let mut $out: os::stdout.buffered set_to os::stdout.buffered(size: 1024 bytes);
+    let mut $out: os::stdout.buffered = os::stdout.buffered(size: 1024 bytes);
     report(Lend.mut $out, 1);
     report(Lend.mut $out, 2);
     os::done(Give $out);

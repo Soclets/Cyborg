@@ -4,12 +4,12 @@ import std;
 
 fam.unit temperature:
     temperature.kelvin: base;
-    temperature.celsius set_to temperature.kelvin offset ~-273.15;
+    temperature.celsius = temperature.kelvin offset ~-273.15;
 end fam.unit temperature
 
 use my::temperature.celsius as celsius;
 
 fn.main [none] returns void:
-    let $a: f64.stable[unit: celsius] set_to 20.0 celsius;
+    let $a: f64.stable[unit: celsius] = 20.0 celsius;
     return void;
 end fn.main

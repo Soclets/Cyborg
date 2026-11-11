@@ -71,7 +71,6 @@ const CLASHING_WORDS: &[&str] = &[
     "div",
     "mod",
     "returns",
-    "set_to",
     "below",
     "above",
     "at_least",
@@ -1122,7 +1121,7 @@ pub fn parse(source: &str) -> (Option<Program>, Vec<Report>) {
 const SPACING_JOINS: &str =
     "no space goes around `.`, `::`, `%`, `%%` or `@`, so every program reads the same (D213)";
 const SPACING_MARKS: &str = "a mark or a bracket touches what it goes with, so `( $x )`, `- $x` and `read() ?` are refused (D23, D213)";
-const SPACING_OPERATORS: &str = "a binary operator, `set_to` and word operators included, has one space on each side, so `1+8` is refused (D23, D213)";
+const SPACING_OPERATORS: &str = "a binary operator, `=` and word operators included, has one space on each side, so `1+8` is refused (D23, D213)";
 const SPACING_LISTS: &str = "a comma or a label's `:` is followed by one space (D213)";
 
 struct Parser {
@@ -1290,35 +1289,28 @@ impl Parser {
         );
     }
 
-    /// `set_to`, the one word that gives something a value. A bare `=` is refused, with
-    /// `set_to` as its fix. Like any binary operator, a line may break after it. (D276, D219)
-    /// trace: D276
-    fn expect_set_to(&mut self) -> Outcome<()> {
-        if self.eat_set_to()? {
+    /// `=`, which gives something a value. `set_to` is refused, with `=` as its fix. (D283)
+    /// trace: D283
+    fn expect_equals(&mut self) -> Outcome<()> {
+        if self.eat_equals()? {
             return Ok(());
         }
-        Err(self.expected("`set_to`"))
+        Err(self.expected("`=`"))
     }
 
-    fn eat_set_to(&mut self) -> Outcome<bool> {
-        if self.at_symbol("=") {
+    fn eat_equals(&mut self) -> Outcome<bool> {
+        if self.at_word("set_to") {
             return Err(Report::refused(
                 self.span(),
-                "a value is given with `set_to`",
-                "`set_to` gives something a value everywhere, so `=` is never written, and `==` compares (D276)",
+                "a value is given with `=`",
+                "`=` assigns and `==` compares, so `set_to` is never written (D283)",
             )
-            .fix("set_to"));
+            .fix("="));
         }
-        if !self.at_word("set_to") {
-            return Ok(false);
-        }
-        let first = self.position;
-        self.advance();
-        self.check_operator(first);
-        Ok(true)
+        Ok(self.eat_symbol("="))
     }
 
-    fn at_set_to(&self) -> bool {
+    fn at_equals(&self) -> bool {
         self.at_word("set_to") || self.at_symbol("=")
     }
 
@@ -2425,7 +2417,7 @@ impl Parser {
         let mut entries = Vec::new();
         while !self.at_symbol("]") {
             let parameter = self.expect_variable("a parameter")?;
-            self.expect_set_to()?;
+            self.expect_equals()?;
             let value = self.parse_expression()?;
             entries.push((parameter, value));
             if !self.eat_symbol(",") {
@@ -2664,7 +2656,7 @@ impl Parser {
         let start = self.advance().span; // `type`
         let new = self.parse_type_kind(start)?;
         let name = self.parse_path()?;
-        self.expect_set_to()?;
+        self.expect_equals()?;
         let written_type = self.parse_type()?;
         self.expect_semicolon()?;
         Ok(Item::TypeName(TypeName {
@@ -2706,7 +2698,7 @@ impl Parser {
                 .fix(format!("{prefix}{}", name.text)));
             }
             Self::refuse_a_deep_family(&family, &name)?;
-            self.expect_set_to()?;
+            self.expect_equals()?;
             let written_type = self.parse_type()?;
             self.expect_semicolon()?;
             members.push(TypeName {
@@ -2801,9 +2793,9 @@ impl Parser {
                 } else {
                     return Err(self.expected("`base`"));
                 }
-            } else if self.eat_set_to()? && !self.number_follows() {
+            } else if self.eat_equals()? && !self.number_follows() {
                 self.parse_unit_made_of()?
-            } else if self.previous_is_word("set_to") {
+            } else if self.previous_is("=") {
                 let start = self.span();
                 let amount = self.parse_primary_number()?;
                 let Some(unit) = self.parse_unit_after_number()? else {
@@ -2855,7 +2847,7 @@ impl Parser {
         self.expect_symbol(":")?;
         let written_type = self.parse_type()?;
         Self::refuse_typed_infer(self.at_symbol(":="), self.span())?;
-        self.expect_set_to()?;
+        self.expect_equals()?;
         let value = self.parse_expression()?;
         let end = self.expect_semicolon()?;
         Ok(Statement {
@@ -2979,11 +2971,11 @@ impl Parser {
             self.advance();
             while !self.at_symbol("]") {
                 let label = self.parse_path()?;
-                if self.at_set_to() {
+                if self.at_equals() {
                     return Err(Report::refused(
                         self.span(),
                         "a type's `[ ]` names its values with `:`",
-                        "a label names a value inside brackets, and `set_to` sets a field (D13, D57, D276)",
+                        "a label names a value inside brackets, and `=` sets a field (D13, D57)",
                     ));
                 }
                 self.expect_symbol(":")?;
@@ -3240,7 +3232,7 @@ impl Parser {
                 "assign" if matches!(self.peek_at(1).lexeme, Lexeme::Variable(_)) => {
                     let start = self.advance().span;
                     let name = self.expect_variable("the variable's name, starting with `$`")?;
-                    self.expect_set_to()?;
+                    self.expect_equals()?;
                     let value = self.parse_expression()?;
                     let end = self.end_statement(&value)?;
                     return Ok(Statement {
@@ -3376,7 +3368,7 @@ impl Parser {
         let name = self.expect_variable("the variable's name, starting with `$`")?;
         self.expect_symbol(":")?;
         let written_type = self.parse_type()?;
-        if self.at_set_to() {
+        if self.at_equals() {
             return Err(Report::refused(
                 self.span(),
                 "`decl` gives no value, and `let` does",
@@ -3402,7 +3394,7 @@ impl Parser {
         self.expect_symbol(":")?;
         let written_type = self.parse_type()?;
         Self::refuse_typed_infer(self.at_symbol(":="), self.span())?;
-        self.expect_set_to()?;
+        self.expect_equals()?;
         let value = self.parse_expression()?;
         let end = self.end_statement(&value)?;
         Ok(Statement {
@@ -3416,18 +3408,18 @@ impl Parser {
         })
     }
 
-    /// A `let` or `const` with no type: `:=`, a bare `set_to` or `=`, and Precog's
-    /// `@precog::set_to`, which needs a `rule` line. (D277)
-    /// trace: D277
+    /// A `let` or `const` with no type: `:=`, a bare `=` or `set_to`, and Precog's
+    /// `@precog::set_to_best`, which needs a `rule` line. (D277, D283)
+    /// trace: D277, D283
     fn refuse_untyped(&self, word: &str) -> Outcome<()> {
         const WHY: &str = "every `let` and `const` writes its type, so a reader never has to work one out, and there's no type inference in the base language (D277)";
         if self.at_symbol(":=") {
             return Err(Report::refused(
                 self.span(),
-                format!("`:=` is gone, and a `{word}` writes its type, then `set_to`"),
+                format!("`:=` is gone, and a `{word}` writes its type, then `=`"),
                 WHY,
             )
-            .fix("set_to"));
+            .fix("="));
         }
         if self.at_word("set_to") || self.at_symbol("=") {
             return Err(Report::refused(
@@ -3439,7 +3431,7 @@ impl Parser {
         if self.at_symbol("@") && self.word_at(1, "precog") {
             return Err(Report::not_designed(
                 self.span(),
-                "Precog's `@precog::set_to`, which needs its `rule` line, and `rule` lines aren't designed",
+                "Precog's `@precog::set_to_best`, which needs its `rule` line, and `rule` lines aren't designed",
                 "12.9",
             ));
         }
@@ -3458,16 +3450,16 @@ impl Parser {
         Ok(())
     }
 
-    /// `:=` is gone, and a value is given with `set_to`. (D277, D276)
-    /// trace: D277, D276
+    /// `:=` is gone, and a value is given with `=`. (D277, D283)
+    /// trace: D277, D283
     fn refuse_typed_infer(found: bool, span: Span) -> Outcome<()> {
         if found {
             return Err(Report::refused(
                 span,
-                "`:=` is gone, and a value is given with `set_to`",
-                "`set_to` gives a value everywhere, and there's no type inference in the base language (D276, D277)",
+                "`:=` is gone, and a value is given with `=`",
+                "`=` gives a value, and there's no type inference in the base language (D277, D283)",
             )
-            .fix("set_to"));
+            .fix("="));
         }
         Ok(())
     }
@@ -3475,7 +3467,7 @@ impl Parser {
     fn parse_change(&mut self) -> Outcome<Statement> {
         let start = self.advance().span; // `change`
         let target = self.parse_postfix_only()?;
-        self.expect_set_to()?;
+        self.expect_equals()?;
         let value = self.parse_expression()?;
         let end = self.end_statement(&value)?;
         Ok(Statement {
@@ -3651,7 +3643,7 @@ impl Parser {
                 ));
             }
             reached = order;
-            if self.at_set_to() {
+            if self.at_equals() {
                 return Err(Report::refused(
                     self.span(),
                     "a range's values are named with `:`",
@@ -3848,7 +3840,7 @@ impl Parser {
         self.expect_symbol(":")?;
         self.mark_line_start();
         let reads = self.parse_registers("reads", |this| {
-            this.expect_set_to()?;
+            this.expect_equals()?;
             this.parse_expression()
         })?;
         self.mark_line_start();
@@ -4565,7 +4557,7 @@ impl Parser {
             )
             .fix("offset.items"));
         }
-        if self.at_set_to() {
+        if self.at_equals() {
             return Err(Report::refused(
                 self.span(),
                 "`pos:` and `offset.items:` are labels",
@@ -4695,12 +4687,12 @@ impl Parser {
                 // trace: D57
                 return Err(Report::refused(
                     name.span.to(self.span()),
-                    "`set_to` sets a field",
-                    "building one uses `[ ]`, with `set_to` setting a field (D57, D276)",
+                    "`=` sets a field",
+                    "building one uses `[ ]`, with `=` setting a field (D57)",
                 )
-                .fix(format!("{} set_to", name.text)));
+                .fix(format!("{} =", name.text)));
             }
-            self.expect_set_to()?;
+            self.expect_equals()?;
             let value = self.parse_expression()?;
             fields.push(FieldValue { name, value });
             if !self.eat_symbol(",") {
@@ -5264,7 +5256,7 @@ impl Parser {
     /// trace: D237
     fn parse_operator_word(&mut self) -> Outcome<(String, Span)> {
         const WHY_FOLLOWS: &str = "`!=`, `above`, `at_least` and `at_most` follow from `==` and `below`, so they can never disagree, and aren't written (D237, D278)";
-        const WHY_LANGUAGE: &str = "`and`, `or` and `not` stop early, which an operator couldn't promise, and `set_to`, `?`, `??` and `as` are part of the language, not maths (D237, D124, D276)";
+        const WHY_LANGUAGE: &str = "`and`, `or` and `not` stop early, which an operator couldn't promise, and `=`, `?`, `??` and `as` are part of the language, not maths (D237, D124)";
         let token = self.peek().clone();
         let text = token.text.clone();
         let refused = |what: String, why: &str| Err(Report::refused(token.span, what, why));
@@ -5590,11 +5582,11 @@ impl Parser {
     }
 
     /// Whether the token just read is this symbol.
-    fn previous_is_word(&self, word: &str) -> bool {
+    fn previous_is(&self, symbol: &str) -> bool {
         self.position
             .checked_sub(1)
             .and_then(|at| self.tokens.get(at))
-            .is_some_and(|token| matches!(&token.lexeme, Lexeme::Word(found) if found == word))
+            .is_some_and(|token| matches!(token.lexeme, Lexeme::Symbol(found) if found == symbol))
     }
 
     /// What a unit is made of, after its `=`: other units joined by `per` and `x`, a unit and
@@ -5664,7 +5656,7 @@ impl Parser {
             self.mark_line_start();
             let path = self.parse_path()?;
             Self::refuse_a_deep_family(&family, &path)?;
-            self.expect_set_to()?;
+            self.expect_equals()?;
             if !self.number_follows() {
                 return Err(self.expected("the prefix's scale, as in `1000` or `1 per 1000`"));
             }

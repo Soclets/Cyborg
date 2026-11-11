@@ -6,12 +6,12 @@ struct box:
 end struct box
 
 fn box.%%bump [$b: Lent.mut box] returns void:
-    change $b.n set_to 2;
+    change $b.n = 2;
     return void;
 end fn box.%%bump
 
 fn.main [none] returns void:
-    let $b: box set_to box[n set_to 1];
+    let $b: box = box[n = 1];
     $b.%%bump();
     return void;
 end fn.main

@@ -8,12 +8,12 @@ end struct reading
 
 fn reading.%%warm_up [$r: Lent.mut reading, $by: i32] returns void:
     labels [$by as by];
-    change $r.celsius set_to $r.celsius + $by;
+    change $r.celsius = $r.celsius + $by;
     return void;
 end fn reading.%%warm_up
 
 fn reading.%show [$r: reading] returns void:
-    let mut $out: os::stdout.unbuffered set_to os::stdout.unbuffered();
+    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     std::io::fmt_print(Lend.mut $out, "{}{newln}", $r.celsius);
     return void;
 end fn reading.%show
@@ -23,12 +23,12 @@ fn.pure reading.%doubled [$r: reading] returns i32:
 end fn.pure reading.%doubled
 
 fn make [none] returns reading:
-    return reading[celsius set_to 5];
+    return reading[celsius = 5];
 end fn make
 
 fn.main [none] returns void:
-    let mut $out: os::stdout.unbuffered set_to os::stdout.unbuffered();
-    let mut $r: reading set_to reading[celsius set_to 21];
+    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
+    let mut $r: reading = reading[celsius = 21];
     $r.%%warm_up(by: 2);
     $r.%show();
     $r.%%warm_up(by: 1);

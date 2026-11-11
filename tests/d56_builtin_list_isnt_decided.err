@@ -1,5 +1,5 @@
-NotDesignedYet: d56_builtin_list_isnt_decided.cy:4:24, line 4 column 24
- 4 |     let $n: i32 set_to @bytes_of<i32>();
-   |                        ^^^^^^^^^
+NotDesignedYet: d56_builtin_list_isnt_decided.cy:4:19, line 4 column 19
+ 4 |     let $n: i32 = @bytes_of<i32>();
+   |                   ^^^^^^^^^
  what: the builtin `@bytes_of`
  why:  not decided yet (standard 12.9)

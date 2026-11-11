@@ -1,5 +1,5 @@
-refused: d57_build_unknown_field.cy:8:55, line 8 column 55
- 8 |     let $r: reading set_to reading[celsius set_to 21, kelvin set_to 300];
-   |                                                       ^^^^^^
+refused: d57_build_unknown_field.cy:8:45, line 8 column 45
+ 8 |     let $r: reading = reading[celsius = 21, kelvin = 300];
+   |                                             ^^^^^^
  what: `reading` has no field `kelvin`
- why:  building one uses `[ ]`, with `set_to` setting each field (D57, D276)
+ why:  building one uses `[ ]`, with `=` setting each field (D57)

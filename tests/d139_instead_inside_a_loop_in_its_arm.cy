@@ -5,7 +5,7 @@ fn f [none] returns i32 fails [a]:
 end fn f
 
 fn.main [none] returns void:
-    let $n: i32 set_to f() otherwise:
+    let $n: i32 = f() otherwise:
         case a:
             for $i in range[from: 1, to: 2]:
                 instead $i;

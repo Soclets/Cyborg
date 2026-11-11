@@ -1,5 +1,5 @@
 NotDesignedYet: d108_unit_from_another_kit.cy:4:23, line 4 column 23
- 4 |     let $a: i32[unit: geo::length.miles] set_to 1 geo::length.miles;
+ 4 |     let $a: i32[unit: geo::length.miles] = 1 geo::length.miles;
    |                       ^^^^^^^^^^^^^^^^^
  what: the unit `geo::length.miles`, from another kit
  why:  not decided yet (standard 12.9)

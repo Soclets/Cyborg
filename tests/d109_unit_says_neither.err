@@ -1,5 +1,5 @@
 refused: d109_unit_says_neither.cy:4:5, line 4 column 5
  4 |     money.cents;
    |     ^^^^^^^^^^^
- what: this unit says neither `base` nor `set_to`
- why:  every unit says what it is, `: base` or `set_to` with a conversion (D109, D276)
+ what: this unit says neither `base` nor `=`
+ why:  every unit says what it is, `: base` or `=` with a conversion (D109)

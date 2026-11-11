@@ -1,6 +1,6 @@
-refused: d215_a_skipped_let_keeps_its_variable.cy:8:26, line 8 column 26
- 8 |     let $sum: i32 set_to totl(5);
-   |                          ^^^^
+refused: d215_a_skipped_let_keeps_its_variable.cy:8:21, line 8 column 21
+ 8 |     let $sum: i32 = totl(5);
+   |                     ^^^^
  what: the function `totl` isn't declared
  why:  a function is declared with `fn` and `[ ]` (D23)
 

@@ -6,6 +6,6 @@ fam.unit time:
 end fam.unit time
 
 fn.main [none] returns void:
-    let $t: i32[unit: time.seconds, min: 0, max: 3600 time.seconds] set_to 60 time.seconds;
+    let $t: i32[unit: time.seconds, min: 0, max: 3600 time.seconds] = 60 time.seconds;
     return void;
 end fn.main

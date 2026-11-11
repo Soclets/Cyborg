@@ -5,7 +5,7 @@ fn eat [$s: Given str] returns void:
 end fn eat
 
 fn.main [none] returns void:
-    let $s: str set_to "a";
+    let $s: str = "a";
     if 1 below 2:
         eat(Give $s);
     else:

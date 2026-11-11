@@ -7,9 +7,9 @@ union.tagged status:
 end union.tagged status
 
 fn.main [none] returns void:
-    let mut $s: status set_to status.failed[code set_to 1];
+    let mut $s: status = status.failed[code = 1];
     if $s: status.failed:
-        change $s.code set_to 2;
+        change $s.code = 2;
     end if
     return void;
 end fn.main

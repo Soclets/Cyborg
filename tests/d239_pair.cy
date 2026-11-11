@@ -13,9 +13,9 @@ fn first_of<?left: any.type, ?right: any.type> [$p: Given pair<?left, ?right>] r
 end fn first_of
 
 fn.main [none] returns void:
-    let mut $out: os::stdout.unbuffered set_to os::stdout.unbuffered();
-    let $p: pair<i32, str> set_to pair[first set_to 7, second set_to "seven"];
-    let $q: pair<str, f64.stable> set_to pair[first set_to "half", second set_to 0.5];
+    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
+    let $p: pair<i32, str> = pair[first = 7, second = "seven"];
+    let $q: pair<str, f64.stable> = pair[first = "half", second = 0.5];
     std::io::fmt_print(Lend.mut $out, "{} {} {} {}{newln}", $p.first, $p.second, $q.first, $q.second);
     return void;
 end fn.main

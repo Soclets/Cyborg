@@ -8,11 +8,11 @@ struct reading:
 end struct reading
 
 fn.main [none] returns void:
-    let mut $out: os::stdout.unbuffered set_to os::stdout.unbuffered();
-    let $name: str set_to "rope";
-    let $count: i32 set_to 3;
-    let $price: f64.stable set_to 12.5;
-    let $r: reading set_to reading[celsius set_to 21];
+    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
+    let $name: str = "rope";
+    let $count: i32 = 3;
+    let $price: f64.stable = 12.5;
+    let $r: reading = reading[celsius = 21];
     std::io::fmt_print(Lend.mut $out, "{$name}: {$count} at ${$price, places: 2}, {$r.celsius} C{newln}");
     std::io::fmt_print(Lend.mut $out, "[{$count, align: right, width: 4 cols}]{newln}");
     return void;

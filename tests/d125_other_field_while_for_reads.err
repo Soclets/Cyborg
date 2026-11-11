@@ -1,5 +1,5 @@
 NotDesignedYet: d125_other_field_while_for_reads.cy:13:16, line 13 column 16
-13 |         change $b.total set_to $b.total + $x;
+13 |         change $b.total = $b.total + $x;
    |                ^^^^^^^^
  what: changing one part of `$b` while a `for` reads another
  why:  not decided yet, and the standard doesn't say

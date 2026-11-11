@@ -1,5 +1,5 @@
-refused: d213_inside_square_brackets.cy:10:35, line 10 column 35
-10 |     let $r: reading set_to reading[ celsius set_to 1];
-   |                                   ^^^^^^^^^
+refused: d213_inside_square_brackets.cy:10:30, line 10 column 30
+10 |     let $r: reading = reading[ celsius = 1];
+   |                              ^^^^^^^^^
  fix:  `[celsius`
  why:  a mark or a bracket touches what it goes with, so `( $x )`, `- $x` and `read() ?` are refused (D23, D213)

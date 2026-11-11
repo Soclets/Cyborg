@@ -1,6 +1,6 @@
-refused: d124_given_on_the_right_of_or_is_gone.cy:14:33, line 14 column 33
-14 |         let $c: box set_to Give $b;
-   |                                 ^^
+refused: d124_given_on_the_right_of_or_is_gone.cy:14:28, line 14 column 28
+14 |         let $c: box = Give $b;
+   |                            ^^
  what: `$b` was already given away
  why:  a given value is dead afterwards (D2)
  because: d124_given_on_the_right_of_or_is_gone.cy:13:21, line 13 column 21

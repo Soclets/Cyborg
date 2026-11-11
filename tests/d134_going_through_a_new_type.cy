@@ -1,7 +1,7 @@
 // trace: D134, D128
 import std;
 
-type.new row set_to std::array<i32>[len: 2 items];
+type.new row = std::array<i32>[len: 2 items];
 
 fn f [$r: row] returns void:
     for $x in $r:

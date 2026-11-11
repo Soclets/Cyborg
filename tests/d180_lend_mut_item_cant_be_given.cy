@@ -7,14 +7,14 @@ struct.must_Give open_file:
 end struct.must_Give open_file
 
 fn close [$f: Given open_file] returns void:
-    let mut $out: os::stdout.unbuffered set_to os::stdout.unbuffered();
+    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     std::io::fmt_print(Lend.mut $out, "closing {}{newln}", $f.fd);
     finish $f;
     return void;
 end fn close
 
 fn.main [none] returns void:
-    let mut $files: std::list<open_file>[len.max: inf items] set_to [open_file[fd set_to 3]];
+    let mut $files: std::list<open_file>[len.max: inf items] = [open_file[fd = 3]];
     for $f in Lend.mut $files:
         close(Give $f);
     end for

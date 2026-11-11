@@ -1,5 +1,5 @@
-refused: d49_no_at_most_symbol.cy:4:27, line 4 column 27
- 4 |     let $c: bool set_to 1 <= 2;
-   |                           ^^
+refused: d49_no_at_most_symbol.cy:4:22, line 4 column 22
+ 4 |     let $c: bool = 1 <= 2;
+   |                      ^^
  fix:  `at_most`
  why:  `at_least` and `at_most` are words, and there is no `<=` or `>=` (D49)

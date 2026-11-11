@@ -1,5 +1,5 @@
-refused: d109_unknown_unit_in_a_conversion.cy:4:30, line 4 column 30
- 4 |     money.dollars set_to 100 money.cents;
-   |                              ^^^^^^^^^^^
+refused: d109_unknown_unit_in_a_conversion.cy:4:25, line 4 column 25
+ 4 |     money.dollars = 100 money.cents;
+   |                         ^^^^^^^^^^^
  what: the unit `money.cents` isn't known
- why:  `set_to` points at a unit, in any family (D109, D276)
+ why:  `=` points at a unit, in any family (D109)

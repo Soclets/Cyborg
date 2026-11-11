@@ -3,6 +3,6 @@
 import std;
 
 fn.main [none] returns void:
-    let $x: f64 set_to 0.5;
+    let $x: f64 = 0.5;
     return void;
 end fn.main

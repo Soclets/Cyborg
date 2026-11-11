@@ -10,7 +10,7 @@ fn close [$f: Given open_file] returns void:
 end fn close
 
 fn.main [none] returns void:
-    let $f: open_file set_to open_file[fd set_to 3];
+    let $f: open_file = open_file[fd = 3];
     close(Give $f);
     finish $f;
     return void;

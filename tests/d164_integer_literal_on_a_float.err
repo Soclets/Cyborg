@@ -1,5 +1,5 @@
-NotDesignedYet: d164_integer_literal_on_a_float.cy:5:38, line 5 column 38
- 5 |     let $b: f64.stable set_to $a div 2;
-   |                                      ^
+NotDesignedYet: d164_integer_literal_on_a_float.cy:5:33, line 5 column 33
+ 5 |     let $b: f64.stable = $a div 2;
+   |                                 ^
  what: an integer literal where a float is needed
  why:  not decided yet, and the standard doesn't say

@@ -4,7 +4,7 @@ import std;
 import os;
 
 fn use_score [$s: i32[min: 0, max: 100]] returns void:
-    let mut $out: os::stdout.unbuffered set_to os::stdout.unbuffered();
+    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     std::io::fmt_print(Lend.mut $out, "score {}{newln}", $s);
     return void;
 end fn use_score

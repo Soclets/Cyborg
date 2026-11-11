@@ -6,6 +6,6 @@ fn f [$b: bool] returns bool:
 end fn f
 
 fn.main [none] returns void:
-    let $a: bool set_to f(Lend true);
+    let $a: bool = f(Lend true);
     return void;
 end fn.main

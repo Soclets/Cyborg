@@ -1,5 +1,5 @@
-refused: d132_as_after_it_needs_a_group.cy:8:24, line 8 column 24
- 8 |     let $s: str set_to read() ?? 1 as str;
-   |                        ^^^^^^^^^^^
+refused: d132_as_after_it_needs_a_group.cy:8:19, line 8 column 19
+ 8 |     let $s: str = read() ?? 1 as str;
+   |                   ^^^^^^^^^^^
  what: this `as` is on more than a single value, so it needs `( )`
  why:  `as` works on a single value, and where maths gives no order you group with `( )` (D116)

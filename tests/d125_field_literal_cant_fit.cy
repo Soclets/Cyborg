@@ -5,7 +5,7 @@ struct box:
 end struct box
 
 fn.main [none] returns void:
-    let mut $b: box set_to box[n set_to 1];
-    change $b.n set_to 11;
+    let mut $b: box = box[n = 1];
+    change $b.n = 11;
     return void;
 end fn.main

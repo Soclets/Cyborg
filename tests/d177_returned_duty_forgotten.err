@@ -4,6 +4,6 @@ refused: d177_returned_duty_forgotten.cy:22:5, line 22 column 5
  what: this leaves with `$f` never given away or finished
  why:  a `must_Give` value is handed off with `Give` exactly once, or `finish` ends it (D2, D129)
  because: d177_returned_duty_forgotten.cy:21:9, line 21 column 9
-21 |     let $f: open_file set_to open(3);
+21 |     let $f: open_file = open(3);
    |         ^^
      `$f` was made here

@@ -3,7 +3,7 @@
 import std;
 
 fn.main [none] returns void:
-    let $a: i32 set_to 7;
-    let $b: i32 set_to $a div.trunc  2;
+    let $a: i32 = 7;
+    let $b: i32 = $a div.trunc  2;
     return void;
 end fn.main

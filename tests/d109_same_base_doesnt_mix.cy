@@ -3,11 +3,11 @@
 
 fam.unit money:
     money.cents: base;
-    money.dollars set_to 100 money.cents;
+    money.dollars = 100 money.cents;
 end fam.unit money
 
 fn.main [none] returns void:
-    let $a: i32[unit: money.dollars] set_to 2 money.dollars;
-    let $b: i32[unit: money.dollars] set_to $a + 1 money.cents;
+    let $a: i32[unit: money.dollars] = 2 money.dollars;
+    let $b: i32[unit: money.dollars] = $a + 1 money.cents;
     return void;
 end fn.main

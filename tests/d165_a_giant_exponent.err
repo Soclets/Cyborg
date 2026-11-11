@@ -1,5 +1,5 @@
-refused: d165_a_giant_exponent.cy:4:31, line 4 column 31
- 4 |     let $a: f64.stable set_to exponent ~1.0e99999999999999999999999999;
-   |                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+refused: d165_a_giant_exponent.cy:4:26, line 4 column 26
+ 4 |     let $a: f64.stable = exponent ~1.0e99999999999999999999999999;
+   |                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
  what: this literal is too large for `f64`
  why:  a float can't be infinity, and a literal that can't fit is a compile error (D158, D20)

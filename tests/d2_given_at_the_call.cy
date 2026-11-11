@@ -5,7 +5,7 @@ fn f [$s: Given str] returns void:
 end fn f
 
 fn.main [none] returns void:
-    let $s: str set_to "a";
+    let $s: str = "a";
     f(Given $s);
     return void;
 end fn.main

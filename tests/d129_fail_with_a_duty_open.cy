@@ -6,7 +6,7 @@ struct.must_Give open_file:
 end struct.must_Give open_file
 
 fn f [none] returns void fails [nope]:
-    let $g: open_file set_to open_file[fd set_to 3];
+    let $g: open_file = open_file[fd = 3];
     fail nope;
 end fn f
 

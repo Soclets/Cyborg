@@ -1,5 +1,5 @@
 refused: d259_unit_after_min.cy:9:24, line 9 column 24
- 9 |     let $d: f64.stable[min: 0.0, unit: length.meters] set_to 5.0 length.meters;
+ 9 |     let $d: f64.stable[min: 0.0, unit: length.meters] = 5.0 length.meters;
    |                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
  fix:  `unit: length.meters, min: 0.0`
  why:  a type reads as what it measures, then its range in that unit, so its labels go `unit:`, `min:`, `max:` (D259)

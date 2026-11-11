@@ -1,5 +1,5 @@
-refused: d139_match_name_is_for_that_case.cy:12:35, line 12 column 35
-12 |             let $n: i32 set_to $o.code;
-   |                                   ^^^^
+refused: d139_match_name_is_for_that_case.cy:12:30, line 12 column 30
+12 |             let $n: i32 = $o.code;
+   |                              ^^^^
  what: `status.ok` has no field `code`
  why:  a case's values go in `[ ]` (D33)

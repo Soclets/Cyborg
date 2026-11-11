@@ -6,12 +6,12 @@ struct reading:
     celsius: i32;
 end struct reading
 
-type.new wrapped set_to reading;
+type.new wrapped = reading;
 
 fn.main [none] returns void:
-    let mut $out: os::stdout.unbuffered set_to os::stdout.unbuffered();
-    let $r: reading set_to reading[celsius set_to 1];
-    let $w: wrapped set_to Copy $r as wrapped;
+    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
+    let $r: reading = reading[celsius = 1];
+    let $w: wrapped = Copy $r as wrapped;
     std::io::fmt_print(Lend.mut $out, "{}{newln}", $r.celsius);
     return void;
 end fn.main

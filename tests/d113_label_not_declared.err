@@ -1,5 +1,5 @@
-refused: d113_label_not_declared.cy:8:31, line 8 column 31
- 8 |     let $n: i32 set_to add(1, to: 2);
-   |                               ^^
+refused: d113_label_not_declared.cy:8:26, line 8 column 26
+ 8 |     let $n: i32 = add(1, to: 2);
+   |                          ^^
  what: `add` has no label `to`
  why:  a declared label must be written, and a parameter with no label is called without one (D113, D114)

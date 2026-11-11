@@ -5,7 +5,7 @@ struct reading:
 end struct reading
 
 fn.main [none] returns void:
-    let $r: reading set_to reading[celsius set_to 21];
-    let $n: i32 set_to $r.kelvin;
+    let $r: reading = reading[celsius = 21];
+    let $n: i32 = $r.kelvin;
     return void;
 end fn.main

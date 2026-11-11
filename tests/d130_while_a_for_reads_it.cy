@@ -10,7 +10,7 @@ fn bag.%%empty_out [$b: Lent.mut bag] returns void:
 end fn bag.%%empty_out
 
 fn.main [none] returns void:
-    let mut $b: bag set_to bag[items set_to [1]];
+    let mut $b: bag = bag[items = [1]];
     for $x in $b.items:
         $b.%%empty_out();
     end for

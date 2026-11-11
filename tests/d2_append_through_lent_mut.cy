@@ -8,8 +8,8 @@ fn add [$xs: Lent.mut std::list<i32>[len.max: inf items]] returns void:
 end fn add
 
 fn.main [none] returns void:
-    let mut $out: os::stdout.unbuffered set_to os::stdout.unbuffered();
-    let mut $xs: std::list<i32>[len.max: inf items] set_to empty;
+    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
+    let mut $xs: std::list<i32>[len.max: inf items] = empty;
     add(Lend.mut $xs);
     add(Lend.mut $xs);
     std::io::fmt_print(Lend.mut $out, "{}{newln}", $xs.len);

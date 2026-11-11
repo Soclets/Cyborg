@@ -6,7 +6,7 @@ fn f [none] returns void:
 end fn f
 
 fn.main [none] returns void:
-    let $a: i32 set_to 1
+    let $a: i32 = 1
     f();
     return void;
 end fn.main

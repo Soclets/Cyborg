@@ -7,9 +7,9 @@ struct reading:
 end struct reading
 
 fn.main [none] returns void:
-    let mut $out: os::stdout.unbuffered set_to os::stdout.unbuffered();
+    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     decl $r: reading;
-    assign $r set_to reading[celsius set_to 5];
+    assign $r = reading[celsius = 5];
     std::io::fmt_print(Lend.mut $out, "{}{newln}", $r.celsius);
     return void;
 end fn.main

@@ -8,11 +8,11 @@ fam.failure file_failed:
 end fam.failure file_failed
 
 fn save [none] returns void fails [file_failed]:
-    fail file_failed.disk_full[free set_to 7, label set_to "scratch"];
+    fail file_failed.disk_full[free = 7, label = "scratch"];
 end fn save
 
 fn.main [none] returns void:
-    let mut $out: os::stdout.unbuffered set_to os::stdout.unbuffered();
+    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     save() otherwise:
         case not_found:
             std::io::fmt_print(Lend.mut $out, "not found{newln}");

@@ -9,7 +9,7 @@ fn eat [$s: Given str] returns void:
 end fn eat
 
 fn.main [none] returns void:
-    let $b: box set_to box[s set_to "a"];
+    let $b: box = box[s = "a"];
     eat(Give $b.s);
     return void;
 end fn.main

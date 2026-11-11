@@ -23,15 +23,15 @@ fn shown [$yes: bool] returns str:
 end fn shown
 
 fn.main [none] returns void:
-    let mut $out: os::stdout.unbuffered set_to os::stdout.unbuffered();
-    let $cold: reading set_to reading[celsius set_to 3];
-    let $warm: reading set_to reading[celsius set_to 21];
+    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
+    let $cold: reading = reading[celsius = 3];
+    let $warm: reading = reading[celsius = 21];
     std::io::fmt_print(Lend.mut $out, "< {}{newln}", shown($cold below $warm));
     std::io::fmt_print(Lend.mut $out, "> {}{newln}", shown($cold above $warm));
     std::io::fmt_print(Lend.mut $out, "== {}{newln}", shown($cold == $warm));
     std::io::fmt_print(Lend.mut $out, "!= {}{newln}", shown($cold != $warm));
     std::io::fmt_print(Lend.mut $out, "at_least {}{newln}", shown($cold at_least $warm));
     std::io::fmt_print(Lend.mut $out, "at_most {}{newln}", shown($cold at_most $warm));
-    std::io::fmt_print(Lend.mut $out, "chain {}{newln}", shown($cold below $warm below reading[celsius set_to 30]));
+    std::io::fmt_print(Lend.mut $out, "chain {}{newln}", shown($cold below $warm below reading[celsius = 30]));
     return void;
 end fn.main

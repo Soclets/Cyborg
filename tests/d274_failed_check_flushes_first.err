@@ -1,6 +1,6 @@
-check failed: d274_failed_check_flushes_first.cy:11:27, line 11 column 27
-11 |     let $over: i32 set_to $big + 1;
-   |                           ^^^^^^^^
+check failed: d274_failed_check_flushes_first.cy:11:22, line 11 column 22
+11 |     let $over: i32 = $big + 1;
+   |                      ^^^^^^^^
  what: this `+` overflows `i32`
  why:  a plain `+` that overflows traps in `Working` (D42)
  when: `2147483647 + 1`

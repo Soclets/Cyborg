@@ -1,5 +1,5 @@
 refused: d125_field_of_a_dead_value.cy:14:12, line 14 column 12
-14 |     change $b.n set_to 2;
+14 |     change $b.n = 2;
    |            ^^
  what: `$b` was already given away
  why:  a given value is dead afterwards (D2)

@@ -1,5 +1,5 @@
-refused: d103_empty_string_literal.cy:4:24, line 4 column 24
- 4 |     let $a: str set_to "";
-   |                        ^^
+refused: d103_empty_string_literal.cy:4:19, line 4 column 19
+ 4 |     let $a: str = "";
+   |                   ^^
  fix:  `empty`
  why:  `""` could look like unfinished work, so `empty` says it (D103)

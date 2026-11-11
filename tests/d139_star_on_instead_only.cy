@@ -12,6 +12,6 @@ fn first_word [none] returns str fails [too_long]:
 end fn first_word
 
 fn.main [none] returns void:
-    let $a: str set_to first_word() otherwise word_failed.*use_placeholder;
+    let $a: str = first_word() otherwise word_failed.*use_placeholder;
     return void;
 end fn.main

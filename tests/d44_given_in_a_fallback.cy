@@ -6,8 +6,8 @@ fn read [none] returns str fails [none]:
 end fn read
 
 fn.main [none] returns void:
-    let $s: str set_to "b";
-    let $t: str set_to read() ?? Give $s;
-    let $u: str set_to Give $s;
+    let $s: str = "b";
+    let $t: str = read() ?? Give $s;
+    let $u: str = Give $s;
     return void;
 end fn.main

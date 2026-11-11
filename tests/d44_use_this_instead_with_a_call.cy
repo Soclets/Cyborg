@@ -10,6 +10,6 @@ fn other [none] returns i32:
 end fn other
 
 fn.main [none] returns void:
-    let $a: i32 set_to read_port() ?? other();
+    let $a: i32 = read_port() ?? other();
     return void;
 end fn.main

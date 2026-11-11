@@ -1,11 +1,11 @@
-refused: d207_spacing_and_checking.cy:7:24, line 7 column 24
- 7 |     let $b: i32 set_to $a+1;
-   |                        ^^^^
+refused: d207_spacing_and_checking.cy:7:19, line 7 column 19
+ 7 |     let $b: i32 = $a+1;
+   |                   ^^^^
  fix:  `$a + 1`
- why:  a binary operator, `set_to` and word operators included, has one space on each side, so `1+8` is refused (D23, D213)
+ why:  a binary operator, `=` and word operators included, has one space on each side, so `1+8` is refused (D23, D213)
 
-refused: d207_spacing_and_checking.cy:8:24, line 8 column 24
- 8 |     let $c: i64 set_to $a;
-   |                        ^^
+refused: d207_spacing_and_checking.cy:8:19, line 8 column 19
+ 8 |     let $c: i64 = $a;
+   |                   ^^
  what: this is `i32`, where `i64` is needed
  why:  `:` doesn't convert, and `as` builds a new value of another type (D7)

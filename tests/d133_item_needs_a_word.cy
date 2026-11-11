@@ -3,7 +3,7 @@
 import std;
 
 fn.main [none] returns void:
-    let $a: std::array<str>[len: 1 items] set_to ["hi"];
-    let $s: str set_to $a[pos: 1];
+    let $a: std::array<str>[len: 1 items] = ["hi"];
+    let $s: str = $a[pos: 1];
     return void;
 end fn.main

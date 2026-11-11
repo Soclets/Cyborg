@@ -8,8 +8,8 @@ union.tagged status:
 end union.tagged status
 
 fn.main [none] returns void:
-    let mut $out: os::stdout.unbuffered set_to os::stdout.unbuffered();
-    let $s: status set_to status.failed[code set_to 3];
+    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
+    let $s: status = status.failed[code = 3];
     match $s:
         case status.ok:
             std::io::fmt_print(Lend.mut $out, "ok{newln}");

@@ -3,10 +3,10 @@ import std;
 import os;
 
 fn.main [none] returns void:
-    let mut $out: os::stdout.unbuffered set_to os::stdout.unbuffered();
-    let mut $n: i32 set_to 0;
+    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
+    let mut $n: i32 = 0;
     forever:
-        change $n set_to $n + 1;
+        change $n = $n + 1;
         if $n == 3:
             break;
         end if

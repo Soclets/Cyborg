@@ -5,11 +5,11 @@ fn eat [$s: Given str] returns void:
 end fn eat
 
 fn.main [none] returns void:
-    let $s: str set_to "a";
-    let mut $n: i32 set_to 2;
+    let $s: str = "a";
+    let mut $n: i32 = 2;
     while $n above 0:
         eat(Give $s);
-        change $n set_to $n - 1;
+        change $n = $n - 1;
     end while
     return void;
 end fn.main

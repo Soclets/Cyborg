@@ -5,7 +5,7 @@ struct gauge:
 end struct gauge
 
 fn.main [none] returns void:
-    let $x: f64.stable set_to 1.5;
-    let $g: gauge set_to gauge[ratio set_to $x];
+    let $x: f64.stable = 1.5;
+    let $g: gauge = gauge[ratio = $x];
     return void;
 end fn.main

@@ -2,6 +2,6 @@
 import std;
 
 fn.main [none] returns void:
-    assign $x set_to 1;
+    assign $x = 1;
     return void;
 end fn.main

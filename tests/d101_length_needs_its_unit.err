@@ -1,5 +1,5 @@
 refused: d101_length_needs_its_unit.cy:5:38, line 5 column 38
- 5 |     let $xs: std::list<i32>[len.max: 8] set_to empty;
+ 5 |     let $xs: std::list<i32>[len.max: 8] = empty;
    |                                      ^
  fix:  `8 items`
  why:  the language asks for units on things that have them, like lengths (D101)

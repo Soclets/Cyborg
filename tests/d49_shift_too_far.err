@@ -1,6 +1,6 @@
-NotDesignedYet: d49_shift_too_far.cy:4:24, line 4 column 24
- 4 |     let $a: i32 set_to 1 shl 32;
-   |                        ^^^^^^^^
+NotDesignedYet: d49_shift_too_far.cy:4:19, line 4 column 19
+ 4 |     let $a: i32 = 1 shl 32;
+   |                   ^^^^^^^^
  what: shifting by too much
  why:  not decided yet (standard 12.3)
  when: the shift is 32

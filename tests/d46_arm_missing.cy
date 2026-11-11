@@ -5,7 +5,7 @@ fn load [none] returns i32 fails [a, b]:
 end fn load
 
 fn.main [none] returns void:
-    let $n: i32 set_to load() otherwise:
+    let $n: i32 = load() otherwise:
         case a:
             return void;
     end otherwise

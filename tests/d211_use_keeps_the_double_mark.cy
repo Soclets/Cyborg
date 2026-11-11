@@ -5,8 +5,8 @@ use std::list.%%append as %%append;
 use std::list.%%append as %%"push";
 
 fn.main [none] returns void:
-    let mut $out: os::stdout.unbuffered set_to os::stdout.unbuffered();
-    let mut $xs: std::list<i32>[len.max: inf items] set_to empty;
+    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
+    let mut $xs: std::list<i32>[len.max: inf items] = empty;
     $xs.%%append(val: 4);
     $xs.%%push(val: 5);
     std::io::fmt_print(Lend.mut $out, "{}{newln}", $xs.len);

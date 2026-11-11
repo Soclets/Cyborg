@@ -4,7 +4,7 @@ fn sign [$n: i32] returns i32:
     if $n above 0:
         return 1;
     else:
-        let $m: i32 set_to $n;
+        let $m: i32 = $n;
     end if
 end fn sign
 

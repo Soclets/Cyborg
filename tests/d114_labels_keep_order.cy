@@ -7,6 +7,6 @@ fn pair [$a: i32, $b: i32] returns i32:
 end fn pair
 
 fn.main [none] returns void:
-    let $n: i32 set_to pair(second: 1, first: 2);
+    let $n: i32 = pair(second: 1, first: 2);
     return void;
 end fn.main

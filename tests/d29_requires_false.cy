@@ -9,7 +9,7 @@ fn half [$n: i32] returns i32:
 end fn half
 
 fn.main [none] returns void:
-    let mut $out: os::stdout.unbuffered set_to os::stdout.unbuffered();
+    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     std::io::fmt_print(Lend.mut $out, "{}{newln}", half(4));
     std::io::fmt_print(Lend.mut $out, "{}{newln}", half(-4));
     return void;

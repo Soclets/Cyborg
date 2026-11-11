@@ -3,8 +3,8 @@
 import std;
 
 fn.main [none] returns void:
-    let $s: str set_to "a";
-    let mut $t: str set_to "b";
-    change $t set_to $s;
+    let $s: str = "a";
+    let mut $t: str = "b";
+    change $t = $s;
     return void;
 end fn.main

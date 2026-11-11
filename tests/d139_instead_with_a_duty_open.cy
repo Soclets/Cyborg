@@ -9,9 +9,9 @@ fn f [none] returns i32 fails [a]:
 end fn f
 
 fn.main [none] returns void:
-    let $n: i32 set_to f() otherwise:
+    let $n: i32 = f() otherwise:
         case a:
-            let $g: open_file set_to open_file[fd set_to 1];
+            let $g: open_file = open_file[fd = 1];
             instead 0;
     end otherwise
     return void;

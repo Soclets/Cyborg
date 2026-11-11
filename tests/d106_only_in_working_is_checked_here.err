@@ -4,7 +4,7 @@ check failed: d106_only_in_working_is_checked_here.cy:5:30, line 5 column 30
  what: this `requires` is false
  why:  contracts are checked at runtime, and a false one stops the program (D29)
  when: `$n` is -1
- because: d106_only_in_working_is_checked_here.cy:11:24, line 11 column 24
-11 |     let $a: i32 set_to f(-1);
-   |                        ^^^^^
+ because: d106_only_in_working_is_checked_here.cy:11:19, line 11 column 19
+11 |     let $a: i32 = f(-1);
+   |                   ^^^^^
      called here

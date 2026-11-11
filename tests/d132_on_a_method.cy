@@ -14,8 +14,8 @@ fn box.%half [$b: box] returns i32 fails [odd]:
 end fn box.%half
 
 fn.main [none] returns void:
-    let mut $out: os::stdout.unbuffered set_to os::stdout.unbuffered();
-    let $b: box set_to box[n set_to 3];
+    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
+    let $b: box = box[n = 3];
     std::io::fmt_print(Lend.mut $out, "{}{newln}", (1 + $b.%half() ?? 0));
     return void;
 end fn.main

@@ -1,9 +1,9 @@
 refused: d169_held_without_a_use.cy:12:12, line 12 column 12
-12 |     change $r.celsius set_to 22;
+12 |     change $r.celsius = 22;
    |            ^^^^^^^^^^
  what: `$lock` holds `$r` until the end of its block
  why:  `.held` means nobody touches what it borrows for the whole block (D169)
  because: d169_held_without_a_use.cy:11:9, line 11 column 9
-11 |     let $lock: Lend.held from $r reading set_to Lend $r;
+11 |     let $lock: Lend.held from $r reading = Lend $r;
    |         ^^^^^
      `$lock` holds it from here

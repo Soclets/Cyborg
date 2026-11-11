@@ -1,5 +1,5 @@
 NotDesignedYet: d48_str_utf16.cy:5:13, line 5 column 13
- 5 |     let $a: str.utf16 set_to "hi";
+ 5 |     let $a: str.utf16 = "hi";
    |             ^^^^^^^^^
  what: `str.utf16`, and how its string literals work
  why:  not decided yet (standard 12.2)

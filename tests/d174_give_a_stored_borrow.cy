@@ -10,8 +10,8 @@ fn eat [$r: Given reading] returns void:
 end fn eat
 
 fn.main [none] returns void:
-    let mut $r: reading set_to reading[celsius set_to 21, time set_to 3600];
-    let $m: Lend.mut from $r reading set_to Lend.mut $r;
+    let mut $r: reading = reading[celsius = 21, time = 3600];
+    let $m: Lend.mut from $r reading = Lend.mut $r;
     eat(Give $m);
     return void;
 end fn.main

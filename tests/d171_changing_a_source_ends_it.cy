@@ -11,10 +11,10 @@ struct view <`text`>:
 end struct view
 
 fn.main [none] returns void:
-    let mut $out: os::stdout.unbuffered set_to os::stdout.unbuffered();
-    let mut $a: reading set_to reading[celsius set_to 1];
-    let $v: view<`text`: $a> set_to view[words set_to Lend $a];
-    change $a.celsius set_to 5;
+    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
+    let mut $a: reading = reading[celsius = 1];
+    let $v: view<`text`: $a> = view[words = Lend $a];
+    change $a.celsius = 5;
     std::io::fmt_print(Lend.mut $out, "{}{newln}", $v.words.celsius);
     return void;
 end fn.main

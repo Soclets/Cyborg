@@ -7,7 +7,7 @@ fn grow [$xs: Lent.mut std::list<i32>[len.max: inf items]] returns i32:
 end fn grow
 
 fn.main [none] returns void:
-    let mut $xs: std::list<i32>[len.max: inf items] set_to [1];
-    change $xs[pos: 1] set_to grow(Lend.mut $xs);
+    let mut $xs: std::list<i32>[len.max: inf items] = [1];
+    change $xs[pos: 1] = grow(Lend.mut $xs);
     return void;
 end fn.main

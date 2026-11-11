@@ -1,5 +1,5 @@
-NotDesignedYet: d133_position_with_a_hand_off.cy:11:32, line 11 column 32
-11 |     let $n: i32 set_to $a[pos: eat(Give $s)];
-   |                                ^^^^^^^^^^^^
+NotDesignedYet: d133_position_with_a_hand_off.cy:11:27, line 11 column 27
+11 |     let $n: i32 = $a[pos: eat(Give $s)];
+   |                           ^^^^^^^^^^^^
  what: handing something off inside a position
  why:  not decided yet, and the standard doesn't say

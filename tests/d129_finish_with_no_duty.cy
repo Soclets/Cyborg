@@ -5,7 +5,7 @@ struct box:
 end struct box
 
 fn.main [none] returns void:
-    let $b: box set_to box[n set_to 1];
+    let $b: box = box[n = 1];
     finish $b;
     return void;
 end fn.main

@@ -1,5 +1,5 @@
-refused: d213_word_operator.cy:7:25, line 7 column 25
- 7 |     let $b: bool set_to $a and  $a;
-   |                         ^^^^^^^^^^
+refused: d213_word_operator.cy:7:20, line 7 column 20
+ 7 |     let $b: bool = $a and  $a;
+   |                    ^^^^^^^^^^
  fix:  `$a and $a`
- why:  a binary operator, `set_to` and word operators included, has one space on each side, so `1+8` is refused (D23, D213)
+ why:  a binary operator, `=` and word operators included, has one space on each side, so `1+8` is refused (D23, D213)

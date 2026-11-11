@@ -1,5 +1,5 @@
-NotDesignedYet: d164_div_trunc_on_floats.cy:5:31, line 5 column 31
- 5 |     let $b: f64.stable set_to $a div.trunc 2.0;
-   |                               ^^^^^^^^^^^^^^^^
+NotDesignedYet: d164_div_trunc_on_floats.cy:5:26, line 5 column 26
+ 5 |     let $b: f64.stable = $a div.trunc 2.0;
+   |                          ^^^^^^^^^^^^^^^^
  what: `div.trunc` on floats
  why:  not decided yet (standard 12.2)

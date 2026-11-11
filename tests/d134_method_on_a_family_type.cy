@@ -1,7 +1,7 @@
 // trace: D134, D130
 
 fam.type.new ids:
-    ids.user set_to i64;
+    ids.user = i64;
 end fam.type.new ids
 
 fn ids.user.%same [$u: ids.user] returns ids.user:

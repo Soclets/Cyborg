@@ -4,13 +4,13 @@ import std;
 import os;
 
 fn take [$x: f64.stable[min: 0.0, max: 1.0]] returns void:
-    let mut $out: os::stdout.unbuffered set_to os::stdout.unbuffered();
+    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     std::io::fmt_print(Lend.mut $out, "taken{newln}");
     return void;
 end fn take
 
 fn.main [none] returns void:
-    let $t: f64.stable[min: -0.0, max: 1.0] set_to 0.5;
+    let $t: f64.stable[min: -0.0, max: 1.0] = 0.5;
     take($t);
     return void;
 end fn.main

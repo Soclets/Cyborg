@@ -21,20 +21,20 @@ fn describe [$t: Given token] returns str:
 end fn describe
 
 fn make_word [$text: Given str] returns token:
-    return token.word[text set_to Give $text];
+    return token.word[text = Give $text];
 end fn make_word
 
 fn.main [none] returns void:
-    let mut $out: os::stdout.unbuffered set_to os::stdout.unbuffered();
-    let $name: str set_to "hello";
-    std::io::fmt_print(Lend.mut $out, "{}{newln}", describe(token.number[value set_to 42]));
+    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
+    let $name: str = "hello";
+    std::io::fmt_print(Lend.mut $out, "{}{newln}", describe(token.number[value = 42]));
     std::io::fmt_print(Lend.mut $out, "{}{newln}", describe(make_word(Give $name)));
     std::io::fmt_print(Lend.mut $out, "{}{newln}", describe(token.done));
 
-    let mut $state: token set_to token.number[value set_to 1];
+    let mut $state: token = token.number[value = 1];
     if $state: token.number:
         std::io::fmt_print(Lend.mut $out, "{}{newln}", $state.value);
-        change $state set_to token.done;
+        change $state = token.done;
     end if
     if $state: token.done:
         std::io::fmt_print(Lend.mut $out, "finished{newln}");

@@ -1,6 +1,6 @@
-check failed: d20_runtime_check_on_change.cy:9:22, line 9 column 22
- 9 |     change $b set_to $b + 1;
-   |                      ^^^^^^
+check failed: d20_runtime_check_on_change.cy:9:17, line 9 column 17
+ 9 |     change $b = $b + 1;
+   |                 ^^^^^^
  what: this doesn't fit `i32[min: 0, max: 100]`
- why:  a plain `set_to`, `change` or argument checks a bound when the compiler can't see it fits (D20)
+ why:  a plain `=`, `change` or argument checks a bound when the compiler can't see it fits (D20)
  when: it is 101

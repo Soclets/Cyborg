@@ -4,7 +4,7 @@ import std;
 import os;
 
 fn.main [none] returns void:
-    let mut $out: os::stdout.unbuffered set_to os::stdout.unbuffered();
+    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     shield sensor:
         reason "talks to the chip"
         std::io::fmt_print(Lend.mut $out, "inside{newln}");

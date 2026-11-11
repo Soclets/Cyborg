@@ -11,15 +11,15 @@ fn code_of [$s: status] returns i32:
     decl $n: i32;
     match $s:
         case status.ok:
-            assign $n set_to 0;
+            assign $n = 0;
         case status.failed $f:
-            assign $n set_to $f.code;
+            assign $n = $f.code;
     end match
     return $n;
 end fn code_of
 
 fn.main [none] returns void:
-    let mut $out: os::stdout.unbuffered set_to os::stdout.unbuffered();
-    std::io::fmt_print(Lend.mut $out, "{}{newln}", code_of(status.failed[code set_to 7]));
+    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
+    std::io::fmt_print(Lend.mut $out, "{}{newln}", code_of(status.failed[code = 7]));
     return void;
 end fn.main

@@ -4,9 +4,9 @@ import std;
 import os;
 
 fn.main [none] returns void:
-    let mut $out: os::stdout.unbuffered set_to os::stdout.unbuffered();
-    let $from: u8 set_to 3;
-    let $to: u8 set_to 0;
+    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
+    let $from: u8 = 3;
+    let $to: u8 = 0;
     for $i in range[from: $from, to: $to, step_by: -1]:
         std::io::fmt_print(Lend.mut $out, "{}{newln}", $i);
     end for

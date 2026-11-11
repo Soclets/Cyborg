@@ -11,7 +11,7 @@ fn box.%plus [$b: box, $by: i32] returns i32:
 end fn box.%plus
 
 fn.main [none] returns void:
-    let $b: box set_to box[n set_to 1];
-    let $n: i32 set_to $b.%plus(1);
+    let $b: box = box[n = 1];
+    let $n: i32 = $b.%plus(1);
     return void;
 end fn.main

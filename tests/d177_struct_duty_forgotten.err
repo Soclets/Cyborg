@@ -4,6 +4,6 @@ refused: d177_struct_duty_forgotten.cy:26:5, line 26 column 5
  what: this leaves with `$l` never given away or finished
  why:  a `must_Give` value is handed off with `Give` exactly once, or `finish` ends it (D2, D129)
  because: d177_struct_duty_forgotten.cy:25:9, line 25 column 9
-25 |     let $l: log set_to log[file set_to open(3)];
+25 |     let $l: log = log[file = open(3)];
    |         ^^
      `$l` was made here

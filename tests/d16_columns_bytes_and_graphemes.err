@@ -1,5 +1,5 @@
-refused: d16_columns_bytes_and_graphemes.cy:14:62, line 14 column 54
-14 |     let $s: str set_to "é🇹🇭"; let $n: i32 set_to read($b);
-   |                                                      ^^
+refused: d16_columns_bytes_and_graphemes.cy:14:52, line 14 column 44
+14 |     let $s: str = "é🇹🇭"; let $n: i32 = read($b);
+   |                                            ^^
  fix:  `Lend $b`
  why:  every hand-off shows on the page (D3)

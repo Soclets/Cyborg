@@ -5,7 +5,7 @@ struct reading:
 end struct reading
 
 fn.main [none] returns void:
-    let $r: reading set_to reading[celsius set_to 21];
-    let $b: Lend.mut from $r reading set_to Lend.mut $r;
+    let $r: reading = reading[celsius = 21];
+    let $b: Lend.mut from $r reading = Lend.mut $r;
     return void;
 end fn.main

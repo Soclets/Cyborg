@@ -7,8 +7,8 @@ struct reading:
 end struct reading
 
 fn.main [none] returns void:
-    let mut $r: reading set_to reading[celsius set_to 21, time set_to 3600];
-    let $lock: Lend.held from $r reading set_to Lend $r;
-    change $r.celsius set_to 22;
+    let mut $r: reading = reading[celsius = 21, time = 3600];
+    let $lock: Lend.held from $r reading = Lend $r;
+    change $r.celsius = 22;
     return void;
 end fn.main

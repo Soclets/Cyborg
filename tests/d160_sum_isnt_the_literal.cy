@@ -4,10 +4,10 @@ import std;
 import os;
 
 fn.main [none] returns void:
-    let mut $out: os::stdout.unbuffered set_to os::stdout.unbuffered();
-    let $a: f64.stable set_to ~0.1;
-    let $b: f64.stable set_to ~0.2;
-    let $c: f64.stable set_to $a + $b;
+    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
+    let $a: f64.stable = ~0.1;
+    let $b: f64.stable = ~0.2;
+    let $c: f64.stable = $a + $b;
     if $c == ~0.3:
         std::io::fmt_print(Lend.mut $out, "equal{newln}");
     else:

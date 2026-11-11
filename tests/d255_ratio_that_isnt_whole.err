@@ -1,5 +1,5 @@
-NotDesignedYet: d255_ratio_that_isnt_whole.cy:12:44, line 12 column 44
-12 |     let $s: i32[unit: length.spans] set_to $f as.trunc i32[unit: length.spans];
-   |                                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+NotDesignedYet: d255_ratio_that_isnt_whole.cy:12:39, line 12 column 39
+12 |     let $s: i32[unit: length.spans] = $f as.trunc i32[unit: length.spans];
+   |                                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
  what: an integer conversion whose ratio, 4 per 3, isn't whole
  why:  not decided yet (standard 12.2)

@@ -5,7 +5,7 @@ fn use_ratio [$r: f64.stable[min: 0.0, max: 1.0]] returns void:
 end fn use_ratio
 
 fn.main [none] returns void:
-    let $x: f64.stable set_to 1.5;
+    let $x: f64.stable = 1.5;
     use_ratio($x);
     return void;
 end fn.main

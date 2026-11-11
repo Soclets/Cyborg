@@ -2,6 +2,6 @@
 // trace: D259, D20
 
 fn.main [none] returns void:
-    let $n: i32[max: 9, min: 0] set_to 3;
+    let $n: i32[max: 9, min: 0] = 3;
     return void;
 end fn.main

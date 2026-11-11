@@ -8,13 +8,13 @@ struct box:
 end struct box
 
 fn replace [$s: Lent.mut str] returns void:
-    change $s set_to "changed";
+    change $s = "changed";
     return void;
 end fn replace
 
 fn.main [none] returns void:
-    let mut $out: os::stdout.unbuffered set_to os::stdout.unbuffered();
-    let mut $b: box set_to box[s set_to "a", t set_to "b"];
+    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
+    let mut $b: box = box[s = "a", t = "b"];
     replace(Lend.mut $b.t);
     std::io::fmt_print(Lend.mut $out, "{}{}{newln}", $b.s, $b.t);
     return void;

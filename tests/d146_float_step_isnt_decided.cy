@@ -2,7 +2,7 @@
 // trace: D146
 
 fn.main [none] returns void:
-    let $by: f64.stable set_to 1.5;
+    let $by: f64.stable = 1.5;
     for $i in range[from: 1, to: 5, step_by: $by]:
         return void;
     end for

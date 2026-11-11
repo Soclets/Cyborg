@@ -10,9 +10,9 @@ struct outer:
 end struct outer
 
 fn.main [none] returns void:
-    let mut $o: outer set_to outer[a set_to inner[n set_to 1], b set_to inner[n set_to 2]];
-    let $l: Lend from $o inner set_to Lend $o.a;
-    change $o.b.n set_to 3;
-    let $n: i32 set_to $l.n;
+    let mut $o: outer = outer[a = inner[n = 1], b = inner[n = 2]];
+    let $l: Lend from $o inner = Lend $o.a;
+    change $o.b.n = 3;
+    let $n: i32 = $l.n;
     return void;
 end fn.main

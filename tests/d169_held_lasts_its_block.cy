@@ -8,10 +8,10 @@ struct reading:
 end struct reading
 
 fn.main [none] returns void:
-    let mut $out: os::stdout.unbuffered set_to os::stdout.unbuffered();
-    let mut $r: reading set_to reading[celsius set_to 21, time set_to 3600];
-    let $lock: Lend.held from $r reading set_to Lend $r;
+    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
+    let mut $r: reading = reading[celsius = 21, time = 3600];
+    let $lock: Lend.held from $r reading = Lend $r;
     std::io::fmt_print(Lend.mut $out, "{}{newln}", $lock.celsius);
-    change $r.celsius set_to 22;
+    change $r.celsius = 22;
     return void;
 end fn.main

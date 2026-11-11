@@ -3,7 +3,7 @@ import std;
 import os;
 
 fn size [$n: i32] returns void:
-    let mut $out: os::stdout.unbuffered set_to os::stdout.unbuffered();
+    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     if $n above 100:
         std::io::fmt_print(Lend.mut $out, "huge{newln}");
     else if $n above 0:

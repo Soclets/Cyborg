@@ -16,9 +16,9 @@ op below [$a: money, $b: money] returns bool:
 end op below
 
 fn.main [none] returns void:
-    let mut $out: os::stdout.unbuffered set_to os::stdout.unbuffered();
-    let $small: money set_to money[cents set_to 5];
-    let $big: money set_to money[cents set_to 9];
+    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
+    let $small: money = money[cents = 5];
+    let $big: money = money[cents = 9];
     if $small below $big:
         std::io::fmt_print(Lend.mut $out, "below{newln}");
     end if

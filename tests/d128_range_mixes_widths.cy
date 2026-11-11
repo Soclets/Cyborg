@@ -1,8 +1,8 @@
 // trace: D128, D7
 
 fn.main [none] returns void:
-    let $a: i32 set_to 1;
-    let $b: i64 set_to 2;
+    let $a: i32 = 1;
+    let $b: i64 = 2;
     for $i in range[from: $a, to: $b]:
         return void;
     end for

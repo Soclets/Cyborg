@@ -1,5 +1,5 @@
-refused: d59_negative_inexact.cy:4:31, line 4 column 31
- 4 |     let $a: f64.stable set_to -0.1;
-   |                               ^^^^
+refused: d59_negative_inexact.cy:4:26, line 4 column 26
+ 4 |     let $a: f64.stable = -0.1;
+   |                          ^^^^
  fix:  `~-0.1`
  why:  f64 can't hold -0.1 exactly (D59)

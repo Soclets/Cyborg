@@ -2,8 +2,8 @@
 // trace: D145
 
 fn.main [none] returns void:
-    let $by: i32 set_to 0;
-    let $start: i32 set_to 5;
+    let $by: i32 = 0;
+    let $start: i32 = 5;
     for $i in range[from: $start, to: 1, step_by: $by]:
         return void;
     end for

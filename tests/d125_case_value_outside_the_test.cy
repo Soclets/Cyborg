@@ -6,7 +6,7 @@ union.tagged status:
 end union.tagged status
 
 fn.main [none] returns void:
-    let mut $s: status set_to status.ok;
-    change $s.code set_to 1;
+    let mut $s: status = status.ok;
+    change $s.code = 1;
     return void;
 end fn.main

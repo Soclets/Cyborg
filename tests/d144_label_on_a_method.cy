@@ -13,13 +13,13 @@ end struct cursor
 fn cursor.%%move [$c: Lent.mut cursor, $by: i32[unit: screen.pixels]] returns void:
     labels [$by as by.screen.pixels];
 
-    change $c.x set_to $c.x + $by;
+    change $c.x = $c.x + $by;
     return void;
 end fn cursor.%%move
 
 fn.main [none] returns void:
-    let mut $out: os::stdout.unbuffered set_to os::stdout.unbuffered();
-    let mut $c: cursor set_to cursor[x set_to 1 screen.pixels];
+    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
+    let mut $c: cursor = cursor[x = 1 screen.pixels];
     $c.%%move(by.screen.pixels: 2);
     std::io::fmt_print(Lend.mut $out, "{}{newln}", ($c.x as i32));
     return void;

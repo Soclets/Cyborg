@@ -4,12 +4,12 @@ import std;
 import os;
 
 fn f [none] returns i32 fails [a[val: i32]]:
-    fail a[val set_to 2];
+    fail a[val = 2];
 end fn f
 
 fn.main [none] returns void:
-    let mut $out: os::stdout.unbuffered set_to os::stdout.unbuffered();
-    let $n: i32 set_to f() otherwise:
+    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
+    let $n: i32 = f() otherwise:
         case a $x:
             if $x.val above 1:
                 instead 100;

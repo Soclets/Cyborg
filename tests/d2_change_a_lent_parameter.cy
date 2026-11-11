@@ -6,7 +6,7 @@ struct box:
 end struct box
 
 fn replace [$b: box] returns void:
-    change $b set_to box[n set_to 9];
+    change $b = box[n = 9];
     return void;
 end fn replace
 

@@ -1,5 +1,5 @@
-refused: d236_no_such_operator.cy:11:26, line 11 column 26
-11 |     let $c: money set_to $a + $b;
-   |                          ^^^^^^^
+refused: d236_no_such_operator.cy:11:21, line 11 column 21
+11 |     let $c: money = $a + $b;
+   |                     ^^^^^^^
  what: there's no `op +` for `money` and `money`
  why:  a struct or union gets an operator by defining it with `op`, and it applies only where its values' types match (D236, D237)

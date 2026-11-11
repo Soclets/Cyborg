@@ -1,5 +1,5 @@
-refused: d133_item_needs_a_word.cy:7:24, line 7 column 24
- 7 |     let $s: str set_to $a[pos: 1];
-   |                        ^^^^^^^^^^
+refused: d133_item_needs_a_word.cy:7:19, line 7 column 19
+ 7 |     let $s: str = $a[pos: 1];
+   |                   ^^^^^^^^^^
  what: `$a[pos: 1]` is `str`, so this needs `Give` or `Copy`
  why:  every hand-off shows on the page, including one into a name, a `return` or a field (D3)

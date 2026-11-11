@@ -11,7 +11,7 @@ fn.pure no [none] returns bool:
 end fn.pure no
 
 fn.main [none] returns void:
-    let mut $out: os::stdout.unbuffered set_to os::stdout.unbuffered();
+    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     if yes() or no() and no():
         std::io::fmt_print(Lend.mut $out, "and binds tighter{newln}");
     end if

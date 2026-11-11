@@ -1,5 +1,5 @@
 refused: d241_nothing_says_a_type.cy:27:52, line 27 column 52
 27 |     std::io::fmt_print(Lend.mut $out, "{}{newln}", total(1, 2));
    |                                                    ^^^^^^^^^^^
- what: nothing here says which type `?item` is, so this line says one, as in `: i32 set_to`
+ what: nothing here says which type `?item` is, so this line says one, as in `: i32 =`
  why:  a call fills a type parameter from its arguments, and bare literals from the type the result goes into (D241, D50)

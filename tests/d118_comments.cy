@@ -5,7 +5,7 @@ import os;
 
 /// Says hello.
 fn hello [none] returns void:
-    let mut $out: os::stdout.unbuffered set_to os::stdout.unbuffered();
+    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     // a note inside
     std::io::fmt_print(Lend.mut $out, "hello{newln}"); // and one after code
     //
@@ -13,7 +13,7 @@ fn hello [none] returns void:
 end fn hello
 
 comment why_this_exists:
-    This text isn't code: let $x: i32 set_to "nothing";
+    This text isn't code: let $x: i32 = "nothing";
     comment nested_one:
         Nor is this.
     end comment nested_one

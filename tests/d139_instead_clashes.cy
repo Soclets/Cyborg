@@ -5,6 +5,6 @@ fn my::instead [none] returns i32:
 end fn my::instead
 
 fn.main [none] returns void:
-    let $a: i32 set_to instead();
+    let $a: i32 = instead();
     return void;
 end fn.main

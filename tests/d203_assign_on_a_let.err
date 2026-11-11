@@ -1,5 +1,5 @@
 refused: d203_assign_on_a_let.cy:6:5, line 6 column 5
- 6 |     assign $x set_to 2;
-   |     ^^^^^^^^^^^^^^^^^^^
- fix:  `change $x set_to 2;`
+ 6 |     assign $x = 2;
+   |     ^^^^^^^^^^^^^^
+ fix:  `change $x = 2;`
  why:  `assign` gives a `decl` its first value, and `change` gives a new one (D203)

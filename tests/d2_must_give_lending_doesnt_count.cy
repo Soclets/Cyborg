@@ -9,7 +9,7 @@ fn peek [$f: open_file] returns i32:
 end fn peek
 
 fn.main [none] returns void:
-    let $f: open_file set_to open_file[fd set_to 3];
-    let $n: i32 set_to peek(Lend $f);
+    let $f: open_file = open_file[fd = 3];
+    let $n: i32 = peek(Lend $f);
     return void;
 end fn.main

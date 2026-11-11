@@ -10,14 +10,14 @@ struct index <`text`, `table`: lasts_at_least `text`>:
 end struct index
 
 fn.main [none] returns void:
-    let $article: reading set_to reading[celsius set_to 1];
+    let $article: reading = reading[celsius = 1];
     if $article.celsius above 0:
-        let $list: reading set_to reading[celsius set_to 2];
-        let $i: index<`text`: $list, `table`: $article> set_to index[words set_to Lend $list, lookup set_to Lend $article];
+        let $list: reading = reading[celsius = 2];
+        let $i: index<`text`: $list, `table`: $article> = index[words = Lend $list, lookup = Lend $article];
     end if
     if $article.celsius above 0:
-        let $list: reading set_to reading[celsius set_to 2];
-        let $j: index<`text`: $article, `table`: $list> set_to index[words set_to Lend $article, lookup set_to Lend $list];
+        let $list: reading = reading[celsius = 2];
+        let $j: index<`text`: $article, `table`: $list> = index[words = Lend $article, lookup = Lend $list];
     end if
     return void;
 end fn.main

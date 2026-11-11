@@ -1,7 +1,7 @@
 // trace: D114
 
 fn half [$n: i32] returns i32:
-    let $m: i32 set_to $n;
+    let $m: i32 = $n;
     requires $n at_least 0;
 
     return $m;

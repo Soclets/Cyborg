@@ -9,7 +9,7 @@ fn box.%read [$b: box] returns i32:
 end fn box.%read
 
 fn.main [none] returns void:
-    let $b: box set_to box[n set_to 1];
-    let $n: i32 set_to box.%read(Lend $b);
+    let $b: box = box[n = 1];
+    let $n: i32 = box.%read(Lend $b);
     return void;
 end fn.main

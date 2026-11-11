@@ -37,13 +37,13 @@ fn largest<?item: ordered> [$a: ?item, $b: ?item] returns ?item:
 end fn largest
 
 fn.main [none] returns void:
-    let mut $out: os::stdout.unbuffered set_to os::stdout.unbuffered();
-    let $x: i32 set_to largest(3, 5);
-    let $y: i32 set_to 9;
-    let $z: i32 set_to 4;
-    let $cold: reading set_to reading[celsius set_to 3];
-    let $warm: reading set_to reading[celsius set_to 21];
-    let $top: reading set_to largest(Lend $cold, Lend $warm);
+    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
+    let $x: i32 = largest(3, 5);
+    let $y: i32 = 9;
+    let $z: i32 = 4;
+    let $cold: reading = reading[celsius = 3];
+    let $warm: reading = reading[celsius = 21];
+    let $top: reading = largest(Lend $cold, Lend $warm);
     std::io::fmt_print(Lend.mut $out, "{} {} {}{newln}", $x, largest($y, $z), $top.celsius);
     return void;
 end fn.main

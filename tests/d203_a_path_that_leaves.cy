@@ -4,10 +4,10 @@ import std;
 import os;
 
 fn pick [$hot: bool] returns void:
-    let mut $out: os::stdout.unbuffered set_to os::stdout.unbuffered();
+    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     decl $x: i32;
     if $hot:
-        assign $x set_to 1;
+        assign $x = 1;
     else:
         return void;
     end if

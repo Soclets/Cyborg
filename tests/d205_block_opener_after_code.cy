@@ -2,6 +2,6 @@
 // trace: D205, D119
 
 fn.main [none] returns void:
-    let $x: i32 set_to 1; comment note:
+    let $x: i32 = 1; comment note:
     return void;
 end fn.main

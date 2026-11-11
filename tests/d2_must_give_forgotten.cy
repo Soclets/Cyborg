@@ -5,6 +5,6 @@ struct.must_Give open_file:
 end struct.must_Give open_file
 
 fn.main [none] returns void:
-    let $f: open_file set_to open_file[fd set_to 3];
+    let $f: open_file = open_file[fd = 3];
     return void;
 end fn.main

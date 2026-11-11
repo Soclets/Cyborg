@@ -1,5 +1,5 @@
-refused: d114_leaving_off_with_no_default.cy:10:24, line 10 column 24
-10 |     let $n: i32 set_to pair(1);
-   |                        ^^^^^^^
+refused: d114_leaving_off_with_no_default.cy:10:19, line 10 column 19
+10 |     let $n: i32 = pair(1);
+   |                   ^^^^^^^
  what: this call to `pair` leaves off `second:`
  why:  a declared label must be written, and a parameter with no label is called without one (D113, D114)

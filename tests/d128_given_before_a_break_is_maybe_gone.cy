@@ -6,8 +6,8 @@ fn eat [$s: Given str] returns void:
 end fn eat
 
 fn.main [none] returns void:
-    let $s: str set_to "a";
-    let $n: i32 set_to 1;
+    let $s: str = "a";
+    let $n: i32 = 1;
     for $i in range[from: 1, to: $n]:
         eat(Give $s);
         break;

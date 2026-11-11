@@ -1,6 +1,6 @@
-check failed: d260_bound_checked_in_its_unit.cy:14:97, line 14 column 97
-14 |     let $short: i32[unit: length.meters, min: 0 length.meters, max: 1 length.kilometers] set_to $walked;
-   |                                                                                                 ^^^^^^^
+check failed: d260_bound_checked_in_its_unit.cy:14:92, line 14 column 92
+14 |     let $short: i32[unit: length.meters, min: 0 length.meters, max: 1 length.kilometers] = $walked;
+   |                                                                                            ^^^^^^^
  what: `$walked` doesn't fit `i32[unit: length.meters, min: 0 length.meters, max: 1000 length.meters]`
- why:  a plain `set_to`, `change` or argument checks a bound when the compiler can't see it fits (D20)
+ why:  a plain `=`, `change` or argument checks a bound when the compiler can't see it fits (D20)
  when: `$walked` is 1500

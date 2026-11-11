@@ -1,5 +1,5 @@
-NotDesignedYet: d141_crossing_into_a_bound.cy:8:28, line 8 column 28
- 8 |     let $p: percent set_to $n as percent;
-   |                            ^^^^^^^^^^^^^
+NotDesignedYet: d141_crossing_into_a_bound.cy:8:23, line 8 column 23
+ 8 |     let $p: percent = $n as percent;
+   |                       ^^^^^^^^^^^^^
  what: converting `i32` to `percent` with `as`
  why:  not decided yet (standard 12.3)

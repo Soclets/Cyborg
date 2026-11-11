@@ -13,7 +13,7 @@ fam.handler say_failed:
 end fam.handler say_failed
 
 fn.main [none] returns void:
-    let mut $out: os::stdout.unbuffered set_to os::stdout.unbuffered();
+    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     std::io::fmt_print(Lend.mut $out, "hi{newln}") otherwise say_failed.tries;
     return void;
 end fn.main

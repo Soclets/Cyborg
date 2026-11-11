@@ -23,8 +23,8 @@ fn total<?item: whole and addable> [$a: ?item, $b: ?item] returns ?item:
 end fn total
 
 fn.main [none] returns void:
-    let $a: i32 set_to 1;
-    let $b: i64 set_to 2;
-    let $c: i64 set_to total($a, $b);
+    let $a: i32 = 1;
+    let $b: i64 = 2;
+    let $c: i64 = total($a, $b);
     return void;
 end fn.main

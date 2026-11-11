@@ -10,12 +10,12 @@ fn word [$bad: bool] returns str fails [too_long]:
 end fn word
 
 fn.main [none] returns void:
-    let mut $out: os::stdout.unbuffered set_to os::stdout.unbuffered();
-    let $a: str set_to word(false) otherwise:
+    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
+    let $a: str = word(false) otherwise:
         case too_long:
             instead "…";
     end otherwise
-    let $b: str set_to word(true) otherwise:
+    let $b: str = word(true) otherwise:
         case too_long:
             instead "…";
     end otherwise

@@ -1,6 +1,6 @@
-check failed: d20_runtime_check_on_let.cy:9:42, line 9 column 42
- 9 |     let $b: i32[min: 0, max: 100] set_to $n;
-   |                                          ^^
+check failed: d20_runtime_check_on_let.cy:9:37, line 9 column 37
+ 9 |     let $b: i32[min: 0, max: 100] = $n;
+   |                                     ^^
  what: `$n` doesn't fit `i32[min: 0, max: 100]`
- why:  a plain `set_to`, `change` or argument checks a bound when the compiler can't see it fits (D20)
+ why:  a plain `=`, `change` or argument checks a bound when the compiler can't see it fits (D20)
  when: `$n` is 150

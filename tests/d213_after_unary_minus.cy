@@ -3,7 +3,7 @@
 import std;
 
 fn.main [none] returns void:
-    let $x: i32 set_to 3;
-    let $y: i32 set_to - $x;
+    let $x: i32 = 3;
+    let $y: i32 = - $x;
     return void;
 end fn.main

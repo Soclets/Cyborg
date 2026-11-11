@@ -3,7 +3,7 @@
 
 fam.unit heat:
     heat.kelvin: base;
-    heat.celsius set_to 1 heat.kelvin + 273;
+    heat.celsius = 1 heat.kelvin + 273;
 end fam.unit heat
 
 fn.main [none] returns void:

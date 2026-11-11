@@ -1,5 +1,5 @@
 refused: d260_integer_bound_isnt_exact.cy:10:73, line 10 column 73
-10 |     let $k: i32[unit: length.kilometers, min: 0 length.kilometers, max: 1500 length.meters] set_to 1 length.kilometers;
+10 |     let $k: i32[unit: length.kilometers, min: 0 length.kilometers, max: 1500 length.meters] = 1 length.kilometers;
    |                                                                         ^^^^^^^^^^^^^^^^^^
  what: `1500 length.meters` isn't a whole number of `length.kilometers`, so this integer bound can't convert exactly
  why:  a bound writes its unit like any value given to its type, in any unit with the same base, converted when compiling, and exactly for an integer type (D260)

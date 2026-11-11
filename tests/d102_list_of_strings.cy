@@ -4,10 +4,10 @@ import std;
 import os;
 
 fn.main [none] returns void:
-    let mut $out: os::stdout.unbuffered set_to os::stdout.unbuffered();
-    let $a: str set_to "a";
-    let $b: str set_to "b";
-    let $xs: std::list<str>[len.max: 8 items] set_to [Give $a, Copy $b, "c"];
+    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
+    let $a: str = "a";
+    let $b: str = "b";
+    let $xs: std::list<str>[len.max: 8 items] = [Give $a, Copy $b, "c"];
     for $s in $xs:
         std::io::fmt_print(Lend.mut $out, "{}{newln}", $s);
     end for

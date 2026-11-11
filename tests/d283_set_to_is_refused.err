@@ -1,0 +1,5 @@
+refused: d283_set_to_is_refused.cy:4:21, line 4 column 21
+ 4 |     let $total: i32 set_to 0;
+   |                     ^^^^^^
+ fix:  `=`
+ why:  `=` assigns and `==` compares, so `set_to` is never written (D283)

@@ -1,7 +1,7 @@
 // trace: D114
 
 fn pair [$a: i32] returns i32:
-    defaults [$a set_to 1];
+    defaults [$a = 1];
 
     return $a;
 end fn pair

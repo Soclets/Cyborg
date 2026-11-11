@@ -4,7 +4,7 @@ struct.must_Give open_file:
     fd: i32;
 end struct.must_Give open_file
 
-type.new log_file set_to open_file;
+type.new log_file = open_file;
 
 fn f [$l: Given log_file] returns void:
     return void;

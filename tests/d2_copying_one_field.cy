@@ -11,9 +11,9 @@ fn keep [$s: Given str] returns str:
 end fn keep
 
 fn.main [none] returns void:
-    let mut $out: os::stdout.unbuffered set_to os::stdout.unbuffered();
-    let $b: box set_to box[s set_to "a"];
-    let $k: str set_to keep(Copy $b.s);
+    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
+    let $b: box = box[s = "a"];
+    let $k: str = keep(Copy $b.s);
     std::io::fmt_print(Lend.mut $out, "{}{}{newln}", $k, $b.s);
     return void;
 end fn.main

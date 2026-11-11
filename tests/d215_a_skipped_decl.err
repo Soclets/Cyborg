@@ -4,8 +4,8 @@ NotDesignedYet: d215_a_skipped_decl.cy:10:14, line 10 column 14
  what: `decl` of `open_file`, which has a duty or a borrow
  why:  not decided yet, and the standard doesn't say
 
-refused: d215_a_skipped_decl.cy:12:24, line 12 column 24
-12 |     let $n: i64 set_to $x.fd;
-   |                        ^^^^^
+refused: d215_a_skipped_decl.cy:12:19, line 12 column 19
+12 |     let $n: i64 = $x.fd;
+   |                   ^^^^^
  what: this is `i32`, where `i64` is needed
  why:  `:` doesn't convert, and `as` builds a new value of another type (D7)

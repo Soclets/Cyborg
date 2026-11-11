@@ -1,5 +1,5 @@
-refused: d165_needs_the_word.cy:4:38, line 4 column 38
- 4 |     let $avogadro: f64.stable set_to ~6.02214076e23;
-   |                                      ^^^^^^^^^^^^^^
+refused: d165_needs_the_word.cy:4:33, line 4 column 33
+ 4 |     let $avogadro: f64.stable = ~6.02214076e23;
+   |                                 ^^^^^^^^^^^^^^
  fix:  `exponent ~6.02214076e23`
  why:  a stray `e` can't quietly change a number, so the word goes in front (D165)

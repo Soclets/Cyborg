@@ -6,7 +6,7 @@ fn eat [$s: Given str] returns bool:
 end fn eat
 
 fn.main [none] returns void:
-    let $s: str set_to "a";
+    let $s: str = "a";
     while eat(Give $s):
         return void;
     end while

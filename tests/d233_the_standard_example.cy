@@ -4,22 +4,22 @@ import std;
 import os;
 
 fn.main [none] returns void:
-    let mut $out: os::stdout.unbuffered set_to os::stdout.unbuffered();
-    let $a: i64 set_to 6;
-    let $b: i64 set_to 7;
-    let $c: i64 set_to 8;
+    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
+    let $a: i64 = 6;
+    let $b: i64 = 7;
+    let $c: i64 = 8;
     on.target aarch64:
         shield mul_add:
             reason "one madd instruction computes a times b plus c"
             inline.asm:
-                reads: [x0 set_to $a, x1 set_to $b, x2 set_to $c];
+                reads: [x0 = $a, x1 = $b, x2 = $c];
                 writes: [x0 => $r];
                 clobbers: [none];
                 madd x0, x0, x1, x2
             end inline.asm
         end shield mul_add
     else:
-        let $r: i64 set_to $a x $b + $c;
+        let $r: i64 = $a x $b + $c;
     end on.target
     std::io::fmt_print(Lend.mut $out, "{}{newln}", $r);
     return void;

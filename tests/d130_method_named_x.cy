@@ -12,8 +12,8 @@ fn point.%x [$p: point] returns i32:
 end fn point.%x
 
 fn.main [none] returns void:
-    let mut $out: os::stdout.unbuffered set_to os::stdout.unbuffered();
-    let $p: point set_to point[x set_to 3];
+    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
+    let $p: point = point[x = 3];
     std::io::fmt_print(Lend.mut $out, "{}{newln}", ($p.%x() x 2));
     return void;
 end fn.main

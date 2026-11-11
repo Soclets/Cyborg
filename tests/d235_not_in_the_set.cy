@@ -22,7 +22,7 @@ fn total<?item: whole and addable> [$a: ?item, $b: ?item] returns ?item:
 end fn total
 
 fn.main [none] returns void:
-    let $a: u8 set_to 4;
-    let $b: u8 set_to total($a, $a);
+    let $a: u8 = 4;
+    let $b: u8 = total($a, $a);
     return void;
 end fn.main

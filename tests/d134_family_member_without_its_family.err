@@ -1,5 +1,5 @@
 refused: d134_family_member_without_its_family.cy:4:5, line 4 column 5
- 4 |     small set_to i32;
+ 4 |     small = i32;
    |     ^^^^^
  fix:  `sizes.small`
  why:  a family's types are always used with the family (D134)

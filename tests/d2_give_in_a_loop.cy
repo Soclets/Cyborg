@@ -11,8 +11,8 @@ fn eat [$b: Given box] returns void:
 end fn eat
 
 fn.main [none] returns void:
-    let $xs: std::array<i32>[len: 2 items] set_to [1, 2];
-    let $b: box set_to box[n set_to 1];
+    let $xs: std::array<i32>[len: 2 items] = [1, 2];
+    let $b: box = box[n = 1];
     for $x in $xs:
         eat(Give $b);
     end for

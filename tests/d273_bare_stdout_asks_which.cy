@@ -4,6 +4,6 @@ import std;
 import os;
 
 fn.main [none] returns void:
-    let mut $out: os::stdout.unbuffered set_to os::stdout();
+    let mut $out: os::stdout.unbuffered = os::stdout();
     return void;
 end fn.main

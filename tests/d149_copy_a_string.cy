@@ -2,12 +2,12 @@
 import std;
 import os;
 
-type.new title set_to str;
+type.new title = str;
 
 fn.main [none] returns void:
-    let mut $out: os::stdout.unbuffered set_to os::stdout.unbuffered();
-    let $s: str set_to "a";
-    let $t: title set_to Copy $s as title;
+    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
+    let $s: str = "a";
+    let $t: title = Copy $s as title;
     std::io::fmt_print(Lend.mut $out, "{}{newln}", $s);
     return void;
 end fn.main

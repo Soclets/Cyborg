@@ -10,6 +10,6 @@ refused: d177_finish_waits_for_the_field.cy:28:5, line 28 column 5
  what: this leaves with `$l` never given away or finished
  why:  a `must_Give` value is handed off with `Give` exactly once, or `finish` ends it (D2, D129)
  because: d177_finish_waits_for_the_field.cy:26:9, line 26 column 9
-26 |     let $l: log set_to log[file set_to open(3)];
+26 |     let $l: log = log[file = open(3)];
    |         ^^
      `$l` was made here

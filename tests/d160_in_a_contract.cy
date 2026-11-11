@@ -8,9 +8,9 @@ fn half [$x: f64.stable] returns f64.stable:
 end fn half
 
 fn.main [none] returns void:
-    let mut $out: os::stdout.unbuffered set_to os::stdout.unbuffered();
-    let $h: f64.stable set_to half(1.5);
+    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
+    let $h: f64.stable = half(1.5);
     std::io::fmt_print(Lend.mut $out, "ok{newln}");
-    let $i: f64.stable set_to half(-1.5);
+    let $i: f64.stable = half(-1.5);
     return void;
 end fn.main

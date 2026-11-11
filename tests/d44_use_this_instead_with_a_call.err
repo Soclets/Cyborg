@@ -1,5 +1,5 @@
-NotDesignedYet: d44_use_this_instead_with_a_call.cy:13:39, line 13 column 39
-13 |     let $a: i32 set_to read_port() ?? other();
-   |                                       ^^^^^^^
+NotDesignedYet: d44_use_this_instead_with_a_call.cy:13:34, line 13 column 34
+13 |     let $a: i32 = read_port() ?? other();
+   |                                  ^^^^^^^
  what: whether `??` can take a call, not just a value
  why:  not decided yet (standard 12.6)

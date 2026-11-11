@@ -11,12 +11,12 @@ struct my::if:
 end struct my::if
 
 fn.main [none] returns void:
-    let mut $out: os::stdout.unbuffered set_to os::stdout.unbuffered();
-    let $width: i32 set_to 3;
-    let $height: i32 set_to 4;
-    let $area: i32 set_to $width x $height;
-    let $mine: i32 set_to my::x($width, $height);
-    let $thing: my::if set_to my::if[n set_to 9];
+    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
+    let $width: i32 = 3;
+    let $height: i32 = 4;
+    let $area: i32 = $width x $height;
+    let $mine: i32 = my::x($width, $height);
+    let $thing: my::if = my::if[n = 9];
     std::io::fmt_print(Lend.mut $out, "{}{newln}", $area);
     std::io::fmt_print(Lend.mut $out, "{}{newln}", $mine);
     std::io::fmt_print(Lend.mut $out, "{}{newln}", $thing.n);

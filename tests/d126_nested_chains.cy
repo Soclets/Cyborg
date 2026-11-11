@@ -3,9 +3,9 @@ import std;
 import os;
 
 fn.main [none] returns void:
-    let mut $out: os::stdout.unbuffered set_to os::stdout.unbuffered();
-    let $a: i32 set_to 1;
-    let $b: i32 set_to 2;
+    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
+    let $a: i32 = 1;
+    let $b: i32 = 2;
     if $a above 5:
         std::io::fmt_print(Lend.mut $out, "no{newln}");
     else:

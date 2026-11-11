@@ -8,7 +8,7 @@ fn f [none] returns void fails [a[val: i32]]:
 end fn f
 
 fn.main [none] returns void:
-    let mut $out: os::stdout.unbuffered set_to os::stdout.unbuffered();
+    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     f() otherwise:
         case a $x:
             std::io::fmt_print(Lend.mut $out, "{}{newln}", $x);

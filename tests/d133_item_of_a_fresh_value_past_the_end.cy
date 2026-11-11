@@ -6,6 +6,6 @@ fn make [none] returns std::array<i32>[len: 2 items]:
 end fn make
 
 fn.main [none] returns void:
-    let $n: i32 set_to make()[pos: 3];
+    let $n: i32 = make()[pos: 3];
     return void;
 end fn.main

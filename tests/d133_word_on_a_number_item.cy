@@ -6,7 +6,7 @@ fn f [$n: i32] returns void:
 end fn f
 
 fn.main [none] returns void:
-    let $a: std::array<i32>[len: 1 items] set_to [1];
+    let $a: std::array<i32>[len: 1 items] = [1];
     f(Lend $a[pos: 1]);
     return void;
 end fn.main

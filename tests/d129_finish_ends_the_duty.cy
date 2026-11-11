@@ -17,18 +17,18 @@ fn pass_on [$f: Given open_file] returns void:
 end fn pass_on
 
 fn close [$f: Given open_file] returns void:
-    let mut $out: os::stdout.unbuffered set_to os::stdout.unbuffered();
+    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     std::io::fmt_print(Lend.mut $out, "closing {}{newln}", $f.fd);
     finish $f;
     return void;
 end fn close
 
 fn.main [none] returns void:
-    let mut $out: os::stdout.unbuffered set_to os::stdout.unbuffered();
-    let $f: open_file set_to open_file[fd set_to 3];
+    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
+    let $f: open_file = open_file[fd = 3];
     std::io::fmt_print(Lend.mut $out, "{}{newln}", read_from(Lend $f));
     pass_on(Give $f);
-    let $g: open_file set_to open_file[fd set_to 4];
+    let $g: open_file = open_file[fd = 4];
     finish $g;
     std::io::fmt_print(Lend.mut $out, "done{newln}");
     return void;

@@ -15,11 +15,11 @@ fn warmer [$a: reading, $b: reading] returns Lend from <$a, $b> reading:
 end fn warmer
 
 fn.main [none] returns void:
-    let mut $out: os::stdout.unbuffered set_to os::stdout.unbuffered();
-    let $x: reading set_to reading[celsius set_to 21];
-    let mut $y: reading set_to reading[celsius set_to 25];
-    let $w: Lend from <$x, $y> reading set_to warmer(Lend $x, Lend $y);
-    change $y.celsius set_to 0;
+    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
+    let $x: reading = reading[celsius = 21];
+    let mut $y: reading = reading[celsius = 25];
+    let $w: Lend from <$x, $y> reading = warmer(Lend $x, Lend $y);
+    change $y.celsius = 0;
     std::io::fmt_print(Lend.mut $out, "{}{newln}", $w.celsius);
     return void;
 end fn.main

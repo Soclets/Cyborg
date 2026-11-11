@@ -1,5 +1,5 @@
 refused: d169_held_comes_after_mut.cy:10:16, line 10 column 16
-10 |     let $lock: Lend.held.mut from $r reading set_to Lend.mut $r;
+10 |     let $lock: Lend.held.mut from $r reading = Lend.mut $r;
    |                ^^^^^^^^^^^^^
  fix:  `Lend.mut.held`
  why:  the narrowing that changes the action most sits next to the thing, and for a borrow how it can be used comes before how long (D223, D169)

@@ -6,7 +6,7 @@ struct money:
 end struct money
 
 op mod.floor [$a: money, $b: i64] returns money:
-    return money[cents set_to $a.cents mod.floor $b];
+    return money[cents = $a.cents mod.floor $b];
 end op mod.floor
 
 fn.main [none] returns void:

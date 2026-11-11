@@ -1,5 +1,5 @@
 NotDesignedYet: d260_bound_on_a_point.cy:12:15, line 12 column 15
-12 |     let $now: f64.stable[unit: celsius.point, min: 0.0 celsius, max: 100.0 celsius] set_to 20.0 celsius;
+12 |     let $now: f64.stable[unit: celsius.point, min: 0.0 celsius, max: 100.0 celsius] = 20.0 celsius;
    |               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
  what: a bound on a `.point` type
  why:  not decided yet, and the standard doesn't say

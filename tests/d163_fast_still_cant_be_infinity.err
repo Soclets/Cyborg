@@ -1,6 +1,6 @@
-check failed: d163_fast_still_cant_be_infinity.cy:7:26, line 7 column 26
- 7 |         change $x set_to $x x $x;
-   |                          ^^^^^^^
+check failed: d163_fast_still_cant_be_infinity.cy:7:21, line 7 column 21
+ 7 |         change $x = $x x $x;
+   |                     ^^^^^^^
  what: this makes infinity
  why:  a float can't be NaN or infinity, and making one is a failure (D158)
  when: `13407807929942597000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000.0` and `13407807929942597000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000.0` in `f64`

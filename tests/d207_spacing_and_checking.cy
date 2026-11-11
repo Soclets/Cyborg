@@ -3,8 +3,8 @@
 import std;
 
 fn.main [none] returns void:
-    let $a: i32 set_to 1;
-    let $b: i32 set_to $a+1;
-    let $c: i64 set_to $a;
+    let $a: i32 = 1;
+    let $b: i32 = $a+1;
+    let $c: i64 = $a;
     return void;
 end fn.main

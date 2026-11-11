@@ -12,9 +12,9 @@ struct job:
 end struct job
 
 fn.main [none] returns void:
-    let mut $out: os::stdout.unbuffered set_to os::stdout.unbuffered();
-    let mut $j: job set_to job[state set_to status.ok];
-    change $j.state set_to status.failed[code set_to 7];
+    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
+    let mut $j: job = job[state = status.ok];
+    change $j.state = status.failed[code = 7];
     match $j.state:
         case status.ok:
             std::io::fmt_print(Lend.mut $out, "ok{newln}");

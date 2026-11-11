@@ -1,5 +1,5 @@
-refused: d149_a_word_on_a_bool_isnt_needed.cy:8:25, line 8 column 25
- 8 |     let $g: flag set_to Copy $b as flag;
-   |                         ^^^^^^^
+refused: d149_a_word_on_a_bool_isnt_needed.cy:8:20, line 8 column 20
+ 8 |     let $g: flag = Copy $b as flag;
+   |                    ^^^^^^^
  fix:  `$b`
  why:  plain numbers and `bool` are always copied, and take no word (D2, D123)

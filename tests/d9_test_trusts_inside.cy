@@ -8,7 +8,7 @@ union.tagged status:
 end union.tagged status
 
 fn show [$s: status] returns void:
-    let mut $out: os::stdout.unbuffered set_to os::stdout.unbuffered();
+    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     if $s: status.failed:
         std::io::fmt_print(Lend.mut $out, "failed: {}{newln}", $s.code);
     end if
@@ -16,7 +16,7 @@ fn show [$s: status] returns void:
 end fn show
 
 fn.main [none] returns void:
-    show(status.failed[code set_to 3]);
+    show(status.failed[code = 3]);
     show(status.ok);
     return void;
 end fn.main

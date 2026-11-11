@@ -7,8 +7,8 @@ fn read [none] returns i32 fails [none]:
 end fn read
 
 fn.main [none] returns void:
-    let mut $out: os::stdout.unbuffered set_to os::stdout.unbuffered();
-    let $x: i32 set_to 5;
+    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
+    let $x: i32 = 5;
     std::io::fmt_print(Lend.mut $out, "{}{newln}", (read() ?? -1));
     std::io::fmt_print(Lend.mut $out, "{}{newln}", (read() ?? $x));
     std::io::fmt_print(Lend.mut $out, "{}{newln}", (read() ?? ($x + 1)));

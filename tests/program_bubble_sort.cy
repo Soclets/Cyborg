@@ -4,15 +4,15 @@ import std;
 import os;
 
 fn sort [$xs: Lent.mut std::array<i32>[len: 6 items]] returns void:
-    let mut $swapped: bool set_to true;
+    let mut $swapped: bool = true;
     while $swapped:
-        change $swapped set_to false;
+        change $swapped = false;
         for $i in range[from: 1, before: 6]:
             if $xs[pos: $i] above $xs[pos: $i + 1]:
-                let $held: i32 set_to $xs[pos: $i];
-                change $xs[pos: $i] set_to $xs[pos: $i + 1];
-                change $xs[pos: $i + 1] set_to $held;
-                change $swapped set_to true;
+                let $held: i32 = $xs[pos: $i];
+                change $xs[pos: $i] = $xs[pos: $i + 1];
+                change $xs[pos: $i + 1] = $held;
+                change $swapped = true;
             end if
         end for
     end while
@@ -20,8 +20,8 @@ fn sort [$xs: Lent.mut std::array<i32>[len: 6 items]] returns void:
 end fn sort
 
 fn.main [none] returns void:
-    let mut $out: os::stdout.unbuffered set_to os::stdout.unbuffered();
-    let mut $xs: std::array<i32>[len: 6 items] set_to [5, 2, 9, 1, 7, 3];
+    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
+    let mut $xs: std::array<i32>[len: 6 items] = [5, 2, 9, 1, 7, 3];
     sort(Lend.mut $xs);
     for $x in $xs:
         std::io::fmt_print(Lend.mut $out, "{}{newln}", $x);

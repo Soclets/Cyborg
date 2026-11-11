@@ -10,6 +10,6 @@ fn first [$a: reading] returns Lend from $a reading:
 end fn first
 
 fn.main [none] returns void:
-    let $w: Lend from $x reading set_to first(reading[celsius set_to 1]);
+    let $w: Lend from $x reading = first(reading[celsius = 1]);
     return void;
 end fn.main

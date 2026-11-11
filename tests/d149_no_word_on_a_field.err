@@ -1,5 +1,5 @@
-refused: d149_no_word_on_a_field.cy:15:28, line 15 column 28
-15 |     let $w: wrapped set_to $h.inner as wrapped;
-   |                            ^^^^^^^^
+refused: d149_no_word_on_a_field.cy:15:23, line 15 column 23
+15 |     let $w: wrapped = $h.inner as wrapped;
+   |                       ^^^^^^^^
  what: `$h.inner` is `reading`, so this says `Give` or `Copy`
  why:  `as` on a whole value says its ownership: `Give` leaves it dead, and `Copy` pays for a copy (D3, D149)

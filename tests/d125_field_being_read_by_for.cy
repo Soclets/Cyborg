@@ -6,9 +6,9 @@ struct bag:
 end struct bag
 
 fn.main [none] returns void:
-    let mut $b: bag set_to bag[items set_to [1, 2]];
+    let mut $b: bag = bag[items = [1, 2]];
     for $x in $b.items:
-        change $b.items set_to [3, 4];
+        change $b.items = [3, 4];
     end for
     return void;
 end fn.main

@@ -19,7 +19,7 @@ fn larger<?u: length> [$a: f64.stable[unit: ?u], $b: f64.stable[unit: ?u]] retur
 end fn larger
 
 fn.main [none] returns void:
-    let $t: f64.stable[unit: time.seconds] set_to 3.0 time.seconds;
-    let $u: f64.stable[unit: time.seconds] set_to larger($t, $t);
+    let $t: f64.stable[unit: time.seconds] = 3.0 time.seconds;
+    let $u: f64.stable[unit: time.seconds] = larger($t, $t);
     return void;
 end fn.main

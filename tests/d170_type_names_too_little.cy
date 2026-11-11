@@ -12,8 +12,8 @@ fn warmer [$a: reading, $b: reading] returns Lend from <$a, $b> reading:
 end fn warmer
 
 fn.main [none] returns void:
-    let $x: reading set_to reading[celsius set_to 21];
-    let $y: reading set_to reading[celsius set_to 25];
-    let $w: Lend from $x reading set_to warmer(Lend $x, Lend $y);
+    let $x: reading = reading[celsius = 21];
+    let $y: reading = reading[celsius = 25];
+    let $w: Lend from $x reading = warmer(Lend $x, Lend $y);
     return void;
 end fn.main

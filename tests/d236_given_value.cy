@@ -6,7 +6,7 @@ struct money:
 end struct money
 
 op + [$a: Given money, $b: money] returns money:
-    return money[cents set_to $a.cents + $b.cents];
+    return money[cents = $a.cents + $b.cents];
 end op +
 
 fn.main [none] returns void:

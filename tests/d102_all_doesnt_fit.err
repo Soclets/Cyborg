@@ -1,5 +1,5 @@
-refused: d102_all_doesnt_fit.cy:5:53, line 5 column 53
- 5 |     let $d: std::array<u8>[len: 3 items] set_to all 256;
-   |                                                     ^^^
+refused: d102_all_doesnt_fit.cy:5:48, line 5 column 48
+ 5 |     let $d: std::array<u8>[len: 3 items] = all 256;
+   |                                                ^^^
  what: `256` doesn't fit `u8`
  why:  a literal that can't fit is a compile error (D20)

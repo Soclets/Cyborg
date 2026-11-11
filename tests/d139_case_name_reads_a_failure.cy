@@ -4,7 +4,7 @@ import os;
 
 fn half [$n: i32] returns i32 fails [negative[val: i32], odd]:
     if $n below 0:
-        fail negative[val set_to $n];
+        fail negative[val = $n];
     end if
     if $n mod.trunc 2 != 0:
         fail odd;
@@ -13,8 +13,8 @@ fn half [$n: i32] returns i32 fails [negative[val: i32], odd]:
 end fn half
 
 fn show [$n: i32] returns void:
-    let mut $out: os::stdout.unbuffered set_to os::stdout.unbuffered();
-    let $h: i32 set_to half($n) otherwise:
+    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
+    let $h: i32 = half($n) otherwise:
         case negative $f:
             std::io::fmt_print(Lend.mut $out, "negative {}{newln}", $f.val);
             instead 0;

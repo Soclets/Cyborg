@@ -1,5 +1,5 @@
-refused: d149_lend_doesnt_fit.cy:11:28, line 11 column 28
-11 |     let $w: wrapped set_to Lend $r as wrapped;
-   |                            ^^^^^^^
+refused: d149_lend_doesnt_fit.cy:11:23, line 11 column 23
+11 |     let $w: wrapped = Lend $r as wrapped;
+   |                       ^^^^^^^
  what: `as` builds a new value, so `Lend` doesn't fit here
  why:  `as` on a whole value says `Give` or `Copy` (D3, D149)

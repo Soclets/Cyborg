@@ -9,7 +9,7 @@ fam.unit storage:
 end fam.unit storage
 
 fn.main [none] returns void:
-    let $a: i32[unit: time.seconds] set_to 1 time.seconds;
-    let $b: i32[unit: time.seconds] set_to $a + 5 storage.bytes;
+    let $a: i32[unit: time.seconds] = 1 time.seconds;
+    let $b: i32[unit: time.seconds] = $a + 5 storage.bytes;
     return void;
 end fn.main

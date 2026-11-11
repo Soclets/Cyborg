@@ -1,11 +1,11 @@
-refused: d207_errors_in_two_functions.cy:7:24, line 7 column 24
- 7 |     let $a: i64 set_to $n;
-   |                        ^^
+refused: d207_errors_in_two_functions.cy:7:19, line 7 column 19
+ 7 |     let $a: i64 = $n;
+   |                   ^^
  what: this is `i32`, where `i64` is needed
  why:  `:` doesn't convert, and `as` builds a new value of another type (D7)
 
-refused: d207_errors_in_two_functions.cy:13:31, line 13 column 31
-13 |     let $b: f64.stable set_to 0.1;
-   |                               ^^^
+refused: d207_errors_in_two_functions.cy:13:26, line 13 column 26
+13 |     let $b: f64.stable = 0.1;
+   |                          ^^^
  fix:  `~0.1`
  why:  f64 can't hold 0.1 exactly (D59)

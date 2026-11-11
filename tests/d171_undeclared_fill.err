@@ -1,5 +1,5 @@
 refused: d171_undeclared_fill.cy:13:13, line 13 column 13
-13 |     let $v: view<`text`: $b> set_to view[words set_to Lend $a];
+13 |     let $v: view<`text`: $b> = view[words = Lend $a];
    |             ^^^^^^^^^^^^^^^^
  what: `$b` isn't declared here
  why:  a source is filled with a value in scope, `program`, or a source (D171)

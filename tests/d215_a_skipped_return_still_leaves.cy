@@ -8,7 +8,7 @@ fn half [$n: i32] returns i32:
 end fn half
 
 fn.main [none] returns void:
-    let $h: i32 set_to half(4);
-    let $wrong: i64 set_to $h;
+    let $h: i32 = half(4);
+    let $wrong: i64 = $h;
     return void;
 end fn.main

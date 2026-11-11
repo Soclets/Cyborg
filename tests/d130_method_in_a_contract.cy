@@ -17,10 +17,10 @@ fn take [$b: box] returns i32:
 end fn take
 
 fn.main [none] returns void:
-    let mut $out: os::stdout.unbuffered set_to os::stdout.unbuffered();
-    let $ok: box set_to box[n set_to 1];
+    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
+    let $ok: box = box[n = 1];
     std::io::fmt_print(Lend.mut $out, "{}{newln}", take(Lend $ok));
-    let $bad: box set_to box[n set_to 0];
+    let $bad: box = box[n = 0];
     std::io::fmt_print(Lend.mut $out, "{}{newln}", take(Lend $bad));
     return void;
 end fn.main

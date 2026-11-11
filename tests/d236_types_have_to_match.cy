@@ -6,12 +6,12 @@ struct money:
 end struct money
 
 op + [$a: money, $b: money] returns money:
-    return money[cents set_to $a.cents + $b.cents];
+    return money[cents = $a.cents + $b.cents];
 end op +
 
 fn.main [none] returns void:
-    let $a: money set_to money[cents set_to 1];
-    let $n: i64 set_to 2;
-    let $c: money set_to $a + $n;
+    let $a: money = money[cents = 1];
+    let $n: i64 = 2;
+    let $c: money = $a + $n;
     return void;
 end fn.main

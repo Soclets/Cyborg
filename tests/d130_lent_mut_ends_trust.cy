@@ -6,15 +6,15 @@ union.tagged status:
 end union.tagged status
 
 fn status.%%reset [$s: Lent.mut status] returns void:
-    change $s set_to status.ok;
+    change $s = status.ok;
     return void;
 end fn status.%%reset
 
 fn.main [none] returns void:
-    let mut $s: status set_to status.failed[code set_to 3];
+    let mut $s: status = status.failed[code = 3];
     if $s: status.failed:
         $s.%%reset();
-        let $n: i32 set_to $s.code;
+        let $n: i32 = $s.code;
     end if
     return void;
 end fn.main

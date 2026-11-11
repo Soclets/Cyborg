@@ -1,5 +1,5 @@
-refused: d125_field_of_the_wrong_type.cy:9:24, line 9 column 24
- 9 |     change $b.n set_to "two";
-   |                        ^^^^^
+refused: d125_field_of_the_wrong_type.cy:9:19, line 9 column 19
+ 9 |     change $b.n = "two";
+   |                   ^^^^^
  what: this is `str`, where `i32` is needed
  why:  `:` doesn't convert, and `as` builds a new value of another type (D7)

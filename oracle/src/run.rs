@@ -993,7 +993,7 @@ impl<'c> Runner<'c> {
                         Report::check_failed(
                             span,
                             what,
-                            "a plain `set_to`, `change` or argument checks a bound when the compiler can't see it fits (D20, D158)",
+                            "a plain `=`, `change` or argument checks a bound when the compiler can't see it fits (D20, D158)",
                         )
                         .when(when),
                     ));
@@ -1103,7 +1103,7 @@ impl<'c> Runner<'c> {
                         Report::check_failed(
                             span,
                             what,
-                            "a plain `set_to`, `change` or argument checks a bound when the compiler can't see it fits (D20)",
+                            "a plain `=`, `change` or argument checks a bound when the compiler can't see it fits (D20)",
                         )
                         .when(when),
                     ));

@@ -9,8 +9,8 @@ fn first [$a: reading] returns Lend from $a reading:
 end fn first
 
 fn.main [none] returns void:
-    let $x: reading set_to reading[celsius set_to 21];
-    let $y: reading set_to reading[celsius set_to 25];
-    let $w: Lend from <$x, $y> reading set_to first(Lend $x);
+    let $x: reading = reading[celsius = 21];
+    let $y: reading = reading[celsius = 25];
+    let $w: Lend from <$x, $y> reading = first(Lend $x);
     return void;
 end fn.main

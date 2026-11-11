@@ -10,7 +10,7 @@ fn eat [$s: Given str] returns void:
 end fn eat
 
 fn.main [none] returns void:
-    let $xs: std::list<box>[len.max: inf items] set_to [box[s set_to "a"]];
+    let $xs: std::list<box>[len.max: inf items] = [box[s = "a"]];
     for $b in $xs:
         eat(Give $b.s);
     end for

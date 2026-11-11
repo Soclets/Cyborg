@@ -15,9 +15,9 @@ fn part [$o: outer] returns Lend from $o inner:
 end fn part
 
 fn.main [none] returns void:
-    let mut $out: os::stdout.unbuffered set_to os::stdout.unbuffered();
-    let $o: outer set_to outer[a set_to inner[n set_to 7]];
-    let $p: Lend from $o inner set_to part(Lend $o);
+    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
+    let $o: outer = outer[a = inner[n = 7]];
+    let $p: Lend from $o inner = part(Lend $o);
     std::io::fmt_print(Lend.mut $out, "{}{newln}", $p.n);
     return void;
 end fn.main

@@ -7,9 +7,9 @@ use std::units::angle.radians as radians;
 use std::units::angle.degrees as degrees;
 
 fn.main [none] returns void:
-    let mut $out: os::stdout.unbuffered set_to os::stdout.unbuffered();
-    let $right: f64.stable[unit: degrees] set_to 90.0 degrees;
-    let $half_turn: f64.stable[unit: degrees] set_to 180.0 degrees;
+    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
+    let $right: f64.stable[unit: degrees] = 90.0 degrees;
+    let $half_turn: f64.stable[unit: degrees] = 180.0 degrees;
     std::io::fmt_print(Lend.mut $out, "{}{newln}", std::math::sin($right as f64.stable[unit: radians]));
     std::io::fmt_print(Lend.mut $out, "{} {}{newln}", std::math::sin($half_turn as f64.stable[unit: radians]), std::math::cos($half_turn as f64.stable[unit: radians]));
     return void;

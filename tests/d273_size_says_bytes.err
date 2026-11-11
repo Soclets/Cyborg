@@ -1,6 +1,6 @@
-refused: d273_size_says_bytes.cy:7:72, line 7 column 72
- 7 |     let mut $out: os::stdout.buffered set_to os::stdout.buffered(size: 1024);
-   |                                                                        ^^^^
+refused: d273_size_says_bytes.cy:7:67, line 7 column 67
+ 7 |     let mut $out: os::stdout.buffered = os::stdout.buffered(size: 1024);
+   |                                                                   ^^^^
  fix:  `1024 bytes`
  why:  `os::stdout` and `os::stderr` say which kind they are: `.buffered(size: 1024 bytes)` writes in chunks and is finished with `os::done`, and `.unbuffered()` writes each print straight away (D273)
 
@@ -9,7 +9,7 @@ refused: d273_size_says_bytes.cy:8:5, line 8 column 5
    |     ^^^^^^^^^^^^^^^^^^^
  what: `$out` never got a value
  why:  a variable is read only after it has one (D203)
- because: d273_size_says_bytes.cy:7:72, line 7 column 72
- 7 |     let mut $out: os::stdout.buffered set_to os::stdout.buffered(size: 1024);
-   |                                                                        ^^^^
+ because: d273_size_says_bytes.cy:7:67, line 7 column 67
+ 7 |     let mut $out: os::stdout.buffered = os::stdout.buffered(size: 1024);
+   |                                                                   ^^^^
      with `1024 bytes` here, this error goes away

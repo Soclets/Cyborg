@@ -5,6 +5,6 @@ fn total [none] returns i32:
 end fn total
 
 fn.main [none] returns void:
-    let $a: i32 set_to my::total();
+    let $a: i32 = my::total();
     return void;
 end fn.main

@@ -7,9 +7,9 @@ fn my::true [none] returns i32:
 end fn my::true
 
 fn.main [none] returns void:
-    let mut $out: os::stdout.unbuffered set_to os::stdout.unbuffered();
-    let $a: i32 set_to my::true();
-    let $b: bool set_to true;
+    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
+    let $a: i32 = my::true();
+    let $b: bool = true;
     std::io::fmt_print(Lend.mut $out, "{}{newln}", $a);
     if $b:
         std::io::fmt_print(Lend.mut $out, "still a bool{newln}");

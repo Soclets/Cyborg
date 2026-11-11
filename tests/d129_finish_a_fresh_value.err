@@ -1,5 +1,5 @@
 refused: d129_finish_a_fresh_value.cy:8:12, line 8 column 12
- 8 |     finish open_file[fd set_to 3];
-   |            ^^^^^^^^^^^^^^^^^^^^^^
+ 8 |     finish open_file[fd = 3];
+   |            ^^^^^^^^^^^^^^^^^
  what: `finish` goes on a variable that holds the duty
  why:  `finish` ends a `must_Give` duty (D129)

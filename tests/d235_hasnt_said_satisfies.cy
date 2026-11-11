@@ -20,7 +20,7 @@ fn larger<?item: ordered> [$a: ?item, $b: ?item] returns bool:
 end fn larger
 
 fn.main [none] returns void:
-    let $a: i32 set_to 4;
-    let $b: bool set_to larger($a, $a);
+    let $a: i32 = 4;
+    let $b: bool = larger($a, $a);
     return void;
 end fn.main

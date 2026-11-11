@@ -3,7 +3,7 @@
 import std;
 
 fn.main [none] returns void:
-    let $a: bool set_to true;
-    let $b: bool set_to $a and  $a;
+    let $a: bool = true;
+    let $b: bool = $a and  $a;
     return void;
 end fn.main

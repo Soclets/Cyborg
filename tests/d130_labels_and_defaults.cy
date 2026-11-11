@@ -8,14 +8,14 @@ end struct box
 
 fn box.%plus [$b: box, $by: i32] returns i32:
     labels [$by as by];
-    defaults [$by set_to 1];
+    defaults [$by = 1];
 
     return $b.n + $by;
 end fn box.%plus
 
 fn.main [none] returns void:
-    let mut $out: os::stdout.unbuffered set_to os::stdout.unbuffered();
-    let $b: box set_to box[n set_to 1];
+    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
+    let $b: box = box[n = 1];
     std::io::fmt_print(Lend.mut $out, "{}{newln}", $b.%plus());
     std::io::fmt_print(Lend.mut $out, "{}{newln}", $b.%plus(by: 5));
     return void;

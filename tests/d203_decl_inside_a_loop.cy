@@ -4,10 +4,10 @@ import std;
 import os;
 
 fn.main [none] returns void:
-    let mut $out: os::stdout.unbuffered set_to os::stdout.unbuffered();
+    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     for $i in range[from: 1, to: 3]:
         decl $x: i32;
-        assign $x set_to $i x 10;
+        assign $x = $i x 10;
         std::io::fmt_print(Lend.mut $out, "{}{newln}", $x);
     end for
     return void;

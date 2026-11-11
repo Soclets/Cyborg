@@ -3,8 +3,8 @@ import std;
 import os;
 
 fn.main [none] returns void:
-    let mut $out: os::stdout.unbuffered set_to os::stdout.unbuffered();
-    let $a: f64.stable set_to 0.5;
+    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
+    let $a: f64.stable = 0.5;
     if $a at_least 0.25:
         std::io::fmt_print(Lend.mut $out, "at least{newln}");
     end if

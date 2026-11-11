@@ -2,6 +2,6 @@
 // trace: D48
 
 fn.main [none] returns void:
-    let $a: str.utf16 set_to "hi";
+    let $a: str.utf16 = "hi";
     return void;
 end fn.main

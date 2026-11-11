@@ -3,9 +3,9 @@ import std;
 import os;
 
 fn.main [none] returns void:
-    let mut $out: os::stdout.unbuffered set_to os::stdout.unbuffered();
-    let $t: bool set_to true;
-    let $f: bool set_to false;
+    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
+    let $t: bool = true;
+    let $f: bool = false;
     if not $f and $t:
         std::io::fmt_print(Lend.mut $out, "(not f) and t{newln}");
     end if

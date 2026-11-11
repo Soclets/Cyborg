@@ -9,8 +9,8 @@ fn eat [$b: Given box] returns void:
 end fn eat
 
 fn.main [none] returns void:
-    let mut $b: box set_to box[n set_to 1];
+    let mut $b: box = box[n = 1];
     eat(Give $b);
-    change $b.n set_to 2;
+    change $b.n = 2;
     return void;
 end fn.main

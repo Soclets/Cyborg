@@ -10,7 +10,7 @@ fn read [$b: box] returns i32:
 end fn read
 
 fn.main [none] returns void:
-    let $b: box set_to box[n set_to 1];
-    let $n: i32 set_to read(Give $b);
+    let $b: box = box[n = 1];
+    let $n: i32 = read(Give $b);
     return void;
 end fn.main

@@ -1,5 +1,5 @@
-NotDesignedYet: d140_scaling_a_length.cy:6:37, line 6 column 37
- 6 |     let $n: u64[unit: items] set_to $a.len x 2;
-   |                                     ^^^^^^^^^^
+NotDesignedYet: d140_scaling_a_length.cy:6:32, line 6 column 32
+ 6 |     let $n: u64[unit: items] = $a.len x 2;
+   |                                ^^^^^^^^^^
  what: scaling a unit by a plain number, and what unit comes back
  why:  not decided yet, and the standard doesn't say

@@ -1,5 +1,5 @@
-refused: d249_point_plus_point.cy:15:52, line 15 column 52
-15 |     let $c: f64.stable[unit: celsius.point] set_to $a + $b;
-   |                                                    ^^^^^^^
+refused: d249_point_plus_point.cy:15:47, line 15 column 47
+15 |     let $c: f64.stable[unit: celsius.point] = $a + $b;
+   |                                               ^^^^^^^
  what: this adds a point to a point
  why:  a point plus a span is a point, a point minus a point is a span, and spans add, while a point plus a point is refused (D249, D251)

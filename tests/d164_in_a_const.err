@@ -1,6 +1,6 @@
-refused: d164_in_a_const.cy:3:29, line 3 column 29
- 3 | const $a: f64.stable set_to 1.0 div 0.0;
-   |                             ^^^^^^^^^^^
+refused: d164_in_a_const.cy:3:24, line 3 column 24
+ 3 | const $a: f64.stable = 1.0 div 0.0;
+   |                        ^^^^^^^^^^^
  what: this makes infinity
  why:  a float can't be NaN or infinity, and making one is a failure (D158)
  when: `1.0` and `0.0` in `f64`

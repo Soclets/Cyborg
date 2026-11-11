@@ -1,5 +1,5 @@
-refused: d3_change_needs_the_word_too.cy:8:22, line 8 column 22
- 8 |     change $t set_to $s;
-   |                      ^^
+refused: d3_change_needs_the_word_too.cy:8:17, line 8 column 17
+ 8 |     change $t = $s;
+   |                 ^^
  what: `$s` is `str`, so this needs `Give` or `Copy`
  why:  every hand-off shows on the page, including one into a name, a `return` or a field (D3)

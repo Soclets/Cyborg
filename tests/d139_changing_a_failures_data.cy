@@ -7,7 +7,7 @@ end fn f
 fn.main [none] returns void:
     f() otherwise:
         case a $x:
-            change $x.val set_to 2;
+            change $x.val = 2;
     end otherwise
     return void;
 end fn.main

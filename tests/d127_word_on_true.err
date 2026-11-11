@@ -1,5 +1,5 @@
-refused: d127_word_on_true.cy:9:27, line 9 column 27
- 9 |     let $a: bool set_to f(Lend true);
-   |                           ^^^^^^^^^
+refused: d127_word_on_true.cy:9:22, line 9 column 22
+ 9 |     let $a: bool = f(Lend true);
+   |                      ^^^^^^^^^
  fix:  `true`
  why:  plain numbers and `bool` are always copied, and take no word (D2, D123)

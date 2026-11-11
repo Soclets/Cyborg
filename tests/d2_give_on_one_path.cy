@@ -14,10 +14,10 @@ fn read [$b: box] returns i32:
 end fn read
 
 fn.main [none] returns void:
-    let $b: box set_to box[n set_to 1];
+    let $b: box = box[n = 1];
     if 1 below 2:
         eat(Give $b);
     end if
-    let $n: i32 set_to read(Lend $b);
+    let $n: i32 = read(Lend $b);
     return void;
 end fn.main

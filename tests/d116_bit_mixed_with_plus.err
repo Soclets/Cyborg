@@ -1,5 +1,5 @@
-refused: d116_bit_mixed_with_plus.cy:5:24, line 5 column 24
- 5 |     let $b: i32 set_to $a shl 2 + 1;
-   |                        ^^^^^^^^
+refused: d116_bit_mixed_with_plus.cy:5:19, line 5 column 19
+ 5 |     let $b: i32 = $a shl 2 + 1;
+   |                   ^^^^^^^^
  what: this needs `( )` around it, since maths gives bit operators no order
  why:  where maths gives no order, you group with `( )` (D116)

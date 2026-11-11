@@ -5,6 +5,6 @@ fn inner [none] returns i32 fails [odd]:
 end fn inner
 
 fn.main [none] returns void:
-    let $n: i32 set_to inner()?;
+    let $n: i32 = inner()?;
     return void;
 end fn.main

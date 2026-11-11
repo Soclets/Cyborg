@@ -5,7 +5,7 @@ struct.must_Give open_file:
 end struct.must_Give open_file
 
 fn open [none] returns open_file:
-    return open_file[fd set_to 3];
+    return open_file[fd = 3];
 end fn open
 
 fn.main [none] returns void:

@@ -4,8 +4,8 @@ refused: d215_a_skipped_return_still_leaves.cy:7:12, line 7 column 12
  what: maths needs numbers, and this has `i32` and `str`
  why:  `:` doesn't convert, and `as` builds a new value of another type (D7)
 
-refused: d215_a_skipped_return_still_leaves.cy:12:28, line 12 column 28
-12 |     let $wrong: i64 set_to $h;
-   |                            ^^
+refused: d215_a_skipped_return_still_leaves.cy:12:23, line 12 column 23
+12 |     let $wrong: i64 = $h;
+   |                       ^^
  what: this is `i32`, where `i64` is needed
  why:  `:` doesn't convert, and `as` builds a new value of another type (D7)

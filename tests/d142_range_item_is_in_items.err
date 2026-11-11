@@ -1,5 +1,5 @@
-refused: d142_range_item_is_in_items.cy:8:28, line 8 column 28
- 8 |         let $n: u64 set_to $i;
-   |                            ^^
+refused: d142_range_item_is_in_items.cy:8:23, line 8 column 23
+ 8 |         let $n: u64 = $i;
+   |                       ^^
  what: this is `u64[unit: items]`, where `u64` is needed
  why:  the compiler checks units, and mixing them is refused (D100, D101)

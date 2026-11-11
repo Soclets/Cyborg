@@ -2,7 +2,7 @@
 // trace: D184, D125
 
 fn bump [$n: i32] returns void:
-    change $n set_to $n + 1;
+    change $n = $n + 1;
     return void;
 end fn bump
 

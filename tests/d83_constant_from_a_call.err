@@ -1,5 +1,5 @@
-refused: d83_constant_from_a_call.cy:7:22, line 7 column 22
- 7 | const $a: i32 set_to read();
-   |                      ^^^^^^
+refused: d83_constant_from_a_call.cy:7:17, line 7 column 17
+ 7 | const $a: i32 = read();
+   |                 ^^^^^^
  what: `read` isn't `fn.pure.baked`
  why:  a `const`'s value must be fully known at compile time (D83, D91)

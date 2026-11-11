@@ -1,5 +1,5 @@
-refused: d103_empty_on_a_number.cy:4:24, line 4 column 24
- 4 |     let $a: i32 set_to empty;
-   |                        ^^^^^
+refused: d103_empty_on_a_number.cy:4:19, line 4 column 19
+ 4 |     let $a: i32 = empty;
+   |                   ^^^^^
  what: `i32` can't be `empty`
  why:  `empty` is refused where it can't be true (D103)

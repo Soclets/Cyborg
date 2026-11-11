@@ -9,9 +9,9 @@ struct point:
 end struct point
 
 fn.main [none] returns void:
-    let mut $out: os::stdout.unbuffered set_to os::stdout.unbuffered();
-    let $p: point set_to point[x set_to 3, y set_to 4];
-    let $n: i32 set_to $p.x x $p.y;
+    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
+    let $p: point = point[x = 3, y = 4];
+    let $n: i32 = $p.x x $p.y;
     std::io::fmt_print(Lend.mut $out, "{}{newln}", $n);
     return void;
 end fn.main

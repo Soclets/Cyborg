@@ -5,7 +5,7 @@ struct box:
 end struct box
 
 fn f [$b: box] returns void:
-    change $b.n set_to 2;
+    change $b.n = 2;
     return void;
 end fn f
 

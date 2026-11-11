@@ -8,12 +8,12 @@ struct small:
 end struct small
 
 fam.type.alias sizes:
-    sizes.small set_to i32;
+    sizes.small = i32;
 end fam.type.alias sizes
 
 fn.main [none] returns void:
-    let mut $out: os::stdout.unbuffered set_to os::stdout.unbuffered();
-    let $a: small set_to small[n set_to 1];
+    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
+    let $a: small = small[n = 1];
     std::io::fmt_print(Lend.mut $out, "{}{newln}", $a.n);
     return void;
 end fn.main

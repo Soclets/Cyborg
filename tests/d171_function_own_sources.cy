@@ -16,9 +16,9 @@ fn shown <`t`> [$v: view<`text`: `t`>] returns i32:
 end fn shown
 
 fn.main [none] returns void:
-    let mut $out: os::stdout.unbuffered set_to os::stdout.unbuffered();
-    let $a: reading set_to reading[celsius set_to 9];
-    let $v: view<`text`: $a> set_to view[words set_to Lend $a];
+    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
+    let $a: reading = reading[celsius = 9];
+    let $v: view<`text`: $a> = view[words = Lend $a];
     std::io::fmt_print(Lend.mut $out, "{}{newln}", shown(Lend $v));
     return void;
 end fn.main

@@ -24,11 +24,11 @@ fn total<?item: whole and addable> [$a: ?item, $b: ?item] returns ?item:
 end fn total
 
 fn.main [none] returns void:
-    let mut $out: os::stdout.unbuffered set_to os::stdout.unbuffered();
-    let $a: i64 set_to 40;
-    let $b: i64 set_to 2;
+    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
+    let $a: i64 = 40;
+    let $b: i64 = 2;
     std::io::fmt_print(Lend.mut $out, "{} {}{newln}", total($a, $b), total($b, $a));
-    let $small: i32 set_to total(1, 2);
+    let $small: i32 = total(1, 2);
     std::io::fmt_print(Lend.mut $out, "{}{newln}", $small);
     return void;
 end fn.main

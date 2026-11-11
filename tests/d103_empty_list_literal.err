@@ -1,5 +1,5 @@
-refused: d103_empty_list_literal.cy:5:53, line 5 column 53
- 5 |     let $b: std::list<i32>[len.max: 8 items] set_to [];
-   |                                                     ^^
+refused: d103_empty_list_literal.cy:5:48, line 5 column 48
+ 5 |     let $b: std::list<i32>[len.max: 8 items] = [];
+   |                                                ^^
  fix:  `empty`
  why:  `[]` is refused, because `empty` says it (D103)

@@ -1,5 +1,5 @@
 refused: d24_list_fills_one_type.cy:5:14, line 5 column 14
- 5 |     let $xs: std::list<i32, i32>[len.max: 1 items] set_to empty;
+ 5 |     let $xs: std::list<i32, i32>[len.max: 1 items] = empty;
    |              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
  what: `std::list` fills in one type, bare, in `< >`
  why:  a collection's types go in `< >`, and one type can go bare (D24, D25)

@@ -7,7 +7,7 @@ fn swap_them [$a: Lent.mut str, $b: Lent.mut str] returns void:
 end fn swap_them
 
 fn.main [none] returns void:
-    let mut $xs: std::array<str>[len: 2 items] set_to ["a", "b"];
+    let mut $xs: std::array<str>[len: 2 items] = ["a", "b"];
     swap_them(Lend.mut $xs[pos: 1], Lend.mut $xs[pos: 2]);
     return void;
 end fn.main

@@ -34,9 +34,9 @@ fn shown [$yes: bool] returns str:
 end fn shown
 
 fn.main [none] returns void:
-    let mut $out: os::stdout.unbuffered set_to os::stdout.unbuffered();
-    let $a: i32 set_to 3;
-    let $b: i32 set_to 8;
+    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
+    let $a: i32 = 3;
+    let $b: i32 = 8;
     std::io::fmt_print(Lend.mut $out, "{} {}{newln}", shown(smaller($a, $b)), shown(smaller($b, $a)));
     return void;
 end fn.main

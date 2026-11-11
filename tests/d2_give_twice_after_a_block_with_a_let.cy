@@ -11,9 +11,9 @@ end fn eat
 
 fn.main [none] returns void:
     if 1 below 2:
-        let $inner: i32 set_to 1;
+        let $inner: i32 = 1;
     end if
-    let $b: box set_to box[n set_to 1];
+    let $b: box = box[n = 1];
     eat(Give $b);
     eat(Give $b);
     return void;

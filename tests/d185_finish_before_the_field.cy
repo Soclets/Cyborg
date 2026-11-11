@@ -7,7 +7,7 @@ struct.must_Give open_file:
 end struct.must_Give open_file
 
 fn close [$f: Given open_file] returns void:
-    let mut $out: os::stdout.unbuffered set_to os::stdout.unbuffered();
+    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     std::io::fmt_print(Lend.mut $out, "closing {}{newln}", $f.fd);
     finish $f;
     return void;
@@ -19,7 +19,7 @@ struct.must_Give log:
 end struct.must_Give log
 
 fn.main [none] returns void:
-    let $l: log set_to log[file set_to open_file[fd set_to 4], lines set_to 1];
+    let $l: log = log[file = open_file[fd = 4], lines = 1];
     finish $l;
     return void;
 end fn.main

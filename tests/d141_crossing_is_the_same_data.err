@@ -1,5 +1,5 @@
-NotDesignedYet: d141_crossing_is_the_same_data.cy:8:28, line 8 column 28
- 8 |     let $u: user_id set_to $n as user_id;
-   |                            ^^^^^^^^^^^^^
+NotDesignedYet: d141_crossing_is_the_same_data.cy:8:23, line 8 column 23
+ 8 |     let $u: user_id = $n as user_id;
+   |                       ^^^^^^^^^^^^^
  what: converting `i32` to `user_id` with `as`
  why:  not decided yet (standard 12.3)

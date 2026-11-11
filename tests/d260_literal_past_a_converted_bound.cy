@@ -3,10 +3,10 @@
 
 fam.unit length:
     length.meters: base;
-    length.kilometers set_to 1000 length.meters;
+    length.kilometers = 1000 length.meters;
 end fam.unit length
 
 fn.main [none] returns void:
-    let $far: i32[unit: length.meters, min: 0 length.meters, max: 1 length.kilometers] set_to 1001 length.meters;
+    let $far: i32[unit: length.meters, min: 0 length.meters, max: 1 length.kilometers] = 1001 length.meters;
     return void;
 end fn.main

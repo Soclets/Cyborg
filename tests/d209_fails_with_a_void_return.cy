@@ -10,7 +10,7 @@ fn check [$n: i32] returns void fails [negative]:
 end fn check
 
 fn.main [none] returns void:
-    let mut $out: os::stdout.unbuffered set_to os::stdout.unbuffered();
+    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     check(-1) otherwise:
         case negative:
             std::io::fmt_print(Lend.mut $out, "negative{newln}");

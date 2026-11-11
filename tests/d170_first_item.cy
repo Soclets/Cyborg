@@ -12,9 +12,9 @@ fn first [$xs: std::list<reading>[len.min: 1 items, len.max: inf items]] returns
 end fn first
 
 fn.main [none] returns void:
-    let mut $out: os::stdout.unbuffered set_to os::stdout.unbuffered();
-    let $xs: std::list<reading>[len.min: 1 items, len.max: inf items] set_to [reading[celsius set_to 3]];
-    let $f: Lend from $xs reading set_to first(Lend $xs);
+    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
+    let $xs: std::list<reading>[len.min: 1 items, len.max: inf items] = [reading[celsius = 3]];
+    let $f: Lend from $xs reading = first(Lend $xs);
     std::io::fmt_print(Lend.mut $out, "{}{newln}", $f.celsius);
     return void;
 end fn.main

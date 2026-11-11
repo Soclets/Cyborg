@@ -18,22 +18,22 @@ struct reading:
 end struct reading
 
 fn warm [$r: Lent.mut reading] returns void:
-    change $r.celsius set_to $r.celsius + 1;
+    change $r.celsius = $r.celsius + 1;
     return void;
 end fn warm
 
 fn.main [none] returns void:
-    let mut $out: os::stdout.unbuffered set_to os::stdout.unbuffered();
-    let mut $r: reading set_to reading[celsius set_to 21, label set_to "a", at set_to 1 time.seconds, deep set_to inner[n set_to 1]];
-    change $r.celsius set_to 22;
+    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
+    let mut $r: reading = reading[celsius = 21, label = "a", at = 1 time.seconds, deep = inner[n = 1]];
+    change $r.celsius = 22;
     warm(Lend.mut $r);
-    change $r.label set_to "b";
-    let $s: str set_to "c";
-    change $r.label set_to Give $s;
-    change $r.at set_to $r.at + 5 time.seconds;
-    change $r.deep.n set_to 9;
+    change $r.label = "b";
+    let $s: str = "c";
+    change $r.label = Give $s;
+    change $r.at = $r.at + 5 time.seconds;
+    change $r.deep.n = 9;
     std::io::fmt_print(Lend.mut $out, "{} {} {} {}{newln}", $r.celsius, $r.label, $r.at, $r.deep.n);
-    change $r.deep set_to inner[n set_to 10];
+    change $r.deep = inner[n = 10];
     std::io::fmt_print(Lend.mut $out, "{}{newln}", $r.deep.n);
     return void;
 end fn.main

@@ -3,10 +3,10 @@
 import std;
 
 fn.main [none] returns void:
-    let $a: i32 set_to 1;
+    let $a: i32 = 1;
     if $a below "x":
-        let $b: i64 set_to $a;
+        let $b: i64 = $a;
     end if
-    let $c: i64 set_to $a;
+    let $c: i64 = $a;
     return void;
 end fn.main

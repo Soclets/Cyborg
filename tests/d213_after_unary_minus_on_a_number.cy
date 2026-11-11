@@ -3,6 +3,6 @@
 import std;
 
 fn.main [none] returns void:
-    let $y: i32 set_to - 1;
+    let $y: i32 = - 1;
     return void;
 end fn.main

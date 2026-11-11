@@ -5,6 +5,6 @@ fn my::x [$a: i32, $b: i32] returns i32:
 end fn my::x
 
 fn.main [none] returns void:
-    let $a: i32 set_to x(1, 2);
+    let $a: i32 = x(1, 2);
     return void;
 end fn.main

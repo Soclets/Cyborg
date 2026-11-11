@@ -5,6 +5,6 @@ fn my::type [none] returns i32:
 end fn my::type
 
 fn.main [none] returns void:
-    let $a: i32 set_to type();
+    let $a: i32 = type();
     return void;
 end fn.main

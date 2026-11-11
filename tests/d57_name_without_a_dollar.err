@@ -1,5 +1,5 @@
-refused: d57_name_without_a_dollar.cy:4:24, line 4 column 24
- 4 |     let $a: i32 set_to b;
-   |                        ^
+refused: d57_name_without_a_dollar.cy:4:19, line 4 column 19
+ 4 |     let $a: i32 = b;
+   |                   ^
  what: `b` isn't known
  why:  variables, parameters and constants start with `$` (D57, D58)

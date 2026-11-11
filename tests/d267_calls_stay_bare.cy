@@ -8,8 +8,8 @@ fn seven [none] returns i32:
 end fn seven
 
 fn.main [none] returns void:
-    let mut $out: os::stdout.unbuffered set_to os::stdout.unbuffered();
-    let $n: i32 set_to seven();
+    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
+    let $n: i32 = seven();
     std::io::fmt_print(Lend.mut $out, "{$n}{newln}");
     return void;
 end fn.main

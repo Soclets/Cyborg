@@ -14,7 +14,7 @@ fn close [$f: Given open_data] returns void:
 end fn close
 
 fn.main [none] returns void:
-    let $f: open_data set_to open_data[fd set_to 3];
+    let $f: open_data = open_data[fd = 3];
     send(Give $f);
     close(Give $f);
     return void;

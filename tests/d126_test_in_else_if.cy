@@ -9,7 +9,7 @@ union.tagged status:
 end union.tagged status
 
 fn show [$s: status] returns void:
-    let mut $out: os::stdout.unbuffered set_to os::stdout.unbuffered();
+    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     if $s: status.failed:
         std::io::fmt_print(Lend.mut $out, "failed {}{newln}", $s.code);
     else if $s: status.lost:
@@ -21,7 +21,7 @@ fn show [$s: status] returns void:
 end fn show
 
 fn grade [$n: i32] returns void:
-    let mut $out: os::stdout.unbuffered set_to os::stdout.unbuffered();
+    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     if $n below 0:
         std::io::fmt_print(Lend.mut $out, "too low{newln}");
     else if $n: i32[min: 0, max: 100]:
@@ -33,8 +33,8 @@ fn grade [$n: i32] returns void:
 end fn grade
 
 fn.main [none] returns void:
-    show(status.failed[code set_to 1]);
-    show(status.lost[where set_to 2]);
+    show(status.failed[code = 1]);
+    show(status.lost[where = 2]);
     show(status.ok);
     grade(-1);
     grade(50);

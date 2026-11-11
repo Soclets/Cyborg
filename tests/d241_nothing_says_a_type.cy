@@ -23,7 +23,7 @@ fn total<?item: whole and addable> [$a: ?item, $b: ?item] returns ?item:
 end fn total
 
 fn.main [none] returns void:
-    let mut $out: os::stdout.unbuffered set_to os::stdout.unbuffered();
+    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     std::io::fmt_print(Lend.mut $out, "{}{newln}", total(1, 2));
     return void;
 end fn.main

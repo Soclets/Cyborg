@@ -8,12 +8,12 @@ end struct box
 fn box.%%add [$b: Lent.mut box, $by: i32] returns void:
     labels [$by as by];
 
-    change $b.n set_to $b.n + $by;
+    change $b.n = $b.n + $by;
     return void;
 end fn box.%%add
 
 fn.main [none] returns void:
-    let mut $b: box set_to box[n set_to 1];
+    let mut $b: box = box[n = 1];
     $b.%%add(by: $b.n);
     return void;
 end fn.main

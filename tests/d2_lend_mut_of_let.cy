@@ -9,7 +9,7 @@ fn replace [$b: Lent.mut box] returns void:
 end fn replace
 
 fn.main [none] returns void:
-    let $b: box set_to box[n set_to 1];
+    let $b: box = box[n = 1];
     replace(Lend.mut $b);
     return void;
 end fn.main

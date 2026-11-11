@@ -5,6 +5,6 @@ fn read [none] returns i32 fails [none]:
 end fn read
 
 fn.main [none] returns void:
-    let $s: str set_to read() ?? 1 as str;
+    let $s: str = read() ?? 1 as str;
     return void;
 end fn.main

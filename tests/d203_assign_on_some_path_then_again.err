@@ -1,5 +1,5 @@
 refused: d203_assign_on_some_path_then_again.cy:9:5, line 9 column 5
- 9 |     assign $x set_to 2;
-   |     ^^^^^^^^^^^^^^^^^^^
+ 9 |     assign $x = 2;
+   |     ^^^^^^^^^^^^^^
  what: `$x` may already have its value here
  why:  `assign` gives a variable its value once on each path (D203)

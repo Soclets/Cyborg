@@ -5,7 +5,7 @@ struct name_tag:
 end struct name_tag
 
 fn.main [none] returns void:
-    let $s: str set_to "hi";
-    let $t: name_tag set_to name_tag[text set_to $s];
+    let $s: str = "hi";
+    let $t: name_tag = name_tag[text = $s];
     return void;
 end fn.main

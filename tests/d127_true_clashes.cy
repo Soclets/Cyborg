@@ -5,6 +5,6 @@ fn my::true [none] returns i32:
 end fn my::true
 
 fn.main [none] returns void:
-    let $a: i32 set_to true();
+    let $a: i32 = true();
     return void;
 end fn.main

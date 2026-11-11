@@ -3,9 +3,9 @@ import std;
 import os;
 
 fn.main [none] returns void:
-    let mut $out: os::stdout.unbuffered set_to os::stdout.unbuffered();
-    let $a: f64.ieee set_to 1.5;
-    let $b: f64.ieee set_to 2.5;
+    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
+    let $a: f64.ieee = 1.5;
+    let $b: f64.ieee = 2.5;
     if $a at_most $b:
         std::io::fmt_print(Lend.mut $out, "at most{newln}");
     end if

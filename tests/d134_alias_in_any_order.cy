@@ -3,12 +3,12 @@ import std;
 import os;
 
 fn.main [none] returns void:
-    let mut $out: os::stdout.unbuffered set_to os::stdout.unbuffered();
-    let $a: first set_to 3;
+    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
+    let $a: first = 3;
     std::io::fmt_print(Lend.mut $out, "{}{newln}", $a);
     return void;
 end fn.main
 
-type.alias first set_to second;
-type.alias second set_to third;
-type.alias third set_to i32;
+type.alias first = second;
+type.alias second = third;
+type.alias third = i32;

@@ -1,5 +1,5 @@
-NotDesignedYet: d47_question_in_main.cy:8:24, line 8 column 24
- 8 |     let $n: i32 set_to inner()?;
-   |                        ^^^^^^^^
+NotDesignedYet: d47_question_in_main.cy:8:19, line 8 column 19
+ 8 |     let $n: i32 = inner()?;
+   |                   ^^^^^^^^
  what: `?` in `fn.main`
  why:  not decided yet (standard 12.6)

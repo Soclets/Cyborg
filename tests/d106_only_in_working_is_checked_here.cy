@@ -8,6 +8,6 @@ fn f [$n: i32] returns i32:
 end fn f
 
 fn.main [none] returns void:
-    let $a: i32 set_to f(-1);
+    let $a: i32 = f(-1);
     return void;
 end fn.main

@@ -1,5 +1,5 @@
-refused: d102_too_few_items.cy:5:71, line 5 column 71
- 5 |     let $b: std::list<i32>[len.min: 3 items, len.max: 8 items] set_to [4, 6];
-   |                                                                       ^^^^^^
+refused: d102_too_few_items.cy:5:66, line 5 column 66
+ 5 |     let $b: std::list<i32>[len.min: 3 items, len.max: 8 items] = [4, 6];
+   |                                                                  ^^^^^^
  what: `std::list<i32>[len.min: 3 items, len.max: 8 items]` can't hold 2 items
  why:  `[ ]` gives a list its items, with the count checked against the type (D102)
