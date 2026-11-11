@@ -508,4 +508,16 @@ A lane follows its type's rules exactly: if any lane overflows or breaks its bou
 
 Adding up all the lanes into one value uses a fixed pairwise order: neighbouring lanes are added in pairs, then the results in pairs, until one is left, with an odd lane out carried up to the next round. Four lanes add as `(a + b) + (c + d)`, and three as `(a + b) + c`. So `.stable` and `.ieee` floats give the same answer on every CPU for the same lane count, even when the vector is split, and an integer overflows at the same place every time. `.fast` floats let the compiler pick any order. `lanes: max` changes the lane count between targets, and so the grouping.
 
-**From:** D291, D292, D293, D296.
+Combining the lanes into one value is a `.%` method, since it only reads the `simd`:
+
+```
+let $v: simd<i32>[lanes: 4] = [3, 9, 1, 7];
+$v.%sum()        // 20
+$v.%product()    // 189
+$v.%min_val()    // 1
+$v.%max_val()    // 9
+```
+
+`sum` and `product` use the pairwise order and are checked like any other maths. A `simd<bool>` also has `.%all_true()` and `.%any_true()`.
+
+**From:** D291, D292, D293, D296, D297.
