@@ -157,13 +157,15 @@ end shield sensor_driver
 - `@csup` C calls
 - `@csup::union.untagged`
 
-So inside a shield, Cyborg goes as low as C, and a bare-metal program can run with no allocator at all. How the new ones are spelled isn't decided.
+So inside a shield, Cyborg goes as low as C, and a bare-metal program can run with no allocator at all.
+
+A raw pointer is `ptr.raw<T>`, which can only read, or `ptr.raw.mut<T>`, which can read and write. `ptr` is a family, so other kinds of pointer can join it as narrowings. How pointers are made, read, written and moved, and how volatile memory, exact layouts and allocators are spelled, isn't decided.
 
 Using a limb doesn't need a shield by itself: `@` says it's a compiler extension, and a shield says it's dangerous.
 
 **Refused:** any of these outside a shield, except in `FinalShit`.
 
-**From:** D38, D40, D226.
+**From:** D38, D40, D226, D314.
 
 ## 9.9 A shield's walls
 

@@ -80,7 +80,6 @@ Waiting on the owner, most needed first. Each is `NotDesignedYet` unless it says
 - `os` and writers (D271 to D273): what else goes in `os`, and a bare-metal program's writers, like a board's serial port.
 - Print (D194): how the fill character is written, a per-value `form: stored`, formatting to a `str` without printing, and what the output is on bare metal. `form: science` is how a float prints with an exponent.
 - How to check a float's sign.
-- Raw pointers' spelling, though D38 puts them in shields.
 - Function types: `-> i32` no longer shows failures, so a function's type needs some way to include them.
 - How a type's writer defines label narrowings like `len.max`.
 - An uninitialized array, like Zig's `= undefined`. Claude suggested only inside a shield, if at all.
@@ -104,7 +103,7 @@ Waiting on the owner, most needed first. Each is `NotDesignedYet` unless it says
 
 - Generics (D85, D87): the spelling, including `?T` and declaring a bound, how a bound is defined, whether you can declare one for a type from someone else's kit, and how specialization and value parameters are written.
 - Whether a `fn.pure` may allocate or fail.
-- How raw pointers, volatile memory, exact layouts and allocators are spelled (D226).
+- How raw pointers are made, read, written and moved (D314), and how volatile memory, exact layouts and allocators are spelled (D226).
 - Assembly blocks (D233): one variable going both in and out of the same register, like CyborgPL's `<->`, since reading one variable into a register and writing it out to another is already shown in 9.4, lending an address into a register, `on.target`'s narrowings like `.chip` and `.os`, and chips' names.
 - How a C function is declared and called through `@csup` (D225), and whether D220 covers a limb function's narrowing.
 - Which interfaces `std` declares for its own types, and their names, like `addable` and `ordered` (D240).
