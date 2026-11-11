@@ -1110,6 +1110,8 @@ A `type_set` is a closed list of types that nothing can join later, as in `type_
 
 **D304. `.%shuffle(pos: […])` or `.%shuffle(offset: […])` reorders lanes.** A shuffle lists, for each lane of the result, which lane of the `simd` it comes from, and says `pos:`, counting from 1, or `offset:`, counting from 0, as getting an item does (2.17): `$v.%shuffle(pos: [4, 3, 2, 1])` reverses four lanes. The list is fixed when compiling, since CPUs bake the pattern into the instruction, and a lane that doesn't exist is refused then. The result can have a different count, as in `pos: [1, 1]` giving two lanes, and a lane can repeat. Shuffling by lanes only known while running, a slower table lookup, and names for common shuffles like reversing are not settled here. Claude proposed it; the owner chose: "yea". (Owner, 2026-11-11)
 
+**D305. A shuffle counting from 0 says `offset.lanes:`.** `$v.%shuffle(offset.lanes: [3, 2, 1, 0])`, replacing D304's bare `offset:`, which 2.17 already refuses because it could read as bytes. The unit is `lanes`, matching the type's `lanes:`, rather than `offset.items:` as on lists. A bare `offset:` is refused, with `fix: offset.lanes:`. `pos:` is unchanged. Claude found its own mistake in D304; the owner chose: "yes". (Owner, 2026-11-11)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude
