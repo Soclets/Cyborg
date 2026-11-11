@@ -199,9 +199,11 @@ $xs.%%append(val: 4, alloc: Lend $alloc);
 
 The list doesn't hold its allocator: every call that allocates is handed it, so a list is plain data with no borrow inside, and moves, returns and sits in structs like any other value. The list remembers which allocator it uses, as a small ID, and handing it a different one is a failed check, like a bounds check.
 
+A list that can allocate, one with `len.max: inf items`, is `must_Give` ([6.9](6-ownership.md#69-must_give)), so its memory can't leak: it ends with `std::list.done(Give $xs, alloc: Lend $alloc);`, which frees it with the same allocator. A struct holding one is `must_Give` too. `std::list.done` is a placeholder name.
+
 **Refused:** `std::list<i32>` with no `len.max`, a list with a bare `len`, in favour of `array`, `= empty` on a list with `len.min` above 0, `[]`, with `fix: empty`, and too few or too many items.
 
-**From:** D11, D12, D13, D24, D102, D103, D140, D321, D322.
+**From:** D11, D12, D13, D24, D102, D103, D140, D321, D322, D323.
 
 ## 2.11 Arrays
 
