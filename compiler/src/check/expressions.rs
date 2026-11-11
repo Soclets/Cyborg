@@ -167,6 +167,9 @@ impl Checker<'_> {
                 Err(self.not_yet(expression.span, format!("building `{}`", path.text())))
             }
             ExpressionKind::Field { base, field } => self.field(body, base, field),
+            ExpressionKind::MethodCall { receiver, method, arguments, .. } => {
+                self.method_call(body, expression, receiver, method, arguments)
+            }
             ExpressionKind::Owned { ownership, ownership_span, value } => {
                 self.owned(body, *ownership, *ownership_span, value, expected)
             }
@@ -1100,6 +1103,177 @@ impl Checker<'_> {
         Ok(self.crash_on_failure(expression.span, &signature, typed.value))
     }
 
+    /// A method call, `$r.%%warm_up(by: 2)`: the receiver is lent with `%`, or to change with `%%` (D130, D211).
+    pub fn method_call(
+        &mut self,
+        body: &mut Body,
+        expression: &syntax::Expression,
+        receiver: &syntax::Expression,
+        method: &syntax::Path,
+        arguments: &[syntax::Argument],
+    ) -> Check<Typed> {
+        let written = method.text();
+        if written.starts_with("std::") {
+            let name_span = method.last().map_or(method.span, |segment| segment.name.span);
+            if !matches!(written.as_str(), "std::%%append") {
+                return Err(self.error(Diagnostic::not_designed(
+                    name_span,
+                    format!("the method `{written}`, since `std`'s full contents aren't chosen"),
+                    NOT_DECIDED,
+                )));
+            }
+        }
+        if written.contains("::") {
+            return Err(self.not_yet(method.span, format!("the method `{written}`")));
+        }
+        let receiver_typed = self.expression(body, receiver, None)?;
+        let owner = match &receiver_typed.value_type {
+            Type::Struct { name, .. } | Type::Union { name, .. } => name.clone(),
+            Type::Unknown => return Err(Reported),
+            other => return Err(self.not_yet(method.span, format!("a method on `{other}`"))),
+        };
+        let bare = written.trim_start_matches('%');
+        let Some((full, signature)) = [format!("{owner}.%{bare}"), format!("{owner}.%%{bare}")]
+            .into_iter()
+            .find_map(|name| self.functions.get(&name).cloned().map(|signature| (name, signature)))
+        else {
+            return Err(self.error(Diagnostic::refused(
+                method.span,
+                format!("`{owner}` has no method `{written}`"),
+                "a method is declared with its type in the name, as in `reading.%warm_up` (D130)",
+            )));
+        };
+        let changes = full.contains(".%%");
+        if changes != written.starts_with("%%") {
+            let fixed = if changes { format!("%%{bare}") } else { format!("%{bare}") };
+            return Err(self.error(Diagnostic::refused_fix(
+                method.span,
+                fixed,
+                "`.%` lends a receiver read-only and `.%%` lends it to change, so the call shows which (D211)",
+            )));
+        }
+        // The receiver, then the rest, matched by the method's labels without its receiver.
+        let receiver_argument = if changes {
+            let ExpressionKind::Variable(name) = &receiver.kind else {
+                if let Some((local, path, root)) = self.field_place(body, receiver) {
+                    let Some(variable) = body.lookup(&root).cloned() else { return Err(Reported) };
+                    if !variable.mutable {
+                        return Err(self.error(Diagnostic::refused(
+                            receiver.span,
+                            format!("`{root}` can't change, so neither can its field"),
+                            "a field or item can be changed if the whole variable is `let mut`, or the parameter `Lent.mut` (D125, D133)",
+                        )));
+                    }
+                    return self.finish_method(
+                        body,
+                        expression,
+                        &signature_for(self, &owner, bare),
+                        checked::Argument::FieldAddress { local, path },
+                        arguments,
+                    );
+                }
+                return Err(self.error(Diagnostic::not_designed(
+                    receiver.span,
+                    "lending a fresh value with `Lend.mut`",
+                    NOT_DECIDED,
+                )));
+            };
+            let Some(variable) = body.lookup(&name.text).cloned() else { return Err(Reported) };
+            if !variable.mutable {
+                return Err(self.error(Diagnostic::refused(
+                    receiver.span,
+                    format!("`{}` can't change, so it can't be lent with `Lend.mut`", name.text),
+                    "`let` declares a variable that can't change, and `let mut` one that can (D3)",
+                )));
+            }
+            checked::Argument::Address(variable.local)
+        } else {
+            match place_of(body, receiver) {
+                Some((local, path)) if path.is_empty() => checked::Argument::Address(local),
+                _ => checked::Argument::Temporary(receiver_typed.value),
+            }
+        };
+        self.finish_method(body, expression, &(full, signature), receiver_argument, arguments)
+    }
+
+    /// The rest of a method call, once its receiver's argument is known.
+    fn finish_method(
+        &mut self,
+        body: &mut Body,
+        expression: &syntax::Expression,
+        found: &(String, super::Signature),
+        receiver_argument: checked::Argument,
+        arguments: &[syntax::Argument],
+    ) -> Check<Typed> {
+        let (full, signature) = (found.0.clone(), found.1.clone());
+        let mut rest = signature.clone();
+        rest.parameters.remove(0);
+        rest.top.labels.remove(0);
+        rest.top.defaults.remove(0);
+        rest.name = full.clone();
+        if arguments.len() > rest.parameters.len() {
+            let extra = &arguments[rest.parameters.len()];
+            return Err(self.error(Diagnostic::refused(
+                extra.span,
+                format!("this is one argument too many for `{full}`"),
+                "a declared label must be written, and a parameter with no label is called without one (D113, D114)",
+            )));
+        }
+        let matched = self.match_arguments(expression.span, &rest, arguments)?;
+        let mut values = vec![receiver_argument];
+        let mut changed = Vec::new();
+        for (each, (parameter_name, parameter_type, ownership)) in matched.iter().zip(&rest.parameters) {
+            values.push(match each {
+                super::contracts::Matched::Argument(argument) => {
+                    self.argument(body, argument, parameter_name, parameter_type, *ownership, &mut changed)?
+                }
+                super::contracts::Matched::Default(default) => {
+                    checked::Argument::Value(self.value_into(body, default, parameter_type)?)
+                }
+            });
+        }
+        if super::contracts::needs_site(&signature.top) {
+            let site = self.program.sites.len();
+            self.program.sites.push(crate::diagnostic::render_because(self.sources, expression.span, "called here"));
+            values.push(checked::Argument::Value(checked::Expression {
+                kind: Kind::Integer(i128::try_from(site).unwrap_or(0)),
+                machine_type: MachineType::Integer { bits: 32, signed: true },
+            }));
+        }
+        let mut typed = Typed::new(signature.returns.clone(), Kind::Call { function: signature.id, arguments: values });
+        if let Some(layout) = signature.result {
+            typed.value.machine_type = super::failures::result_machine_type(layout);
+            return Ok(self.crash_on_failure(expression.span, &signature, typed.value));
+        }
+        Ok(typed)
+    }
+
+    /// A field inside a variable, as its local, the fields down to it, and the variable's name.
+    fn field_place(
+        &self,
+        body: &Body,
+        expression: &syntax::Expression,
+    ) -> Option<(checked::LocalId, Vec<usize>, String)> {
+        let mut names = Vec::new();
+        let mut at = expression;
+        while let ExpressionKind::Field { base, field } = &at.kind {
+            names.push(field.text.clone());
+            at = base;
+        }
+        let ExpressionKind::Variable(root) = &at.kind else { return None };
+        let variable = body.lookup(&root.text)?;
+        let mut current = variable.value_type.clone();
+        let mut path = Vec::new();
+        for name in names.iter().rev() {
+            let Type::Struct { id, .. } = &current else { return None };
+            let info = &self.aggregates.structs[*id];
+            let index = info.fields.iter().position(|field| field.name == *name)?;
+            path.push(index);
+            current = info.fields[index].value_type.clone();
+        }
+        Some((variable.local, path, root.text.clone()))
+    }
+
     /// A call, before what happens when it fails is known.
     pub fn call_unhandled(
         &mut self,
@@ -1108,10 +1282,33 @@ impl Checker<'_> {
         callee: &syntax::Expression,
         arguments: &[syntax::Argument],
     ) -> Check<Typed> {
+        if let ExpressionKind::Field { base, field } = &callee.kind
+            && let Ok(typed) = self.expression(body, base, None)
+            && let Type::Struct { name, .. } | Type::Union { name, .. } = &typed.value_type
+            && (self.functions.contains_key(&format!("{name}.%{}", field.text))
+                || self.functions.contains_key(&format!("{name}.%%{}", field.text)))
+        {
+            let mark = if self.functions.contains_key(&format!("{name}.%%{}", field.text)) { "%%" } else { "%" };
+            let base_text = self.slice(base.span).to_string();
+            let arguments_text =
+                self.slice(Span::new(self.file, callee.span.end as usize, expression.span.end as usize)).to_string();
+            return Err(self.error(Diagnostic::refused_fix(
+                expression.span,
+                format!("{base_text}.{mark}{}{arguments_text}", field.text),
+                "a `.` never runs code, and a `.%` always does (D8)",
+            )));
+        }
         let ExpressionKind::Path(path) = &callee.kind else {
             return Err(self.not_yet(callee.span, "calling this".to_string()));
         };
         let name = self.resolve_path(path);
+        if name.contains(".%") && self.functions.contains_key(&name) {
+            return Err(self.error(Diagnostic::not_designed(
+                expression.span,
+                "calling a method by its full name, as a plain function",
+                NOT_DECIDED,
+            )));
+        }
         self.old_prints(&name, callee.span)?;
         if name.starts_with("std::") && name.contains('.') && !self.functions.contains_key(&name) {
             // `std` is grouped with `::`, and a `.` after a function is a narrowing (D196).
@@ -1530,4 +1727,14 @@ fn place_of(body: &Body, expression: &syntax::Expression) -> Option<(checked::Lo
         ExpressionKind::Group(inner) => place_of(body, inner),
         _ => None,
     }
+}
+
+/// A method's signature, found by its type and name with either mark.
+fn signature_for(checker: &Checker<'_>, owner: &str, bare: &str) -> (String, super::Signature) {
+    for name in [format!("{owner}.%{bare}"), format!("{owner}.%%{bare}")] {
+        if let Some(signature) = checker.functions.get(&name) {
+            return (name, signature.clone());
+        }
+    }
+    (String::new(), super::Signature::default())
 }

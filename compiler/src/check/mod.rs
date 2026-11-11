@@ -35,7 +35,7 @@ pub struct Reported;
 pub type Check<T> = Result<T, Reported>;
 
 /// A function's signature, as callers see it.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default)]
 pub struct Signature {
     pub name: String,
     pub id: checked::FunctionId,
@@ -266,6 +266,16 @@ impl Checker<'_> {
                 if function.keyword.text() == "fn.main" {
                     main = Some(signature.id);
                 }
+                if self.functions.contains_key(&signature.name) && signature.name != "main" {
+                    let span = function.name.as_ref().map_or(function.header_span, |name| name.span);
+                    self.error(Diagnostic::not_designed(
+                        span,
+                        format!("declaring `{}` twice", signature.name),
+                        "not decided yet, and the standard doesn't say",
+                    ));
+                    header_failed = true;
+                    continue;
+                }
                 self.functions.insert(signature.name.clone(), signature.clone());
                 bodies.push((function, signature));
             }
@@ -394,6 +404,7 @@ impl Checker<'_> {
                 "a program starts at `fn.main`, and `main` says `return void;` (D11)",
             )));
         }
+        self.method_declaration(function, &name, &parameters)?;
         let failures = match &function.fails {
             Some(list) => self.fail_list(list)?,
             None => Vec::new(),
@@ -490,6 +501,98 @@ impl Checker<'_> {
             }
             self.error(Diagnostic::refused_fix(closer.span, expected, why));
         }
+    }
+
+    /// A method is declared with its type and mark in its name, and its receiver first, held the way the mark says
+    /// (D130, D211).
+    fn method_declaration(
+        &mut self,
+        function: &syntax::Function,
+        name: &str,
+        parameters: &[(String, Type, syntax::ParameterOwnership)],
+    ) -> Check<()> {
+        let Some(path) = &function.name else { return Ok(()) };
+        let Some((owner, method)) = name.rsplit_once('.') else { return Ok(()) };
+        let owned_type = self.aggregates.names.get(owner).cloned();
+        let Some(owned_type) = owned_type else {
+            if method.starts_with('%') {
+                if IntegerKind::from_name(owner).is_some()
+                    || matches!(owner, "bool" | "str")
+                    || owner.starts_with('f') && owner.len() <= 3
+                {
+                    return Err(self.error(Diagnostic::not_designed(
+                        path.span,
+                        format!("a method on `{owner}`, which isn't your own type"),
+                        "not decided yet, and the standard doesn't say",
+                    )));
+                }
+                return Err(self.error(Diagnostic::refused(
+                    path.span,
+                    format!("the type `{owner}` isn't known"),
+                    "a method is declared with its type in the name (D130)",
+                )));
+            }
+            return Ok(());
+        };
+        if !method.starts_with('%') {
+            return Err(self.error(Diagnostic::refused_fix(
+                path.span,
+                format!("{owner}.%{method}"),
+                "a method is declared with its type in the name, as in `reading.%warm_up` (D130)",
+            )));
+        }
+        let Some((first, receiver_type, ownership)) =
+            parameters.first().map(|(_, value_type, ownership)| ((), value_type, ownership))
+        else {
+            return Err(self.error(Diagnostic::refused(
+                path.span,
+                format!("`{name}` has no receiver"),
+                "a method's first parameter is its receiver (D130)",
+            )));
+        };
+        let _ = first;
+        let receiver = &function.parameters.list[0];
+        let receiver_labelled = function.body.iter().any(|statement| match &statement.kind {
+            syntax::StatementKind::Labels(labels) | syntax::StatementKind::Defaults(labels) => labels.iter().any(|label| {
+                matches!(&label.value.kind, syntax::ExpressionKind::As { value, .. } if matches!(&value.kind, syntax::ExpressionKind::Variable(name) if name.text == receiver.name.text))
+                    || label.name.segments.first().is_some_and(|segment| segment.name.text == receiver.name.text)
+            }),
+            _ => false,
+        });
+        if receiver_labelled {
+            return Err(self.error(Diagnostic::refused(
+                receiver.name.span,
+                "a method's receiver is written before `.%`, so it has no label or default",
+                "a method's first parameter is its receiver (D130)",
+            )));
+        }
+        if *receiver_type != owned_type {
+            return Err(self.error(Diagnostic::refused(
+                receiver.written_type.span,
+                format!("this method is on `{owner}`, so its receiver is one"),
+                "a method's first parameter is its receiver (D130)",
+            )));
+        }
+        let mark_why =
+            "`%` lends a method's receiver read-only and `%%` lends it to change, and the declaration matches (D211)";
+        let bare = method.trim_start_matches('%');
+        match ownership {
+            syntax::ParameterOwnership::Given => {
+                return Err(self.error(Diagnostic::refused(
+                    receiver.ownership_span.unwrap_or(receiver.span),
+                    "a method's receiver can't be `Given`",
+                    "methods only borrow, and anything that consumes its value is a plain function (D8, D130)",
+                )));
+            }
+            syntax::ParameterOwnership::LentMut if !method.starts_with("%%") => {
+                return Err(self.error(Diagnostic::refused_fix(path.span, format!("{owner}.%%{bare}"), mark_why)));
+            }
+            syntax::ParameterOwnership::Lent if method.starts_with("%%") => {
+                return Err(self.error(Diagnostic::refused_fix(path.span, format!("{owner}.%{bare}"), mark_why)));
+            }
+            _ => {}
+        }
+        Ok(())
     }
 
     /// A function whose body can run off its end (D11).

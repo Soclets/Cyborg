@@ -7,11 +7,11 @@
 use unicode_segmentation::UnicodeSegmentation;
 
 /// Which file a span is in, as an index into [`Sources`].
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct FileId(pub u32);
 
 /// A run of bytes in one file, `start` included and `end` not.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct Span {
     pub file: FileId,
     pub start: u32,

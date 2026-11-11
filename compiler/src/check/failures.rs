@@ -338,6 +338,16 @@ impl Checker<'_> {
             ExpressionKind::Group(grouped) => grouped.as_ref(),
             _ => inner,
         };
+        if let ExpressionKind::MethodCall { receiver, method, arguments, .. } = &inner.kind {
+            let typed = self.method_call(body, inner, receiver, method, arguments)?;
+            let Kind::Handle { call, .. } = typed.value.kind else {
+                return Err(self.not_yet(expression.span, "handling a call that can't fail".to_string()));
+            };
+            let Kind::Call { function, .. } = &call.kind else { return Err(Reported) };
+            let signature =
+                self.functions.values().find(|signature| signature.id == *function).cloned().ok_or(Reported)?;
+            return self.handle_call(body, expression, expected, signature, *call);
+        }
         let ExpressionKind::Call { callee, arguments, .. } = &inner.kind else {
             return Err(self.error(Diagnostic::not_designed(
                 inner.span,
@@ -349,6 +359,18 @@ impl Checker<'_> {
         if signature.failures.is_empty() {
             return Err(self.not_yet(expression.span, "handling a call that can't fail".to_string()));
         }
+        self.handle_call(body, expression, expected, signature, call)
+    }
+
+    /// Handles a failing call the way the expression around it says.
+    fn handle_call(
+        &mut self,
+        body: &mut Body,
+        expression: &syntax::Expression,
+        expected: Option<&Type>,
+        signature: super::Signature,
+        call: checked::Expression,
+    ) -> Check<Typed> {
         match &expression.kind {
             ExpressionKind::Pass { .. } => self.pass_up(body, expression.span, &signature, call),
             ExpressionKind::Instead { fallback, .. } => {
