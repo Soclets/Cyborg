@@ -125,7 +125,6 @@ Waiting on the owner, most needed first. Each is `NotDesignedYet` unless it says
 - Whether `FinalSmall` treats contracts as facts.
 - What the failure is called when a list is full, or at `len.min` when removing.
 - `Literal` (D282): how code asks for inlining.
-- SIMD (D304): names for common shuffles like reversing.
 
 ## 12.8 Ownership
 

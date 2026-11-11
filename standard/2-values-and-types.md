@@ -584,6 +584,16 @@ let $s: simd<i32>[lanes: 2] = $v.%shuffle(offset.lanes: [0, 0]);
 
 `$r` holds `[40, 30, 20, 10]`, and `$s` holds `[10, 10]`.
 
+Four common shuffles have names. `rotate` says its direction, and `by:` is fixed when compiling. `join` and `interleave` take two vectors and give one with both counts added.
+
+```
+$v.%reverse()                    // [1, 2, 3, 4] gives [4, 3, 2, 1]
+$v.%rotate.left(by: 1)           // [1, 2, 3, 4] gives [2, 3, 4, 1]
+$v.%rotate.right(by: 1)          // [1, 2, 3, 4] gives [4, 1, 2, 3]
+$a.%join(then: $b)               // [1, 2] and [3, 4] give [1, 2, 3, 4]
+$a.%interleave(with: $b)         // [1, 2] and [3, 4] give [1, 3, 2, 4]
+```
+
 `.%lookup` takes its lanes from another `simd`, worked out while running, with `pos:` or `offset.lanes:`. A lane pointing past the end is a bounds failure that says which lane, where CPUs quietly give 0 or something else. Bounds on the index type prove every lane in range, so the check can be dropped.
 
 ```
@@ -593,4 +603,4 @@ let $out: simd<u8>[lanes: 16] = $table.%lookup(pos: $which);
 
 **Refused:** a shuffle list only known while running, with `fix: .%lookup`; a lane that doesn't exist, like `pos: [5]` on 4 lanes; a shuffle with neither `pos:` nor `offset.lanes:`; a bare `offset:`, with `fix: offset.lanes:`; changing a chunk from `simd_chunks`; `.%%simd_chunks`, with `fix: .%`, and `.%simd_chunks_mut`, with `fix: .%%`; `if` on a `simd<bool>`, with `fix: .%all_true()` or `.%any_true()`; a bare `simd_chunks`, asking which of the three; `.leftovers` without a `leftovers` section; and a `leftovers` section on any other loop.
 
-**From:** D255, D291, D292, D293, D296, D297, D298, D299, D300, D301, D302, D303, D304, D305, D306.
+**From:** D255, D291, D292, D293, D296, D297, D298, D299, D300, D301, D302, D303, D304, D305, D306, D307.
