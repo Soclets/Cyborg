@@ -1132,6 +1132,8 @@ A `type_set` is a closed list of types that nothing can join later, as in `type_
 
 **D315. Making, reading and writing a raw pointer.** `ptr.raw.mut<u32>.at(address: 0x4004_0000)` makes a pointer from a number, for hardware registers and memory maps. `ptr.raw.mut<i32>.of(Lend.mut $count)` takes a variable's address, with the ownership word saying the access: `Lend` for `ptr.raw` and `Lend.mut` for `ptr.raw.mut`. The borrow checker treats the variable as lent for as long as the pointer exists, and containment (D39) keeps the pointer in its shield, so safe code never sees one dangle. `$p.%read()` reads, and `$p.%%write(val: 1)` writes. Strictly, the pointer itself doesn't change, but `%%` stands for the change to its memory, so a search for `%%` finds every write. Pointer arithmetic is not settled here. Claude proposed the four; the owner chose: "yea". (Owner, 2026-11-11)
 
+**D316. Moving a pointer: `.%moved(offset.items:)` or `.%moved(offset.bytes:)`.** `$reg.%moved(offset.items: 1)` gives a pointer one item on, 4 bytes for a `u32`, and `$reg.%moved(offset.bytes: 2)` gives one 2 bytes on. The unit is always written, as with getting an item (2.17), so C's trap where `p + 1` moves a whole item can't happen silently, and a bare `offset:` is refused, with `fix: offset.items:`. It gives a new pointer and leaves the old one, so moving a variable is `change $p = $p.%moved(…)`, and a negative number moves backwards. Nothing is checked, not even an address wrapping around, since this is shield code, and nothing happens until a read or a write. Claude proposed it; the owner chose: "yea". (Owner, 2026-11-11)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude

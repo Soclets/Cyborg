@@ -168,13 +168,22 @@ let $now: u32 = $reg.%read();
 $reg.%%write(val: 1);
 ```
 
-`.at(address:)` makes a pointer from a number, for hardware registers and memory maps. `.of` takes a variable's address, with `Lend` for `ptr.raw` and `Lend.mut` for `ptr.raw.mut`, and the variable stays lent for as long as the pointer exists, while containment keeps the pointer in the shield ([9.9](#99-a-shields-walls)). `.%read()` reads, and `.%%write(val:)` writes, where `%%` marks the change to what the pointer stands for. How pointers move, and how volatile memory, exact layouts and allocators are spelled, isn't decided.
+`.at(address:)` makes a pointer from a number, for hardware registers and memory maps. `.of` takes a variable's address, with `Lend` for `ptr.raw` and `Lend.mut` for `ptr.raw.mut`, and the variable stays lent for as long as the pointer exists, while containment keeps the pointer in the shield ([9.9](#99-a-shields-walls)). `.%read()` reads, and `.%%write(val:)` writes, where `%%` marks the change to what the pointer stands for.
+
+`.%moved` gives a new pointer, always saying its unit, so one item and one byte can't be confused, and a negative number moves backwards. Nothing is checked, and nothing happens until a read or a write.
+
+```
+let $next: ptr.raw.mut<u32> = $reg.%moved(offset.items: 1);
+let $odd: ptr.raw.mut<u32> = $reg.%moved(offset.bytes: 2);
+```
+
+How volatile memory, exact layouts and allocators are spelled, isn't decided.
 
 Using a limb doesn't need a shield by itself: `@` says it's a compiler extension, and a shield says it's dangerous.
 
-**Refused:** any of these outside a shield, except in `FinalShit`.
+**Refused:** any of these outside a shield, except in `FinalShit`; writing through a `ptr.raw`; and `.%moved` with a bare `offset:`, with `fix: offset.items:`.
 
-**From:** D38, D40, D226, D314, D315.
+**From:** D38, D40, D226, D314, D315, D316.
 
 ## 9.9 A shield's walls
 
