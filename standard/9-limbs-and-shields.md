@@ -79,9 +79,17 @@ A limb's syntax is only ever `@`-marked items, in a fixed menu of positions, so 
 | In place of `=` in a `let` | `let $count @precog::set_to_best 0;` |
 | A rule in the manifest | `rule @house_style::fn::name_length` |
 
-Raw text that Cyborg doesn't parse is only allowed inside an `inline.` block, so every file stays readable by any Cyborg reader, editor and tool. The names in the examples are made up.
+Wherever Cyborg has a family a limb can join, the limb can use ours, joining the base family as `inline.@mylimb::lang` joins `inline.`, or make its own, a standalone `@mylimb::name` construct doing the same job. Raw text that Cyborg doesn't parse is allowed in either kind of raw block, as long as it ends with its matching closer, so a tool that knows nothing about the limb can still skip it safely:
 
-**From:** D22, D28, D334, D335.
+```
+@inln_stuff::sql:
+    SELECT name FROM users WHERE age > 30
+end @inln_stuff::sql
+```
+
+The names in the examples are made up.
+
+**From:** D22, D28, D334, D335, D336.
 
 ## 9.4 Inline code: `inline`
 
