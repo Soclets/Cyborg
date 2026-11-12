@@ -18,7 +18,8 @@ cargo run -- coverage
   mode has to match the oracle byte for byte, except that when the oracle stops on a failed check,
   only the modes that keep every check have to match (10.3, 10.4). A program the oracle calls
   `NotDesignedYet` or `NotBuiltYet` is out of scope, and `f64.fast` is left to judge by hand,
-  since it only has to be close (rule 5).
+  since it only has to be close (rule 5). A test with a `name.target` file runs with
+  `--target=` on both sides (D387, D389).
 - `fuzz` generates, compares, and shrinks each difference to the smallest program that still shows
   it, written beside it as `<name>.smallest.cy`.
 - `coverage` lists what the generator doesn't generate yet, since all passing doesn't mean covered.

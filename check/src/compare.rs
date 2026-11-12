@@ -96,9 +96,20 @@ fn in_folder(program: &Path) -> (PathBuf, String) {
     (folder, name)
 }
 
+/// The target a test names in `name.target`, as `--target=`, since its answer depends on the
+/// target's sizes (D387, D389).
+fn target_flag(program: &Path) -> Option<String> {
+    let target = std::fs::read_to_string(program.with_extension("target")).ok()?;
+    let target = target.trim();
+    (!target.is_empty()).then(|| format!("--target={target}"))
+}
+
 pub fn run_oracle(oracle: &Path, program: &Path) -> Outcome {
     let (folder, name) = in_folder(program);
-    run(Command::new(oracle).arg(&name).current_dir(folder))
+    run(Command::new(oracle)
+        .args(target_flag(program))
+        .arg(&name)
+        .current_dir(folder))
 }
 
 pub fn run_okay(okay: &Path, mode: &Mode, program: &Path) -> Outcome {
@@ -106,6 +117,7 @@ pub fn run_okay(okay: &Path, mode: &Mode, program: &Path) -> Outcome {
     run(Command::new(okay)
         .arg("run")
         .args(&mode.flags)
+        .args(target_flag(program))
         .arg(&name)
         .current_dir(folder))
 }
