@@ -1034,6 +1034,9 @@ pub struct Function {
 #[allow(clippy::struct_excessive_bools)] // Independent switches for what a program declares.
 pub struct Program {
     pub unit_families: Vec<UnitFamily>,
+    /// `nest`, holding the first struct, an `i32` and a bounded list of this kind, and `view`,
+    /// holding a borrow of the first struct, when they're declared (7.1, 6.10).
+    pub nest: Option<(String, Kind)>,
     /// The struct `rwarm` takes two of, returning a borrow of one, when it's declared (6.10).
     pub warm: Option<(String, String)>,
     /// The kinds that have `trio_…`, which returns a fresh array of three (4.4, D396).
@@ -1465,6 +1468,11 @@ pub fn print(program: &Program) -> String {
                 }
             }
             let _ = writeln!(out, "    end match\nend fn {name}.%size\n");
+            // A function a union is lent to (7.5).
+            let _ = writeln!(
+                out,
+                "fn uwidth_{name} [$u: Lent {name}] -> i32:\n    return $u.%size();\nend fn uwidth_{name}\n"
+            );
         }
     }
     for declared in &program.structs {
@@ -1480,6 +1488,17 @@ pub fn print(program: &Program) -> String {
     }
     if let Some(generics) = &program.generics {
         print_generics(&mut out, generics);
+    }
+    if let Some((inner, kind)) = &program.nest {
+        let _ = writeln!(
+            out,
+            "struct nest:\n    inner: {inner};\n    count: i32;\n    items: std::coll::list<{}>[len.max: 3 items];\nend struct nest\n",
+            kind.word()
+        );
+        let _ = writeln!(
+            out,
+            "struct view <`src`>:\n    of: Lend from `src` {inner};\nend struct view\n"
+        );
     }
     if let Some((name, field)) = &program.warm {
         let _ = writeln!(

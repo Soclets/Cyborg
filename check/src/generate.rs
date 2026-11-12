@@ -105,6 +105,9 @@ struct Generator<'random> {
     list_alias: Option<(String, Kind, i128)>,
     text_alias: Option<(String, i128)>,
     named_others: Vec<(String, bool, String)>,
+    /// The first struct, and the kind of `nest`'s list, when `nest` and `view` are declared
+    /// (7.1).
+    nest: Option<(String, Kind)>,
     /// The first struct and its first field, when `rwarm` is declared (6.10).
     warm: Option<(String, String)>,
     /// The kinds whose `trio_…` some loop calls, so it's declared (4.4).
@@ -183,6 +186,7 @@ pub fn program(seed: u64) -> Program {
         runners: false,
         trios: Vec::new(),
         warm: None,
+        nest: None,
         wrap: None,
         list_alias: None,
         text_alias: None,
@@ -218,6 +222,13 @@ pub fn program(seed: u64) -> Program {
     generator.writers = generator.random.chance(30);
     generator.other_named_types();
     generator.runners = generator.random.chance(40);
+    if generator.random.chance(50) {
+        let kind = generator.integer_kind();
+        generator.nest = generator
+            .structs
+            .first()
+            .map(|declared| (declared.name.clone(), kind));
+    }
     if generator.random.chance(50) {
         generator.warm = generator.structs.first().and_then(|declared| {
             let (field, _) = declared.fields.first()?;
@@ -321,6 +332,7 @@ pub fn program(seed: u64) -> Program {
         runners: generator.runners,
         trios: generator.trios,
         warm: generator.warm,
+        nest: generator.nest,
         strings: generator.strings,
         methods: generator.methods,
         arena: generator.arena,
@@ -637,7 +649,7 @@ impl Generator<'_> {
             .collect();
         match roll {
             0..=3 if !self.unions.is_empty() && self.random.chance(15) => {
-                self.union_statement(scope, 2, prints)
+                self.union_statement(scope, 2, (prints, in_loop))
             }
             0..=3 if self.random.chance(8) => self.constant(scope),
             0..=3 if !self.units.is_empty() && self.random.chance(15) => self.unit_let(scope),
@@ -664,7 +676,7 @@ impl Generator<'_> {
                 }
             }
             // The kinds of statement added later share 10 and 11 evenly.
-            10 | 11 => match self.random.between(0, 19) {
+            10 | 11 => match self.random.between(0, 20) {
                 0 if prints => self
                     .reveal(scope)
                     .unwrap_or_else(|| self.list_statement(scope)),
@@ -757,6 +769,9 @@ impl Generator<'_> {
                 19 => self
                     .defer_statement(scope, prints)
                     .unwrap_or_else(|| self.list_statement(scope)),
+                20 => self
+                    .nest_statement(scope)
+                    .unwrap_or_else(|| self.list_statement(scope)),
                 _ => self.list_statement(scope),
             },
             0..=3 if self.random.chance(15) => self
@@ -780,9 +795,11 @@ impl Generator<'_> {
             4 | 5 if prints && !self.procedures.is_empty() && self.random.chance(50) => self
                 .call_procedure(scope, in_loop)
                 .unwrap_or_else(|| self.list_statement(scope)),
-            6 if depth < 2 && self.random.chance(25) => self.test_statement(scope, depth, prints),
+            6 if depth < 2 && self.random.chance(25) => {
+                self.test_statement(scope, depth, (prints, in_loop))
+            }
             9 if depth < 2 && !scope.cased.is_empty() && self.random.chance(60) => {
-                self.union_statement(scope, depth, prints)
+                self.union_statement(scope, depth, (prints, in_loop))
             }
             0..=3 => {
                 if self.random.chance(35) {
@@ -925,7 +942,7 @@ impl Generator<'_> {
             9 if self.random.chance(30) => self.list_statement(scope),
             9 if self.random.chance(50) => self.array_statement(scope),
             9 if self.random.chance(50) => self.record_statement(scope),
-            9 => self.union_statement(scope, depth, prints),
+            9 => self.union_statement(scope, depth, (prints, in_loop)),
             _ if prints && self.random.chance(40) => self.format_print(scope),
             _ if prints => {
                 // A print's value is an integer variable, so its type is never left for a
@@ -2420,18 +2437,26 @@ impl Generator<'_> {
                     .map(move |method| (variable.clone(), method.name.clone()))
             })
             .collect();
-        // A union's `.%size` gives an `i32` (5.6).
+        // A union's `.%size` gives an `i32` (5.6), and so does `uwidth_…`, which it's lent to
+        // (7.5).
         let mut calls = calls;
+        let mut lent = Vec::new();
         if kind == Kind::I32 {
             for (variable, index) in &scope.cased {
-                if self
-                    .unions
-                    .get(*index)
-                    .is_some_and(|declared| declared.sized)
-                {
+                if let Some(declared) = self.unions.get(*index).filter(|declared| declared.sized) {
                     calls.push((variable.clone(), "size".to_string()));
+                    lent.push((variable.clone(), declared.name.clone()));
                 }
             }
+        }
+        if let (true, Some((variable, union))) =
+            (self.random.chance(40), self.random.pick(&lent).cloned())
+        {
+            return Some(Expression::Call {
+                function: format!("uwidth_{union}"),
+                arguments: vec![(None, Expression::Lend(variable))],
+                handling: Handling::Crash,
+            });
         }
         let (receiver, name) = self.random.pick(&calls)?.clone();
         Some(Expression::CallMethod { receiver, name })
@@ -2790,7 +2815,12 @@ impl Generator<'_> {
     /// The test: a union variable tested for one of its cases, whose fields the block reads, or
     /// a plain integer tested for a bound, which the block puts into a bounded variable with no
     /// check (4.2).
-    fn test_statement(&mut self, scope: &mut Scope, depth: usize, prints: bool) -> Statement {
+    fn test_statement(
+        &mut self,
+        scope: &mut Scope,
+        depth: usize,
+        (prints, in_loop): (bool, bool),
+    ) -> Statement {
         let held = scope.case_fields.len();
         let declared = scope.variables.len();
         let mut body = Vec::new();
@@ -2834,7 +2864,8 @@ impl Generator<'_> {
             scope.variables.push((name, bounded));
             (variable, bounded.word())
         };
-        body.extend(self.block(scope, 2, depth + 1, (prints, false)));
+        // A block inside a loop is still in it, so nothing in it gives a value away (4.8).
+        body.extend(self.block(scope, 2, depth + 1, (prints, in_loop)));
         scope.case_fields.truncate(held);
         scope.variables.truncate(declared);
         Statement::Test {
@@ -2932,6 +2963,118 @@ impl Generator<'_> {
             declare,
             value,
         })
+    }
+
+    /// A value for each of a struct's fields, each fitting its field (2.5).
+    fn struct_fields(&mut self, scope: &Scope, declared: &StructDecl) -> Vec<(String, Expression)> {
+        declared
+            .fields
+            .iter()
+            .map(|(field, kind)| {
+                (
+                    field.clone(),
+                    self.field_value(scope, declared, field, *kind),
+                )
+            })
+            .collect()
+    }
+
+    /// A `nest`, holding a struct, an `i32` and a list, built whole, a field of its struct
+    /// changed, and an item of its list read; or a `view`, holding a borrow of a struct, its
+    /// field read through it (7.1, 6.10).
+    fn nest_statement(&mut self, scope: &mut Scope) -> Option<Statement> {
+        let (inner, kind) = self.nest.clone()?;
+        let declared = self.structs.first()?.clone();
+        let name = self.name("n");
+        let read = self.name("k");
+        if self.random.chance(40) {
+            let live: Vec<String> = scope
+                .records
+                .iter()
+                .filter(|(found, index)| *index == 0 && !self.given_away.contains(found))
+                .map(|(found, _)| found.clone())
+                .collect();
+            // A struct already here, or one built for it.
+            let mut made = Vec::new();
+            let record = if let Some(record) = self.random.pick(&live).cloned() {
+                record
+            } else {
+                let record = self.name("r");
+                let fields = self.struct_fields(scope, &declared);
+                made.push(Statement::LetStruct {
+                    name: record.clone(),
+                    struct_name: declared.name.clone(),
+                    fields,
+                });
+                scope.records.push((record.clone(), 0));
+                record
+            };
+            let (field, field_kind) = self.random.pick(&declared.fields)?.clone();
+            scope
+                .variables
+                .push((read.clone(), Type::Integer(field_kind)));
+            made.extend([
+                Statement::LetNamed {
+                    name: name.clone(),
+                    written: format!("view<`src`: ${record}>"),
+                    value: Expression::Build {
+                        struct_name: "view".to_string(),
+                        fields: vec![("of".to_string(), Expression::Lend(record))],
+                    },
+                    back: None,
+                },
+                Statement::Let {
+                    name: read,
+                    value_type: Type::Integer(field_kind),
+                    value: Expression::Field {
+                        variable: format!("{name}.of"),
+                        field,
+                    },
+                },
+            ]);
+            return Some(Statement::Sequence(made));
+        }
+        let built = self.struct_fields(scope, &declared);
+        let count = self.integer(scope, Kind::I32, 2);
+        let items = (0..self.random.between(1, 3))
+            .map(|_| self.literal(kind))
+            .collect();
+        let (field, field_kind) = self.random.pick(&declared.fields)?.clone();
+        let changed = match declared.field_type(&field, field_kind) {
+            Type::Bounded(_, low, high) => Expression::Integer(self.random.between(low, high)),
+            _ => self.literal(field_kind),
+        };
+        scope.variables.push((read.clone(), Type::Integer(kind)));
+        Some(Statement::Sequence(vec![
+            Statement::LetStruct {
+                name: name.clone(),
+                struct_name: "nest".to_string(),
+                fields: vec![
+                    (
+                        "inner".to_string(),
+                        Expression::Build {
+                            struct_name: inner,
+                            fields: built,
+                        },
+                    ),
+                    ("count".to_string(), count),
+                    ("items".to_string(), Expression::Lanes(items)),
+                ],
+            },
+            Statement::ChangeField {
+                variable: format!("{name}.inner"),
+                field,
+                value: changed,
+            },
+            Statement::Let {
+                name: read,
+                value_type: Type::Integer(kind),
+                value: Expression::Item {
+                    array: format!("{name}.items"),
+                    position: Position::Pos(1),
+                },
+            },
+        ]))
     }
 
     /// `defer` on a print in `main`, or on a `change` to a variable that can change; it runs
@@ -3272,7 +3415,12 @@ impl Generator<'_> {
 
     /// A new union value, or a `match` on one in scope, whose arms cover every case in any
     /// order, an arm with data now and then naming it to read it (4.3, 7.6).
-    fn union_statement(&mut self, scope: &mut Scope, depth: usize, prints: bool) -> Statement {
+    fn union_statement(
+        &mut self,
+        scope: &mut Scope,
+        depth: usize,
+        (prints, in_loop): (bool, bool),
+    ) -> Statement {
         if depth < 2 {
             if let Some((variable, index)) = self.random.pick(&scope.cased).cloned() {
                 if self.random.chance(60) {
@@ -3294,7 +3442,7 @@ impl Generator<'_> {
                                     scope.case_fields.push((name.clone(), field.clone(), *kind));
                                 }
                             }
-                            let body = self.block(scope, 2, depth + 1, (prints, false));
+                            let body = self.block(scope, 2, depth + 1, (prints, in_loop));
                             scope.case_fields.truncate(held);
                             arms.push((case, named, body));
                         }
