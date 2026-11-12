@@ -391,7 +391,7 @@ impl fmt::Display for Type {
                 let narrowing = if *ordered { "ordered" } else { "hash" };
                 write!(
                     formatter,
-                    "std::coll::map.{narrowing}<key: {key}, val: {value}>"
+                    "std::coll::map.{narrowing}<key.type: {key}, val.type: {value}>"
                 )
             }
             Type::Failure { name, .. } => write!(formatter, "the failure `{name}`"),

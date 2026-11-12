@@ -5,6 +5,6 @@ import os;
 
 fn.main [none] -> void:
     let $heap: os::heap = os::heap();
-    let $m: std::coll::map.hash<key: str, val: i32> = empty;
+    let $m: std::coll::map.hash<key.type: str, val.type: i32> = empty;
     return void;
 end fn.main

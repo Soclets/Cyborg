@@ -3110,14 +3110,27 @@ impl Checker<'_> {
                 let mut value = None;
                 for entry in fill {
                     match entry.label.as_ref().map(|label| label.text.as_str()) {
-                        Some("key") => key = Some(self.resolve_type(&entry.written_type)?),
-                        Some("val") => value = Some(self.resolve_type(&entry.written_type)?),
+                        Some("key.type") => key = Some(self.resolve_type(&entry.written_type)?),
+                        Some("val.type") => {
+                            value = Some(self.resolve_type(&entry.written_type)?);
+                        }
+                        // A bare `val:` is always a value, as in `put(key: "a", val: 1)`, so a
+                        // type gets `.type`, as a list's `len.type:` does. (D366)
+                        // trace: D366
+                        Some(old @ ("key" | "val")) => {
+                            return Err(Report::refused(
+                                entry.label.as_ref().map_or(entry.written_type.span, |label| label.span),
+                                format!("a map's {} type is `{old}.type:`", if old == "key" { "key" } else { "value" }),
+                                "a bare `val:` is always a value, so a type's label says `.type`, as a list's `len.type:` does (D366)",
+                            )
+                            .fix(format!("{old}.type")));
+                        }
                         // trace: D25
                         _ => {
                             return Err(Report::refused(
                                 entry.written_type.span,
-                                "a map's types get the labels `key` and `val`",
-                                "one type can go bare, and more than one must have labels (D25)",
+                                "a map's types get the labels `key.type` and `val.type`",
+                                "one type can go bare, and more than one must have labels (D25, D366)",
                             ));
                         }
                     }
@@ -3125,8 +3138,8 @@ impl Checker<'_> {
                 let (Some(key), Some(value)) = (key, value) else {
                     return Err(Report::refused(
                         written.span,
-                        "a map fills in `key` and `val`",
-                        "a map's types get labels (D24, D25)",
+                        "a map fills in `key.type` and `val.type`",
+                        "a map's types get labels (D24, D25, D366)",
                     ));
                 };
                 Ok(Type::Map {

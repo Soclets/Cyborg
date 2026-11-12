@@ -3221,6 +3221,21 @@ impl Parser {
                 let name = self.expect_name("a label")?;
                 self.advance();
                 Some(name)
+            } else if matches!(self.peek().lexeme, Lexeme::Word(_))
+                && self.symbol_at(1, ".")
+                && matches!(self.peek_at(2).lexeme, Lexeme::Word(_))
+                && self.symbol_at(3, ":")
+            {
+                // A narrowed label, as in a map's `key.type:` and `val.type:`. (D366)
+                // trace: D366
+                let first = self.expect_name("a label")?;
+                self.advance();
+                let second = self.expect_name("a label")?;
+                self.advance();
+                Some(Name {
+                    text: format!("{}.{}", first.text, second.text),
+                    span: first.span.to(second.span),
+                })
             } else {
                 None
             };
