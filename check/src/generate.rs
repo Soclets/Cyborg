@@ -61,6 +61,7 @@ struct FloatUnits {
 const DEGREES: &str = "std::units::angle.degrees";
 const RADIANS: &str = "std::units::angle.radians";
 
+#[allow(clippy::struct_excessive_bools)] // Independent switches for what's being generated now.
 struct Generator<'random> {
     random: &'random mut Random,
     next_name: usize,
