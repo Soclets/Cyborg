@@ -317,6 +317,17 @@ A lock holds its data, and locking gives a `Lend.mut` of it for one block, unloc
 end @concur::locked
 ```
 
+A channel is a queue between tasks: one side sends values in, the other takes them out, in order. Its capacity is always written, like a list's `len.max`: a finite one needs no allocator, and `len.max: inf items` takes one and is `must_Give`. Sending moves a value with `Give`, so it's only ever owned by one task. A full channel makes the sender wait, through its runner, so a fast producer can't bury a slow worker, and when every sender is done, the channel closes and the receiver's loop ends. One sender into one receiver keeps its order every run, while with several senders, the order depends on timing.
+
+```
+let $jobs: @concur::channel<job>[len.max: 64 items] = empty;
+$jobs.%send(val: Give $j, run: Lend $events)?;
+
+for $j in Give $jobs.%receive(run: Lend $events):
+    process(Give $j);
+end for
+```
+
 There's no `async` or `await`. A function that waits takes the runner, and the runner decides how waiting works: a thread blocks, or an event runner parks the task and runs another, with each task on its own small stack. A spawn onto an event runner takes the allocator for that stack and always writes its size with `stack:`, so the writer picks where stacks live and how big they are, and running out of memory is an `out_of_memory` failure from the spawn. The compiler checks the size instead of choosing it: where it can measure what the task needs, a size that's too small is refused, with the number in the fix, and for recursive code, which it can't measure, running past the size is a failed check, a clean stack overflow. A spawn onto `os::threads` takes neither, since the OS gives its threads their stacks.
 
 ```
@@ -327,4 +338,4 @@ The spellings are placeholders.
 
 **Refused:** a task that isn't joined; a spawn onto an event runner without `stack:`, or with less than the task is known to need; two tasks both given `Lend.mut` of one thing; locking inside a locked block; and the same lock twice in one block.
 
-**From:** D343, D344, D345, D346, D347, D348, D349, D350, D351, D352.
+**From:** D343, D344, D345, D346, D347, D348, D349, D350, D351, D352, D353.
