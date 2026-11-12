@@ -9,7 +9,7 @@ use crate::random::Random;
 use crate::tree::{
     Arguments, Comparison, Expression, FailureDecl, Filling, Function, Handling, Kind, Layout,
     MethodDecl, NamedType, Operator, ParamKind, Position, Procedure, Program, Statement,
-    StructDecl, Type, UnionDecl,
+    StructDecl, Type, UnionDecl, UnitFamily,
 };
 
 /// How big a program gets.
@@ -49,6 +49,9 @@ struct Generator<'random> {
     unions: Vec<UnionDecl>,
     procedures: Vec<Procedure>,
     methods: Vec<MethodDecl>,
+    unit_families: Vec<UnitFamily>,
+    /// Every unit, with how many of its family's base it is.
+    units: Vec<(&'static str, i128)>,
     /// Every constant's name, since only constants go into another.
     constants: Vec<String>,
     /// Struct variables handed over with `Give`, which are gone from then on.
@@ -77,6 +80,8 @@ pub fn program(seed: u64) -> Program {
         unions: Vec::new(),
         procedures: Vec::new(),
         methods: Vec::new(),
+        unit_families: Vec::new(),
+        units: Vec::new(),
         constants: Vec::new(),
         given_away: Vec::new(),
         in_main: false,
@@ -87,6 +92,7 @@ pub fn program(seed: u64) -> Program {
         functions: Vec::new(),
     };
     generator.named_types();
+    generator.unit_families();
     for _ in 0..generator.random.between(0, 2) {
         let declared = generator.struct_decl();
         generator.structs.push(declared);
@@ -142,6 +148,7 @@ pub fn program(seed: u64) -> Program {
     }
     let fewer_brackets = generator.random.chance(50);
     Program {
+        unit_families: generator.unit_families,
         methods: generator.methods,
         arena: generator.arena,
         named: generator.named,
@@ -262,7 +269,8 @@ impl Generator<'_> {
                     | Type::Bounded(..)
                     | Type::Text(_)
                     | Type::Simd(..)
-                    | Type::Secret(_) => None,
+                    | Type::Secret(_)
+                    | Type::Unit(..) => None,
                 });
                 let test = self.expression(&scope, Type::Bool, LIMITS.depth);
                 body.push(Statement::If {
@@ -350,6 +358,7 @@ impl Generator<'_> {
                         | Type::Text(_)
                         | Type::Simd(..)
                         | Type::Secret(_)
+                        | Type::Unit(_, _, None)
                 ) && !name.starts_with('i')
                     && !name.starts_with('x')
                     && !name.starts_with('k')
@@ -362,6 +371,7 @@ impl Generator<'_> {
                 self.union_statement(scope, 2, prints)
             }
             0..=3 if self.random.chance(8) => self.constant(scope),
+            0..=3 if !self.units.is_empty() && self.random.chance(15) => self.unit_let(scope),
             0..=3 if !self.structs.is_empty() && self.random.chance(15) => {
                 self.record_statement(scope)
             }
@@ -603,7 +613,11 @@ impl Generator<'_> {
             .filter(|(_, found)| {
                 matches!(
                     found,
-                    Type::Integer(_) | Type::Float(_) | Type::Bounded(..) | Type::Text(_)
+                    Type::Integer(_)
+                        | Type::Float(_)
+                        | Type::Bounded(..)
+                        | Type::Text(_)
+                        | Type::Unit(..)
                 )
             })
             .cloned()
@@ -615,6 +629,10 @@ impl Generator<'_> {
                 // A string holding its bytes prints through a named hole here, since how one
                 // goes in as a value isn't shown (1.13).
                 if style != 2 && matches!(found.1, Type::Text(Some(_))) {
+                    continue;
+                }
+                // A unit prints with the `unit` shape, which a numbered hole doesn't take here.
+                if style == 1 && matches!(found.1, Type::Unit(..)) {
                     continue;
                 }
                 chosen.push(found);
@@ -677,6 +695,7 @@ impl Generator<'_> {
         let mut shapes: Vec<String> = Vec::new();
         let width = self.random.between(1, 12);
         match value_type {
+            Type::Unit(..) => return "unit".to_string(),
             Type::Text(_) => {
                 if self.random.chance(50) {
                     let align = *self
@@ -1456,6 +1475,255 @@ impl Generator<'_> {
         }
     }
 
+    /// Up to two families of units, each a base and up to three more, each a whole number of
+    /// the one before, so every unit in a family is a whole number of the smaller ones (2.16).
+    fn unit_families(&mut self) {
+        for _ in 0..self.random.between(0, 2) {
+            let family = self.name("fu");
+            let mut units = Vec::new();
+            let base = format!("{family}.{}", self.name("b"));
+            self.units
+                .push((Box::leak(base.clone().into_boxed_str()), 1));
+            let mut factor = 1;
+            let mut previous = base.clone();
+            units.push((base, None));
+            for _ in 0..self.random.between(1, 3) {
+                let count = self.random.between(2, 12);
+                factor *= count;
+                let unit = format!("{family}.{}", self.name("m"));
+                self.units
+                    .push((Box::leak(unit.clone().into_boxed_str()), factor));
+                units.push((unit.clone(), Some((count, previous.clone()))));
+                previous = unit;
+            }
+            self.unit_families.push(UnitFamily {
+                name: family,
+                units,
+            });
+        }
+    }
+
+    /// A variable with a unit, its unit taken off with `as` (2.16).
+    fn unit_taken_off(&mut self, scope: &Scope, kind: Kind) -> Option<Expression> {
+        let found: Vec<String> = scope
+            .variables
+            .iter()
+            .filter(|(_, found)| matches!(found, Type::Unit(other, ..) if *other == kind))
+            .map(|(name, _)| name.clone())
+            .collect();
+        let variable = self.random.pick(&found)?.clone();
+        Some(Expression::Convert {
+            variable,
+            narrowing: "",
+            target: Type::Integer(kind),
+        })
+    }
+
+    /// How many of its base a unit is.
+    fn unit_factor(&self, unit: &str) -> i128 {
+        self.units
+            .iter()
+            .find(|(found, _)| *found == unit)
+            .map_or(1, |(_, factor)| *factor)
+    }
+
+    /// The units in the same family as this one, with their factors.
+    fn same_family(&self, unit: &str) -> Vec<(&'static str, i128)> {
+        let family = unit.split('.').next().unwrap_or(unit);
+        self.units
+            .iter()
+            .filter(|(found, _)| found.split('.').next() == Some(family))
+            .copied()
+            .collect()
+    }
+
+    /// A variable with a unit, now and then bounded by values written in a unit that converts
+    /// to it exactly, and a first value of that unit (2.16, 2.5).
+    fn unit_let(&mut self, scope: &mut Scope) -> Statement {
+        let Some((mut unit, mut factor)) = self.random.pick(&self.units.clone()).copied() else {
+            return self.list_statement(scope);
+        };
+        let mut kind = *self
+            .random
+            .pick(&[Kind::I32, Kind::I64, Kind::U32, Kind::U64])
+            .unwrap_or(&Kind::I32);
+        // Usually the family and kind of a unit variable already here, so the two can convert.
+        let existing: Vec<(Kind, &'static str)> = scope
+            .variables
+            .iter()
+            .filter_map(|(_, found)| match found {
+                Type::Unit(kind, unit, _) => Some((*kind, *unit)),
+                _ => None,
+            })
+            .collect();
+        if let (true, Some((found_kind, found_unit))) =
+            (self.random.chance(70), self.random.pick(&existing).copied())
+        {
+            if let Some((other, other_factor)) =
+                self.random.pick(&self.same_family(found_unit)).copied()
+            {
+                kind = found_kind;
+                unit = other;
+                factor = other_factor;
+            }
+        }
+        let mut bounds = None;
+        if self.random.chance(30) {
+            // A bound in a unit that's a whole number of this one converts exactly.
+            let bigger: Vec<(&'static str, i128)> = self
+                .same_family(unit)
+                .into_iter()
+                .filter(|(_, found)| found % factor == 0)
+                .collect();
+            if let (Some((low_unit, low_factor)), Some((high_unit, high_factor))) = (
+                self.random.pick(&bigger).copied(),
+                self.random.pick(&bigger).copied(),
+            ) {
+                let low = self.random.between(0, 5);
+                let high_count = self.random.between(1, 20);
+                let low_in = low * low_factor / factor;
+                let high_in = high_count * high_factor / factor;
+                if low_in <= high_in && kind.range().1 >= high_in {
+                    let written: &'static str = Box::leak(
+                        format!("min: {low} {low_unit}, max: {high_count} {high_unit}")
+                            .into_boxed_str(),
+                    );
+                    bounds = Some((written, low_in, high_in));
+                }
+            }
+        }
+        let value_type = Type::Unit(kind, unit, bounds);
+        let mut value = self.unit_value(scope, kind, unit, LIMITS.depth);
+        // Often a variable in another unit of the family, converted (2.16).
+        let sources: Vec<(String, i128)> = scope
+            .variables
+            .iter()
+            .filter_map(|(name, found)| match found {
+                Type::Unit(other, written, _) if *other == kind && *written != unit => {
+                    let source = self.unit_factor(written);
+                    let same = self
+                        .same_family(unit)
+                        .iter()
+                        .any(|(member, _)| member == written);
+                    same.then(|| (name.clone(), source))
+                }
+                _ => None,
+            })
+            .collect();
+        if let (true, Some((variable, source))) =
+            (self.random.chance(60), self.random.pick(&sources).cloned())
+        {
+            let narrowing = if source % factor == 0 {
+                ""
+            } else {
+                *self
+                    .random
+                    .pick(&[".trunc", ".floor", ".exact"])
+                    .unwrap_or(&".trunc")
+            };
+            value = Expression::Convert {
+                variable,
+                narrowing,
+                target: Type::Unit(kind, unit, None),
+            };
+        }
+        // A bare literal that can't fit a bounded type is refused, so it's one that fits;
+        // anything else is checked while running (2.5).
+        if let Some((_, low, high)) = bounds {
+            if matches!(value, Expression::WithUnit { .. }) || self.random.chance(50) {
+                value = Expression::WithUnit {
+                    number: self.random.between(low, high.min(low + 1000)),
+                    unit,
+                };
+            }
+        }
+        let name = self.name("uv");
+        scope.variables.push((name.clone(), value_type));
+        Statement::Let {
+            name,
+            value_type,
+            value,
+        }
+    }
+
+    /// A value in a unit: a number with the unit, a variable in it, two added with `+` or a
+    /// `.wrap` or `.saturate` word, or a variable in another unit of the family converted with
+    /// `as` to a smaller unit, or `as.trunc`, `as.floor` or `as.exact` to a bigger one (2.16).
+    fn unit_value(
+        &mut self,
+        scope: &Scope,
+        kind: Kind,
+        unit: &'static str,
+        depth: usize,
+    ) -> Expression {
+        let roll = self.random.between(0, 9);
+        if roll < 3 {
+            let found: Vec<String> = scope
+                .variables
+                .iter()
+                .filter(|(_, found)| {
+                    matches!(found, Type::Unit(other, written, _) if *other == kind && *written == unit)
+                })
+                .map(|(name, _)| name.clone())
+                .collect();
+            if let Some(name) = self.random.pick(&found).cloned() {
+                return Expression::Variable(name);
+            }
+        }
+        if roll == 3 || roll == 4 {
+            let factor = self.unit_factor(unit);
+            let family = self.same_family(unit);
+            let found: Vec<(String, i128)> = scope
+                .variables
+                .iter()
+                .filter_map(|(name, found)| match found {
+                    Type::Unit(other, written, _) if *other == kind && *written != unit => family
+                        .iter()
+                        .find(|(member, _)| member == written)
+                        .map(|(_, source)| (name.clone(), *source)),
+                    _ => None,
+                })
+                .collect();
+            if let Some((variable, source)) = self.random.pick(&found).cloned() {
+                let narrowing = if source % factor == 0 {
+                    ""
+                } else {
+                    *self
+                        .random
+                        .pick(&[".trunc", ".floor", ".exact"])
+                        .unwrap_or(&".trunc")
+                };
+                return Expression::Convert {
+                    variable,
+                    narrowing,
+                    target: Type::Unit(kind, unit, None),
+                };
+            }
+        }
+        if depth > 0 && (roll == 5 || roll == 6) {
+            let operator = *self
+                .random
+                .pick(&[
+                    Operator::Add,
+                    Operator::PlusWrap,
+                    Operator::MinusWrap,
+                    Operator::PlusSaturate,
+                ])
+                .unwrap_or(&Operator::PlusWrap);
+            let left = self.unit_value(scope, kind, unit, depth - 1);
+            let right = self.unit_value(scope, kind, unit, depth - 1);
+            return Expression::Binary {
+                operator,
+                left: Box::new(left),
+                right: Box::new(right),
+            };
+        }
+        Expression::WithUnit {
+            number: self.random.between(0, 60),
+            unit,
+        }
+    }
+
     /// A struct with one to four integer fields, in any of the layouts (7.1).
     fn struct_decl(&mut self) -> StructDecl {
         let name = self.name("rec");
@@ -1722,6 +1990,7 @@ impl Generator<'_> {
             Type::Text(bytes) => self.text(scope, bytes),
             Type::Simd(kind, lanes) => self.lanes(scope, kind, lanes, depth),
             Type::Secret(kind) => self.secret(scope, kind, depth),
+            Type::Unit(kind, unit, _) => self.unit_value(scope, kind, unit, depth),
             Type::Float(wide) => self.float(scope, wide, depth),
         }
     }
@@ -1786,6 +2055,11 @@ impl Generator<'_> {
         if roll == 8 {
             if let Some(call) = self.method_call(scope, kind) {
                 return call;
+            }
+        }
+        if roll == 9 {
+            if let Some(stripped) = self.unit_taken_off(scope, kind) {
+                return stripped;
             }
         }
         if roll == 6 {
@@ -2079,7 +2353,9 @@ impl Generator<'_> {
         let numbers: Vec<(String, Type)> = scope
             .variables
             .iter()
-            .filter(|(_, found)| matches!(found, Type::Integer(_) | Type::Float(_)))
+            .filter(|(_, found)| {
+                matches!(found, Type::Integer(_) | Type::Float(_) | Type::Unit(..))
+            })
             .cloned()
             .collect();
         let Some((name, value_type)) = self.random.pick(&numbers).cloned() else {

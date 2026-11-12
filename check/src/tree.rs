@@ -61,6 +61,9 @@ pub enum Type {
     Simd(Kind, i128),
     /// `u32.secret` (2.22).
     Secret(Kind),
+    /// `i32[unit: dist.cm]`, or with bounds in units: the bounds as written, and the range in
+    /// the type's own unit (2.16).
+    Unit(Kind, &'static str, Option<(&'static str, i128, i128)>),
 }
 
 impl Type {
@@ -75,6 +78,10 @@ impl Type {
             Type::Text(Some(bytes)) => format!("str[len.max: {bytes} bytes]"),
             Type::Simd(kind, lanes) => format!("simd<{}>[lanes: {lanes}]", kind.word()),
             Type::Secret(kind) => format!("{}.secret", kind.word()),
+            Type::Unit(kind, unit, None) => format!("{}[unit: {unit}]", kind.word()),
+            Type::Unit(kind, unit, Some((bounds, ..))) => {
+                format!("{}[unit: {unit}, {bounds}]", kind.word())
+            }
         }
     }
 }
@@ -237,6 +244,18 @@ pub enum Expression {
         if_true: Box<Expression>,
         if_false: Box<Expression>,
     },
+    /// A number with its unit behind it, `250 dist.cm` (2.16).
+    WithUnit {
+        number: i128,
+        unit: &'static str,
+    },
+    /// `$v as i32[unit: dist.mm]`, `$v as.trunc …` or `$v as i32`, changing or taking off a
+    /// unit (2.16).
+    Convert {
+        variable: String,
+        narrowing: &'static str,
+        target: Type,
+    },
     /// `$v as user_id`, crossing into or out of a named type (2.18).
     AsNamed {
         variable: String,
@@ -335,6 +354,14 @@ impl Layout {
             Layout::Packed => "struct.packed",
         }
     }
+}
+
+/// A family of units, each a base or a whole number of an earlier one (2.16).
+#[derive(Clone, Debug)]
+pub struct UnitFamily {
+    pub name: String,
+    /// Each unit's full name, and for one that isn't a base, how many of which unit it is.
+    pub units: Vec<(String, Option<(i128, String)>)>,
 }
 
 /// A named integer type: `type.alias`, fully interchangeable, or `type.new`, which doesn't mix,
@@ -629,6 +656,7 @@ pub struct Function {
 
 #[derive(Clone, Debug)]
 pub struct Program {
+    pub unit_families: Vec<UnitFamily>,
     pub methods: Vec<MethodDecl>,
     /// The room of an arena `main` makes, if it makes one (D330, D386).
     pub arena: Option<i128>,
@@ -651,6 +679,20 @@ pub fn print(program: &Program) -> String {
         fewer_brackets: program.fewer_brackets,
     };
     let mut out = String::from("import std;\nimport os;\nimport @concur;\n\n");
+    for family in &program.unit_families {
+        let _ = writeln!(out, "fam.unit {}:", family.name);
+        for (unit, made_of) in &family.units {
+            match made_of {
+                None => {
+                    let _ = writeln!(out, "    {unit}: base;");
+                }
+                Some((count, other)) => {
+                    let _ = writeln!(out, "    {unit} = {count} {other};");
+                }
+            }
+        }
+        let _ = writeln!(out, "end fam.unit {}\n", family.name);
+    }
     let mut families: Vec<&String> = Vec::new();
     for named in &program.named {
         match &named.family {
@@ -1239,6 +1281,12 @@ impl Style {
             Expression::Float(text) => text.clone(),
             Expression::As { variable, target } => format!("${variable} as {}", target.word()),
             Expression::AsNamed { variable, written } => format!("${variable} as {written}"),
+            Expression::WithUnit { number, unit } => format!("{number} {unit}"),
+            Expression::Convert {
+                variable,
+                narrowing,
+                target,
+            } => format!("${variable} as{narrowing} {}", target.word()),
             Expression::Lanes(lanes) => {
                 let lanes: Vec<String> = lanes.iter().map(|lane| self.expression(lane)).collect();
                 format!("[{}]", lanes.join(", "))
