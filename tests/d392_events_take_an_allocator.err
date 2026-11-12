@@ -1,0 +1,11 @@
+refused: d392_events_take_an_allocator.cy:7:31, line 7 column 31
+ 7 |     let $events: os::events = os::events(count: 4);
+   |                               ^^^^^^^^^^^^^^^^^^^^
+ what: `os::events` takes `count:` and `alloc:`
+ why:  the thread count is always written, a number or `max` for every core, so a program behaves the same everywhere unless it says otherwise, and an event runner also takes the allocator for its queue (D345, D346, D392)
+
+refused: d392_events_take_an_allocator.cy:8:11, line 8 column 11
+ 8 |     defer os::done(Give $events);
+   |           ^^^^^^^^^^^^^^^^^^^^^^
+ what: `$events` never got a value
+ why:  a variable is read only after it has one (D203)

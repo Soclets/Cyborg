@@ -78,9 +78,6 @@ impl Checker<'_> {
                 "a task runs on `std::run::one_thread()`, `os::threads(count:)` or `os::events` (D345, D346, D377)",
             ));
         }
-        if held.value_type == Type::Struct("os::events".to_string()) {
-            return Err(Report::not_built(span, "a spawn onto `os::events`"));
-        }
         if let Some(extra) = stack_options.first() {
             if held.value_type == Type::Struct("os::threads".to_string()) {
                 return Err(Report::refused(
@@ -93,9 +90,11 @@ impl Checker<'_> {
         // `std::run::one_thread` switches tasks, so each has its own stack, from the allocator
         // the spawn names, with its size written. The oracle accepts any size. (D351, D352,
         // D380, D384)
-        // trace: D351, D352, D380, D384
-        if held.value_type == Type::Struct("std::run::one_thread".to_string()) {
-            self.check_task_stack(&stack_options, span)?;
+        // trace: D351, D352, D380, D384, D392
+        if held.value_type == Type::Struct("std::run::one_thread".to_string())
+            || held.value_type == Type::Struct("os::events".to_string())
+        {
+            self.check_task_stack(&stack_options, &held.value_type, span)?;
         }
         if let ExpressionKind::Try(inner) = &call.kind {
             return Err(Report::refused(
@@ -131,8 +130,13 @@ impl Checker<'_> {
 
     /// A spawn's `alloc:` and `stack:`, which a runner that switches tasks needs: an allocator
     /// lent with `Lend`, and a literal size in `bytes`, `kib` or `mib`. (D351, D352, D370, D384)
-    fn check_task_stack(&mut self, options: &[&Argument], span: Span) -> Outcome<()> {
-        const WHY: &str = "each task on a runner that switches tasks has its own stack, from the allocator the spawn names, with its size written, as in `alloc: Lend $heap, stack: 4 kib` (D351, D352, D384)";
+    fn check_task_stack(
+        &mut self,
+        options: &[&Argument],
+        runner: &Type,
+        span: Span,
+    ) -> Outcome<()> {
+        const WHY: &str = "each task on a runner that switches tasks has its own stack, from the allocator the spawn names, with its size written, as in `alloc: Lend $heap, stack: 4 kib` (D351, D352, D384, D392)";
         let find = |label: &str| {
             options.iter().find(|option| {
                 option
@@ -144,7 +148,7 @@ impl Checker<'_> {
         let (Some(alloc), Some(stack)) = (find("alloc"), find("stack")) else {
             return Err(Report::refused(
                 span,
-                "a spawn onto `std::run::one_thread` takes `alloc:` and `stack:`",
+                format!("a spawn onto `{runner}` takes `alloc:` and `stack:`"),
                 WHY,
             ));
         };
@@ -335,29 +339,41 @@ impl Checker<'_> {
         })
     }
 
-    /// `os::threads(count: 8)`, or `count: max` for a thread on every core. The count is always
-    /// written. (D345, D346)
-    /// trace: D345, D346
-    pub(super) fn check_threads_call(
+    /// `os::threads(count: 8)`, or `count: max` for a thread on every core, and
+    /// `os::events(count: 4, alloc: Lend $heap)`, an event runner whose `alloc:` holds its queue
+    /// of waiting tasks. The count is always written. (D345, D346, D392)
+    /// trace: D345, D346, D392
+    pub(super) fn check_os_runner_call(
         &mut self,
+        word: &str,
         arguments: &[Argument],
         span: Span,
     ) -> Outcome<RawCall> {
-        const WHY: &str = "the thread count is always written, a number or `max` for every core, so a program behaves the same everywhere unless it says otherwise (D345, D346)";
-        let [count] = arguments else {
-            return Err(Report::refused(span, "`os::threads` takes `count:`", WHY));
+        const WHY: &str = "the thread count is always written, a number or `max` for every core, so a program behaves the same everywhere unless it says otherwise, and an event runner also takes the allocator for its queue (D345, D346, D392)";
+        let wanted: &[&str] = if word == "events" {
+            &["count", "alloc"]
+        } else {
+            &["count"]
         };
-        if count
-            .label
-            .as_ref()
-            .is_none_or(|label| label.text != "count")
-        {
+        let labels: Vec<Option<&str>> = arguments
+            .iter()
+            .map(|argument| argument.label.as_ref().map(|label| label.text.as_str()))
+            .collect();
+        if labels != wanted.iter().map(|label| Some(*label)).collect::<Vec<_>>() {
+            let shown: Vec<String> = wanted.iter().map(|label| format!("`{label}:`")).collect();
             return Err(Report::refused(
-                count.value.span,
-                "`os::threads` takes `count:`",
+                span,
+                format!("`os::{word}` takes {}", shown.join(" and ")),
                 WHY,
             ));
         }
+        let Some(count) = arguments.first() else {
+            return Err(Report::refused(
+                span,
+                format!("`os::{word}` takes `count:`"),
+                WHY,
+            ));
+        };
         let is_max = matches!(&count.value.kind, ExpressionKind::Path(path) if path.text == "max");
         if !is_max {
             let (_, found) = self.check_expression(
@@ -372,16 +388,50 @@ impl Checker<'_> {
                 ));
             }
         }
+        if let Some(allocator) = arguments.get(1) {
+            let mut handed = Vec::new();
+            self.allocator_argument(&allocator.value, &mut handed)?;
+        }
         Ok(RawCall {
             node: Node {
                 span,
                 kind: NodeKind::Constant(Value::Struct(Vec::new())),
             },
-            value_type: Type::Struct("os::threads".to_string()),
+            value_type: Type::Struct(format!("os::{word}")),
             failures: Vec::new(),
             unnamed: None,
         })
     }
+
+    /// `os::done(Give $pool)` ends a runner, whose tasks have all finished by then. (D343, D392)
+    /// trace: D392
+    pub(super) fn check_runner_done(&mut self, runner: &Argument, span: Span) -> Outcome<RawCall> {
+        let parameter = ParameterInfo {
+            name: "runner".to_string(),
+            label: None,
+            word: ParameterWord::Given,
+            parameter_type: self.variable_type_of(&runner.value).unwrap_or(Type::Void),
+            default: None,
+            label_has_unit: false,
+        };
+        let mut handed = Vec::new();
+        self.check_argument(&runner.value, &parameter, &mut handed)?;
+        Ok(RawCall {
+            node: Node {
+                span,
+                kind: NodeKind::Constant(Value::Void),
+            },
+            value_type: Type::Void,
+            failures: Vec::new(),
+            unnamed: None,
+        })
+    }
+}
+
+/// An operating-system runner, which owns threads, so it's `must_Give` and ends with
+/// `os::done`. (D392)
+pub(super) fn is_os_runner(value_type: &Type) -> bool {
+    matches!(value_type, Type::Struct(name) if name == "os::threads" || name == "os::events")
 }
 
 /// The orderings D354 names. The oracle runs one task at a time, where every ordering gives

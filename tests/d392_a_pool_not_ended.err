@@ -1,0 +1,9 @@
+refused: d392_a_pool_not_ended.cy:8:5, line 8 column 5
+ 8 |     return void;
+   |     ^^^^^^^^^^^^
+ what: this leaves with `$pool` never given away or finished
+ why:  a runner from the OS owns its threads, so it's `must_Give`, and `os::done(Give $pool);` ends it once its tasks are done (D343, D392)
+ because: d392_a_pool_not_ended.cy:7:9, line 7 column 9
+ 7 |     let $pool: os::threads = os::threads(count: 2);
+   |         ^^^^^
+     `$pool` was made here

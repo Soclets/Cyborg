@@ -1,7 +1,7 @@
 // A call becomes a task with `@concur::spawn(on: Lend $runner, alloc: Lend $heap, stack: 4 kib)` in front. Its arguments are taken
 // there, and its body runs on the one thread when the code that spawned it first waits, at
 // `@concur::task.done`, which gives back what it made and passes its failure up.
-// trace: D343, D345, D346, D356, D357, D375, D376, D377
+// trace: D343, D345, D346, D356, D357, D375, D376, D377, D392
 import std;
 import os;
 import @concur;
@@ -35,6 +35,7 @@ fn.main [none] -> void:
     let $runner: std::run::one_thread = std::run::one_thread();
     let $heap: os::heap = os::heap();
     let $pool: os::threads = os::threads(count: 4);
+    defer os::done(Give $pool);
     let $xs: std::coll::list<i64>[len.max: 8 items] = [1, 2, 3];
     let $ys: std::coll::list<i64>[len.max: 8 items] = [10, 20];
     let $left: @concur::task<i64> = @concur::spawn(on: Lend $runner, alloc: Lend $heap, stack: 4 kib) sum(Lend $xs, Lend.mut $log);

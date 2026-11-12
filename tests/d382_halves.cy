@@ -1,7 +1,7 @@
 // `$xs.%%split.mut(at.items: 2)` gives a `std::coll::halves.mut<i64>`, whose `.first` and
 // `.second` are views of two parts that don't overlap, so two tasks can change them at once.
 // Changes go into the list itself. `$xs.%split` gives two parts to read.
-// trace: D382, D358, D347, D379
+// trace: D382, D358, D347, D379, D392
 import std;
 import os;
 import @concur;
@@ -24,6 +24,7 @@ end fn total
 fn.main [none] -> void:
     let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     let $pool: os::threads = os::threads(count: 2);
+    defer os::done(Give $pool);
     let mut $xs: std::coll::list<i64>[len.max: 8 items] = [1, 2, 3, 4, 5];
     let $h: std::coll::halves.mut<i64> = $xs.std::%%split.mut(at.items: 2);
     let $a: @concur::task<i64> = @concur::spawn(on: Lend $pool) double(Lend.mut $h.first);

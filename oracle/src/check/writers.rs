@@ -114,16 +114,9 @@ impl Checker<'_> {
         if rest == "heap" {
             return Self::check_heap_call(arguments, span);
         }
-        // trace: D345, D346
-        if rest == "threads" {
-            return self.check_threads_call(arguments, span);
-        }
-        if rest == "events" {
-            return Err(Report::not_designed(
-                path_span,
-                "how `os::events` is made",
-                "12.2",
-            ));
+        // trace: D345, D346, D392
+        if rest == "threads" || rest == "events" {
+            return self.check_os_runner_call(rest, arguments, span);
         }
         let Some((stderr, buffered)) = writer_kind(&format!("os::{rest}")) else {
             if rest == "stdout" || rest == "stderr" {
@@ -287,6 +280,14 @@ impl Checker<'_> {
                 "`os::done(Give $out);` flushes a buffered writer for the last time and ends its duty (D273)",
             ));
         };
+        // A runner ends the same way. (D392)
+        if argument.label.is_none()
+            && self
+                .variable_type_of(&argument.value)
+                .is_some_and(|found| super::concur::is_os_runner(&found))
+        {
+            return self.check_runner_done(argument, span);
+        }
         if let Some(label) = &argument.label {
             return Err(Report::refused(
                 label.span,

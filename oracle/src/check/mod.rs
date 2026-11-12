@@ -2081,9 +2081,9 @@ impl Checker<'_> {
         {
             return true;
         }
-        // An arena owns its block. (D330)
-        // trace: D330
-        if memory::is_arena(value_type) {
+        // An arena owns its block, and an OS runner its threads. (D330, D392)
+        // trace: D330, D392
+        if memory::is_arena(value_type) || concur::is_os_runner(value_type) {
             return true;
         }
         match value_type {

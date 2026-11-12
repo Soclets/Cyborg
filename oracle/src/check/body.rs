@@ -612,6 +612,9 @@ impl Checker<'_> {
         } else if matches!(variable.held_type, Type::Map { .. }) {
             // trace: D325, D331
             "a map owns heap memory, so it's `must_Give`, and `std::coll::map.done` frees it with the allocator it came from, so a leak doesn't compile (D325, D331)"
+        } else if super::concur::is_os_runner(&variable.held_type) {
+            // trace: D392
+            "a runner from the OS owns its threads, so it's `must_Give`, and `os::done(Give $pool);` ends it once its tasks are done (D343, D392)"
         } else if super::memory::is_arena(&variable.held_type) {
             // trace: D330
             "an arena owns its block, so it's `must_Give`, and `std::mem::arena.done` hands it back to the allocator it came from (D330, D331)"

@@ -1,0 +1,11 @@
+refused: d392_a_spawn_onto_events_names_its_stack.cy:15:34, line 15 column 34
+15 |     let $t: @concur::task<i64> = @concur::spawn(on: Lend $events) one();
+   |                                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ what: a spawn onto `os::events` takes `alloc:` and `stack:`
+ why:  each task on a runner that switches tasks has its own stack, from the allocator the spawn names, with its size written, as in `alloc: Lend $heap, stack: 4 kib` (D351, D352, D384, D392)
+
+refused: d392_a_spawn_onto_events_names_its_stack.cy:16:23, line 16 column 23
+16 |     let $first: i64 = @concur::task.done(Give $t);
+   |                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ what: `$t` never got a value
+ why:  a variable is read only after it has one (D203)

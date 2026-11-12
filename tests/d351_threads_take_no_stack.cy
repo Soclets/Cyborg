@@ -1,5 +1,5 @@
 // The OS gives a pool's threads their stacks, so a spawn onto `os::threads` takes no `stack:`.
-// trace: D351
+// trace: D351, D392
 import std;
 import os;
 import @concur;
@@ -15,6 +15,7 @@ end fn read_first
 
 fn.main [none] -> void:
     let $pool: os::threads = os::threads(count: max);
+    defer os::done(Give $pool);
     let $xs: std::coll::list<i64>[len.max: 4 items] = [1];
     let $t: @concur::task<i64> = @concur::spawn(on: Lend $pool, stack: 16 kib) read_first(Lend $xs);
     let $first: i64 = @concur::task.done(Give $t);

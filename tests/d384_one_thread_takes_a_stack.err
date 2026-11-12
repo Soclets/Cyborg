@@ -2,7 +2,7 @@ refused: d384_one_thread_takes_a_stack.cy:14:34, line 14 column 34
 14 |     let $t: @concur::task<i64> = @concur::spawn(on: Lend $runner) one();
    |                                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
  what: a spawn onto `std::run::one_thread` takes `alloc:` and `stack:`
- why:  each task on a runner that switches tasks has its own stack, from the allocator the spawn names, with its size written, as in `alloc: Lend $heap, stack: 4 kib` (D351, D352, D384)
+ why:  each task on a runner that switches tasks has its own stack, from the allocator the spawn names, with its size written, as in `alloc: Lend $heap, stack: 4 kib` (D351, D352, D384, D392)
 
 refused: d384_one_thread_takes_a_stack.cy:15:23, line 15 column 23
 15 |     let $first: i64 = @concur::task.done(Give $t);
