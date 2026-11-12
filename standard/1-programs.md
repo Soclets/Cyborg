@@ -51,7 +51,7 @@ Its manifest says `need std` and `need os`. Examples elsewhere in the standard a
 **Rule:** `;` ends a statement, `:` opens a block, and `end` closes it. The closer repeats what it closes, including the name.
 
 ```
-fn total [$xs: std::list<i32>[len.max: inf items]] -> i32:
+fn total [$xs: std::coll::list<i32>[len.max: inf items]] -> i32:
     …
 end fn total
 
@@ -139,7 +139,7 @@ std::io::fmt_print(Lend.mut $out, "hi{newln}");
 |---|---|---|
 | `( )` | Runs something | `total(Lend $xs)` |
 | `[ ]` | Describes or holds values | `fn total [$xs: …]`, `i32[min: 0, max: 100]` |
-| `< >` | Fills in a type or a source | `std::list<i32>` |
+| `< >` | Fills in a type or a source | `std::coll::list<i32>` |
 
 The one exception is grouping in maths: `($a + $b) x 2`.
 
@@ -154,7 +154,7 @@ An opening `<` has no space after it, and a closing `>` has none before it. `<` 
 **Rule:** a label names a value inside brackets, as in `val: 4` or `len: 8 items`. A label can be narrowed where a type's writer defines that, as in `len.max`. `=` sets a field instead ([7.2](7-structs-and-unions.md#72-building-a-struct)).
 
 ```
-std::list<i32>[len.min: 1 items, len.max: 8 items]
+std::coll::list<i32>[len.min: 1 items, len.max: 8 items]
 ```
 
 **From:** D13, D57.
@@ -199,12 +199,12 @@ A limb works the same way: `use @csup::union.untagged as untagged;`, or a quoted
 A kit method works the same way, with its type in the path and its `%` kept:
 
 ```
-use std::list.%%append as %%append;
+use std::coll::list.%%append as %%append;
 
 $xs.%%append(val: 4);
 ```
 
-A method of your own with the same name on the same type in that file clashes, and is refused. A quoted name keeps the `%` or `%%` outside the quotes, as in `use std::list.%%append as %%"push";`. A limb's short name has no `@`, since a bare `@name` is a builtin.
+A method of your own with the same name on the same type in that file clashes, and is refused. A quoted name keeps the `%` or `%%` outside the quotes, as in `use std::coll::list.%%append as %%"push";`. A limb's short name has no `@`, since a bare `@name` is a builtin.
 
 A function's narrowing can't be shortened to its bare name, since `stored(…)` alone reads like something else. Shorten the function, and write the narrowing after it, or use a quoted name:
 
@@ -218,7 +218,7 @@ print_exact("{}{newln}", $x);
 
 Units keep the matching name, as in `use std::units::time.seconds as seconds;`.
 
-**Refused:** `use std::io::fmt_print.stored as stored;`, with `fix: use std::io::fmt_print as fmt_print;`, `use std::list.%%append as "push";` and `as "%%push"`, with `fix: as %%"push"`, `as %append`, which drops a `%`, `use std::units::time.seconds as minutes;`, `use @csup::union.untagged as @untagged;`, because `@untagged` looks like a builtin, and a quoted name nothing could use, like `"my say"`, `""` or `"fn"`.
+**Refused:** `use std::io::fmt_print.stored as stored;`, with `fix: use std::io::fmt_print as fmt_print;`, `use std::coll::list.%%append as "push";` and `as "%%push"`, with `fix: as %%"push"`, `as %append`, which drops a `%`, `use std::units::time.seconds as minutes;`, `use @csup::union.untagged as @untagged;`, because `@untagged` looks like a builtin, and a quoted name nothing could use, like `"my say"`, `""` or `"fn"`.
 
 **From:** D93, D150, D151, D155, D178, D179, D220, D225, D232, D248.
 
@@ -228,7 +228,7 @@ Units keep the matching name, as in `use std::units::time.seconds as seconds;`.
 
 ```
 /// Adds up every item in the list.
-fn total [$xs: std::list<i32>[len.max: inf items]] -> i32:
+fn total [$xs: std::coll::list<i32>[len.max: inf items]] -> i32:
     // a note for whoever reads this
     …
 end fn total
@@ -282,7 +282,7 @@ A literal format is checked when building.
 | Where | Spaces | Example |
 |---|---|---|
 | Around `.`, `::`, `%`, `%%`, `@` | None | `fn.main`, `std::io::fmt_print`, `$p.%area()` |
-| After `$`, a unary `-`, a `~` on a literal, an opening `(`, `[`, `<` | None | `-$x`, `~0.1`, `total(Lend $xs)`, `std::list<i32>` |
+| After `$`, a unary `-`, a `~` on a literal, an opening `(`, `[`, `<` | None | `-$x`, `~0.1`, `total(Lend $xs)`, `std::coll::list<i32>` |
 | Before a closing bracket, or a postfix `?` | None | `read()?` |
 | Around a binary operator, word operators and `=` included | One on each side | `1 below 8`, `$a + $b`, `$x at_least 0` |
 | After a comma, or a label's `:` | One | `range[from: 1, to: 3]` |

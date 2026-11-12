@@ -11,9 +11,9 @@
 | [2.7](#27-inexact-literals-) | `~` | This literal gets rounded |
 | [2.8](#28-decimal-floats) | `d32` | A limb, likely |
 | [2.9](#29-strings) | `str` | UTF-8, or pick another |
-| [2.10](#210-lists) | `std::list` | 0 to `len.max` items |
-| [2.11](#211-arrays) | `std::array` | Exactly `len` items |
-| [2.12](#212-maps) | `std::map` | Labels required |
+| [2.10](#210-lists) | `std::coll::list` | 0 to `len.max` items |
+| [2.11](#211-arrays) | `std::coll::array` | Exactly `len` items |
+| [2.12](#212-maps) | `std::coll::map` | Labels required |
 | [2.13](#213-labels-in--) | Labels in `< >` | One bare, more labeled |
 | [2.14](#214-conversion-as) | `as` | Builds a new value |
 | [2.15](#215-void-and-bool) | `void`, `bool` | |
@@ -206,39 +206,39 @@ load(Lend $log);
 
 ## 2.10 Lists
 
-**Rule:** a list holds its element type in `< >`, and always writes its `len.max`, with `inf` for unbounded. It can also have a `len.min`. An empty list always writes `= empty`.
+**Rule:** a list, `std::coll::list`, holds its element type in `< >`, and always writes its `len.max`, with `inf` for unbounded. It can also have a `len.min`. An empty list always writes `= empty`.
 
 ```
-let mut $xs: std::list<i32>[len.max: inf items] = empty;
-let mut $ys: std::list<i32>[len.max: 8 items] = empty;
-std::list<i32>[len.min: 1 items, len.max: 8 items]
+let mut $xs: std::coll::list<i32>[len.max: inf items] = empty;
+let mut $ys: std::coll::list<i32>[len.max: 8 items] = empty;
+std::coll::list<i32>[len.min: 1 items, len.max: 8 items]
 ```
 
 `$xs.len` is `u64[unit: items]`. A list can choose another type with `len.type`, which also changes how it stores its length:
 
 ```
-std::list<i32>[len.max: inf items, len.type: u32]
+std::coll::list<i32>[len.max: inf items, len.type: u32]
 ```
 
 `[ ]` gives it items, and the count is checked against the type:
 
 ```
-let $b: std::list<i32>[len.min: 1 items, len.max: 8 items] = [4, 6];
+let $b: std::coll::list<i32>[len.min: 1 items, len.max: 8 items] = [4, 6];
 ```
 
-Allocation is explicit, as in Zig: anything that takes heap memory takes an allocator, the way printing takes a writer ([1.13](1-programs.md#113-printing-stdiofmt_print)). A list with a finite `len.max` needs none, since its size is known. A growable list can't take items straight from `[ ]`, since filling it allocates: `std::list.from([1, 2, 3], alloc: Lend $heap)` does it, and a growable string comes from `str.from("abc", alloc: Lend $heap)`, which takes a string or a number. Running out of memory is a failure, handled like any other, and a program with no allocator, as on bare metal, can't call anything that allocates. `os::heap()` is the operating system's allocator, so bare metal has none. Every `os::heap()` is a handle to the one OS heap, so memory from one can be freed through another, while every arena and every allocator you write is its own.
+Allocation is explicit, as in Zig: anything that takes heap memory takes an allocator, the way printing takes a writer ([1.13](1-programs.md#113-printing-stdiofmt_print)). A list with a finite `len.max` needs none, since its size is known. A growable list can't take items straight from `[ ]`, since filling it allocates: `std::coll::list.from([1, 2, 3], alloc: Lend $heap)` does it, and a growable string comes from `str.from("abc", alloc: Lend $heap)`, which takes a string or a number. Running out of memory is a failure, handled like any other, and a program with no allocator, as on bare metal, can't call anything that allocates. `os::heap()` is the operating system's allocator, so bare metal has none. Every `os::heap()` is a handle to the one OS heap, so memory from one can be freed through another, while every arena and every allocator you write is its own.
 
 ```
 let $alloc: os::heap = os::heap();
-let mut $xs: std::list<i32>[len.max: inf items] = empty;
+let mut $xs: std::coll::list<i32>[len.max: inf items] = empty;
 $xs.std::%%append(val: 4, alloc: Lend $alloc);
 ```
 
 The list doesn't hold its allocator: every call that allocates is handed it, so a list is plain data with no borrow inside, and moves, returns and sits in structs like any other value. The list remembers which allocator it uses, as a small ID, and handing it a different one is a failed check, like a bounds check.
 
-A list that can allocate, one with `len.max: inf items`, is `must_Give` ([6.9](6-ownership.md#69-must_give)), so its memory can't leak: it ends with `std::list.done(Give $xs, alloc: Lend $alloc);`, which frees it with the same allocator. A struct holding one is `must_Give` too. 
+A list that can allocate, one with `len.max: inf items`, is `must_Give` ([6.9](6-ownership.md#69-must_give)), so its memory can't leak: it ends with `std::coll::list.done(Give $xs, alloc: Lend $alloc);`, which frees it with the same allocator. A struct holding one is `must_Give` too. 
 
-An allocator is anything that satisfies the `std::allocator` interface ([5.8](5-functions.md#58-generics)), written in a shield, since it deals in raw pointers:
+An allocator is anything that satisfies the `std::mem::allocator` interface ([5.8](5-functions.md#58-generics)), written in a shield, since it deals in raw pointers:
 
 ```
 interface allocator:
@@ -250,19 +250,19 @@ end interface allocator
 
 `allocate` gives a block or fails with `out_of_memory`, the failure lists pass on. `resize` tries to change a block where it is and says whether it could, and `free` hands one back.
 
-An arena hands out memory from one big block and frees it all at once, as `std::arena`. It only carves up memory it's given, so it works anywhere, bare metal included. Lists made from it still end with `done`, where freeing costs nothing, so every owner follows one rule. The arena counts what's still alive, and ending it while anything from it is alive is a failed check.
+An arena hands out memory from one big block and frees it all at once, as `std::mem::arena`. It only carves up memory it's given, so it works anywhere, bare metal included. Lists made from it still end with `done`, where freeing costs nothing, so every owner follows one rule. The arena counts what's still alive, and ending it while anything from it is alive is a failed check.
 
 How much memory each allocation takes is fixed by the standard, so whether a program runs out is the same on every machine for a target. An item takes its type's size, which is known since a bare `struct` has an exact layout, at its natural alignment. A growable list's first allocation holds what it needs, rounded up to 4 items, and a full one doubles. `kib` and `mib` are 1024 and 1024² `bytes`.
 
 ```
-let mut $arena: std::arena = std::arena.new(size: 1 mib, alloc: Lend $heap);
-defer std::arena.done(Give $arena, alloc: Lend $heap);
+let mut $arena: std::mem::arena = std::mem::arena.new(size: 1 mib, alloc: Lend $heap);
+defer std::mem::arena.done(Give $arena, alloc: Lend $heap);
 
-let mut $xs: std::list<i32>[len.max: inf items] = empty;
-defer std::list.done(Give $xs, alloc: Lend $arena);
+let mut $xs: std::coll::list<i32>[len.max: inf items] = empty;
+defer std::coll::list.done(Give $xs, alloc: Lend $arena);
 ```
 
-**Refused:** `[ ]` with items, or a string literal, given straight to a growable list or string, with `fix: std::list.from` or `str.from`; `std::list<i32>` with no `len.max`, a list with a bare `len`, in favour of `array`, `= empty` on a list with `len.min` above 0, `[]`, with `fix: empty`, and too few or too many items.
+**Refused:** `[ ]` with items, or a string literal, given straight to a growable list or string, with `fix: std::coll::list.from` or `str.from`; `std::coll::list<i32>` with no `len.max`, a list with a bare `len`, in favour of `array`, `= empty` on a list with `len.min` above 0, `[]`, with `fix: empty`, and too few or too many items.
 
 **From:** D11, D12, D13, D24, D102, D103, D140, D321, D322, D323, D324, D330, D333, D369, D370, D371.
 
@@ -273,8 +273,8 @@ defer std::list.done(Give $xs, alloc: Lend $arena);
 `[ ]` gives it items, and `all` fills it with one value.
 
 ```
-let $a: std::array<i32>[len: 3 items] = [1, 2, 3];
-let mut $d: std::array<u8>[len: 4096 items] = all 0;
+let $a: std::coll::array<i32>[len: 3 items] = [1, 2, 3];
+let mut $d: std::coll::array<u8>[len: 4096 items] = all 0;
 ```
 
 **Refused:** `len.always`, which doesn't exist, the wrong number of items, and `= empty`.
@@ -283,15 +283,15 @@ let mut $d: std::array<u8>[len: 4096 items] = all 0;
 
 ## 2.12 Maps
 
-**Rule:** you pick the kind of map, `std::map.hash` or `std::map.ordered`, and its types get labels, `key.type:` and `val.type:`, the way a list's length type is `len.type:`. A bare `key:` or `val:` is always a value, as in a call, so the type says `.type`. The two kind names are placeholders.
+**Rule:** you pick the kind of map, `std::coll::map.hash` or `std::coll::map.ordered`, and its types get labels, `key.type:` and `val.type:`, the way a list's length type is `len.type:`. A bare `key:` or `val:` is always a value, as in a call, so the type says `.type`. The two kind names are placeholders.
 
 ```
-std::map.hash<key.type: str, val.type: i32>
+std::coll::map.hash<key.type: str, val.type: i32>
 ```
 
-A map owns memory, so it's `must_Give` and ends with `std::map.done(Give $m, alloc: Lend $heap)`, like every owner ([6.9](6-ownership.md#69-must_give)).
+A map owns memory, so it's `must_Give` and ends with `std::coll::map.done(Give $m, alloc: Lend $heap)`, like every owner ([6.9](6-ownership.md#69-must_give)).
 
-**Refused:** `std::map.hash<str, i32>`, a bare `std::map`, and `std::map.hash<key: str, val: i32>`, with `fix: key.type:` and `val.type:`.
+**Refused:** `std::coll::map.hash<str, i32>`, a bare `std::coll::map`, and `std::coll::map.hash<key: str, val: i32>`, with `fix: key.type:` and `val.type:`.
 
 **From:** D24, D25, D138, D325, D331, D366.
 
@@ -343,7 +343,7 @@ let $d: i32[unit: seconds] = 3600 seconds;
 A unit is required only where the type asks for one. A plain `i32` means just a number. The language and `std` ask for units on things that have them, like lengths, sizes and durations, and your own code opts in with a type like `i32[unit: time.seconds]`.
 
 ```
-std::array<u8>[len: 4096 items]
+std::coll::array<u8>[len: 4096 items]
 let $x: i32 = 3600;
 ```
 
@@ -423,7 +423,7 @@ let $s: f64.stable = std::math::sin($a as f64.stable[unit: radians]);
 A generic can work for any unit and keep it, with a unit parameter. `any.unit` means any unit, and a family's name, like `length`, means any unit in that family:
 
 ```
-fn average<?u: any.unit> [$xs: std::list<f64.stable[unit: ?u]>[len.min: 1 items]] -> f64.stable[unit: ?u]:
+fn average<?u: any.unit> [$xs: std::coll::list<f64.stable[unit: ?u]>[len.min: 1 items]] -> f64.stable[unit: ?u]:
     …
 end fn average
 
@@ -498,7 +498,7 @@ A bad position is a bounds check ([10.4](10-build-modes.md#104-what-happens-when
 **Rule:** `type.alias` gives a type another name, fully interchangeable. `type.new` makes a different type from the same data, which doesn't mix with others. There's no bare `type`.
 
 ```
-type.alias numbers = std::list<i32>[len.max: inf items];
+type.alias numbers = std::coll::list<i32>[len.max: inf items];
 type.new user_id = i64;
 ```
 
@@ -600,7 +600,7 @@ $v.%max_val()    // 9
 `as` converts between an array and a `simd` of the same count, both ways. It can't fail, and a different count is refused when compiling.
 
 ```
-let $a: std::array<i32>[len: 4 items] = [3, 9, 1, 7];
+let $a: std::coll::array<i32>[len: 4 items] = [3, 9, 1, 7];
 let $v: simd<i32>[lanes: 4] = $a as simd<i32>[lanes: 4];
 ```
 
@@ -684,7 +684,7 @@ let $out: simd<u8>[lanes: 16] = $table.%lookup(pos: $which);
 
 ## 2.22 Secrets: `.secret`
 
-**Rule:** `.secret` on an integer or a `bool` marks a value that mustn't affect how long the program takes, for constant-time code like cryptography. The compiler refuses anything whose timing or path could depend on it. It works inside other types, as in `std::array<u8.secret>[len: 32 items]` or `simd<u8.secret>[lanes: 16]`.
+**Rule:** `.secret` on an integer or a `bool` marks a value that mustn't affect how long the program takes, for constant-time code like cryptography. The compiler refuses anything whose timing or path could depend on it. It works inside other types, as in `std::coll::array<u8.secret>[len: 32 items]` or `simd<u8.secret>[lanes: 16]`.
 
 ```
 let $key: u32.secret = load_key();

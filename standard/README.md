@@ -52,9 +52,9 @@ What Cyborg does now, in one place. The oracle, the compiler and check claude fo
 | `as` | [2.14](2-values-and-types.md#214-conversion-as) | | `return` | [5.3](5-functions.md#53-return) |
 | `at_least`, `at_most` | [3.5](3-operators.md#35-comparison) | | `shield` | [9.7](9-limbs-and-shields.md#97-shields) |
 | `because:` | [11.6](11-errors.md#116-because) | | `shl`, `shr` | [3.7](3-operators.md#37-bits-and-shifts) |
-| `and.bit`, `or.bit`, `xor.bit`, `not.bit` | [3.7](3-operators.md#37-bits-and-shifts) | | `std::array` | [2.11](2-values-and-types.md#211-arrays) |
-| `bool` | [2.15](2-values-and-types.md#215-void-and-bool) | | `std::list` | [2.10](2-values-and-types.md#210-lists) |
-| build modes | [10.1](10-build-modes.md#101-the-modes) | | `std::map` | [2.12](2-values-and-types.md#212-maps) |
+| `and.bit`, `or.bit`, `xor.bit`, `not.bit` | [3.7](3-operators.md#37-bits-and-shifts) | | `std::coll::array` | [2.11](2-values-and-types.md#211-arrays) |
+| `bool` | [2.15](2-values-and-types.md#215-void-and-bool) | | `std::coll::list` | [2.10](2-values-and-types.md#210-lists) |
+| build modes | [10.1](10-build-modes.md#101-the-modes) | | `std::coll::map` | [2.12](2-values-and-types.md#212-maps) |
 | `case` | [4.3](4-control-flow.md#43-match), [8.6](8-failures.md#86-otherwise) | | `str` | [2.9](2-values-and-types.md#29-strings) |
 | `change` | [2.2](2-values-and-types.md#22-let-mut-and-change) | | `struct` | [7.1](7-structs-and-unions.md#71-declaring-a-struct) |
 | `check failed:` | [11.2](11-errors.md#112-kinds) | | `union.tagged` | [7.5](7-structs-and-unions.md#75-tagged-unions) |

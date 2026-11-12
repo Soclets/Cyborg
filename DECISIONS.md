@@ -1256,6 +1256,8 @@ A `type_set` is a closed list of types that nothing can join later, as in `type_
 
 **D377. `std`'s runner is `std::one_thread`.** `let $runner: std::one_thread = std::one_thread();` names D376's runner for what it does, run every task on the one thread that's already running, next to `os::threads` and `os::events`, which are named for where their threads come from, so one thread against many is obvious. `std::in_order` stopped being true once it switches tasks, and `std::local` was vague. This settles D345's runner name. Claude proposed it; the owner chose: "yea". (Owner, 2026-11-12)
 
+**D378. Every `std` name lives in a group.** D196 gave `std` groups, but only `io`, `math` and `units` had one, and the rest sat loose. Now every name has one: `std::io::` for printing, `std::math::` for maths, `std::units::` for units, `std::mem::` for `allocator` and `arena`, `std::run::` for the runner interface, `runner`, and `one_thread`, and `std::coll::` for `list`, `map` and `array`. So `std::list` is `std::coll::list`, `std::arena` is `std::mem::arena`, and `std::one_thread` is `std::run::one_thread`, and `use` shortens any of them (D196). A kit method called on a receiver still names its kit, as in `$xs.std::%%append(…)` (5.6). `coll` is short for collections, as CyborgPL used it. The owner asked "does std still have print? If it does, it's `std::io::fmt_print`, right? Right now, our new names are all no drawer/category"; Claude proposed six groups; the owner chose: "yea". (Owner, 2026-11-12)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude

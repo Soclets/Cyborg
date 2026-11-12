@@ -59,7 +59,7 @@ close(Give $f);
 **Rule:** a bare parameter is lent, read-only, and the call still writes `Lend`.
 
 ```
-fn total [$xs: std::list<i32>[len.max: inf items]] -> i32:
+fn total [$xs: std::coll::list<i32>[len.max: inf items]] -> i32:
     …
 end fn total
 
@@ -138,7 +138,7 @@ $xs.std::%%append(val: 4);
 
 **Rule:** a `must_Give` type is linear: it's handed off with `Give` exactly once. Lending doesn't count.
 
-Every value that owns memory is `must_Give`, and ends with a function called `done`, as in `os::done`, `std::list.done`, `str.done` and `std::arena.done`. Nothing is ever freed automatically: you write every free, and the compiler checks every one, so a leak is a compile error as much as a double free or a use after free. That covers growable lists ([2.10](2-values-and-types.md#210-lists)), strings made with `as str`, maps, and any struct or type holding one. `defer` ([6.12](#612-defer)) keeps the freeing in one place.
+Every value that owns memory is `must_Give`, and ends with a function called `done`, as in `os::done`, `std::coll::list.done`, `str.done` and `std::mem::arena.done`. Nothing is ever freed automatically: you write every free, and the compiler checks every one, so a leak is a compile error as much as a double free or a use after free. That covers growable lists ([2.10](2-values-and-types.md#210-lists)), strings made with `as str`, maps, and any struct or type holding one. `defer` ([6.12](#612-defer)) keeps the freeing in one place.
 
 ```
 struct.must_Give open_file:
@@ -260,7 +260,7 @@ end union.tagged lookup
 Lending an item locks the whole list, and its type names the list:
 
 ```
-fn first [$xs: std::list<reading>[len.min: 1 items]] -> Lend from $xs reading:
+fn first [$xs: std::coll::list<reading>[len.min: 1 items]] -> Lend from $xs reading:
     return Lend $xs[pos: 1];
 end fn first
 ```
@@ -307,12 +307,12 @@ reading[celsius = 21, time = 3600 std::units::time.seconds]
 
 ```
 fn total_of_both [$alloc: Lent os::heap] -> i64 fails [out_of_memory, bad_number]:
-    let mut $xs: std::list<i64>[len.max: inf items] = empty;
-    defer std::list.done(Give $xs, alloc: Lend $alloc);
+    let mut $xs: std::coll::list<i64>[len.max: inf items] = empty;
+    defer std::coll::list.done(Give $xs, alloc: Lend $alloc);
     read_numbers(Lend.mut $xs, alloc: Lend $alloc)?;
 
-    let mut $ys: std::list<i64>[len.max: inf items] = empty;
-    defer std::list.done(Give $ys, alloc: Lend $alloc);
+    let mut $ys: std::coll::list<i64>[len.max: inf items] = empty;
+    defer std::coll::list.done(Give $ys, alloc: Lend $alloc);
     read_numbers(Lend.mut $ys, alloc: Lend $alloc)?;
 
     return sum(Lend $xs) + sum(Lend $ys);
