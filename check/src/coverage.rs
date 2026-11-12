@@ -18,7 +18,8 @@
 ///   case in any order, an arm naming its case to read its data;
 /// - control: `let`, `change`, `if` and `else`, `while`, `for` over literal ranges and through
 ///   arrays, reading or changing each item, `forever`, `break`;
-/// - functions: integer parameters and results, `fn.pure` ones calling only pure ones, `requires`
+/// - functions: void ones taking integers lent to change with `Lend.mut`, and structs lent or
+///   handed over with `Give` or `Copy`, called as statements; integer parameters and results, `fn.pure` ones calling only pure ones, `requires`
 ///   and `ensures result` contracts, labels on the last parameters, `labels.any_order`, and
 ///   defaults calls leave off;
 /// - failures: functions that list failures, some carrying data, and `fail` them; calls handled
@@ -45,7 +46,7 @@ pub const NOT_GENERATED: &[&str] = &[
     "4.2 the test, `if $n: T:`",
     "4.3 to 4.8 `match`, `for … in Give`, `for` over lists, a range's counter in use, ranges that step past their end, named loops",
     "5.x contracts that call pure functions, generics, interfaces, methods, `bake`, calling a function declared later, `Lent.mut` parameters",
-    "6.x ownership words, `Lend.mut` parameters, stored borrows, `must_Give`, `finish`, `defer`",
+    "6.x stored borrows, `must_Give`, `finish`, `defer`, giving a value away on one path, ownership words on functions that return values",
     "7.x structs holding other structs, lists or borrows, `must_Give` structs, generic structs, handing structs and unions to functions, the test `if $u: u.case:`",
     "8.x named sets of failures, a `case` reading a failure's data, arms that `return`, `break` or `fail`, handler narrowings and `*`",
     "9.x `use`, limbs, shields, `inline.asm`, pointers, `@concur`, `pub`",

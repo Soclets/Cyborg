@@ -307,6 +307,23 @@ impl Layout {
     }
 }
 
+/// A parameter of a void function: an integer lent to change (`Lent.mut`), a plain integer, or
+/// a struct, lent bare or `Given` (6.1, 6.5).
+#[derive(Clone, Debug)]
+pub enum ParamKind {
+    Changed(Kind),
+    Plain(Kind),
+    Record { struct_name: String, given: bool },
+}
+
+/// A void function, called as a statement (5.3, 6.1).
+#[derive(Clone, Debug)]
+pub struct Procedure {
+    pub name: String,
+    pub parameters: Vec<(String, ParamKind)>,
+    pub body: Vec<Statement>,
+}
+
 /// A tagged union, each case with integer data or none (7.5).
 #[derive(Clone, Debug)]
 pub struct UnionDecl {
@@ -458,6 +475,11 @@ pub enum Statement {
         union_name: String,
         arms: Vec<(String, Option<String>, Vec<Statement>)>,
     },
+    /// A call to a void function, its arguments with their ownership words (6.1).
+    CallProcedure {
+        name: String,
+        arguments: Vec<String>,
+    },
     /// `forever:`, which a counter always stops with `break` (4.7, 4.8).
     Forever {
         counter: String,
@@ -504,6 +526,7 @@ pub struct Function {
 pub struct Program {
     pub structs: Vec<StructDecl>,
     pub unions: Vec<UnionDecl>,
+    pub procedures: Vec<Procedure>,
     pub functions: Vec<Function>,
     pub main: Vec<Statement>,
     /// Whether the printer leaves out `( )` where 3.9's table already gives the order.
@@ -513,6 +536,7 @@ pub struct Program {
 /// The one printer: spacing as 1.14 says, one space around a binary operator and nothing inside
 /// brackets. Every nested operation is grouped with `( )`, or with `fewer_brackets`, only where
 /// 3.9's table doesn't already give the order, which tests the table itself.
+#[allow(clippy::too_many_lines)] // Each kind of declaration in turn, then `main`.
 pub fn print(program: &Program) -> String {
     let style = Style {
         fewer_brackets: program.fewer_brackets,
@@ -608,6 +632,29 @@ pub fn print(program: &Program) -> String {
         print_block(&mut out, &function.body, 1, style);
         let _ = writeln!(out, "    return {};", style.expression(&function.returned));
         let _ = writeln!(out, "end {word} {}\n", function.name);
+    }
+    for procedure in &program.procedures {
+        let parameters: Vec<String> = procedure
+            .parameters
+            .iter()
+            .map(|(name, kind)| match kind {
+                ParamKind::Changed(kind) => format!("${name}: Lent.mut {}", kind.word()),
+                ParamKind::Plain(kind) => format!("${name}: {}", kind.word()),
+                ParamKind::Record { struct_name, given } => {
+                    let word = if *given { "Given " } else { "" };
+                    format!("${name}: {word}{struct_name}")
+                }
+            })
+            .collect();
+        let _ = writeln!(
+            out,
+            "fn {} [{}] -> void:",
+            procedure.name,
+            parameters.join(", ")
+        );
+        print_block(&mut out, &procedure.body, 1, style);
+        out.push_str("    return void;\n");
+        let _ = writeln!(out, "end fn {}\n", procedure.name);
     }
     out.push_str("fn.main [none] -> void:\n");
     out.push_str("    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();\n");
@@ -861,6 +908,9 @@ fn print_block(out: &mut String, statements: &[Statement], depth: usize, style: 
                     print_block(out, body, depth + 2, style);
                 }
                 let _ = writeln!(out, "{indent}end match");
+            }
+            Statement::CallProcedure { name, arguments } => {
+                let _ = writeln!(out, "{indent}{name}({});", arguments.join(", "));
             }
             Statement::Forever {
                 counter,

@@ -8,7 +8,7 @@ use std::fmt::Write as _;
 use crate::random::Random;
 use crate::tree::{
     Arguments, Comparison, Expression, FailureDecl, Filling, Function, Handling, Kind, Layout,
-    Operator, Position, Program, Statement, StructDecl, Type, UnionDecl,
+    Operator, ParamKind, Position, Procedure, Program, Statement, StructDecl, Type, UnionDecl,
 };
 
 /// How big a program gets.
@@ -45,6 +45,7 @@ struct Generator<'random> {
     failing: Option<Vec<FailureDecl>>,
     structs: Vec<StructDecl>,
     unions: Vec<UnionDecl>,
+    procedures: Vec<Procedure>,
     /// Every constant's name, since only constants go into another.
     constants: Vec<String>,
     /// Making a pure function, which calls only pure ones (5.9).
@@ -63,6 +64,7 @@ pub fn program(seed: u64) -> Program {
         failing: None,
         structs: Vec::new(),
         unions: Vec::new(),
+        procedures: Vec::new(),
         constants: Vec::new(),
         pure_only: false,
         no_calls: false,
@@ -75,6 +77,10 @@ pub fn program(seed: u64) -> Program {
     for _ in 0..generator.random.between(0, 2) {
         let declared = generator.union_decl();
         generator.unions.push(declared);
+    }
+    for _ in 0..generator.random.between(0, 2) {
+        let procedure = generator.procedure();
+        generator.procedures.push(procedure);
     }
     let count = generator.random.between(0, LIMITS.functions);
     for _ in 0..count {
@@ -106,6 +112,7 @@ pub fn program(seed: u64) -> Program {
     Program {
         structs: generator.structs,
         unions: generator.unions,
+        procedures: generator.procedures,
         functions: generator.functions,
         main,
         fewer_brackets,
@@ -326,6 +333,9 @@ impl Generator<'_> {
                     else_value,
                 }
             }
+            4 | 5 if prints && !self.procedures.is_empty() && self.random.chance(50) => self
+                .call_procedure(scope)
+                .unwrap_or_else(|| self.list_statement(scope)),
             9 if depth < 2 && !scope.cased.is_empty() && self.random.chance(60) => {
                 self.union_statement(scope, depth, prints)
             }
@@ -758,6 +768,142 @@ impl Generator<'_> {
             left: Box::new(left),
             right: Box::new(right),
         }
+    }
+
+    /// A void function: integers lent to change, which its body changes, plain integers, and
+    /// structs lent bare or given, whose fields it reads (5.3, 6.1, 6.5).
+    fn procedure(&mut self) -> Procedure {
+        let name = self.name("proc");
+        let mut scope = Scope {
+            variables: Vec::new(),
+            arrays: Vec::new(),
+            lists: Vec::new(),
+            records: Vec::new(),
+            cased: Vec::new(),
+            case_fields: Vec::new(),
+        };
+        let mut parameters = Vec::new();
+        let mut changed = Vec::new();
+        for _ in 0..self.random.between(1, 3) {
+            // A parameter that changes is `$q…`; the others are `$p…`, which `change` never
+            // picks, since a parameter can't change unless it's lent to (D184).
+            let roll = self.random.between(0, 2);
+            let parameter = self.name(if roll == 0 { "q" } else { "p" });
+            let kind = match roll {
+                0 => {
+                    let kind = self.integer_kind();
+                    changed.push((parameter.clone(), kind));
+                    ParamKind::Changed(kind)
+                }
+                1 if !self.structs.is_empty() => {
+                    let count = i128::try_from(self.structs.len()).unwrap_or(1);
+                    let index = usize::try_from(self.random.between(0, count - 1)).unwrap_or(0);
+                    let struct_name = self
+                        .structs
+                        .get(index)
+                        .map(|declared| declared.name.clone())
+                        .unwrap_or_default();
+                    // Its fields are read, never changed, since it isn't lent to change.
+                    if let Some(declared) = self.structs.get(index) {
+                        for (field, kind) in &declared.fields {
+                            scope
+                                .case_fields
+                                .push((parameter.clone(), field.clone(), *kind));
+                        }
+                    }
+                    ParamKind::Record {
+                        struct_name,
+                        given: self.random.chance(50),
+                    }
+                }
+                _ => {
+                    let kind = self.integer_kind();
+                    scope
+                        .variables
+                        .push((parameter.clone(), Type::Integer(kind)));
+                    ParamKind::Plain(kind)
+                }
+            };
+            parameters.push((parameter, kind));
+        }
+        let mut body = Vec::new();
+        for (parameter, kind) in changed {
+            let value = self.expression(&scope, Type::Integer(kind), 2);
+            body.push(Statement::Change {
+                name: parameter.clone(),
+                value,
+            });
+        }
+        body.extend(self.block(&mut scope, 2, 1, (false, false)));
+        Procedure {
+            name,
+            parameters,
+            body,
+        }
+    }
+
+    /// A call to a void function as a statement: a different variable lent to change for each
+    /// integer it changes, literals for plain integers, and structs lent or handed over with
+    /// `Give` or `Copy`, a given one gone afterwards (6.1, 6.2, 6.5).
+    fn call_procedure(&mut self, scope: &mut Scope) -> Option<Statement> {
+        let procedure = self.random.pick(&self.procedures.clone())?.clone();
+        let mut changeable: Vec<(String, Kind)> = scope
+            .variables
+            .iter()
+            .filter(|(name, _)| {
+                !name.starts_with('i')
+                    && !name.starts_with('p')
+                    && !name.starts_with('x')
+                    && !name.starts_with('k')
+            })
+            .filter_map(|(name, found)| match found {
+                Type::Integer(kind) => Some((name.clone(), *kind)),
+                _ => None,
+            })
+            .collect();
+        let mut records = scope.records.clone();
+        let mut arguments = Vec::new();
+        let mut given_away = Vec::new();
+        for (_, kind) in &procedure.parameters {
+            match kind {
+                ParamKind::Changed(kind) => {
+                    let at = changeable.iter().position(|(_, found)| found == kind)?;
+                    let (name, _) = changeable.remove(at);
+                    arguments.push(format!("Lend.mut ${name}"));
+                }
+                ParamKind::Plain(kind) => {
+                    arguments.push(
+                        crate::tree::Style {
+                            fewer_brackets: false,
+                        }
+                        .grouped(&self.literal(*kind)),
+                    );
+                }
+                ParamKind::Record { struct_name, given } => {
+                    let at = records.iter().position(|(_, index)| {
+                        self.structs
+                            .get(*index)
+                            .is_some_and(|declared| declared.name == *struct_name)
+                    })?;
+                    let (name, _) = records.remove(at);
+                    if *given {
+                        if self.random.chance(50) {
+                            arguments.push(format!("Give ${name}"));
+                            given_away.push(name);
+                        } else {
+                            arguments.push(format!("Copy ${name}"));
+                        }
+                    } else {
+                        arguments.push(format!("Lend ${name}"));
+                    }
+                }
+            }
+        }
+        scope.records.retain(|(name, _)| !given_away.contains(name));
+        Some(Statement::CallProcedure {
+            name: procedure.name,
+            arguments,
+        })
     }
 
     /// A tagged union of two or three cases, some carrying integer data (7.5).
