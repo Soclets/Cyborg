@@ -1,0 +1,5 @@
+refused: main.cy:4:9, line 4 column 9
+ 4 | import @concur;
+   |         ^^^^^^
+ what: `concur` has no `need` line in `CyJet.siml`
+ why:  each package a program uses has a `need` line in its manifest, with its version (D183, D228)

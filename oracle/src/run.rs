@@ -138,6 +138,24 @@ struct Runner<'c> {
     writers: Vec<Writer>,
     /// What each pointer the program made points at, by number. (D315)
     pointers: Vec<PointerTarget>,
+    /// Every task spawned, by number, in the order spawned. (D356, D376)
+    tasks: Vec<TaskRun>,
+}
+
+/// A call's function, its arguments, and its tables, ready to run.
+type CallParts = (usize, Vec<(usize, Binding)>, Vec<Table>);
+
+/// Where a task is: its call waiting to run, running, or finished with what it gave back or
+/// the failure it passes up when it's done. (D343, D357, D376)
+enum TaskRun {
+    Waiting {
+        function: usize,
+        arguments: Vec<(usize, Binding)>,
+        tables: Vec<Table>,
+        span: Span,
+    },
+    Running,
+    Finished(Result<Binding, Raised>),
 }
 
 /// A pointer's target: a variable from `.of`, or an address from `.at`. (D315)
@@ -283,6 +301,7 @@ impl<'c> Runner<'c> {
             out: std::io::BufWriter::new(std::io::stdout()),
             writers: Vec::new(),
             pointers: Vec::new(),
+            tasks: Vec::new(),
         }
     }
 
@@ -424,6 +443,12 @@ impl<'c> Runner<'c> {
     /// Runs a call, keeping what it hands back as a binding, since a borrow still points at what
     /// it borrows. (D170)
     fn call_binding(&mut self, node: &Node, frame: &mut Frame) -> Result<Binding, Stop> {
+        let (function, bindings, tables) = self.call_parts(node, frame)?;
+        self.call(function, bindings, tables, node.span)
+    }
+
+    /// A call's function, its arguments taken now, and its tables, ready to run.
+    fn call_parts(&mut self, node: &Node, frame: &mut Frame) -> Result<CallParts, Stop> {
         let NodeKind::Call {
             function,
             arguments,
@@ -444,7 +469,75 @@ impl<'c> Runner<'c> {
             bindings.push((*parameter, binding));
         }
         let tables = Self::resolve_tables(tables, frame, node.span)?;
-        self.call(*function, bindings, tables, node.span)
+        Ok((*function, bindings, tables))
+    }
+
+    /// `@concur::spawn`: the call's arguments are taken now, and its body waits to run as a
+    /// task. (D356)
+    /// trace: D356
+    fn spawn(&mut self, call: &Node, frame: &mut Frame) -> Result<Value, Stop> {
+        let (function, arguments, tables) = self.call_parts(call, frame)?;
+        self.tasks.push(TaskRun::Waiting {
+            function,
+            arguments,
+            tables,
+            span: call.span,
+        });
+        let number = i128::try_from(self.tasks.len() - 1).unwrap_or(i128::MAX);
+        Ok(Value::Struct(vec![Value::Integer(number)]))
+    }
+
+    /// `@concur::task.done`: the code waiting here lets tasks run, one at a time on this one
+    /// thread, the next ready one in the order they were spawned, until this one has finished,
+    /// then takes what it gave back or passes its failure up. (D357, D376)
+    /// trace: D357, D376
+    fn task_done(&mut self, task: &Node, frame: &mut Frame, span: Span) -> Result<Value, Stop> {
+        let Value::Struct(fields) = self.evaluate(task, frame)? else {
+            return Err(oracle_bug(span, "a task that isn't one"));
+        };
+        let Some(Value::Integer(number)) = fields.first() else {
+            return Err(oracle_bug(span, "a task with no number"));
+        };
+        let number = usize::try_from(*number).map_err(|_| oracle_bug(span, "a task's number"))?;
+        for index in 0..=number {
+            let Some(run) = self.tasks.get_mut(index) else {
+                return Err(oracle_bug(span, "a task that was never spawned"));
+            };
+            if !matches!(run, TaskRun::Waiting { .. }) {
+                continue;
+            }
+            let TaskRun::Waiting {
+                function,
+                arguments,
+                tables,
+                span: call_span,
+            } = std::mem::replace(run, TaskRun::Running)
+            else {
+                continue;
+            };
+            let finished = match self.call(function, arguments, tables, call_span) {
+                Ok(binding) => Ok(binding),
+                Err(Stop::Raised(raised)) => Err(raised),
+                Err(other) => return Err(other),
+            };
+            if let Some(run) = self.tasks.get_mut(index) {
+                *run = TaskRun::Finished(finished);
+            }
+        }
+        match self
+            .tasks
+            .get_mut(number)
+            .map(|run| std::mem::replace(run, TaskRun::Running))
+        {
+            Some(TaskRun::Finished(Ok(binding))) => {
+                let root = binding.root.borrow();
+                walk(&root, &binding.path)
+                    .cloned()
+                    .ok_or_else(|| oracle_bug(span, "a task handed back a borrow of nothing"))
+            }
+            Some(TaskRun::Finished(Err(raised))) => Err(Stop::Raised(raised)),
+            _ => Err(oracle_bug(span, "a task waited on itself")),
+        }
     }
 
     fn binding_of(
@@ -948,6 +1041,8 @@ impl<'c> Runner<'c> {
                 let right = self.evaluate(right, frame)?;
                 self.generic(*parameter, operator, left, right, frame, span)
             }
+            NodeKind::Spawn(call) => self.spawn(call, frame),
+            NodeKind::TaskDone(task) => self.task_done(task, frame, span),
             NodeKind::Call { .. } => {
                 let binding = self.call_binding(node, frame)?;
                 let root = binding.root.borrow();

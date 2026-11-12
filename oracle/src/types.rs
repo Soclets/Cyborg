@@ -187,6 +187,8 @@ pub enum Type {
     },
     Struct(String),
     Union(String),
+    /// `@concur::task<i64>`: a task that gives back an `i64` when it's done. (D344)
+    Task(Box<Type>),
     /// A view of some or all of a list, which reads it, or with `.mut` changes its items but
     /// can't grow or shrink it. It owns no memory. (D379)
     ListView {
@@ -360,6 +362,7 @@ impl fmt::Display for Type {
             Type::Struct(name) | Type::Union(name) | Type::New { name, .. } => {
                 write!(formatter, "{name}")
             }
+            Type::Task(result) => write!(formatter, "@concur::task<{result}>"),
             Type::ListView { item, mutable } => write!(
                 formatter,
                 "std::coll::list{}<{item}>",

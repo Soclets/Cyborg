@@ -325,6 +325,11 @@ pub enum NodeKind {
         text: Box<Node>,
         allocator: Box<Node>,
     },
+    /// `@concur::spawn(…) f(…)`: the call's arguments are taken now, and its body runs as a
+    /// task. (D356)
+    Spawn(Box<Node>),
+    /// `@concur::task.done(Give $t)`: waits for the task and gives back its result. (D357)
+    TaskDone(Box<Node>),
     /// `std::coll::list.from([1, 2, 3], alloc: Lend $heap)`, a growable list filled from items,
     /// which remembers its allocator. (D369)
     ListFrom {

@@ -116,6 +116,8 @@ impl Checker<'_> {
                     // ends it. (D315)
                     kind == UseKind::Write
                         || super::pointers::is_writing_pointer(&variable.held_type)
+                        // A task given something with `Lend.mut` has it to itself. (D347)
+                        || self.context.tasks_lending_mut.contains(slot)
                 };
                 variable.borrows.iter().any(|borrowed| borrowed == name)
                     && ended_by_this

@@ -58,7 +58,10 @@ impl Checker<'_> {
     /// `os::stdout.buffered` and the other writers, as types. Nothing else in `os` is designed.
     /// trace: D271, D273
     pub(super) fn resolve_os_type(rest: &str, span: Span, plain: bool) -> Outcome<Type> {
-        if writer_kind(&format!("os::{rest}")).is_some() || rest == "heap" {
+        // trace: D345, D359
+        if writer_kind(&format!("os::{rest}")).is_some()
+            || matches!(rest, "heap" | "threads" | "events")
+        {
             if !plain {
                 return Err(Report::refused(
                     span,
@@ -110,6 +113,17 @@ impl Checker<'_> {
         // trace: D332
         if rest == "heap" {
             return Self::check_heap_call(arguments, span);
+        }
+        // trace: D345, D346
+        if rest == "threads" {
+            return self.check_threads_call(arguments, span);
+        }
+        if rest == "events" {
+            return Err(Report::not_designed(
+                path_span,
+                "how `os::events` is made",
+                "",
+            ));
         }
         let Some((stderr, buffered)) = writer_kind(&format!("os::{rest}")) else {
             if rest == "stdout" || rest == "stderr" {

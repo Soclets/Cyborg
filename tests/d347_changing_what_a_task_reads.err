@@ -1,0 +1,19 @@
+refused: d347_changing_what_a_task_reads.cy:22:47, line 22 column 47
+22 |     let $first: i64 = @concur::task.done(Give $t);
+   |                                               ^^
+ what: `$t` can't be used after what it borrows was used
+ why:  a stored `Lend.mut` means nothing else uses it meanwhile, and a `Lend` means it can't change (D2)
+ because: d347_changing_what_a_task_reads.cy:21:12, line 21 column 12
+21 |     change $xs[pos: 1] = 5;
+   |            ^^^^^^^^^^^
+     what it borrows was used here
+
+refused: d347_changing_what_a_task_reads.cy:23:5, line 23 column 5
+23 |     return void;
+   |     ^^^^^^^^^^^^
+ what: this leaves with `$t` never given away or finished
+ why:  a `must_Give` value is handed off with `Give` exactly once, or `finish` ends it (D2, D129)
+ because: d347_changing_what_a_task_reads.cy:20:9, line 20 column 9
+20 |     let $t: @concur::task<i64> = @concur::spawn(on: Lend $runner) read_first(Lend $xs);
+   |         ^^
+     `$t` was made here

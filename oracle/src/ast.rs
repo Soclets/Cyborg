@@ -693,6 +693,11 @@ pub enum ExpressionKind {
         path: Path,
         arguments: Vec<Argument>,
     },
+    /// `@concur::spawn(on: Lend $pool) sum(Lend $xs)`: a call that becomes a task. (D356)
+    Spawn {
+        options: Vec<Argument>,
+        call: Box<Expression>,
+    },
     Method {
         receiver: Box<Expression>,
         kit: Option<String>,

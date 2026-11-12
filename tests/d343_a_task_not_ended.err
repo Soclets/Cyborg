@@ -1,0 +1,9 @@
+refused: d343_a_task_not_ended.cy:20:5, line 20 column 5
+20 |     return void;
+   |     ^^^^^^^^^^^^
+ what: this leaves with `$t` never given away or finished
+ why:  a `must_Give` value is handed off with `Give` exactly once, or `finish` ends it (D2, D129)
+ because: d343_a_task_not_ended.cy:19:9, line 19 column 9
+19 |     let $t: @concur::task<i64> = @concur::spawn(on: Lend $runner) read_first(Lend $xs);
+   |         ^^
+     `$t` was made here

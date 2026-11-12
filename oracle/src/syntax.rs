@@ -4970,6 +4970,19 @@ impl Parser {
         Ok(fields)
     }
 
+    /// `spawn` is a prefix before a call. (D356)
+    /// trace: D356
+    fn parse_spawn(&mut self, options: Vec<Argument>, start: Span) -> Outcome<Expression> {
+        let call = self.parse_postfix()?;
+        Ok(Expression {
+            span: start.to(call.span),
+            kind: ExpressionKind::Spawn {
+                options,
+                call: Box::new(call),
+            },
+        })
+    }
+
     fn parse_hand(&mut self, word: HandWord, start: Span) -> Outcome<Expression> {
         let value = self.parse_postfix()?;
         Ok(Expression {
@@ -5170,6 +5183,9 @@ impl Parser {
                 }
                 if self.at_symbol("(") {
                     let (arguments, end) = self.parse_arguments()?;
+                    if path.text == "@concur::spawn" && !self.peek().starts_a_line {
+                        return self.parse_spawn(arguments, start);
+                    }
                     let span = start.to(end);
                     return Ok(Expression {
                         span,

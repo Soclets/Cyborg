@@ -1,0 +1,11 @@
+refused: d345_spawn_names_its_runner.cy:18:34, line 18 column 34
+18 |     let $t: @concur::task<i64> = @concur::spawn() read_first(Lend $xs);
+   |                                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ what: `@concur::spawn` names its runner with `on:`
+ why:  every spawn names where its task runs, as every `append` names its allocator (D345)
+
+refused: d345_spawn_names_its_runner.cy:19:23, line 19 column 23
+19 |     let $first: i64 = @concur::task.done(Give $t);
+   |                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ what: `$t` never got a value
+ why:  a variable is read only after it has one (D203)

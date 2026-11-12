@@ -1,0 +1,5 @@
+NotDesignedYet: d357_a_task_handed_over.cy:12:31, line 12 column 31
+12 |     return @concur::task.done(Give $t);
+   |                               ^^^^^^^
+ what: what a task can fail with once it's handed to another function, since a function's type doesn't carry its failures
+ why:  not decided yet (standard 12.2)

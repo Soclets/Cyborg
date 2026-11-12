@@ -1,0 +1,11 @@
+refused: d351_threads_take_no_stack.cy:19:72, line 19 column 72
+19 |     let $t: @concur::task<i64> = @concur::spawn(on: Lend $pool, stack: 16 kib) read_first(Lend $xs);
+   |                                                                        ^^^^^^
+ what: a spawn onto `os::threads` takes neither `alloc:` nor `stack:`
+ why:  the OS gives a pool's threads their stacks, so nothing is allocated here (D351)
+
+refused: d351_threads_take_no_stack.cy:20:23, line 20 column 23
+20 |     let $first: i64 = @concur::task.done(Give $t);
+   |                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ what: `$t` never got a value
+ why:  a variable is read only after it has one (D203)

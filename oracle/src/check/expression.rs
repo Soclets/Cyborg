@@ -903,6 +903,8 @@ impl Checker<'_> {
                 right,
             } => self.check_binary(*operator, left, right, span, expected),
             ExpressionKind::Negate(inner) => self.check_negate(inner, span, expected),
+            // trace: D356
+            ExpressionKind::Spawn { options, call } => self.check_spawn(options, call, span),
             ExpressionKind::Not(inner) => {
                 // `not` has one side and no branch, so it's fine on a secret. (D362)
                 let (node, secret) = self.check_logic_side(inner)?;
@@ -1612,7 +1614,7 @@ impl Checker<'_> {
     }
 
     /// Checks a call, method or `as` without saying what happens when it fails.
-    fn check_raw_call(&mut self, expression: &Expression) -> Outcome<RawCall> {
+    pub(super) fn check_raw_call(&mut self, expression: &Expression) -> Outcome<RawCall> {
         let span = expression.span;
         let outermost = self.context.call_span.is_none();
         if outermost {
@@ -1709,6 +1711,7 @@ impl Checker<'_> {
         }
     }
 
+    #[allow(clippy::too_many_lines)] // One early route per kind of path, read top to bottom.
     fn check_call(
         &mut self,
         path: &crate::ast::Path,
@@ -1720,6 +1723,10 @@ impl Checker<'_> {
         let text = self.canonical(&path.text);
         if let Some(report) = self.inline_call(&text, path.span) {
             return Err(report);
+        }
+        // trace: D344, D357
+        if let Some(rest) = text.strip_prefix("@concur::") {
+            return self.check_concur_call(rest, arguments, span, path.span);
         }
         self.refuse_limb_outside_shield(&text, path.span)?;
         if let Some(rest) = text.strip_prefix("std::") {
@@ -2075,6 +2082,10 @@ impl Checker<'_> {
         // trace: D369
         if rest == "list.from" {
             return self.check_list_from(arguments, span, path_span);
+        }
+        // trace: D377
+        if rest == "one_thread" {
+            return Self::check_one_thread_call(arguments, span);
         }
         // trace: D330, D333
         if rest.starts_with("arena.") {

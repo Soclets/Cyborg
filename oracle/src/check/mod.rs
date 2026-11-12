@@ -2,6 +2,7 @@
 //! This file holds the declarations; `body.rs` holds statements and `expression.rs` expressions.
 
 mod body;
+mod concur;
 mod expression;
 mod generics;
 mod hand;
@@ -266,6 +267,12 @@ struct FunctionContext {
     skipped_exit: bool,
     /// The type a call.s result goes into, which can fill a generic.s type parameter. (D241)
     call_expected: Option<Type>,
+    /// What the last `@concur::spawn` checked can fail with, for the `let` holding its task.
+    spawned_failures: Option<Vec<Failure>>,
+    /// What each task variable's call can fail with, which `task.done` passes up. (D357)
+    task_failures: HashMap<usize, Vec<Failure>>,
+    /// Task variables whose call lent something to change, which any use of it ends. (D347)
+    tasks_lending_mut: HashSet<usize>,
 }
 
 /// What a returned borrow borrows at the call: the original values, and the names it went
@@ -311,6 +318,9 @@ impl FunctionContext {
             unknown: HashSet::new(),
             skipped_exit: false,
             call_expected: None,
+            spawned_failures: None,
+            task_failures: HashMap::new(),
+            tasks_lending_mut: HashSet::new(),
         }
     }
 }
@@ -528,7 +538,10 @@ impl Checker<'_> {
             .next()
             .unwrap_or(&import.name.text);
         if let Some(needs) = &self.needs {
-            if matches!(package, "std" | "csup" | "os") && !needs.iter().any(|need| need == package)
+            // `@concur` is its own package, asked for with `need concur`. (D375)
+            // trace: D375
+            if matches!(package, "std" | "csup" | "os" | "concur")
+                && !needs.iter().any(|need| need == package)
             {
                 return Err(Report::refused(
                     import.name.span,
@@ -578,7 +591,7 @@ impl Checker<'_> {
         }
         if import.limb {
             match import.name.text.as_str() {
-                "csup" | "std" => {
+                "csup" | "std" | "concur" => {
                     self.limb_imports.insert(import.name.text.clone());
                 }
                 other => {
@@ -2052,8 +2065,13 @@ impl Checker<'_> {
         }
         // A list that can grow on the heap owns memory, so it's ended with `done`. (D323, D325)
         // trace: D323, D325
+        // A task is joined before its block ends. (D343)
+        // trace: D343
         if memory::is_growable(value_type)
-            || matches!(value_type, Type::GrowableStr | Type::Map { .. })
+            || matches!(
+                value_type,
+                Type::GrowableStr | Type::Map { .. } | Type::Task(_)
+            )
         {
             return true;
         }
@@ -2465,6 +2483,26 @@ impl Checker<'_> {
                     "`my::` reaches a name of yours (D75)",
                 )
             });
+        }
+        // trace: D344, D375
+        if text == "@concur::task" {
+            self.require_limb("concur", path.span)?;
+            let [Fill {
+                label: None,
+                written_type,
+            }] = &fill[..]
+            else {
+                return Err(Report::refused(
+                    written.span,
+                    "`@concur::task` fills in what the task gives back, bare, in `< >`",
+                    "a task's type says what it gives back, as in `@concur::task<i64>` (D344)",
+                ));
+            };
+            return Ok(Type::Task(Box::new(self.resolve_type(written_type)?)));
+        }
+        if let Some(rest) = text.strip_prefix("@concur::") {
+            self.require_limb("concur", path.span)?;
+            return Err(Report::not_built(path.span, format!("`@concur::{rest}`")));
         }
         if text.starts_with('@') {
             return Err(Report::not_designed(
@@ -3198,6 +3236,9 @@ impl Checker<'_> {
                     "a collection's types go in `< >` (D24)",
                 ))
             }
+            // trace: D376, D377
+            "one_thread" => Ok(Type::Struct("std::run::one_thread".to_string())),
+            "runner" => Err(Report::not_built(path.span, "`std::run::runner`")),
             // trace: D330, D333
             "arena" | "allocator" => Err(Report::not_built(path.span, format!("`std::{}`", grouped(rest)))),
             other => Err(Report::not_designed(
