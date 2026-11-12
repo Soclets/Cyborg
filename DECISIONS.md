@@ -1268,6 +1268,8 @@ A `type_set` is a closed list of types that nothing can join later, as in `type_
 
 **D383. Locks are made with `@concur::lock.new`, like atomics.** `let $hits: @concur::lock<i64> = @concur::lock.new(0);` gives a lock holding its starting value (D348), matching `@concur::atomic.new(0)` (D354). A value that owns something goes in with `Give`, as in `@concur::lock.new(Give $list)`, since the lock owns it from then on. A lock holding a `must_Give` value is `must_Give` too, and ends with `@concur::lock.done`, which gives the value back so it can be freed (D325, D331). Oracle claude asked how a lock is made; Claude proposed it; the owner chose: "yea". (Owner, 2026-11-12)
 
+**D384. Spawns onto `std::run::one_thread` take `alloc:` and `stack:`, like event runners.** Since D376, `std::run::one_thread` switches tasks when one has to wait, so each task needs its own stack, the same reason as `os::events` (D351): `@concur::spawn(on: Lend $runner, alloc: Lend $arena, stack: 4 kib) produce(Lend $ch);`. The same checks apply (D352, D380). On bare metal, stacks come from an arena over a fixed block of RAM, and each task's cost is visible. Only `os::threads` takes neither, since the OS gives its threads their stacks. Oracle claude asked; Claude proposed it; the owner chose: "yea". (Owner, 2026-11-12)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude
