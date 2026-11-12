@@ -286,6 +286,11 @@ pub enum Expression {
         array: String,
         position: Position,
     },
+    /// A reading method called on a struct variable, `$r.%name()` (5.6).
+    CallMethod {
+        receiver: String,
+        name: String,
+    },
     /// A struct's field, `$r.f3` (7.3).
     Field {
         variable: String,
@@ -367,6 +372,19 @@ pub struct Procedure {
     pub name: String,
     pub parameters: Vec<(String, ParamKind)>,
     pub body: Vec<Statement>,
+}
+
+/// A method on a struct: reading, `fn rec.%name [$r: rec] -> i32`, giving back a value from its
+/// fields, or changing, `fn rec.%%name [$r: Lent.mut rec, $by: i32] -> void`, changing a field
+/// (5.6).
+#[derive(Clone, Debug)]
+pub struct MethodDecl {
+    pub struct_name: String,
+    pub name: String,
+    /// The changed field, for a `%%` method.
+    pub changes: Option<String>,
+    pub kind: Kind,
+    pub value: Expression,
 }
 
 /// A tagged union, each case with integer data or none (7.5).
@@ -556,6 +574,12 @@ pub enum Statement {
         written: String,
         body: Vec<Statement>,
     },
+    /// A changing method called on a struct variable, `$r.%%name(…);` (5.6).
+    CallChanging {
+        receiver: String,
+        name: String,
+        value: Expression,
+    },
     /// A call to a void function, its arguments with their ownership words (6.1).
     CallProcedure {
         name: String,
@@ -605,6 +629,7 @@ pub struct Function {
 
 #[derive(Clone, Debug)]
 pub struct Program {
+    pub methods: Vec<MethodDecl>,
     /// The room of an arena `main` makes, if it makes one (D330, D386).
     pub arena: Option<i128>,
     pub named: Vec<NamedType>,
@@ -745,6 +770,36 @@ pub fn print(program: &Program) -> String {
         print_block(&mut out, &function.body, 1, style);
         let _ = writeln!(out, "    return {};", style.expression(&function.returned));
         let _ = writeln!(out, "end {word} {}\n", function.name);
+    }
+    for method in &program.methods {
+        let structure = &method.struct_name;
+        match &method.changes {
+            None => {
+                let _ = writeln!(
+                    out,
+                    "fn {structure}.%{} [$r: {structure}] -> {}:",
+                    method.name,
+                    method.kind.word()
+                );
+                let _ = writeln!(out, "    return {};", style.expression(&method.value));
+                let _ = writeln!(out, "end fn {structure}.%{}\n", method.name);
+            }
+            Some(field) => {
+                let _ = writeln!(
+                    out,
+                    "fn {structure}.%%{} [$r: Lent.mut {structure}, $by: {}] -> void:",
+                    method.name,
+                    method.kind.word()
+                );
+                let _ = writeln!(
+                    out,
+                    "    change $r.{field} = {};",
+                    style.expression(&method.value)
+                );
+                out.push_str("    return void;\n");
+                let _ = writeln!(out, "end fn {structure}.%%{}\n", method.name);
+            }
+        }
     }
     for procedure in &program.procedures {
         let parameters: Vec<String> = procedure
@@ -1113,6 +1168,17 @@ fn print_block(out: &mut String, statements: &[Statement], depth: usize, style: 
                 print_block(out, body, depth + 1, style);
                 let _ = writeln!(out, "{indent}end if");
             }
+            Statement::CallChanging {
+                receiver,
+                name,
+                value,
+            } => {
+                let _ = writeln!(
+                    out,
+                    "{indent}${receiver}.%%{name}({});",
+                    style.expression(value)
+                );
+            }
             Statement::CallProcedure { name, arguments } => {
                 let _ = writeln!(out, "{indent}{name}({});", arguments.join(", "));
             }
@@ -1283,6 +1349,7 @@ impl Style {
             }
             Expression::Item { array, position } => item(array, position),
             Expression::Field { variable, field } => format!("${variable}.{field}"),
+            Expression::CallMethod { receiver, name } => format!("${receiver}.%{name}()"),
         }
     }
 
@@ -1302,6 +1369,7 @@ impl Style {
             | Expression::Item { .. }
             | Expression::Method { .. }
             | Expression::Pick { .. }
+            | Expression::CallMethod { .. }
             | Expression::Field { .. } => self.expression(value),
             Expression::Integer(number) if *number >= 0 => self.expression(value),
             Expression::Float(text) if !text.starts_with('-') && !text.starts_with("~-") => {

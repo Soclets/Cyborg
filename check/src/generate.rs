@@ -8,8 +8,8 @@ use std::fmt::Write as _;
 use crate::random::Random;
 use crate::tree::{
     Arguments, Comparison, Expression, FailureDecl, Filling, Function, Handling, Kind, Layout,
-    NamedType, Operator, ParamKind, Position, Procedure, Program, Statement, StructDecl, Type,
-    UnionDecl,
+    MethodDecl, NamedType, Operator, ParamKind, Position, Procedure, Program, Statement,
+    StructDecl, Type, UnionDecl,
 };
 
 /// How big a program gets.
@@ -48,6 +48,7 @@ struct Generator<'random> {
     structs: Vec<StructDecl>,
     unions: Vec<UnionDecl>,
     procedures: Vec<Procedure>,
+    methods: Vec<MethodDecl>,
     /// Every constant's name, since only constants go into another.
     constants: Vec<String>,
     /// Struct variables handed over with `Give`, which are gone from then on.
@@ -75,6 +76,7 @@ pub fn program(seed: u64) -> Program {
         structs: Vec::new(),
         unions: Vec::new(),
         procedures: Vec::new(),
+        methods: Vec::new(),
         constants: Vec::new(),
         given_away: Vec::new(),
         in_main: false,
@@ -88,6 +90,9 @@ pub fn program(seed: u64) -> Program {
     for _ in 0..generator.random.between(0, 2) {
         let declared = generator.struct_decl();
         generator.structs.push(declared);
+    }
+    for index in 0..generator.structs.len() {
+        generator.method_decls(index);
     }
     for _ in 0..generator.random.between(0, 2) {
         let declared = generator.union_decl();
@@ -137,6 +142,7 @@ pub fn program(seed: u64) -> Program {
     }
     let fewer_brackets = generator.random.chance(50);
     Program {
+        methods: generator.methods,
         arena: generator.arena,
         named: generator.named,
         structs: generator.structs,
@@ -356,6 +362,9 @@ impl Generator<'_> {
                 self.union_statement(scope, 2, prints)
             }
             0..=3 if self.random.chance(8) => self.constant(scope),
+            0..=3 if !self.structs.is_empty() && self.random.chance(15) => {
+                self.record_statement(scope)
+            }
             0..=3 if !self.named.is_empty() && self.random.chance(10) => self.named_let(scope),
             0..=3 if self.random.chance(10) => self.text_let(scope),
             0..=3 if self.random.chance(8) => {
@@ -874,6 +883,35 @@ impl Generator<'_> {
         )
     }
 
+    /// A reading method called on a live struct variable, giving this kind (5.6).
+    fn method_call(&mut self, scope: &Scope, kind: Kind) -> Option<Expression> {
+        if self.no_calls || self.pure_only {
+            return None;
+        }
+        let calls: Vec<(String, String)> = scope
+            .records
+            .iter()
+            .filter(|(name, _)| !self.given_away.contains(name))
+            .flat_map(|(variable, index)| {
+                let struct_name = self
+                    .structs
+                    .get(*index)
+                    .map(|declared| declared.name.clone())
+                    .unwrap_or_default();
+                self.methods
+                    .iter()
+                    .filter(move |method| {
+                        method.changes.is_none()
+                            && method.kind == kind
+                            && method.struct_name == struct_name
+                    })
+                    .map(move |method| (variable.clone(), method.name.clone()))
+            })
+            .collect();
+        let (receiver, name) = self.random.pick(&calls)?.clone();
+        Some(Expression::CallMethod { receiver, name })
+    }
+
     /// A `simd` variable of this kind, to read one value from: its lanes added in pairs,
     /// multiplied, or its least or greatest (2.21).
     fn reduction(&mut self, scope: &Scope, kind: Kind) -> Option<Expression> {
@@ -1369,6 +1407,55 @@ impl Generator<'_> {
         }
     }
 
+    /// Methods on a struct: now and then one that reads, giving back a value from its fields,
+    /// and one that changes a field by a value it's given (5.6).
+    fn method_decls(&mut self, index: usize) {
+        let Some(declared) = self.structs.get(index).cloned() else {
+            return;
+        };
+        let mut scope = Scope {
+            variables: Vec::new(),
+            arrays: Vec::new(),
+            lists: Vec::new(),
+            records: Vec::new(),
+            cased: Vec::new(),
+            case_fields: declared
+                .fields
+                .iter()
+                .map(|(field, kind)| ("r".to_string(), field.clone(), *kind))
+                .collect(),
+        };
+        if self.random.chance(50) {
+            let kind = self.integer_kind();
+            let value = self.integer(&scope, kind, 2);
+            let name = self.name("mt");
+            self.methods.push(MethodDecl {
+                struct_name: declared.name.clone(),
+                name,
+                changes: None,
+                kind,
+                value,
+            });
+        }
+        if let (true, Some((field, kind))) = (
+            self.random.chance(40),
+            self.random.pick(&declared.fields).cloned(),
+        ) {
+            scope
+                .variables
+                .push(("by".to_string(), Type::Integer(kind)));
+            let value = self.integer(&scope, kind, 2);
+            let name = self.name("mt");
+            self.methods.push(MethodDecl {
+                struct_name: declared.name,
+                name,
+                changes: Some(field),
+                kind,
+                value,
+            });
+        }
+    }
+
     /// A struct with one to four integer fields, in any of the layouts (7.1).
     fn struct_decl(&mut self) -> StructDecl {
         let name = self.name("rec");
@@ -1416,6 +1503,30 @@ impl Generator<'_> {
             .cloned()
             .collect();
         if let Some((variable, index)) = self.random.pick(&live).cloned() {
+            let struct_name = self
+                .structs
+                .get(index)
+                .map(|declared| declared.name.clone());
+            let changing: Vec<MethodDecl> = self
+                .methods
+                .iter()
+                .filter(|method| {
+                    method.changes.is_some() && Some(&method.struct_name) == struct_name.as_ref()
+                })
+                .cloned()
+                .collect();
+            // A pure function calls only pure ones, and a method isn't one (5.9).
+            if let (true, Some(method)) = (
+                !self.pure_only && self.random.chance(40),
+                self.random.pick(&changing).cloned(),
+            ) {
+                let value = self.literal(method.kind);
+                return Statement::CallChanging {
+                    receiver: variable,
+                    name: method.name,
+                    value,
+                };
+            }
             if self.random.chance(50) {
                 if let Some(declared) = self.structs.get(index).cloned() {
                     if let Some((field, kind)) = self.random.pick(&declared.fields).cloned() {
@@ -1670,6 +1781,11 @@ impl Generator<'_> {
         if roll == 7 {
             if let Some(reduction) = self.reduction(scope, kind) {
                 return reduction;
+            }
+        }
+        if roll == 8 {
+            if let Some(call) = self.method_call(scope, kind) {
+                return call;
             }
         }
         if roll == 6 {

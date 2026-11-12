@@ -21,7 +21,8 @@
 ///   `all_true`; arrays from `[ ]` and `all`, and bounded lists from `[ ]` or `empty`, their items by
 ///   `pos:` and `offset.items:`, read and changed, and `append`; in `main`, lists that grow on the
 ///   heap or in an arena with a random `room:`, from `list.from` or `empty`, ended by `defer`; structs with integer fields in every layout, built with `[ ]`, their fields read
-///   and changed; tagged unions whose cases carry integer data or none, and `match` covering every
+///   and changed, and methods on them that read their fields or change one, called with `.%` and
+///   `.%%`; tagged unions whose cases carry integer data or none, and `match` covering every
 ///   case in any order, an arm naming its case to read its data;
 /// - control: `let`, `change`, `if` and `else`, the test `if $v: T:` on a union's case or an
 ///   integer's bound, `while`, `for` over literal ranges and through
@@ -53,7 +54,7 @@ pub const NOT_GENERATED: &[&str] = &[
     "3.9 chains that change direction, like `$a below $b above $c`",
     "3.10 a type's own operators",
     "4.3 to 4.8 `match`, `for … in Give`, `for` over lists, a range's counter in use, ranges that step past their end, named loops",
-    "5.x contracts that call pure functions, generics, interfaces, methods, `bake`, `Lent.mut` parameters",
+    "5.x contracts that call pure functions, generics, interfaces, methods with labels or on other types, `bake`",
     "6.x stored borrows, `must_Give`, `finish`, `defer`, giving a value away on one path, ownership words on functions that return values",
     "7.x structs holding other structs, lists or borrows, `must_Give` structs, generic structs, handing structs and unions to functions",
     "8.x named sets of failures, a `case` reading a failure's data, arms that `return`, `break` or `fail`, handler narrowings and `*`",
