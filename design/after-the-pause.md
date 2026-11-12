@@ -7,11 +7,6 @@ What's waiting for when the owner unpauses Cyborg, written down on 2026-11-11 so
 - **Limbs, left:** the C interface itself, a limb's API and how it's versioned. What limbs are and can do is D334 to
   D338.
 
-- **Tuning for one machine: PGO and friends.** Profile-guided optimization (build with counters, run real work, rebuild
-  with the profile), BOLT, and specialized copies of hot functions, which are JIT strategies done ahead of time. The
-  owner's direction (2026-11-11): "Repro is general for us, but we will very much support you, if you want to tune best
-  perf for a specific machine". Open: how a profile stays reproducible, like a committed profile file, and which modes
-  and flags turn it on.
 
 ## compiler claude
 

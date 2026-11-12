@@ -12,6 +12,7 @@
 | [10.8](#108-the-curse) | The curse | What `FinalShit` prints |
 | [10.9](#109-benchmarks) | Benchmarks | Three kinds, in every mode |
 | [10.10](#1010-tuning-for-one-workload-profile) | `--profile.use=` | A build tuned by a committed profile |
+| [10.11](#1011-tuning-for-one-machine-machine) | `--machine.cpu=` | A build tuned for one machine's parts |
 
 ## 10.1 The modes
 
@@ -170,7 +171,7 @@ GAIM's favorite
 | Purpose | Isolates one thing, and the result says what | As hard as it can, for that one thing |
 | Normal | How Cyborg does in everyday code | No `inline` code, shields or hand-tuning |
 | `Ceil.source` | How fast Cyborg can possibly go, on any machine of the target | Anything in the code, built for the target's baseline CPU, with no profile |
-| `Ceil.machine` | The same, tuned for one CPU | Plus `--cpu=`, which only holds on that chip |
+| `Ceil.machine` | The same, tuned for one machine | Plus `--machine.cpu=` or `--machine.gpu=` ([10.11](#1011-tuning-for-one-machine-machine)), which only hold on that machine |
 | `Ceil.program` | The same, tuned for one workload | Plus `--profile.use=` ([10.10](#1010-tuning-for-one-workload-profile)), which only holds for that work |
 
 A build with both is `Ceil.machine.program`. There's no bare `Ceil`, so a number always says which kind of fastest it is. Other languages' versions follow the same rules, so a Rust build with `-C target-cpu=native` is `Ceil.machine`.
@@ -193,3 +194,18 @@ A profile is about the program and the work it did, not the machine: which branc
 **Refused:** `--profile.use=` or `--profile.record` with `Literal` or `--Working --opt=O0`.
 
 **From:** D329, D363.
+
+## 10.11 Tuning for one machine: `--machine`
+
+**Rule:** without tuning, a build uses the target's baseline, so it runs on every chip of that target. `--machine.` tunes for one machine's parts, `.cpu` for its processor and `.gpu` for its graphics chip, so it may use instructions only those have. An exact name, like `apple_m5`, is reproducible, the way a board's is ([10.2](#102-no-default)), and `native` means the machine building, which the build report records as the name it meant. A tuned program checks the machine when it starts, and stops with an error naming any missing instruction instead of crashing midway.
+
+```
+okay comp --FinalPerf --machine.cpu=apple_m5 server.cy
+okay comp --FinalPerf --machine.cpu=native --machine.gpu=native render.cy
+```
+
+The base handles `.cpu`. `.gpu` goes to whichever limb gives the program its GPU code, since a limb owns its own code, and other parts, like an AI accelerator, can join as narrowings.
+
+**Refused:** `--machine.gpu=` when no limb gives the program GPU code, and `--machine.` with `Literal`.
+
+**From:** D365.
