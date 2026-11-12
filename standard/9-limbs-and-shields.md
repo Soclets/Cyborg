@@ -300,11 +300,13 @@ Code has no rules lines of its own.
 
 **Rule:** concurrency and parallelism come from the `@concur` limb, so a search for `@concur` finds every place a program goes parallel. Tasks are structured: every task is joined before the block that started it ends, and a task is `must_Give`, so none can leak or outlive its caller. That needs no special block: a task can start in any block, like a function body, a loop or an `if`, since `must_Give` and the borrow checker already make it end in time. Its failure comes back when it's joined.
 
-Every spawn names its runner, as every `append` names its allocator. `@concur::spawn` is a prefix before a call, so a call becomes a task by adding it: the arguments, borrows included, are taken where it's written, and only the body runs later, as a task. `std` has the runner interface and a runner that runs tasks one after another on any machine, bare metal included. `os::threads(count: 8)` gives threads on an operating system, and `count: max` a thread for every core.
+Every spawn names its runner, as every `append` names its allocator. `@concur::spawn` is a prefix before a call, so a call becomes a task by adding it: the arguments, borrows included, are taken where it's written, and only the body runs later, as a task. A task ends with `@concur::task.done(Give $left)`, D331's word for ending every owner, which waits for it, gives back its result, and passes its failure up with `?`. `std` has the runner interface and a runner that runs tasks one after another on any machine, bare metal included. `os::threads(count: 8)` gives threads on an operating system, and `count: max` a thread for every core.
 
 ```
 let $pool: os::threads = os::threads(count: max);
 let $left: @concur::task<i64> = @concur::spawn(on: Lend $pool) sum(Lend $xs.%first_half());
+let $right: @concur::task<i64> = @concur::spawn(on: Lend $pool) sum(Lend $xs.%second_half());
+let $total: i64 = @concur::task.done(Give $left)? + @concur::task.done(Give $right)?;
 ```
 
 Sharing follows the ownership words: `Give` hands a value to one task, `Lend` lets many read, and `Lend.mut` goes to one task only, so data races can't happen. A list is changed in parallel by splitting it into parts that don't overlap. Results come back through each task's own join, so they don't depend on which task finishes first.
@@ -347,4 +349,4 @@ The spellings are placeholders.
 
 **Refused:** a task that isn't joined; a spawn onto an event runner without `stack:`, or with less than the task is known to need; two tasks both given `Lend.mut` of one thing; locking inside a locked block; and the same lock twice in one block.
 
-**From:** D343, D344, D345, D346, D347, D348, D349, D350, D351, D352, D353, D354, D355, D356.
+**From:** D343, D344, D345, D346, D347, D348, D349, D350, D351, D352, D353, D354, D355, D356, D357.
