@@ -110,14 +110,16 @@ A plain number parameter can't be changed, so a function can't quietly change it
 `change` doesn't stand in for an ownership word. A value handed into a name, a `return` or a field takes `Give` or `Copy`. `Lend` needs a type that's a stored borrow ([6.10](#610-stored-borrows)).
 
 ```
-let $k: str = Copy $s;
+let $k: str[len.max: 32 bytes] = Copy $s;
 return Give $t;
 name_tag[text = Give $s]
 ```
 
+A bare `str` is a read-only view, so copying one needs no word, like a plain number: `let $k: str = $s;`.
+
 **Refused:** `change $xs = $xs.append(val: 4)`, and a whole struct or list passed or stored with no word.
 
-**From:** D2, D3.
+**From:** D2, D3, D368.
 
 ## 6.8 `%` and `%%`: lending a receiver
 

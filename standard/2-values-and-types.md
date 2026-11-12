@@ -186,13 +186,13 @@ load(Lend $log);
 
 | Type | Owns memory | Can change |
 |---|---|---|
-| `str` | No, a view | No |
+| `str` | No, a view | No, though a `let mut` view can point at other text |
 | `str[len.max: 32 bytes]` | Yes, inside the value | Yes |
 | `str[len.max: inf bytes]` | Yes, on the heap, `must_Give` | Yes |
 
 **Refused:** `str.utf8`, because it's the default ([1.7](1-programs.md#17-bare-names)), and `""`, with `fix: empty`, because it could look like unfinished work.
 
-**From:** D48, D50, D51, D103, D326, D327, D367.
+**From:** D48, D50, D51, D103, D326, D327, D367, D368.
 
 ## 2.10 Lists
 
