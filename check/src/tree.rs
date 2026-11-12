@@ -57,6 +57,8 @@ pub enum Type {
     Bounded(Kind, i128, i128),
     /// `str`, a view, or `str[len.max: 8 bytes]`, holding that many bytes inside (2.9).
     Text(Option<i128>),
+    /// `simd<i32>[lanes: 4]` (2.21).
+    Simd(Kind, i128),
 }
 
 impl Type {
@@ -69,6 +71,7 @@ impl Type {
             Type::Bounded(kind, low, high) => format!("{}[min: {low}, max: {high}]", kind.word()),
             Type::Text(None) => "str".to_string(),
             Type::Text(Some(bytes)) => format!("str[len.max: {bytes} bytes]"),
+            Type::Simd(kind, lanes) => format!("simd<{}>[lanes: {lanes}]", kind.word()),
         }
     }
 }
@@ -217,6 +220,14 @@ pub enum Expression {
     Float(String),
     /// A string literal's text, `empty` when it has none (2.9).
     Text(String),
+    /// A `simd`'s lanes, `[1, 2, 3, 4]`, or `all 0` (2.21).
+    Lanes(Vec<Expression>),
+    AllLanes(Box<Expression>),
+    /// A `.%` method with no arguments, like `$v.%sum()` or `($a below $b).%any_true()` (2.21).
+    Method {
+        receiver: Box<Expression>,
+        method: &'static str,
+    },
     /// `$v as user_id`, crossing into or out of a named type (2.18).
     AsNamed {
         variable: String,
@@ -1085,12 +1096,21 @@ fn print_block(out: &mut String, statements: &[Statement], depth: usize, style: 
 
 impl Style {
     /// An expression, with a nested operation grouped where it has to be.
+    #[allow(clippy::too_many_lines)] // One arm per kind of expression.
     pub fn expression(self, value: &Expression) -> String {
         match value {
             Expression::Integer(number) => number.to_string(),
             Expression::Float(text) => text.clone(),
             Expression::As { variable, target } => format!("${variable} as {}", target.word()),
             Expression::AsNamed { variable, written } => format!("${variable} as {written}"),
+            Expression::Lanes(lanes) => {
+                let lanes: Vec<String> = lanes.iter().map(|lane| self.expression(lane)).collect();
+                format!("[{}]", lanes.join(", "))
+            }
+            Expression::AllLanes(value) => format!("all {}", self.grouped(value)),
+            Expression::Method { receiver, method } => {
+                format!("{}.%{method}()", self.grouped(receiver))
+            }
             Expression::Text(text) if text.is_empty() => "empty".to_string(),
             Expression::Text(text) => {
                 format!("\"{}\"", text.replace('\\', "\\\\").replace('"', "\\\""))
@@ -1200,6 +1220,7 @@ impl Style {
             | Expression::Bool(_)
             | Expression::Call { .. }
             | Expression::Item { .. }
+            | Expression::Method { .. }
             | Expression::Field { .. } => self.expression(value),
             Expression::Integer(number) if *number >= 0 => self.expression(value),
             Expression::Float(text) if !text.starts_with('-') && !text.starts_with("~-") => {

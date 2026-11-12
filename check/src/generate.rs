@@ -234,7 +234,11 @@ impl Generator<'_> {
                 };
                 let data = carried.as_ref().and_then(|(_, found)| match found {
                     Type::Integer(kind) => Some(*kind),
-                    Type::Bool | Type::Float(_) | Type::Bounded(..) | Type::Text(_) => None,
+                    Type::Bool
+                    | Type::Float(_)
+                    | Type::Bounded(..)
+                    | Type::Text(_)
+                    | Type::Simd(..) => None,
                 });
                 let test = self.expression(&scope, Type::Bool, LIMITS.depth);
                 body.push(Statement::If {
@@ -316,7 +320,11 @@ impl Generator<'_> {
             .filter(|(name, value_type)| {
                 matches!(
                     value_type,
-                    Type::Integer(_) | Type::Float(_) | Type::Bounded(..) | Type::Text(_)
+                    Type::Integer(_)
+                        | Type::Float(_)
+                        | Type::Bounded(..)
+                        | Type::Text(_)
+                        | Type::Simd(..)
                 ) && !name.starts_with('i')
                     && !name.starts_with('x')
                     && !name.starts_with('k')
@@ -331,6 +339,17 @@ impl Generator<'_> {
             0..=3 if self.random.chance(8) => self.constant(scope),
             0..=3 if !self.named.is_empty() && self.random.chance(10) => self.named_let(scope),
             0..=3 if self.random.chance(10) => self.text_let(scope),
+            0..=3 if self.random.chance(10) => {
+                let value_type = Type::Simd(self.integer_kind(), self.random.between(1, 5));
+                let value = self.expression(scope, value_type, LIMITS.depth);
+                let name = self.name("sv");
+                scope.variables.push((name.clone(), value_type));
+                Statement::Let {
+                    name,
+                    value_type,
+                    value,
+                }
+            }
             0..=3 if self.random.chance(8) => {
                 let kind = self.integer_kind();
                 let test = self.expression(scope, Type::Bool, LIMITS.depth);
@@ -678,6 +697,70 @@ impl Generator<'_> {
             shapes.push("sign".to_string());
         }
         shapes.join(", ")
+    }
+
+    /// A `simd` value for a `let` or `change`: its lanes, `all` of one value, a variable, or
+    /// maths lane by lane on two variables of the type, since `[ ]` and `all` take their type only
+    /// from where they go, and never one `simd` and one value, which isn't decided (2.21, 12.2).
+    fn lanes(&mut self, scope: &Scope, kind: Kind, lanes: i128, depth: usize) -> Expression {
+        let value_type = Type::Simd(kind, lanes);
+        if depth > 0 && self.random.chance(50) {
+            if let (Some(left), Some(right)) = (
+                self.variable_of(scope, value_type),
+                self.variable_of(scope, value_type),
+            ) {
+                let operator = *self
+                    .random
+                    .pick(&[
+                        Operator::Add,
+                        Operator::PlusWrap,
+                        Operator::MinusWrap,
+                        Operator::TimesWrap,
+                        Operator::PlusSaturate,
+                        Operator::AndBit,
+                        Operator::XorBit,
+                    ])
+                    .unwrap_or(&Operator::PlusWrap);
+                return Expression::Binary {
+                    operator,
+                    left: Box::new(left),
+                    right: Box::new(right),
+                };
+            }
+        }
+        if self.random.chance(20) {
+            if let Some(variable) = self.variable_of(scope, value_type) {
+                return variable;
+            }
+        }
+        if self.random.chance(20) {
+            return Expression::AllLanes(Box::new(self.literal(kind)));
+        }
+        Expression::Lanes(
+            (0..lanes)
+                .map(|_| self.integer(scope, kind, depth.min(1)))
+                .collect(),
+        )
+    }
+
+    /// A `simd` variable of this kind, to read one value from: its lanes added in pairs,
+    /// multiplied, or its least or greatest (2.21).
+    fn reduction(&mut self, scope: &Scope, kind: Kind) -> Option<Expression> {
+        let found: Vec<String> = scope
+            .variables
+            .iter()
+            .filter(|(_, found)| matches!(found, Type::Simd(lane, _) if *lane == kind))
+            .map(|(name, _)| name.clone())
+            .collect();
+        let variable = self.random.pick(&found)?.clone();
+        let method = *self
+            .random
+            .pick(&["sum", "product", "min_val", "max_val"])
+            .unwrap_or(&"sum");
+        Some(Expression::Method {
+            receiver: Box::new(Expression::Variable(variable)),
+            method,
+        })
     }
 
     /// A string variable: a view, from a literal or another view, or one holding up to some
@@ -1360,6 +1443,7 @@ impl Generator<'_> {
             // Into a bounded integer, anything not a literal is checked while running (2.5).
             Type::Integer(kind) | Type::Bounded(kind, ..) => self.integer(scope, kind, depth),
             Type::Text(bytes) => self.text(scope, bytes),
+            Type::Simd(kind, lanes) => self.lanes(scope, kind, lanes, depth),
             Type::Float(wide) => self.float(scope, wide, depth),
         }
     }
@@ -1414,6 +1498,11 @@ impl Generator<'_> {
             if let Some((array, len)) = self.random.pick(&arrays).cloned() {
                 let position = self.position(scope, len);
                 return Expression::Item { array, position };
+            }
+        }
+        if roll == 7 {
+            if let Some(reduction) = self.reduction(scope, kind) {
+                return reduction;
             }
         }
         if roll == 6 {
@@ -1668,6 +1757,38 @@ impl Generator<'_> {
         if roll == 5 {
             if let Some(chain) = self.chain(scope, depth) {
                 return chain;
+            }
+        }
+        // Comparing two `simd` values gives a `bool` for each lane, read with `.%any_true()` or
+        // `.%all_true()` (2.21).
+        if roll == 6 {
+            let found: Vec<(String, Type)> = scope
+                .variables
+                .iter()
+                .filter(|(_, found)| matches!(found, Type::Simd(..)))
+                .cloned()
+                .collect();
+            if let Some((name, Type::Simd(kind, lanes))) = self.random.pick(&found).cloned() {
+                let comparison = *self
+                    .random
+                    .pick(&Comparison::ALL)
+                    .unwrap_or(&Comparison::Equal);
+                let right = self
+                    .variable_of(scope, Type::Simd(kind, lanes))
+                    .unwrap_or(Expression::Variable(name.clone()));
+                let method = if self.random.chance(50) {
+                    "any_true"
+                } else {
+                    "all_true"
+                };
+                return Expression::Method {
+                    receiver: Box::new(Expression::Compare {
+                        comparison,
+                        left: Box::new(Expression::Variable(name)),
+                        right: Box::new(right),
+                    }),
+                    method,
+                };
             }
         }
         // A comparison needs a typed side: a variable of some number type.
