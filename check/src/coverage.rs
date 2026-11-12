@@ -70,14 +70,17 @@
 ///   `union.@csup::untagged` declared in a shield, built in another with one integer field and
 ///   `rest = all 0`, and read back as any field;
 /// - recursion: `rsum`, which calls itself, and `reven` and `rodd`, which call each other;
-/// - printing: `fmt_print` to an unbuffered writer, one to three values per print, with plain,
-///   numbered or named holes, shapes for width, alignment, bases, `zeros`, `sign`, `places:` and
-///   `form: science`, and escaped braces and `{tab}` in the text.
+/// - printing: `fmt_print` and `fmt_print.stored` to an unbuffered writer, to stderr, or to a
+///   buffered one that's flushed now and then and finished with `os::done`; one to three values
+///   per print, with plain, numbered or named holes, named ones reading struct fields too;
+///   shapes for width in every unit but points, alignment, bases, `zeros`, `sign`, `places:` and
+///   `form: science`; and escapes, braces, `{tab}` and `{newln}` in the text; heap strings made
+///   by `str.from` from text or a number, ended by a deferred `str.done`.
 pub const NOT_GENERATED: &[&str] = &[
-    "1.13 printing: `.stored`, named holes reading fields, widths in units other than `cols`, other escapes, buffered writers, stderr",
+    "1.13 undecided: what a point is, for a width (12.2); `places:` or `form:` with `.stored`; a width with no `align:`",
     "2.3 `const` calling `fn.pure.baked` functions, float constants, constants whose maths overflows",
     "2.6, 2.7 `.fast` and `.ieee` floats, bounded floats, `exponent` literals, `fmt_print.stored`, floats in structs, arrays and calls",
-    "2.9 heap strings, escapes in string literals, comparing strings, strings as values in prints, fields and calls",
+    "2.9 still to do: strings in struct fields and function calls; undecided: escapes in string literals and how literals work (12.2), and `==` on `str` (12)",
     "2.10 undecided: a full list's failure named in an `otherwise` arm (12.7)",
     "2.12 undecided: putting, getting and going through a map's items",
     "2.14 `as` between other types, which isn't decided (12.3), `as` failures handled",

@@ -57,6 +57,25 @@ struct FloatUnits {
     decibels: &'static str,
 }
 
+/// What goes between a print's holes: plain text, braces, a tab, and every escape (1.13).
+const TEXT_PIECES: [&str; 15] = [
+    "",
+    " ",
+    ": ",
+    "\\{",
+    "\\}",
+    "{tab}",
+    "x=",
+    "\\\\",
+    "\\\"",
+    "\\'",
+    "\\r",
+    "\\0",
+    "\\x41",
+    "\\u00e9",
+    "\\U0001F642",
+];
+
 /// `std`'s radians, which every program can use, as it can degrees (2.16).
 const RADIANS: &str = "std::units::angle.radians";
 
@@ -80,6 +99,10 @@ struct Generator<'random> {
     failure_family: Option<FailureFamily>,
     /// What the function being made returns, for an `otherwise` arm that returns (8.6).
     returns: Option<Type>,
+    /// Whether `main` has `$err` and `$buf` too (1.13).
+    writers: bool,
+    /// Whether the print being made is `.stored`, whose floats take no shapes (1.13).
+    stored_print: bool,
     /// The kinds whose list-view functions some call uses, so they're declared (2.10).
     views: Vec<Kind>,
     /// Whether the function being made has a heap of its own, so its lists can grow (2.10).
@@ -138,6 +161,8 @@ pub fn program(seed: u64) -> Program {
         degrees: "std::units::angle.degrees",
         views: Vec::new(),
         has_heap: false,
+        writers: false,
+        stored_print: false,
         uses: Vec::new(),
         float_units: None,
         units: Vec::new(),
@@ -165,6 +190,7 @@ pub fn program(seed: u64) -> Program {
     generator.untagged_union();
     generator.recursion = generator.random.chance(40);
     generator.failure_family();
+    generator.writers = generator.random.chance(30);
     // A unit from a kit is shortened with `use`, keeping its matching name (1.11, 2.16).
     if generator.random.chance(40) {
         generator.uses.push((
@@ -233,6 +259,8 @@ pub fn program(seed: u64) -> Program {
         {
             // A value in a unit prints with its unit (1.13).
             main.push(Statement::Format {
+                writer: "out",
+                stored: false,
                 text: "{unit}".to_string(),
                 values: vec![Expression::Variable(name)],
             });
@@ -248,6 +276,7 @@ pub fn program(seed: u64) -> Program {
         failure_family: generator.failure_family,
         uses: generator.uses,
         views: generator.views,
+        writers: generator.writers,
         methods: generator.methods,
         arena: generator.arena,
         named: generator.named,
@@ -614,6 +643,20 @@ impl Generator<'_> {
                     value: self.integer_kind(),
                 }
             }
+            6 if prints && self.writers && self.random.chance(15) => Statement::Flush,
+            // A string on the heap, from text or a number (2.9).
+            6 if prints && self.random.chance(15) => {
+                let from = if self.random.chance(50) {
+                    self.text(scope, None)
+                } else {
+                    let kind = self.integer_kind();
+                    self.integer(scope, kind, 2)
+                };
+                Statement::HeapText {
+                    name: self.name("hs"),
+                    from,
+                }
+            }
             6 if !scope.lists.is_empty() && self.random.chance(40) => self
                 .list_view(scope)
                 .unwrap_or_else(|| self.list_statement(scope)),
@@ -893,6 +936,24 @@ impl Generator<'_> {
             .cloned()
             .collect();
         let style = self.random.between(0, 2);
+        // `.stored` prints floats exactly, and whether `places:` or `form:` go with it isn't
+        // decided, so its floats take no shapes (1.13).
+        let stored = self.random.chance(10);
+        self.stored_print = stored;
+        // A named hole can read a struct's field, as in `{$r.celsius}` (1.13).
+        let mut printable = printable;
+        if style == 2 {
+            for (record, index) in &scope.records {
+                if self.given_away.contains(record) {
+                    continue;
+                }
+                if let Some(declared) = self.structs.get(*index) {
+                    for (field, kind) in &declared.fields {
+                        printable.push((format!("{record}.{field}"), Type::Integer(*kind)));
+                    }
+                }
+            }
+        }
         let mut chosen = Vec::new();
         for _ in 0..self.random.between(1, 3) {
             if let Some(found) = self.random.pick(&printable).cloned() {
@@ -921,12 +982,7 @@ impl Generator<'_> {
             let Some((name, value_type)) = chosen.get(*index).cloned() else {
                 continue;
             };
-            text.push_str(
-                self.random
-                    .pick(&["", " ", ": ", "\\{", "\\}", "{tab}", "x="])
-                    .copied()
-                    .unwrap_or(""),
-            );
+            text.push_str(self.random.pick(&TEXT_PIECES).copied().unwrap_or(""));
             let shapes = self.shapes(value_type);
             match style {
                 // Numbered holes take no shapes here, since whether they can isn't shown.
@@ -951,7 +1007,31 @@ impl Generator<'_> {
                 .map(|(name, _)| Expression::Variable(name))
                 .collect();
         }
-        Statement::Format { text, values }
+        // Most go to `$out`, and in a `main` with more writers, some to `$err` or `$buf` (1.13).
+        let writer = if self.writers && self.in_main {
+            *self
+                .random
+                .pick(&["out", "out", "err", "buf"])
+                .unwrap_or(&"out")
+        } else {
+            "out"
+        };
+        self.stored_print = false;
+        Statement::Format {
+            writer,
+            stored,
+            text,
+            values,
+        }
+    }
+
+    /// A width's unit: columns, East Asian columns, graphemes or bytes, which all agree on what
+    /// the generator prints. What a point is isn't decided (1.13, 12.2).
+    fn width_unit(&mut self) -> &'static str {
+        self.random
+            .pick(&["cols", "cols", "cols.east_asian", "graphemes", "bytes"])
+            .copied()
+            .unwrap_or("cols")
     }
 
     /// Shapes that apply to a value of this type: a width with its unit and an alignment, a
@@ -973,10 +1053,11 @@ impl Generator<'_> {
                         .pick(&["left", "right", "center"])
                         .unwrap_or(&"left");
                     shapes.push(format!("align: {align}"));
-                    shapes.push(format!("width: {width} cols"));
+                    shapes.push(format!("width: {width} {}", self.width_unit()));
                 }
                 return shapes.join(", ");
             }
+            Type::Float(_) if self.stored_print => {}
             Type::Float(_) => match self.random.between(0, 3) {
                 0 => shapes.push(format!("places: {}", self.random.between(0, 4))),
                 1 => {
@@ -992,7 +1073,7 @@ impl Generator<'_> {
                         .pick(&["left", "right", "center"])
                         .unwrap_or(&"left");
                     shapes.push(format!("align: {align}"));
-                    shapes.push(format!("width: {width} cols"));
+                    shapes.push(format!("width: {width} {}", self.width_unit()));
                 }
             },
             _ => match self.random.between(0, 3) {
@@ -1004,7 +1085,7 @@ impl Generator<'_> {
                     shapes.push(format!("base: {base}"));
                     if self.random.chance(50) {
                         shapes.push("zeros".to_string());
-                        shapes.push(format!("width: {width} cols"));
+                        shapes.push(format!("width: {width} {}", self.width_unit()));
                     }
                 }
                 1 => {
@@ -1013,13 +1094,13 @@ impl Generator<'_> {
                         .pick(&["left", "right", "center"])
                         .unwrap_or(&"left");
                     shapes.push(format!("align: {align}"));
-                    shapes.push(format!("width: {width} cols"));
+                    shapes.push(format!("width: {width} {}", self.width_unit()));
                 }
                 2 => {}
                 _ => {
                     if self.random.chance(50) {
                         shapes.push("zeros".to_string());
-                        shapes.push(format!("width: {width} cols"));
+                        shapes.push(format!("width: {width} {}", self.width_unit()));
                     }
                 }
             },

@@ -602,6 +602,12 @@ pub enum Statement {
         /// How a growable list grows, as `exact` or `by 4 items`, when it says (2.10).
         grow: Option<String>,
     },
+    /// A string on the heap, `str.from(…, alloc: Lend $heap)`, from a literal or a number, ended
+    /// by a deferred `str.done` and printed through a named hole (2.9, 2.14).
+    HeapText {
+        name: String,
+        from: Expression,
+    },
     /// `let $heap: os::heap = os::heap();`, so a function's lists can grow (2.10).
     Heap,
     /// A call made for what it does, `vbump_i32(Lend.mut $l);` (2.10).
@@ -632,9 +638,15 @@ pub enum Statement {
     Print(Expression),
     /// A print with its own format text and values (1.13).
     Format {
+        /// Where it goes: `out`, or `main`'s `err` and `buf` when it has them (1.13).
+        writer: &'static str,
+        /// `fmt_print.stored`, which prints every float exactly as it's stored (1.13).
+        stored: bool,
         text: String,
         values: Vec<Expression>,
     },
+    /// `$buf.%%flush();`, which pushes a buffered writer's output now (1.13).
+    Flush,
     If {
         test: Expression,
         then: Vec<Statement>,
@@ -878,6 +890,9 @@ pub struct Function {
 #[derive(Clone, Debug)]
 pub struct Program {
     pub unit_families: Vec<UnitFamily>,
+    /// Whether `main` also has `$err`, unbuffered to stderr, and `$buf`, buffered to stdout and
+    /// finished by a deferred `os::done` (1.13).
+    pub writers: bool,
     /// The kinds that have `vsum_…`, reading a list view, and `vbump_…`, changing one (2.10).
     pub views: Vec<Kind>,
     /// `use` lines, each a path and its short name (1.11).
@@ -1411,6 +1426,13 @@ pub fn print(program: &Program) -> String {
     out.push_str("    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();\n");
     out.push_str("    let $runner: std::run::one_thread = std::run::one_thread();\n");
     out.push_str("    let $heap: os::heap = os::heap();\n");
+    if program.writers {
+        out.push_str("    let mut $err: os::stderr.unbuffered = os::stderr.unbuffered();\n");
+        out.push_str(
+            "    let mut $buf: os::stdout.buffered = os::stdout.buffered(room: 1024 bytes);\n",
+        );
+        out.push_str("    defer os::done(Give $buf);\n");
+    }
     if let Some(room) = program.arena {
         let _ = writeln!(
             out,
@@ -1528,6 +1550,21 @@ fn print_block(out: &mut String, statements: &[Statement], depth: usize, style: 
                     style.expression(value)
                 );
             }
+            Statement::HeapText { name, from } => {
+                let _ = writeln!(
+                    out,
+                    "{indent}let mut ${name}: str[len.max: inf bytes] = str.from({}, alloc: Lend $heap);",
+                    style.expression(from)
+                );
+                let _ = writeln!(
+                    out,
+                    "{indent}defer str.done(Give ${name}, alloc: Lend $heap);"
+                );
+                let _ = writeln!(
+                    out,
+                    "{indent}std::io::fmt_print(Lend.mut $out, \"{{${name}}}{{newln}}\");"
+                );
+            }
             Statement::Heap => {
                 let _ = writeln!(out, "{indent}let $heap: os::heap = os::heap();");
             }
@@ -1596,16 +1633,25 @@ fn print_block(out: &mut String, statements: &[Statement], depth: usize, style: 
                     style.expression(value)
                 );
             }
-            Statement::Format { text, values } => {
+            Statement::Format {
+                writer,
+                stored,
+                text,
+                values,
+            } => {
                 let mut shown = String::new();
                 for value in values {
                     let _ = write!(shown, ", {}", style.expression(value));
                 }
                 let values = shown;
+                let stored = if *stored { ".stored" } else { "" };
                 let _ = writeln!(
                     out,
-                    "{indent}std::io::fmt_print(Lend.mut $out, \"{text}{{newln}}\"{values});"
+                    "{indent}std::io::fmt_print{stored}(Lend.mut ${writer}, \"{text}{{newln}}\"{values});"
                 );
+            }
+            Statement::Flush => {
+                let _ = writeln!(out, "{indent}$buf.%%flush();");
             }
             Statement::If {
                 test,
