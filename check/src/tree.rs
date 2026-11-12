@@ -475,6 +475,14 @@ pub enum Statement {
         union_name: String,
         arms: Vec<(String, Option<String>, Vec<Statement>)>,
     },
+    /// A call started as a task on `main`'s one-thread runner, then ended, its result going
+    /// into a new variable (D356, D357, D376).
+    Task {
+        task: String,
+        name: String,
+        kind: Kind,
+        call: Expression,
+    },
     /// A call to a void function, its arguments with their ownership words (6.1).
     CallProcedure {
         name: String,
@@ -541,7 +549,7 @@ pub fn print(program: &Program) -> String {
     let style = Style {
         fewer_brackets: program.fewer_brackets,
     };
-    let mut out = String::from("import std;\nimport os;\n\n");
+    let mut out = String::from("import std;\nimport os;\nimport @concur;\n\n");
     for declared in &program.unions {
         let _ = writeln!(out, "union.tagged {}:", declared.name);
         for (case, fields) in &declared.cases {
@@ -658,6 +666,8 @@ pub fn print(program: &Program) -> String {
     }
     out.push_str("fn.main [none] -> void:\n");
     out.push_str("    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();\n");
+    out.push_str("    let $runner: std::run::one_thread = std::run::one_thread();\n");
+    out.push_str("    let $heap: os::heap = os::heap();\n");
     print_block(&mut out, &program.main, 1, style);
     out.push_str("    return void;\nend fn.main\n");
     out
@@ -908,6 +918,23 @@ fn print_block(out: &mut String, statements: &[Statement], depth: usize, style: 
                     print_block(out, body, depth + 2, style);
                 }
                 let _ = writeln!(out, "{indent}end match");
+            }
+            Statement::Task {
+                task,
+                name,
+                kind,
+                call,
+            } => {
+                let kind = kind.word();
+                let _ = writeln!(
+                    out,
+                    "{indent}let ${task}: @concur::task<{kind}> = @concur::spawn(on: Lend $runner, alloc: Lend $heap, stack: 16 kib) {};",
+                    style.expression(call)
+                );
+                let _ = writeln!(
+                    out,
+                    "{indent}let mut ${name}: {kind} = @concur::task.done(Give ${task});"
+                );
             }
             Statement::CallProcedure { name, arguments } => {
                 let _ = writeln!(out, "{indent}{name}({});", arguments.join(", "));

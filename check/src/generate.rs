@@ -78,6 +78,12 @@ pub fn program(seed: u64) -> Program {
         let declared = generator.union_decl();
         generator.unions.push(declared);
     }
+    // Declarations work in any order, so functions are printed shuffled, and a call can reach
+    // one declared later (D287).
+    for at in (1..generator.functions.len()).rev() {
+        let other = usize::try_from(generator.random.between(0, at as i128)).unwrap_or(0);
+        generator.functions.swap(at, other);
+    }
     for _ in 0..generator.random.between(0, 2) {
         let procedure = generator.procedure();
         generator.procedures.push(procedure);
@@ -103,7 +109,8 @@ pub fn program(seed: u64) -> Program {
             value_type: Type::Integer(_) | Type::Float(_) | Type::Bounded(..),
             ..
         }
-        | Statement::LetOtherwise { name, .. } = statement
+        | Statement::LetOtherwise { name, .. }
+        | Statement::Task { name, .. } = statement
         {
             main.push(Statement::Print(Expression::Variable(name)));
         }
@@ -333,6 +340,9 @@ impl Generator<'_> {
                     else_value,
                 }
             }
+            0..=3 if prints && self.random.chance(10) => self
+                .task(scope)
+                .unwrap_or_else(|| self.list_statement(scope)),
             4 | 5 if prints && !self.procedures.is_empty() && self.random.chance(50) => self
                 .call_procedure(scope)
                 .unwrap_or_else(|| self.list_statement(scope)),
@@ -768,6 +778,26 @@ impl Generator<'_> {
             left: Box::new(left),
             right: Box::new(right),
         }
+    }
+
+    /// A call to an integer function started as a task in `main`, then ended with
+    /// `task.done`, whose failure, if any, stops the program (D356, D357, 8.9).
+    fn task(&mut self, scope: &mut Scope) -> Option<Statement> {
+        let kind = self.integer_kind();
+        let (function, arguments, _) = self.plain_call(scope, kind, LIMITS.depth)?;
+        let task = self.name("task");
+        let name = self.name("v");
+        scope.variables.push((name.clone(), Type::Integer(kind)));
+        Some(Statement::Task {
+            task,
+            name,
+            kind,
+            call: Expression::Call {
+                function,
+                arguments,
+                handling: Handling::Crash,
+            },
+        })
     }
 
     /// A void function: integers lent to change, which its body changes, plain integers, and

@@ -21,7 +21,7 @@ mod tree;
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 
-const MANIFEST: &str = "name generated\nver 2026y-11m-12d same\ndialect original 2026y-11m-12d\n\nneed std 2026y-11m-12d\nneed os 2026y-11m-12d\n";
+const MANIFEST: &str = "name generated\nver 2026y-11m-12d same\ndialect original 2026y-11m-12d\n\nneed std 2026y-11m-12d\nneed os 2026y-11m-12d\nneed concur 2026y-11m-12d\n";
 
 const USAGE: &str = "usage:
   check generate <seed> <count> <folder>
