@@ -244,7 +244,12 @@ pub fn program(seed: u64) -> Program {
     for statement in main.clone() {
         if let Statement::Let {
             name,
-            value_type: Type::Integer(_) | Type::Float(_) | Type::Bounded(..),
+            value_type:
+                Type::Integer(_)
+                | Type::Float(_)
+                | Type::Bounded(..)
+                | Type::OtherFloat(..)
+                | Type::BoundedFloat(..),
             ..
         }
         | Statement::LetOtherwise { name, .. }
@@ -460,7 +465,9 @@ impl Generator<'_> {
                     | Type::Simd(..)
                     | Type::Secret(_)
                     | Type::Unit(..)
-                    | Type::FloatUnit(_) => None,
+                    | Type::FloatUnit(_)
+                    | Type::OtherFloat(..)
+                    | Type::BoundedFloat(..) => None,
                 });
                 let test = self.expression(&scope, Type::Bool, LIMITS.depth);
                 body.push(Statement::If {
@@ -646,11 +653,22 @@ impl Generator<'_> {
             6 if prints && self.writers && self.random.chance(15) => Statement::Flush,
             // A string on the heap, from text or a number (2.9).
             6 if prints && self.random.chance(15) => {
-                let from = if self.random.chance(50) {
-                    self.text(scope, None)
-                } else {
-                    let kind = self.integer_kind();
-                    self.integer(scope, kind, 2)
+                // A number comes from a variable, whose type says what it is.
+                let numbers: Vec<String> = scope
+                    .variables
+                    .iter()
+                    .filter(|(_, found)| matches!(found, Type::Integer(_)))
+                    .map(|(name, _)| name.clone())
+                    .collect();
+                // `empty` doesn't say what it's empty of here, so the text has something in it.
+                let from = match self.random.pick(&numbers).cloned() {
+                    Some(name) if self.random.chance(50) => Expression::Variable(name),
+                    _ => match self.text(scope, None) {
+                        Expression::Text(text) if text.is_empty() => {
+                            Expression::Text("o".to_string())
+                        }
+                        other => other,
+                    },
                 };
                 Statement::HeapText {
                     name: self.name("hs"),
@@ -713,12 +731,46 @@ impl Generator<'_> {
                 }
                 let value_type = match self.random.between(0, 99) {
                     0..=19 => Type::Bool,
-                    20..=35 => Type::Float(self.random.chance(50)),
+                    20..=29 => Type::Float(self.random.chance(50)),
+                    30..=32 => Type::OtherFloat(
+                        self.random.chance(50),
+                        if self.random.chance(50) {
+                            "ieee"
+                        } else {
+                            "fast"
+                        },
+                    ),
+                    33..=35 => {
+                        let low = self.random.between(-50, 10);
+                        Type::BoundedFloat(
+                            self.random.chance(50),
+                            low,
+                            low + self.random.between(1, 100),
+                        )
+                    }
                     36..=47 => self.bounded_type(),
                     _ => self.integer_type(),
                 };
+                let ieee: Vec<String> = match value_type {
+                    Type::Float(wide) => scope
+                        .variables
+                        .iter()
+                        .filter(|(_, found)| *found == Type::OtherFloat(wide, "ieee"))
+                        .map(|(name, _)| name.clone())
+                        .collect(),
+                    _ => Vec::new(),
+                };
                 let value = match value_type {
                     Type::Bounded(kind, low, high) => self.bounded_value(scope, kind, low, high),
+                    // A `.ieee` float crosses into `.stable` with `as`, which fails on NaN or
+                    // infinity (2.6).
+                    Type::Float(_) if !ieee.is_empty() && self.random.chance(50) => {
+                        Expression::Convert {
+                            variable: self.random.pick(&ieee).cloned().unwrap_or_default(),
+                            narrowing: "",
+                            target: value_type,
+                        }
+                    }
                     _ => self.expression(scope, value_type, LIMITS.depth),
                 };
                 let name = self.name("v");
@@ -3489,6 +3541,67 @@ impl Generator<'_> {
             Type::Unit(kind, unit, _) => self.unit_value(scope, kind, unit, depth),
             Type::FloatUnit(unit) => self.float_unit_value(scope, unit, depth),
             Type::Float(wide) => self.float(scope, wide, depth),
+            Type::OtherFloat(wide, rules) => self.other_float(scope, wide, rules, depth),
+            // Into a bounded float, a literal that fits, or a value checked while running (2.6).
+            Type::BoundedFloat(wide, low, high) => {
+                if self.random.chance(40) {
+                    if let Some(variable) = self.variable_of(scope, Type::Float(wide)) {
+                        return variable;
+                    }
+                }
+                // Strictly inside, so a quarter either way still fits.
+                if high - low < 2 {
+                    return Expression::Float(format!("{low}.0"));
+                }
+                let whole = self.random.between(low + 1, high - 1);
+                let quarter = *self.random.pick(&["0", "25", "5", "75"]).unwrap_or(&"5");
+                Expression::Float(format!("{whole}.{quarter}"))
+            }
+        }
+    }
+
+    /// A `.ieee` or `.fast` float: a literal, a variable of the type, or maths on two, where a
+    /// `.ieee` one now and then divides by zero, making infinity or NaN (2.6).
+    fn other_float(
+        &mut self,
+        scope: &Scope,
+        wide: bool,
+        rules: &'static str,
+        depth: usize,
+    ) -> Expression {
+        let value_type = Type::OtherFloat(wide, rules);
+        let roll = self.random.between(0, 9);
+        if depth == 0 || roll < 4 {
+            if self.random.chance(50) {
+                if let Some(variable) = self.variable_of(scope, value_type) {
+                    return variable;
+                }
+            }
+            return self.float_literal();
+        }
+        if roll == 4 && rules == "ieee" {
+            let top = self.other_float(scope, wide, rules, depth - 1);
+            return Expression::Binary {
+                operator: Operator::Divide,
+                left: Box::new(top),
+                right: Box::new(Expression::Float("0.0".to_string())),
+            };
+        }
+        let operator = *self
+            .random
+            .pick(&[
+                Operator::Add,
+                Operator::Subtract,
+                Operator::Multiply,
+                Operator::Divide,
+            ])
+            .unwrap_or(&Operator::Add);
+        let left = self.other_float(scope, wide, rules, depth - 1);
+        let right = self.other_float(scope, wide, rules, depth - 1);
+        Expression::Binary {
+            operator,
+            left: Box::new(left),
+            right: Box::new(right),
         }
     }
 
@@ -3681,6 +3794,22 @@ impl Generator<'_> {
             let inner = self.float(scope, wide, depth - 1);
             return Expression::Negate(Box::new(inner));
         }
+        // A `.ieee` float crosses into `.stable` with `as`, which fails on NaN or infinity (2.6).
+        if roll == 6 || self.random.chance(15) {
+            let found: Vec<String> = scope
+                .variables
+                .iter()
+                .filter(|(_, found)| *found == Type::OtherFloat(wide, "ieee"))
+                .map(|(name, _)| name.clone())
+                .collect();
+            if let Some(variable) = self.random.pick(&found).cloned() {
+                return Expression::Convert {
+                    variable,
+                    narrowing: "",
+                    target: Type::Float(wide),
+                };
+            }
+        }
         // `std::math::sin` takes an angle in radians (2.16).
         if roll == 5 && wide {
             let angles: Vec<String> = scope
@@ -3718,6 +3847,20 @@ impl Generator<'_> {
     /// A float literal: quarters are exact in both widths and take no mark, and tenths that
     /// aren't halves can't be held exactly, so they say `~` (2.7).
     fn float_literal(&mut self) -> Expression {
+        // Now and then with an exponent, exact or marked `~`, never negative, which isn't decided
+        // (2.7, D165, 12.2).
+        if self.random.chance(8) {
+            let written = *self
+                .random
+                .pick(&[
+                    "exponent 1.25e2",
+                    "exponent 7.75e3",
+                    "exponent -3.5e1",
+                    "exponent ~6.02214076e23",
+                ])
+                .unwrap_or(&"exponent 1.25e2");
+            return Expression::Float(written.to_string());
+        }
         let whole = self.random.between(-20, 20);
         let sign = if whole < 0 { "-" } else { "" };
         let whole = whole.abs();

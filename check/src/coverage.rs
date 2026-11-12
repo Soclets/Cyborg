@@ -6,7 +6,9 @@
 /// - values: `i32`, `i64`, `u8`, `u32` and `u64`; strings, as views from literals or other
 ///   views, and holding up to some bytes from literals that fit, counting a two-byte `é`, or from
 ///   a number with `as`, which fails when its text doesn't fit; bounded integers from literals that fit or
-///   checked values, as variables, parameters and struct fields; `f32.stable` and `f64.stable` from exact literals and ones marked `~`;
+///   checked values, as variables, parameters and struct fields; `f32.stable` and `f64.stable` from exact literals, ones marked `~`, and
+///   `exponent` ones; `.ieee` floats, dividing by zero now and then, crossing into `.stable`
+///   with `as`; `.fast` floats; bounded floats;
 ///   `const` from literals and other constants; `type.alias` names used as their integer, and
 ///   `type.new` names, alone or in a `fam.type.new` family, crossing in and out with `as`; `decl` and `decl mut` with an `assign` straight after, in both arms of an `if`, or in every arm of a `match`;
 /// - maths: `+`, `-`, `x`, the `.wrap` and `.saturate` words, `div` and `mod` with `.trunc` and
@@ -79,7 +81,7 @@
 pub const NOT_GENERATED: &[&str] = &[
     "1.13 undecided: what a point is, for a width (12.2); `places:` or `form:` with `.stored`; a width with no `align:`",
     "2.3 `const` calling `fn.pure.baked` functions, float constants, constants whose maths overflows",
-    "2.6, 2.7 `.fast` and `.ieee` floats, bounded floats, `exponent` literals, `fmt_print.stored`, floats in structs, arrays and calls",
+    "2.6, 2.7 still to do: floats in structs, arrays and calls; undecided: a negative exponent (12.2)",
     "2.9 still to do: strings in struct fields and function calls; undecided: escapes in string literals and how literals work (12.2), and `==` on `str` (12)",
     "2.10 undecided: a full list's failure named in an `otherwise` arm (12.7)",
     "2.12 undecided: putting, getting and going through a map's items",

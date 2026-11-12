@@ -64,6 +64,11 @@ pub enum Type {
     Float(bool),
     /// `i32[min: 0, max: 100]`: still the integer, holding only that range (2.5).
     Bounded(Kind, i128, i128),
+    /// `f64.ieee`, allowing NaN and infinity, or `f64.fast`, allowing merged maths, `f64` when
+    /// true (2.6).
+    OtherFloat(bool, &'static str),
+    /// `f64.stable[min: -40.0, max: 125.0]`, a float with whole-number bounds (2.6).
+    BoundedFloat(bool, i128, i128),
     /// `str`, a view, or `str[len.max: 8 bytes]`, holding that many bytes inside (2.9).
     Text(Option<i128>),
     /// `simd<i32>[lanes: 4]` (2.21).
@@ -85,6 +90,13 @@ impl Type {
             Type::Float(true) => "f64.stable".to_string(),
             Type::Float(false) => "f32.stable".to_string(),
             Type::Bounded(kind, low, high) => format!("{}[min: {low}, max: {high}]", kind.word()),
+            Type::OtherFloat(wide, rules) => {
+                format!("{}.{rules}", if wide { "f64" } else { "f32" })
+            }
+            Type::BoundedFloat(wide, low, high) => format!(
+                "{}.stable[min: {low}.0, max: {high}.0]",
+                if wide { "f64" } else { "f32" }
+            ),
             Type::Text(None) => "str".to_string(),
             Type::Text(Some(bytes)) => format!("str[len.max: {bytes} bytes]"),
             Type::Simd(kind, lanes) => format!("simd<{}>[lanes: {lanes}]", kind.word()),
