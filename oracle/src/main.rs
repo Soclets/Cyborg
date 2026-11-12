@@ -25,12 +25,16 @@ const STACK_BYTES: usize = 2 * 1024 * 1024 * 1024;
 
 /// Builds a program, or gives every error building found, in the order they appear. `needs` is
 /// what the manifest lists, when there is one. (D207, D183)
-fn build(text: &str, needs: Option<&[String]>) -> Result<ir::Code, Vec<Report>> {
+fn build(
+    text: &str,
+    needs: Option<&[String]>,
+    target: Option<&'static str>,
+) -> Result<ir::Code, Vec<Report>> {
     let (program, mut errors) = syntax::parse(text);
     let Some(program) = program else {
         return Err(check::in_order(errors));
     };
-    let code = match check::check(text, &program, needs) {
+    let code = match check::check(text, &program, needs, target) {
         Ok(code) if errors.is_empty() => code,
         Ok(_) => return Err(check::in_order(errors)),
         Err(more) => {
@@ -58,7 +62,7 @@ const TARGETS: &[(&str, u64)] = &[
 fn run_and_report(
     source: &Source,
     manifest: Option<&Source>,
-    pointer_bytes: Option<u64>,
+    (target, pointer_bytes): (Option<&'static str>, Option<u64>),
 ) -> ExitCode {
     let mut shown: Vec<String> = Vec::new();
     let needs = if let Some(manifest) = manifest {
@@ -75,7 +79,7 @@ fn run_and_report(
         None
     };
     let needs = needs.as_deref();
-    let errors = match build(&source.text, needs) {
+    let errors = match build(&source.text, needs, target) {
         Ok(code) if shown.is_empty() => match run::run(&code, pointer_bytes) {
             Ok(()) => return ExitCode::SUCCESS,
             Err(report) => vec![*report],
@@ -83,7 +87,7 @@ fn run_and_report(
         Ok(_) => Vec::new(),
         // trace: D207
         Err(errors) => cascade::mark_cascades(&source.text, errors, |text| {
-            build(text, needs).err().unwrap_or_default()
+            build(text, needs, target).err().unwrap_or_default()
         }),
     };
     shown.extend(errors.iter().map(|report| source.render(report)));
@@ -123,10 +127,10 @@ fn main() -> ExitCode {
         return ExitCode::from(2);
     };
     let path = path.clone();
-    let pointer_bytes = match &target {
-        None => None,
+    let (target, pointer_bytes) = match &target {
+        None => (None, None),
         Some(name) => {
-            let Some((_, bytes)) = TARGETS.iter().find(|(known, _)| known == name) else {
+            let Some((known, bytes)) = TARGETS.iter().find(|(known, _)| known == name) else {
                 let known: Vec<&str> = TARGETS.iter().map(|(known, _)| *known).collect();
                 eprintln!(
                     "oracle: `{name}` isn't a target the oracle knows; it knows {}",
@@ -134,7 +138,7 @@ fn main() -> ExitCode {
                 );
                 return ExitCode::from(2);
             };
-            Some(*bytes)
+            (Some(*known), Some(*bytes))
         }
     };
     // trace: D137
@@ -160,7 +164,7 @@ fn main() -> ExitCode {
     let source = Source { name: path, text };
     let worker = std::thread::Builder::new()
         .stack_size(STACK_BYTES)
-        .spawn(move || run_and_report(&source, manifest.as_ref(), pointer_bytes));
+        .spawn(move || run_and_report(&source, manifest.as_ref(), (target, pointer_bytes)));
     let joined = match worker {
         Ok(handle) => handle.join(),
         Err(error) => {

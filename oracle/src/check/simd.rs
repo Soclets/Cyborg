@@ -85,10 +85,11 @@ impl Checker<'_> {
         }
         if let ExpressionKind::Path(path) = &entry.value.kind {
             if path.text == "max" {
-                return Err(Report::not_built(
-                    entry.value.span,
-                    "`lanes: max`, which is the target's own width, and the oracle builds for no target",
-                ));
+                let lanes = self.max_lanes(&item, entry.value.span)?;
+                return Ok(Type::Simd {
+                    item: Box::new(item),
+                    lanes,
+                });
             }
         }
         let lanes = super::expression::literal_integer(&entry.value)
@@ -105,6 +106,42 @@ impl Checker<'_> {
             item: Box::new(item),
             lanes,
         })
+    }
+
+    /// `lanes: max`: the most lanes one instruction works on for the target. An `aarch64` target
+    /// has 128-bit vectors, so 4 `i32`s on the Mac, and the Uno R4 `WiFi`'s Cortex-M4 takes one
+    /// 32-bit lane. Which width an `x86_64` target starts from, and what the Cortex-M4's packed
+    /// byte instructions count as, aren't said. (D292, D389)
+    /// trace: D292, D389
+    fn max_lanes(&self, item: &Type, span: Span) -> Outcome<usize> {
+        let bits = match item {
+            Type::Integer { kind, .. } => kind.bits(),
+            Type::Float { kind, .. } => match kind {
+                crate::types::FloatKind::F32 => 32,
+                crate::types::FloatKind::F64 => 64,
+            },
+            _ => {
+                return Err(Report::not_designed(
+                    span,
+                    format!("how many lanes `max` is for `{item}`"),
+                    "",
+                ))
+            }
+        };
+        match self.target {
+            None => Err(Report::refused(
+                span,
+                "how many lanes `max` is depends on the target, which this run doesn't name",
+                "`lanes: max` is the most one instruction works on for the target being built, so a program using it names its target with `--target=` (D292, D389)",
+            )),
+            Some("macos_aarch64" | "linux_aarch64") => Ok(usize::try_from(128 / bits).unwrap_or(1)),
+            Some("arduino_uno_r4_wifi") if bits >= 32 => Ok(1),
+            Some(other) => Err(Report::not_designed(
+                span,
+                format!("how many lanes `max` is for `{item}` on `{other}`"),
+                "",
+            )),
+        }
     }
 
     /// An operator on two `simd` values works on every lane, and gives a `simd` of the same

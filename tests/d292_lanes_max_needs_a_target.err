@@ -1,0 +1,5 @@
+refused: d292_lanes_max_needs_a_target.cy:4:30, line 4 column 30
+ 4 |     let $d: simd<i32>[lanes: max] = all 0;
+   |                              ^^^
+ what: how many lanes `max` is depends on the target, which this run doesn't name
+ why:  `lanes: max` is the most one instruction works on for the target being built, so a program using it names its target with `--target=` (D292, D389)

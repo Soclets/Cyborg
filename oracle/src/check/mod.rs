@@ -335,6 +335,9 @@ impl FunctionContext {
 
 pub struct Checker<'a> {
     source: &'a str,
+    /// The target named with `--target=`, when a run names one, for what depends on it, like
+    /// `lanes: max`. (D292, D389)
+    target: Option<&'static str>,
     imports: HashSet<String>,
     limb_imports: HashSet<String>,
     aliases: HashMap<String, String>,
@@ -393,9 +396,11 @@ pub fn check(
     source: &str,
     program: &Program,
     needs: Option<&[String]>,
+    target: Option<&'static str>,
 ) -> Result<Code, Vec<Report>> {
     let mut checker = Checker {
         source,
+        target,
         imports: HashSet::new(),
         limb_imports: HashSet::new(),
         aliases: HashMap::new(),
