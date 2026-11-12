@@ -133,6 +133,21 @@ impl Operator {
     pub fn is_shift(self) -> bool {
         matches!(self, Operator::ShiftLeft | Operator::ShiftRight)
     }
+
+    /// Its level in 3.9's table, tightest first, for the operators the table lists. Bit
+    /// operators, shifts and the `.wrap` and `.saturate` words aren't in it, so they're
+    /// always grouped.
+    pub fn level(self) -> Option<u8> {
+        match self {
+            Operator::Multiply
+            | Operator::DivideTrunc
+            | Operator::DivideFloor
+            | Operator::RemainderTrunc
+            | Operator::RemainderFloor => Some(3),
+            Operator::Add | Operator::Subtract => Some(4),
+            _ => None,
+        }
+    }
 }
 
 /// The comparisons, from 3.5.
@@ -191,6 +206,12 @@ pub enum Expression {
     },
     Not(Box<Expression>),
     Negate(Box<Expression>),
+    /// A comparison chain, `1 below $x below 5`, which means every comparison holds and reads
+    /// each value once (3.9).
+    Chain {
+        values: Vec<Expression>,
+        comparisons: Vec<Comparison>,
+    },
     Call {
         function: String,
         arguments: Vec<Expression>,
@@ -220,6 +241,19 @@ pub enum Statement {
         rounds: i128,
         body: Vec<Statement>,
     },
+    /// `for $counter in range[from: …, to: …, step_by: …]:` (4.4, 4.5), its counter unused,
+    /// since what type a literal range's counter is isn't stated.
+    For {
+        counter: String,
+        from: i128,
+        end: i128,
+        /// `to:` when true, `before:` when false.
+        inclusive: bool,
+        step: Option<i128>,
+        body: Vec<Statement>,
+    },
+    /// `break;`, which stops the innermost loop (4.8).
+    Break,
 }
 
 #[derive(Clone, Debug)]
@@ -235,11 +269,17 @@ pub struct Function {
 pub struct Program {
     pub functions: Vec<Function>,
     pub main: Vec<Statement>,
+    /// Whether the printer leaves out `( )` where 3.9's table already gives the order.
+    pub fewer_brackets: bool,
 }
 
-/// The one printer: spacing as 1.14 says, one space around a binary operator, nothing inside
-/// brackets, and every nested binary grouped with `( )`, so no precedence reading is relied on.
+/// The one printer: spacing as 1.14 says, one space around a binary operator and nothing inside
+/// brackets. Every nested operation is grouped with `( )`, or with `fewer_brackets`, only where
+/// 3.9's table doesn't already give the order, which tests the table itself.
 pub fn print(program: &Program) -> String {
+    let style = Style {
+        fewer_brackets: program.fewer_brackets,
+    };
     let mut out = String::from("import std;\nimport os;\n\n");
     for function in &program.functions {
         let parameters: Vec<String> = function
@@ -258,18 +298,24 @@ pub fn print(program: &Program) -> String {
             function.name,
             function.result.word()
         );
-        print_block(&mut out, &function.body, 1);
-        let _ = writeln!(out, "    return {};", expression(&function.returned));
+        print_block(&mut out, &function.body, 1, style);
+        let _ = writeln!(out, "    return {};", style.expression(&function.returned));
         let _ = writeln!(out, "end fn {}\n", function.name);
     }
     out.push_str("fn.main [none] -> void:\n");
     out.push_str("    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();\n");
-    print_block(&mut out, &program.main, 1);
+    print_block(&mut out, &program.main, 1, style);
     out.push_str("    return void;\nend fn.main\n");
     out
 }
 
-fn print_block(out: &mut String, statements: &[Statement], depth: usize) {
+/// How the printer groups.
+#[derive(Clone, Copy)]
+pub struct Style {
+    pub fewer_brackets: bool,
+}
+
+fn print_block(out: &mut String, statements: &[Statement], depth: usize, style: Style) {
     let indent = "    ".repeat(depth);
     for statement in statements {
         match statement {
@@ -282,17 +328,17 @@ fn print_block(out: &mut String, statements: &[Statement], depth: usize) {
                     out,
                     "{indent}let mut ${name}: {} = {};",
                     value_type.word(),
-                    expression(value)
+                    style.expression(value)
                 );
             }
             Statement::Change { name, value } => {
-                let _ = writeln!(out, "{indent}change ${name} = {};", expression(value));
+                let _ = writeln!(out, "{indent}change ${name} = {};", style.expression(value));
             }
             Statement::Print(value) => {
                 let _ = writeln!(
                     out,
                     "{indent}std::io::fmt_print(Lend.mut $out, \"{{}}{{newln}}\", {});",
-                    expression(value)
+                    style.expression(value)
                 );
             }
             Statement::If {
@@ -300,11 +346,11 @@ fn print_block(out: &mut String, statements: &[Statement], depth: usize) {
                 then,
                 otherwise,
             } => {
-                let _ = writeln!(out, "{indent}if {}:", expression(test));
-                print_block(out, then, depth + 1);
+                let _ = writeln!(out, "{indent}if {}:", style.expression(test));
+                print_block(out, then, depth + 1, style);
                 if !otherwise.is_empty() {
                     let _ = writeln!(out, "{indent}else:");
-                    print_block(out, otherwise, depth + 1);
+                    print_block(out, otherwise, depth + 1, style);
                 }
                 let _ = writeln!(out, "{indent}end if");
             }
@@ -315,55 +361,136 @@ fn print_block(out: &mut String, statements: &[Statement], depth: usize) {
             } => {
                 let _ = writeln!(out, "{indent}let mut ${counter}: i32 = 0;");
                 let _ = writeln!(out, "{indent}while ${counter} below {rounds}:");
-                print_block(out, body, depth + 1);
+                // The count goes up first, so a `break` or nothing else can skip it.
                 let _ = writeln!(out, "{indent}    change ${counter} = ${counter} + 1;");
+                print_block(out, body, depth + 1, style);
                 let _ = writeln!(out, "{indent}end while");
+            }
+            Statement::For {
+                counter,
+                from,
+                end,
+                inclusive,
+                step,
+                body,
+            } => {
+                let label = if *inclusive { "to" } else { "before" };
+                let step = step.map_or_else(String::new, |step| format!(", step_by: {step}"));
+                let _ = writeln!(
+                    out,
+                    "{indent}for ${counter} in range[from: {from}, {label}: {end}{step}]:"
+                );
+                print_block(out, body, depth + 1, style);
+                let _ = writeln!(out, "{indent}end for");
+            }
+            Statement::Break => {
+                let _ = writeln!(out, "{indent}break;");
             }
         }
     }
 }
 
-/// An expression, with a nested operation grouped.
-pub fn expression(value: &Expression) -> String {
-    match value {
-        Expression::Integer(number) => number.to_string(),
-        Expression::Bool(truth) => truth.to_string(),
-        Expression::Variable(name) => format!("${name}"),
-        Expression::Binary {
-            operator,
-            left,
-            right,
-        } => format!("{} {} {}", grouped(left), operator.word(), grouped(right)),
-        Expression::Compare {
-            comparison,
-            left,
-            right,
-        } => format!("{} {} {}", grouped(left), comparison.word(), grouped(right)),
-        Expression::Logic { and, left, right } => format!(
-            "{} {} {}",
-            grouped(left),
-            if *and { "and" } else { "or" },
-            grouped(right)
-        ),
-        Expression::Not(inner) => format!("not {}", grouped(inner)),
-        Expression::Negate(inner) => format!("-{}", grouped(inner)),
-        Expression::Call {
-            function,
-            arguments,
-        } => {
-            let arguments: Vec<String> = arguments.iter().map(expression).collect();
-            format!("{function}({})", arguments.join(", "))
+impl Style {
+    /// An expression, with a nested operation grouped where it has to be.
+    pub fn expression(self, value: &Expression) -> String {
+        match value {
+            Expression::Integer(number) => number.to_string(),
+            Expression::Bool(truth) => truth.to_string(),
+            Expression::Variable(name) => format!("${name}"),
+            Expression::Binary {
+                operator,
+                left,
+                right,
+            } => {
+                let (left, right) = match operator.level() {
+                    Some(level) if self.fewer_brackets => {
+                        (self.side(left, level, false), self.side(right, level, true))
+                    }
+                    _ => (self.grouped(left), self.grouped(right)),
+                };
+                format!("{left} {} {right}", operator.word())
+            }
+            Expression::Compare {
+                comparison,
+                left,
+                right,
+            } => {
+                let (left, right) = if self.fewer_brackets {
+                    (self.side(left, 5, false), self.side(right, 5, true))
+                } else {
+                    (self.grouped(left), self.grouped(right))
+                };
+                format!("{left} {} {right}", comparison.word())
+            }
+            Expression::Chain {
+                values,
+                comparisons,
+            } => {
+                let mut text = self.side(&values[0], 5, true);
+                for (comparison, value) in comparisons.iter().zip(&values[1..]) {
+                    let _ = write!(text, " {} {}", comparison.word(), self.side(value, 5, true));
+                }
+                text
+            }
+            Expression::Logic { and, left, right } => {
+                let level = if *and { 7 } else { 8 };
+                let (left, right) = if self.fewer_brackets {
+                    (self.side(left, level, false), self.side(right, level, true))
+                } else {
+                    (self.grouped(left), self.grouped(right))
+                };
+                format!("{left} {} {right}", if *and { "and" } else { "or" })
+            }
+            Expression::Not(inner) => {
+                let inner = if self.fewer_brackets {
+                    self.side(inner, 6, false)
+                } else {
+                    self.grouped(inner)
+                };
+                format!("not {inner}")
+            }
+            Expression::Negate(inner) => format!("-{}", self.grouped(inner)),
+            Expression::Call {
+                function,
+                arguments,
+            } => {
+                let arguments: Vec<String> = arguments
+                    .iter()
+                    .map(|argument| self.expression(argument))
+                    .collect();
+                format!("{function}({})", arguments.join(", "))
+            }
         }
     }
-}
 
-/// A part of a larger expression: a single value as it is, anything else in `( )`.
-fn grouped(value: &Expression) -> String {
-    match value {
-        Expression::Variable(_) | Expression::Bool(_) | Expression::Call { .. } => {
-            expression(value)
+    /// A single value as it is, anything else in `( )`.
+    fn grouped(self, value: &Expression) -> String {
+        match value {
+            Expression::Variable(_) | Expression::Bool(_) | Expression::Call { .. } => {
+                self.expression(value)
+            }
+            Expression::Integer(number) if *number >= 0 => self.expression(value),
+            _ => format!("({})", self.expression(value)),
         }
-        Expression::Integer(number) if *number >= 0 => expression(value),
-        _ => format!("({})", expression(value)),
+    }
+
+    /// One side of an operation at `level`: left bare when it binds tighter, or as tight on the
+    /// left, since operations at one level go left to right (3.9), and grouped otherwise.
+    fn side(self, value: &Expression, level: u8, right: bool) -> String {
+        let inner = match value {
+            Expression::Binary { operator, .. } => operator.level(),
+            Expression::Compare { .. } => Some(5),
+            Expression::Not(_) => Some(6),
+            Expression::Logic { and, .. } => Some(if *and { 7 } else { 8 }),
+            // A chain is grouped wherever it sits, so it's never read as a longer chain.
+            Expression::Chain { .. } => None,
+            _ => return self.grouped(value),
+        };
+        match inner {
+            Some(inner) if inner < level || (inner == level && !right && level != 5) => {
+                self.expression(value)
+            }
+            _ => format!("({})", self.expression(value)),
+        }
     }
 }

@@ -5,8 +5,9 @@
 /// Generated today: `i32`, `i64`, `u8`, `u32` and `u64` values and variables; `+`, `-`, `x`, the
 /// `.wrap` and `.saturate` words, `div` and `mod` with `.trunc` and `.floor`, the `.bit`
 /// operators, and `shl` and `shr` on unsigned types; comparisons; `and`, `or` and `not`;
-/// `let`, `change`, `if` and `else`, `while`; functions with integer parameters and results;
-/// printing a variable with `fmt_print` to an unbuffered writer.
+/// precedence with and without `( )`, as 3.9's table orders it; comparison chains; `let`,
+/// `change`, `if` and `else`, `while`, `for` over literal ranges, `break`; functions with
+/// integer parameters and results; printing a variable with `fmt_print` to an unbuffered writer.
 pub const NOT_GENERATED: &[&str] = &[
     "1.13 printing: shapes, named holes, `.stored`, more than one value, buffered writers, stderr",
     "2.3 `const`",
@@ -22,10 +23,10 @@ pub const NOT_GENERATED: &[&str] = &[
     "2.21 `simd`, chunks and shuffles",
     "2.22 secrets",
     "3.6 `and.both` and `or.both`",
-    "3.9 comparison chains",
+    "3.9 chains that change direction, like `$a below $b above $c`",
     "3.10 a type's own operators",
     "4.2 the test, `if $n: T:`",
-    "4.3 to 4.8 `match`, `for` over collections and ranges, `forever`, `break`, named loops",
+    "4.3 to 4.8 `match`, `for` over collections, a range's counter in use, ranges that step past their end, `forever`, named loops",
     "5.x labels, defaults, `fn.pure`, contracts, generics, interfaces, methods, `bake`",
     "6.x ownership words, `Lend.mut` parameters, stored borrows, `must_Give`, `finish`, `defer`",
     "7.x structs, unions and `match` on them",

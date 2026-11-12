@@ -61,6 +61,12 @@ fn cuts(program: &Program) -> Vec<Program> {
         smaller.main = main;
         found.push(smaller);
     }
+    // With every operation grouped, a difference that came from reading 3.9's table goes.
+    if program.fewer_brackets {
+        let mut grouped = program.clone();
+        grouped.fewer_brackets = false;
+        found.push(grouped);
+    }
     found
 }
 
@@ -118,6 +124,25 @@ fn block_cuts(block: &[Statement]) -> Vec<Vec<Statement>> {
                     replace(vec![Statement::While {
                         counter: counter.clone(),
                         rounds: *rounds,
+                        body: smaller,
+                    }]);
+                }
+            }
+            Statement::For {
+                counter,
+                from,
+                end,
+                inclusive,
+                step,
+                body,
+            } => {
+                for smaller in block_cuts(body) {
+                    replace(vec![Statement::For {
+                        counter: counter.clone(),
+                        from: *from,
+                        end: *end,
+                        inclusive: *inclusive,
+                        step: *step,
                         body: smaller,
                     }]);
                 }
