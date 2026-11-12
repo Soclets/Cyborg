@@ -1051,10 +1051,12 @@ fn lex_number(source: &str, position: &mut usize) -> Outcome<Lexeme> {
                 .chars()
                 .take_while(|c| is_word_part(*c))
                 .collect();
+            // Hex and binary literals are listed as undecided; any other form is unasked.
+            let listed = number == "0" && (extra.starts_with('x') || extra.starts_with('b'));
             return Err(Report::not_designed(
                 Span::new(start, end + extra.len()),
                 format!("the number form `{number}{extra}`"),
-                "",
+                if listed { "12.2" } else { "" },
             ));
         }
     }
@@ -2535,7 +2537,7 @@ impl Parser {
                 return Err(Report::not_designed(
                     self.span(),
                     "a second narrowing on `struct`, and which order they go in",
-                    "",
+                    "12.2",
                 ));
             }
             closer = format!("struct.{}", narrowing.text);

@@ -126,7 +126,7 @@ impl Checker<'_> {
                 format!(
                     "an operator between `{left_type}` and `{right_type}`, a `simd` and one value"
                 ),
-                "",
+                "12.2",
             ));
         };
         if lanes != right_lanes || left_item != right_item {
@@ -177,7 +177,7 @@ impl Checker<'_> {
             return Err(Report::not_designed(
                 span,
                 format!("comparing `{left_type}` and `{right_type}`, a `simd` and one value"),
-                "",
+                "12.2",
             ));
         };
         if lanes != right_lanes || left_item != right_item {

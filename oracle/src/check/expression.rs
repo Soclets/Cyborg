@@ -3932,13 +3932,13 @@ impl Checker<'_> {
             // trace: D301
             if matches!(left_type, Type::Simd { .. }) || matches!(right_type, Type::Simd { .. }) {
                 let left_node = left_node.ok_or_else(|| {
-                    Report::not_designed(span, "a chain of comparisons on `simd` values", "")
+                    Report::not_designed(span, "a chain of comparisons on `simd` values", "12.2")
                 })?;
                 if rest.len() != 1 {
                     return Err(Report::not_designed(
                         span,
                         "a chain of comparisons on `simd` values",
-                        "",
+                        "12.2",
                     ));
                 }
                 return Self::simd_compare(
