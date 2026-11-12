@@ -33,7 +33,7 @@ import os;
 use std::io::fmt_print as fmt_print;
 
 fn.main [none] -> void:
-    let mut $out: os::stdout.buffered = os::stdout.buffered(size: 1024 bytes);
+    let mut $out: os::stdout.buffered = os::stdout.buffered(room: 1024 bytes);
     fmt_print(Lend.mut $out, "Hello, World!{newln}");
     os::done(Give $out);
     return void;
@@ -249,7 +249,7 @@ end comment why_sorted
 
 ## 1.13 Printing: `std::io::fmt_print`
 
-**Rule:** `std` has one print, `std::io::fmt_print`, and it's always a format print. Its first argument is the writer, where the output goes. On a terminal, that's `os::stdout` or `os::stderr`, which must say whether they're `.buffered(size: 1024 bytes)`, writing in chunks, or `.unbuffered()`, writing each print straight away. A buffered writer is flushed with `$out.%%flush();` to push output now, and finished with `os::done(Give $out);`, without which the program doesn't compile. On bare metal, the writer is the board's port. Plain text is a format with no holes. A newline is `{newln}` and a tab is `{tab}`, inside the text.
+**Rule:** `std` has one print, `std::io::fmt_print`, and it's always a format print. Its first argument is the writer, where the output goes. On a terminal, that's `os::stdout` or `os::stderr`, which must say whether they're `.buffered(room: 1024 bytes)`, writing in chunks, or `.unbuffered()`, writing each print straight away. A buffered writer is flushed with `$out.%%flush();` to push output now, and finished with `os::done(Give $out);`, without which the program doesn't compile. On bare metal, the writer is the board's port. Plain text is a format with no holes. A newline is `{newln}` and a tab is `{tab}`, inside the text.
 
 ```
 std::io::fmt_print(Lend.mut $out, "hi{newln}");

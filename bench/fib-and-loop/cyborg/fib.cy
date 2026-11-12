@@ -10,7 +10,7 @@ fn fib [$n: i64] -> i64:
 end fn fib
 
 fn.main [none] -> void:
-    let mut $out: os::stdout.buffered = os::stdout.buffered(size: 1024 bytes);
+    let mut $out: os::stdout.buffered = os::stdout.buffered(room: 1024 bytes);
     let $r: i64 = fib(35);
     fmt_print(Lend.mut $out, "{$r}{newln}");
     os::done(Give $out);

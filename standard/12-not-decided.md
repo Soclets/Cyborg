@@ -88,7 +88,7 @@ Waiting on the owner, most needed first. Each is `NotDesignedYet` unless it says
 - The test on a value already known to be that type, like `if $n: bool:` on a `bool`. Claude suggested refusing it.
 
 
-- Allocation sizes (D370): how a growable string and a map grow, and how much an arena itself takes for its bookkeeping.
+- Allocation sizes (D370): how a growable string and a map grow.
 
 - SIMD: an operator or comparison between a `simd` and one plain value, and comparison chains on `simd` values.
 - Two narrowings on one struct, like `struct.packed.must_Give`, and their order.
