@@ -285,6 +285,8 @@ pub enum Expression {
     },
     Bool(bool),
     Variable(String),
+    /// A variable lent to a call, `Lend $r` (6.4).
+    Lend(String),
     Binary {
         operator: Operator,
         left: Box<Expression>,
@@ -447,6 +449,21 @@ pub struct StructDecl {
     pub name: String,
     pub layout: Layout,
     pub fields: Vec<(String, Kind)>,
+}
+
+/// What a program declares for generics: the interfaces `equatable`, `ordered` and `addable`, the
+/// `type_set` `whole` of `i32` and `i64`, which types say they satisfy which, a struct with its
+/// own `below`, `==` and `+`, a generic struct `gbox`, and generic functions (3.10, 5.8).
+#[derive(Clone, Debug)]
+pub struct Generics {
+    /// Integer types that say they satisfy `ordered`.
+    pub ordered: Vec<Kind>,
+    /// A struct with its own operators, which satisfies `ordered` and `addable`.
+    pub structure: Option<StructDecl>,
+    /// Which `satisfies` line, counting from 0, is written as `.|.` instead.
+    pub easter: usize,
+    /// Whether `glarger`, with a unit parameter, is declared.
+    pub unit_parameter: bool,
 }
 
 /// A failure a function lists, `bad3` or `bad4[got: i32]` (8.1).
@@ -614,6 +631,20 @@ pub enum Statement {
         target: String,
         secret: String,
     },
+    /// A struct made by a value: a generic call or the struct's own operator (3.10, 5.8).
+    LetStructValue {
+        name: String,
+        struct_name: String,
+        value: Expression,
+    },
+    /// A generic struct holding an integer, `gbox<i32>[held = …]`, read back into a variable
+    /// (5.8).
+    GenericBox {
+        name: String,
+        kind: Kind,
+        value: Expression,
+        read_into: String,
+    },
     /// One aarch64 instruction in a shield, in an `on.target aarch64:` branch, with `else:`
     /// working out the same value for every other chip, so the two have to agree (9.4).
     Assembly {
@@ -707,6 +738,7 @@ pub struct Function {
 #[derive(Clone, Debug)]
 pub struct Program {
     pub unit_families: Vec<UnitFamily>,
+    pub generics: Option<Generics>,
     pub methods: Vec<MethodDecl>,
     /// The room of an arena `main` makes, if it makes one (D330, D386).
     pub arena: Option<i128>,
@@ -718,6 +750,71 @@ pub struct Program {
     pub main: Vec<Statement>,
     /// Whether the printer leaves out `( )` where 3.9's table already gives the order.
     pub fewer_brackets: bool,
+}
+
+/// The interfaces, the type set, the operators and `satisfies` lines, `gbox`, and the generic
+/// functions, as 5.8 and 3.10 spell them.
+fn print_generics(out: &mut String, generics: &Generics) {
+    out.push_str(
+        "interface equatable<?self>:\n    op == [$a: ?self, $b: ?self] -> bool;\nend interface equatable\n\n",
+    );
+    out.push_str("interface ordered<?self>:\n    includes equatable;\n    op below [$a: ?self, $b: ?self] -> bool;\n    law if $a below $b and $b below $c then $a below $c;\nend interface ordered\n\n");
+    out.push_str(
+        "interface addable<?self>:\n    op + [$a: ?self, $b: ?self] -> ?self;\nend interface addable\n\n",
+    );
+    out.push_str("type_set whole:\n    i32;\n    i64;\nend type_set whole\n\n");
+    let mut lines: Vec<(String, &str)> = generics
+        .ordered
+        .iter()
+        .map(|kind| (kind.word().to_string(), "ordered"))
+        .collect();
+    lines.push(("i32".to_string(), "addable"));
+    lines.push(("i64".to_string(), "addable"));
+    if let Some(structure) = &generics.structure {
+        let name = &structure.name;
+        let first = structure
+            .fields
+            .first()
+            .map_or("", |(field, _)| field.as_str());
+        let _ = writeln!(
+            out,
+            "op below [$a: Lent {name}, $b: Lent {name}] -> bool:\n    return $a.{first} below $b.{first};\nend op below\n"
+        );
+        let _ = writeln!(
+            out,
+            "op == [$a: Lent {name}, $b: Lent {name}] -> bool:\n    return $a.{first} == $b.{first};\nend op ==\n"
+        );
+        let sums: Vec<String> = structure
+            .fields
+            .iter()
+            .map(|(field, _)| format!("{field} = $a.{field} plus.wrap $b.{field}"))
+            .collect();
+        let _ = writeln!(
+            out,
+            "op + [$a: Lent {name}, $b: Lent {name}] -> {name}:\n    return {name}[{}];\nend op +\n",
+            sums.join(", ")
+        );
+        lines.push((name.clone(), "ordered"));
+        lines.push((name.clone(), "addable"));
+    }
+    for (at, (type_name, interface)) in lines.iter().enumerate() {
+        // `.|.` means exactly what `satisfies` does (5.8).
+        let word = if at == generics.easter {
+            ".|."
+        } else {
+            "satisfies"
+        };
+        let _ = writeln!(out, "{type_name} {word} {interface};");
+    }
+    out.push_str("\nstruct gbox<?item: any.type>:\n    held: ?item;\nend struct gbox\n\n");
+    out.push_str("fn gmax<?item: ordered> [$a: Lent ?item, $b: Lent ?item] -> ?item:\n    if $a above $b:\n        return Copy $a;\n    end if\n    return Copy $b;\nend fn gmax\n\n");
+    out.push_str("fn gsame<?item: equatable> [$a: Lent ?item, $b: Lent ?item] -> bool:\n    return $a == $b;\nend fn gsame\n\n");
+    out.push_str("fn gsum<?item: whole and addable> [$a: ?item, $b: ?item] -> ?item:\n    return $a + $b;\nend fn gsum\n\n");
+    out.push_str("fn gtwice<?item: addable> [$a: Lent ?item] -> ?item:\n    return $a + $a;\nend fn gtwice\n\n");
+    out.push_str("fn gkeep<?item: any.type> [$a: Given ?item] -> ?item:\n    let $b: ?item = Give $a;\n    return Give $b;\nend fn gkeep\n\n");
+    if generics.unit_parameter {
+        out.push_str("fn glarger<?u: any.unit> [$a: f64.stable[unit: ?u], $b: f64.stable[unit: ?u]] -> f64.stable[unit: ?u]:\n    if $a above $b:\n        return $a;\n    end if\n    return $b;\nend fn glarger\n\n");
+    }
 }
 
 /// The one printer: spacing as 1.14 says, one space around a binary operator and nothing inside
@@ -786,6 +883,9 @@ pub fn print(program: &Program) -> String {
             let _ = writeln!(out, "    {field}: {};", kind.word());
         }
         let _ = writeln!(out, "end {} {}\n", declared.layout.word(), declared.name);
+    }
+    if let Some(generics) = &program.generics {
+        print_generics(&mut out, generics);
     }
     for function in &program.functions {
         let parameters: Vec<String> = function
@@ -1246,6 +1346,31 @@ fn print_block(out: &mut String, statements: &[Statement], depth: usize, style: 
                 let _ = writeln!(out, "{indent}    change ${target} = ${secret}.%reveal();");
                 let _ = writeln!(out, "{indent}end shield {shield}");
             }
+            Statement::LetStructValue {
+                name,
+                struct_name,
+                value,
+            } => {
+                let _ = writeln!(
+                    out,
+                    "{indent}let mut ${name}: {struct_name} = {};",
+                    style.expression(value)
+                );
+            }
+            Statement::GenericBox {
+                name,
+                kind,
+                value,
+                read_into,
+            } => {
+                let kind = kind.word();
+                let _ = writeln!(
+                    out,
+                    "{indent}let ${name}: gbox<{kind}> = gbox[held = {}];",
+                    style.expression(value)
+                );
+                let _ = writeln!(out, "{indent}change ${read_into} = ${name}.held;");
+            }
             Statement::Assembly {
                 shield,
                 result,
@@ -1533,6 +1658,7 @@ impl Style {
             }
             Expression::Item { array, position } => item(array, position),
             Expression::Field { variable, field } => format!("${variable}.{field}"),
+            Expression::Lend(variable) => format!("Lend ${variable}"),
             Expression::CallMethod { receiver, name } => format!("${receiver}.%{name}()"),
         }
     }

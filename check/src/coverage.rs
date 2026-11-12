@@ -41,6 +41,11 @@
 ///   and `x`, built by `div` and `x` where they're stored; an offset family and a `decibels of`
 ///   one, whose points and spans add, subtract and convert; `std`'s angles converted to radians
 ///   for `std::math::sin`; parameters whose label carries a unit, given a plain number;
+/// - generics: the interfaces `equatable`, `ordered`, which `includes` it and states a `law`,
+///   and `addable`; the `type_set` `whole`; `satisfies` lines, one now and then written `.|.`;
+///   a struct with its own `below`, `==` and `+`; `gmax`, `gsame`, `gsum`, `gtwice` and
+///   `gkeep` called with numbers bare and the struct lent, inside maths and inside each other;
+///   `gbox<?item: any.type>` holding an integer; and `glarger` with a unit parameter;
 /// - shields: around `.%reveal()`; around `ptr.raw`, `ptr.raw.mut`, `ptr.volatile` and
 ///   `ptr.volatile.mut` pointers to integer variables made with `.of` and `Lend` or
 ///   `Lend.mut`, read with `.%read()`, written with `.%%write(val:)`, and moved on in items and
@@ -63,11 +68,11 @@ pub const NOT_GENERATED: &[&str] = &[
     "2.21 `simd` with one value, chunks, shuffles, `pick`, lookups, `lanes: max`, floats in lanes, `as` from arrays",
     "2.22 `bool.secret` values with `and.both`, `or.both` and `not`, secrets in arrays and `simd`, shifts on secrets",
     "3.9 chains that change direction, like `$a below $b above $c`",
-    "3.10 a type's own operators",
+    "3.10 a type's own operators other than `below`, `==` and `+`, like `x` and a `div` narrowing",
     "4.3 to 4.8 `match`, `for … in Give`, `for` over lists, a range's counter in use, ranges that step past their end, named loops",
-    "5.x contracts that call pure functions, generics, interfaces, methods with labels or on other types, `bake`",
+    "5.x contracts that call pure functions, methods with labels or on other types, `bake`; generics with more than one type parameter, and generic structs holding structs; undecided: specialization, value parameters, type slots and how laws are proven (12.5), and whether an interface's own signatures say `Lent ?self` (asked)",
     "6.x stored borrows, `must_Give`, `finish`, `defer`, giving a value away on one path, ownership words on functions that return values",
-    "7.x structs holding other structs, lists or borrows, `must_Give` structs, generic structs, handing structs and unions to functions",
+    "7.x structs holding other structs, lists or borrows, `must_Give` structs, handing structs and unions to functions",
     "8.x named sets of failures, a `case` reading a failure's data, arms that `return`, `break` or `fail`, handler narrowings and `*`",
     "9.x still to do: tasks on `os::threads` and `os::events`, tasks that borrow, locks and atomics; `pub` and `use` between packages, once programs have more than one; NotBuiltYet: `.at(address:)`, which points at hardware the oracle doesn't have; undecided: a shield's own `requires` and `ensures` (12.9), your own allocator (2.10), and how a `@csup::union.untagged` is built and read",
     "10.x build modes beyond comparing outputs",

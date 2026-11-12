@@ -7,9 +7,9 @@ use std::fmt::Write as _;
 
 use crate::random::Random;
 use crate::tree::{
-    Arguments, Comparison, Expression, FailureDecl, Filling, Function, Handling, Kind, Layout,
-    MethodDecl, NamedType, Operator, ParamKind, Position, Procedure, Program, Statement,
-    StructDecl, Type, UnionDecl, UnitFamily,
+    Arguments, Comparison, Expression, FailureDecl, Filling, Function, Generics, Handling, Kind,
+    Layout, MethodDecl, NamedType, Operator, ParamKind, Position, Procedure, Program, Statement,
+    StructDecl, Style, Type, UnionDecl, UnitFamily,
 };
 
 /// How big a program gets.
@@ -72,6 +72,8 @@ struct Generator<'random> {
     procedures: Vec<Procedure>,
     methods: Vec<MethodDecl>,
     unit_families: Vec<UnitFamily>,
+    /// Generics, when the program declares them (5.8).
+    generics: Option<Generics>,
     /// Float units, when the program has them.
     float_units: Option<FloatUnits>,
     /// Every unit, with how many of its family's base it is.
@@ -93,6 +95,7 @@ struct Generator<'random> {
 }
 
 /// A program from a seed: the same seed always gives the same program.
+#[allow(clippy::too_many_lines)] // Each kind of declaration in turn, then `main`.
 pub fn program(seed: u64) -> Program {
     let mut random = Random::new(seed);
     let mut generator = Generator {
@@ -105,6 +108,7 @@ pub fn program(seed: u64) -> Program {
         procedures: Vec::new(),
         methods: Vec::new(),
         unit_families: Vec::new(),
+        generics: None,
         float_units: None,
         units: Vec::new(),
         constants: Vec::new(),
@@ -126,6 +130,7 @@ pub fn program(seed: u64) -> Program {
     for index in 0..generator.structs.len() {
         generator.method_decls(index);
     }
+    generator.generics();
     for _ in 0..generator.random.between(0, 2) {
         let declared = generator.union_decl();
         generator.unions.push(declared);
@@ -188,6 +193,7 @@ pub fn program(seed: u64) -> Program {
     let fewer_brackets = generator.random.chance(50);
     Program {
         unit_families: generator.unit_families,
+        generics: generator.generics,
         methods: generator.methods,
         arena: generator.arena,
         named: generator.named,
@@ -492,6 +498,12 @@ impl Generator<'_> {
                 .unwrap_or_else(|| self.list_statement(scope)),
             6 if !self.pure_only && self.random.chance(20) => self
                 .assembly(scope)
+                .unwrap_or_else(|| self.list_statement(scope)),
+            6 if self.random.chance(30) => self
+                .generic_box(scope)
+                .unwrap_or_else(|| self.list_statement(scope)),
+            0..=3 if self.random.chance(15) => self
+                .generic_struct(scope)
                 .unwrap_or_else(|| self.list_statement(scope)),
             0..=3 if self.random.chance(10) => {
                 let value_type = Type::Simd(self.integer_kind(), self.random.between(1, 5));
@@ -1035,6 +1047,196 @@ impl Generator<'_> {
             instruction,
             reads,
             otherwise,
+        })
+    }
+
+    /// Now and then generics: which integer types say they're `ordered`, and the first struct
+    /// with its own operators, so it's `ordered` and `addable` too (3.10, 5.8).
+    fn generics(&mut self) {
+        if !self.random.chance(50) {
+            return;
+        }
+        let ordered: Vec<Kind> = Kind::ALL
+            .iter()
+            .copied()
+            .filter(|_| self.random.chance(60))
+            .collect();
+        let structure = self
+            .structs
+            .first()
+            .filter(|declared| !declared.fields.is_empty())
+            .cloned()
+            .filter(|_| self.random.chance(70));
+        let lines = ordered.len() + 2 + if structure.is_some() { 2 } else { 0 };
+        let easter = usize::try_from(self.random.between(0, 3 * lines as i128)).unwrap_or(0);
+        self.generics = Some(Generics {
+            ordered,
+            structure,
+            easter,
+            unit_parameter: self.float_units.is_some(),
+        });
+    }
+
+    /// Whether a generic function can be called here: not from a pure function, since generic
+    /// ones aren't pure, and not from a contract, which calls nothing.
+    fn generic_calls(&self) -> Option<Generics> {
+        if self.pure_only || self.no_calls {
+            return None;
+        }
+        self.generics.clone()
+    }
+
+    /// An integer from a generic call: `gmax` on an `ordered` type, `gsum` on one in `whole`,
+    /// `gtwice` on either of those, or `gkeep` on any. One argument is a variable, so the call
+    /// knows its type from it, and numbers go bare (5.8, D394).
+    fn generic_integer(&mut self, scope: &Scope, kind: Kind, depth: usize) -> Option<Expression> {
+        let generics = self.generic_calls()?;
+        let Some(Expression::Variable(name)) = self.variable_of(scope, Type::Integer(kind)) else {
+            return None;
+        };
+        let whole = matches!(kind, Kind::I32 | Kind::I64);
+        let ordered = generics.ordered.contains(&kind);
+        let other = self.integer(scope, kind, depth.saturating_sub(1));
+        let call = |function: &str, arguments: Vec<Expression>| Expression::Call {
+            function: function.to_string(),
+            arguments: arguments
+                .into_iter()
+                .map(|argument| (None, argument))
+                .collect(),
+            handling: Handling::Crash,
+        };
+        let variable = Expression::Variable(name);
+        Some(match self.random.between(0, 3) {
+            0 if ordered => call("gmax", vec![variable, other]),
+            1 if whole => call("gsum", vec![variable, other]),
+            2 if whole => call("gtwice", vec![variable]),
+            _ => call("gkeep", vec![variable]),
+        })
+    }
+
+    /// A `bool` from a generic call, `gsame`, on two integers of an `ordered` type or two of the
+    /// struct lent, or from the struct's own `below` or `==` (3.10, 5.8).
+    fn generic_boolean(&mut self, scope: &Scope, depth: usize) -> Option<Expression> {
+        let generics = self.generic_calls()?;
+        if let Some(structure) = &generics.structure {
+            let index = self
+                .structs
+                .iter()
+                .position(|declared| declared.name == structure.name)?;
+            let live: Vec<String> = scope
+                .records
+                .iter()
+                .filter(|(name, found)| *found == index && !self.given_away.contains(name))
+                .map(|(name, _)| name.clone())
+                .collect();
+            if let (true, Some(left), Some(right)) = (
+                self.random.chance(80),
+                self.random.pick(&live).cloned(),
+                self.random.pick(&live).cloned(),
+            ) {
+                return Some(match self.random.between(0, 2) {
+                    0 => Expression::Call {
+                        function: "gsame".to_string(),
+                        arguments: vec![
+                            (None, Expression::Lend(left)),
+                            (None, Expression::Lend(right)),
+                        ],
+                        handling: Handling::Crash,
+                    },
+                    roll => Expression::Compare {
+                        comparison: if roll == 1 {
+                            Comparison::Below
+                        } else {
+                            Comparison::Equal
+                        },
+                        left: Box::new(Expression::Variable(left)),
+                        right: Box::new(Expression::Variable(right)),
+                    },
+                });
+            }
+        }
+        let kind = *self.random.pick(&generics.ordered)?;
+        let variable = self.variable_of(scope, Type::Integer(kind))?;
+        let other = self.integer(scope, kind, depth.saturating_sub(1));
+        Some(Expression::Call {
+            function: "gsame".to_string(),
+            arguments: vec![(None, variable), (None, other)],
+            handling: Handling::Crash,
+        })
+    }
+
+    /// The struct with its own operators made from two of it: `gmax`, `gtwice` or its own `+`
+    /// (3.10, 5.8).
+    fn generic_struct(&mut self, scope: &mut Scope) -> Option<Statement> {
+        let generics = self.generic_calls()?;
+        let structure = generics.structure?;
+        let index = self
+            .structs
+            .iter()
+            .position(|declared| declared.name == structure.name)?;
+        let live: Vec<String> = scope
+            .records
+            .iter()
+            .filter(|(name, found)| *found == index && !self.given_away.contains(name))
+            .map(|(name, _)| name.clone())
+            .collect();
+        let left = self.random.pick(&live)?.clone();
+        let right = self.random.pick(&live)?.clone();
+        let value = match self.random.between(0, 2) {
+            0 => Expression::Call {
+                function: "gmax".to_string(),
+                arguments: vec![
+                    (None, Expression::Lend(left)),
+                    (None, Expression::Lend(right)),
+                ],
+                handling: Handling::Crash,
+            },
+            1 => Expression::Call {
+                function: "gtwice".to_string(),
+                arguments: vec![(None, Expression::Lend(left))],
+                handling: Handling::Crash,
+            },
+            _ => Expression::Binary {
+                operator: Operator::Add,
+                left: Box::new(Expression::Variable(left)),
+                right: Box::new(Expression::Variable(right)),
+            },
+        };
+        let name = self.name("r");
+        scope.records.push((name.clone(), index));
+        Some(Statement::LetStructValue {
+            name,
+            struct_name: structure.name,
+            value,
+        })
+    }
+
+    /// A `gbox<…>` holding an integer, its `held` read back into a variable that can change
+    /// (5.8).
+    fn generic_box(&mut self, scope: &Scope) -> Option<Statement> {
+        self.generic_calls()?;
+        let targets: Vec<(String, Kind)> = scope
+            .variables
+            .iter()
+            .filter_map(|(name, found)| match found {
+                Type::Integer(kind)
+                    if !name.starts_with('i')
+                        && !name.starts_with('p')
+                        && !name.starts_with('x')
+                        && !name.starts_with('k') =>
+                {
+                    Some((name.clone(), *kind))
+                }
+                _ => None,
+            })
+            .collect();
+        let (read_into, kind) = self.random.pick(&targets)?.clone();
+        let value = self.integer(scope, kind, LIMITS.depth);
+        Some(Statement::GenericBox {
+            name: self.name("gb"),
+            kind,
+            value,
+            read_into,
         })
     }
 
@@ -1976,6 +2178,25 @@ impl Generator<'_> {
                 unit,
             };
         }
+        // `glarger` keeps whatever unit its unit parameter is filled with (5.8, 2.16).
+        let unit_parameter = self
+            .generic_calls()
+            .is_some_and(|generics| generics.unit_parameter);
+        if unit_parameter && !point && !span && self.random.chance(25) {
+            if let (Some(left), Some(right)) = (
+                self.random.pick(&same).cloned(),
+                self.random.pick(&same).cloned(),
+            ) {
+                return Expression::Call {
+                    function: "glarger".to_string(),
+                    arguments: vec![
+                        (None, Expression::Variable(left)),
+                        (None, Expression::Variable(right)),
+                    ],
+                    handling: Handling::Crash,
+                };
+            }
+        }
         if depth > 0 && roll < 8 {
             if point {
                 // A point plus a span, or a point converted from the other scale.
@@ -2344,6 +2565,12 @@ impl Generator<'_> {
 
     /// A new struct, built with `[ ]`, or a change to a field of one in scope (7.2, 7.3).
     fn record_statement(&mut self, scope: &mut Scope) -> Statement {
+        // The struct with its own operators is often made from two of it (3.10, 5.8).
+        if self.random.chance(35) {
+            if let Some(made) = self.generic_struct(scope) {
+                return made;
+            }
+        }
         let live: Vec<(String, usize)> = scope
             .records
             .iter()
@@ -2378,7 +2605,16 @@ impl Generator<'_> {
             if self.random.chance(50) {
                 if let Some(declared) = self.structs.get(index).cloned() {
                     if let Some((field, kind)) = self.random.pick(&declared.fields).cloned() {
-                        let value = self.expression(scope, Type::Integer(kind), LIMITS.depth);
+                        let mut value = self.expression(scope, Type::Integer(kind), LIMITS.depth);
+                        // Whether a field can change to a value that calls a method on its own
+                        // struct isn't decided, so that value is a literal instead.
+                        let written = Style {
+                            fewer_brackets: false,
+                        }
+                        .expression(&value);
+                        if written.contains(&format!("${variable}.%")) {
+                            value = self.literal(kind);
+                        }
                         return Statement::ChangeField {
                             variable,
                             field,
@@ -2613,6 +2849,11 @@ impl Generator<'_> {
         }
         if roll == 3 {
             if let Some(call) = self.call(scope, kind, depth) {
+                return call;
+            }
+        }
+        if roll == 4 && self.random.chance(40) {
+            if let Some(call) = self.generic_integer(scope, kind, depth) {
                 return call;
             }
         }
@@ -2914,6 +3155,11 @@ impl Generator<'_> {
             };
         }
         if roll == 4 {
+            if self.random.chance(70) {
+                if let Some(generic) = self.generic_boolean(scope, depth) {
+                    return generic;
+                }
+            }
             return Expression::Not(Box::new(self.boolean(scope, depth - 1)));
         }
         if roll == 5 {
