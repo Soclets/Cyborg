@@ -16,9 +16,10 @@ end fn read_first
 fn.main [none] -> void:
     let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     let $runner: std::run::one_thread = std::run::one_thread();
+    let $heap: os::heap = os::heap();
     let $xs: std::coll::list<i64>[len.max: 4 items] = [7];
-    let $a: @concur::task<i64> = @concur::spawn(on: Lend $runner) read_first(Lend $xs);
-    let $b: @concur::task<i64> = @concur::spawn(on: Lend $runner) read_first(Lend $xs);
+    let $a: @concur::task<i64> = @concur::spawn(on: Lend $runner, alloc: Lend $heap, stack: 4 kib) read_first(Lend $xs);
+    let $b: @concur::task<i64> = @concur::spawn(on: Lend $runner, alloc: Lend $heap, stack: 4 kib) read_first(Lend $xs);
     let $sum: i64 = @concur::task.done(Give $a) + @concur::task.done(Give $b);
     std::io::fmt_print(Lend.mut $out, "{}{newln}", $sum);
     return void;

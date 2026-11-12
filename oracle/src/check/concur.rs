@@ -85,14 +85,24 @@ impl Checker<'_> {
                 return Err(Report::refused(
                     extra.value.span,
                     "a spawn onto `os::threads` takes neither `alloc:` nor `stack:`",
-                    "the OS gives a pool's threads their stacks, so nothing is allocated here (D351)",
+                    "the OS gives a pool's threads their stacks, so nothing is allocated here (D351, D384)",
                 ));
             }
-            return Err(Report::not_designed(
-                extra.value.span,
-                "`alloc:` and `stack:` on a spawn onto `std::run::one_thread`",
-                "",
-            ));
+        }
+        // `std::run::one_thread` switches tasks, so each has its own stack, from the allocator
+        // the spawn names, with its size written. The oracle accepts any size. (D351, D352,
+        // D380, D384)
+        // trace: D351, D352, D380, D384
+        if held.value_type == Type::Struct("std::run::one_thread".to_string()) {
+            self.check_task_stack(&stack_options, span)?;
+        }
+        if let ExpressionKind::Try(inner) = &call.kind {
+            return Err(Report::refused(
+                call.span,
+                "a task's failure comes back when it's done, not where it's spawned",
+                "`@concur::task.done(Give $t)?` passes a task's failure up (D343, D357)",
+            )
+            .fix(self.text_of(inner.span).to_string()));
         }
         if !matches!(call.kind, ExpressionKind::Call { .. }) {
             return Err(Report::refused(
@@ -116,6 +126,43 @@ impl Checker<'_> {
             },
             Type::Task(Box::new(raw.value_type)),
         ))
+    }
+
+    /// A spawn's `alloc:` and `stack:`, which a runner that switches tasks needs: an allocator
+    /// lent with `Lend`, and a literal size in `bytes`, `kib` or `mib`. (D351, D352, D370, D384)
+    fn check_task_stack(&mut self, options: &[&Argument], span: Span) -> Outcome<()> {
+        const WHY: &str = "each task on a runner that switches tasks has its own stack, from the allocator the spawn names, with its size written, as in `alloc: Lend $heap, stack: 4 kib` (D351, D352, D384)";
+        let find = |label: &str| {
+            options.iter().find(|option| {
+                option
+                    .label
+                    .as_ref()
+                    .is_some_and(|found| found.text == label)
+            })
+        };
+        let (Some(alloc), Some(stack)) = (find("alloc"), find("stack")) else {
+            return Err(Report::refused(
+                span,
+                "a spawn onto `std::run::one_thread` takes `alloc:` and `stack:`",
+                WHY,
+            ));
+        };
+        let mut handed = Vec::new();
+        self.allocator_argument(&alloc.value, &mut handed)?;
+        let is_size = matches!(
+            &stack.value.kind,
+            ExpressionKind::WithUnit { number, unit }
+                if matches!(unit.text.as_str(), "bytes" | "kib" | "mib")
+                    && super::expression::literal_integer(number).is_some_and(|size| size > 0)
+        );
+        if !is_size {
+            return Err(Report::not_designed(
+                stack.value.span,
+                "a task's `stack:` that isn't a literal number of `bytes`, `kib` or `mib`",
+                "",
+            ));
+        }
+        Ok(())
     }
 
     /// What a spawn's call lends, which the task keeps for as long as it exists, and whether any

@@ -1,5 +1,5 @@
-refused: d375_concur_is_imported.cy:11:13, line 11 column 13
-11 |     let $t: @concur::task<i64> = @concur::spawn(on: Lend $runner) one();
+refused: d375_concur_is_imported.cy:13:13, line 13 column 13
+13 |     let $t: @concur::task<i64> = @concur::spawn(on: Lend $runner, alloc: Lend $heap, stack: 4 kib) one();
    |             ^^^^^^^^^^^^^
  fix:  `import @concur;`
  why:  everything gets imported, including limbs (D82)

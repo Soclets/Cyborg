@@ -1,19 +1,19 @@
-refused: d347_two_tasks_change_one_list.cy:22:47, line 22 column 47
-22 |     let $first: i64 = @concur::task.done(Give $a);
+refused: d347_two_tasks_change_one_list.cy:23:47, line 23 column 47
+23 |     let $first: i64 = @concur::task.done(Give $a);
    |                                               ^^
  what: `$a` can't be used after what it borrows was used
  why:  a stored `Lend.mut` means nothing else uses it meanwhile, and a `Lend` means it can't change (D2)
- because: d347_two_tasks_change_one_list.cy:21:84, line 21 column 84
-21 |     let $b: @concur::task<i64> = @concur::spawn(on: Lend $runner) add_one(Lend.mut $xs);
-   |                                                                                    ^^^
+ because: d347_two_tasks_change_one_list.cy:22:117, line 22 column 117
+22 |     let $b: @concur::task<i64> = @concur::spawn(on: Lend $runner, alloc: Lend $heap, stack: 4 kib) add_one(Lend.mut $xs);
+   |                                                                                                                     ^^^
      what it borrows was used here
 
-refused: d347_two_tasks_change_one_list.cy:24:5, line 24 column 5
-24 |     return void;
+refused: d347_two_tasks_change_one_list.cy:25:5, line 25 column 5
+25 |     return void;
    |     ^^^^^^^^^^^^
  what: this leaves with `$a` never given away or finished
  why:  a `must_Give` value is handed off with `Give` exactly once, or `finish` ends it (D2, D129)
- because: d347_two_tasks_change_one_list.cy:20:9, line 20 column 9
-20 |     let $a: @concur::task<i64> = @concur::spawn(on: Lend $runner) add_one(Lend.mut $xs);
+ because: d347_two_tasks_change_one_list.cy:21:9, line 21 column 9
+21 |     let $a: @concur::task<i64> = @concur::spawn(on: Lend $runner, alloc: Lend $heap, stack: 4 kib) add_one(Lend.mut $xs);
    |         ^^
      `$a` was made here

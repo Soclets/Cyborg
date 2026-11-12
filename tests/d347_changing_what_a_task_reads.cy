@@ -16,8 +16,9 @@ end fn read_first
 
 fn.main [none] -> void:
     let $runner: std::run::one_thread = std::run::one_thread();
+    let $heap: os::heap = os::heap();
     let mut $xs: std::coll::list<i64>[len.max: 4 items] = [1];
-    let $t: @concur::task<i64> = @concur::spawn(on: Lend $runner) read_first(Lend $xs);
+    let $t: @concur::task<i64> = @concur::spawn(on: Lend $runner, alloc: Lend $heap, stack: 4 kib) read_first(Lend $xs);
     change $xs[pos: 1] = 5;
     let $first: i64 = @concur::task.done(Give $t);
     return void;

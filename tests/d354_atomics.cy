@@ -16,9 +16,10 @@ end fn count
 fn.main [none] -> void:
     let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     let $runner: std::run::one_thread = std::run::one_thread();
+    let $heap: os::heap = os::heap();
     let $hits: @concur::atomic<u64> = @concur::atomic.new(0);
-    let $a: @concur::task<i64> = @concur::spawn(on: Lend $runner) count(Lend $hits);
-    let $b: @concur::task<i64> = @concur::spawn(on: Lend $runner) count(Lend $hits);
+    let $a: @concur::task<i64> = @concur::spawn(on: Lend $runner, alloc: Lend $heap, stack: 4 kib) count(Lend $hits);
+    let $b: @concur::task<i64> = @concur::spawn(on: Lend $runner, alloc: Lend $heap, stack: 4 kib) count(Lend $hits);
     let $done: i64 = @concur::task.done(Give $a) + @concur::task.done(Give $b);
     let $now: u64 = $hits.%load();
     let $seen: u64 = $hits.%load.acquire();

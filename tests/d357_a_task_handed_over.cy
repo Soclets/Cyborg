@@ -2,6 +2,7 @@
 // what its `done` can fail with isn't known.
 // trace: D357
 import std;
+import os;
 import @concur;
 
 fn one [none] -> i64:
@@ -14,7 +15,8 @@ end fn finish_it
 
 fn.main [none] -> void:
     let $runner: std::run::one_thread = std::run::one_thread();
-    let $t: @concur::task<i64> = @concur::spawn(on: Lend $runner) one();
+    let $heap: os::heap = os::heap();
+    let $t: @concur::task<i64> = @concur::spawn(on: Lend $runner, alloc: Lend $heap, stack: 4 kib) one();
     let $first: i64 = finish_it(Give $t);
     return void;
 end fn.main

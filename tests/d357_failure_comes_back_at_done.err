@@ -1,0 +1,15 @@
+refused: d357_failure_comes_back_at_done.cy:16:65, line 16 column 65
+16 |     let $t: @concur::task<i64> = @concur::spawn(on: Lend $pool) half(7)?;
+   |                                                                 ^^^^^^^^
+ fix:  `half(7)`
+ why:  `@concur::task.done(Give $t)?` passes a task's failure up (D343, D357)
+
+refused: d357_failure_comes_back_at_done.cy:17:12, line 17 column 12
+17 |     return @concur::task.done(Give $t)?;
+   |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ what: `$t` never got a value
+ why:  a variable is read only after it has one (D203)
+ because: d357_failure_comes_back_at_done.cy:16:65, line 16 column 65
+16 |     let $t: @concur::task<i64> = @concur::spawn(on: Lend $pool) half(7)?;
+   |                                                                 ^^^^^^^^
+     with `half(7)` here, this error goes away

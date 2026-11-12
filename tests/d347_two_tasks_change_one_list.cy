@@ -16,9 +16,10 @@ end fn read_first
 
 fn.main [none] -> void:
     let $runner: std::run::one_thread = std::run::one_thread();
+    let $heap: os::heap = os::heap();
     let mut $xs: std::coll::list<i64>[len.max: 4 items] = [1];
-    let $a: @concur::task<i64> = @concur::spawn(on: Lend $runner) add_one(Lend.mut $xs);
-    let $b: @concur::task<i64> = @concur::spawn(on: Lend $runner) add_one(Lend.mut $xs);
+    let $a: @concur::task<i64> = @concur::spawn(on: Lend $runner, alloc: Lend $heap, stack: 4 kib) add_one(Lend.mut $xs);
+    let $b: @concur::task<i64> = @concur::spawn(on: Lend $runner, alloc: Lend $heap, stack: 4 kib) add_one(Lend.mut $xs);
     let $first: i64 = @concur::task.done(Give $a);
     let $second: i64 = @concur::task.done(Give $b);
     return void;
