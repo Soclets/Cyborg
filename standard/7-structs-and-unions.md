@@ -21,7 +21,7 @@ struct reading:
 end struct reading
 ```
 
-A bare `struct` keeps its fields in the written order, padded to their natural alignment, like C and Go. `struct.any_order` lets the compiler reorder fields to save space, with its choice fixed for each target. `struct.packed` keeps the written order with no padding at all, for wire formats and packed registers. Layouts don't need a shield. Reading a packed field by name is a safe unaligned read, but borrowing one is refused, since the borrow could be misaligned: copy it into a variable first.
+A bare `struct` keeps its fields in the written order, padded to their natural alignment, like C and Go. `struct.compact` sorts fields by alignment, largest first, with ties in the written order, so it has little padding and the same layout everywhere. `struct.any_order` lets the compiler choose any order, which may improve in future versions, so code mustn't depend on its layout, and tests that do are the compiler's own. `struct.packed` keeps the written order with no padding at all, for wire formats and packed registers. Layouts don't need a shield. Reading a packed field by name is a safe unaligned read, but borrowing one is refused, since the borrow could be misaligned: copy it into a variable first.
 
 ```
 struct.any_order cache_entry:
@@ -30,7 +30,7 @@ struct.any_order cache_entry:
 end struct.any_order cache_entry
 ```
 
-**From:** D57, D319, D320.
+**From:** D57, D319, D320, D388.
 
 ## 7.2 Building a struct
 
