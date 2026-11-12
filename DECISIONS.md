@@ -1216,6 +1216,8 @@ A `type_set` is a closed list of types that nothing can join later, as in `type_
 
 **D357. A task ends with `@concur::task.done`, not `join`.** `@concur::task.done(Give $left)` waits for the task to finish, through its runner, gives back its result, passes its failure up with `?`, and ends the task's `must_Give` duty. Every other language calls this `join`, but D331 made `done` the word that ends every owner, so nobody has to remember `free`, `close`, `drop` or `deinit`, and a task is an owner, so `join` would be the one exception D331 exists to prevent. It reads as "the task is done, give me what it made". Claude proposed it; the owner chose: "yea". (Owner, 2026-11-12)
 
+**D358. Changing versions are narrowed with `.mut`, not `_mut`.** Splitting a list into parts tasks can change is `$xs.%%split.mut(at.items: 500)`, and D303's writing chunks become `$pixels.%%simd_chunks.mut.exact(lanes: 16)`, replacing D303's `simd_chunks_mut`. Cyborg narrows with a dot everywhere, as in `ptr.raw.mut`, `Lend.mut` and `div.trunc`, and a `_mut` glued onto a name was the odd one out. D303's worry still holds: the changing version looks different from the reading one by a whole word, not one extra `%`, and D211's `%%` says it again. `at.items:` says its unit, like `offset.items:`. Claude had proposed `_mut` in D303 and `split_mut` here; the owner asked "shouldn't it be `.mut`?", and chose: "yea". (Owner, 2026-11-12)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude

@@ -612,10 +612,10 @@ end for
 
 With `.leftovers`, the `leftovers` section runs once for each leftover item, after every chunk, and doesn't run when there are none. The loop isn't complete without it. `break` stops the whole loop, leftovers included.
 
-`simd_chunks` only reads: its chunks are copies, and changing one is refused. `.%%simd_chunks_mut` writes each chunk back into the list or array at the end of its round, which is locked for the whole loop. Padding lanes are dropped when writing back, and a changed leftover item is written back too.
+`simd_chunks` only reads: its chunks are copies, and changing one is refused. `.%%simd_chunks.mut` writes each chunk back into the list or array at the end of its round, which is locked for the whole loop. Padding lanes are dropped when writing back, and a changed leftover item is written back too.
 
 ```
-for $chunk in $pixels.%%simd_chunks_mut.exact(lanes: 16):
+for $chunk in $pixels.%%simd_chunks.mut.exact(lanes: 16):
     change $chunk = $chunk plus.saturate 20;
 end for
 ```
@@ -666,9 +666,9 @@ let $which: simd<u8[min: 1, max: 16]>[lanes: 16] = …;
 let $out: simd<u8>[lanes: 16] = $table.%lookup(pos: $which);
 ```
 
-**Refused:** a shuffle list only known while running, with `fix: .%lookup`; a lane that doesn't exist, like `pos: [5]` on 4 lanes; a shuffle with neither `pos:` nor `offset.lanes:`; a bare `offset:`, with `fix: offset.lanes:`; changing a chunk from `simd_chunks`; `.%%simd_chunks`, with `fix: .%`, and `.%simd_chunks_mut`, with `fix: .%%`; `if` on a `simd<bool>`, with `fix: .%all_true()` or `.%any_true()`; a bare `simd_chunks`, asking which of the three; `.leftovers` without a `leftovers` section; and a `leftovers` section on any other loop.
+**Refused:** a shuffle list only known while running, with `fix: .%lookup`; a lane that doesn't exist, like `pos: [5]` on 4 lanes; a shuffle with neither `pos:` nor `offset.lanes:`; a bare `offset:`, with `fix: offset.lanes:`; changing a chunk from `simd_chunks`; `.%%simd_chunks`, with `fix: .%`, and `.%simd_chunks.mut`, with `fix: .%%`; `if` on a `simd<bool>`, with `fix: .%all_true()` or `.%any_true()`; a bare `simd_chunks`, asking which of the three; `.leftovers` without a `leftovers` section; and a `leftovers` section on any other loop.
 
-**From:** D255, D291, D292, D293, D296, D297, D298, D299, D300, D301, D302, D303, D304, D305, D306, D307.
+**From:** D255, D291, D292, D293, D296, D297, D298, D299, D300, D301, D302, D303, D358, D304, D305, D306, D307.
 
 ## 2.22 Secrets: `.secret`
 
