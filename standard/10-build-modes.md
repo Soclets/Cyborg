@@ -11,6 +11,7 @@
 | [10.7](#107-finalshit) | `FinalShit` | Drops the compile-time safety rules |
 | [10.8](#108-the-curse) | The curse | What `FinalShit` prints |
 | [10.9](#109-benchmarks) | Benchmarks | Three kinds, in every mode |
+| [10.10](#1010-tuning-for-one-workload-profile) | `--profile.use=` | A build tuned by a committed profile |
 
 ## 10.1 The modes
 
@@ -173,3 +174,18 @@ GAIM's favorite
 Other languages' versions follow the same rules.
 
 **From:** D32, D77, D78.
+
+## 10.10 Tuning for one workload: `--profile`
+
+**Rule:** profile-guided optimization is asked for by name, and what it depends on is a committed file, so the build stays reproducible from what's written. `--profile.record` builds with counters, running the program on real work writes a profile, and `--profile.use=` builds tuned for it. The same code and the same profile file always give the same program.
+
+```
+okay comp --FinalPerf --profile.record server.cy
+okay comp --FinalPerf --profile.use=server.profile server.cy
+```
+
+A profile is about the program and the work it did, not the machine: which branches are taken and which functions are hot. It changes only speed, never what the program does, and the build report says which profile was used, so a tuned build is labelled as one ([10.9](#109-benchmarks)).
+
+**Refused:** `--profile.use=` or `--profile.record` with `Literal` or `--Working --opt=O0`.
+
+**From:** D329, D363.
