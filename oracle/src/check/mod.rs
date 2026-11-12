@@ -7,6 +7,7 @@ mod generics;
 mod hand;
 mod memory;
 mod operators;
+mod secrets;
 mod units;
 mod writers;
 
@@ -2465,6 +2466,10 @@ impl Checker<'_> {
             None => (text.as_str(), None),
         };
         match head {
+            // trace: D339
+            "bool" if narrowing == Some("secret") => {
+                return Ok(Type::Secret(Box::new(Type::Bool)));
+            }
             "void" | "bool" if narrowing.is_some() => {
                 return Err(Report::not_designed(
                     path.span,
@@ -2519,6 +2524,16 @@ impl Checker<'_> {
                     .map(|entry| self.text_of(entry.value.span).to_string());
                 let (unit, describe) = self.unit_in_brackets(describe)?;
                 let unit = unit.map(|unit| (unit, unit_written.unwrap_or_default()));
+                // trace: D339
+                if head.starts_with('f')
+                    && narrowing.is_some_and(|word| word.split('.').any(|part| part == "secret"))
+                {
+                    return Err(Report::refused(
+                        path.span,
+                        "`.secret` is for integers and `bool`",
+                        "secrecy is a `.secret` narrowing on integers and `bool`, whose operations can take the same time for every value (D339)",
+                    ));
+                }
                 if head.starts_with('f') {
                     let (first, unit_text) = match narrowing.map(|word| word.split_once('.')) {
                         Some(Some((first, rest))) => (Some(first), Some(rest)),
@@ -2541,6 +2556,11 @@ impl Checker<'_> {
                         ));
                     }
                     return self.resolve_float_type(head, unit, rules, &describe, written);
+                }
+                // trace: D339
+                if narrowing == Some("secret") {
+                    let plain = self.resolve_number_type(head, unit, &describe, written)?;
+                    return Ok(Type::Secret(Box::new(plain)));
                 }
                 if let Some(unit_text) = narrowing {
                     // trace: D257, D158

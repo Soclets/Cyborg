@@ -36,6 +36,13 @@ fn expression_digits(expression: &Expression) -> &str {
     }
 }
 
+/// Text into an owning string, or anything to or from a secret, which `coerce` hands on.
+fn needs_its_own_coerce(found: &Type, target: &Type) -> bool {
+    (*found == Type::Str && matches!(target, Type::BoundedStr(_) | Type::GrowableStr))
+        || matches!(found, Type::Secret(_))
+        || matches!(target, Type::Secret(_))
+}
+
 /// The most bytes an integer type's text can need, as for `i32`'s `-2147483648`. (D328)
 fn integer_text_bytes(kind: IntegerKind) -> i128 {
     let (low, high) = kind.range();
@@ -196,6 +203,8 @@ fn node_float(node: &Node) -> Option<f64> {
 
 fn number_hint(value_type: Option<&Type>) -> Option<Type> {
     match value_type {
+        // A literal next to a secret is a plain number, which the secret then spreads to.
+        Some(Type::Secret(inner)) => number_hint(Some(inner)),
         Some(Type::Integer { kind, .. }) => Some(Type::plain_integer(*kind)),
         Some(Type::Float { kind, rules, .. }) => Some(Type::Float {
             kind: *kind,
@@ -382,6 +391,50 @@ impl Checker<'_> {
     /// Text going into `str[len.max: 32 bytes]`, which holds that many bytes inside the value:
     /// a literal that can't fit is a compile error, as a number past its bound is. (D326, D20)
     /// trace: D326
+    /// Text into an owning string, and anything to or from a secret. (D326, D340)
+    /// trace: D326, D339, D340, D341
+    fn coerce_text_or_secret(
+        &self,
+        node: Node,
+        found: &Type,
+        target: &Type,
+        expression: &Expression,
+    ) -> Outcome<Node> {
+        if *found == Type::Str {
+            return Self::text_into(node, target, expression);
+        }
+        self.coerce_secret(node, found, target, expression)
+    }
+
+    /// A plain value can become secret, since secrecy only spreads, but a secret goes where a
+    /// plain value is expected only through `.%reveal()`. A bound on a secret needs a check,
+    /// which branches, so it's allowed only where nothing needs checking. (D340, D341, D342)
+    fn coerce_secret(
+        &self,
+        node: Node,
+        found: &Type,
+        target: &Type,
+        expression: &Expression,
+    ) -> Outcome<Node> {
+        let (found_plain, _) = super::secrets::unwrap_secret(found);
+        let Type::Secret(target_plain) = target else {
+            return Err(super::secrets::refuse_on_a_secret(
+                expression.span,
+                format!("this is `{found}`, where `{target}` is needed"),
+                "a secret goes where a plain value is expected only through `.%reveal()`, inside a shield, so it can't be lost by accident (D340, D342)",
+            ));
+        };
+        let coerced = self.coerce(node, &found_plain, target_plain, expression)?;
+        if matches!(coerced.kind, NodeKind::Fit { .. }) {
+            return Err(super::secrets::refuse_on_a_secret(
+                expression.span,
+                format!("this needs a check to go into `{target}`, which branches on the secret"),
+                "a bound on a secret is allowed only where the check is proven away, since the check itself is a branch (D341)",
+            ));
+        }
+        Ok(coerced)
+    }
+
     /// Heap text needs heap memory, which takes an allocator. (D321, D326)
     fn text_into(node: Node, target: &Type, expression: &Expression) -> Outcome<Node> {
         let Type::BoundedStr(bytes) = *target else {
@@ -419,9 +472,8 @@ impl Checker<'_> {
         if found == target {
             return Ok(node);
         }
-        // trace: D326
-        if *found == Type::Str && matches!(target, Type::BoundedStr(_) | Type::GrowableStr) {
-            return Self::text_into(node, target, expression);
+        if needs_its_own_coerce(found, target) {
+            return self.coerce_text_or_secret(node, found, target, expression);
         }
         self.refuse_unstorable_unit(found, target, expression)?;
         if let (
@@ -646,6 +698,12 @@ impl Checker<'_> {
         expression: &Expression,
         expected: Option<&Type>,
     ) -> Outcome<(Node, Type)> {
+        // A literal landing on a secret is a plain number, which then becomes secret. (D340)
+        if let (Some(Type::Secret(inner)), true) = (expected, is_number_literal(expression)) {
+            let inner = (**inner).clone();
+            let (node, found) = self.check_expression(expression, Some(&inner))?;
+            return Ok((node, found));
+        }
         let span = expression.span;
         let simple = |kind: NodeKind| Node { span, kind };
         // A literal takes its type from where it lands, and a `type.new` is one place. (D141)
@@ -830,25 +888,38 @@ impl Checker<'_> {
             } => self.check_binary(*operator, left, right, span, expected),
             ExpressionKind::Negate(inner) => self.check_negate(inner, span, expected),
             ExpressionKind::Not(inner) => {
-                let node = self.check_condition(inner)?;
-                Ok((simple(NodeKind::Not(Box::new(node))), Type::Bool))
+                // `not` has one side and no branch, so it's fine on a secret. (D362)
+                let (node, secret) = self.check_logic_side(inner)?;
+                let result = if secret {
+                    super::secrets::secret(Type::Bool)
+                } else {
+                    Type::Bool
+                };
+                Ok((simple(NodeKind::Not(Box::new(node))), result))
             }
             ExpressionKind::BitNot(inner) => {
                 let hint = number_hint(expected);
                 let (node, found) = self.check_expression(inner, hint.as_ref())?;
+                // `not.bit` takes the same time for every value, so a secret stays one. (D340)
+                let (plain, secret) = super::secrets::unwrap_secret(&found);
                 let Type::Integer {
                     kind, unit: None, ..
-                } = found
+                } = plain
                 else {
                     return Err(Report::refused(
                         inner.span,
-                        format!("`bit_not` works on a plain integer, and this is `{found}`"),
+                        format!("`not.bit` works on a plain integer, and this is `{found}`"),
                         WHY_TYPES,
                     ));
                 };
+                let result = Type::plain_integer(kind);
                 Ok((
                     simple(NodeKind::BitNot(kind, Box::new(node))),
-                    Type::plain_integer(kind),
+                    if secret {
+                        super::secrets::secret(result)
+                    } else {
+                        result
+                    },
                 ))
             }
             ExpressionKind::Compare { first, rest } => self.check_compare(first, rest, span),
@@ -2197,6 +2268,8 @@ impl Checker<'_> {
                 ));
             }
             let (node, found) = self.check_expression(&argument.value, None)?;
+            // trace: D340
+            Self::refuse_secret_print(&found, &argument.value)?;
             // trace: D139
             if matches!(found, Type::Failure { .. }) {
                 return Err(Report::refused(
@@ -2423,6 +2496,15 @@ impl Checker<'_> {
             let (node, found) = self.check_expression(receiver, None)?;
             (Some(node), found)
         };
+        // trace: D340, D342
+        if let (true, Type::Secret(_)) = (percent, &receiver_type) {
+            let receiver_type = receiver_type.clone();
+            let node = match fresh {
+                Some(node) => node,
+                None => self.check_expression(receiver, None)?.0,
+            };
+            return self.check_secret_method(node, &receiver_type, name, arguments, span);
+        }
         // trace: D273
         if let (true, Type::Struct(writer)) = (percent, &receiver_type) {
             if super::writers::writer_kind(writer).is_some() {
@@ -3230,6 +3312,15 @@ impl Checker<'_> {
     ) -> Outcome<(Node, Type)> {
         let hint = number_hint(expected);
         let (node, found) = self.check_expression(inner, hint.as_ref())?;
+        // A negation checks for overflow, which is a branch. (D341)
+        // trace: D341
+        if matches!(found, Type::Secret(_)) {
+            return Err(super::secrets::refuse_on_a_secret(
+                span,
+                "a unary `-` on a secret checks for overflow, which is a branch",
+                "on a secret, maths is written with `.wrap` or `.saturate`, as in `0 minus.wrap $x` (D341)",
+            ));
+        }
         let (number, result) = match found {
             Type::Integer { kind, unit, .. } => (
                 Number::Integer(kind),
@@ -3334,6 +3425,12 @@ impl Checker<'_> {
         }
         let ((left_node, left_type), (right_node, right_type)) =
             self.check_operands(left, right, expected)?;
+        // A secret allows only what takes the same time for every value, and spreads to the
+        // result. (D339, D340, D341)
+        // trace: D339, D340
+        let (left_type, left_secret) = super::secrets::unwrap_secret(&left_type);
+        let (right_type, right_secret) = super::secrets::unwrap_secret(&right_type);
+        Self::refuse_secret_operator(operator, left_secret, right_secret, span)?;
         let arithmetic = match operator {
             // `and` and `or` left for `check_logic` above.
             BinaryOperator::Add
@@ -3371,6 +3468,9 @@ impl Checker<'_> {
             }
             other => other,
         };
+        if left_secret || right_secret {
+            result = super::secrets::secret(result);
+        }
         Ok((
             Node {
                 span,
@@ -3670,14 +3770,25 @@ impl Checker<'_> {
         right: &Expression,
         span: Span,
     ) -> Outcome<(Node, Type)> {
-        let left_node = self.check_condition(left)?;
+        let (left_node, left_secret) = self.check_logic_side(left)?;
         // trace: D124
-        let right_node = if matches!(operator, BinaryOperator::And | BinaryOperator::Or) {
-            // The right side only runs if it's needed, so what it gives away is only maybe gone.
-            self.on_one_path_only(|this| this.check_condition(right))?
+        let (right_node, right_secret) =
+            if matches!(operator, BinaryOperator::And | BinaryOperator::Or) {
+                // The right side only runs if it's needed, so what it gives away is only maybe
+                // gone.
+                self.on_one_path_only(|this| this.check_logic_side(right))?
+            } else {
+                self.check_logic_side(right)?
+            };
+        // trace: D362
+        let secret_side = if left_secret {
+            Some(left)
+        } else if right_secret {
+            Some(right)
         } else {
-            self.check_condition(right)?
+            None
         };
+        Self::refuse_secret_early_stop(operator, secret_side)?;
         let (left_node, right_node) = (Box::new(left_node), Box::new(right_node));
         let kind = match operator {
             BinaryOperator::And => NodeKind::And(left_node, right_node),
@@ -3685,7 +3796,26 @@ impl Checker<'_> {
             BinaryOperator::AndBoth => NodeKind::AndBoth(left_node, right_node),
             _ => NodeKind::OrBoth(left_node, right_node),
         };
-        Ok((Node { span, kind }, Type::Bool))
+        let result = if secret_side.is_some() {
+            super::secrets::secret(Type::Bool)
+        } else {
+            Type::Bool
+        };
+        Ok((Node { span, kind }, result))
+    }
+
+    /// One side of `and`, `or` or `not`: a `bool`, or a `bool.secret`. (D362)
+    fn check_logic_side(&mut self, side: &Expression) -> Outcome<(Node, bool)> {
+        let (node, found) = self.check_expression(side, Some(&Type::Bool))?;
+        let (plain, secret) = super::secrets::unwrap_secret(&found);
+        if plain != Type::Bool {
+            return Err(Report::refused(
+                side.span,
+                format!("this is `{found}`, where a `bool` is needed"),
+                WHY_TYPES,
+            ));
+        }
+        Ok((node, secret))
     }
 
     /// trace: D117
@@ -3710,6 +3840,7 @@ impl Checker<'_> {
         let mut nodes = Vec::new();
         let mut previous: Option<Type> = None;
         let mut first_node = None;
+        let mut secret = false;
         let mut left = first;
         for (operator, right) in rest {
             let (left_checked, right_checked) = if let Some(left_type) = &previous {
@@ -3725,7 +3856,12 @@ impl Checker<'_> {
             };
             let (left_node, left_type) = left_checked;
             let (right_node, right_type) = right_checked;
-            self.check_comparable(*operator, &left_type, &right_type, left, right)?;
+            // A comparison of a secret gives a `bool.secret`. (D340)
+            // trace: D340
+            let (left_plain, left_secret) = super::secrets::unwrap_secret(&left_type);
+            let (right_plain, right_secret) = super::secrets::unwrap_secret(&right_type);
+            secret = secret || left_secret || right_secret;
+            self.check_comparable(*operator, &left_plain, &right_plain, left, right)?;
             if let Some(left_node) = left_node {
                 first_node = Some(left_node);
             }
@@ -3744,7 +3880,11 @@ impl Checker<'_> {
                     rest: nodes,
                 },
             },
-            Type::Bool,
+            if secret {
+                super::secrets::secret(Type::Bool)
+            } else {
+                Type::Bool
+            },
         ))
     }
 

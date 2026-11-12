@@ -160,6 +160,9 @@ pub enum Type {
     BoundedStr(i128),
     /// `str[len.max: inf bytes]`: text that grows on the heap, and is `must_Give`. (D326)
     GrowableStr,
+    /// `u32.secret` or `bool.secret`: a value that mustn't affect how long the program takes.
+    /// (D339)
+    Secret(Box<Type>),
     Integer {
         kind: IntegerKind,
         bound: Option<(i128, i128)>,
@@ -228,6 +231,7 @@ impl Type {
     pub fn is_always_copied(&self) -> bool {
         match self {
             Type::Integer { .. } | Type::Float { .. } | Type::Bool => true,
+            Type::Secret(inner) => inner.is_always_copied(),
             Type::New { underlying, .. } => underlying.is_always_copied(),
             _ => false,
         }
@@ -284,6 +288,15 @@ impl fmt::Display for Type {
             Type::Str => write!(formatter, "str"),
             Type::BoundedStr(bytes) => write!(formatter, "str[len.max: {bytes} bytes]"),
             Type::GrowableStr => write!(formatter, "str[len.max: inf bytes]"),
+            // `.secret` goes on the type's own name, before any brackets. (D339)
+            Type::Secret(inner) => match &**inner {
+                Type::Integer { kind, bound, unit } => {
+                    write!(formatter, "{}.secret", kind.word())?;
+                    let bound = bound.map(|(low, high)| (low.to_string(), high.to_string()));
+                    write_brackets(formatter, unit.as_ref(), bound)
+                }
+                other => write!(formatter, "{other}.secret"),
+            },
             Type::Integer { kind, bound, unit } => {
                 write!(formatter, "{}", kind.word())?;
                 let bound = bound.map(|(low, high)| (low.to_string(), high.to_string()));

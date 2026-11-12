@@ -300,6 +300,15 @@ impl Checker<'_> {
             position,
             Some(&Type::plain_integer(crate::types::IntegerKind::I32)),
         )?;
+        // Which memory is touched leaks a secret position through the cache. (D340)
+        // trace: D340
+        if matches!(position_type, Type::Secret(_)) {
+            return Err(super::secrets::refuse_on_a_secret(
+                position.span,
+                format!("this position is `{position_type}`"),
+                "which memory is touched leaks a secret through the cache, so a position stays public (D340)",
+            ));
+        }
         match &position_type {
             Type::Integer { unit: None, .. } => {}
             // trace: D142

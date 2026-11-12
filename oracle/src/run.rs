@@ -964,6 +964,22 @@ impl<'c> Runner<'c> {
                 let number = i128::try_from(self.writers.len() - 1).unwrap_or(i128::MAX);
                 Ok(Value::Struct(vec![Value::Integer(number)]))
             }
+            // Both sides run before one is chosen. (D340, D302)
+            // trace: D340
+            NodeKind::Pick {
+                condition,
+                if_true,
+                if_false,
+            } => {
+                let condition = self.evaluate(condition, frame)?;
+                let if_true = self.evaluate(if_true, frame)?;
+                let if_false = self.evaluate(if_false, frame)?;
+                Ok(if condition == Value::Bool(true) {
+                    if_true
+                } else {
+                    if_false
+                })
+            }
             // trace: D326, D328
             NodeKind::FitText { value, bytes } => {
                 let value = self.evaluate(value, frame)?;

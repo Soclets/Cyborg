@@ -1988,6 +1988,8 @@ impl Checker<'_> {
         span: Span,
     ) -> Outcome<(InstructionKind, bool)> {
         let (node, subject_type) = self.check_expression(subject, None)?;
+        // trace: D340
+        Self::refuse_secret_branch(&subject_type, subject)?;
         let Type::Union(union_name) = super::hand::plain_type(&subject_type) else {
             return Err(Report::not_designed(
                 subject.span,
@@ -2942,6 +2944,8 @@ impl Checker<'_> {
     /// Reading `$n` only for its truth, as `if`, `requires` and `ensures` do.
     pub(super) fn check_condition(&mut self, condition: &Expression) -> Outcome<Node> {
         let (node, condition_type) = self.check_expression(condition, Some(&Type::Bool))?;
+        // trace: D340
+        self.refuse_secret_condition(&condition_type, condition)?;
         if condition_type != Type::Bool {
             return Err(Report::refused(
                 condition.span,

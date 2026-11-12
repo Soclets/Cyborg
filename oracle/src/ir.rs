@@ -207,6 +207,13 @@ pub enum NodeKind {
         stderr: bool,
         size: Option<usize>,
     },
+    /// `$same.%pick(if_true: $x, if_false: $y)`: both sides worked out, then one chosen, with
+    /// no branch on the secret. (D340)
+    Pick {
+        condition: Box<Node>,
+        if_true: Box<Node>,
+        if_false: Box<Node>,
+    },
     /// Text that has to fit a `str[len.max: … bytes]`, a failure if it doesn't. (D326, D328)
     FitText {
         value: Box<Node>,
