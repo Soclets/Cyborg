@@ -45,6 +45,10 @@ struct Generator<'random> {
     unions: Vec<UnionDecl>,
     /// Every constant's name, since only constants go into another.
     constants: Vec<String>,
+    /// Making a pure function, which calls only pure ones (5.9).
+    pure_only: bool,
+    /// Making a contract, which calls nothing here (5.5).
+    no_calls: bool,
     functions: Vec<Function>,
 }
 
@@ -58,6 +62,8 @@ pub fn program(seed: u64) -> Program {
         structs: Vec::new(),
         unions: Vec::new(),
         constants: Vec::new(),
+        pure_only: false,
+        no_calls: false,
         functions: Vec::new(),
     };
     for _ in 0..generator.random.between(0, 2) {
@@ -170,10 +176,32 @@ impl Generator<'_> {
         }
         let any_order = labels.len() > 1 && self.random.chance(40);
         let result = self.integer_type();
+        // Some functions are pure, which never fail here, since whether one may isn't decided,
+        // and call only pure functions (5.9, 12.5).
+        let pure = self.random.chance(25);
+        self.pure_only = pure;
+        // Contracts read the parameters and literals, calling nothing, since a contract can
+        // only call pure functions (5.5).
+        self.no_calls = true;
+        let requires = self
+            .random
+            .chance(30)
+            .then(|| self.expression(&scope, Type::Bool, 2));
+        let ensures = match (self.random.chance(30), result) {
+            (true, Type::Integer(kind)) => {
+                let comparison = *self
+                    .random
+                    .pick(&Comparison::ALL)
+                    .unwrap_or(&Comparison::AtLeast);
+                Some((comparison, self.literal(kind)))
+            }
+            _ => None,
+        };
+        self.no_calls = false;
         // Some functions can fail, each with a test that decides when (8.1, 8.2).
         let mut own = Vec::new();
         let mut body = Vec::new();
-        if self.random.chance(40) {
+        if !pure && self.random.chance(40) {
             for _ in 0..self.random.between(1, 2) {
                 let failure = self.name("bad");
                 let carried = if self.random.chance(50) {
@@ -204,12 +232,16 @@ impl Generator<'_> {
         body.extend(self.block(&mut scope, 3, 1, (false, false)));
         let returned = self.expression(&scope, result, LIMITS.depth);
         let failures = self.failing.take().unwrap_or_default();
+        self.pure_only = false;
         Function {
             name,
             parameters,
             labels,
             any_order,
             defaults,
+            pure,
+            requires,
+            ensures,
             result,
             failures,
             body,
@@ -1095,10 +1127,14 @@ impl Generator<'_> {
         kind: Kind,
         depth: usize,
     ) -> Option<(String, Arguments, Vec<FailureDecl>)> {
+        if self.no_calls {
+            return None;
+        }
         let candidates: Vec<Function> = self
             .functions
             .iter()
             .filter(|function| function.result == Type::Integer(kind))
+            .filter(|function| function.pure || !self.pure_only)
             .cloned()
             .collect();
         let function = self.random.pick(&candidates)?.clone();

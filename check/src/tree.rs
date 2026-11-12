@@ -454,6 +454,12 @@ pub struct Function {
     pub any_order: bool,
     /// Defaults for labelled parameters, which calls may leave off (5.4).
     pub defaults: Vec<(String, Expression)>,
+    /// `fn.pure`: the same output for the same input, changing nothing else (5.9).
+    pub pure: bool,
+    /// `requires …;` on the parameters, checked at runtime (5.5).
+    pub requires: Option<Expression>,
+    /// `ensures result … ;` (5.4, 5.5).
+    pub ensures: Option<(Comparison, Expression)>,
     pub result: Type,
     pub failures: Vec<FailureDecl>,
     pub body: Vec<Statement>,
@@ -524,9 +530,10 @@ pub fn print(program: &Program) -> String {
                 .collect();
             format!(" fails [{}]", listed.join(", "))
         };
+        let word = if function.pure { "fn.pure" } else { "fn" };
         let _ = writeln!(
             out,
-            "fn {} [{parameters}] -> {}{fails}:",
+            "{word} {} [{parameters}] -> {}{fails}:",
             function.name,
             function.result.word()
         );
@@ -552,9 +559,21 @@ pub fn print(program: &Program) -> String {
                 .collect();
             let _ = writeln!(out, "    defaults [{}];", defaults.join(", "));
         }
+        // Then `requires` and `ensures`, before the code (5.4).
+        if let Some(test) = &function.requires {
+            let _ = writeln!(out, "    requires {};", style.expression(test));
+        }
+        if let Some((comparison, value)) = &function.ensures {
+            let _ = writeln!(
+                out,
+                "    ensures result {} {};",
+                comparison.word(),
+                style.grouped(value)
+            );
+        }
         print_block(&mut out, &function.body, 1, style);
         let _ = writeln!(out, "    return {};", style.expression(&function.returned));
-        let _ = writeln!(out, "end fn {}\n", function.name);
+        let _ = writeln!(out, "end {word} {}\n", function.name);
     }
     out.push_str("fn.main [none] -> void:\n");
     out.push_str("    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();\n");
