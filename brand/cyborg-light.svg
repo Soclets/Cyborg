@@ -2,10 +2,10 @@
   <rect x="0" y="0" width="1024" height="1024" rx="224" fill="#ffffff"/>
   <rect x="44" y="44" width="936" height="936" rx="184" fill="none" stroke="#000000" stroke-width="24"/>
   <g transform="translate(512 512) scale(0.86) translate(-472 -512)">
-    <path d="M 500 172 A 340 340 0 0 0 500 852" fill="none" stroke="#000000" stroke-width="128" stroke-linecap="round"/>
-    <path d="M 500 172 H 600 L 690 262" fill="none" stroke="#000000" stroke-width="44" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M 340.4 211.8 A 340 340 0 0 0 340.4 812.2" fill="none" stroke="#000000" stroke-width="128" stroke-linecap="round"/>
+    <path d="M 340.4 211.8 A 340 340 0 0 1 500 172 H 600 L 690 262" fill="none" stroke="#000000" stroke-width="44" stroke-linecap="round" stroke-linejoin="round"/>
     <circle cx="704" cy="276" r="54" fill="#000000"/>
-    <path d="M 500 852 H 600 L 690 762" fill="none" stroke="#000000" stroke-width="44" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M 340.4 812.2 A 340 340 0 0 0 500 852 H 600 L 690 762" fill="none" stroke="#000000" stroke-width="44" stroke-linecap="round" stroke-linejoin="round"/>
     <circle cx="704" cy="748" r="54" fill="#000000"/>
     <path d="M 220 512 H 480" fill="none" stroke="#000000" stroke-width="44"/>
     <circle cx="520" cy="512" r="76" fill="#000000"/>
