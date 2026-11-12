@@ -1220,6 +1220,8 @@ A `type_set` is a closed list of types that nothing can join later, as in `type_
 
 **D359. `@concur::locked` and `os::events` keep their names.** Locking stays `@concur::locked $from, $to as $a, $b: … end @concur::locked`, a block with Cyborg inside from the limb menu (D335), where "locked … as" reads as what it does, and the event runner stays `os::events`, next to `os::threads`, named for what it runs on, the operating system's events, like `kqueue` and `epoll`. This settles D348 and D350's placeholders, so `@concur`'s spellings are all decided except atomics' other operations. Claude proposed keeping them; the owner chose: "yea". (Owner, 2026-11-12)
 
+**D360. Atomics' other operations: `swap`, `compare_swap`, and the rest of the `add` family.** `$flag.%swap(val: 1)` sets a new value and gives back the old one, in one indivisible step. `$owner.%compare_swap(expect: 0, val: $me)` sets the new value only if the current one is still `expect`, the building block for lock-free code, and if something else got there first, it fails with `not_expected[val: …]`, carrying what's there now, so a lost race uses Cyborg's normal failures and can't be ignored, where most languages return a boolean or a pair. `.%sub`, `.%and`, `.%or` and `.%xor` work like `.%add` (D354), with `.wrap` or `.saturate` where overflow applies, and every operation takes D354's ordering narrowings, like `.%swap.acquire(…)`. Only the strong `compare_swap` exists: the weak one some CPUs offer, which can fail for no reason, could be a narrowing later. Claude proposed it; the owner chose: "yea", and asked "What's `%and`?". (Owner, 2026-11-12)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude
