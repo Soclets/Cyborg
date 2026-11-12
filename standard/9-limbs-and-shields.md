@@ -304,12 +304,13 @@ Every spawn names its runner, as every `append` names its allocator. `@concur::s
 
 ```
 let $pool: os::threads = os::threads(count: max);
-let $left: @concur::task<i64> = @concur::spawn(on: Lend $pool) sum(Lend $xs.%first_half());
-let $right: @concur::task<i64> = @concur::spawn(on: Lend $pool) sum(Lend $xs.%second_half());
+let $h: std::coll::halves<i64> = $xs.std::%split(at.items: 500);
+let $left: @concur::task<i64> = @concur::spawn(on: Lend $pool) sum($h.first);
+let $right: @concur::task<i64> = @concur::spawn(on: Lend $pool) sum($h.second);
 let $total: i64 = @concur::task.done(Give $left) + @concur::task.done(Give $right);
 ```
 
-Sharing follows the ownership words: `Give` hands a value to one task, `Lend` lets many read, and `Lend.mut` goes to one task only, so data races can't happen. A list is changed in parallel by splitting it into parts that don't overlap, with `$xs.%%split.mut(at.items: 500)`. Results come back through each task's own join, so they don't depend on which task finishes first.
+Sharing follows the ownership words: `Give` hands a value to one task, `Lend` lets many read, and `Lend.mut` goes to one task only, so data races can't happen. A list is changed in parallel by splitting it into parts that don't overlap, with `$xs.std::%%split.mut(at.items: 500)`. Results come back through each task's own join, so they don't depend on which task finishes first.
 
 A lock holds its data, made with `@concur::lock.new(0)`, or `@concur::lock.new(Give $list)` for a value that owns something. A lock holding a `must_Give` value is `must_Give` too, and ends with `@concur::lock.done`, which gives the value back. Locking gives a `Lend.mut` of it for one block, unlocking when the block ends, however it ends. Several locks are taken in one block, always in an order set by the locks themselves, and nesting is refused, so deadlocks can't happen. Which task locks first changes between runs, so locks are where timing can reach results.
 

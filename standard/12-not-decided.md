@@ -93,6 +93,8 @@ Waiting on the owner, most needed first. Each is `NotDesignedYet` unless it says
 - SIMD: an operator or comparison between a `simd` and one plain value, and comparison chains on `simd` values.
 - Two narrowings on one struct, like `struct.packed.must_Give`, and their order.
 
+- `@concur`: how an `os::events` runner is made.
+
 ## 12.3 Operators and conversion
 
 - Whether `-` and `x` follow [10.4](10-build-modes.md#104-what-happens-when-something-goes-wrong)'s overflow row, which D42 states for `+`.

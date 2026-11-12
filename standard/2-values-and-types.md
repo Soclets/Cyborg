@@ -262,10 +262,10 @@ let mut $xs: std::coll::list<i32>[len.max: inf items] = empty;
 defer std::coll::list.done(Give $xs, alloc: Lend $arena);
 ```
 
-A list with no `len.max` is a view of some or all of a list, as a bare `str` is of text: `std::coll::list<i32>` reads only, and `std::coll::list.mut<i32>` can be changed through but can't grow or shrink. A view never owns memory, so it isn't `must_Give` and needs no allocator, and it follows the same borrow rules as a `str` view. A read-only view copies freely, with no word, like a `str` view, while a `.mut` view can't be copied, since two changing views of one list would race, so passing one on takes `Lend.mut`. A function taking `$xs: std::coll::list<i32>` reads any list, bounded or growable, whole or part. `$xs.%%split.mut(at.items: 500)` gives a `std::coll::halves.mut<i32>`, holding two changeable views, `.first` and `.second`, for two tasks, and `$xs` stays lent to change until the last use of either half. `$xs.%split(at.items: 500)` gives a read-only `std::coll::halves<i32>`.
+A list with no `len.max` is a view of some or all of a list, as a bare `str` is of text: `std::coll::list<i32>` reads only, and `std::coll::list.mut<i32>` can be changed through but can't grow or shrink. A view never owns memory, so it isn't `must_Give` and needs no allocator, and it follows the same borrow rules as a `str` view. A read-only view copies freely, with no word, like a `str` view, while a `.mut` view can't be copied, since two changing views of one list would race, so passing one on takes `Lend.mut`. A function taking `$xs: std::coll::list<i32>` reads any list, bounded or growable, whole or part. `$xs.std::%%split.mut(at.items: 500)` gives a `std::coll::halves.mut<i32>`, holding two changeable views, `.first` and `.second`, for two tasks, and `$xs` stays lent to change until the last use of either half. `$xs.std::%split(at.items: 500)` gives a read-only `std::coll::halves<i32>`.
 
 ```
-let $h: std::coll::halves.mut<i32> = $xs.%%split.mut(at.items: 500);
+let $h: std::coll::halves.mut<i32> = $xs.std::%%split.mut(at.items: 500);
 @concur::spawn(on: Lend $pool) fill(Lend.mut $h.first);
 @concur::spawn(on: Lend $pool) fill(Lend.mut $h.second);
 ```
@@ -615,15 +615,15 @@ let $v: simd<i32>[lanes: 4] = $a as simd<i32>[lanes: 4];
 Walking a list or array in `simd`-sized chunks always says how the leftovers are handled, when the length isn't a multiple of the lane count: padding the last chunk with a value you give, requiring an exact multiple, or handing the leftover items over one at a time after the chunks. There's no bare form, since silently dropping the leftovers is a classic SIMD bug.
 
 ```
-for $chunk in $xs.%simd_chunks.pad(lanes: 4, pad: 0):
+for $chunk in $xs.std::%simd_chunks.pad(lanes: 4, pad: 0):
     change $total = $total + $chunk;
 end for
 
-for $chunk in $ys.%simd_chunks.exact(lanes: 4):
+for $chunk in $ys.std::%simd_chunks.exact(lanes: 4):
     change $total = $total + $chunk;
 end for
 
-for $chunk in $zs.%simd_chunks.leftovers(lanes: 4):
+for $chunk in $zs.std::%simd_chunks.leftovers(lanes: 4):
     change $total = $total + $chunk;
 leftovers $x:
     change $rest = $rest + $x;
@@ -635,7 +635,7 @@ With `.leftovers`, the `leftovers` section runs once for each leftover item, aft
 `simd_chunks` only reads: its chunks are copies, and changing one is refused. `.%%simd_chunks.mut` writes each chunk back into the list or array at the end of its round, which is locked for the whole loop. Padding lanes are dropped when writing back, and a changed leftover item is written back too.
 
 ```
-for $chunk in $pixels.%%simd_chunks.mut.exact(lanes: 16):
+for $chunk in $pixels.std::%%simd_chunks.mut.exact(lanes: 16):
     change $chunk = $chunk plus.saturate 20;
 end for
 ```
