@@ -1244,6 +1244,8 @@ A `type_set` is a closed list of types that nothing can join later, as in `type_
 
 **D371. Every `os::heap()` is a handle to the one OS heap.** There's only one operating-system heap, so all `os::heap()` handles count as one allocator for D322's check: memory grown through one can be freed through another, since it really is the same memory. Every arena and every allocator a program writes is its own, so the check still catches real mix-ups, like heap memory freed into an arena. Oracle claude asked whether each `os::heap()` is separate; Claude proposed one; the owner chose: "yea". (Owner, 2026-11-12)
 
+**D372. Saturating sticks at the bounds of the type the result goes into.** `let $c: u8[max: 100] = $a plus.saturate $b;` sticks at 100, whatever `$a`'s and `$b`'s own bounds are, since the result is going into `$c`'s written type, and every `let`, `change` and field writes its type (D277), so the limit is always right there to read. Two values with different written bounds, like `u8[max: 100]` and `u8[max: 200]`, pose no puzzle. Oracle claude made it NotDesignedYet; Claude proposed it; the owner said "Look at where the operation is going, it's going into the `let` that has this type. So?". (Owner, 2026-11-12)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude
