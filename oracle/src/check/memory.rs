@@ -693,7 +693,7 @@ fn struct_layout(layout: crate::ast::StructLayout, mut fields: Vec<(u64, u64)>) 
         // shared tests, so the oracle picks this one too. (D388, D389)
         // trace: D388, D389
         StructLayout::Compact | StructLayout::AnyOrder => {
-            fields.sort_by_key(|field| std::cmp::Reverse(field.1))
+            fields.sort_by_key(|field| std::cmp::Reverse(field.1));
         }
         StructLayout::Written => {}
     }
