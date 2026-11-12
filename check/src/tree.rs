@@ -396,7 +396,7 @@ impl NamedType {
 }
 
 /// A parameter of a void function: an integer lent to change (`Lent.mut`), a plain integer, or
-/// a struct, lent bare or `Given` (6.1, 6.5).
+/// a struct, `Lent` or `Given` (6.1, 6.5, D393).
 #[derive(Clone, Debug)]
 pub enum ParamKind {
     Changed(Kind),
@@ -823,7 +823,7 @@ pub fn print(program: &Program) -> String {
             None => {
                 let _ = writeln!(
                     out,
-                    "fn {structure}.%{} [$r: {structure}] -> {}:",
+                    "fn {structure}.%{} [$r: Lent {structure}] -> {}:",
                     method.name,
                     method.kind.word()
                 );
@@ -855,7 +855,8 @@ pub fn print(program: &Program) -> String {
                 ParamKind::Changed(kind) => format!("${name}: Lent.mut {}", kind.word()),
                 ParamKind::Plain(kind) => format!("${name}: {}", kind.word()),
                 ParamKind::Record { struct_name, given } => {
-                    let word = if *given { "Given " } else { "" };
+                    // How a struct is held is a choice, so it's always written (D393).
+                    let word = if *given { "Given " } else { "Lent " };
                     format!("${name}: {word}{struct_name}")
                 }
             })
@@ -1092,7 +1093,8 @@ fn print_block(out: &mut String, statements: &[Statement], depth: usize, style: 
                 changes,
                 body,
             } => {
-                let word = if *changes { "Lend.mut " } else { "" };
+                // A loop says how it holds each item, even to read it (D393).
+                let word = if *changes { "Lend.mut " } else { "Lend " };
                 let _ = writeln!(out, "{indent}for ${item} in {word}${array}:");
                 print_block(out, body, depth + 1, style);
                 let _ = writeln!(out, "{indent}end for");

@@ -1298,7 +1298,7 @@ impl Generator<'_> {
     }
 
     /// A void function: integers lent to change, which its body changes, plain integers, and
-    /// structs lent bare or given, whose fields it reads (5.3, 6.1, 6.5).
+    /// structs `Lent` or `Given`, whose fields it reads (5.3, 6.1, 6.5, D393).
     fn procedure(&mut self) -> Procedure {
         let name = self.name("proc");
         let mut scope = Scope {
