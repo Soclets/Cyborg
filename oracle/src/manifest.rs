@@ -315,7 +315,7 @@ fn refuse_okay_line(words: &[Word], line_span: Span) -> Box<Report> {
 }
 
 /// `dialect original 2026y-11m-01d` is plain Cyborg, built by `okay` at that version. Any
-/// other name is a Dialect, which CyJet loads from its registry. (D309, D310)
+/// other name is a Dialect, which `CyJet` loads from its registry. (D309, D310)
 /// trace: D309, D310
 fn read_dialect(compiler: &Word, version: &Word) -> Outcome<()> {
     check_version(version)?;
