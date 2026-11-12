@@ -1010,6 +1010,7 @@ impl Checker<'_> {
                 instance.clone(),
                 super::StructInfo {
                     must_give: info.must_give,
+                    packed: info.packed,
                     type_parameters: Vec::new(),
                     fields,
                     sources: info.sources.clone(),

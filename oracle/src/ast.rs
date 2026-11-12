@@ -219,6 +219,8 @@ pub struct FieldDeclaration {
 #[derive(Clone, Debug)]
 pub struct StructDeclaration {
     pub must_give: bool,
+    /// `struct.packed`: the written order with no padding, so a field can't be borrowed. (D319)
+    pub packed: bool,
     pub name: Name,
     /// `struct pair<?left: any, ?right: any>:`. (D234)
     pub type_parameters: Vec<TypeParameter>,

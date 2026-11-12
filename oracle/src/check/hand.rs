@@ -759,6 +759,7 @@ impl Checker<'_> {
 
     /// A place for `Lend` or `Lend.mut`.
     pub(super) fn check_lent_place(&mut self, value: &Expression, word: HandWord) -> Outcome<Held> {
+        self.refuse_lending_a_packed_field(value)?;
         let held = self.check_held(value)?;
         if word != HandWord::LendMut {
             return Ok(held);
@@ -884,6 +885,63 @@ impl Checker<'_> {
     }
 
     /// Whole values handed around must be the same type. Which list bounds fit which isn't stated.
+    /// A `struct.packed` field can sit at an odd address, so a borrow of it could be misaligned,
+    /// which some CPUs fault on. Reading it by name is a safe unaligned read. (D320)
+    /// trace: D320
+    fn refuse_lending_a_packed_field(&self, value: &Expression) -> Outcome<()> {
+        let ExpressionKind::Field { base, name } = &value.kind else {
+            return Ok(());
+        };
+        let Some(Type::Struct(owner)) = self.type_of_place(base) else {
+            return Ok(());
+        };
+        let Some(info) = self.struct_info(&owner).filter(|info| info.packed) else {
+            return Ok(());
+        };
+        let field_type = info
+            .fields
+            .iter()
+            .find(|(field, _)| *field == name.text)
+            .map_or(String::new(), |(_, found)| found.to_string());
+        Err(Report::refused(
+            value.span,
+            format!(
+                "`{}` is a field of `struct.packed {owner}`, so it can't be borrowed",
+                self.text_of(value.span)
+            ),
+            "a packed field can sit at an odd address, so a borrow of it could be misaligned, and it's copied into a variable first (D320)",
+        )
+        .fix_elsewhere(format!(
+            "let ${}: {field_type} = {};",
+            name.text,
+            self.text_of(value.span)
+        )))
+    }
+
+    /// The type a variable or a field of one holds, worked out from the declarations.
+    fn type_of_place(&self, value: &Expression) -> Option<Type> {
+        match &value.kind {
+            ExpressionKind::Variable(name) => {
+                let slot = self.find_variable(name)?;
+                match &self.context.variables.get(slot)?.held_type {
+                    Type::Borrow { inner, .. } => Some((**inner).clone()),
+                    other => Some(other.clone()),
+                }
+            }
+            ExpressionKind::Field { base, name } => {
+                let Some(Type::Struct(owner)) = self.type_of_place(base) else {
+                    return None;
+                };
+                self.struct_info(&owner)?
+                    .fields
+                    .iter()
+                    .find(|(field, _)| *field == name.text)
+                    .map(|(_, found)| found.clone())
+            }
+            _ => None,
+        }
+    }
+
     pub(super) fn check_held_type(span: Span, target: &Type, found: &Type) -> Outcome<()> {
         if target == found {
             return Ok(());

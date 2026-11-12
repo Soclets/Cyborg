@@ -1,0 +1,5 @@
+refused: d319_the_closer_says_packed.cy:5:1, line 5 column 1
+ 5 | end struct header
+   | ^^^^^^^^^^^^^^^^^
+ fix:  `end struct.packed header`
+ why:  the closer repeats all of what it closes, including its narrowings and name (D33, D121)

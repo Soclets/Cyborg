@@ -2510,18 +2510,34 @@ impl Parser {
     fn parse_struct(&mut self) -> Outcome<StructDeclaration> {
         self.advance(); // `struct`
         let mut must_give = false;
+        let mut packed = false;
+        let mut closer = "struct".to_string();
         if self.at_symbol(".") {
             self.advance();
             let narrowing = self.expect_name("a narrowing of `struct`")?;
-            if narrowing.text == "must_Give" {
-                must_give = true;
-            } else {
+            // A bare `struct` keeps the written order, and the layouts that don't are
+            // narrowings. (D319)
+            // trace: D319
+            match narrowing.text.as_str() {
+                "must_Give" => must_give = true,
+                "packed" => packed = true,
+                "any_order" => {}
+                other => {
+                    return Err(Report::not_designed(
+                        narrowing.span,
+                        format!("`struct.{other}`"),
+                        "",
+                    ));
+                }
+            }
+            if self.at_symbol(".") {
                 return Err(Report::not_designed(
-                    narrowing.span,
-                    format!("`struct.{}`", narrowing.text),
+                    self.span(),
+                    "a second narrowing on `struct`, and which order they go in",
                     "",
                 ));
             }
+            closer = format!("struct.{}", narrowing.text);
         }
         let (name, written) = self.expect_declared_name("struct", "the struct's name")?;
         let type_parameters = self.parse_type_parameters()?;
@@ -2540,13 +2556,10 @@ impl Parser {
                 written_type,
             });
         }
-        if must_give {
-            self.expect_closer(&["struct.must_Give", &written])?;
-        } else {
-            self.expect_closer(&["struct", &written])?;
-        }
+        self.expect_closer(&[&closer, &written])?;
         Ok(StructDeclaration {
             must_give,
+            packed,
             name,
             type_parameters,
             sources,

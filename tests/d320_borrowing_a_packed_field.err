@@ -1,0 +1,5 @@
+refused: d320_borrowing_a_packed_field.cy:15:19, line 15 column 19
+15 |     grow(Lend.mut $h.length);
+   |                   ^^^^^^^^^
+ fix:  `let $length: u32 = $h.length;`
+ why:  a packed field can sit at an odd address, so a borrow of it could be misaligned, and it's copied into a variable first (D320)

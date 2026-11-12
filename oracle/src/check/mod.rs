@@ -27,6 +27,8 @@ type SourceList = (Vec<String>, Vec<(String, String)>);
 #[derive(Clone, Debug)]
 struct StructInfo {
     must_give: bool,
+    /// `struct.packed`, whose fields can sit at odd addresses. (D319, D320)
+    packed: bool,
     /// A generic struct's type parameters, each with what it needs. (D234)
     type_parameters: Vec<(String, Vec<String>)>,
     fields: Vec<(String, Type)>,
@@ -1071,6 +1073,7 @@ impl Checker<'_> {
                         name.text.clone(),
                         StructInfo {
                             must_give: declaration.must_give,
+                            packed: declaration.packed,
                             type_parameters: Vec::new(),
                             fields: Vec::new(),
                             sources,
