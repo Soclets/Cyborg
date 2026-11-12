@@ -878,7 +878,17 @@ fn lex(source: &str) -> Outcome<Vec<Token>> {
         } else if is_word_start(character) {
             let word: String = rest.chars().take_while(|c| is_word_part(*c)).collect();
             position += word.len();
-            Lexeme::Word(word)
+            let after_dot = matches!(
+                tokens.last().map(|token| &token.lexeme),
+                Some(Lexeme::Symbol("."))
+            );
+            match base_of(&word) {
+                Some(base) if !after_dot => {
+                    lex_base_number(source, start, &word, base, &mut position)?
+                        .unwrap_or(Lexeme::Word(word))
+                }
+                _ => Lexeme::Word(word),
+            }
         } else if let Some(symbol) = SYMBOLS.iter().find(|symbol| rest.starts_with(**symbol)) {
             position += symbol.len();
             Lexeme::Symbol(symbol)
@@ -981,6 +991,76 @@ fn lex_text(source: &str, position: &mut usize) -> Outcome<Lexeme> {
     ))
 }
 
+/// The base a word in front of a literal says: `hex`, `bin` or `oct`, the words printing uses
+/// for `base:`. (D194, D374)
+fn base_of(word: &str) -> Option<u32> {
+    match word {
+        "hex" => Some(16),
+        "bin" => Some(2),
+        "oct" => Some(8),
+        _ => None,
+    }
+}
+
+/// `hex 4004_0000`, `bin 1111_1110` or `oct 755`: the word, one space, and digits in that base,
+/// grouped with `_` as in decimal, hex digits in either case. It becomes the decimal integer it
+/// stands for, so the rest of the oracle sees one kind of integer literal. Anything else after
+/// the word leaves it a plain word. (D374)
+/// trace: D374
+fn lex_base_number(
+    source: &str,
+    start: usize,
+    word: &str,
+    base: u32,
+    position: &mut usize,
+) -> Outcome<Option<Lexeme>> {
+    let after_word = source.get(*position..).unwrap_or("");
+    let Some(digits_text) = after_word.strip_prefix(' ') else {
+        return Ok(None);
+    };
+    if !digits_text.starts_with(|c: char| c.is_ascii_alphanumeric()) {
+        return Ok(None);
+    }
+    let written: String = digits_text
+        .chars()
+        .take_while(|c| is_word_part(*c))
+        .collect();
+    let end = *position + 1 + written.len();
+    let span = Span::new(start, end);
+    let mut decimal: Vec<u32> = vec![0];
+    for character in written.chars().filter(|c| *c != '_') {
+        let Some(digit) = character.to_digit(base) else {
+            return Err(Report::refused(
+                span,
+                format!("`{character}` isn't a digit in `{word}`"),
+                "`hex` takes 0 to 9 and a to f, `bin` 0 and 1, and `oct` 0 to 7 (D374)",
+            ));
+        };
+        // Multiplies the decimal digits, lowest first, by the base and adds the digit, so a
+        // value of any size comes out exact.
+        let mut carry = digit;
+        for place in &mut decimal {
+            let value = *place * base + carry;
+            *place = value % 10;
+            carry = value / 10;
+        }
+        while carry > 0 {
+            decimal.push(carry % 10);
+            carry /= 10;
+        }
+    }
+    while decimal.len() > 1 && decimal.last() == Some(&0) {
+        decimal.pop();
+    }
+    let digits: String = decimal
+        .iter()
+        .rev()
+        .filter_map(|digit| char::from_digit(*digit, 10))
+        .collect();
+    *position = end;
+    Ok(Some(Lexeme::Integer(digits)))
+}
+
 fn lex_number(source: &str, position: &mut usize) -> Outcome<Lexeme> {
     let start = *position;
     let rest = source.get(start..).unwrap_or("");
@@ -1051,12 +1131,29 @@ fn lex_number(source: &str, position: &mut usize) -> Outcome<Lexeme> {
                 .chars()
                 .take_while(|c| is_word_part(*c))
                 .collect();
-            // Hex and binary literals are listed as undecided; any other form is unasked.
-            let listed = number == "0" && (extra.starts_with('x') || extra.starts_with('b'));
+            let span = Span::new(start, end + extra.len());
+            // trace: D374
+            if number == "0" {
+                let word = match extra.chars().next() {
+                    Some('x' | 'X') => Some("hex"),
+                    Some('b' | 'B') => Some("bin"),
+                    Some('o' | 'O') => Some("oct"),
+                    _ => None,
+                };
+                if let Some(word) = word {
+                    let digits = extra.get(1..).unwrap_or("");
+                    return Err(Report::refused(
+                        span,
+                        format!("C's `0{}` isn't how Cyborg writes a base", extra.get(..1).unwrap_or("")),
+                        "a literal says its base with a word in front, as an exponent says `exponent`, so a stray letter can't quietly change a number (D165, D374)",
+                    )
+                    .fix(format!("{word} {digits}")));
+                }
+            }
             return Err(Report::not_designed(
-                Span::new(start, end + extra.len()),
+                span,
                 format!("the number form `{number}{extra}`"),
-                if listed { "12.2" } else { "" },
+                "",
             ));
         }
     }

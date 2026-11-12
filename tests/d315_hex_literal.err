@@ -1,5 +1,0 @@
-NotDesignedYet: d315_hex_literal.cy:5:19, line 5 column 19
- 5 |     let $a: u32 = 0x40;
-   |                   ^^^^
- what: the number form `0x40`
- why:  not decided yet (standard 12.2)

@@ -1,0 +1,5 @@
+refused: d374_too_big_for_the_type.cy:4:21, line 4 column 21
+ 4 |     let $byte: u8 = hex 1_00;
+   |                     ^^^^^^^^
+ what: `256` doesn't fit `u8`
+ why:  a literal that can't fit is a compile error (D20)

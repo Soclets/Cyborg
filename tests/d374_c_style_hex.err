@@ -1,0 +1,5 @@
+refused: d374_c_style_hex.cy:5:19, line 5 column 19
+ 5 |     let $a: u32 = 0x40;
+   |                   ^^^^
+ fix:  `hex 40`
+ why:  a literal says its base with a word in front, as an exponent says `exponent`, so a stray letter can't quietly change a number (D165, D374)

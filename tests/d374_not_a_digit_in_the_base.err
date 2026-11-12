@@ -1,0 +1,5 @@
+refused: d374_not_a_digit_in_the_base.cy:4:21, line 4 column 21
+ 4 |     let $mask: u8 = bin 1012;
+   |                     ^^^^^^^^
+ what: `2` isn't a digit in `bin`
+ why:  `hex` takes 0 to 9 and a to f, `bin` 0 and 1, and `oct` 0 to 7 (D374)
