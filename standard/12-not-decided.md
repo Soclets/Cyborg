@@ -133,7 +133,7 @@ These are inherited from Radium with D2:
 
 And one of Cyborg's own:
 
-- Concurrency (D343): tasks are structured, and the rest is open: spelling, where threads come from, sharing data, and waiting on many things at once.
+- Concurrency (D343, D344): tasks are structured and come from the `@concur` limb, and the rest is open: spelling, where threads come from, sharing data, and waiting on many things at once.
 
 ## 12.9 Limbs and projects
 
