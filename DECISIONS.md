@@ -1282,6 +1282,8 @@ A `type_set` is a closed list of types that nothing can join later, as in `type_
 
 **D390. A view is a pointer and a pointer-sized length.** A `str` view (D327) or a list view (D379) holds where its text or items are and how long they are, so it takes two pointer-sized parts: 16 bytes on the 64-bit targets and 8 on the Uno R4 WiFi's 32-bit chip, as in Rust and Zig. The length is pointer-sized, since a chip can't have more memory than its pointers can reach. This corrects D387, where Claude wrote that a view is the same size as a pointer. It only matters for exact sizes, like when an arena runs out. Oracle claude found the mistake; Claude proposed it; the owner asked "what?", and chose: "yea". (Owner, 2026-11-12)
 
+**D391. Operating-system targets are named by the OS and the chip family.** `--target=macos_aarch64`, `linux_aarch64` and `linux_x86_64`, using the chip families' official names, `aarch64` and `x86_64`. A bare-metal target names its exact board (D281), since the board decides the memory map, startup code and pins, but an operating system hides the board, so its family is enough, and a specific chip within the family is chosen with `--machine.cpu=` (D365). These were compiler claude's placeholder names, and tests that depend on a target name it this way (D389). Oracle claude asked what the targets are called; Claude proposed it; the owner chose: "yea". (Owner, 2026-11-12)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude

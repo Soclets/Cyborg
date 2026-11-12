@@ -31,7 +31,7 @@
 
 ## 10.2 No default
 
-**Rule:** there's no default build mode. You always say which, as its own flag. The compiler is `OKAY\n`, typed `okay`: `okay comp` compiles, and `okay run` compiles and runs. `--max_cores=` takes a number, `max` or `min`, and is `max` when left out. `okay` links by itself, with nothing else installed, and cross-compiles with one flag, as in `--target=arduino_uno_r4_wifi`. A bare-metal target names the exact board, since its memory map, startup code and pins are the board's.
+**Rule:** there's no default build mode. You always say which, as its own flag. The compiler is `OKAY\n`, typed `okay`: `okay comp` compiles, and `okay run` compiles and runs. `--max_cores=` takes a number, `max` or `min`, and is `max` when left out. `okay` links by itself, with nothing else installed, and cross-compiles with one flag, as in `--target=arduino_uno_r4_wifi`. A bare-metal target names the exact board, since its memory map, startup code and pins are the board's. An operating-system target names the OS and the chip family, `macos_aarch64`, `linux_aarch64` or `linux_x86_64`, since the OS hides the board, and a specific chip in the family is chosen with `--machine.cpu=` ([10.11](#1011-tuning-for-one-machine-machine)).
 
 ```
 okay comp --FinalSafe
