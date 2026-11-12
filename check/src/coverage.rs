@@ -10,8 +10,8 @@
 ///   `.floor`, a bare `div` on floats, the `.bit` operators, and `shl` and `shr` on unsigned
 ///   types; comparisons and comparison chains; `and`, `or`, `and.both`, `or.both` and `not`;
 ///   precedence with and without `( )`, as 3.9's table orders it;
-/// - data: arrays from `[ ]` and `all`, their items by `pos:` and `offset.items:`, read and
-///   changed; structs with integer fields in every layout, built with `[ ]`, their fields read
+/// - data: arrays from `[ ]` and `all`, and bounded lists from `[ ]` or `empty`, their items by
+///   `pos:` and `offset.items:`, read and changed, and `append` to a bounded list; structs with integer fields in every layout, built with `[ ]`, their fields read
 ///   and changed; tagged unions whose cases carry integer data or none, and `match` covering every
 ///   case in any order, an arm naming its case to read its data;
 /// - control: `let`, `change`, `if` and `else`, `while`, `for` over literal ranges and through
@@ -31,7 +31,7 @@ pub const NOT_GENERATED: &[&str] = &[
     "2.5 bounded parameters and fields, the test `if $n: T:` that checks a bound",
     "2.6, 2.7 `.fast` and `.ieee` floats, bounded floats, `exponent` literals, `fmt_print.stored`, floats in structs, arrays and calls",
     "2.9 strings: views, bounded and heap strings",
-    "2.10 and 2.12 lists and maps, `append`, allocators, `done`, views and splits",
+    "2.10 and 2.12 growable lists and maps, allocators, `done`, `.len`, views and splits, a full list's failure handled",
     "2.14 `as`, and its failures",
     "2.16 units, their conversions, points and spans",
     "2.18 `type.alias`, `type.new` and type families",
