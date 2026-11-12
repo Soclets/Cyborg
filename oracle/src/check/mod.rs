@@ -34,7 +34,6 @@ struct StructInfo {
     /// `struct.packed`, whose fields can sit at odd addresses. (D319, D320)
     packed: bool,
     /// Its layout, which says its size. (D319, D388)
-    #[allow(dead_code)] // Read once arenas count their bytes (D370).
     layout: crate::ast::StructLayout,
     /// A generic struct's type parameters, each with what it needs. (D234)
     type_parameters: Vec<(String, Vec<String>)>,

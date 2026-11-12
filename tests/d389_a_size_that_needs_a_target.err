@@ -1,0 +1,5 @@
+refused: d389_a_size_that_needs_a_target.cy:16:74, line 16 column 74
+16 |         let mut $ps: std::coll::list<ptr.raw<i32>>[len.max: inf items] = std::coll::list.from([$p], alloc: Lend $arena);
+   |                                                                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ what: how much these items take depends on the target, which this run doesn't name
+ why:  a pointer's size is the target's, so a program whose answer depends on it names its target with `--target=` (D387, D389)

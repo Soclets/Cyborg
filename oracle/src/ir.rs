@@ -328,9 +328,6 @@ pub enum NodeKind {
     /// `std::mem::arena.new(room: 1 mib, alloc: Lend $heap)`: a new arena with that much room.
     /// (D330)
     ArenaNew {
-        // Counted against once design says how lists grow in an arena and what its own
-        // bookkeeping takes (D370, 12.2).
-        #[allow(dead_code)]
         bytes: i128,
         allocator: Box<Node>,
     },
@@ -362,6 +359,7 @@ pub enum NodeKind {
     ListFrom {
         items: Box<Node>,
         allocator: Box<Node>,
+        growing: Box<Growing>,
     },
     /// `str.done(Give $log, alloc: Lend $heap)`, which ends heap text. (D331)
     TextDone {
@@ -386,6 +384,8 @@ pub enum NodeKind {
         item: Box<Node>,
         /// The allocator a growable list takes memory from. (D322)
         allocator: Option<Box<Node>>,
+        /// How a growable list asks for memory. (D385)
+        growing: Option<Box<Growing>>,
         max: Option<i128>,
         /// The most its `len.type` can count, which `inf` can run into. (D140)
         count_limit: i128,
@@ -618,4 +618,32 @@ pub enum AtomicOperation {
     XorBit,
     Swap,
     CompareSwap,
+}
+
+/// How much memory one item takes, at its natural alignment, for what an arena holds. Sizes are
+/// the standard's, except a pointer's, which is the target's. (D370, D387, D389)
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum ItemSize {
+    Fixed {
+        size: u64,
+        align: u64,
+    },
+    /// Its size and alignment where pointers take 4 bytes, and where they take 8.
+    ByPointer {
+        four: (u64, u64),
+        eight: (u64, u64),
+    },
+    /// Not decided, or the compiler's own, as with `struct.any_order` (D388): what to say if an
+    /// arena needs it.
+    Unknown {
+        what: String,
+        compiler_own: bool,
+    },
+}
+
+/// How a growable list asks for memory: what each item takes, and how it grows. (D385)
+#[derive(Clone, Debug)]
+pub struct Growing {
+    pub item: ItemSize,
+    pub grow: crate::types::Growth,
 }

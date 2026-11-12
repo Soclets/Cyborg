@@ -2782,6 +2782,7 @@ impl Checker<'_> {
                 item,
                 max,
                 len_type,
+                grow,
                 ..
             },
         ) = (held.place.clone(), held.value_type.clone())
@@ -2800,8 +2801,14 @@ impl Checker<'_> {
             default: None,
             label_has_unit: false,
         }];
-        // trace: D321, D322
+        // trace: D321, D322, D385
         let growable = max.is_none();
+        let growing = growable.then(|| {
+            Box::new(ir::Growing {
+                item: self.item_size(&item),
+                grow,
+            })
+        });
         let (arguments, allocator) = Self::split_allocator(arguments, growable, span)?;
         let bound = self.bind_arguments(&parameters, false, &arguments, span, "append")?;
         let mut handed = vec![HandedOff {
@@ -2852,6 +2859,7 @@ impl Checker<'_> {
                     shown: receiver_text,
                     item: Box::new(item_node),
                     allocator: allocator_node,
+                    growing,
                     max,
                     count_limit: len_type.range().1,
                 },

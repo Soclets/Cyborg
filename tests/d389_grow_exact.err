@@ -1,0 +1,6 @@
+check failed: d389_grow_exact.cy:17:5, line 17 column 5
+17 |     $xs.std::%%append(val: 4, alloc: Lend $arena);
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ what: `out_of_memory` failed, and nothing handled it
+ why:  a failure nothing handles stops the program (D96)
+ when: the arena has room for 12 bytes, 12 are taken, and this needs 16 from byte 0

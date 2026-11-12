@@ -471,6 +471,15 @@ pub enum Growth {
     By { count: i128, unit: String },
 }
 
+/// The block a growable list holds: its allocator, how many items it has room for, and which of
+/// an arena's blocks it is. (D322, D385, D389)
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct Heap {
+    pub allocator: usize,
+    pub capacity: usize,
+    pub block: usize,
+}
+
 /// A view onto part of a list that lives elsewhere: half of a split, through which reads and
 /// writes reach the list itself. (D382)
 #[derive(Clone, Debug, PartialEq)]
@@ -493,8 +502,8 @@ pub enum Value {
     /// A union's case by its index, with its fields.
     Case(usize, Vec<Value>),
     /// Lists and arrays look the same once running. A list that grows on the heap remembers
-    /// which allocator it uses, by number, once it first allocates. (D322)
-    List(Vec<Value>, Option<usize>),
+    /// its block once it first allocates: which allocator, by number, and its room. (D322, D385)
+    List(Vec<Value>, Option<Heap>),
     Map,
     /// Half of a split. (D382)
     Window(Window),

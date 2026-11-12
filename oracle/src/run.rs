@@ -13,7 +13,7 @@ use crate::ir::{
     Table, Test,
 };
 use crate::report::{Kind, Outcome, Report, ReportExtra, Span};
-use crate::types::{show_float, FloatKind, FloatRules, IntegerKind, Value, Window};
+use crate::types::{show_float, FloatKind, FloatRules, Heap, IntegerKind, Value, Window};
 
 /// How deep Cyborg calls can go here. Past this the oracle says so, instead of running out of
 /// stack and crashing, which rule 6 forbids. What running out of stack means isn't decided.
@@ -143,12 +143,21 @@ struct Runner<'c> {
     tasks: Vec<TaskRun>,
     /// Every arena made, numbered from 1 as allocators, since the OS heap is 0. (D330, D371)
     arenas: Vec<Arena>,
+    /// How many bytes a pointer takes on the target this run names, if it names one. (D387)
+    pointer_bytes: Option<u64>,
 }
 
 /// An arena: how many lists from it are still alive, and whether it has ended. (D330)
 struct Arena {
     live: usize,
     ended: bool,
+    /// The bytes it has room for, its bookkeeping aside, and how many are handed out. (D386)
+    room: u64,
+    used: u64,
+    /// Each block handed out, where it starts and how long it is, and which was last, since
+    /// that one can grow where it is. (D389)
+    blocks: Vec<(u64, u64)>,
+    last: Option<usize>,
 }
 
 /// A call's function, its arguments, and its tables, ready to run.
@@ -248,8 +257,11 @@ pub fn check_compile_time(code: &Code) -> Outcome<()> {
 }
 
 /// Runs the program from `fn.main`.
-pub fn run(code: &Code) -> Outcome<()> {
+/// Runs a program. `pointer_bytes` is how many bytes a pointer takes on the target the run
+/// names, if it names one. (D387)
+pub fn run(code: &Code, pointer_bytes: Option<u64>) -> Outcome<()> {
     let mut runner = Runner::new(code, None);
+    runner.pointer_bytes = pointer_bytes;
     let mut frame = Frame {
         slots: Vec::new(),
         tables: Vec::new(),
@@ -312,6 +324,7 @@ impl<'c> Runner<'c> {
             pointers: Vec::new(),
             tasks: Vec::new(),
             arenas: Vec::new(),
+            pointer_bytes: None,
         }
     }
 
@@ -480,6 +493,113 @@ impl<'c> Runner<'c> {
         }
         let tables = Self::resolve_tables(tables, frame, node.span)?;
         Ok((*function, bindings, tables))
+    }
+
+    /// Memory for a growable list that needs room for `needed` items: from the OS heap, which
+    /// the oracle never runs out of, or from an arena, which runs out at the same point on every
+    /// machine for a target. A full list doubles, with room for at least 4 at first, unless its
+    /// type says `grow:`, and an arena grows a list's block where it is when it was the last
+    /// one handed out. (D370, D385, D386, D387, D389)
+    /// trace: D370, D385, D386, D387, D389
+    fn allocate(
+        &mut self,
+        allocator: usize,
+        growing: &crate::ir::Growing,
+        needed: usize,
+        old: Option<Heap>,
+        span: Span,
+    ) -> Result<Heap, Stop> {
+        use crate::types::Growth;
+        let Some(arena_index) = allocator.checked_sub(1) else {
+            return Ok(Heap {
+                allocator,
+                capacity: usize::MAX,
+                block: 0,
+            });
+        };
+        let (size, align) = self.item_size(&growing.item, span)?;
+        let needed_items = u64::try_from(needed).unwrap_or(u64::MAX);
+        let (capacity, bytes) = match &growing.grow {
+            Growth::Double => {
+                let capacity = match old {
+                    None => needed_items.max(4),
+                    Some(heap) => u64::try_from(heap.capacity)
+                        .unwrap_or(u64::MAX)
+                        .saturating_mul(2)
+                        .max(needed_items),
+                };
+                (capacity, capacity.saturating_mul(size))
+            }
+            Growth::Exact => (needed_items, needed_items.saturating_mul(size)),
+            Growth::By { count, unit } => {
+                let count = u64::try_from(*count).unwrap_or(u64::MAX);
+                let step = match unit.as_str() {
+                    "items" => count.saturating_mul(size),
+                    "kib" => count.saturating_mul(1024),
+                    "mib" => count.saturating_mul(1024 * 1024),
+                    _ => count,
+                };
+                let bytes = round_up_bytes(needed_items.saturating_mul(size), step);
+                (bytes.checked_div(size).unwrap_or(needed_items), bytes)
+            }
+        };
+        let Some(arena) = self.arenas.get_mut(arena_index) else {
+            return Err(oracle_bug(span, "an arena that was never made"));
+        };
+        let in_place = old
+            .map(|heap| heap.block)
+            .filter(|block| arena.last == Some(*block));
+        let start = match in_place {
+            Some(block) => arena.blocks.get(block).map_or(0, |found| found.0),
+            None => round_up_bytes(arena.used, align),
+        };
+        let end = start.saturating_add(bytes);
+        if end > arena.room {
+            return Err(Stop::Raised(Raised {
+                name: "out_of_memory".to_string(),
+                shown: "`out_of_memory` failed".to_string(),
+                when: Some(format!(
+                    "the arena has room for {} bytes, {} are taken, and this needs {bytes} from byte {start}",
+                    arena.room, arena.used
+                )),
+                data: Vec::new(),
+                span,
+            }));
+        }
+        let block = if let Some(block) = in_place {
+            if let Some(found) = arena.blocks.get_mut(block) {
+                found.1 = bytes;
+            }
+            block
+        } else {
+            arena.blocks.push((start, bytes));
+            arena.blocks.len() - 1
+        };
+        arena.used = end;
+        arena.last = Some(block);
+        Ok(Heap {
+            allocator,
+            capacity: usize::try_from(capacity).unwrap_or(usize::MAX),
+            block,
+        })
+    }
+
+    /// What one item takes for this run's target, or why it can't be known. (D387, D389)
+    fn item_size(&self, item: &crate::ir::ItemSize, span: Span) -> Result<(u64, u64), Stop> {
+        use crate::ir::ItemSize;
+        match item {
+            ItemSize::Fixed { size, align } => Ok((*size, *align)),
+            ItemSize::ByPointer { four, eight } => match self.pointer_bytes {
+                Some(4) => Ok(*four),
+                Some(_) => Ok(*eight),
+                None => Err(Stop::Report(Report::refused(
+                    span,
+                    "how much these items take depends on the target, which this run doesn't name",
+                    "a pointer's size is the target's, so a program whose answer depends on it names its target with `--target=` (D387, D389)",
+                ))),
+            },
+            ItemSize::Unknown { what, .. } => Err(Stop::Report(Report::not_designed(span, what, ""))),
+        }
     }
 
     /// A list took its first memory from this allocator, which an arena counts. (D330)
@@ -1263,7 +1383,11 @@ impl<'c> Runner<'c> {
                 self.evaluate(text, frame)
             }
             // trace: D369
-            NodeKind::ListFrom { items, allocator } => {
+            NodeKind::ListFrom {
+                items,
+                allocator,
+                growing,
+            } => {
                 let Value::List(items, _) = self.evaluate(items, frame)? else {
                     return Err(oracle_bug(
                         span,
@@ -1271,8 +1395,9 @@ impl<'c> Runner<'c> {
                     ));
                 };
                 let allocator = self.allocator_number(allocator, frame)?;
+                let heap = self.allocate(allocator, growing, items.len(), None, span)?;
                 self.arena_gained(allocator, span)?;
-                Ok(Value::List(items, Some(allocator)))
+                Ok(Value::List(items, Some(heap)))
             }
             NodeKind::TextDone { text, allocator } => {
                 self.evaluate(text, frame)?;
@@ -1284,11 +1409,15 @@ impl<'c> Runner<'c> {
             // trace: D322, D332, D371
             NodeKind::Allocator => Ok(Value::Struct(vec![Value::Integer(0)])),
             // trace: D330
-            NodeKind::ArenaNew { allocator, .. } => {
+            NodeKind::ArenaNew { bytes, allocator } => {
                 self.allocator_number(allocator, frame)?;
                 self.arenas.push(Arena {
                     live: 0,
                     ended: false,
+                    room: u64::try_from(*bytes).unwrap_or(u64::MAX),
+                    used: 0,
+                    blocks: Vec::new(),
+                    last: None,
                 });
                 let number = i128::try_from(self.arenas.len()).unwrap_or(i128::MAX);
                 Ok(Value::Struct(vec![Value::Integer(number)]))
@@ -1321,6 +1450,7 @@ impl<'c> Runner<'c> {
                 let allocator = self.allocator_number(allocator, frame)?;
                 match list {
                     Value::List(_, used) => {
+                        let used = used.map(|heap| heap.allocator);
                         check_allocator(used, allocator, "this list", span)?;
                         if used.is_some() {
                             self.arena_lost(allocator);
@@ -1341,6 +1471,7 @@ impl<'c> Runner<'c> {
                 shown,
                 item,
                 allocator,
+                growing,
                 max,
                 count_limit,
             } => {
@@ -1352,7 +1483,7 @@ impl<'c> Runner<'c> {
                     receiver,
                     shown,
                     item,
-                    allocator,
+                    allocator.zip(growing.as_deref()),
                     *max,
                     *count_limit,
                     frame,
@@ -1654,7 +1785,7 @@ impl<'c> Runner<'c> {
         receiver: &Place,
         shown: &str,
         item: &Node,
-        allocator: Option<usize>,
+        allocator: Option<(usize, &crate::ir::Growing)>,
         max: Option<i128>,
         count_limit: i128,
         frame: &mut Frame,
@@ -1684,15 +1815,25 @@ impl<'c> Runner<'c> {
                 "",
             )));
         }
-        // A growable list remembers the allocator it first takes memory from. (D322)
-        // trace: D322
+        // A growable list remembers the allocator it first takes memory from, and takes more
+        // when it's full, as its type says. (D322, D385)
+        // trace: D322, D385
         let mut first_allocation = None;
-        if let Some(allocator) = allocator {
-            check_allocator(*alloc, allocator, &format!("`{shown}`"), span)?;
-            if alloc.is_none() {
-                first_allocation = Some(allocator);
+        if let Some((allocator, growing)) = allocator {
+            let old = *alloc;
+            check_allocator(
+                old.map(|heap| heap.allocator),
+                allocator,
+                &format!("`{shown}`"),
+                span,
+            )?;
+            let needed = items.len() + 1;
+            if old.is_none_or(|heap| needed > heap.capacity) {
+                *alloc = Some(self.allocate(allocator, growing, needed, old, span)?);
+                if old.is_none() {
+                    first_allocation = Some(allocator);
+                }
             }
-            *alloc = Some(allocator);
         }
         items.push(item);
         drop(root);
@@ -2253,6 +2394,14 @@ fn list_range(binding: Binding, span: Span, what: &str) -> Result<(Binding, usiz
         _ => return Err(oracle_bug(span, what)),
     };
     Ok((binding, 0, count))
+}
+
+/// `value` rounded up to a multiple of `step`.
+fn round_up_bytes(value: u64, step: u64) -> u64 {
+    if step == 0 {
+        return value;
+    }
+    value.div_ceil(step).saturating_mul(step)
 }
 
 /// The half of a split a binding holds, if it holds one. (D382)

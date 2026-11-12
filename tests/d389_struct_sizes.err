@@ -1,0 +1,6 @@
+check failed: d389_struct_sizes.cy:30:65, line 30 column 65
+30 |     let mut $ws: std::coll::list<written>[len.max: inf items] = std::coll::list.from([written[flag = 1, when = 2, level = 3], written[flag = 1, when = 2, level = 3], written[flag = 1, when = 2, level = 3], written[flag = 1, when = 2, level = 3], written[flag = 1, when = 2, level = 3]], alloc: Lend $one);
+   |                                                                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ what: `out_of_memory` failed, and nothing handled it
+ why:  a failure nothing handles stops the program (D96)
+ when: the arena has room for 100 bytes, 0 are taken, and this needs 120 from byte 0

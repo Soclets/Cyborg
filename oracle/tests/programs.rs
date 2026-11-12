@@ -2,7 +2,8 @@
 //! compares its output byte for byte. `name.cy` is the program, `name.out` its exact standard
 //! output, and `name.err` its exact error. A missing file means that stream stays empty, and an
 //! `.err` means the oracle must exit with 1, unless `name.exit` gives the code, as for a program
-//! that prints to stderr and ends well. (D195) A folder is one project with one manifest, so a
+//! that prints to stderr and ends well. (D195) `name.target` names the target a test's answer
+//! depends on, passed as `--target=`. (D387, D389) A folder is one project with one manifest, so a
 //! test of the manifest itself has a folder of its own. (D183)
 #![forbid(unsafe_code)]
 #![deny(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
@@ -18,7 +19,13 @@ fn read_or_empty(path: &Path) -> String {
 
 fn run_one(folder: &Path, stem: &str) -> Result<(), String> {
     let source = format!("{stem}.cy");
-    let output = Command::new(env!("CARGO_BIN_EXE_oracle"))
+    // A test whose answer depends on its target names it in `name.target`. (D387, D389)
+    let target = read_or_empty(&folder.join(format!("{stem}.target")));
+    let mut command = Command::new(env!("CARGO_BIN_EXE_oracle"));
+    if !target.trim().is_empty() {
+        command.arg(format!("--target={}", target.trim()));
+    }
+    let output = command
         .arg(&source)
         .current_dir(folder)
         .output()

@@ -45,7 +45,16 @@ fn build(text: &str, needs: Option<&[String]>) -> Result<ir::Code, Vec<Report>> 
 /// Every program has a manifest next to it, `CyJet.siml`. Its errors show first, against it,
 /// and then the program's. Without one, nothing checks what the program imports against it.
 /// trace: D183, D229
-fn run_and_report(source: &Source, manifest: Option<&Source>) -> ExitCode {
+/// The targets the oracle knows, by name, with how many bytes a pointer takes on each. The
+/// standard names only this board so far. (D387, 10.2)
+/// trace: D387
+const TARGETS: &[(&str, u64)] = &[("arduino_uno_r4_wifi", 4)];
+
+fn run_and_report(
+    source: &Source,
+    manifest: Option<&Source>,
+    pointer_bytes: Option<u64>,
+) -> ExitCode {
     let mut shown: Vec<String> = Vec::new();
     let needs = if let Some(manifest) = manifest {
         let (read, errors) = manifest::read(&manifest.text);
@@ -62,7 +71,7 @@ fn run_and_report(source: &Source, manifest: Option<&Source>) -> ExitCode {
     };
     let needs = needs.as_deref();
     let errors = match build(&source.text, needs) {
-        Ok(code) if shown.is_empty() => match run::run(&code) {
+        Ok(code) if shown.is_empty() => match run::run(&code, pointer_bytes) {
             Ok(()) => return ExitCode::SUCCESS,
             Err(report) => vec![*report],
         },
@@ -95,10 +104,33 @@ fn read_manifest(program: &str) -> Result<Option<Source>, String> {
 }
 
 fn main() -> ExitCode {
-    let mut arguments = std::env::args().skip(1);
-    let (Some(path), None) = (arguments.next(), arguments.next()) else {
-        eprintln!("usage: oracle <program.cy>");
+    // `--target=` names the target whose sizes a run uses, as `okay` takes it. (D387, D389)
+    let mut target = None;
+    let mut paths = Vec::new();
+    for argument in std::env::args().skip(1) {
+        match argument.strip_prefix("--target=") {
+            Some(name) => target = Some(name.to_string()),
+            None => paths.push(argument),
+        }
+    }
+    let [path] = &paths[..] else {
+        eprintln!("usage: oracle [--target=<target>] <program.cy>");
         return ExitCode::from(2);
+    };
+    let path = path.clone();
+    let pointer_bytes = match &target {
+        None => None,
+        Some(name) => {
+            let Some((_, bytes)) = TARGETS.iter().find(|(known, _)| known == name) else {
+                let known: Vec<&str> = TARGETS.iter().map(|(known, _)| *known).collect();
+                eprintln!(
+                    "oracle: `{name}` isn't a target the oracle knows; it knows {}",
+                    known.join(", ")
+                );
+                return ExitCode::from(2);
+            };
+            Some(*bytes)
+        }
     };
     // trace: D137
     let extension = std::path::Path::new(&path).extension();
@@ -123,7 +155,7 @@ fn main() -> ExitCode {
     let source = Source { name: path, text };
     let worker = std::thread::Builder::new()
         .stack_size(STACK_BYTES)
-        .spawn(move || run_and_report(&source, manifest.as_ref()));
+        .spawn(move || run_and_report(&source, manifest.as_ref(), pointer_bytes));
     let joined = match worker {
         Ok(handle) => handle.join(),
         Err(error) => {

@@ -461,12 +461,17 @@ impl Checker<'_> {
         let (items_node, _) = self.check_expression(&items.value, Some(&holder))?;
         let mut handed = Vec::new();
         let allocator = self.allocator_argument(&allocator.value, &mut handed)?;
+        let growing = Box::new(ir::Growing {
+            item: self.item_size(&item),
+            grow: grow.clone(),
+        });
         Ok(RawCall {
             node: Node {
                 span,
                 kind: NodeKind::ListFrom {
                     items: Box::new(items_node),
                     allocator: Box::new(allocator),
+                    growing,
                 },
             },
             value_type: Type::List {
@@ -583,4 +588,121 @@ impl Checker<'_> {
             unnamed: None,
         })
     }
+}
+
+/// What can't be sized: what to say, and whether it's the compiler's own choice rather than an
+/// undecided question.
+type NoSize = (String, bool);
+
+impl Checker<'_> {
+    /// What one item of this type takes in a list's block, for each pointer width a target
+    /// can have. (D370, D387, D389)
+    /// trace: D370, D387, D389
+    pub(super) fn item_size(&self, item: &Type) -> ir::ItemSize {
+        match (self.layout_of(item, 4), self.layout_of(item, 8)) {
+            (Ok(four), Ok(eight)) if four == eight => ir::ItemSize::Fixed {
+                size: four.0,
+                align: four.1,
+            },
+            (Ok(four), Ok(eight)) => ir::ItemSize::ByPointer { four, eight },
+            (Err((what, compiler_own)), _) | (_, Err((what, compiler_own))) => {
+                ir::ItemSize::Unknown { what, compiler_own }
+            }
+        }
+    }
+
+    /// A type's size and alignment in bytes, where a pointer takes `pointer` bytes: numbers and
+    /// `bool` their own size, an array its items, a bounded list its length then its items,
+    /// and a struct by its layout. (D319, D370, D388, D389)
+    fn layout_of(&self, value_type: &Type, pointer: u64) -> Result<(u64, u64), NoSize> {
+        let undecided = |what: String| Err((what, false));
+        match value_type {
+            Type::Integer { kind, .. } => {
+                let bytes = u64::from(kind.bits() / 8);
+                Ok((bytes, bytes))
+            }
+            Type::Float { kind, .. } => Ok(match kind {
+                crate::types::FloatKind::F32 => (4, 4),
+                crate::types::FloatKind::F64 => (8, 8),
+            }),
+            Type::Bool => Ok((1, 1)),
+            Type::Pointer { .. } => Ok((pointer, pointer)),
+            Type::Array { item, len, .. } => {
+                let (size, align) = self.layout_of(item, pointer)?;
+                let count = u64::try_from(*len).unwrap_or(u64::MAX);
+                Ok((size.saturating_mul(count), align))
+            }
+            Type::List {
+                item,
+                max: Some(max),
+                len_type,
+                ..
+            } => {
+                let (size, align) = self.layout_of(item, pointer)?;
+                let length = u64::from(len_type.bits() / 8);
+                let count = u64::try_from(*max).unwrap_or(u64::MAX);
+                let items_at = round_up(length, align);
+                let whole_align = align.max(length);
+                Ok((
+                    round_up(
+                        items_at.saturating_add(size.saturating_mul(count)),
+                        whole_align,
+                    ),
+                    whole_align,
+                ))
+            }
+            Type::Struct(name) => {
+                let Some(info) = self.struct_info(name) else {
+                    return undecided(format!("how much `{name}` takes"));
+                };
+                let mut fields = Vec::new();
+                for (_, field) in &info.fields {
+                    fields.push(self.layout_of(field, pointer)?);
+                }
+                struct_layout(name, info.layout, fields)
+            }
+            other => undecided(format!("how much `{other}` takes in a list's block")),
+        }
+    }
+}
+
+/// `value` rounded up to a multiple of `step`.
+fn round_up(value: u64, step: u64) -> u64 {
+    if step == 0 {
+        return value;
+    }
+    value.div_ceil(step).saturating_mul(step)
+}
+
+/// A struct's size and alignment from its fields', by its layout: the written order with
+/// natural padding, sorted by alignment for `struct.compact`, and no padding for
+/// `struct.packed`. `struct.any_order` is the compiler's own. (D319, D388)
+fn struct_layout(
+    name: &str,
+    layout: crate::ast::StructLayout,
+    mut fields: Vec<(u64, u64)>,
+) -> Result<(u64, u64), NoSize> {
+    use crate::ast::StructLayout;
+    match layout {
+        StructLayout::AnyOrder => {
+            return Err((
+                format!("how much `{name}` takes, a `struct.any_order`, whose layout is the compiler's own (D388)"),
+                true,
+            ));
+        }
+        StructLayout::Packed => {
+            let size = fields.iter().map(|(size, _)| *size).sum();
+            return Ok((size, 1));
+        }
+        // Largest alignment first, ties in the written order, which a stable sort keeps.
+        StructLayout::Compact => fields.sort_by_key(|field| std::cmp::Reverse(field.1)),
+        StructLayout::Written => {}
+    }
+    let mut offset = 0;
+    let mut align = 1;
+    for (size, field_align) in fields {
+        offset = round_up(offset, field_align).saturating_add(size);
+        align = align.max(field_align);
+    }
+    Ok((round_up(offset, align), align))
 }
