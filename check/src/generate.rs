@@ -3877,8 +3877,14 @@ impl Generator<'_> {
             return self.baked_call(kind, argument);
         }
         // `tcount` takes a `str`: a literal, or a view, which passes with no word (2.9, D368).
-        if roll == 4 && kind == Kind::I32 && self.strings && !self.no_calls && !self.pure_only {
-            if self.random.chance(40) {
+        if roll == 4
+            && kind == Kind::I32
+            && self.strings
+            && !self.no_calls
+            && !self.pure_only
+            && self.random.chance(40)
+        {
+            {
                 let text = match self.text(scope, None) {
                     Expression::Text(text) if text.is_empty() => Expression::Text("o".to_string()),
                     other => other,

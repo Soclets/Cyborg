@@ -941,6 +941,7 @@ pub struct Function {
 }
 
 #[derive(Clone, Debug)]
+#[allow(clippy::struct_excessive_bools)] // Independent switches for what a program declares.
 pub struct Program {
     pub unit_families: Vec<UnitFamily>,
     /// Whether `tag`, a struct with a `str` field, `tpick`, which returns a borrow of one of
