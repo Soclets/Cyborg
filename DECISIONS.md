@@ -1252,6 +1252,8 @@ A `type_set` is a closed list of types that nothing can join later, as in `type_
 
 **D375. `@concur` is its own package.** A program gets concurrency with `need concur <version>` in its manifest and `import @concur;` in a file, the same as any limb someone publishes, rather than from `std`'s limb half, since D334 privileges no limb, and a program that doesn't use threads shouldn't carry it. So it's opt-in at every level: the manifest, the import, and every `@concur::` in the code. Oracle claude asked how a program gets `@concur`; Claude proposed it; the owner chose: "yea". (Owner, 2026-11-12)
 
+**D376. `std`'s runner switches tasks when one has to wait, and every task waiting is a failed check.** D345's runner, which works on any machine, ran tasks strictly one after another, which hangs with channels: a task filling a channel nobody is receiving from yet would wait forever, where real threads would be fine. So it runs one task at a time and switches to the next ready one, in the order they were spawned, whenever the current one has to wait, the way an event runner does on one thread, so it's still single-threaded, gives the same answers every run, and works on bare metal. If every task is waiting at once, that's a real deadlock, and a failed check, "every task is waiting", instead of a hang. This corrects D345's "one after another". Oracle claude's first reading hit the problem; Claude proposed the fix; the owner chose: "yea". (Owner, 2026-11-12)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude
