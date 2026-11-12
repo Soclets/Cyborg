@@ -12,7 +12,7 @@ use crate::ir::{self, Node, NodeKind};
 use crate::report::{Outcome, Report, ReportExtra, Span};
 use crate::types::Type;
 
-const WHY_KIND: &str = "`os::stdout` and `os::stderr` say which kind they are: `.buffered(size: 1024 bytes)` writes in chunks and is finished with `os::done`, and `.unbuffered()` writes each print straight away (D273)";
+const WHY_KIND: &str = "`os::stdout` and `os::stderr` say which kind they are: `.buffered(room: 1024 bytes)` writes in chunks and is finished with `os::done`, and `.unbuffered()` writes each print straight away (D273)";
 const WHY_WRITER: &str = "`std::io::fmt_print` always takes a writer first, as in `fmt_print(Lend.mut $out, \"hi{newln}\");`, since the writer says where output goes (D272, D273)";
 
 /// Whether a type is a terminal writer, and if so whether it's stderr's and whether it's
@@ -89,7 +89,7 @@ impl Checker<'_> {
         )
     }
 
-    /// `os::stdout.buffered(size: 1024 bytes)`, `os::stdout.unbuffered()`, `os::done(Give $out)`,
+    /// `os::stdout.buffered(room: 1024 bytes)`, `os::stdout.unbuffered()`, `os::done(Give $out)`,
     /// and a bare `os::stdout()`, which is refused. (D273)
     /// trace: D271, D273
     pub(super) fn check_os_call(
@@ -158,34 +158,44 @@ impl Checker<'_> {
         })
     }
 
-    /// A buffered writer's `size:`, a literal number of `bytes`. (D273)
+    /// A buffered writer's `room:`, a literal number of `bytes`. (D273, D386)
     fn writer_size(&self, arguments: &[Argument], span: Span) -> Outcome<usize> {
         let [argument] = arguments else {
             return Err(Report::refused(
                 arguments.get(1).map_or(span, |extra| extra.value.span),
-                "a buffered writer takes one argument, its `size:`",
+                "a buffered writer takes one argument, its `room:`",
                 WHY_KIND,
             ));
         };
         let shown = self.text_of(argument.value.span).to_string();
+        // `room:` is the space for what's put in it, the same word as an arena's. (D386)
+        // trace: D386
+        if let Some(label) = argument.label.as_ref().filter(|label| label.text == "size") {
+            return Err(Report::refused(
+                label.span,
+                "a buffered writer says `room:`, the space for what it holds",
+                "`room:` means the space for what's put in, for buffered writers and arenas alike (D386)",
+            )
+            .fix("room"));
+        }
         if argument
             .label
             .as_ref()
-            .is_none_or(|label| label.text != "size")
+            .is_none_or(|label| label.text != "room")
         {
             return Err(Report::refused(
                 argument.value.span,
-                "a buffered writer's size says `size:`",
-                "a declared label must be written (D113, D273)",
+                "a buffered writer's room says `room:`",
+                "a declared label must be written (D113, D273, D386)",
             )
-            .fix(format!("size: {shown}")));
+            .fix(format!("room: {shown}")));
         }
         let number = match &argument.value.kind {
             ExpressionKind::WithUnit { number, unit } if unit.text == "bytes" => number,
             ExpressionKind::Integer { .. } => {
                 return Err(Report::refused(
                     argument.value.span,
-                    "a buffered writer's size says its unit, `bytes`",
+                    "a buffered writer's room says its unit, `bytes`",
                     WHY_KIND,
                 )
                 .fix(format!("{shown} bytes")));
@@ -193,7 +203,7 @@ impl Checker<'_> {
             _ => {
                 return Err(Report::not_designed(
                     argument.value.span,
-                    "a buffered writer's size that isn't a literal number of `bytes`",
+                    "a buffered writer's room that isn't a literal number of `bytes`",
                     "",
                 ));
             }
@@ -203,7 +213,7 @@ impl Checker<'_> {
             Some(size) if size > 0 => Ok(size),
             _ => Err(Report::not_designed(
                 argument.value.span,
-                "a buffered writer whose size isn't a whole number of bytes above zero",
+                "a buffered writer whose room isn't a whole number of bytes above zero",
                 "",
             )),
         }

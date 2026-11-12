@@ -1,0 +1,15 @@
+refused: d386_a_writer_says_room.cy:7:61, line 7 column 61
+ 7 |     let mut $out: os::stdout.buffered = os::stdout.buffered(size: 1024 bytes);
+   |                                                             ^^^^
+ fix:  `room`
+ why:  `room:` means the space for what's put in, for buffered writers and arenas alike (D386)
+
+refused: d386_a_writer_says_room.cy:8:5, line 8 column 5
+ 8 |     os::done(Give $out);
+   |     ^^^^^^^^^^^^^^^^^^^
+ what: `$out` never got a value
+ why:  a variable is read only after it has one (D203)
+ because: d386_a_writer_says_room.cy:7:61, line 7 column 61
+ 7 |     let mut $out: os::stdout.buffered = os::stdout.buffered(size: 1024 bytes);
+   |                                                             ^^^^
+     with `room` here, this error goes away

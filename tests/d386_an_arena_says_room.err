@@ -1,0 +1,15 @@
+refused: d386_an_arena_says_room.cy:8:55, line 8 column 55
+ 8 |     let $arena: std::mem::arena = std::mem::arena.new(size: 1 mib, alloc: Lend $heap);
+   |                                                       ^^^^
+ fix:  `room`
+ why:  an arena's own bookkeeping sits outside it, so `room:` is exactly the space for lists (D386)
+
+refused: d386_an_arena_says_room.cy:9:5, line 9 column 5
+ 9 |     std::mem::arena.done(Give $arena, alloc: Lend $heap);
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ what: `$arena` never got a value
+ why:  a variable is read only after it has one (D203)
+ because: d386_an_arena_says_room.cy:8:55, line 8 column 55
+ 8 |     let $arena: std::mem::arena = std::mem::arena.new(size: 1 mib, alloc: Lend $heap);
+   |                                                       ^^^^
+     with `room` here, this error goes away

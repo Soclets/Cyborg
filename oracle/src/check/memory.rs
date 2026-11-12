@@ -11,7 +11,7 @@ use super::hand::HandedOff;
 use super::{Checker, Failure, ParameterInfo};
 use crate::ast::{Argument, Expression, ExpressionKind, ParameterWord};
 use crate::ir::{self, Node, NodeKind};
-use crate::report::{Outcome, Report, Span};
+use crate::report::{Outcome, Report, ReportExtra, Span};
 use crate::types::Type;
 
 /// Whether a type is an allocator the oracle has: the OS heap, or an arena. (D330, D332)
@@ -273,7 +273,7 @@ impl Checker<'_> {
 }
 
 impl Checker<'_> {
-    /// `std::mem::arena.new(size: 1 mib, alloc: Lend $heap)` takes one block from another
+    /// `std::mem::arena.new(room: 1 mib, alloc: Lend $heap)` takes one block from another
     /// allocator, which `std::mem::arena.done(Give $arena, alloc: Lend $heap)` hands back. (D330,
     /// D333, D378)
     /// trace: D330, D333
@@ -285,7 +285,7 @@ impl Checker<'_> {
         span: Span,
         path_span: Span,
     ) -> Outcome<RawCall> {
-        const WHY: &str = "an arena takes one block, `std::mem::arena.new(size: 1 mib, alloc: Lend $heap)`, hands it out, and gives it back all at once with `std::mem::arena.done(Give $arena, alloc: Lend $heap)` (D330, D333)";
+        const WHY: &str = "an arena takes one block, `std::mem::arena.new(room: 1 mib, alloc: Lend $heap)`, hands it out, and gives it back all at once with `std::mem::arena.done(Give $arena, alloc: Lend $heap)` (D330, D333)";
         let [first, allocator] = arguments else {
             return Err(Report::refused(
                 path_span,
@@ -307,21 +307,30 @@ impl Checker<'_> {
         let mut handed = Vec::new();
         match word {
             "new" => {
+                // trace: D386
+                if let Some(label) = first.label.as_ref().filter(|label| label.text == "size") {
+                    return Err(Report::refused(
+                        label.span,
+                        "an arena says `room:`, the space for what's put in it",
+                        "an arena's own bookkeeping sits outside it, so `room:` is exactly the space for lists (D386)",
+                    )
+                    .fix("room"));
+                }
                 if first
                     .label
                     .as_ref()
-                    .is_none_or(|label| label.text != "size")
+                    .is_none_or(|label| label.text != "room")
                 {
                     return Err(Report::refused(
                         first.value.span,
-                        "`std::mem::arena.new` takes `size:`",
+                        "`std::mem::arena.new` takes `room:`",
                         WHY,
                     ));
                 }
                 let Some(bytes) = byte_size(&first.value) else {
                     return Err(Report::not_designed(
                         first.value.span,
-                        "an arena's `size:` that isn't a literal number of `bytes`, `kib` or `mib`",
+                        "an arena's `room:` that isn't a literal number of `bytes`, `kib` or `mib`",
                         "",
                     ));
                 };

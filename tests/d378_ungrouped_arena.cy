@@ -3,6 +3,6 @@
 import std;
 
 fn.main [none] -> void:
-    let $a: std::arena = std::arena.new(size: 64 bytes);
+    let $a: std::arena = std::arena.new(room: 64 bytes);
     return void;
 end fn.main

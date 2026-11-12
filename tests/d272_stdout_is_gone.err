@@ -2,4 +2,4 @@ refused: d272_stdout_is_gone.cy:8:5, line 8 column 5
  8 |     std::io::fmt_print.stdout(Lend.mut $out, "hi{newln}");
    |     ^^^^^^^^^^^^^^^^^^^^^^^^^
  what: `.stdout` is gone, since the writer says where output goes
- why:  `std::io::fmt_print` always takes a writer first, like `Lend.mut $out` for `os::stdout.buffered(size: 1024 bytes)` or `os::stdout.unbuffered()` (D272, D273)
+ why:  `std::io::fmt_print` always takes a writer first, like `Lend.mut $out` for `os::stdout.buffered(room: 1024 bytes)` or `os::stdout.unbuffered()` (D272, D273)

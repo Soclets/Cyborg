@@ -2142,7 +2142,7 @@ impl Checker<'_> {
                 return Err(Report::refused(
                     path_span,
                     format!("`.{stream}` is gone, since the writer says where output goes"),
-                    format!("`std::io::fmt_print` always takes a writer first, like `Lend.mut $out` for `os::{stream}.buffered(size: 1024 bytes)` or `os::{stream}.unbuffered()` (D272, D273)"),
+                    format!("`std::io::fmt_print` always takes a writer first, like `Lend.mut $out` for `os::{stream}.buffered(room: 1024 bytes)` or `os::{stream}.unbuffered()` (D272, D273)"),
                 ));
             }
             // trace: D196

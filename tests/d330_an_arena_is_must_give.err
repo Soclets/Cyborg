@@ -4,6 +4,6 @@ refused: d330_an_arena_is_must_give.cy:9:5, line 9 column 5
  what: this leaves with `$arena` never given away or finished
  why:  an arena owns its block, so it's `must_Give`, and `std::mem::arena.done` hands it back to the allocator it came from (D330, D331)
  because: d330_an_arena_is_must_give.cy:8:9, line 8 column 9
- 8 |     let $arena: std::mem::arena = std::mem::arena.new(size: 64 kib, alloc: Lend $heap);
+ 8 |     let $arena: std::mem::arena = std::mem::arena.new(room: 64 kib, alloc: Lend $heap);
    |         ^^^^^^
      `$arena` was made here

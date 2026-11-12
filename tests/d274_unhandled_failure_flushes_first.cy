@@ -12,8 +12,8 @@ fn half [$n: i32] -> i32 fails [odd]:
 end fn half
 
 fn.main [none] -> void:
-    let mut $out: os::stdout.buffered = os::stdout.buffered(size: 1024 bytes);
-    let mut $err: os::stderr.buffered = os::stderr.buffered(size: 1024 bytes);
+    let mut $out: os::stdout.buffered = os::stdout.buffered(room: 1024 bytes);
+    let mut $err: os::stderr.buffered = os::stderr.buffered(room: 1024 bytes);
     std::io::fmt_print(Lend.mut $out, "{}{newln}", half(4));
     std::io::fmt_print(Lend.mut $err, "about to halve 3{newln}");
     std::io::fmt_print(Lend.mut $out, "{}{newln}", half(3));

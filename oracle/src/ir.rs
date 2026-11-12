@@ -245,7 +245,7 @@ pub enum NodeKind {
         values: Vec<Node>,
         stored: bool,
     },
-    /// `os::stdout.buffered(size: 1024 bytes)` or `os::stderr.unbuffered()`: a terminal writer,
+    /// `os::stdout.buffered(room: 1024 bytes)` or `os::stderr.unbuffered()`: a terminal writer,
     /// buffered when it has a size. (D273)
     Writer {
         stderr: bool,
@@ -325,7 +325,7 @@ pub enum NodeKind {
         text: Box<Node>,
         allocator: Box<Node>,
     },
-    /// `std::mem::arena.new(size: 1 mib, alloc: Lend $heap)`: a new arena of that many bytes.
+    /// `std::mem::arena.new(room: 1 mib, alloc: Lend $heap)`: a new arena with that much room.
     /// (D330)
     ArenaNew {
         // Counted against once design says how lists grow in an arena and what its own

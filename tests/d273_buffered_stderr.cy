@@ -5,7 +5,7 @@ import os;
 
 fn.main [none] -> void:
     let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
-    let mut $err: os::stderr.buffered = os::stderr.buffered(size: 64 bytes);
+    let mut $err: os::stderr.buffered = os::stderr.buffered(room: 64 bytes);
     std::io::fmt_print(Lend.mut $out, "out{newln}");
     std::io::fmt_print(Lend.mut $err, "warning{newln}");
     os::done(Give $err);
