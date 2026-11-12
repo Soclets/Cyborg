@@ -91,7 +91,16 @@ The names in the examples are made up.
 
 A limb hands back either Cyborg code, which is checked like hand-written code, so ownership, bounds, units and failures all still apply to it, or LLVM IR, through Lyftar, for what plain Cyborg can't say, like a GPU kernel or an instruction Cyborg doesn't have. LLVM IR is unchecked, like `inline.asm`, so the build report lists it with the limb that produced it, as it lists shields.
 
-**From:** D22, D28, D334, D335, D336, D337.
+A limb never changes what unmarked code means, so a search for `@` still finds every compiler extension. Within that, it can:
+
+- **Read the whole checked program,** with its types, units and ownership.
+- **Add errors and warnings anywhere,** each with a `fix:`, which only makes programs stricter.
+- **Define what its own `@` items mean,** to any depth: new types, operators, units and failures.
+- **Prove that checks can't fail,** so they're dropped, even in unmarked code. `Working` keeps every check anyway ([10.3](10-build-modes.md#103-what-gets-checked)), so a wrong proof shows up as a crash while developing.
+
+Changing what unmarked code means, like making a plain `+` saturate, is for a Dialect ([9.1](#91-base-kits-and-limbs)).
+
+**From:** D22, D28, D334, D335, D336, D337, D338.
 
 ## 9.4 Inline code: `inline`
 
