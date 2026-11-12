@@ -24,6 +24,14 @@ pub(super) fn arithmetic_word(operator: BinaryOperator) -> Option<&'static str> 
     }
 }
 
+/// An integer or float with no unit.
+fn plain_number(found: &Type) -> bool {
+    matches!(
+        found,
+        Type::Integer { unit: None, .. } | Type::Float { unit: None, .. }
+    )
+}
+
 /// A struct or union, which can have operators of its own. (D236)
 pub(super) fn is_own(found: &Type) -> bool {
     matches!(found, Type::Struct(_) | Type::Union(_))
@@ -57,21 +65,48 @@ impl Checker<'_> {
                 .structs
                 .contains_key(&path.text)
                 .then(|| Type::Struct(path.text.clone())),
-            ExpressionKind::Call { path, .. } => self
-                .signatures
-                .get(&self.canonical(&path.text))
-                .map(|signature| signature.return_type.clone()),
+            // A generic's result is its type parameter filled from the arguments, and when
+            // they don't say, the form doesn't either. (D241)
+            // trace: D241
+            ExpressionKind::Call { path, arguments } => {
+                let signature = self.signatures.get(&self.canonical(&path.text))?;
+                if signature.type_parameters.is_empty() {
+                    return Some(signature.return_type.clone());
+                }
+                self.fill_type_parameters(signature, arguments, None, expression.span)
+                    .ok()
+                    .map(|(filled, _)| filled.return_type)
+            }
             ExpressionKind::Binary {
                 operator,
                 left,
                 right,
             } => {
-                let word = arithmetic_word(*operator)?;
                 let left = self.type_from_form(left);
                 let right = self.type_from_form(right);
-                self.find_operator(word, left.as_ref(), right.as_ref())
-                    .map(|found| found.result.clone())
+                if let Some(word) = arithmetic_word(*operator) {
+                    if let Some(found) = self.find_operator(word, left.as_ref(), right.as_ref()) {
+                        return Some(found.result.clone());
+                    }
+                }
+                // A built-in operator on a plain number keeps its type, which a shift takes
+                // from its left side. A unit's `x` and `div` make another unit, so only
+                // numbers with none are read. (D241)
+                // trace: D241
+                let known = match operator {
+                    BinaryOperator::ShiftLeft | BinaryOperator::ShiftRight => left,
+                    BinaryOperator::And
+                    | BinaryOperator::Or
+                    | BinaryOperator::AndBoth
+                    | BinaryOperator::OrBoth => return None,
+                    _ => left.or(right),
+                }?;
+                plain_number(&known).then(|| super::generics::unbounded(&known))
             }
+            ExpressionKind::Negate(inner) => self
+                .type_from_form(inner)
+                .filter(plain_number)
+                .map(|found| super::generics::unbounded(&found)),
             _ => None,
         }
     }

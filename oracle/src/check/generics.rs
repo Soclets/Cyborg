@@ -543,6 +543,9 @@ impl Checker<'_> {
         span: Span,
     ) -> Outcome<(Signature, Vec<Table>)> {
         let mut filled = Filled::default();
+        // An argument whose form doesn't say its type, like `17 div.trunc 18`, takes the type
+        // the others fill, the way a bare literal does, and matters only if nothing else says.
+        let mut unread = None;
         for (index, argument) in arguments.iter().enumerate() {
             let parameter = match &argument.label {
                 Some(label) => signature.parameters.iter().find(|parameter| {
@@ -567,11 +570,8 @@ impl Checker<'_> {
                 continue;
             }
             let Some(found) = self.type_from_form(value) else {
-                return Err(Report::not_designed(
-                    argument.value.span,
-                    "working out a type parameter from this argument",
-                    "",
-                ));
+                unread.get_or_insert(argument.value.span);
+                continue;
             };
             filled.unify(&parameter.parameter_type, &found, argument.value.span)?;
         }
@@ -588,6 +588,13 @@ impl Checker<'_> {
                         filled.types.insert(name.clone(), unbounded(target));
                     }
                     _ => {
+                        if let Some(unread) = unread {
+                            return Err(Report::not_designed(
+                                unread,
+                                "working out a type parameter from this argument",
+                                "",
+                            ));
+                        }
                         return Err(Report::refused(
                             span,
                             format!("nothing here says which type `?{name}` is, so this line says one, as in `: i32 =`"),
