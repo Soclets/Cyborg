@@ -328,6 +328,14 @@ for $j in Give $jobs.%receive(run: Lend $events):
 end for
 ```
 
+An atomic is an integer or `bool` that many tasks change without a lock, through the CPU's own indivisible instructions. It's shared with plain `Lend`. `.%add` is checked for overflow like `+`, with `.%add.wrap` and `.%add.saturate` when meant. The bare form uses the strictest ordering, where every task sees changes in one agreed order, and weaker orderings are narrowings for experts, like `.%load.acquire()` and `.%add.relaxed(val: 1)`, which can give surprising values but never corrupt memory.
+
+```
+let $hits: @concur::atomic<u64> = @concur::atomic.new(0);
+$hits.%add(val: 1);
+let $now: u64 = $hits.%load();
+```
+
 There's no `async` or `await`. A function that waits takes the runner, and the runner decides how waiting works: a thread blocks, or an event runner parks the task and runs another, with each task on its own small stack. A spawn onto an event runner takes the allocator for that stack and always writes its size with `stack:`, so the writer picks where stacks live and how big they are, and running out of memory is an `out_of_memory` failure from the spawn. The compiler checks the size instead of choosing it: where it can measure what the task needs, a size that's too small is refused, with the number in the fix, and for recursive code, which it can't measure, running past the size is a failed check, a clean stack overflow. A spawn onto `os::threads` takes neither, since the OS gives its threads their stacks.
 
 ```
@@ -338,4 +346,4 @@ The spellings are placeholders.
 
 **Refused:** a task that isn't joined; a spawn onto an event runner without `stack:`, or with less than the task is known to need; two tasks both given `Lend.mut` of one thing; locking inside a locked block; and the same lock twice in one block.
 
-**From:** D343, D344, D345, D346, D347, D348, D349, D350, D351, D352, D353.
+**From:** D343, D344, D345, D346, D347, D348, D349, D350, D351, D352, D353, D354.
