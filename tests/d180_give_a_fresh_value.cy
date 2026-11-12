@@ -1,7 +1,7 @@
 // trace: D180, D2
 import std;
 
-fn make [none] -> std::list<i32>[len.max: inf items]:
+fn make [none] -> std::coll::list<i32>[len.max: inf items]:
     return [1, 2];
 end fn make
 

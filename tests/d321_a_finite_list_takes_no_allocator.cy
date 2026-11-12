@@ -5,7 +5,7 @@ import os;
 
 fn.main [none] -> void:
     let $heap: os::heap = os::heap();
-    let mut $xs: std::list<i32>[len.max: 4 items] = empty;
+    let mut $xs: std::coll::list<i32>[len.max: 4 items] = empty;
     $xs.std::%%append(val: 4, alloc: Lend $heap);
     return void;
 end fn.main

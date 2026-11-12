@@ -1,0 +1,5 @@
+refused: d378_ungrouped_name.cy:7:14, line 7 column 14
+ 7 |     let $xs: std::list<i32>[len.max: 4 items] = [1, 2];
+   |              ^^^^^^^^^
+ fix:  `std::coll::list`
+ why:  every `std` name lives in a group: `io`, `math`, `units`, `mem`, `run` and `coll` (D378)

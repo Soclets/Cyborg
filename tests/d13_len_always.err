@@ -1,5 +1,5 @@
-refused: d13_len_always.cy:5:30, line 5 column 30
- 5 |     let $xs: std::array<i32>[len.always: 3 items] = [1, 2, 3];
-   |                              ^^^^^^^^^^
+refused: d13_len_always.cy:5:36, line 5 column 36
+ 5 |     let $xs: std::coll::array<i32>[len.always: 3 items] = [1, 2, 3];
+   |                                    ^^^^^^^^^^
  fix:  `len`
  why:  bare `len` is exact, so there is no `len.always` (D13)

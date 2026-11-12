@@ -4,6 +4,6 @@ refused: d325_promised_to_a_defer.cy:16:14, line 16 column 14
  what: `$xs` is promised to a `defer`, so it can't be given away here
  why:  a deferred `Give` ends the value's duty when its block ends, so the value is yours to read and change until then, but not to give away (D325)
  because: d325_promised_to_a_defer.cy:14:5, line 14 column 5
-14 |     defer std::list.done(Give $xs, alloc: Lend $heap);
-   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+14 |     defer std::coll::list.done(Give $xs, alloc: Lend $heap);
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
      it's promised here

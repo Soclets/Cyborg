@@ -4,7 +4,7 @@ import os;
 
 fn.main [none] -> void:
     let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
-    let $xs: std::array<i32>[len: 3 items] = [4, 5, 6];
+    let $xs: std::coll::array<i32>[len: 3 items] = [4, 5, 6];
     for $i in range[from: 1, to: $xs.len]:
         std::io::fmt_print(Lend.mut $out, "{} holds {}{newln}", $i, $xs[pos: $i]);
     end for

@@ -2,6 +2,6 @@
 import std;
 
 fn.main [none] -> void:
-    let $xs: std::list<i32>[len.max: 8] = empty;
+    let $xs: std::coll::list<i32>[len.max: 8] = empty;
     return void;
 end fn.main

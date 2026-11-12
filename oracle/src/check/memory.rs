@@ -164,7 +164,7 @@ impl Checker<'_> {
         span: Span,
         path_span: Span,
     ) -> Outcome<RawCall> {
-        const WHY: &str = "`std::list.done(Give $xs, alloc: Lend $heap);` ends a list that grows on the heap, and `std::map.done` a map, freeing it with the allocator it came from (D323, D325, D331)";
+        const WHY: &str = "`std::coll::list.done(Give $xs, alloc: Lend $heap);` ends a list that grows on the heap, and `std::coll::map.done` a map, freeing it with the allocator it came from (D323, D325, D331)";
         let (list, allocator) = match arguments {
             [list, allocator]
                 if list.label.is_none()
@@ -178,7 +178,10 @@ impl Checker<'_> {
             _ => {
                 return Err(Report::refused(
                     path_span,
-                    format!("`std::{done}` takes what it ends, then `alloc:`"),
+                    format!(
+                        "`std::{}` takes what it ends, then `alloc:`",
+                        super::grouped(done)
+                    ),
                     WHY,
                 ))
             }
@@ -190,9 +193,9 @@ impl Checker<'_> {
             return Err(Report::refused(
                 list.value.span,
                 if done == "map.done" {
-                    "`std::map.done` ends a map"
+                    "`std::coll::map.done` ends a map"
                 } else {
-                    "`std::list.done` ends a list that grows on the heap, with `len.max: inf items`"
+                    "`std::coll::list.done` ends a list that grows on the heap, with `len.max: inf items`"
                 },
                 WHY,
             ));

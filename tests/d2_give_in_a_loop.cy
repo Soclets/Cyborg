@@ -11,7 +11,7 @@ fn eat [$b: Given box] -> void:
 end fn eat
 
 fn.main [none] -> void:
-    let $xs: std::array<i32>[len: 2 items] = [1, 2];
+    let $xs: std::coll::array<i32>[len: 2 items] = [1, 2];
     let $b: box = box[n = 1];
     for $x in $xs:
         eat(Give $b);

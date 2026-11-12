@@ -1700,6 +1700,8 @@ impl Checker<'_> {
         self.refuse_limb_outside_shield(&text, path.span)?;
         if let Some(rest) = text.strip_prefix("std::") {
             self.require_std(rest, path.span)?;
+            let text = super::ungroup_std(&text, path.span)?;
+            let rest = text.strip_prefix("std::").unwrap_or(&text);
             return self.check_std_call(rest, arguments, span, path.span);
         }
         // trace: D271, D273
@@ -2048,7 +2050,10 @@ impl Checker<'_> {
         }
         // trace: D330, D333
         if rest.starts_with("arena.") {
-            return Err(Report::not_built(path_span, format!("`std::{rest}`")));
+            return Err(Report::not_built(
+                path_span,
+                format!("`std::{}`", super::grouped(rest)),
+            ));
         }
         // `std` is grouped with `::`, and `.` after a function is a narrowing.
         // trace: D196, D161
@@ -2078,7 +2083,10 @@ impl Checker<'_> {
         let Some(narrowing) = rest.strip_prefix("io::fmt_print") else {
             return Err(Report::not_designed(
                 path_span,
-                format!("`std::{rest}`, since `std`'s full contents aren't chosen"),
+                format!(
+                    "`std::{}`, since `std`'s full contents aren't chosen",
+                    super::grouped(rest)
+                ),
                 "",
             ));
         };
@@ -2658,7 +2666,7 @@ impl Checker<'_> {
                 ));
             }
         }
-        self.require_std(&format!("list.%{}", name.text), span)?;
+        self.require_std(&format!("coll::list.%{}", name.text), span)?;
         if name.text != "append" || !is_std_list_method {
             return Err(Report::not_designed(
                 name.span,

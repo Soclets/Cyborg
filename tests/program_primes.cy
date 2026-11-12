@@ -19,7 +19,7 @@ end fn is_prime
 
 fn.main [none] -> void:
     let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
-    let mut $found: std::list<i32>[len.max: 8 items] = empty;
+    let mut $found: std::coll::list<i32>[len.max: 8 items] = empty;
     for $n in range[from: 1, to: 30]:
         if is_prime($n):
             $found.std::%%append(val: $n) ?? void;

@@ -1,5 +1,5 @@
-refused: d103_empty_list_literal.cy:5:48, line 5 column 48
- 5 |     let $b: std::list<i32>[len.max: 8 items] = [];
-   |                                                ^^
+refused: d103_empty_list_literal.cy:5:54, line 5 column 54
+ 5 |     let $b: std::coll::list<i32>[len.max: 8 items] = [];
+   |                                                      ^^
  fix:  `empty`
  why:  `[]` is refused, because `empty` says it (D103)

@@ -23,7 +23,7 @@ fn.main [none] -> void:
     let $m: f64.stable[unit: length.meters] = $km as f64.stable[unit: length.meters];
     let $whole: i32[unit: length.kilometers] = 3 length.kilometers;
     let $wait: i64[unit: seconds.span] = 30 seconds;
-    let $xs: std::list<f64.stable[unit: length.meters]>[len.max: 9 items] = [1.0 length.meters, $m];
+    let $xs: std::coll::list<f64.stable[unit: length.meters]>[len.max: 9 items] = [1.0 length.meters, $m];
     let $count: u64[unit: items] = $xs.len;
     std::io::fmt_print(Lend.mut $out, "{$m, unit} {$whole, unit} {$wait, unit} {$count, unit}{newln}");
     std::io::fmt_print(Lend.mut $out, "{}{newln}", longer($m, 4.0 length.meters));

@@ -2,8 +2,8 @@ refused: d325_a_map_owns_memory.cy:9:5, line 9 column 5
  9 |     return void;
    |     ^^^^^^^^^^^^
  what: this leaves with `$m` never given away or finished
- why:  a map owns heap memory, so it's `must_Give`, and `std::map.done` frees it with the allocator it came from, so a leak doesn't compile (D325, D331)
+ why:  a map owns heap memory, so it's `must_Give`, and `std::coll::map.done` frees it with the allocator it came from, so a leak doesn't compile (D325, D331)
  because: d325_a_map_owns_memory.cy:8:9, line 8 column 9
- 8 |     let $m: std::map.hash<key: str, val: i32> = empty;
+ 8 |     let $m: std::coll::map.hash<key: str, val: i32> = empty;
    |         ^^
      `$m` was made here

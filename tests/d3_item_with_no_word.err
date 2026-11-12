@@ -1,5 +1,5 @@
-refused: d3_item_with_no_word.cy:6:50, line 6 column 50
- 6 |     let $xs: std::list<str>[len.max: 8 items] = [$a];
-   |                                                  ^^
+refused: d3_item_with_no_word.cy:6:56, line 6 column 56
+ 6 |     let $xs: std::coll::list<str>[len.max: 8 items] = [$a];
+   |                                                        ^^
  what: `$a` is `str`, so this needs `Give` or `Copy`
  why:  every hand-off shows on the page, including one into a name, a `return` or a field (D3)

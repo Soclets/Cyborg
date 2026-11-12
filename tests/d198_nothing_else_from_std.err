@@ -1,5 +1,5 @@
 refused: d198_nothing_else_from_std.cy:6:14, line 6 column 14
- 6 |     let $xs: std::list<i32>[len.max: inf items] = empty;
-   |              ^^^^^^^^^
+ 6 |     let $xs: std::coll::list<i32>[len.max: inf items] = empty;
+   |              ^^^^^^^^^^^^^^^
  what: this file imports only `std::io::fmt_print` from `std`
  why:  importing one thing imports only that, with its narrowings, unlike `import std;` (D198, D199)

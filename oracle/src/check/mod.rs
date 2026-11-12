@@ -690,11 +690,8 @@ impl Checker<'_> {
             }
             // trace: D178
             if declared.method {
-                let (owner, _) = declared
-                    .path
-                    .text
-                    .split_once(".%")
-                    .unwrap_or((&declared.path.text, ""));
+                let ungrouped = ungroup_std(&declared.path.text, declared.path.span)?;
+                let (owner, _) = ungrouped.split_once(".%").unwrap_or((&ungrouped, ""));
                 // `append` changes its receiver, so its path says `%%`. (D211)
                 // trace: D211
                 if owner == "std::list" && last_word == "append" && marks != 2 {
@@ -703,7 +700,7 @@ impl Checker<'_> {
                         "`append` changes its receiver, so it's `.%%append`",
                         "`.%` lends a receiver read-only and `.%%` lends it to change (D211)",
                     )
-                    .fix("std::list.%%append"));
+                    .fix("std::coll::list.%%append"));
                 }
                 self.method_aliases.insert(
                     declared.short.text.clone(),
@@ -1974,7 +1971,58 @@ impl Checker<'_> {
         );
         Ok(())
     }
+}
 
+/// `std`'s groups, and the names in each that the oracle reads without the group. (D378)
+const STD_GROUPS: &[(&str, &[&str])] = &[
+    ("coll", &["list", "map", "array"]),
+    ("mem", &["arena", "allocator"]),
+    ("run", &["runner", "one_thread"]),
+];
+
+/// Every `std` name lives in a group, as in `std::coll::list`, `std::mem::arena` and
+/// `std::run::one_thread`. The oracle reads the name inside the group, so `std::coll::list.done`
+/// becomes `std::list.done`, and the old ungrouped spelling is refused with the grouped one as
+/// its fix. `io`, `math` and `units` keep their groups as they are. (D378)
+/// trace: D378
+pub(super) fn ungroup_std(text: &str, span: Span) -> Outcome<String> {
+    let Some(rest) = text.strip_prefix("std::") else {
+        return Ok(text.to_string());
+    };
+    let first = |name: &str| {
+        let cut = name.find(['.', '<', ':']).unwrap_or(name.len());
+        name.get(..cut).unwrap_or(name).to_string()
+    };
+    for (group, names) in STD_GROUPS {
+        if let Some(inside) = rest.strip_prefix(&format!("{group}::")) {
+            if names.contains(&first(inside).as_str()) {
+                return Ok(format!("std::{inside}"));
+            }
+        }
+        if names.contains(&first(rest).as_str()) {
+            return Err(Report::refused(
+                span,
+                format!("`std::{}` lives in `std`'s `{group}` group", first(rest)),
+                "every `std` name lives in a group: `io`, `math`, `units`, `mem`, `run` and `coll` (D378)",
+            )
+            .fix(format!("std::{group}::{rest}")));
+        }
+    }
+    Ok(text.to_string())
+}
+
+/// The written form of a name the oracle reads without its group, for messages: `list.done`
+/// is `coll::list.done`. (D378)
+pub(super) fn grouped(rest: &str) -> String {
+    let cut = rest.find(['.', '<', ':']).unwrap_or(rest.len());
+    let first = rest.get(..cut).unwrap_or(rest);
+    STD_GROUPS
+        .iter()
+        .find(|(_, names)| names.contains(&first))
+        .map_or_else(|| rest.to_string(), |(group, _)| format!("{group}::{rest}"))
+}
+
+impl Checker<'_> {
     /// Applies `use` to a path's first piece. (D93)
     fn canonical(&self, text: &str) -> String {
         let cut = text.find(['.', ':']).unwrap_or(text.len());
@@ -1984,7 +2032,9 @@ impl Checker<'_> {
             None => text.to_string(),
         }
     }
+}
 
+impl Checker<'_> {
     fn is_must_give(&self, value_type: &Type) -> bool {
         // trace: D272, D273
         if writers::is_buffered_writer(value_type) {
@@ -2058,6 +2108,9 @@ impl Checker<'_> {
         let text = self.canonical(&path.text);
         if let Some(rest) = text.strip_prefix("std::") {
             self.require_std(rest, path.span)?;
+        }
+        let text = ungroup_std(&text, path.span)?;
+        if let Some(rest) = text.strip_prefix("std::") {
             // trace: D199, D245
             if matches!(
                 rest,
@@ -2412,6 +2465,8 @@ impl Checker<'_> {
         }
         if let Some(rest) = text.strip_prefix("std::") {
             self.require_std(rest, path.span)?;
+            let text = ungroup_std(&text, path.span)?;
+            let rest = text.strip_prefix("std::").unwrap_or(&text);
             return self.resolve_std_type(rest, written, path, fill, describe);
         }
         // trace: D271, D273
@@ -2936,7 +2991,7 @@ impl Checker<'_> {
                 else {
                     return Err(Report::refused(
                         written.span,
-                        format!("`std::{rest}` fills in one type, bare, in `< >`"),
+                        format!("`std::{}` fills in one type, bare, in `< >`", grouped(rest)),
                         "a collection's types go in `< >`, and one type can go bare (D24, D25)",
                     ));
                 };
@@ -2968,7 +3023,7 @@ impl Checker<'_> {
                         other => {
                             return Err(Report::not_designed(
                                 entry.label.span,
-                                format!("the label `{other}` on `std::{rest}`"),
+                                format!("the label `{other}` on `std::{}`", grouped(rest)),
                                 "12.2",
                             ));
                         }
@@ -3047,7 +3102,7 @@ impl Checker<'_> {
             // trace: D138
             "map" => Err(Report::refused(
                 path.span,
-                "there's no bare `std::map`, so pick `std::map.hash` or `std::map.ordered`",
+                "there's no bare `std::coll::map`, so pick `std::coll::map.hash` or `std::coll::map.ordered`",
                 "no default is obvious, so you pick (D48, D138)",
             )),
             "map.hash" | "map.ordered" => {
@@ -3084,15 +3139,15 @@ impl Checker<'_> {
             other if other.starts_with("list.") || other.starts_with("array.") => {
                 Err(Report::refused(
                     path.span,
-                    format!("`std::{other}` is the older spelling"),
+                    format!("`std::{}` is the older spelling", grouped(other)),
                     "a collection's types go in `< >` (D24)",
                 ))
             }
             // trace: D330, D333
-            "arena" | "allocator" => Err(Report::not_built(path.span, format!("`std::{rest}`"))),
+            "arena" | "allocator" => Err(Report::not_built(path.span, format!("`std::{}`", grouped(rest)))),
             other => Err(Report::not_designed(
                 path.span,
-                format!("the type `std::{other}`"),
+                format!("the type `std::{}`", grouped(other)),
                 "12.2",
             )),
         }

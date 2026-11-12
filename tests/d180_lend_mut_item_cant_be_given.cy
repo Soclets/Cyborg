@@ -14,7 +14,7 @@ fn close [$f: Given open_file] -> void:
 end fn close
 
 fn.main [none] -> void:
-    let mut $files: std::list<open_file>[len.max: inf items] = [open_file[fd = 3]];
+    let mut $files: std::coll::list<open_file>[len.max: inf items] = [open_file[fd = 3]];
     for $f in Lend.mut $files:
         close(Give $f);
     end for

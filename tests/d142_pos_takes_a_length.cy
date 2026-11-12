@@ -4,7 +4,7 @@ import os;
 
 fn.main [none] -> void:
     let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
-    let mut $xs: std::list<i32>[len.max: 8 items] = [10, 20, 30];
+    let mut $xs: std::coll::list<i32>[len.max: 8 items] = [10, 20, 30];
     std::io::fmt_print(Lend.mut $out, "{}{newln}", $xs[pos: $xs.len]);
     std::io::fmt_print(Lend.mut $out, "{}{newln}", $xs[pos: 3]);
     std::io::fmt_print(Lend.mut $out, "{}{newln}", $xs[pos: 3 items]);

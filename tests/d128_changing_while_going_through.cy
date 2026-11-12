@@ -4,8 +4,8 @@ import os;
 
 fn.main [none] -> void:
     let $heap: os::heap = os::heap();
-    let mut $xs: std::list<i32>[len.max: inf items] = [1, 2];
-    defer std::list.done(Give $xs, alloc: Lend $heap);
+    let mut $xs: std::coll::list<i32>[len.max: inf items] = [1, 2];
+    defer std::coll::list.done(Give $xs, alloc: Lend $heap);
     for $x in $xs:
         change $xs = [3];
     end for

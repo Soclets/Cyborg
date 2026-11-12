@@ -1,5 +1,5 @@
-refused: d140_array_len_doesnt_fit.cy:5:34, line 5 column 34
- 5 |     let $a: std::array<i32>[len: 300 items, len.type: u8] = all 0;
-   |                                  ^^^^^^^^^
+refused: d140_array_len_doesnt_fit.cy:5:40, line 5 column 40
+ 5 |     let $a: std::coll::array<i32>[len: 300 items, len.type: u8] = all 0;
+   |                                        ^^^^^^^^^
  what: `u8` can't count this many
  why:  a length that doesn't fit its `len.type` is refused (D140)

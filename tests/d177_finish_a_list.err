@@ -8,8 +8,8 @@ refused: d177_finish_a_list.cy:23:5, line 23 column 5
 23 |     return void;
    |     ^^^^^^^^^^^^
  what: this leaves with `$files` never given away or finished
- why:  a list that can grow on the heap is `must_Give`, and `std::list.done` frees it with the allocator it came from, so a leak doesn't compile (D323, D325, D331)
+ why:  a list that can grow on the heap is `must_Give`, and `std::coll::list.done` frees it with the allocator it came from, so a leak doesn't compile (D323, D325, D331)
  because: d177_finish_a_list.cy:21:9, line 21 column 9
-21 |     let $files: std::list<open_file>[len.max: inf items] = [open(3)];
+21 |     let $files: std::coll::list<open_file>[len.max: inf items] = [open(3)];
    |         ^^^^^^
      `$files` was made here

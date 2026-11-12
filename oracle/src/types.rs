@@ -294,6 +294,7 @@ fn write_items_bound(formatter: &mut fmt::Formatter<'_>, value: i128) -> fmt::Re
 }
 
 impl fmt::Display for Type {
+    #[allow(clippy::too_many_lines)] // One arm per type, each written as a program writes it.
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Type::Void => write!(formatter, "void"),
@@ -355,7 +356,7 @@ impl fmt::Display for Type {
                 max,
                 len_type,
             } => {
-                write!(formatter, "std::list<{item}>[")?;
+                write!(formatter, "std::coll::list<{item}>[")?;
                 if let Some(min) = min {
                     write!(formatter, "len.min: ")?;
                     write_items_bound(formatter, *min)?;
@@ -376,7 +377,7 @@ impl fmt::Display for Type {
                 len,
                 len_type,
             } => {
-                write!(formatter, "std::array<{item}>[len: {len} items")?;
+                write!(formatter, "std::coll::array<{item}>[len: {len} items")?;
                 if *len_type != IntegerKind::U64 {
                     write!(formatter, ", len.type: {}", len_type.word())?;
                 }
@@ -388,7 +389,10 @@ impl fmt::Display for Type {
                 value,
             } => {
                 let narrowing = if *ordered { "ordered" } else { "hash" };
-                write!(formatter, "std::map.{narrowing}<key: {key}, val: {value}>")
+                write!(
+                    formatter,
+                    "std::coll::map.{narrowing}<key: {key}, val: {value}>"
+                )
             }
             Type::Failure { name, .. } => write!(formatter, "the failure `{name}`"),
             Type::Borrow {

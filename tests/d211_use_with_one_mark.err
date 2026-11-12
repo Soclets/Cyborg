@@ -1,5 +1,5 @@
 refused: d211_use_with_one_mark.cy:3:5, line 3 column 5
- 3 | use std::list.%append as %append;
-   |     ^^^^^^^^^^^^^^^^^
- fix:  `std::list.%%append`
+ 3 | use std::coll::list.%append as %append;
+   |     ^^^^^^^^^^^^^^^^^^^^^^^
+ fix:  `std::coll::list.%%append`
  why:  `.%` lends a receiver read-only and `.%%` lends it to change (D211)

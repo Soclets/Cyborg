@@ -8,7 +8,7 @@ end fam.unit time
 
 fn.main [none] -> void:
     let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
-    let $xs: std::array<i32>[len: 3 items] = [1, 2, 3];
+    let $xs: std::coll::array<i32>[len: 3 items] = [1, 2, 3];
     let $plain: u64 = $xs.len as u64;
     let $doubled: u64 = $plain x 2;
     std::io::fmt_print(Lend.mut $out, "{}{newln}", $doubled);

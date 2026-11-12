@@ -7,7 +7,7 @@ fn.main [none] -> void:
     let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     let $a: str = "a";
     let $b: str = "b";
-    let $xs: std::list<str>[len.max: 8 items] = [Give $a, Copy $b, "c"];
+    let $xs: std::coll::list<str>[len.max: 8 items] = [Give $a, Copy $b, "c"];
     for $s in $xs:
         std::io::fmt_print(Lend.mut $out, "{}{newln}", $s);
     end for

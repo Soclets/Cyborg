@@ -1,5 +1,5 @@
-refused: d103_empty_on_an_array.cy:5:45, line 5 column 45
- 5 |     let $a: std::array<i32>[len: 3 items] = empty;
-   |                                             ^^^^^
- what: `std::array<i32>[len: 3 items]` can't be `empty`
+refused: d103_empty_on_an_array.cy:5:51, line 5 column 51
+ 5 |     let $a: std::coll::array<i32>[len: 3 items] = empty;
+   |                                                   ^^^^^
+ what: `std::coll::array<i32>[len: 3 items]` can't be `empty`
  why:  `empty` is refused where it can't be true (D103)

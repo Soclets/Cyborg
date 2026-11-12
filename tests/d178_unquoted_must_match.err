@@ -1,5 +1,5 @@
-refused: d178_unquoted_must_match.cy:4:29, line 4 column 29
- 4 | use std::list.%%append as %%add;
-   |                             ^^^
+refused: d178_unquoted_must_match.cy:4:35, line 4 column 35
+ 4 | use std::coll::list.%%append as %%add;
+   |                                   ^^^
  what: `%%add` doesn't match `%%append`, the end of this path
  why:  an unquoted name has to match the last word of its path, and a quoted one is your own choice (D150)

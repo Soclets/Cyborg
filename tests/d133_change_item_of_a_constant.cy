@@ -1,7 +1,7 @@
 // trace: D133, D83
 import std;
 
-const $primes: std::array<i32>[len: 1 items] = [2];
+const $primes: std::coll::array<i32>[len: 1 items] = [2];
 
 fn.main [none] -> void:
     change $primes[pos: 1] = 3;

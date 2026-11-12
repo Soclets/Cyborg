@@ -7,7 +7,7 @@ struct box:
 end struct box
 
 struct bag:
-    boxes: std::array<box>[len: 2 items];
+    boxes: std::coll::array<box>[len: 2 items];
 end struct bag
 
 fn box.%%bump [$b: Lent.mut box] -> void:

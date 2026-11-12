@@ -2,6 +2,6 @@
 import std;
 
 fn.main [none] -> void:
-    let $a: std::array<i32>[len: 3 items] = empty;
+    let $a: std::coll::array<i32>[len: 3 items] = empty;
     return void;
 end fn.main

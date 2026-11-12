@@ -1,5 +1,5 @@
-refused: d140_max_doesnt_fit.cy:5:38, line 5 column 38
- 5 |     let $xs: std::list<i32>[len.max: 300 items, len.type: u8] = empty;
-   |                                      ^^^^^^^^^
+refused: d140_max_doesnt_fit.cy:5:44, line 5 column 44
+ 5 |     let $xs: std::coll::list<i32>[len.max: 300 items, len.type: u8] = empty;
+   |                                            ^^^^^^^^^
  what: `u8` can't count this many
  why:  a length that doesn't fit its `len.type` is refused (D140)

@@ -1,5 +1,5 @@
-refused: d138_the_two_kinds_dont_mix.cy:8:52, line 8 column 52
- 8 |     let $o: std::map.ordered<key: str, val: i32> = Give $h;
-   |                                                    ^^^^^^^
- what: this is `std::map.hash<key: str, val: i32>`, where `std::map.ordered<key: str, val: i32>` is needed
+refused: d138_the_two_kinds_dont_mix.cy:8:58, line 8 column 58
+ 8 |     let $o: std::coll::map.ordered<key: str, val: i32> = Give $h;
+   |                                                          ^^^^^^^
+ what: this is `std::coll::map.hash<key: str, val: i32>`, where `std::coll::map.ordered<key: str, val: i32>` is needed
  why:  `:` doesn't convert, and `as` builds a new value of another type (D7)

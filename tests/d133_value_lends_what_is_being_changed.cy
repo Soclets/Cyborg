@@ -3,14 +3,14 @@
 import std;
 import os;
 
-fn grow [$xs: Lent.mut std::list<i32>[len.max: inf items]] -> i32:
+fn grow [$xs: Lent.mut std::coll::list<i32>[len.max: inf items]] -> i32:
     return 1;
 end fn grow
 
 fn.main [none] -> void:
     let $heap: os::heap = os::heap();
-    let mut $xs: std::list<i32>[len.max: inf items] = [1];
-    defer std::list.done(Give $xs, alloc: Lend $heap);
+    let mut $xs: std::coll::list<i32>[len.max: inf items] = [1];
+    defer std::coll::list.done(Give $xs, alloc: Lend $heap);
     change $xs[pos: 1] = grow(Lend.mut $xs);
     return void;
 end fn.main

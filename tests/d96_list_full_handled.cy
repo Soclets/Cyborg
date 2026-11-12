@@ -3,7 +3,7 @@
 import std;
 
 fn.main [none] -> void:
-    let mut $xs: std::list<i32>[len.max: 1 items] = empty;
+    let mut $xs: std::coll::list<i32>[len.max: 1 items] = empty;
     $xs.std::%%append(val: 1) otherwise:
         case too_long:
             return void;

@@ -3,15 +3,15 @@
 import std;
 import os;
 
-fn eat [$xs: Given std::list<i32>[len.max: inf items], $heap: os::heap] -> void:
-    std::list.done(Give $xs, alloc: Lend $heap);
+fn eat [$xs: Given std::coll::list<i32>[len.max: inf items], $heap: os::heap] -> void:
+    std::coll::list.done(Give $xs, alloc: Lend $heap);
     return void;
 end fn eat
 
 fn.main [none] -> void:
     let $heap: os::heap = os::heap();
-    let mut $xs: std::list<i32>[len.max: inf items] = empty;
-    defer std::list.done(Give $xs, alloc: Lend $heap);
+    let mut $xs: std::coll::list<i32>[len.max: inf items] = empty;
+    defer std::coll::list.done(Give $xs, alloc: Lend $heap);
     $xs.std::%%append(val: 4, alloc: Lend $heap);
     eat(Give $xs, Lend $heap);
     return void;

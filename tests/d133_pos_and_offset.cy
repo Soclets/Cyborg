@@ -4,8 +4,8 @@ import os;
 
 fn.main [none] -> void:
     let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
-    let $xs: std::list<i32>[len.max: 8 items] = [10, 20, 30];
-    let $a: std::array<i32>[len: 2 items] = [7, 8];
+    let $xs: std::coll::list<i32>[len.max: 8 items] = [10, 20, 30];
+    let $a: std::coll::array<i32>[len: 2 items] = [7, 8];
     std::io::fmt_print(Lend.mut $out, "{}{newln}", $xs[pos: 1]);
     std::io::fmt_print(Lend.mut $out, "{}{newln}", $xs[offset.items: 0]);
     std::io::fmt_print(Lend.mut $out, "{}{newln}", $xs[pos: 3]);

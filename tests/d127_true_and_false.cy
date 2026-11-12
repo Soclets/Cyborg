@@ -40,7 +40,7 @@ fn.main [none] -> void:
     yes_or_no(pick(flag: false));
     let $f: flags = flags[on = true];
     yes_or_no($f.on);
-    let $all: std::array<bool>[len: 2 items] = all true;
+    let $all: std::coll::array<bool>[len: 2 items] = all true;
     for $x in $all:
         yes_or_no($x);
     end for

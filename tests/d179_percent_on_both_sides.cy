@@ -1,7 +1,7 @@
 // trace: D179
 import std;
 
-use std::list.%%append as %"%push";
+use std::coll::list.%%append as %"%push";
 
 fn.main [none] -> void:
     return void;

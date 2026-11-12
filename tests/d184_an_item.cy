@@ -9,7 +9,7 @@ end fn bump
 
 fn.main [none] -> void:
     let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
-    let mut $xs: std::array<i32>[len: 2 items] = [1, 2];
+    let mut $xs: std::coll::array<i32>[len: 2 items] = [1, 2];
     bump(Lend.mut $xs[pos: 2]);
     std::io::fmt_print(Lend.mut $out, "{}{newln}", $xs[pos: 2]);
     return void;

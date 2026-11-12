@@ -2,7 +2,7 @@
 import std;
 
 struct bag:
-    items: std::array<i32>[len: 1 items];
+    items: std::coll::array<i32>[len: 1 items];
 end struct bag
 
 fn bag.%%empty_out [$b: Lent.mut bag] -> void:

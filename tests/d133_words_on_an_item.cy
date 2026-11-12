@@ -18,7 +18,7 @@ fn replace [$s: Lent.mut str] -> void:
 end fn replace
 
 fn.main [none] -> void:
-    let mut $a: std::array<str>[len: 2 items] = ["one", "two"];
+    let mut $a: std::coll::array<str>[len: 2 items] = ["one", "two"];
     show(Lend $a[pos: 1]);
     let $k: str = keep(Copy $a[pos: 2]);
     show(Lend $k);

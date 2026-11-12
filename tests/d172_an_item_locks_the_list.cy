@@ -10,8 +10,8 @@ end struct inner
 fn.main [none] -> void:
     let $heap: os::heap = os::heap();
     let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
-    let mut $xs: std::list<inner>[len.max: inf items] = [inner[n = 1], inner[n = 2]];
-    defer std::list.done(Give $xs, alloc: Lend $heap);
+    let mut $xs: std::coll::list<inner>[len.max: inf items] = [inner[n = 1], inner[n = 2]];
+    defer std::coll::list.done(Give $xs, alloc: Lend $heap);
     let $first: Lend from $xs inner = Lend $xs[pos: 1];
     change $xs[pos: 2].n = 5;
     std::io::fmt_print(Lend.mut $out, "{}{newln}", $first.n);

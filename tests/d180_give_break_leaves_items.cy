@@ -15,7 +15,7 @@ fn close [$f: Given open_file] -> void:
 end fn close
 
 fn.main [none] -> void:
-    let $files: std::list<open_file>[len.max: inf items] = [open_file[fd = 3], open_file[fd = 4]];
+    let $files: std::coll::list<open_file>[len.max: inf items] = [open_file[fd = 3], open_file[fd = 4]];
     for $f in Give $files:
         close(Give $f);
         break;

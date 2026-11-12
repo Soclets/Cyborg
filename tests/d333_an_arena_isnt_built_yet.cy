@@ -5,6 +5,6 @@ import os;
 
 fn.main [none] -> void:
     let $heap: os::heap = os::heap();
-    let mut $arena: std::arena = std::arena.new(size: 1 mib, alloc: Lend $heap);
+    let mut $arena: std::mem::arena = std::mem::arena.new(size: 1 mib, alloc: Lend $heap);
     return void;
 end fn.main

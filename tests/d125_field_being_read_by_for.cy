@@ -2,7 +2,7 @@
 import std;
 
 struct bag:
-    items: std::array<i32>[len: 2 items];
+    items: std::coll::array<i32>[len: 2 items];
 end struct bag
 
 fn.main [none] -> void:

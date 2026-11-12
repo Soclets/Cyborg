@@ -17,8 +17,8 @@ fn.main [none] -> void:
     let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     let $r: box = box[n = 5];
     std::io::fmt_print(Lend.mut $out, "{}{newln}", eat(val: Give $r));
-    let mut $xs: std::list<box>[len.max: inf items] = empty;
-    defer std::list.done(Give $xs, alloc: Lend $heap);
+    let mut $xs: std::coll::list<box>[len.max: inf items] = empty;
+    defer std::coll::list.done(Give $xs, alloc: Lend $heap);
     let $q: box = box[n = 6];
     $xs.std::%%append(val: Give $q, alloc: Lend $heap);
     $xs.std::%%append(val: box[n = 7], alloc: Lend $heap);

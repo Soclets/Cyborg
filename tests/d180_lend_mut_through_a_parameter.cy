@@ -6,7 +6,7 @@ struct reading:
     celsius: i32;
 end struct reading
 
-fn warm_all [$rs: Lent.mut std::list<reading>[len.max: inf items]] -> void:
+fn warm_all [$rs: Lent.mut std::coll::list<reading>[len.max: inf items]] -> void:
     for $r in Lend.mut $rs:
         change $r.celsius = $r.celsius + 5;
     end for
@@ -16,8 +16,8 @@ end fn warm_all
 fn.main [none] -> void:
     let $heap: os::heap = os::heap();
     let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
-    let mut $readings: std::list<reading>[len.max: inf items] = [reading[celsius = 1]];
-    defer std::list.done(Give $readings, alloc: Lend $heap);
+    let mut $readings: std::coll::list<reading>[len.max: inf items] = [reading[celsius = 1]];
+    defer std::coll::list.done(Give $readings, alloc: Lend $heap);
     warm_all(Lend.mut $readings);
     for $r in $readings:
         std::io::fmt_print(Lend.mut $out, "{}{newln}", $r.celsius);

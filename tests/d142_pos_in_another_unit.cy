@@ -6,7 +6,7 @@ fam.unit time:
 end fam.unit time
 
 fn.main [none] -> void:
-    let $xs: std::array<i32>[len: 1 items] = [1];
+    let $xs: std::coll::array<i32>[len: 1 items] = [1];
     let $n: i32 = $xs[pos: 1 time.seconds];
     return void;
 end fn.main

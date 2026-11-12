@@ -1,7 +1,7 @@
 // trace: D133, D26
 import std;
 
-fn make [none] -> std::array<i32>[len: 2 items]:
+fn make [none] -> std::coll::array<i32>[len: 2 items]:
     return [4, 5];
 end fn make
 

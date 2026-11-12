@@ -3,7 +3,7 @@
 import std;
 
 struct bag:
-    items: std::array<i32>[len: 2 items];
+    items: std::coll::array<i32>[len: 2 items];
     total: i32;
 end struct bag
 

@@ -3,7 +3,7 @@
 import std;
 
 struct bag:
-    items: std::list<i32>[len.max: inf items];
+    items: std::coll::list<i32>[len.max: inf items];
 end struct bag
 
 fn.main [none] -> void:

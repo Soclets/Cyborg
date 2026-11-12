@@ -1,5 +1,5 @@
-refused: d102_too_many_items.cy:5:48, line 5 column 48
- 5 |     let $b: std::list<i32>[len.max: 1 items] = [4, 6];
-   |                                                ^^^^^^
- what: `std::list<i32>[len.max: 1 items]` can't hold 2 items
+refused: d102_too_many_items.cy:5:54, line 5 column 54
+ 5 |     let $b: std::coll::list<i32>[len.max: 1 items] = [4, 6];
+   |                                                      ^^^^^^
+ what: `std::coll::list<i32>[len.max: 1 items]` can't hold 2 items
  why:  `[ ]` gives a list its items, with the count checked against the type (D102)

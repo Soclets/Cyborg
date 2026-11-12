@@ -13,7 +13,7 @@ fn close [$f: Given open_file] -> void:
     return void;
 end fn close
 
-fn first [$files: Given std::list<open_file>[len.max: inf items]] -> i32:
+fn first [$files: Given std::coll::list<open_file>[len.max: inf items]] -> i32:
     for $f in Give $files:
         let $n: i32 = $f.fd;
         close(Give $f);
@@ -23,7 +23,7 @@ fn first [$files: Given std::list<open_file>[len.max: inf items]] -> i32:
 end fn first
 
 fn.main [none] -> void:
-    let $files: std::list<open_file>[len.max: inf items] = [open_file[fd = 3], open_file[fd = 4]];
+    let $files: std::coll::list<open_file>[len.max: inf items] = [open_file[fd = 3], open_file[fd = 4]];
     let $n: i32 = first(Give $files);
     return void;
 end fn.main

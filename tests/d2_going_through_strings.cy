@@ -4,7 +4,7 @@ import os;
 
 fn.main [none] -> void:
     let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
-    let $xs: std::array<str>[len: 2 items] = ["a", "b"];
+    let $xs: std::coll::array<str>[len: 2 items] = ["a", "b"];
     for $s in $xs:
         std::io::fmt_print(Lend.mut $out, "{}{newln}", $s);
     end for

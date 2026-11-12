@@ -9,7 +9,7 @@ fn show [$s: str] -> void:
 end fn show
 
 fn.main [none] -> void:
-    let $xs: std::array<str>[len: 2 items] = ["a", "b"];
+    let $xs: std::coll::array<str>[len: 2 items] = ["a", "b"];
     let $l: Lend from $xs str = Lend $xs[pos: 2];
     show(Lend $l);
     return void;

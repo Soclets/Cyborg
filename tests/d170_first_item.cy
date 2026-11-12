@@ -7,13 +7,13 @@ struct reading:
     celsius: i32;
 end struct reading
 
-fn first [$xs: std::list<reading>[len.min: 1 items, len.max: 8 items]] -> Lend from $xs reading:
+fn first [$xs: std::coll::list<reading>[len.min: 1 items, len.max: 8 items]] -> Lend from $xs reading:
     return Lend $xs[pos: 1];
 end fn first
 
 fn.main [none] -> void:
     let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
-    let $xs: std::list<reading>[len.min: 1 items, len.max: 8 items] = [reading[celsius = 3]];
+    let $xs: std::coll::list<reading>[len.min: 1 items, len.max: 8 items] = [reading[celsius = 3]];
     let $f: Lend from $xs reading = first(Lend $xs);
     std::io::fmt_print(Lend.mut $out, "{}{newln}", $f.celsius);
     return void;

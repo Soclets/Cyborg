@@ -3,7 +3,7 @@
 import std;
 import os;
 
-fn print_backwards [$xs: std::list<str>[len.max: 8 items]] -> void:
+fn print_backwards [$xs: std::coll::list<str>[len.max: 8 items]] -> void:
     let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     let mut $at: u64 = $xs.len as u64;
     while $at above 0:
@@ -14,7 +14,7 @@ fn print_backwards [$xs: std::list<str>[len.max: 8 items]] -> void:
 end fn print_backwards
 
 fn.main [none] -> void:
-    let mut $lines: std::list<str>[len.max: 8 items] = empty;
+    let mut $lines: std::coll::list<str>[len.max: 8 items] = empty;
     $lines.std::%%append(val: "first");
     $lines.std::%%append(val: "second");
     $lines.std::%%append(val: "third");

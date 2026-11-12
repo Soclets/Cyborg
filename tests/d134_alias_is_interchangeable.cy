@@ -3,7 +3,7 @@ import std;
 import os;
 
 type.alias score = i32;
-type.alias numbers = std::list<i32>[len.max: 8 items];
+type.alias numbers = std::coll::list<i32>[len.max: 8 items];
 
 fn total [$xs: numbers] -> score:
     let mut $sum: i32 = 0;
@@ -18,7 +18,7 @@ fn.main [none] -> void:
     let $a: score = 5;
     let $b: i32 = $a;
     let $c: score = $b + 1;
-    let mut $xs: std::list<i32>[len.max: 8 items] = empty;
+    let mut $xs: std::coll::list<i32>[len.max: 8 items] = empty;
     $xs.std::%%append(val: $c);
     let $ys: numbers = Copy $xs;
     std::io::fmt_print(Lend.mut $out, "{}{newln}", total(Lend $ys));

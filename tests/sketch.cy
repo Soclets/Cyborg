@@ -3,7 +3,7 @@
 import std;
 import os;
 
-fn total [$xs: std::list<i32>[len.max: inf items]] -> i32:
+fn total [$xs: std::coll::list<i32>[len.max: inf items]] -> i32:
     let mut $sum: i32 = 0;
     for $x in $xs:
         change $sum = $sum + $x;
@@ -14,8 +14,8 @@ end fn total
 fn.main [none] -> void:
     let $heap: os::heap = os::heap();
     let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
-    let mut $xs: std::list<i32>[len.max: inf items] = empty;
-    defer std::list.done(Give $xs, alloc: Lend $heap);
+    let mut $xs: std::coll::list<i32>[len.max: inf items] = empty;
+    defer std::coll::list.done(Give $xs, alloc: Lend $heap);
     $xs.std::%%append(val: 4, alloc: Lend $heap);
     $xs.std::%%append(val: 6, alloc: Lend $heap);
     $xs.std::%%append(val: 5, alloc: Lend $heap);

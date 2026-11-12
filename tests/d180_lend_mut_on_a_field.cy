@@ -2,7 +2,7 @@
 import std;
 
 struct holder:
-    items: std::array<i32>[len: 2 items];
+    items: std::coll::array<i32>[len: 2 items];
 end struct holder
 
 fn.main [none] -> void:

@@ -2,7 +2,7 @@
 import std;
 
 fn.main [none] -> void:
-    let $xs: std::array<i32>[len: 2 items] = [1, 2];
+    let $xs: std::coll::array<i32>[len: 2 items] = [1, 2];
     for $n in Copy $xs:
         return void;
     end for

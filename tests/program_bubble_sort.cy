@@ -3,7 +3,7 @@
 import std;
 import os;
 
-fn sort [$xs: Lent.mut std::array<i32>[len: 6 items]] -> void:
+fn sort [$xs: Lent.mut std::coll::array<i32>[len: 6 items]] -> void:
     let mut $swapped: bool = true;
     while $swapped:
         change $swapped = false;
@@ -21,7 +21,7 @@ end fn sort
 
 fn.main [none] -> void:
     let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
-    let mut $xs: std::array<i32>[len: 6 items] = [5, 2, 9, 1, 7, 3];
+    let mut $xs: std::coll::array<i32>[len: 6 items] = [5, 2, 9, 1, 7, 3];
     sort(Lend.mut $xs);
     for $x in $xs:
         std::io::fmt_print(Lend.mut $out, "{}{newln}", $x);

@@ -2,7 +2,7 @@
 import std;
 
 fn.main [none] -> void:
-    let mut $xs: std::array<i32>[len: 2 items] = [1, 2];
+    let mut $xs: std::coll::array<i32>[len: 2 items] = [1, 2];
     for $a in Lend.mut $xs:
         for $b in Lend.mut $xs:
             change $b = $a;

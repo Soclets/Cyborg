@@ -5,7 +5,7 @@ import os;
 type.new user_id = i64;
 type.new label = str;
 type.new flag = bool;
-type.new row = std::array<i32>[len: 2 items];
+type.new row = std::coll::array<i32>[len: 2 items];
 
 fam.type.new ids:
     ids.user = i64;

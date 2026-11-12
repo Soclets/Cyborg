@@ -18,7 +18,7 @@ fn open [$fd: i32] -> open_file:
 end fn open
 
 fn.main [none] -> void:
-    let $files: std::list<open_file>[len.max: inf items] = [open(3)];
+    let $files: std::coll::list<open_file>[len.max: inf items] = [open(3)];
     finish $files;
     return void;
 end fn.main
