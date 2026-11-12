@@ -2611,6 +2611,7 @@ impl Parser {
         self.advance(); // `struct`
         let mut must_give = false;
         let mut packed = false;
+        let mut layout = crate::ast::StructLayout::Written;
         let mut closer = "struct".to_string();
         if self.at_symbol(".") {
             self.advance();
@@ -2618,10 +2619,15 @@ impl Parser {
             // A bare `struct` keeps the written order, and the layouts that don't are
             // narrowings. (D319)
             // trace: D319
+            // trace: D319, D388
             match narrowing.text.as_str() {
                 "must_Give" => must_give = true,
-                "packed" => packed = true,
-                "any_order" => {}
+                "packed" => {
+                    packed = true;
+                    layout = crate::ast::StructLayout::Packed;
+                }
+                "any_order" => layout = crate::ast::StructLayout::AnyOrder,
+                "compact" => layout = crate::ast::StructLayout::Compact,
                 other => {
                     return Err(Report::not_designed(
                         narrowing.span,
@@ -2660,6 +2666,7 @@ impl Parser {
         Ok(StructDeclaration {
             must_give,
             packed,
+            layout,
             name,
             type_parameters,
             sources,

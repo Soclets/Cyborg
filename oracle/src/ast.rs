@@ -216,11 +216,26 @@ pub struct FieldDeclaration {
     pub written_type: TypeExpression,
 }
 
+/// How a struct lays out its fields. (D319, D388)
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum StructLayout {
+    /// A bare `struct`: the written order, with natural padding.
+    Written,
+    /// `struct.compact`: sorted by alignment, largest first, ties in the written order.
+    Compact,
+    /// `struct.any_order`: whatever order the compiler picks.
+    AnyOrder,
+    /// `struct.packed`: the written order with no padding.
+    Packed,
+}
+
 #[derive(Clone, Debug)]
 pub struct StructDeclaration {
     pub must_give: bool,
     /// `struct.packed`: the written order with no padding, so a field can't be borrowed. (D319)
     pub packed: bool,
+    /// Its layout, which says its size. (D319, D388)
+    pub layout: StructLayout,
     pub name: Name,
     /// `struct pair<?left: any, ?right: any>:`. (D234)
     pub type_parameters: Vec<TypeParameter>,

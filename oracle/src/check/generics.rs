@@ -1013,6 +1013,7 @@ impl Checker<'_> {
                 super::StructInfo {
                     must_give: info.must_give,
                     packed: info.packed,
+                    layout: info.layout,
                     type_parameters: Vec::new(),
                     fields,
                     sources: info.sources.clone(),
