@@ -2,21 +2,29 @@
 //! doesn't mean the language is covered (rule 3, D68). Each line comes off this list when the
 //! generator learns it.
 
-/// Generated today: `i32`, `i64`, `u8`, `u32` and `u64` values and variables; `+`, `-`, `x`, the
-/// `.wrap` and `.saturate` words, `div` and `mod` with `.trunc` and `.floor`, the `.bit`
-/// operators, and `shl` and `shr` on unsigned types; comparisons; `and`, `or` and `not`;
-/// `const` from literals and other constants; bounded integers, from literals that fit or checked values, changed and read as their plain
-/// type; `f32.stable` and `f64.stable` values, from exact literals and ones marked `~`, with `+`, `-`,
-/// `x` and `div`, compared and printed; structs with integer fields in every layout, built with `[ ]`, their fields read and changed;
-/// functions that list failures, some carrying data, and `fail` them; calls handled with `?`,
-/// `??`, `otherwise:` arms that use a value `instead`, or nothing, so a failure stops the
-/// program; arrays from `[ ]` and `all`, their items by `pos:` and `offset.items:`, read and changed;
-/// precedence with and without `( )`, as 3.9's table orders it; comparison chains; `let`,
-/// `change`, `if` and `else`, `while`, `for` over literal ranges and through arrays, reading or
-/// changing each item, `forever`, `break`; functions with
-/// integer parameters and results, `fn.pure` ones calling only pure ones, `requires` and
-/// `ensures result` contracts, labels on the last ones, `labels.any_order`, and defaults
-/// calls leave off; printing a variable with `fmt_print` to an unbuffered writer.
+/// Generated today:
+/// - values: `i32`, `i64`, `u8`, `u32` and `u64`; bounded integers from literals that fit or
+///   checked values; `f32.stable` and `f64.stable` from exact literals and ones marked `~`;
+///   `const` from literals and other constants; `decl mut` with an `assign` on each path;
+/// - maths: `+`, `-`, `x`, the `.wrap` and `.saturate` words, `div` and `mod` with `.trunc` and
+///   `.floor`, a bare `div` on floats, the `.bit` operators, and `shl` and `shr` on unsigned
+///   types; comparisons and comparison chains; `and`, `or`, `and.both`, `or.both` and `not`;
+///   precedence with and without `( )`, as 3.9's table orders it;
+/// - data: arrays from `[ ]` and `all`, their items by `pos:` and `offset.items:`, read and
+///   changed; structs with integer fields in every layout, built with `[ ]`, their fields read
+///   and changed; tagged unions whose cases carry integer data or none, and `match` covering every
+///   case in any order, an arm naming its case to read its data;
+/// - control: `let`, `change`, `if` and `else`, `while`, `for` over literal ranges and through
+///   arrays, reading or changing each item, `forever`, `break`;
+/// - functions: integer parameters and results, `fn.pure` ones calling only pure ones, `requires`
+///   and `ensures result` contracts, labels on the last parameters, `labels.any_order`, and
+///   defaults calls leave off;
+/// - failures: functions that list failures, some carrying data, and `fail` them; calls handled
+///   with `?`, `??`, `otherwise:` arms that use a value `instead`, or nothing, so a failure stops
+///   the program;
+/// - printing: `fmt_print` to an unbuffered writer, one to three values per print, with plain,
+///   numbered or named holes, shapes for width, alignment, bases, `zeros`, `sign`, `places:` and
+///   `form: science`, and escaped braces and `{tab}` in the text.
 pub const NOT_GENERATED: &[&str] = &[
     "1.13 printing: `.stored`, named holes reading fields, widths in units other than `cols`, `unit`, other escapes, buffered writers, stderr",
     "2.3 `const` calling `fn.pure.baked` functions, float constants, constants whose maths overflows",
