@@ -35,9 +35,11 @@
 ///   handed over with `Give` or `Copy`, called as statements; integer parameters and results, `fn.pure` ones calling only pure ones, `requires`
 ///   and `ensures result` contracts, labels on the last parameters, `labels.any_order`, and
 ///   defaults calls leave off;
-/// - failures: functions that list failures, some carrying data, and `fail` them; calls handled
-///   with `?`, `??`, `otherwise:` arms that use a value `instead`, or nothing, so a failure stops
-///   the program;
+/// - failures: functions that list failures, some carrying data, or a `fam.failure` set whole,
+///   and `fail` them, a set's by their full names; calls handled with `?`, `??`, `otherwise:`
+///   arms that use a value `instead`, the failure's own data through a named `case`, or
+///   `return`, `break` or `fail`, a set's `fam.handler` narrowing, or one that returns marked
+///   `*`, or nothing, so a failure stops the program;
 /// - units: `fam.unit` families of whole multiples, integer values in them, added, bounded in
 ///   units, converted with `as` and its narrowings, taken off with `as`; float units with two
 ///   bases, a `fam.prefix` the length opts into `with`, units made with `per`, `per` of a `per`
@@ -83,7 +85,6 @@ pub const NOT_GENERATED: &[&str] = &[
     "5.x contracts that call pure functions, methods with labels or on other types, `bake`; generics with more than one type parameter, and generic structs holding structs; undecided: specialization, value parameters, type slots and how laws are proven (12.5)",
     "6.x stored borrows and `.held`, `Lend from` results, `must_Give` values that leave a loop or a `match`, and `defer` on anything but ending a value",
     "7.x structs holding other structs, lists or borrows, beyond the `must_Give` holder, handing unions to functions",
-    "8.x named sets of failures, a `case` reading a failure's data, arms that `return`, `break` or `fail`, handler narrowings and `*`",
     "9.x still to do: tasks on `os::threads` and `os::events`, tasks that borrow, locks and atomics; `pub` and `use` between packages, once programs have more than one; NotBuiltYet: `.at(address:)`, which points at hardware the oracle doesn't have; undecided: a shield's own `requires` and `ensures` (12.9), your own allocator (2.10)",
     "10.x compiler-only: build modes, since the oracle runs one way and the live comparison runs every mode against it",
     "recursion in generated functions, beyond the three fixed ones",

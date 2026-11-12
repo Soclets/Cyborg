@@ -513,8 +513,33 @@ pub struct Generics {
 /// A failure a function lists, `bad3` or `bad4[got: i32]` (8.1).
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct FailureDecl {
+    /// Its name, or its full name, `fs1.a2`, in a named set.
     pub name: String,
     pub data: Option<Kind>,
+    /// The named set it's in, which a function lists whole (8.3).
+    pub family: Option<String>,
+}
+
+/// What an `otherwise` arm does (8.6).
+#[derive(Clone, Debug)]
+pub enum Arm {
+    /// `instead …;`, the value used in place of the failed call.
+    Instead(Expression),
+    /// `return …;` from the function, `return void;` in a `void` one.
+    Return(Option<Expression>),
+    /// `break;` out of the loop around.
+    Break,
+    /// `fail …;`, one of the function's own failures, with data if it carries some.
+    Fail(String, Option<Expression>),
+}
+
+/// A named set of failures, and handler narrowings for it: `fallback`, whose arms give a value
+/// instead, and `bail`, whose arms `return void;`, used with `*` (8.3, 8.7, 8.8).
+#[derive(Clone, Debug)]
+pub struct FailureFamily {
+    pub name: String,
+    pub members: Vec<FailureDecl>,
+    pub handler: String,
 }
 
 /// Where an item is: `pos:` counts from 1, and `offset.items:` from 0 (2.17). A variable's
@@ -803,7 +828,10 @@ pub enum Statement {
         name: String,
         value_type: Type,
         call: Expression,
-        arms: Vec<(String, Expression)>,
+        /// Each failure, the name an arm reads its data through, and what the arm does.
+        arms: Vec<(String, Option<String>, Arm)>,
+        /// A handler narrowing used instead of arms, as `hs1.fallback` or `hs1.*bail` (8.7, 8.8).
+        handler: Option<String>,
     },
 }
 
@@ -832,6 +860,8 @@ pub struct Function {
 #[derive(Clone, Debug)]
 pub struct Program {
     pub unit_families: Vec<UnitFamily>,
+    /// A named set of failures and its handlers (8.3, 8.7).
+    pub failure_family: Option<FailureFamily>,
     /// Whether `rsum`, which calls itself, and `reven` and `rodd`, which call each other, are
     /// declared (5.1).
     pub recursion: bool,
@@ -850,6 +880,45 @@ pub struct Program {
     pub main: Vec<Statement>,
     /// Whether the printer leaves out `( )` where 3.9's table already gives the order.
     pub fewer_brackets: bool,
+}
+
+/// `fam.failure` and its `fam.handler`, with a narrowing that gives a value instead and one that
+/// returns (8.3, 8.7, 8.8).
+fn print_failure_family(out: &mut String, family: &FailureFamily) {
+    let name = &family.name;
+    let _ = writeln!(out, "fam.failure {name}:");
+    for member in &family.members {
+        match member.data {
+            Some(kind) => {
+                let _ = writeln!(out, "    {}[got: {}];", member.name, kind.word());
+            }
+            None => {
+                let _ = writeln!(out, "    {};", member.name);
+            }
+        }
+    }
+    let _ = writeln!(out, "end fam.failure {name}\n");
+    let handler = &family.handler;
+    let _ = writeln!(out, "fam.handler {handler}:");
+    let _ = writeln!(out, "    {handler}.fallback:");
+    for (at, member) in family.members.iter().enumerate() {
+        let _ = writeln!(
+            out,
+            "        case {}:\n            instead {at};",
+            member.name
+        );
+    }
+    let _ = writeln!(out, "    end {handler}.fallback");
+    let _ = writeln!(out, "    {handler}.bail:");
+    for member in &family.members {
+        let _ = writeln!(
+            out,
+            "        case {}:\n            return void;",
+            member.name
+        );
+    }
+    let _ = writeln!(out, "    end {handler}.bail");
+    let _ = writeln!(out, "end fam.handler {handler}\n");
 }
 
 /// A named loop's name after `for`, and after `end for` (4.8).
@@ -1148,6 +1217,9 @@ pub fn print(program: &Program) -> String {
     if let Some(generics) = &program.generics {
         print_generics(&mut out, generics);
     }
+    if let Some(family) = &program.failure_family {
+        print_failure_family(&mut out, family);
+    }
     if program.recursion {
         out.push_str("fn rsum [$n: u64] -> u64:\n    if $n == 0:\n        return 0;\n    end if\n    return $n plus.wrap rsum($n - 1);\nend fn rsum\n\n");
         out.push_str("fn reven [$n: u64] -> u64:\n    if $n == 0:\n        return 1;\n    end if\n    return rodd($n - 1);\nend fn reven\n\n");
@@ -1183,14 +1255,18 @@ pub fn print(program: &Program) -> String {
         let fails = if function.failures.is_empty() {
             String::new()
         } else {
-            let listed: Vec<String> = function
-                .failures
-                .iter()
-                .map(|failure| match failure.data {
-                    Some(kind) => format!("{}[got: {}]", failure.name, kind.word()),
-                    None => failure.name.clone(),
-                })
-                .collect();
+            // A named set is listed by its name, once, for all its members (8.1, 8.3).
+            let mut listed: Vec<String> = Vec::new();
+            for failure in &function.failures {
+                let written = match (&failure.family, failure.data) {
+                    (Some(family), _) => family.clone(),
+                    (None, Some(kind)) => format!("{}[got: {}]", failure.name, kind.word()),
+                    (None, None) => failure.name.clone(),
+                };
+                if !listed.contains(&written) {
+                    listed.push(written);
+                }
+            }
             format!(" fails [{}]", listed.join(", "))
         };
         let word = if function.pure { "fn.pure" } else { "fn" };
@@ -1869,16 +1945,43 @@ fn print_block(out: &mut String, statements: &[Statement], depth: usize, style: 
                 value_type,
                 call,
                 arms,
+                handler,
             } => {
+                if let Some(handler) = handler {
+                    let _ = writeln!(
+                        out,
+                        "{indent}let mut ${name}: {} = {} otherwise {handler};",
+                        value_type.word(),
+                        style.expression(call)
+                    );
+                    continue;
+                }
                 let _ = writeln!(
                     out,
                     "{indent}let mut ${name}: {} = {} otherwise:",
                     value_type.word(),
                     style.expression(call)
                 );
-                for (failure, value) in arms {
-                    let _ = writeln!(out, "{indent}    case {failure}:");
-                    let _ = writeln!(out, "{indent}        instead {};", style.expression(value));
+                for (failure, named, arm) in arms {
+                    match named {
+                        Some(named) => {
+                            let _ = writeln!(out, "{indent}    case {failure} ${named}:");
+                        }
+                        None => {
+                            let _ = writeln!(out, "{indent}    case {failure}:");
+                        }
+                    }
+                    let done = match arm {
+                        Arm::Instead(value) => format!("instead {}", style.expression(value)),
+                        Arm::Return(Some(value)) => format!("return {}", style.expression(value)),
+                        Arm::Return(None) => "return void".to_string(),
+                        Arm::Break => "break".to_string(),
+                        Arm::Fail(failure, Some(value)) => {
+                            format!("fail {failure}[got = {}]", style.expression(value))
+                        }
+                        Arm::Fail(failure, None) => format!("fail {failure}"),
+                    };
+                    let _ = writeln!(out, "{indent}        {done};");
                 }
                 let _ = writeln!(out, "{indent}end otherwise");
             }

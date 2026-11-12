@@ -7,9 +7,9 @@ use std::fmt::Write as _;
 
 use crate::random::Random;
 use crate::tree::{
-    Arguments, Comparison, Ending, Expression, FailureDecl, Filling, Function, Generics, Handling,
-    Kind, Layout, MethodDecl, NamedType, Operator, ParamKind, Position, Procedure, Program,
-    Statement, StructDecl, Style, Tokens, Type, UnionDecl, UnitFamily,
+    Arguments, Arm, Comparison, Ending, Expression, FailureDecl, FailureFamily, Filling, Function,
+    Generics, Handling, Kind, Layout, MethodDecl, NamedType, Operator, ParamKind, Position,
+    Procedure, Program, Statement, StructDecl, Style, Tokens, Type, UnionDecl, UnitFamily,
 };
 
 /// How big a program gets.
@@ -77,6 +77,10 @@ struct Generator<'random> {
     generics: Option<Generics>,
     /// A `must_Give` struct, when the program declares one (6.9).
     tokens: Option<Tokens>,
+    /// A named set of failures and its handlers, when the program declares one (8.3, 8.7).
+    failure_family: Option<FailureFamily>,
+    /// What the function being made returns, for an `otherwise` arm that returns (8.6).
+    returns: Option<Type>,
     /// Whether the recursive functions are declared (5.1).
     recursion: bool,
     /// The names of the loops around what's being generated, innermost last (4.8).
@@ -122,6 +126,8 @@ pub fn program(seed: u64) -> Program {
         untagged: None,
         loop_names: Vec::new(),
         recursion: false,
+        failure_family: None,
+        returns: None,
         float_units: None,
         units: Vec::new(),
         constants: Vec::new(),
@@ -147,6 +153,7 @@ pub fn program(seed: u64) -> Program {
     generator.tokens();
     generator.untagged_union();
     generator.recursion = generator.random.chance(40);
+    generator.failure_family();
     for _ in 0..generator.random.between(0, 2) {
         let declared = generator.union_decl();
         generator.unions.push(declared);
@@ -213,6 +220,7 @@ pub fn program(seed: u64) -> Program {
         tokens: generator.tokens,
         untagged: generator.untagged,
         recursion: generator.recursion,
+        failure_family: generator.failure_family,
         methods: generator.methods,
         arena: generator.arena,
         named: generator.named,
@@ -410,14 +418,36 @@ impl Generator<'_> {
                 own.push(FailureDecl {
                     name: failure,
                     data,
+                    family: None,
                 });
             }
         }
+        // Now and then the function lists the named set, so it can fail with any of them, and
+        // fails with one when a test says (8.1, 8.3).
+        if let (false, true, Some(family)) =
+            (pure, self.random.chance(30), self.failure_family.clone())
+        {
+            if let Some(member) = self.random.pick(&family.members).cloned() {
+                let test = self.expression(&scope, Type::Bool, LIMITS.depth);
+                let data = member.data.map(|kind| self.literal(kind));
+                body.push(Statement::If {
+                    test,
+                    then: vec![Statement::Fail {
+                        name: member.name,
+                        data,
+                    }],
+                    otherwise: Vec::new(),
+                });
+            }
+            own.extend(family.members);
+        }
+        self.returns = Some(result);
         self.failing = Some(own);
         body.extend(self.block(&mut scope, 3, 1, (false, false)));
         let returned = self.expression(&scope, result, LIMITS.depth);
         let failures = self.failing.take().unwrap_or_default();
         self.pure_only = false;
+        self.returns = None;
         Function {
             name,
             parameters,
@@ -580,10 +610,23 @@ impl Generator<'_> {
                 self.union_statement(scope, depth, prints)
             }
             0..=3 => {
-                if self.random.chance(25) {
-                    let kind = *self.random.pick(&Kind::ALL).unwrap_or(&Kind::I32);
-                    if let Some(statement) = self.let_otherwise(scope, kind) {
-                        return statement;
+                if self.random.chance(35) {
+                    // The kind of a function that can fail, so the call has failures to handle.
+                    let kinds: Vec<Kind> = self
+                        .functions
+                        .iter()
+                        .filter(|function| !function.failures.is_empty())
+                        .filter_map(|function| match function.result {
+                            Type::Integer(kind) => Some(kind),
+                            _ => None,
+                        })
+                        .collect();
+                    if let Some(kind) = self.random.pick(&kinds).copied() {
+                        for _ in 0..3 {
+                            if let Some(statement) = self.let_otherwise(scope, kind, in_loop) {
+                                return statement;
+                            }
+                        }
                     }
                 }
                 let value_type = match self.random.between(0, 99) {
@@ -3483,15 +3526,30 @@ impl Generator<'_> {
 
     /// `let` from a call that can fail, with an `otherwise:` arm for each failure, each using
     /// a value `instead` (8.6).
-    fn let_otherwise(&mut self, scope: &mut Scope, kind: Kind) -> Option<Statement> {
+    fn let_otherwise(&mut self, scope: &mut Scope, kind: Kind, in_loop: bool) -> Option<Statement> {
         let (function, arguments, failures) = self.plain_call(scope, kind, LIMITS.depth)?;
         if failures.is_empty() {
             return None;
         }
-        let arms = failures
-            .into_iter()
-            .map(|failure| (failure.name, self.literal(kind)))
-            .collect();
+        // A call that can fail only with the named set can use one of its handlers, the one
+        // that returns marked `*`, and only where `return void;` fits (8.7, 8.8).
+        let handler = self.failure_family.clone().and_then(|family| {
+            let only_family = failures
+                .iter()
+                .all(|failure| failure.family.as_ref() == Some(&family.name));
+            if !only_family || !self.random.chance(50) {
+                return None;
+            }
+            Some(if self.in_main && self.random.chance(30) {
+                format!("{}.*bail", family.handler)
+            } else {
+                format!("{}.fallback", family.handler)
+            })
+        });
+        let mut arms = Vec::new();
+        for failure in failures {
+            arms.push(self.arm(scope, kind, in_loop, failure));
+        }
         let name = self.name("v");
         scope.variables.push((name.clone(), Type::Integer(kind)));
         Some(Statement::LetOtherwise {
@@ -3503,7 +3561,70 @@ impl Generator<'_> {
                 handling: Handling::Crash,
             },
             arms,
+            handler,
         })
+    }
+
+    /// What one `otherwise` arm does: gives a value instead, now and then the failure's own
+    /// data, or returns, breaks out of the loop around, or fails with one of the function's
+    /// own failures (8.6).
+    fn arm(
+        &mut self,
+        scope: &Scope,
+        kind: Kind,
+        in_loop: bool,
+        failure: FailureDecl,
+    ) -> (String, Option<String>, Arm) {
+        if failure.data == Some(kind) && self.random.chance(40) {
+            let named = self.name("f");
+            let read = Expression::Field {
+                variable: named.clone(),
+                field: "got".to_string(),
+            };
+            return (failure.name, Some(named), Arm::Instead(read));
+        }
+        let own = self.failing.clone().unwrap_or_default();
+        let arm = match self.random.between(0, 9) {
+            0 if self.in_main => Arm::Return(None),
+            0 => match self.returns {
+                Some(returns) => Arm::Return(Some(self.expression(scope, returns, 2))),
+                None => Arm::Instead(self.literal(kind)),
+            },
+            1 if in_loop => Arm::Break,
+            2 if !own.is_empty() => match self.random.pick(&own).cloned() {
+                Some(raised) => {
+                    let data = raised.data.map(|carried| self.literal(carried));
+                    Arm::Fail(raised.name, data)
+                }
+                None => Arm::Instead(self.literal(kind)),
+            },
+            _ => Arm::Instead(self.literal(kind)),
+        };
+        (failure.name, None, arm)
+    }
+
+    /// Now and then a named set of failures, two or three, some carrying data, and its
+    /// handlers (8.3, 8.7).
+    fn failure_family(&mut self) {
+        if !self.random.chance(40) {
+            return;
+        }
+        let name = self.name("fs");
+        let mut members = Vec::new();
+        for _ in 0..self.random.between(2, 3) {
+            let member = format!("{name}.{}", self.name("fm"));
+            let data = self.random.chance(50).then(|| self.integer_kind());
+            members.push(FailureDecl {
+                name: member,
+                data,
+                family: Some(name.clone()),
+            });
+        }
+        self.failure_family = Some(FailureFamily {
+            name,
+            members,
+            handler: self.name("hs"),
+        });
     }
 
     fn boolean(&mut self, scope: &Scope, depth: usize) -> Expression {
