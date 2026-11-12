@@ -51,6 +51,8 @@ impl Kind {
 pub enum Type {
     Integer(Kind),
     Bool,
+    /// `f64.stable` when true, `f32.stable` when false: the same bits everywhere (2.6).
+    Float(bool),
 }
 
 impl Type {
@@ -58,6 +60,8 @@ impl Type {
         match self {
             Type::Integer(kind) => kind.word(),
             Type::Bool => "bool",
+            Type::Float(true) => "f64.stable",
+            Type::Float(false) => "f32.stable",
         }
     }
 }
@@ -74,6 +78,8 @@ pub enum Operator {
     PlusSaturate,
     MinusSaturate,
     TimesSaturate,
+    /// A bare `div`, which is for floats (3.3).
+    Divide,
     DivideTrunc,
     DivideFloor,
     RemainderTrunc,
@@ -118,6 +124,7 @@ impl Operator {
             Operator::PlusSaturate => "plus.saturate",
             Operator::MinusSaturate => "minus.saturate",
             Operator::TimesSaturate => "times.saturate",
+            Operator::Divide => "div",
             Operator::DivideTrunc => "div.trunc",
             Operator::DivideFloor => "div.floor",
             Operator::RemainderTrunc => "mod.trunc",
@@ -133,7 +140,8 @@ impl Operator {
     pub fn divides(self) -> bool {
         matches!(
             self,
-            Operator::DivideTrunc
+            Operator::Divide
+                | Operator::DivideTrunc
                 | Operator::DivideFloor
                 | Operator::RemainderTrunc
                 | Operator::RemainderFloor
@@ -150,6 +158,7 @@ impl Operator {
     pub fn level(self) -> Option<u8> {
         match self {
             Operator::Multiply
+            | Operator::Divide
             | Operator::DivideTrunc
             | Operator::DivideFloor
             | Operator::RemainderTrunc
@@ -196,6 +205,9 @@ impl Comparison {
 #[derive(Clone, Debug)]
 pub enum Expression {
     Integer(i128),
+    /// A float literal as written, `1.25` or `~0.1`, which is negative when it starts with `-`
+    /// or `~-` (2.7).
+    Float(String),
     Bool(bool),
     Variable(String),
     Binary {
@@ -631,6 +643,7 @@ impl Style {
     pub fn expression(self, value: &Expression) -> String {
         match value {
             Expression::Integer(number) => number.to_string(),
+            Expression::Float(text) => text.clone(),
             Expression::Bool(truth) => truth.to_string(),
             Expression::Variable(name) => format!("${name}"),
             Expression::Binary {
@@ -722,6 +735,9 @@ impl Style {
             | Expression::Item { .. }
             | Expression::Field { .. } => self.expression(value),
             Expression::Integer(number) if *number >= 0 => self.expression(value),
+            Expression::Float(text) if !text.starts_with('-') && !text.starts_with("~-") => {
+                self.expression(value)
+            }
             _ => format!("({})", self.expression(value)),
         }
     }

@@ -5,7 +5,8 @@
 /// Generated today: `i32`, `i64`, `u8`, `u32` and `u64` values and variables; `+`, `-`, `x`, the
 /// `.wrap` and `.saturate` words, `div` and `mod` with `.trunc` and `.floor`, the `.bit`
 /// operators, and `shl` and `shr` on unsigned types; comparisons; `and`, `or` and `not`;
-/// structs with integer fields in every layout, built with `[ ]`, their fields read and changed;
+/// `f32.stable` and `f64.stable` values, from exact literals and ones marked `~`, with `+`, `-`,
+/// `x` and `div`, compared and printed; structs with integer fields in every layout, built with `[ ]`, their fields read and changed;
 /// functions that list failures, some carrying data, and `fail` them; calls handled with `?`,
 /// `??`, `otherwise:` arms that use a value `instead`, or nothing, so a failure stops the
 /// program; arrays from `[ ]` and `all`, their items by `pos:` and `offset.items:`, read and changed;
@@ -16,7 +17,7 @@ pub const NOT_GENERATED: &[&str] = &[
     "1.13 printing: shapes, named holes, `.stored`, more than one value, buffered writers, stderr",
     "2.3 `const`",
     "2.5 bounded integers and the checks they bring",
-    "2.6, 2.7 floats, `.stable`, `.fast`, `.ieee` and inexact literals",
+    "2.6, 2.7 `.fast` and `.ieee` floats, bounded floats, `exponent` literals, `fmt_print.stored`, floats in structs, arrays and calls",
     "2.9 strings: views, bounded and heap strings",
     "2.10 and 2.12 lists and maps, `append`, allocators, `done`, views and splits",
     "2.14 `as`, and its failures",

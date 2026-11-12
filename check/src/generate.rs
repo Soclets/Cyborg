@@ -68,7 +68,7 @@ pub fn program(seed: u64) -> Program {
     for statement in main.clone() {
         if let Statement::Let {
             name,
-            value_type: Type::Integer(_),
+            value_type: Type::Integer(_) | Type::Float(_),
             ..
         }
         | Statement::LetOtherwise { name, .. } = statement
@@ -152,7 +152,7 @@ impl Generator<'_> {
                 };
                 let data = carried.as_ref().and_then(|(_, found)| match found {
                     Type::Integer(kind) => Some(*kind),
-                    Type::Bool => None,
+                    Type::Bool | Type::Float(_) => None,
                 });
                 let test = self.expression(&scope, Type::Bool, LIMITS.depth);
                 body.push(Statement::If {
@@ -219,7 +219,7 @@ impl Generator<'_> {
             .iter()
             // A loop's counter, `$i…`, and a plain parameter, `$p…`, can't change (D184).
             .filter(|(name, value_type)| {
-                matches!(value_type, Type::Integer(_))
+                matches!(value_type, Type::Integer(_) | Type::Float(_))
                     && !name.starts_with('i')
                     && !name.starts_with('p')
             })
@@ -233,10 +233,10 @@ impl Generator<'_> {
                         return statement;
                     }
                 }
-                let value_type = if self.random.chance(20) {
-                    Type::Bool
-                } else {
-                    self.integer_type()
+                let value_type = match self.random.between(0, 99) {
+                    0..=19 => Type::Bool,
+                    20..=35 => Type::Float(self.random.chance(50)),
+                    _ => self.integer_type(),
                 };
                 let value = self.expression(scope, value_type, LIMITS.depth);
                 let name = self.name("v");
@@ -297,7 +297,9 @@ impl Generator<'_> {
                 let printable: Vec<String> = scope
                     .variables
                     .iter()
-                    .filter(|(_, value_type)| matches!(value_type, Type::Integer(_)))
+                    .filter(|(_, value_type)| {
+                        matches!(value_type, Type::Integer(_) | Type::Float(_))
+                    })
                     .map(|(name, _)| name.clone())
                     .collect();
                 if let Some(name) = self.random.pick(&printable).cloned() {
@@ -478,6 +480,7 @@ impl Generator<'_> {
         match value_type {
             Type::Bool => self.boolean(scope, depth),
             Type::Integer(kind) => self.integer(scope, kind, depth),
+            Type::Float(wide) => self.float(scope, wide, depth),
         }
     }
 
@@ -593,6 +596,58 @@ impl Generator<'_> {
     /// A call to a function made earlier with this result. One that can fail is handled with
     /// `?` where the function being made can pass its failures up, `??` and a value, or not at
     /// all, so a failure stops the program (8.4, 8.5, 8.9).
+    /// A float: a literal, exact like `1.25` or marked inexact like `~0.1`, a variable, or
+    /// `+`, `-`, `x` or `div` on two (2.6, 2.7, 3.2, 3.3).
+    fn float(&mut self, scope: &Scope, wide: bool, depth: usize) -> Expression {
+        let roll = self.random.between(0, 9);
+        if depth == 0 || roll < 4 {
+            if self.random.chance(50) {
+                if let Some(variable) = self.variable_of(scope, Type::Float(wide)) {
+                    return variable;
+                }
+            }
+            return self.float_literal();
+        }
+        if roll == 4 {
+            let inner = self.float(scope, wide, depth - 1);
+            return Expression::Negate(Box::new(inner));
+        }
+        let operator = *self
+            .random
+            .pick(&[
+                Operator::Add,
+                Operator::Subtract,
+                Operator::Multiply,
+                Operator::Divide,
+            ])
+            .unwrap_or(&Operator::Add);
+        let left = self.float(scope, wide, depth - 1);
+        let right = self.float(scope, wide, depth - 1);
+        Expression::Binary {
+            operator,
+            left: Box::new(left),
+            right: Box::new(right),
+        }
+    }
+
+    /// A float literal: quarters are exact in both widths and take no mark, and tenths that
+    /// aren't halves can't be held exactly, so they say `~` (2.7).
+    fn float_literal(&mut self) -> Expression {
+        let whole = self.random.between(-20, 20);
+        let sign = if whole < 0 { "-" } else { "" };
+        let whole = whole.abs();
+        if self.random.chance(60) {
+            let quarter = *self.random.pick(&["0", "25", "5", "75"]).unwrap_or(&"5");
+            Expression::Float(format!("{sign}{whole}.{quarter}"))
+        } else {
+            let tenth = *self
+                .random
+                .pick(&["1", "2", "3", "4", "6", "7", "8", "9"])
+                .unwrap_or(&"1");
+            Expression::Float(format!("~{sign}{whole}.{tenth}"))
+        }
+    }
+
     fn call(&mut self, scope: &Scope, kind: Kind, depth: usize) -> Option<Expression> {
         let (function, arguments, failures) = self.plain_call(scope, kind, depth)?;
         let handling = if failures.is_empty() {
@@ -700,21 +755,21 @@ impl Generator<'_> {
                 return chain;
             }
         }
-        // A comparison needs a typed side: a variable of some integer type.
-        let integers: Vec<(String, Type)> = scope
+        // A comparison needs a typed side: a variable of some number type.
+        let numbers: Vec<(String, Type)> = scope
             .variables
             .iter()
-            .filter(|(_, found)| matches!(found, Type::Integer(_)))
+            .filter(|(_, found)| matches!(found, Type::Integer(_) | Type::Float(_)))
             .cloned()
             .collect();
-        let Some((name, Type::Integer(kind))) = self.random.pick(&integers).cloned() else {
+        let Some((name, value_type)) = self.random.pick(&numbers).cloned() else {
             return Expression::Bool(self.random.chance(50));
         };
         let comparison = *self
             .random
             .pick(&Comparison::ALL)
             .unwrap_or(&Comparison::Equal);
-        let right = self.integer(scope, kind, depth - 1);
+        let right = self.expression(scope, value_type, depth - 1);
         Expression::Compare {
             comparison,
             left: Box::new(Expression::Variable(name)),
