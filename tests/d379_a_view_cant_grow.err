@@ -1,0 +1,5 @@
+refused: d379_a_view_cant_grow.cy:8:5, line 8 column 5
+ 8 |     $xs.std::%%append(val: 4, alloc: Lend $heap);
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ what: `std::coll::list.mut<i32>` is a view, so it can't grow or shrink
+ why:  a list with no `len.max` is a view onto someone else's list: `.mut` changes its items, and only the list itself grows (D379)

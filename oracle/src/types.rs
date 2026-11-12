@@ -187,6 +187,12 @@ pub enum Type {
     },
     Struct(String),
     Union(String),
+    /// A view of some or all of a list, which reads it, or with `.mut` changes its items but
+    /// can't grow or shrink it. It owns no memory. (D379)
+    ListView {
+        item: Box<Type>,
+        mutable: bool,
+    },
     List {
         item: Box<Type>,
         min: Option<i128>,
@@ -354,6 +360,11 @@ impl fmt::Display for Type {
             Type::Struct(name) | Type::Union(name) | Type::New { name, .. } => {
                 write!(formatter, "{name}")
             }
+            Type::ListView { item, mutable } => write!(
+                formatter,
+                "std::coll::list{}<{item}>",
+                if *mutable { ".mut" } else { "" }
+            ),
             Type::Holding {
                 base,
                 sources,

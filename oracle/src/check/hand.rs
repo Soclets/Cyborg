@@ -262,7 +262,9 @@ impl Checker<'_> {
         span: Span,
     ) -> Outcome<(Type, ir::Position)> {
         let item_type = match base_type {
-            Type::List { item, .. } | Type::Array { item, .. } => (**item).clone(),
+            Type::List { item, .. } | Type::Array { item, .. } | Type::ListView { item, .. } => {
+                (**item).clone()
+            }
             Type::Map { .. } => {
                 return Err(Report::not_designed(span, "getting an item from a map", ""));
             }
@@ -837,6 +839,7 @@ impl Checker<'_> {
                         | super::Origin::LentMutParameter
                 );
                 let views = (parameter && variable.held_type == Type::Str)
+                    || matches!(variable.held_type, Type::ListView { .. })
                     || matches!(&variable.held_type, Type::Borrow { inner, .. } if **inner == Type::Str);
                 views.then(|| name.clone())
             }
@@ -849,6 +852,15 @@ impl Checker<'_> {
         // A view of a literal is stored and returned freely, and a view of another string is a
         // borrow, which writes its source when it's stored or returned. (D367)
         // trace: D367
+        if let Type::ListView { .. } = target {
+            if let Some(source) = self.view_of_another_string(value) {
+                return Err(Report::refused(
+                    value.span,
+                    format!("`${source}` is a view of a list, so storing or returning it writes where it's from, as `Lend from ${source} {target}`"),
+                    "a list view follows a `str` view's borrow rules: passing one needs nothing, and storing or returning one writes its source (D367, D379)",
+                ));
+            }
+        }
         if *target == Type::Str {
             if let Some(source) = self.view_of_another_string(value) {
                 return Err(Report::refused(
@@ -1013,6 +1025,22 @@ impl Checker<'_> {
         // trace: D327
         if *target == Type::Str && matches!(found, Type::BoundedStr(_) | Type::GrowableStr) {
             return Ok(());
+        }
+        // Lending any list or array gives a view of it, and a `.mut` view only comes from one
+        // that can change. (D379)
+        // trace: D379
+        if let Type::ListView { item, mutable } = target {
+            let found_item = match found {
+                Type::List { item, .. } | Type::Array { item, .. } => Some(item),
+                Type::ListView {
+                    item,
+                    mutable: found_mutable,
+                } if *found_mutable || !*mutable => Some(item),
+                _ => None,
+            };
+            if found_item == Some(item) {
+                return Ok(());
+            }
         }
         // A parameter filled with the function's own sources takes any value of that type,
         // whose sources those then stand for. (D171)

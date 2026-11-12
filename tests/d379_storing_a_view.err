@@ -1,0 +1,5 @@
+refused: d379_storing_a_view.cy:6:36, line 6 column 36
+ 6 |     let $k: std::coll::list<i32> = $xs;
+   |                                    ^^^
+ what: `$xs` is a view of a list, so storing or returning it writes where it's from, as `Lend from $xs std::coll::list<i32>`
+ why:  a list view follows a `str` view's borrow rules: passing one needs nothing, and storing or returning one writes its source (D367, D379)

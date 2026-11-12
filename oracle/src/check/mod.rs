@@ -1631,10 +1631,18 @@ impl Checker<'_> {
                         "a pure function changes nothing outside itself (D86)",
                     ));
                 }
+                // A `.mut` view changes what it views, so it's lent with `Lend.mut`. (D379)
+                // trace: D379
+                let word = match (&parameter_type, parameter.word) {
+                    (Type::ListView { mutable: true, .. }, ParameterWord::Bare) => {
+                        ParameterWord::LentMut
+                    }
+                    (_, word) => word,
+                };
                 parameters.push(ParameterInfo {
                     name: parameter.name.text.clone(),
                     label: None,
-                    word: parameter.word,
+                    word,
                     parameter_type,
                     default: None,
                     label_has_unit: false,
@@ -2985,6 +2993,31 @@ impl Checker<'_> {
         describe: &[Describe],
     ) -> Outcome<Type> {
         match rest {
+            // trace: D379
+            "list.mut" => {
+                let [Fill {
+                    label: None,
+                    written_type,
+                }] = fill
+                else {
+                    return Err(Report::refused(
+                        written.span,
+                        "`std::coll::list.mut` fills in one type, bare, in `< >`",
+                        "a collection's types go in `< >`, and one type can go bare (D24, D25)",
+                    ));
+                };
+                if let Some(entry) = describe.first() {
+                    return Err(Report::refused(
+                        entry.label.span,
+                        "a `.mut` view can't grow or shrink, so it has no length of its own",
+                        "a list with no `len.max` is a view onto someone else's list (D379)",
+                    ));
+                }
+                Ok(Type::ListView {
+                    item: Box::new(self.resolve_type(written_type)?),
+                    mutable: true,
+                })
+            }
             "list" | "array" => {
                 let [Fill {
                     label: None,
@@ -3040,12 +3073,19 @@ impl Checker<'_> {
                             "a list with a bare `len` is refused in favour of `array` (D13)",
                         ));
                     }
-                    // trace: D11
+                    // A list with no length at all is a view of some or all of a list. (D379)
+                    // trace: D11, D379
                     let Some((max_value, max_entry)) = max else {
+                        if min.is_none() && describe.is_empty() {
+                            return Ok(Type::ListView {
+                                item,
+                                mutable: false,
+                            });
+                        }
                         return Err(Report::refused(
                             path.span,
                             "a list always writes its `len.max`, with `inf` for unbounded",
-                            "nothing goes unsaid about being empty or unbounded (D11)",
+                            "nothing goes unsaid about being empty or unbounded, and a view writes no length at all (D11, D379)",
                         ));
                     };
                     let min_value = min.and_then(|(value, _)| value);

@@ -1,0 +1,5 @@
+refused: d379_a_mut_view_is_lent_to_change.cy:11:12, line 11 column 12
+11 |     double(Lend $ys);
+   |            ^^^^^^^^
+ fix:  `Lend.mut $ys`
+ why:  the call and the parameter both say it, and they must match (D2)

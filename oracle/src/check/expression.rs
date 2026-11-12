@@ -824,14 +824,17 @@ impl Checker<'_> {
             }
             ExpressionKind::Field { base, name } => {
                 let held = self.check_held(base)?;
-                if matches!(held.value_type, Type::List { .. } | Type::Array { .. }) {
+                if matches!(
+                    held.value_type,
+                    Type::List { .. } | Type::Array { .. } | Type::ListView { .. }
+                ) {
                     if name.text == "len" {
                         // trace: D2
                         // trace: D140
-                        let (Type::List { len_type, .. } | Type::Array { len_type, .. }) =
-                            held.value_type
-                        else {
-                            return Err(Report::refused(span, "this has no length", "(D140)"));
+                        // A view counts in `u64`, as any list does by default. (D140, D379)
+                        let len_type = match held.value_type {
+                            Type::List { len_type, .. } | Type::Array { len_type, .. } => len_type,
+                            _ => crate::types::IntegerKind::U64,
                         };
                         return Ok((
                             simple(NodeKind::Length(Box::new(held.node))),
@@ -2680,6 +2683,15 @@ impl Checker<'_> {
                     span,
                     format!("a method of your own on `{receiver_type}`"),
                     "",
+                ));
+            }
+            // A view is a window onto someone else's list, so it can't grow or shrink. (D379)
+            // trace: D379
+            Some("std") if matches!(receiver_type, Type::ListView { .. }) => {
+                return Err(Report::refused(
+                    span,
+                    format!("`{receiver_type}` is a view, so it can't grow or shrink"),
+                    "a list with no `len.max` is a view onto someone else's list: `.mut` changes its items, and only the list itself grows (D379)",
                 ));
             }
             Some("std") => {}

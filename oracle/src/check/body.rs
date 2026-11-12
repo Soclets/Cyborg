@@ -2672,7 +2672,9 @@ impl Checker<'_> {
     /// What a collection's items are, for `for`.
     fn loop_item_type(collection_type: &Type, span: Span) -> Outcome<Type> {
         match collection_type {
-            Type::List { item, .. } | Type::Array { item, .. } => Ok((**item).clone()),
+            Type::List { item, .. } | Type::Array { item, .. } | Type::ListView { item, .. } => {
+                Ok((**item).clone())
+            }
             Type::Map { .. } => Err(Report::not_designed(span, "going through a map", "")),
             Type::New { .. } => Err(Report::not_designed(
                 span,

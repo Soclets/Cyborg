@@ -1,0 +1,5 @@
+refused: d379_a_view_of_nothing.cy:6:37, line 6 column 37
+ 6 |     let $xs: std::coll::list<i32> = empty;
+   |                                     ^^^^^
+ what: `std::coll::list<i32>` can't be `empty`
+ why:  `empty` is refused where it can't be true (D103)
