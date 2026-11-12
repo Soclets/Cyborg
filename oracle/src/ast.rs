@@ -449,6 +449,13 @@ pub enum StatementKind {
         data: Vec<FieldValue>,
     },
     Expression(Expression),
+    /// `@concur::locked $from, $to as $a, $b: … end @concur::locked`, which takes every lock
+    /// it names and gives a `Lend.mut` of what each holds for the block. (D348, D349)
+    Locked {
+        locks: Vec<Expression>,
+        names: Vec<Name>,
+        body: Vec<Statement>,
+    },
     Shield {
         name: Name,
         reason: Option<String>,

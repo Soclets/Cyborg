@@ -191,6 +191,8 @@ pub enum Type {
     Task(Box<Type>),
     /// `@concur::atomic<u64>`: an integer or `bool` changed by indivisible instructions. (D354)
     Atomic(Box<Type>),
+    /// `@concur::lock<i64>`: a lock holding the data it protects. (D348)
+    Lock(Box<Type>),
     /// A view of some or all of a list, which reads it, or with `.mut` changes its items but
     /// can't grow or shrink it. It owns no memory. (D379)
     ListView {
@@ -370,6 +372,7 @@ impl fmt::Display for Type {
             }
             Type::Task(result) => write!(formatter, "@concur::task<{result}>"),
             Type::Atomic(inner) => write!(formatter, "@concur::atomic<{inner}>"),
+            Type::Lock(inner) => write!(formatter, "@concur::lock<{inner}>"),
             Type::ListView { item, mutable } => write!(
                 formatter,
                 "std::coll::list{}<{item}>",

@@ -1,0 +1,9 @@
+refused: d383_a_lock_holding_an_owner.cy:10:5, line 10 column 5
+10 |     return void;
+   |     ^^^^^^^^^^^^
+ what: this leaves with `$list` never given away or finished
+ why:  a `must_Give` value is handed off with `Give` exactly once, or `finish` ends it (D2, D129)
+ because: d383_a_lock_holding_an_owner.cy:9:9, line 9 column 9
+ 9 |     let $list: @concur::lock<std::coll::list<i64>[len.max: inf items]> = @concur::lock.new(std::coll::list.from([1, 2], alloc: Lend $heap));
+   |         ^^^^^
+     `$list` was made here

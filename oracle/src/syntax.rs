@@ -3369,6 +3369,13 @@ impl Parser {
     fn parse_statement(&mut self) -> Outcome<Statement> {
         self.mark_line_start();
         let start = self.span();
+        if matches!(self.peek().lexeme, Lexeme::Symbol("@"))
+            && self.word_at(1, "concur")
+            && self.symbol_at(2, "::")
+            && self.word_at(3, "locked")
+        {
+            return self.parse_locked();
+        }
         if let Lexeme::Word(word) = &self.peek().lexeme {
             match word.as_str() {
                 "let" => return self.parse_let(),
@@ -4086,6 +4093,52 @@ impl Parser {
             return Ok(true);
         }
         Ok(false)
+    }
+
+    /// `@concur::locked $from, $to as $a, $b: … end @concur::locked`. (D348, D349, D359)
+    /// trace: D348, D349, D359
+    fn parse_locked(&mut self) -> Outcome<Statement> {
+        let start = self.span();
+        let _ = self.parse_path()?;
+        // A lock is named by its variable, since `as` follows the list.
+        let mut locks = Vec::new();
+        loop {
+            let name = self.expect_variable("a lock's variable, starting with `$`")?;
+            locks.push(Expression {
+                span: name.span,
+                kind: ExpressionKind::Variable(name.text),
+            });
+            if !self.eat_symbol(",") {
+                break;
+            }
+        }
+        if !self.eat_word("as") {
+            return Err(self.expected("`as` and a name for what each lock holds"));
+        }
+        let mut names =
+            vec![self.expect_variable("a name for what the lock holds, starting with `$`")?];
+        while self.eat_symbol(",") {
+            names.push(self.expect_variable("a name for what the lock holds, starting with `$`")?);
+        }
+        self.expect_symbol(":")?;
+        let body = self.parse_block()?;
+        let closer = self.span();
+        if !self.eat_word("end") {
+            return Err(self.expected("`end @concur::locked`"));
+        }
+        let path = self.parse_path()?;
+        if path.text != "@concur::locked" {
+            return Err(Report::refused(
+                closer.to(path.span),
+                "this block closes with `end @concur::locked`",
+                "the closer repeats all of what it closes (D33, D121)",
+            )
+            .fix("end @concur::locked"));
+        }
+        Ok(Statement {
+            span: start.to(path.span),
+            kind: StatementKind::Locked { locks, names, body },
+        })
     }
 
     fn parse_shield_statement(&mut self) -> Outcome<Statement> {

@@ -1,0 +1,5 @@
+refused: d348_locking_inside_a_locked_block.cy:8:9, line 8 column 9
+ 8 |         @concur::locked $b as $y:
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^
+ what: this locks inside a locked block
+ why:  a deadlock needs a task holding one lock while waiting for another, so locking inside a locked block is refused, and one block takes every lock it needs (D348, D349)

@@ -1,0 +1,5 @@
+refused: d349_the_same_lock_twice.cy:7:25, line 7 column 25
+ 7 |     @concur::locked $a, $a as $x, $y:
+   |                         ^^
+ what: `$a` is locked twice here
+ why:  a task taking one lock twice would wait on itself (D349)

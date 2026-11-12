@@ -325,7 +325,10 @@ impl Checker<'_> {
         Ok((code, terminated))
     }
 
-    fn check_statements(&mut self, statements: &[Statement]) -> Outcome<(Vec<Instruction>, bool)> {
+    pub(super) fn check_statements(
+        &mut self,
+        statements: &[Statement],
+    ) -> Outcome<(Vec<Instruction>, bool)> {
         let mut code = Vec::new();
         let mut terminated = false;
         for statement in statements {
@@ -494,7 +497,7 @@ impl Checker<'_> {
         ))
     }
 
-    fn end_held_borrows(&mut self) {
+    pub(super) fn end_held_borrows(&mut self) {
         let ended: Vec<usize> = self
             .context
             .scopes
@@ -507,7 +510,7 @@ impl Checker<'_> {
     }
 
     /// trace: D2
-    fn check_innermost_scope_end(&self, _span: Span) -> Outcome<()> {
+    pub(super) fn check_innermost_scope_end(&self, _span: Span) -> Outcome<()> {
         if let Some(scope) = self.context.scopes.last() {
             let mut slots: Vec<usize> = scope.values().copied().collect();
             slots.sort_unstable();
@@ -558,7 +561,7 @@ impl Checker<'_> {
     }
 
     /// When a block ends, what its `defer`s promised is given away. (D325)
-    fn keep_promises(&mut self) {
+    pub(super) fn keep_promises(&mut self) {
         let depth = self.context.scopes.len();
         let (kept, pending): (Vec<_>, Vec<_>) = self
             .context
@@ -994,6 +997,12 @@ impl Checker<'_> {
                 kind
             }
             StatementKind::Assembly(assembly) => self.check_assembly(assembly)?,
+            // trace: D348, D349
+            StatementKind::Locked { locks, names, body } => {
+                let (code, ends) = self.check_locked(locks, names, body, span)?;
+                terminated = ends;
+                InstructionKind::Block(code)
+            }
             StatementKind::Shield { name, reason, body } => {
                 // trace: D34
                 if reason.is_none() {

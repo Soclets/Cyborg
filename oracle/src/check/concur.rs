@@ -7,7 +7,8 @@
 //! change one value. Runners are `std::run::one_thread()` and `os::threads(count:)`. The oracle
 //! runs every task on one thread, the way `std::run::one_thread` does: a task's body runs when
 //! the code that spawned it first has to wait, in the order tasks were spawned. Atomics are
-//! plain values here, since one task runs at a time. Channels and locks aren't built yet.
+//! plain values here, since one task runs at a time, and a lock is never held by another task.
+//! Channels aren't built yet.
 
 use super::expression::RawCall;
 use super::{Checker, ParameterInfo};
@@ -211,6 +212,9 @@ impl Checker<'_> {
             "task.done" => {}
             // trace: D354
             "atomic.new" => return self.check_atomic_new(arguments, span, path_span),
+            // trace: D383
+            "lock.new" => return self.check_lock_new(arguments, span, path_span),
+            "lock.done" => return self.check_lock_done(arguments, span, path_span),
             "spawn" => {
                 return Err(Report::refused(
                     path_span,
@@ -592,5 +596,198 @@ impl Checker<'_> {
             ));
         }
         Ok((operation, ordering))
+    }
+}
+
+impl Checker<'_> {
+    /// `@concur::lock.new(0)`, with its type from where it goes; an owner goes in with `Give`.
+    /// (D383)
+    /// trace: D383
+    pub(super) fn check_lock_new(
+        &mut self,
+        arguments: &[Argument],
+        span: Span,
+        path_span: Span,
+    ) -> Outcome<RawCall> {
+        let target = self.context.call_expected.clone();
+        let Some(Type::Lock(inner)) = target else {
+            return Err(Report::refused(
+                path_span,
+                "`@concur::lock.new` goes where its type is written, as in `let $hits: @concur::lock<i64>`",
+                "every `let` writes its type (D277, D383)",
+            ));
+        };
+        let [value] = arguments else {
+            return Err(Report::refused(
+                path_span,
+                "`@concur::lock.new` takes the value it starts with",
+                "(D383)",
+            ));
+        };
+        let node = self.check_into(&value.value, &inner)?;
+        Ok(RawCall {
+            node: Node {
+                span,
+                kind: NodeKind::Struct(vec![(0, node)]),
+            },
+            value_type: Type::Lock(inner),
+            failures: Vec::new(),
+            unnamed: None,
+        })
+    }
+
+    /// `@concur::lock.done(Give $l)` ends a lock and gives back what it held. (D383)
+    /// trace: D383
+    pub(super) fn check_lock_done(
+        &mut self,
+        arguments: &[Argument],
+        span: Span,
+        path_span: Span,
+    ) -> Outcome<RawCall> {
+        const WHY: &str = "`@concur::lock.done(Give $l)` ends a lock and gives back what it held, so it can be freed (D331, D383)";
+        let [lock] = arguments else {
+            return Err(Report::refused(
+                path_span,
+                "`@concur::lock.done` takes the lock it ends",
+                WHY,
+            ));
+        };
+        let Some(Type::Lock(inner)) = self.variable_type_of(&lock.value) else {
+            return Err(Report::refused(
+                lock.value.span,
+                "`@concur::lock.done` ends a lock",
+                WHY,
+            ));
+        };
+        let parameter = ParameterInfo {
+            name: "lock".to_string(),
+            label: None,
+            word: ParameterWord::Given,
+            parameter_type: Type::Lock(inner.clone()),
+            default: None,
+            label_has_unit: false,
+        };
+        let mut handed = Vec::new();
+        let node = match self.check_argument(&lock.value, &parameter, &mut handed)? {
+            ir::Argument::Value(node) => node,
+            ir::Argument::Alias(place) => Node {
+                span: lock.value.span,
+                kind: NodeKind::Read(place),
+            },
+        };
+        Ok(RawCall {
+            node: Node {
+                span,
+                kind: NodeKind::Field(Box::new(node), 0),
+            },
+            value_type: *inner,
+            failures: Vec::new(),
+            unnamed: None,
+        })
+    }
+
+    /// `@concur::locked $from, $to as $a, $b:` takes every lock it names, in an order the locks
+    /// set, and gives a `Lend.mut` of what each holds for the block, unlocking when it ends,
+    /// however it ends. Locking inside it, and naming one lock twice, are refused, so deadlocks
+    /// can't happen. With one task running at a time, nothing else ever holds a lock here.
+    /// (D348, D349)
+    /// trace: D348, D349
+    pub(super) fn check_locked(
+        &mut self,
+        locks: &[Expression],
+        names: &[crate::ast::Name],
+        body: &[crate::ast::Statement],
+        span: Span,
+    ) -> Outcome<(Vec<ir::Instruction>, bool)> {
+        self.require_limb("concur", span)?;
+        if self.context.in_locked > 0 {
+            return Err(Report::refused(
+                span,
+                "this locks inside a locked block",
+                "a deadlock needs a task holding one lock while waiting for another, so locking inside a locked block is refused, and one block takes every lock it needs (D348, D349)",
+            ));
+        }
+        if locks.len() != names.len() {
+            return Err(Report::refused(
+                span,
+                format!(
+                    "this takes {} locks and names {} values",
+                    locks.len(),
+                    names.len()
+                ),
+                "`@concur::locked $from, $to as $a, $b:` names what each lock holds, in order (D349)",
+            ));
+        }
+        let mut seen: Vec<String> = Vec::new();
+        let mut places = Vec::new();
+        for lock in locks {
+            let written = self.text_of(lock.span).to_string();
+            if seen.contains(&written) {
+                return Err(Report::refused(
+                    lock.span,
+                    format!("`{written}` is locked twice here"),
+                    "a task taking one lock twice would wait on itself (D349)",
+                ));
+            }
+            seen.push(written);
+            let held = self.check_held(lock)?;
+            let Type::Lock(inner) = held.value_type else {
+                return Err(Report::refused(
+                    lock.span,
+                    format!("`{}` isn't a lock", held.value_type),
+                    "`@concur::locked` takes locks, made with `@concur::lock.new` (D348, D383)",
+                ));
+            };
+            let Some(mut place) = held.place else {
+                return Err(Report::refused(
+                    lock.span,
+                    "a lock is locked where it lives, in a variable",
+                    "(D348)",
+                ));
+            };
+            place.path.push(ir::Step::Field(0));
+            places.push((place, *inner));
+        }
+        self.context.scopes.push(std::collections::HashMap::new());
+        let mut code = Vec::new();
+        for ((place, inner), name) in places.into_iter().zip(names) {
+            let slot = self.declare_variable(super::Variable {
+                name: name.text.clone(),
+                held_type: inner,
+                mutable: true,
+                origin: super::Origin::LentMutParameter,
+                declared: name.span,
+                must_give: false,
+                constant: None,
+                borrows: Vec::new(),
+                borrowed_path: Vec::new(),
+            });
+            code.push(ir::Instruction {
+                span: name.span,
+                kind: ir::InstructionKind::LetAlias { slot, place },
+            });
+        }
+        self.context.in_locked += 1;
+        let result = self.check_statements(body);
+        self.context.in_locked -= 1;
+        let (body_code, terminated) = match result {
+            Ok(done) => done,
+            Err(report) => {
+                self.context.scopes.pop();
+                return Err(report);
+            }
+        };
+        code.extend(body_code);
+        self.end_held_borrows();
+        let end_span = body.last().map_or(span, |last| last.span);
+        let scope_check = if terminated {
+            Ok(())
+        } else {
+            self.check_innermost_scope_end(end_span)
+        };
+        self.keep_promises();
+        self.context.scopes.pop();
+        scope_check?;
+        Ok((code, terminated))
     }
 }

@@ -231,6 +231,8 @@ struct FunctionContext {
     result_slot: usize,
     in_constant: usize,
     in_shield: usize,
+    /// Inside `@concur::locked`, where locking again is refused. (D348)
+    in_locked: usize,
     /// How many `on.target` chip branches the code being checked is in. (D233)
     in_chip: usize,
     call_span: Option<Span>,
@@ -299,6 +301,7 @@ impl FunctionContext {
             result_slot: 0,
             in_constant: 0,
             in_shield: 0,
+            in_locked: 0,
             in_chip: 0,
             call_span: None,
             ensures_variables: Vec::new(),
@@ -2080,6 +2083,9 @@ impl Checker<'_> {
             Type::Holding { base, .. } => self.is_must_give(base),
             Type::List { item, .. } | Type::Array { item, .. } => self.is_must_give(item),
             Type::New { underlying, .. } => self.is_must_give(underlying),
+            // A lock holding an owner is one, and ends with `lock.done`. (D383)
+            // trace: D383
+            Type::Lock(inner) => self.is_must_give(inner),
             _ => false,
         }
     }
@@ -2499,6 +2505,22 @@ impl Checker<'_> {
                 ));
             };
             return Ok(Type::Task(Box::new(self.resolve_type(written_type)?)));
+        }
+        // trace: D348, D383
+        if text == "@concur::lock" {
+            self.require_limb("concur", path.span)?;
+            let [Fill {
+                label: None,
+                written_type,
+            }] = &fill[..]
+            else {
+                return Err(Report::refused(
+                    written.span,
+                    "`@concur::lock` fills in what it holds, bare, in `< >`",
+                    "a lock holds the data it protects, as in `@concur::lock<i64>` (D348)",
+                ));
+            };
+            return Ok(Type::Lock(Box::new(self.resolve_type(written_type)?)));
         }
         // trace: D354
         if text == "@concur::atomic" {
