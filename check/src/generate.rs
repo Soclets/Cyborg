@@ -4,7 +4,9 @@
 //! What it doesn't generate is listed in `coverage.rs`, since all passing doesn't mean covered.
 
 use crate::random::Random;
-use crate::tree::{Comparison, Expression, Function, Kind, Operator, Program, Statement, Type};
+use crate::tree::{
+    Comparison, Expression, Filling, Function, Kind, Operator, Position, Program, Statement, Type,
+};
 
 /// How big a program gets.
 pub struct Limits {
@@ -21,6 +23,8 @@ pub const LIMITS: Limits = Limits {
 
 struct Scope {
     variables: Vec<(String, Type)>,
+    /// Arrays, with their item type and length.
+    arrays: Vec<(String, Kind, i128)>,
 }
 
 struct Generator<'random> {
@@ -44,6 +48,7 @@ pub fn program(seed: u64) -> Program {
     }
     let mut scope = Scope {
         variables: Vec::new(),
+        arrays: Vec::new(),
     };
     let mut main = generator.block(&mut scope, LIMITS.statements, 0, (true, false));
     // `main` ends by printing what it made, so a program's work shows in its output.
@@ -108,6 +113,7 @@ impl Generator<'_> {
         let count = self.random.between(1, 3);
         let mut scope = Scope {
             variables: Vec::new(),
+            arrays: Vec::new(),
         };
         let mut parameters = Vec::new();
         for _ in 0..count {
@@ -137,6 +143,7 @@ impl Generator<'_> {
         (prints, in_loop): (bool, bool),
     ) -> Vec<Statement> {
         let declared_before = scope.variables.len();
+        let arrays_before = scope.arrays.len();
         let count = self.random.between(1, most);
         let mut statements = Vec::new();
         for _ in 0..count {
@@ -144,6 +151,7 @@ impl Generator<'_> {
         }
         // What a block declares ends with it.
         scope.variables.truncate(declared_before);
+        scope.arrays.truncate(arrays_before);
         statements
     }
 
@@ -224,6 +232,7 @@ impl Generator<'_> {
                 }
             }
             8 if depth < 2 => self.range_loop(scope, depth, prints),
+            9 if self.random.chance(50) => self.array_statement(scope),
             _ if prints => {
                 // A print's value is an integer variable, so its type is never left for a
                 // literal to guess, and how a `bool` prints isn't decided (12.3).
@@ -260,6 +269,61 @@ impl Generator<'_> {
                     value,
                 }
             }
+        }
+    }
+
+    /// A new array, or a change to an item of one in scope.
+    fn array_statement(&mut self, scope: &mut Scope) -> Statement {
+        if let Some((array, kind, len)) = self.random.pick(&scope.arrays).cloned() {
+            if self.random.chance(60) {
+                let position = self.position(scope, len);
+                let value = self.expression(scope, Type::Integer(kind), LIMITS.depth);
+                return Statement::ChangeItem {
+                    array,
+                    position,
+                    value,
+                };
+            }
+        }
+        let kind = *self.random.pick(&Kind::ALL).unwrap_or(&Kind::I32);
+        let len = self.random.between(1, 5);
+        let filling = if self.random.chance(30) {
+            Filling::All(self.literal(kind))
+        } else {
+            Filling::Items(
+                (0..len)
+                    .map(|_| self.expression(scope, Type::Integer(kind), LIMITS.depth))
+                    .collect(),
+            )
+        };
+        let name = self.name("a");
+        scope.arrays.push((name.clone(), kind, len));
+        Statement::LetArray {
+            name,
+            kind,
+            len,
+            filling,
+        }
+    }
+
+    /// An item's place: a literal inside the array, counted either way, or now and then a
+    /// variable's value, which may be outside it and is checked while running.
+    fn position(&mut self, scope: &Scope, len: i128) -> Position {
+        let integers: Vec<String> = scope
+            .variables
+            .iter()
+            .filter(|(_, found)| matches!(found, Type::Integer(_)))
+            .map(|(name, _)| name.clone())
+            .collect();
+        if self.random.chance(20) {
+            if let Some(name) = self.random.pick(&integers).cloned() {
+                return Position::PosOf(name);
+            }
+        }
+        if self.random.chance(50) {
+            Position::Pos(self.random.between(1, len))
+        } else {
+            Position::Offset(self.random.between(0, len - 1))
         }
     }
 
@@ -333,6 +397,18 @@ impl Generator<'_> {
                 return call;
             }
         }
+        if roll == 5 {
+            let arrays: Vec<(String, i128)> = scope
+                .arrays
+                .iter()
+                .filter(|(_, found, _)| *found == kind)
+                .map(|(name, _, len)| (name.clone(), *len))
+                .collect();
+            if let Some((array, len)) = self.random.pick(&arrays).cloned() {
+                let position = self.position(scope, len);
+                return Expression::Item { array, position };
+            }
+        }
         if roll == 4 && kind.range().0 < 0 {
             let inner = self.integer(scope, kind, depth - 1);
             return Expression::Negate(Box::new(inner));
@@ -362,7 +438,14 @@ impl Generator<'_> {
             };
         }
         let left = self.integer(scope, kind, depth - 1);
-        let right = self.integer(scope, kind, depth - 1);
+        // Dividing by zero is a check every time, so a divisor is usually a literal that isn't
+        // zero, to reach more of what follows.
+        let right = if operator.divides() && self.random.chance(70) {
+            let (_, high) = kind.range();
+            Expression::Integer(self.random.between(1, high.min(20)))
+        } else {
+            self.integer(scope, kind, depth - 1)
+        };
         Expression::Binary {
             operator,
             left: Box::new(left),

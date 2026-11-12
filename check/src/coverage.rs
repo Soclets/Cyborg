@@ -5,6 +5,7 @@
 /// Generated today: `i32`, `i64`, `u8`, `u32` and `u64` values and variables; `+`, `-`, `x`, the
 /// `.wrap` and `.saturate` words, `div` and `mod` with `.trunc` and `.floor`, the `.bit`
 /// operators, and `shl` and `shr` on unsigned types; comparisons; `and`, `or` and `not`;
+/// arrays from `[ ]` and `all`, their items by `pos:` and `offset.items:`, read and changed;
 /// precedence with and without `( )`, as 3.9's table orders it; comparison chains; `let`,
 /// `change`, `if` and `else`, `while`, `for` over literal ranges, `break`; functions with
 /// integer parameters and results; printing a variable with `fmt_print` to an unbuffered writer.
@@ -14,8 +15,7 @@ pub const NOT_GENERATED: &[&str] = &[
     "2.5 bounded integers and the checks they bring",
     "2.6, 2.7 floats, `.stable`, `.fast`, `.ieee` and inexact literals",
     "2.9 strings: views, bounded and heap strings",
-    "2.10 to 2.12 lists, arrays and maps, `append`, allocators, `done`",
-    "2.13 positions: `pos:` and `offset.items:`",
+    "2.10 and 2.12 lists and maps, `append`, allocators, `done`, views and splits",
     "2.14 `as`, and its failures",
     "2.16 units, their conversions, points and spans",
     "2.18 `type.alias`, `type.new` and type families",

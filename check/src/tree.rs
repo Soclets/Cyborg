@@ -130,6 +130,16 @@ impl Operator {
         }
     }
 
+    pub fn divides(self) -> bool {
+        matches!(
+            self,
+            Operator::DivideTrunc
+                | Operator::DivideFloor
+                | Operator::RemainderTrunc
+                | Operator::RemainderFloor
+        )
+    }
+
     pub fn is_shift(self) -> bool {
         matches!(self, Operator::ShiftLeft | Operator::ShiftRight)
     }
@@ -216,6 +226,27 @@ pub enum Expression {
         function: String,
         arguments: Vec<Expression>,
     },
+    /// An array's item, `$a[pos: 2]` or `$a[offset.items: 1]` (2.17).
+    Item {
+        array: String,
+        position: Position,
+    },
+}
+
+/// Where an item is: `pos:` counts from 1, and `offset.items:` from 0 (2.17). A variable's
+/// value may be outside the array, which is a check while running.
+#[derive(Clone, Debug)]
+pub enum Position {
+    Pos(i128),
+    Offset(i128),
+    PosOf(String),
+}
+
+/// How an array gets its items: one each from `[ ]`, or `all` of one value (2.11).
+#[derive(Clone, Debug)]
+pub enum Filling {
+    Items(Vec<Expression>),
+    All(Expression),
 }
 
 #[derive(Clone, Debug)]
@@ -227,6 +258,19 @@ pub enum Statement {
     },
     Change {
         name: String,
+        value: Expression,
+    },
+    /// `let mut $a: std::coll::array<i32>[len: 3 items] = [1, 2, 3];` (2.11)
+    LetArray {
+        name: String,
+        kind: Kind,
+        len: i128,
+        filling: Filling,
+    },
+    /// `change $a[pos: 2] = …;` (2.17)
+    ChangeItem {
+        array: String,
+        position: Position,
         value: Expression,
     },
     Print(Expression),
@@ -315,6 +359,7 @@ pub struct Style {
     pub fewer_brackets: bool,
 }
 
+#[allow(clippy::too_many_lines)] // One arm per kind of statement, read top to bottom.
 fn print_block(out: &mut String, statements: &[Statement], depth: usize, style: Style) {
     let indent = "    ".repeat(depth);
     for statement in statements {
@@ -333,6 +378,38 @@ fn print_block(out: &mut String, statements: &[Statement], depth: usize, style: 
             }
             Statement::Change { name, value } => {
                 let _ = writeln!(out, "{indent}change ${name} = {};", style.expression(value));
+            }
+            Statement::LetArray {
+                name,
+                kind,
+                len,
+                filling,
+            } => {
+                let filling = match filling {
+                    Filling::Items(items) => {
+                        let items: Vec<String> =
+                            items.iter().map(|item| style.expression(item)).collect();
+                        format!("[{}]", items.join(", "))
+                    }
+                    Filling::All(value) => format!("all {}", style.grouped(value)),
+                };
+                let _ = writeln!(
+                    out,
+                    "{indent}let mut ${name}: std::coll::array<{}>[len: {len} items] = {filling};",
+                    kind.word()
+                );
+            }
+            Statement::ChangeItem {
+                array,
+                position,
+                value,
+            } => {
+                let _ = writeln!(
+                    out,
+                    "{indent}change {} = {};",
+                    item(array, position),
+                    style.expression(value)
+                );
             }
             Statement::Print(value) => {
                 let _ = writeln!(
@@ -460,15 +537,17 @@ impl Style {
                     .collect();
                 format!("{function}({})", arguments.join(", "))
             }
+            Expression::Item { array, position } => item(array, position),
         }
     }
 
     /// A single value as it is, anything else in `( )`.
-    fn grouped(self, value: &Expression) -> String {
+    pub fn grouped(self, value: &Expression) -> String {
         match value {
-            Expression::Variable(_) | Expression::Bool(_) | Expression::Call { .. } => {
-                self.expression(value)
-            }
+            Expression::Variable(_)
+            | Expression::Bool(_)
+            | Expression::Call { .. }
+            | Expression::Item { .. } => self.expression(value),
             Expression::Integer(number) if *number >= 0 => self.expression(value),
             _ => format!("({})", self.expression(value)),
         }
@@ -492,5 +571,14 @@ impl Style {
             }
             _ => format!("({})", self.expression(value)),
         }
+    }
+}
+
+/// An item, as `$a[pos: 2]`, `$a[offset.items: 1]` or `$a[pos: $v3]`.
+fn item(array: &str, position: &Position) -> String {
+    match position {
+        Position::Pos(number) => format!("${array}[pos: {number}]"),
+        Position::Offset(number) => format!("${array}[offset.items: {number}]"),
+        Position::PosOf(name) => format!("${array}[pos: ${name}]"),
     }
 }
