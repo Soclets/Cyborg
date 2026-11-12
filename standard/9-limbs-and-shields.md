@@ -73,7 +73,7 @@ A limb's syntax is only ever `@`-marked items, in a fixed menu of positions, so 
 | Position | Example |
 |---|---|
 | A type | `union.@csup::untagged` |
-| A call or value | `@money::round_half_even($x)` |
+| A call or value | `@money::round.half_even($x)` |
 | A prefix before a call | `@concur::spawn(on: Lend $pool) sum(Lend $xs)` |
 | A statement | `@trace::here;` |
 | A block with Cyborg inside | `@gpu::kernel …: … end @gpu::kernel` |

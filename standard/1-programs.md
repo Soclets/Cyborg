@@ -103,6 +103,8 @@ $r.celsius
 
 **Refused:** a narrowing that doesn't mean "this, made more specific" isn't one, so a decimal float is `d32`, not `f32.decimal`.
 
+`.` and `_` are told apart the same way, for every name, a limb's included: `.` narrows when the part before it is a real thing on its own and the part after picks a kind of it, as `div.trunc` picks a kind of `div`, and `@money::round.half_even` a kind of rounding. `_` joins words into one name when the first isn't a thing being narrowed, as in `at_least`, `fmt_print` and `one_thread`. The linter checks a limb's names against it.
+
 With two or more narrowings, the strongest goes first: the one that changes the action most, or for safety words, the one that can do more harm. The order is fixed. Kinds so far, strongest first:
 
 | Thing | Order | Example |
@@ -113,7 +115,7 @@ Shapes in a format hole are labels, so they go in any order.
 
 **Refused:** narrowings out of order, as in `Lend.held.mut`, with the right order as the fix.
 
-**From:** D8, D54, D223.
+**From:** D8, D54, D223, D400.
 
 ## 1.7 Bare names
 
@@ -194,7 +196,7 @@ let $a: i32[unit: seconds] = 3600 seconds;
 say(Lend.mut $out, "hi{newln}");
 ```
 
-A limb works the same way: `use @money::round_half_even as round_half_even;`, or a quoted name.
+A limb works the same way: `use @money::round as round;`, then `round.half_even($x)`, or a quoted name.
 
 A kit method works the same way, with its type in the path and its `%` kept:
 
@@ -218,7 +220,7 @@ print_exact("{}{newln}", $x);
 
 Units keep the matching name, as in `use std::units::time.seconds as seconds;`.
 
-**Refused:** `use std::io::fmt_print.stored as stored;`, with `fix: use std::io::fmt_print as fmt_print;`, `use std::coll::list.%%append as "push";` and `as "%%push"`, with `fix: as %%"push"`, `as %append`, which drops a `%`, `use std::units::time.seconds as minutes;`, `use @money::round_half_even as @round;`, because `@round` looks like a builtin, and a quoted name nothing could use, like `"my say"`, `""` or `"fn"`.
+**Refused:** `use std::io::fmt_print.stored as stored;`, with `fix: use std::io::fmt_print as fmt_print;`, `use std::coll::list.%%append as "push";` and `as "%%push"`, with `fix: as %%"push"`, `as %append`, which drops a `%`, `use std::units::time.seconds as minutes;`, `use @money::round as @round;`, because `@round` looks like a builtin, and a quoted name nothing could use, like `"my say"`, `""` or `"fn"`.
 
 **From:** D93, D150, D151, D155, D178, D179, D220, D225, D232, D248.
 
