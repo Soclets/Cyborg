@@ -2,7 +2,7 @@
 import std;
 import os;
 
-fn.pure f [$out: os::stdout.unbuffered] -> i32:
+fn.pure f [$out: Lent os::stdout.unbuffered] -> i32:
     std::io::fmt_print(Lend.mut $out, "hi{newln}");
     return 1;
 end fn.pure f

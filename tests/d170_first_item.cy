@@ -7,7 +7,7 @@ struct reading:
     celsius: i32;
 end struct reading
 
-fn first [$xs: std::coll::list<reading>[len.min: 1 items, len.max: 8 items]] -> Lend from $xs reading:
+fn first [$xs: Lent std::coll::list<reading>[len.min: 1 items, len.max: 8 items]] -> Lend from $xs reading:
     return Lend $xs[pos: 1];
 end fn first
 

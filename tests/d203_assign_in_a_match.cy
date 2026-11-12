@@ -7,7 +7,7 @@ union.tagged status:
     failed[code: i32];
 end union.tagged status
 
-fn code_of [$s: status] -> i32:
+fn code_of [$s: Lent status] -> i32:
     decl $n: i32;
     match $s:
         case status.ok:

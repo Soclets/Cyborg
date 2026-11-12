@@ -2,4 +2,4 @@ refused: d175_lend_mut_parameter.cy:8:14, line 8 column 14
  8 | fn warm [$v: Lend.mut from $r reading] -> void:
    |              ^^^^^^^^^^^^^^^^^^^^^^^^
  fix:  `Lent.mut reading`
- why:  a bare parameter is already lent, and `Lent.mut` already is the changing one (D175)
+ why:  `Lent` already is a borrow, and `Lent.mut` already is the changing one (D175)

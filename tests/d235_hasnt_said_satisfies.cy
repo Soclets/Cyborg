@@ -15,7 +15,7 @@ type_set whole:
     i64;
 end type_set whole
 
-fn larger<?item: ordered> [$a: ?item, $b: ?item] -> bool:
+fn larger<?item: ordered> [$a: Lent ?item, $b: Lent ?item] -> bool:
     return $a above $b;
 end fn larger
 

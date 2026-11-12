@@ -1,5 +1,0 @@
-refused: d182_lend_is_refused.cy:6:15, line 6 column 15
- 6 |     for $n in Lend $xs:
-   |               ^^^^^^^^
- fix:  `$xs`
- why:  `for $x in $xs:` reads each item, so `Lend` adds nothing (D182)

@@ -10,7 +10,7 @@ fn.main [none] -> void:
     let $xs: std::coll::array<i32>[len: 2 items] = [1, 2];
     let mut $s: status = status.failed[code = 3];
     if $s: status.failed:
-        for $x in $xs:
+        for $x in Lend $xs:
             let $b: i32 = $s.code;
             change $s = status.ok;
         end for

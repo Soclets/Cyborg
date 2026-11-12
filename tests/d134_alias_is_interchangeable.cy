@@ -5,9 +5,9 @@ import os;
 type.alias score = i32;
 type.alias numbers = std::coll::list<i32>[len.max: 8 items];
 
-fn total [$xs: numbers] -> score:
+fn total [$xs: Lent numbers] -> score:
     let mut $sum: i32 = 0;
-    for $x in $xs:
+    for $x in Lend $xs:
         change $sum = $sum + $x;
     end for
     return $sum;

@@ -9,7 +9,7 @@ fn.main [none] -> void:
     return void;
 end fn.main
 
-fn box.%read [$b: box] -> i32:
+fn box.%read [$b: Lent box] -> i32:
     return $b.n;
 end fn box.%read
 

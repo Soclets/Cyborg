@@ -8,7 +8,7 @@ fn.main [none] -> void:
     let $a: str[len.max: 32 bytes] = "a";
     let $b: str[len.max: 32 bytes] = "b";
     let $xs: std::coll::list<str[len.max: 32 bytes]>[len.max: 8 items] = [Give $a, Copy $b, "c"];
-    for $s in $xs:
+    for $s in Lend $xs:
         std::io::fmt_print(Lend.mut $out, "{}{newln}", $s);
     end for
     std::io::fmt_print(Lend.mut $out, "{}{newln}", $b);

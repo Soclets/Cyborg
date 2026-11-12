@@ -3,7 +3,7 @@ import std;
 
 fn.main [none] -> void:
     let mut $a: std::coll::array<i32>[len: 2 items] = [1, 2];
-    for $x in $a:
+    for $x in Lend $a:
         change $a[pos: 1] = $x;
     end for
     return void;

@@ -7,11 +7,11 @@ struct reading:
     celsius: i32;
 end struct reading
 
-op below [$a: reading, $b: reading] -> bool:
+op below [$a: Lent reading, $b: Lent reading] -> bool:
     return $a.celsius below $b.celsius;
 end op below
 
-op == [$a: reading, $b: reading] -> bool:
+op == [$a: Lent reading, $b: Lent reading] -> bool:
     return $a.celsius == $b.celsius;
 end op ==
 

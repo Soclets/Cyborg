@@ -5,7 +5,7 @@ struct reading:
     celsius: i32;
 end struct reading
 
-fn reading.%%shown [$r: reading] -> i32:
+fn reading.%%shown [$r: Lent reading] -> i32:
     return $r.celsius;
 end fn reading.%%shown
 

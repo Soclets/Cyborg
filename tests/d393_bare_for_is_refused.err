@@ -1,0 +1,5 @@
+refused: d393_bare_for_is_refused.cy:7:15, line 7 column 15
+ 7 |     for $n in $xs:
+   |               ^^^
+ what: this `for` doesn't say how it holds each item of `$xs`: `Lend`, `Lend.mut` or `Give`
+ why:  where there's a choice, the choice is written, and a loop reads, changes or takes each item (D393)

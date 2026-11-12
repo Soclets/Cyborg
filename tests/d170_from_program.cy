@@ -4,7 +4,7 @@ struct reading:
     celsius: i32;
 end struct reading
 
-fn pick [$a: reading] -> Lend from program reading:
+fn pick [$a: Lent reading] -> Lend from program reading:
     return Lend $a;
 end fn pick
 

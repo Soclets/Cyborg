@@ -2,7 +2,7 @@
 import std;
 import os;
 
-fn show [$s: str[len.max: 32 bytes]] -> void:
+fn show [$s: Lent str[len.max: 32 bytes]] -> void:
     let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     std::io::fmt_print(Lend.mut $out, "{}{newln}", $s);
     return void;

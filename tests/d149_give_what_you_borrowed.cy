@@ -6,7 +6,7 @@ end struct reading
 
 type.new wrapped = reading;
 
-fn look [$r: reading] -> void:
+fn look [$r: Lent reading] -> void:
     let $w: wrapped = Give $r as wrapped;
     return void;
 end fn look

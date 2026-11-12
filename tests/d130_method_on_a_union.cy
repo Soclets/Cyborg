@@ -7,7 +7,7 @@ union.tagged status:
     failed[code: i32];
 end union.tagged status
 
-fn status.%code_or_zero [$s: status] -> i32:
+fn status.%code_or_zero [$s: Lent status] -> i32:
     if $s: status.failed:
         return $s.code;
     end if

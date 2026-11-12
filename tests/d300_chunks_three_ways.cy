@@ -25,7 +25,7 @@ fn.main [none] -> void:
     leftovers $x:
         change $x = 0;
     end for
-    for $x in $xs:
+    for $x in Lend $xs:
         std::io::fmt_print(Lend.mut $out, "{$x} ");
     end for
     std::io::fmt_print(Lend.mut $out, "{newln}");

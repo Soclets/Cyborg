@@ -7,11 +7,11 @@ struct money:
     cents: i64;
 end struct money
 
-op == [$a: money, $b: money] -> bool:
+op == [$a: Lent money, $b: Lent money] -> bool:
     return $a.cents == $b.cents;
 end op ==
 
-op below [$a: money, $b: money] -> bool:
+op below [$a: Lent money, $b: Lent money] -> bool:
     return $a.cents below $b.cents;
 end op below
 

@@ -1,7 +1,7 @@
 // trace: D133, D2
 import std;
 
-fn both [$xs: Lent.mut std::coll::array<str[len.max: 32 bytes]>[len: 2 items], $s: str[len.max: 32 bytes]] -> void:
+fn both [$xs: Lent.mut std::coll::array<str[len.max: 32 bytes]>[len: 2 items], $s: Lent str[len.max: 32 bytes]] -> void:
     return void;
 end fn both
 

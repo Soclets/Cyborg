@@ -7,7 +7,7 @@ union.tagged status:
     failed[code: i32];
 end union.tagged status
 
-fn status.%label [$s: status] -> str:
+fn status.%label [$s: Lent status] -> str:
     return "a status";
 end fn status.%label
 

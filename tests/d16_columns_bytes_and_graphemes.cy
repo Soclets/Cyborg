@@ -5,7 +5,7 @@ struct box:
     n: i32;
 end struct box
 
-fn read [$b: box] -> i32:
+fn read [$b: Lent box] -> i32:
     return $b.n;
 end fn read
 

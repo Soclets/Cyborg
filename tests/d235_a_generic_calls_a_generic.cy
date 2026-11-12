@@ -18,11 +18,11 @@ end type_set whole
 
 i32 satisfies ordered;
 
-fn larger<?item: ordered> [$a: ?item, $b: ?item] -> bool:
+fn larger<?item: ordered> [$a: Lent ?item, $b: Lent ?item] -> bool:
     return $a above $b;
 end fn larger
 
-fn smaller<?thing: ordered> [$a: ?thing, $b: ?thing] -> bool:
+fn smaller<?thing: ordered> [$a: Lent ?thing, $b: Lent ?thing] -> bool:
     return larger(Lend $b, Lend $a);
 end fn smaller
 

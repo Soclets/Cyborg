@@ -8,7 +8,7 @@ end struct reading
 
 type.new wrapped = reading;
 
-fn look [$r: reading] -> void:
+fn look [$r: Lent reading] -> void:
     let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     let $w: wrapped = Copy $r as wrapped;
     std::io::fmt_print(Lend.mut $out, "{}{newln}", $r.celsius);

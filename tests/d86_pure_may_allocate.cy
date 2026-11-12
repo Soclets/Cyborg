@@ -3,7 +3,7 @@
 import std;
 import os;
 
-fn.pure f [$heap: os::heap] -> void:
+fn.pure f [$heap: Lent os::heap] -> void:
     let mut $xs: std::coll::list<i32>[len.max: inf items] = empty;
     $xs.std::%%append(val: 1, alloc: Lend $heap);
     std::coll::list.done(Give $xs, alloc: Lend $heap);

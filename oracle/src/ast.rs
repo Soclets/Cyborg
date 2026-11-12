@@ -125,6 +125,9 @@ pub enum FunctionKind {
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum ParameterWord {
     Bare,
+    /// `Lent`, which a parameter holding something with a choice of how it's held writes, and
+    /// which then means the same as a bare one. (D393)
+    Lent,
     Given,
     LentMut,
 }

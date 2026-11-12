@@ -14,7 +14,7 @@ fn.main [none] -> void:
     let $heap: os::heap = os::heap();
     let $xs: std::coll::list<box>[len.max: inf items] = std::coll::list.from([box[s = "a"]], alloc: Lend $heap);
     defer std::coll::list.done(Give $xs, alloc: Lend $heap);
-    for $b in $xs:
+    for $b in Lend $xs:
         eat(Give $b.s);
     end for
     return void;

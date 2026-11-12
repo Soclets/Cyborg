@@ -3,8 +3,8 @@ import std;
 
 type.new row = std::coll::array<i32>[len: 2 items];
 
-fn f [$r: row] -> void:
-    for $x in $r:
+fn f [$r: Lent row] -> void:
+    for $x in Lend $r:
         return void;
     end for
     return void;

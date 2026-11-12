@@ -4,7 +4,7 @@ struct reading:
     celsius: i32;
 end struct reading
 
-fn warmer [$a: reading, $b: reading] -> Lend from <$a, $b> reading:
+fn warmer [$a: Lent reading, $b: Lent reading] -> Lend from <$a, $b> reading:
     if $a.celsius above $b.celsius:
         return Lend $a;
     end if

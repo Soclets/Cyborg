@@ -7,7 +7,7 @@ end fn eat
 
 fn.main [none] -> void:
     let $xs: std::coll::array<str[len.max: 32 bytes]>[len: 2 items] = ["a", "b"];
-    for $s in $xs:
+    for $s in Lend $xs:
         eat(Give $s);
     end for
     return void;

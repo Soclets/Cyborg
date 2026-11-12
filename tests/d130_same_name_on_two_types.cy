@@ -10,13 +10,13 @@ struct b:
     n: i32;
 end struct b
 
-fn a.%show [$v: a] -> void:
+fn a.%show [$v: Lent a] -> void:
     let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     std::io::fmt_print(Lend.mut $out, "a {}{newln}", $v.n);
     return void;
 end fn a.%show
 
-fn b.%show [$v: b] -> void:
+fn b.%show [$v: Lent b] -> void:
     let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     std::io::fmt_print(Lend.mut $out, "b {}{newln}", $v.n);
     return void;

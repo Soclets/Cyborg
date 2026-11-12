@@ -24,19 +24,19 @@ fn fill [$xs: Lent.mut std::coll::list<i32>[len.max: 8 items], $n: i32[min: 0, m
     return void;
 end fn fill
 
-fn sum [$xs: std::coll::list<i32>[len.max: 8 items]] -> i32:
+fn sum [$xs: Lent std::coll::list<i32>[len.max: 8 items]] -> i32:
     let mut $total: i32 = 0;
-    for $x in $xs:
+    for $x in Lend $xs:
         change $total = $total + $x;
     end for
     return $total;
 end fn sum
 
-fn largest [$xs: std::coll::list<i32>[len.max: 8 items]] -> i32:
+fn largest [$xs: Lent std::coll::list<i32>[len.max: 8 items]] -> i32:
     requires $xs.len at_least 1 items;
 
     let mut $best: i32 = -2147483648;
-    for $x in $xs:
+    for $x in Lend $xs:
         if $x above $best:
             change $best = $x;
         end if
@@ -44,8 +44,8 @@ fn largest [$xs: std::coll::list<i32>[len.max: 8 items]] -> i32:
     return $best;
 end fn largest
 
-fn keep_even [$xs: std::coll::list<i32>[len.max: 8 items], $out: Lent.mut std::coll::list<i32>[len.max: 8 items]] -> void:
-    for $x in $xs:
+fn keep_even [$xs: Lent std::coll::list<i32>[len.max: 8 items], $out: Lent.mut std::coll::list<i32>[len.max: 8 items]] -> void:
+    for $x in Lend $xs:
         if $x mod.trunc 2 == 0:
             $out.std::%%append(val: $x);
         end if
@@ -53,9 +53,9 @@ fn keep_even [$xs: std::coll::list<i32>[len.max: 8 items], $out: Lent.mut std::c
     return void;
 end fn keep_even
 
-fn print_all [$xs: std::coll::list<i32>[len.max: 8 items]] -> void:
+fn print_all [$xs: Lent std::coll::list<i32>[len.max: 8 items]] -> void:
     let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
-    for $x in $xs:
+    for $x in Lend $xs:
         std::io::fmt_print(Lend.mut $out, "{}{newln}", $x);
     end for
     return void;

@@ -3,7 +3,7 @@
 import std;
 import os;
 
-fn eat [$xs: Given std::coll::list<i32>[len.max: inf items], $heap: os::heap] -> void:
+fn eat [$xs: Given std::coll::list<i32>[len.max: inf items], $heap: Lent os::heap] -> void:
     std::coll::list.done(Give $xs, alloc: Lend $heap);
     return void;
 end fn eat

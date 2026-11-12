@@ -9,7 +9,7 @@ end struct bag
 
 fn.main [none] -> void:
     let mut $b: bag = bag[items = [1, 2], total = 0];
-    for $x in $b.items:
+    for $x in Lend $b.items:
         change $b.total = $b.total + $x;
     end for
     return void;

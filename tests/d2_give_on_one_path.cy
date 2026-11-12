@@ -9,7 +9,7 @@ fn eat [$b: Given box] -> void:
     return void;
 end fn eat
 
-fn read [$b: box] -> i32:
+fn read [$b: Lent box] -> i32:
     return $b.n;
 end fn read
 

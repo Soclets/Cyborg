@@ -41,7 +41,7 @@ fn.main [none] -> void:
     let $f: flags = flags[on = true];
     yes_or_no($f.on);
     let $all: std::coll::array<bool>[len: 2 items] = all true;
-    for $x in $all:
+    for $x in Lend $all:
         yes_or_no($x);
     end for
     return void;

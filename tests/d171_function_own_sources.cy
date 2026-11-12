@@ -11,7 +11,7 @@ struct view <`text`>:
     words: Lend from `text` reading;
 end struct view
 
-fn shown <`t`> [$v: view<`text`: `t`>] -> i32:
+fn shown <`t`> [$v: Lent view<`text`: `t`>] -> i32:
     return $v.words.celsius;
 end fn shown
 

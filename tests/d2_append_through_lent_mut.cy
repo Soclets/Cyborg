@@ -2,7 +2,7 @@
 import std;
 import os;
 
-fn add [$xs: Lent.mut std::coll::list<i32>[len.max: inf items], $heap: os::heap] -> void:
+fn add [$xs: Lent.mut std::coll::list<i32>[len.max: inf items], $heap: Lent os::heap] -> void:
     $xs.std::%%append(val: 1, alloc: Lend $heap);
     return void;
 end fn add

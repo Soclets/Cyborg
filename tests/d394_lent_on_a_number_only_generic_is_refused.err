@@ -1,0 +1,5 @@
+refused: d394_lent_on_a_number_only_generic_is_refused.cy:10:28, line 10 column 28
+10 | fn same<?item: whole> [$a: Lent ?item] -> ?item:
+   |                            ^^^^^^^^^^
+ fix:  `?item`
+ why:  only plain numbers can fill this type parameter, and they're always copied, so there's no choice to write (D394)

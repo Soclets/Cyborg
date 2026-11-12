@@ -18,7 +18,7 @@ struct.must_Give log:
     lines: i32;
 end struct.must_Give log
 
-fn peek [$l: log] -> void:
+fn peek [$l: Lent log] -> void:
     close(Give $l.file);
     return void;
 end fn peek

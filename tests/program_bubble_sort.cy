@@ -23,7 +23,7 @@ fn.main [none] -> void:
     let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     let mut $xs: std::coll::array<i32>[len: 6 items] = [5, 2, 9, 1, 7, 3];
     sort(Lend.mut $xs);
-    for $x in $xs:
+    for $x in Lend $xs:
         std::io::fmt_print(Lend.mut $out, "{}{newln}", $x);
     end for
     return void;

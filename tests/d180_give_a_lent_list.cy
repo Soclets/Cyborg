@@ -13,7 +13,7 @@ fn close [$f: Given open_file] -> void:
     return void;
 end fn close
 
-fn close_all [$files: std::coll::list<open_file>[len.max: inf items]] -> void:
+fn close_all [$files: Lent std::coll::list<open_file>[len.max: inf items]] -> void:
     for $f in Give $files:
         close(Give $f);
     end for

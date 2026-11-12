@@ -10,7 +10,7 @@ struct view <`text`, `table`: lasts_at_least `text`, `more`: lasts_at_least `tex
     other: Lend from `more` reading;
 end struct view
 
-fn build [$a: reading, $b: reading] -> void:
+fn build [$a: Lent reading, $b: Lent reading] -> void:
     requires $a lasts_at_least $b;
     requires $a lasts_at_least $b;
     return void;

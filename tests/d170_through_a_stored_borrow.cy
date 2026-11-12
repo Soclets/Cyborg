@@ -7,7 +7,7 @@ struct reading:
     celsius: i32;
 end struct reading
 
-fn first [$a: reading] -> Lend from $a reading:
+fn first [$a: Lent reading] -> Lend from $a reading:
     return Lend $a;
 end fn first
 

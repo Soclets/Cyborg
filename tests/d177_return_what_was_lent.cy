@@ -17,7 +17,7 @@ fn open [$fd: i32] -> open_file:
     return open_file[fd = $fd];
 end fn open
 
-fn steal [$f: open_file] -> open_file:
+fn steal [$f: Lent open_file] -> open_file:
     return Give $f;
 end fn steal
 

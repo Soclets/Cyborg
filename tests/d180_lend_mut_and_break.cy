@@ -11,7 +11,7 @@ fn.main [none] -> void:
         end if
         change $n = 0;
     end for
-    for $n in $xs:
+    for $n in Lend $xs:
         std::io::fmt_print(Lend.mut $out, "{}{newln}", $n);
     end for
     return void;

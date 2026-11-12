@@ -4,7 +4,7 @@ struct box:
     n: i32;
 end struct box
 
-fn both [$a: Lent.mut box, $b: box] -> void:
+fn both [$a: Lent.mut box, $b: Lent box] -> void:
     return void;
 end fn both
 

@@ -2,7 +2,7 @@
 import std;
 import os;
 
-fn first_word [$text: str[len.max: 32 bytes], $limit: i32] -> i32:
+fn first_word [$text: Lent str[len.max: 32 bytes], $limit: i32] -> i32:
     labels [$limit as limit];
     defaults [$limit = 40];
     requires $limit at_least 1;

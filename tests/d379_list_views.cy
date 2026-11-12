@@ -6,7 +6,7 @@ import os;
 
 fn total [$xs: std::coll::list<i32>] -> i32:
     let mut $sum: i32 = 0;
-    for $x in $xs:
+    for $x in Lend $xs:
         change $sum = $sum + $x;
     end for
     return $sum + $xs[pos: 1] - $xs[pos: 1];

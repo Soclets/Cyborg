@@ -8,7 +8,7 @@ union.tagged status:
     lost[where: str];
 end union.tagged status
 
-fn show [$s: status] -> void:
+fn show [$s: Lent status] -> void:
     let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     match $s:
         case status.failed $f:

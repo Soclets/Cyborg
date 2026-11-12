@@ -1,5 +1,5 @@
-NotDesignedYet: d134_going_through_a_new_type.cy:7:15, line 7 column 15
- 7 |     for $x in $r:
-   |               ^^
+NotDesignedYet: d134_going_through_a_new_type.cy:7:20, line 7 column 20
+ 7 |     for $x in Lend $r:
+   |                    ^^
  what: going through a `type.new`, rather than crossing with `as` first
  why:  not decided yet (standard 12.1)

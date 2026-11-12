@@ -3,7 +3,7 @@
 import std;
 import @concur;
 
-fn move [$a: @concur::lock<i64>, $b: @concur::lock<i64>] -> void:
+fn move [$a: Lent @concur::lock<i64>, $b: Lent @concur::lock<i64>] -> void:
     @concur::locked $a as $x:
         @concur::locked $b as $y:
             change $y = $x;

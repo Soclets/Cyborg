@@ -7,7 +7,7 @@ end struct bag
 
 fn.main [none] -> void:
     let mut $b: bag = bag[items = [1, 2]];
-    for $x in $b.items:
+    for $x in Lend $b.items:
         change $b.items = [3, 4];
     end for
     return void;

@@ -11,7 +11,7 @@ struct outer:
     b: inner;
 end struct outer
 
-fn read [$i: inner] -> i32:
+fn read [$i: Lent inner] -> i32:
     return $i.n;
 end fn read
 

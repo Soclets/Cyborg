@@ -1,0 +1,5 @@
+refused: d394_bare_generic_parameter_is_refused.cy:9:34, line 9 column 34
+ 9 | fn smallest<?item: ordered> [$a: ?item, $b: ?item] -> ?item:
+   |                                  ^^^^^
+ what: `$a` doesn't say how it holds its `?item`: `Lent`, `Lent.mut` or `Given`
+ why:  where there's a choice, the choice is written, and a parameter holding a struct or list chooses how it's held (D393, D394)

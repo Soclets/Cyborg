@@ -12,13 +12,13 @@ fn reading.%%warm_up [$r: Lent.mut reading, $by: i32] -> void:
     return void;
 end fn reading.%%warm_up
 
-fn reading.%show [$r: reading] -> void:
+fn reading.%show [$r: Lent reading] -> void:
     let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     std::io::fmt_print(Lend.mut $out, "{}{newln}", $r.celsius);
     return void;
 end fn reading.%show
 
-fn.pure reading.%doubled [$r: reading] -> i32:
+fn.pure reading.%doubled [$r: Lent reading] -> i32:
     return $r.celsius x 2;
 end fn.pure reading.%doubled
 

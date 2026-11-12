@@ -17,7 +17,7 @@ fn.main [none] -> void:
     let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     let $heap: os::heap = os::heap();
     let $files: std::coll::list<open_file>[len.max: inf items] = std::coll::list.from([open_file[fd = 3], open_file[fd = 4]], alloc: Lend $heap);
-    for $f in $files:
+    for $f in Lend $files:
         std::io::fmt_print(Lend.mut $out, "{}{newln}", $f.fd);
     end for
     for $f in Give $files:

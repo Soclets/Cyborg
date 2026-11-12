@@ -7,7 +7,7 @@ import std;
 import os;
 import @concur;
 
-fn count [$hits: @concur::atomic<u64>] -> i64:
+fn count [$hits: Lent @concur::atomic<u64>] -> i64:
     $hits.%add(val: 1);
     $hits.%add.relaxed(val: 2);
     return 0;

@@ -1,0 +1,5 @@
+refused: d393_bare_struct_parameter_is_refused.cy:10:14, line 10 column 14
+10 | fn show [$r: reading] -> i32:
+   |              ^^^^^^^
+ what: `$r` doesn't say how it holds its `reading`: `Lent`, `Lent.mut` or `Given`
+ why:  where there's a choice, the choice is written, and a parameter holding a struct or list chooses how it's held (D393, D394)

@@ -7,7 +7,7 @@ union.tagged status:
     failed[code: i32];
 end union.tagged status
 
-fn show [$s: status] -> void:
+fn show [$s: Lent status] -> void:
     let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     if $s: status.failed:
         std::io::fmt_print(Lend.mut $out, "{}{newln}", $s.code);

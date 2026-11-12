@@ -2,7 +2,7 @@
 import std;
 import os;
 
-fn.pure first [$xs: std::coll::array<i32>[len: 2 items]] -> i32:
+fn.pure first [$xs: Lent std::coll::array<i32>[len: 2 items]] -> i32:
     return $xs[pos: 1];
 end fn.pure first
 

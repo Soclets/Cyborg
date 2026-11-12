@@ -5,7 +5,7 @@ fn eat [$s: Given str[len.max: 32 bytes]] -> bool:
     return 1 below 2;
 end fn eat
 
-fn read [$s: str[len.max: 32 bytes]] -> void:
+fn read [$s: Lent str[len.max: 32 bytes]] -> void:
     return void;
 end fn read
 

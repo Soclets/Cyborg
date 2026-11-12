@@ -8,7 +8,7 @@ fn eat [$b: Given box] -> void:
     return void;
 end fn eat
 
-fn pass [$b: box] -> void:
+fn pass [$b: Lent box] -> void:
     eat(Give $b);
     return void;
 end fn pass

@@ -11,7 +11,7 @@ end fn bag.%%empty_out
 
 fn.main [none] -> void:
     let mut $b: bag = bag[items = [1]];
-    for $x in $b.items:
+    for $x in Lend $b.items:
         $b.%%empty_out();
     end for
     return void;

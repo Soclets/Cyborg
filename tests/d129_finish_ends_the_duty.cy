@@ -7,7 +7,7 @@ struct.must_Give open_file:
     fd: i32;
 end struct.must_Give open_file
 
-fn read_from [$f: open_file] -> i32:
+fn read_from [$f: Lent open_file] -> i32:
     return $f.fd + 1;
 end fn read_from
 

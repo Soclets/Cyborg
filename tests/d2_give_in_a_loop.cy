@@ -13,7 +13,7 @@ end fn eat
 fn.main [none] -> void:
     let $xs: std::coll::array<i32>[len: 2 items] = [1, 2];
     let $b: box = box[n = 1];
-    for $x in $xs:
+    for $x in Lend $xs:
         eat(Give $b);
     end for
     return void;

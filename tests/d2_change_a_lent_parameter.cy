@@ -5,7 +5,7 @@ struct box:
     n: i32;
 end struct box
 
-fn replace [$b: box] -> void:
+fn replace [$b: Lent box] -> void:
     change $b = box[n = 9];
     return void;
 end fn replace

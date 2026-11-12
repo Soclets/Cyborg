@@ -4,7 +4,7 @@ struct.must_Give open_file:
     fd: i32;
 end struct.must_Give open_file
 
-fn peek [$f: open_file] -> i32:
+fn peek [$f: Lent open_file] -> i32:
     return $f.fd;
 end fn peek
 

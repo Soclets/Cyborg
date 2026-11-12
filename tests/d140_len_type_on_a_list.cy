@@ -2,7 +2,7 @@
 import std;
 import os;
 
-fn total [$xs: std::coll::list<i32>[len.max: inf items, len.type: u32]] -> u32[unit: items]:
+fn total [$xs: Lent std::coll::list<i32>[len.max: inf items, len.type: u32]] -> u32[unit: items]:
     return $xs.len;
 end fn total
 

@@ -19,7 +19,7 @@ fn larger<?u: any.unit> [$a: f64.stable[unit: ?u], $b: f64.stable[unit: ?u]] -> 
     return $b;
 end fn larger
 
-fn how_many<?u: length> [$xs: std::coll::list<f64.stable[unit: ?u]>[len.max: 9 items]] -> u64[unit: items]:
+fn how_many<?u: length> [$xs: Lent std::coll::list<f64.stable[unit: ?u]>[len.max: 9 items]] -> u64[unit: items]:
     return $xs.len;
 end fn how_many
 

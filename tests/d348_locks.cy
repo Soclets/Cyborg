@@ -6,7 +6,7 @@ import std;
 import os;
 import @concur;
 
-fn deposit [$account: @concur::lock<i64>, $amount: i64] -> i64:
+fn deposit [$account: Lent @concur::lock<i64>, $amount: i64] -> i64:
     @concur::locked $account as $balance:
         change $balance = $balance + $amount;
     end @concur::locked

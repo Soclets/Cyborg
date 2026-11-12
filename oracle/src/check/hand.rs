@@ -1173,7 +1173,7 @@ impl Checker<'_> {
             ));
         }
         let wanted = match parameter.word {
-            ParameterWord::Bare => HandWord::Lend,
+            ParameterWord::Bare | ParameterWord::Lent => HandWord::Lend,
             ParameterWord::LentMut => HandWord::LendMut,
             ParameterWord::Given => HandWord::Give,
         };
@@ -1227,7 +1227,7 @@ impl Checker<'_> {
                 "every hand-off shows on the page (D3)",
             );
             return Err(match parameter.word {
-                ParameterWord::Bare => report.fix(format!("Lend {shown}")),
+                ParameterWord::Bare | ParameterWord::Lent => report.fix(format!("Lend {shown}")),
                 ParameterWord::LentMut => report.fix(format!("Lend.mut {shown}")),
                 ParameterWord::Given => report,
             });

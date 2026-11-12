@@ -16,7 +16,7 @@ end fn close
 fn.main [none] -> void:
     let $heap: os::heap = os::heap();
     let $files: std::coll::list<open_file>[len.max: inf items] = std::coll::list.from([open_file[fd = 3], open_file[fd = 4]], alloc: Lend $heap);
-    for $f in $files:
+    for $f in Lend $files:
         close(Give $f);
     end for
     return void;

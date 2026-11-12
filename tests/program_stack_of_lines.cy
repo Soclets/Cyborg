@@ -3,7 +3,7 @@
 import std;
 import os;
 
-fn print_backwards [$xs: std::coll::list<str>[len.max: 8 items]] -> void:
+fn print_backwards [$xs: Lent std::coll::list<str>[len.max: 8 items]] -> void:
     let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     let mut $at: u64 = $xs.len as u64;
     while $at above 0:

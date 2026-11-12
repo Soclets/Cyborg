@@ -3,7 +3,7 @@
 import std;
 import @concur;
 
-fn twice [$a: @concur::lock<i64>] -> void:
+fn twice [$a: Lent @concur::lock<i64>] -> void:
     @concur::locked $a, $a as $x, $y:
         change $x = 1;
     end @concur::locked

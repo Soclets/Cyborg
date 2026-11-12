@@ -1,0 +1,5 @@
+refused: d393_lent_on_a_number_is_refused.cy:5:15, line 5 column 15
+ 5 | fn twice [$n: Lent i32] -> i32:
+   |               ^^^^^^^^
+ fix:  `i32`
+ why:  plain numbers and `bool` are always copied, and take no word (D2, D123)

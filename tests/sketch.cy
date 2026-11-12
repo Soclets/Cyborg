@@ -3,9 +3,9 @@
 import std;
 import os;
 
-fn total [$xs: std::coll::list<i32>[len.max: inf items]] -> i32:
+fn total [$xs: Lent std::coll::list<i32>[len.max: inf items]] -> i32:
     let mut $sum: i32 = 0;
-    for $x in $xs:
+    for $x in Lend $xs:
         change $sum = $sum + $x;
     end for
     return $sum;

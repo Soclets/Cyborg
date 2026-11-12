@@ -3,9 +3,9 @@
 import std;
 import os;
 
-fn total_and_end [$xs: Given std::coll::list<i64>[len.max: inf items], $heap: os::heap] -> i64:
+fn total_and_end [$xs: Given std::coll::list<i64>[len.max: inf items], $heap: Lent os::heap] -> i64:
     let mut $sum: i64 = 0;
-    for $x in $xs:
+    for $x in Lend $xs:
         change $sum = $sum + $x;
     end for
     std::coll::list.done(Give $xs, alloc: Lend $heap);

@@ -7,7 +7,7 @@ struct box:
     n: i32;
 end struct box
 
-fn show [$b: box] -> void:
+fn show [$b: Lent box] -> void:
     let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     std::io::fmt_print(Lend.mut $out, "{}{newln}", $b.n);
     return void;

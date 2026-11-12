@@ -6,11 +6,11 @@ struct box:
     n: i32;
 end struct box
 
-fn.pure box.%positive [$b: box] -> bool:
+fn.pure box.%positive [$b: Lent box] -> bool:
     return $b.n above 0;
 end fn.pure box.%positive
 
-fn take [$b: box] -> i32:
+fn take [$b: Lent box] -> i32:
     requires $b.%positive();
 
     return $b.n;

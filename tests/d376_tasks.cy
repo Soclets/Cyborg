@@ -8,7 +8,7 @@ import @concur;
 
 fn sum [$xs: std::coll::list<i64>, $out: Lent.mut os::stdout.unbuffered] -> i64:
     let mut $total: i64 = 0;
-    for $x in $xs:
+    for $x in Lend $xs:
         change $total = $total + $x;
     end for
     std::io::fmt_print(Lend.mut $out, "summed {}{newln}", $total);

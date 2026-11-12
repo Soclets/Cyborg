@@ -9,7 +9,7 @@ fn.main [none] -> void:
     for $n in Lend.mut $xs:
         change $n = $n x 10;
     end for
-    for $n in $xs:
+    for $n in Lend $xs:
         std::io::fmt_print(Lend.mut $out, "{}{newln}", $n);
     end for
     return void;

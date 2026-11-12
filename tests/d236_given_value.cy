@@ -5,7 +5,7 @@ struct money:
     cents: i64;
 end struct money
 
-op + [$a: Given money, $b: money] -> money:
+op + [$a: Given money, $b: Lent money] -> money:
     return money[cents = $a.cents + $b.cents];
 end op +
 

@@ -1,5 +1,0 @@
-NotDesignedYet: d11_void_function_without_return.cy:5:1, line 5 column 1
- 5 | end fn f
-   | ^^^^^^^^
- what: whether every `void` function says `return void;`
- why:  not decided yet (standard 12.5)

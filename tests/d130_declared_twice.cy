@@ -4,7 +4,7 @@ struct box:
     n: i32;
 end struct box
 
-fn box.%f [$b: box] -> i32:
+fn box.%f [$b: Lent box] -> i32:
     return $b.n;
 end fn box.%f
 

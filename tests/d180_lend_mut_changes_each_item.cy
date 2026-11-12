@@ -14,7 +14,7 @@ fn.main [none] -> void:
     for $r in Lend.mut $readings:
         change $r.celsius = $r.celsius + 1;
     end for
-    for $r in $readings:
+    for $r in Lend $readings:
         std::io::fmt_print(Lend.mut $out, "{}{newln}", $r.celsius);
     end for
     return void;

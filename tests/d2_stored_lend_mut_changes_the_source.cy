@@ -6,7 +6,7 @@ struct reading:
     celsius: i32;
 end struct reading
 
-fn show [$r: reading] -> void:
+fn show [$r: Lent reading] -> void:
     let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     std::io::fmt_print(Lend.mut $out, "{}{newln}", $r.celsius);
     return void;

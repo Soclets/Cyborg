@@ -29,7 +29,7 @@ enum LoopCollection {
     Place(Place),
 }
 
-/// What a `for` does to its collection while it runs. (D180, D182)
+/// What a `for` does to its collection while it runs. (D180, D393)
 enum LoopSource {
     /// Bare: reading in place, so nothing may change it.
     Read(String, Vec<usize>),
@@ -100,7 +100,7 @@ impl Checker<'_> {
                 ));
             }
             let origin = match info.word {
-                ParameterWord::Bare => Origin::LentParameter,
+                ParameterWord::Bare | ParameterWord::Lent => Origin::LentParameter,
                 ParameterWord::Given => Origin::GivenParameter,
                 ParameterWord::LentMut => Origin::LentMutParameter,
             };
@@ -225,12 +225,15 @@ impl Checker<'_> {
                 "`main` says `return void;` (D11)",
             ));
         }
+        // A function chooses what it gives back, so a `void` one says so. (D393)
+        // trace: D393
         if *return_type == Type::Void {
-            return Err(Report::not_designed(
+            return Err(Report::refused(
                 function.end_span,
-                "whether every `void` function says `return void;`",
-                "12.5",
-            ));
+                format!("`{}` ends without `return void;`", function.name.text),
+                "every function ends with a `return`, and a `void` one with `return void;` (D393)",
+            )
+            .fix_elsewhere("return void;"));
         }
         Err(Report::refused(
             function.end_span,
@@ -2645,13 +2648,24 @@ impl Checker<'_> {
         slot
     }
 
-    /// `for $r in $xs`, `Lend.mut $xs` or `Give $xs`, and what each does to `$xs`.
-    /// trace: D2, D180, D182
+    /// `for $r in Lend $xs`, `Lend.mut $xs` or `Give $xs`, and what each does to `$xs`.
+    /// trace: D2, D180, D393
     fn check_for_collection(
         &mut self,
         collection: &Expression,
     ) -> Outcome<(LoopCollection, Type, LoopSource)> {
         let ExpressionKind::Hand { word, value } = &collection.kind else {
+            // A collection something holds has a choice of how the loop holds each item, so it's
+            // written, and a fresh one with no holder yet has none. (D393)
+            // trace: D393
+            if root_variable(collection).is_some() {
+                let shown = self.text_of(collection.span);
+                return Err(Report::refused(
+                    collection.span,
+                    format!("this `for` doesn't say how it holds each item of `{shown}`: `Lend`, `Lend.mut` or `Give`"),
+                    "where there's a choice, the choice is written, and a loop reads, changes or takes each item (D393)",
+                ));
+            }
             let (node, item_type, (root, path)) = self.check_for_read(collection)?;
             return Ok((
                 LoopCollection::Value(node),
@@ -2661,12 +2675,15 @@ impl Checker<'_> {
         };
         let shown = self.text_of(value.span).to_string();
         match word {
-            HandWord::Lend => Err(Report::refused(
-                collection.span,
-                "a bare `for` already reads in place",
-                "`for $x in $xs:` reads each item, so `Lend` adds nothing (D182)",
-            )
-            .fix(shown)),
+            // trace: D393
+            HandWord::Lend => {
+                let (node, item_type, (root, path)) = self.check_for_read(value)?;
+                Ok((
+                    LoopCollection::Value(node),
+                    item_type,
+                    LoopSource::Read(root, path),
+                ))
+            }
             HandWord::Copy => Err(Report::not_designed(
                 collection.span,
                 "`Copy` on a loop's collection",

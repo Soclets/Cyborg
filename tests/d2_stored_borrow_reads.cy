@@ -6,7 +6,7 @@ struct reading:
     celsius: i32;
 end struct reading
 
-fn read [$r: reading] -> i32:
+fn read [$r: Lent reading] -> i32:
     return $r.celsius;
 end fn read
 

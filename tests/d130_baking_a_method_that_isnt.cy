@@ -4,7 +4,7 @@ struct box:
     n: i32;
 end struct box
 
-fn.pure box.%twice [$b: box] -> i32:
+fn.pure box.%twice [$b: Lent box] -> i32:
     return $b.n x 2;
 end fn.pure box.%twice
 

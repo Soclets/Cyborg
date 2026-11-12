@@ -7,15 +7,15 @@ struct money:
     cents: i64;
 end struct money
 
-op + [$a: money, $b: money] -> money:
+op + [$a: Lent money, $b: Lent money] -> money:
     return money[cents = $a.cents + $b.cents];
 end op +
 
-op x [$a: money, $b: i64] -> money:
+op x [$a: Lent money, $b: i64] -> money:
     return money[cents = $a.cents x $b];
 end op x
 
-op div.floor [$a: money, $b: i64] -> money:
+op div.floor [$a: Lent money, $b: i64] -> money:
     return money[cents = $a.cents div.floor $b];
 end op div.floor
 

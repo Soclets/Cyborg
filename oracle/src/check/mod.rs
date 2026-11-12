@@ -1622,14 +1622,41 @@ impl Checker<'_> {
                     let fix = if *mutable {
                         format!("Lent.mut {inner_text}")
                     } else {
-                        inner_text.to_string()
+                        format!("Lent {inner_text}")
                     };
                     return Err(Report::refused(
                         parameter.written_type.span,
                         "a parameter isn't typed as a stored borrow",
-                        "a bare parameter is already lent, and `Lent.mut` already is the changing one (D175)",
+                        "`Lent` already is a borrow, and `Lent.mut` already is the changing one (D175)",
                     )
                     .fix(fix));
+                }
+                // How a struct or list is held is a choice, so it's written, and a number, a
+                // `bool` or a view has none, so nothing is. (D393, D394)
+                // trace: D393, D394
+                let choice = self.holding_is_a_choice(&parameter_type);
+                if parameter.word == ParameterWord::Bare && choice {
+                    return Err(Report::refused(
+                        parameter.written_type.span,
+                        format!(
+                            "`${}` doesn't say how it holds its `{parameter_type}`: `Lent`, `Lent.mut` or `Given`",
+                            parameter.name.text
+                        ),
+                        "where there's a choice, the choice is written, and a parameter holding a struct or list chooses how it's held (D393, D394)",
+                    ));
+                }
+                if parameter.word == ParameterWord::Lent && !choice {
+                    let type_text = self.text_of(parameter.written_type.span).to_string();
+                    return Err(Report::refused(
+                        parameter.word_span.to(parameter.written_type.span),
+                        format!("`{parameter_type}` has no choice of how it's held, so it takes no word"),
+                        if matches!(parameter_type, Type::Parameter(_)) {
+                            "only plain numbers can fill this type parameter, and they're always copied, so there's no choice to write (D394)"
+                        } else {
+                            parameter_type.why_copied()
+                        },
+                    )
+                    .fix(type_text));
                 }
                 // A number takes `Lent.mut`, since that says it changes, and no other word.
                 // trace: D2, D184
@@ -1652,10 +1679,12 @@ impl Checker<'_> {
                 }
                 // A `.mut` view changes what it views, so it's lent with `Lend.mut`. (D379)
                 // trace: D379
+                // `Lent` means what a bare parameter always has: lent to read. (D393)
                 let word = match (&parameter_type, parameter.word) {
                     (Type::ListView { mutable: true, .. }, ParameterWord::Bare) => {
                         ParameterWord::LentMut
                     }
+                    (_, ParameterWord::Lent) => ParameterWord::Bare,
                     (_, word) => word,
                 };
                 parameters.push(ParameterInfo {
@@ -2064,6 +2093,29 @@ impl Checker<'_> {
 }
 
 impl Checker<'_> {
+    /// Whether a parameter of this type has a choice of how it's held. A number, a `bool`, a
+    /// pointer and a view are only ever copied, so they don't, and neither does a type
+    /// parameter whose requirement only plain numbers can fill, like a `type_set` of `i32` and
+    /// `i64`. Anything else might be a struct or list, so it does. (D393, D394)
+    /// trace: D393, D394
+    fn holding_is_a_choice(&self, value_type: &Type) -> bool {
+        match value_type {
+            Type::ListView { .. } => false,
+            Type::Parameter(name) => {
+                let Some((_, requirement)) = self.generic.iter().find(|(found, _)| found == name)
+                else {
+                    return true;
+                };
+                !requirement.iter().any(|part| {
+                    self.type_sets
+                        .get(part)
+                        .is_some_and(|members| members.iter().all(Type::is_always_copied))
+                })
+            }
+            other => !other.is_always_copied(),
+        }
+    }
+
     fn is_must_give(&self, value_type: &Type) -> bool {
         // trace: D272, D273
         if writers::is_buffered_writer(value_type) {
@@ -3606,7 +3658,7 @@ impl Checker<'_> {
         if let Some(parameter) = function
             .parameters
             .iter()
-            .find(|parameter| parameter.word != ParameterWord::Bare)
+            .find(|parameter| !matches!(parameter.word, ParameterWord::Bare | ParameterWord::Lent))
         {
             return Err(Report::not_designed(
                 parameter.word_span,

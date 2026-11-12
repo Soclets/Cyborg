@@ -10,7 +10,7 @@ struct outer:
     a: inner;
 end struct outer
 
-fn part [$o: outer] -> Lend from $o inner:
+fn part [$o: Lent outer] -> Lend from $o inner:
     return Lend $o.a;
 end fn part
 

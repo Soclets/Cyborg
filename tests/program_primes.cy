@@ -25,7 +25,7 @@ fn.main [none] -> void:
             $found.std::%%append(val: $n) ?? void;
         end if
     end for
-    for $p in $found:
+    for $p in Lend $found:
         std::io::fmt_print(Lend.mut $out, "{}{newln}", $p);
     end for
     std::io::fmt_print(Lend.mut $out, "kept {}{newln}", $found.len);

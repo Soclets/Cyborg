@@ -3,7 +3,7 @@
 import std;
 import os;
 
-fn f [$xs: std::coll::list<i32>[len.max: inf items]] -> void:
+fn f [$xs: Lent std::coll::list<i32>[len.max: inf items]] -> void:
     return void;
 end fn f
 

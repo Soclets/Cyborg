@@ -2351,12 +2351,9 @@ impl Parser {
                 self.advance();
                 ParameterWord::LentMut
             } else if self.at_word("Lent") {
-                // trace: D2
-                return Err(Report::refused(
-                    word_span,
-                    "`Lent` alone is written bare",
-                    "a bare parameter is lent, so writing `Lent` alone is refused (D2)",
-                ));
+                // trace: D393
+                self.advance();
+                ParameterWord::Lent
             } else if self.at_word("Copy") {
                 // trace: D2
                 return Err(Report::refused(

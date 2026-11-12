@@ -24,7 +24,7 @@ struct.must_Give log:
     lines: i32;
 end struct.must_Give log
 
-fn read_log [$l: log] -> i32:
+fn read_log [$l: Lent log] -> i32:
     return $l.file.fd + $l.lines;
 end fn read_log
 

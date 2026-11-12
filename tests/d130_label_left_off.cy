@@ -4,7 +4,7 @@ struct box:
     n: i32;
 end struct box
 
-fn box.%plus [$b: box, $by: i32] -> i32:
+fn box.%plus [$b: Lent box, $by: i32] -> i32:
     labels [$by as by];
 
     return $b.n + $by;

@@ -6,7 +6,7 @@ end struct reading
 
 type.new wrapped = reading;
 
-fn f [$w: wrapped] -> i32:
+fn f [$w: Lent wrapped] -> i32:
     return $w.celsius;
 end fn f
 

@@ -15,7 +15,7 @@ end fn double
 
 fn total [$xs: std::coll::list<i64>] -> i64:
     let mut $sum: i64 = 0;
-    for $x in $xs:
+    for $x in Lend $xs:
         change $sum = $sum + $x;
     end for
     return $sum;

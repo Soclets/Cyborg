@@ -6,7 +6,7 @@ struct box:
     n: i32;
 end struct box
 
-fn box.%half [$b: box] -> i32 fails [odd]:
+fn box.%half [$b: Lent box] -> i32 fails [odd]:
     if $b.n mod.trunc 2 != 0:
         fail odd;
     end if

@@ -7,7 +7,7 @@ struct reading:
     time: i32;
 end struct reading
 
-fn show [$v: reading] -> void:
+fn show [$v: Lent reading] -> void:
     let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     std::io::fmt_print(Lend.mut $out, "{}{newln}", $v.celsius);
     return void;

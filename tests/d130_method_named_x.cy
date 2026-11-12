@@ -7,7 +7,7 @@ struct point:
     x: i32;
 end struct point
 
-fn point.%x [$p: point] -> i32:
+fn point.%x [$p: Lent point] -> i32:
     return $p.x;
 end fn point.%x
 
