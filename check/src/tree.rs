@@ -334,6 +334,8 @@ pub enum Expression {
     Lend(String),
     /// A variable lent to a call to change, `Lend.mut $l` (6.5).
     LendMut(String),
+    /// A variable handed over, `Give $b` (6.2).
+    Give(String),
     Binary {
         operator: Operator,
         left: Box<Expression>,
@@ -1047,6 +1049,9 @@ pub struct Function {
 #[allow(clippy::struct_excessive_bools)] // Independent switches for what a program declares.
 pub struct Program {
     pub unit_families: Vec<UnitFamily>,
+    /// Whether `fpoint`, a struct with float fields, `fhalf`, a function on a float, and `bag`,
+    /// a `must_Give` struct holding a growable list, with `bag_done`, are declared (2.6, 6.9).
+    pub extras: bool,
     /// `nest`, holding the first struct, an `i32` and a bounded list of this kind, and `view`,
     /// holding a borrow of the first struct, when they're declared (7.1, 6.10).
     pub nest: Option<(String, Kind)>,
@@ -1486,6 +1491,10 @@ pub fn print(program: &Program) -> String {
                 out,
                 "fn uwidth_{name} [$u: Lent {name}] -> i32:\n    return $u.%size();\nend fn uwidth_{name}\n"
             );
+            let _ = writeln!(
+                out,
+                "fn utake_{name} [$u: Given {name}] -> i32:\n    return $u.%size();\nend fn utake_{name}\n"
+            );
         }
     }
     for declared in &program.structs {
@@ -1501,6 +1510,16 @@ pub fn print(program: &Program) -> String {
     }
     if let Some(generics) = &program.generics {
         print_generics(&mut out, generics);
+    }
+    if program.extras {
+        out.push_str(
+            "struct fpoint:\n    x: f64.stable;\n    y: f32.stable;\nend struct fpoint\n\n",
+        );
+        out.push_str(
+            "fn fhalf [$x: f64.stable] -> f64.stable:\n    return $x div 2.0;\nend fn fhalf\n\n",
+        );
+        out.push_str("struct.must_Give bag:\n    items: std::coll::list<i32>[len.max: inf items];\nend struct.must_Give bag\n\n");
+        out.push_str("fn bag_done [$b: Given bag, $alloc: Lent os::heap] -> void:\n    std::coll::list.done(Give $b.items, alloc: Lend $alloc);\n    finish $b;\n    return void;\nend fn bag_done\n\n");
     }
     if let Some((inner, kind)) = &program.nest {
         let _ = writeln!(
@@ -2802,6 +2821,11 @@ impl Style {
             Expression::Field { variable, field } => format!("${variable}.{field}"),
             Expression::Lend(variable) => format!("Lend ${variable}"),
             Expression::Bake(call) => format!("bake {}", self.expression(call)),
+            // A union's case with no data is written bare (7.5).
+            Expression::Build {
+                struct_name,
+                fields,
+            } if fields.is_empty() => struct_name.clone(),
             Expression::Build {
                 struct_name,
                 fields,
@@ -2813,6 +2837,7 @@ impl Style {
                 format!("{struct_name}[{}]", fields.join(", "))
             }
             Expression::LendMut(variable) => format!("Lend.mut ${variable}"),
+            Expression::Give(variable) => format!("Give ${variable}"),
             Expression::CallMethod { receiver, name } => format!("${receiver}.%{name}()"),
         }
     }

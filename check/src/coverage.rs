@@ -76,6 +76,10 @@
 /// - structs holding structs: `nest`, holding a struct, an `i32` and a bounded list, built
 ///   whole, a field of its struct changed and an item of its list read; `view`, holding a borrow
 ///   of a struct, read through; a union lent to a function;
+/// - more structs: `fpoint`, with float fields, one changed through `fhalf`, a function on a
+///   float; float arrays and a float `simd` summed; a union given to a function; `bag`, a
+///   `must_Give` struct holding a growable list, ended by giving the list field to
+///   `list.done` and then `finish`;
 /// - borrows: stored borrows of a struct, read through, `.held` in a block of their own, and
 ///   `Lend.mut` written through; a function returning a borrow of one of two structs, stored
 ///   as `Lend from <$a, $b>`; `defer` on a print or a `change`; a `must_Give` value ended in
@@ -108,18 +112,16 @@
 ///   string with `as`, its failure handled with `??` where it can fail;
 pub const NOT_GENERATED: &[&str] = &[
     "1.13 undecided: what a point is, for a width (12.2); `places:` or `form:` with `.stored`; a width with no `align:`",
-    "2.6, 2.7 still to do: floats in structs, arrays and calls; undecided: a negative exponent (12.2)",
+    "2.6, 2.7 undecided: a negative exponent (12.2)",
     "2.9 undecided: escapes in string literals and how literals work (12.2), and `==` on `str` (12)",
     "2.10 undecided: a full list's failure named in an `otherwise` arm (12.7)",
     "2.12 undecided: putting, getting and going through a map's items",
     "2.14 undecided: what converts to what beyond numbers into strings and units (12.3)",
     "2.16 undecided: `std`'s units other than `time.seconds` and `angle`'s (12.2)",
     "2.18 undecided: maths and `==` between two of the same `type.new` (12)",
-    "2.21 still to do: floats in lanes; NotBuiltYet: bounded lanes, as in `simd<u8[min: 1, max: 16]>`; needs a target: `lanes: max`, whose count is the target's; undecided: maths between a `simd` and one value",
+    "2.21 NotBuiltYet: bounded lanes, as in `simd<u8[min: 1, max: 16]>`; needs a target: `lanes: max`, whose count is the target's; undecided: maths between a `simd` and one value",
     "2.22 NotBuiltYet: a `simd` of secrets; still to do: secrets in growable lists; undecided: rotating an integer, which has no spelling, and `shr` on a negative (12)",
     "5.x undecided: specialization, value parameters, type slots and how laws are proven (12.5)",
-    "7.x still to do: a union given to a function with `Given`, and structs holding a growable list",
-    "9.x still to do: `pub` and `use` between packages, once programs have more than one; NotBuiltYet: channels, waiting on the run loop's rewrite, and `.at(address:)`, which points at hardware the oracle doesn't have; undecided: a shield's own `requires` and `ensures` (12.9), your own allocator (2.10)",
+    "9.x undecided: `pub` and `use` between packages, since how a kit of your own is found isn't decided (12.9); NotBuiltYet: channels, waiting on the run loop's rewrite, and `.at(address:)`, which points at hardware the oracle doesn't have; undecided: a shield's own `requires` and `ensures` (12.9), your own allocator (2.10)",
     "10.x compiler-only: build modes, since the oracle runs one way and the live comparison runs every mode against it",
-    "recursion in generated functions, beyond the three fixed ones",
 ];

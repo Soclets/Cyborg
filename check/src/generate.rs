@@ -105,6 +105,8 @@ struct Generator<'random> {
     list_alias: Option<(String, Kind, i128)>,
     text_alias: Option<(String, i128)>,
     named_others: Vec<(String, bool, String)>,
+    /// Whether `fpoint`, `fhalf`, `bag` and `bag_done` are declared (2.6, 6.9).
+    extras: bool,
     /// The first struct, and the kind of `nest`'s list, when `nest` and `view` are declared
     /// (7.1).
     nest: Option<(String, Kind)>,
@@ -186,6 +188,7 @@ pub fn program(seed: u64) -> Program {
         runners: false,
         trios: Vec::new(),
         warm: None,
+        extras: false,
         nest: None,
         wrap: None,
         list_alias: None,
@@ -222,6 +225,7 @@ pub fn program(seed: u64) -> Program {
     generator.writers = generator.random.chance(30);
     generator.other_named_types();
     generator.runners = generator.random.chance(40);
+    generator.extras = generator.random.chance(50);
     if generator.random.chance(50) {
         let kind = generator.integer_kind();
         generator.nest = generator
@@ -333,6 +337,7 @@ pub fn program(seed: u64) -> Program {
         trios: generator.trios,
         warm: generator.warm,
         nest: generator.nest,
+        extras: generator.extras,
         strings: generator.strings,
         methods: generator.methods,
         arena: generator.arena,
@@ -677,7 +682,7 @@ impl Generator<'_> {
                 }
             }
             // The kinds of statement added later share 10 and 11 evenly.
-            10 | 11 => match self.random.between(0, 22) {
+            10 | 11 => match self.random.between(0, 23) {
                 0 if prints => self
                     .reveal(scope)
                     .unwrap_or_else(|| self.list_statement(scope)),
@@ -775,6 +780,9 @@ impl Generator<'_> {
                     .unwrap_or_else(|| self.list_statement(scope)),
                 21 => self
                     .secret_collections(scope)
+                    .unwrap_or_else(|| self.list_statement(scope)),
+                23 => self
+                    .extras_statement(scope, prints)
                     .unwrap_or_else(|| self.list_statement(scope)),
                 22 => {
                     let value = self.secret_bool(scope, 2);
@@ -3301,6 +3309,175 @@ impl Generator<'_> {
                 },
             },
         ]))
+    }
+
+    /// Floats in a struct, an array and a `simd`, and through a call; a union given to a
+    /// function; or a `must_Give` struct holding a growable list, ended by giving its field to
+    /// `list.done` and finishing it (2.6, 2.21, 6.9, 7.5).
+    #[allow(clippy::too_many_lines)] // One arm per kind, read top to bottom.
+    fn extras_statement(&mut self, scope: &mut Scope, prints: bool) -> Option<Statement> {
+        let float = |generator: &mut Self| match generator.float_literal() {
+            Expression::Float(text) if text.starts_with("exponent") => {
+                Expression::Float("1.5".to_string())
+            }
+            other => other,
+        };
+        match self.random.between(0, 3) {
+            0 if self.extras && !self.pure_only && !self.no_calls => {
+                let name = self.name("fp");
+                let read = self.name("k");
+                let (x, y) = (float(self), float(self));
+                scope.variables.push((read.clone(), Type::Float(true)));
+                Some(Statement::Sequence(vec![
+                    Statement::LetStruct {
+                        name: name.clone(),
+                        struct_name: "fpoint".to_string(),
+                        fields: vec![("x".to_string(), x), ("y".to_string(), y)],
+                    },
+                    Statement::ChangeField {
+                        variable: name.clone(),
+                        field: "x".to_string(),
+                        value: Expression::Call {
+                            function: "fhalf".to_string(),
+                            arguments: vec![(
+                                None,
+                                Expression::Field {
+                                    variable: name.clone(),
+                                    field: "x".to_string(),
+                                },
+                            )],
+                            handling: Handling::Crash,
+                        },
+                    },
+                    Statement::Let {
+                        name: read,
+                        value_type: Type::Float(true),
+                        value: Expression::Field {
+                            variable: name,
+                            field: "x".to_string(),
+                        },
+                    },
+                ]))
+            }
+            1 => {
+                let count = self.random.between(1, 4);
+                let items: Vec<Expression> = (0..count).map(|_| float(self)).collect();
+                let (array, lanes, first, sum) = (
+                    self.name("fa"),
+                    self.name("fv"),
+                    self.name("k"),
+                    self.name("k"),
+                );
+                scope.variables.push((first.clone(), Type::Float(true)));
+                scope.variables.push((sum.clone(), Type::Float(true)));
+                Some(Statement::Sequence(vec![
+                    Statement::LetNamed {
+                        name: array.clone(),
+                        written: format!("std::coll::array<f64.stable>[len: {count} items]"),
+                        value: Expression::Lanes(items.clone()),
+                        back: None,
+                    },
+                    Statement::Let {
+                        name: first,
+                        value_type: Type::Float(true),
+                        value: Expression::Item {
+                            array,
+                            position: Position::Pos(1),
+                        },
+                    },
+                    Statement::LetNamed {
+                        name: lanes.clone(),
+                        written: format!("simd<f64.stable>[lanes: {count}]"),
+                        value: Expression::Lanes(items),
+                        back: None,
+                    },
+                    Statement::Let {
+                        name: sum,
+                        value_type: Type::Float(true),
+                        value: Expression::Method {
+                            receiver: Box::new(Expression::Variable(lanes)),
+                            method: "sum",
+                        },
+                    },
+                ]))
+            }
+            2 if !self.pure_only && !self.no_calls => {
+                let sized: Vec<UnionDecl> = self
+                    .unions
+                    .iter()
+                    .filter(|declared| declared.sized)
+                    .cloned()
+                    .collect();
+                let declared = self.random.pick(&sized)?.clone();
+                let (case, fields) = self.random.pick(&declared.cases)?.clone();
+                let fields = fields
+                    .iter()
+                    .map(|(field, kind)| (field.clone(), self.literal(*kind)))
+                    .collect();
+                let (name, read) = (self.name("w"), self.name("k"));
+                scope
+                    .variables
+                    .push((read.clone(), Type::Integer(Kind::I32)));
+                Some(Statement::Sequence(vec![
+                    Statement::LetNamed {
+                        name: name.clone(),
+                        written: declared.name.clone(),
+                        value: Expression::Build {
+                            struct_name: format!("{}.{case}", declared.name),
+                            fields,
+                        },
+                        back: None,
+                    },
+                    Statement::Let {
+                        name: read,
+                        value_type: Type::Integer(Kind::I32),
+                        value: Expression::Call {
+                            function: format!("utake_{}", declared.name),
+                            arguments: vec![(None, Expression::Give(name))],
+                            handling: Handling::Crash,
+                        },
+                    },
+                ]))
+            }
+            _ if self.extras && (prints || self.has_heap) => {
+                let name = self.name("bg");
+                let items: Vec<Expression> = (0..self.random.between(0, 3))
+                    .map(|_| self.literal(Kind::I32))
+                    .collect();
+                // An empty list is `empty`, which takes nothing from the allocator (D103).
+                let list = if items.is_empty() {
+                    Expression::Text(String::new())
+                } else {
+                    Expression::Call {
+                        function: "std::coll::list.from".to_string(),
+                        arguments: vec![
+                            (None, Expression::Lanes(items)),
+                            (
+                                Some("alloc".to_string()),
+                                Expression::Lend("heap".to_string()),
+                            ),
+                        ],
+                        handling: Handling::Crash,
+                    }
+                };
+                Some(Statement::Sequence(vec![
+                    Statement::LetStruct {
+                        name: name.clone(),
+                        struct_name: "bag".to_string(),
+                        fields: vec![("items".to_string(), list)],
+                    },
+                    Statement::Call(Expression::Call {
+                        function: "bag_done".to_string(),
+                        arguments: vec![
+                            (None, Expression::Give(name)),
+                            (None, Expression::Lend("heap".to_string())),
+                        ],
+                        handling: Handling::Crash,
+                    }),
+                ]))
+            }
+            _ => None,
+        }
     }
 
     /// `defer` on a print in `main`, or on a `change` to a variable that can change; it runs
