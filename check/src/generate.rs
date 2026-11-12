@@ -76,6 +76,8 @@ struct Generator<'random> {
     generics: Option<Generics>,
     /// A `must_Give` struct, when the program declares one (6.9).
     tokens: Option<Tokens>,
+    /// A C union, when the program declares one (9.6, D398).
+    untagged: Option<(String, Vec<(String, Kind)>)>,
     /// Float units, when the program has them.
     float_units: Option<FloatUnits>,
     /// Every unit, with how many of its family's base it is.
@@ -112,6 +114,7 @@ pub fn program(seed: u64) -> Program {
         unit_families: Vec::new(),
         generics: None,
         tokens: None,
+        untagged: None,
         float_units: None,
         units: Vec::new(),
         constants: Vec::new(),
@@ -135,6 +138,7 @@ pub fn program(seed: u64) -> Program {
     }
     generator.generics();
     generator.tokens();
+    generator.untagged_union();
     for _ in 0..generator.random.between(0, 2) {
         let declared = generator.union_decl();
         generator.unions.push(declared);
@@ -199,6 +203,7 @@ pub fn program(seed: u64) -> Program {
         unit_families: generator.unit_families,
         generics: generator.generics,
         tokens: generator.tokens,
+        untagged: generator.untagged,
         methods: generator.methods,
         arena: generator.arena,
         named: generator.named,
@@ -503,6 +508,9 @@ impl Generator<'_> {
                 .unwrap_or_else(|| self.list_statement(scope)),
             6 if !self.pure_only && self.random.chance(20) => self
                 .assembly(scope)
+                .unwrap_or_else(|| self.list_statement(scope)),
+            6 if self.untagged.is_some() && self.random.chance(60) => self
+                .untagged_statement(scope)
                 .unwrap_or_else(|| self.list_statement(scope)),
             6 if self.random.chance(30) => self
                 .token(scope, depth)
@@ -1101,6 +1109,58 @@ impl Generator<'_> {
             easter,
             unit_parameter: self.float_units.is_some(),
         });
+    }
+
+    /// Now and then a C union with two to four integer fields (9.6, D398).
+    fn untagged_union(&mut self) {
+        if !self.random.chance(40) {
+            return;
+        }
+        let name = self.name("cu");
+        let mut fields = Vec::new();
+        for _ in 0..self.random.between(2, 4) {
+            let field = self.name("cf");
+            fields.push((field, self.integer_kind()));
+        }
+        self.untagged = Some((name, fields));
+    }
+
+    /// A C union built with one field and read as another no wider, whose bytes the written
+    /// one filled, into a variable of that kind that can change (9.6, D398).
+    fn untagged_statement(&mut self, scope: &Scope) -> Option<Statement> {
+        if self.pure_only || self.no_calls {
+            return None;
+        }
+        let (union, fields) = self.untagged.clone()?;
+        let (written, written_kind) = self.random.pick(&fields)?.clone();
+        let narrower: Vec<(String, Kind)> = fields
+            .iter()
+            .filter(|(_, kind)| kind.bytes() <= written_kind.bytes())
+            .cloned()
+            .collect();
+        let (read, read_kind) = self.random.pick(&narrower)?.clone();
+        let targets: Vec<String> = scope
+            .variables
+            .iter()
+            .filter(|(name, found)| {
+                *found == Type::Integer(read_kind)
+                    && !name.starts_with('i')
+                    && !name.starts_with('p')
+                    && !name.starts_with('x')
+                    && !name.starts_with('k')
+            })
+            .map(|(name, _)| name.clone())
+            .collect();
+        let read_into = self.random.pick(&targets)?.clone();
+        let value = self.integer(scope, written_kind, LIMITS.depth);
+        Some(Statement::Untagged {
+            shield: self.name("sh"),
+            name: self.name("cn"),
+            union,
+            written: (written, value),
+            read,
+            read_into,
+        })
     }
 
     /// Now and then a `must_Give` struct with one to three integer fields, and its holder (6.9).

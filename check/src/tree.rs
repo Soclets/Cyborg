@@ -659,6 +659,16 @@ pub enum Statement {
         target: String,
         secret: String,
     },
+    /// A C union built in a shield by naming one field, and another field no wider read back
+    /// into a variable that can change, from the same bytes (9.6, D398).
+    Untagged {
+        shield: String,
+        name: String,
+        union: String,
+        written: (String, Expression),
+        read: String,
+        read_into: String,
+    },
     /// A `must_Give` value made and handed off on every path, one field read into a variable
     /// that can change on the way (6.9).
     Token {
@@ -785,6 +795,8 @@ pub struct Function {
 #[derive(Clone, Debug)]
 pub struct Program {
     pub unit_families: Vec<UnitFamily>,
+    /// A C union, declared in a shield, with its integer fields (9.6, D398).
+    pub untagged: Option<(String, Vec<(String, Kind)>)>,
     pub tokens: Option<Tokens>,
     pub generics: Option<Generics>,
     pub methods: Vec<MethodDecl>,
@@ -979,7 +991,12 @@ pub fn print(program: &Program) -> String {
     let style = Style {
         fewer_brackets: program.fewer_brackets,
     };
-    let mut out = String::from("import std;\nimport os;\nimport @concur;\n\n");
+    let mut out = String::from("import std;\nimport os;\nimport @concur;\n");
+    // A C union is `@csup`'s, so the file imports it (D82, D399).
+    if program.untagged.is_some() {
+        out.push_str("import @csup;\n");
+    }
+    out.push('\n');
     for family in &program.unit_families {
         let _ = writeln!(out, "{} {}:", family.keyword, family.name);
         for (unit, definition) in &family.units {
@@ -1043,6 +1060,19 @@ pub fn print(program: &Program) -> String {
     }
     if let Some(tokens) = &program.tokens {
         print_tokens(&mut out, tokens);
+    }
+    if let Some((union, fields)) = &program.untagged {
+        let _ = writeln!(
+            out,
+            "shield c_{union}:\n    reason \"a generated program's C union\"\n    union.@csup::untagged {union}:"
+        );
+        for (field, kind) in fields {
+            let _ = writeln!(out, "        {field}: {};", kind.word());
+        }
+        let _ = writeln!(
+            out,
+            "    end union.@csup::untagged {union}\nend shield c_{union}\n"
+        );
     }
     for function in &program.functions {
         let parameters: Vec<String> = function
@@ -1501,6 +1531,27 @@ fn print_block(out: &mut String, statements: &[Statement], depth: usize, style: 
                     "{indent}    reason \"a generated program shows its secrets\""
                 );
                 let _ = writeln!(out, "{indent}    change ${target} = ${secret}.%reveal();");
+                let _ = writeln!(out, "{indent}end shield {shield}");
+            }
+            Statement::Untagged {
+                shield,
+                name,
+                union,
+                written: (field, value),
+                read,
+                read_into,
+            } => {
+                let _ = writeln!(out, "{indent}shield {shield}:");
+                let _ = writeln!(
+                    out,
+                    "{indent}    reason \"a generated program reads a C union's bytes\""
+                );
+                let _ = writeln!(
+                    out,
+                    "{indent}    let ${name}: union.@csup::untagged {union} = {union}[{field} = {}];",
+                    style.expression(value)
+                );
+                let _ = writeln!(out, "{indent}    change ${read_into} = ${name}.{read};");
                 let _ = writeln!(out, "{indent}end shield {shield}");
             }
             Statement::Token {
