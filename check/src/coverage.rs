@@ -36,6 +36,8 @@
 /// - control: `let`, `change`, `if` and `else`, the test `if $v: T:` on a union's case or an
 ///   integer's bound, `while`, `for` over literal ranges and through
 ///   arrays, reading or changing each item, `forever`, `break`;
+/// - methods: `%%` ones whose `$by` has a label, and `.%size` on a union, which matches it
+///   and returns from every arm; contracts calling pure functions;
 /// - functions: printed in a shuffled order, so calls reach ones declared later; calls started
 ///   as `@concur` tasks on `std::run::one_thread` and ended with `task.done`; void ones taking integers lent to change with `Lend.mut`, and structs lent or
 ///   handed over with `Give` or `Copy`, called as statements; integer parameters and results, `fn.pure` ones calling only pure ones, `requires`
@@ -64,7 +66,9 @@
 ///   and `addable`; the `type_set` `whole`; `satisfies` lines, one now and then written `.|.`;
 ///   a struct with its own `below`, `==` and `+`; `gmax`, `gsame`, `gsum`, `gtwice` and
 ///   `gkeep` called with numbers bare and the struct lent, inside maths and inside each other;
-///   `gbox<?item: any.type>` holding an integer; and `glarger` with a unit parameter;
+///   `gbox<?item: any.type>` holding an integer; `gpair` and `gfirst`, with two type
+///   parameters each, holding an integer and an integer or a struct; and `glarger` with a unit
+///   parameter;
 /// - shields: around `.%reveal()`; around `ptr.raw`, `ptr.raw.mut`, `ptr.volatile` and
 ///   `ptr.volatile.mut` pointers to integer variables made with `.of` and `Lend` or
 ///   `Lend.mut`, read with `.%read()`, written with `.%%write(val:)`, and moved on in items and
@@ -91,7 +95,7 @@ pub const NOT_GENERATED: &[&str] = &[
     "2.21 `simd` with one value, chunks, shuffles, `pick`, lookups, `lanes: max`, floats in lanes, `as` from arrays",
     "2.22 `bool.secret` values with `and.both`, `or.both` and `not`, secrets in arrays and `simd`, shifts on secrets",
     "4.4 `for` over a fresh collection, since generated functions don't return arrays or lists yet",
-    "5.x contracts that call pure functions, methods with labels or on other types; generics with more than one type parameter, and generic structs holding structs; undecided: specialization, value parameters, type slots and how laws are proven (12.5)",
+    "5.x undecided: specialization, value parameters, type slots and how laws are proven (12.5)",
     "6.x stored borrows and `.held`, `Lend from` results, `must_Give` values that leave a loop or a `match`, and `defer` on anything but ending a value",
     "7.x structs holding other structs, lists or borrows, beyond the `must_Give` holder, handing unions to functions",
     "9.x still to do: tasks on `os::threads` and `os::events`, tasks that borrow, locks and atomics; `pub` and `use` between packages, once programs have more than one; NotBuiltYet: `.at(address:)`, which points at hardware the oracle doesn't have; undecided: a shield's own `requires` and `ensures` (12.9), your own allocator (2.10)",

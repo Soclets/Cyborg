@@ -431,13 +431,15 @@ impl Generator<'_> {
         // and call only pure functions (5.9, 12.5).
         let pure = self.random.chance(25);
         self.pure_only = pure;
-        // Contracts read the parameters and literals, calling nothing, since a contract can
-        // only call pure functions (5.5).
-        self.no_calls = true;
+        // Contracts read the parameters and literals, and call only pure functions (5.5).
+        let was_pure = self.pure_only;
+        self.pure_only = true;
         let requires = self
             .random
             .chance(30)
             .then(|| self.expression(&scope, Type::Bool, 2));
+        self.pure_only = was_pure;
+        self.no_calls = true;
         let ensures = match (self.random.chance(30), result) {
             (true, Type::Integer(kind)) => {
                 let comparison = *self
@@ -687,6 +689,9 @@ impl Generator<'_> {
                 .unwrap_or_else(|| self.list_statement(scope)),
             6 if self.random.chance(30) => self
                 .generic_box(scope)
+                .unwrap_or_else(|| self.list_statement(scope)),
+            6 if self.generics.is_some() && self.random.chance(30) => self
+                .generic_pair(scope)
                 .unwrap_or_else(|| self.list_statement(scope)),
             0..=3 if self.random.chance(15) => self
                 .generic_struct(scope)
@@ -1648,6 +1653,62 @@ impl Generator<'_> {
         })
     }
 
+    /// A `gpair<…, …>` holding an integer and an integer or a struct, given to `gfirst`, whose
+    /// first goes into a variable that can change (5.8).
+    fn generic_pair(&mut self, scope: &Scope) -> Option<Statement> {
+        self.generic_calls()?;
+        let targets: Vec<(String, Kind)> = scope
+            .variables
+            .iter()
+            .filter_map(|(name, found)| match found {
+                Type::Integer(kind)
+                    if !name.starts_with('i')
+                        && !name.starts_with('p')
+                        && !name.starts_with('x')
+                        && !name.starts_with('k') =>
+                {
+                    Some((name.clone(), *kind))
+                }
+                _ => None,
+            })
+            .collect();
+        let (read_into, left) = self.random.pick(&targets)?.clone();
+        let first = self.integer(scope, left, LIMITS.depth);
+        let (right, second) = match self.structs.first().cloned() {
+            Some(declared) if self.random.chance(60) => {
+                let fields = declared
+                    .fields
+                    .iter()
+                    .map(|(field, kind)| {
+                        (
+                            field.clone(),
+                            self.field_value(scope, &declared, field, *kind),
+                        )
+                    })
+                    .collect();
+                (
+                    declared.name.clone(),
+                    Expression::Build {
+                        struct_name: declared.name,
+                        fields,
+                    },
+                )
+            }
+            _ => {
+                let kind = self.integer_kind();
+                (kind.word().to_string(), self.literal(kind))
+            }
+        };
+        Some(Statement::GenericPair {
+            name: self.name("gp"),
+            left,
+            right,
+            first,
+            second,
+            read_into,
+        })
+    }
+
     /// A `gbox<…>` holding an integer, its `held` read back into a variable that can change
     /// (5.8).
     fn generic_box(&mut self, scope: &Scope) -> Option<Statement> {
@@ -2006,6 +2067,19 @@ impl Generator<'_> {
                     .map(move |method| (variable.clone(), method.name.clone()))
             })
             .collect();
+        // A union's `.%size` gives an `i32` (5.6).
+        let mut calls = calls;
+        if kind == Kind::I32 {
+            for (variable, index) in &scope.cased {
+                if self
+                    .unions
+                    .get(*index)
+                    .is_some_and(|declared| declared.sized)
+                {
+                    calls.push((variable.clone(), "size".to_string()));
+                }
+            }
+        }
         let (receiver, name) = self.random.pick(&calls)?.clone();
         Some(Expression::CallMethod { receiver, name })
     }
@@ -2469,7 +2543,11 @@ impl Generator<'_> {
                 (case, fields)
             })
             .collect();
-        UnionDecl { name, cases }
+        UnionDecl {
+            name,
+            cases,
+            sized: self.random.chance(50),
+        }
     }
 
     /// A new union value, or a `match` on one in scope, whose arms cover every case in any
@@ -2565,6 +2643,7 @@ impl Generator<'_> {
                 struct_name: declared.name.clone(),
                 name,
                 changes: None,
+                labelled: false,
                 kind,
                 value,
             });
@@ -2583,6 +2662,7 @@ impl Generator<'_> {
                 struct_name: declared.name,
                 name,
                 changes: Some(field),
+                labelled: self.random.chance(50),
                 kind,
                 value,
             });
@@ -3324,6 +3404,7 @@ impl Generator<'_> {
                     receiver: variable,
                     name: method.name,
                     value,
+                    labelled: method.labelled,
                 };
             }
             if self.random.chance(50) {

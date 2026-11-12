@@ -297,6 +297,11 @@ pub enum Expression {
     },
     Bool(bool),
     Variable(String),
+    /// A struct built in place, `rec3[fd4 = 1, fd5 = 2]` (7.2).
+    Build {
+        struct_name: String,
+        fields: Vec<(String, Expression)>,
+    },
     /// `bake …`, a call to a `fn.pure.baked` function worked out while compiling (5.11).
     Bake(Box<Expression>),
     /// A variable lent to a call, `Lend $r` (6.4).
@@ -448,6 +453,8 @@ pub struct MethodDecl {
     pub name: String,
     /// The changed field, for a `%%` method.
     pub changes: Option<String>,
+    /// Whether its `$by` has the label `by:`, which calls write (5.2, 5.6).
+    pub labelled: bool,
     pub kind: Kind,
     pub value: Expression,
 }
@@ -457,6 +464,9 @@ pub struct MethodDecl {
 pub struct UnionDecl {
     pub name: String,
     pub cases: Vec<(String, Vec<(String, Kind)>)>,
+    /// Whether it has `.%size`, a method that matches it and gives an `i32` from each case
+    /// (5.6, 4.3).
+    pub sized: bool,
 }
 
 /// A struct with integer fields (7.1).
@@ -801,6 +811,18 @@ pub enum Statement {
         struct_name: String,
         value: Expression,
     },
+    /// A generic struct with two type parameters, `gpair<i32, rec3>`, holding an integer and an
+    /// integer or a struct, given to `gfirst`, which has two type parameters too, for the first
+    /// (5.8).
+    GenericPair {
+        name: String,
+        left: Kind,
+        /// The second's type, as written.
+        right: String,
+        first: Expression,
+        second: Expression,
+        read_into: String,
+    },
     /// A generic struct holding an integer, `gbox<i32>[held = …]`, read back into a variable
     /// (5.8).
     GenericBox {
@@ -851,6 +873,8 @@ pub enum Statement {
         receiver: String,
         name: String,
         value: Expression,
+        /// Whether the method's `$by` has the label `by:` (5.6).
+        labelled: bool,
     },
     /// A call to a void function, its arguments with their ownership words (6.1).
     CallProcedure {
@@ -1182,6 +1206,8 @@ fn print_generics(out: &mut String, generics: &Generics) {
         let _ = writeln!(out, "{type_name} {word} {interface};");
     }
     out.push_str("\nstruct gbox<?item: any.type>:\n    held: ?item;\nend struct gbox\n\n");
+    out.push_str("struct gpair<?left: any.type, ?right: any.type>:\n    first: ?left;\n    second: ?right;\nend struct gpair\n\n");
+    out.push_str("fn gfirst<?left: any.type, ?right: any.type> [$p: Given gpair<?left, ?right>] -> ?left:\n    return Give $p.first;\nend fn gfirst\n\n");
     out.push_str("fn gmax<?item: ordered> [$a: Lent ?item, $b: Lent ?item] -> ?item:\n    if $a above $b:\n        return Copy $a;\n    end if\n    return Copy $b;\nend fn gmax\n\n");
     out.push_str("fn gsame<?item: equatable> [$a: Lent ?item, $b: Lent ?item] -> bool:\n    return $a == $b;\nend fn gsame\n\n");
     out.push_str("fn gsum<?item: whole and addable> [$a: ?item, $b: ?item] -> ?item:\n    return $a + $b;\nend fn gsum\n\n");
@@ -1262,6 +1288,29 @@ pub fn print(program: &Program) -> String {
             }
         }
         let _ = writeln!(out, "end union.tagged {}\n", declared.name);
+        // A method on a union, its `match` returning from every arm (5.6, 4.3).
+        if declared.sized {
+            let name = &declared.name;
+            let _ = writeln!(
+                out,
+                "fn {name}.%size [$u: Lent {name}] -> i32:\n    match $u:"
+            );
+            for (at, (case, fields)) in declared.cases.iter().enumerate() {
+                match fields.iter().find(|(_, kind)| *kind == Kind::I32) {
+                    Some((field, _)) => {
+                        let _ = writeln!(
+                            out,
+                            "        case {name}.{case} $c:\n            return $c.{field};"
+                        );
+                    }
+                    None => {
+                        let _ =
+                            writeln!(out, "        case {name}.{case}:\n            return {at};");
+                    }
+                }
+            }
+            let _ = writeln!(out, "    end match\nend fn {name}.%size\n");
+        }
     }
     for declared in &program.structs {
         let _ = writeln!(out, "{} {}:", declared.layout.word(), declared.name);
@@ -1412,6 +1461,10 @@ pub fn print(program: &Program) -> String {
                     method.name,
                     method.kind.word()
                 );
+                // `labels` goes first in the body (5.4).
+                if method.labelled {
+                    out.push_str("    labels [$by as by];\n");
+                }
                 let _ = writeln!(
                     out,
                     "    change $r.{field} = {};",
@@ -1929,6 +1982,23 @@ fn print_block(out: &mut String, statements: &[Statement], depth: usize, style: 
                     style.expression(value)
                 );
             }
+            Statement::GenericPair {
+                name,
+                left,
+                right,
+                first,
+                second,
+                read_into,
+            } => {
+                let _ = writeln!(
+                    out,
+                    "{indent}let ${name}: gpair<{}, {right}> = gpair[first = {}, second = {}];",
+                    left.word(),
+                    style.expression(first),
+                    style.expression(second)
+                );
+                let _ = writeln!(out, "{indent}change ${read_into} = gfirst(Give ${name});");
+            }
             Statement::GenericBox {
                 name,
                 kind,
@@ -2046,10 +2116,12 @@ fn print_block(out: &mut String, statements: &[Statement], depth: usize, style: 
                 receiver,
                 name,
                 value,
+                labelled,
             } => {
+                let label = if *labelled { "by: " } else { "" };
                 let _ = writeln!(
                     out,
-                    "{indent}${receiver}.%%{name}({});",
+                    "{indent}${receiver}.%%{name}({label}{});",
                     style.expression(value)
                 );
             }
@@ -2259,6 +2331,16 @@ impl Style {
             Expression::Field { variable, field } => format!("${variable}.{field}"),
             Expression::Lend(variable) => format!("Lend ${variable}"),
             Expression::Bake(call) => format!("bake {}", self.expression(call)),
+            Expression::Build {
+                struct_name,
+                fields,
+            } => {
+                let fields: Vec<String> = fields
+                    .iter()
+                    .map(|(field, value)| format!("{field} = {}", self.expression(value)))
+                    .collect();
+                format!("{struct_name}[{}]", fields.join(", "))
+            }
             Expression::LendMut(variable) => format!("Lend.mut ${variable}"),
             Expression::CallMethod { receiver, name } => format!("${receiver}.%{name}()"),
         }
