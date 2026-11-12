@@ -136,7 +136,13 @@ On `f64.ieee`, both print NaN and infinity as the words `NaN`, `inf` and `-inf`.
 
 `std::math::sin` and similar functions are correctly rounded, so they give the same bits on every machine. They come from CORE-MATH, third-party C kept in `std` under rule 1's exception (D161). Its license is MIT, checked in its repository's LICENSE file on 2026-11-10. They ask for an angle in radians, `f64.stable[unit: std::units::angle.radians]`, so a plain number is refused, and degrees are converted with `as` ([2.16](#216-units)). `std::math::sin.fast` is a placeholder for a version that isn't.
 
-**From:** D54, D59, D158, D159, D160, D161, D162, D163, D166, D167, D257.
+`std::math::sqrt` is correctly rounded on every float kind, `.stable` included, since square root is one of IEEE 754's basic operations, like `+` and `div`, and every CPU's square-root instruction already gives the closest float. So it needs no CORE-MATH, compiles to that one instruction, and is reproducible at no cost. On a chip with no instruction for that float, like `f64` on the Uno R4 WiFi's Cortex-M4, it's software, still correctly rounded.
+
+```
+let $r: f64.stable = std::math::sqrt($d2);
+```
+
+**From:** D54, D59, D158, D159, D160, D161, D162, D163, D166, D167, D257, D405.
 
 ## 2.7 Inexact literals: `~`
 
