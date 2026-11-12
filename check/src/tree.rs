@@ -396,6 +396,12 @@ pub enum Statement {
         changes: bool,
         body: Vec<Statement>,
     },
+    /// `const $k: i32 = 60 times.wrap 60;`, known when compiling (2.3).
+    Const {
+        name: String,
+        kind: Kind,
+        value: Expression,
+    },
     /// `let mut $u: u1 = u1.c3[g4 = …];` (7.5)
     LetCase {
         name: String,
@@ -666,6 +672,14 @@ fn print_block(out: &mut String, statements: &[Statement], depth: usize, style: 
                 let _ = writeln!(out, "{indent}for ${item} in {word}${array}:");
                 print_block(out, body, depth + 1, style);
                 let _ = writeln!(out, "{indent}end for");
+            }
+            Statement::Const { name, kind, value } => {
+                let _ = writeln!(
+                    out,
+                    "{indent}const ${name}: {} = {};",
+                    kind.word(),
+                    style.expression(value)
+                );
             }
             Statement::LetCase {
                 name,

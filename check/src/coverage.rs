@@ -5,7 +5,7 @@
 /// Generated today: `i32`, `i64`, `u8`, `u32` and `u64` values and variables; `+`, `-`, `x`, the
 /// `.wrap` and `.saturate` words, `div` and `mod` with `.trunc` and `.floor`, the `.bit`
 /// operators, and `shl` and `shr` on unsigned types; comparisons; `and`, `or` and `not`;
-/// bounded integers, from literals that fit or checked values, changed and read as their plain
+/// `const` from literals and other constants; bounded integers, from literals that fit or checked values, changed and read as their plain
 /// type; `f32.stable` and `f64.stable` values, from exact literals and ones marked `~`, with `+`, `-`,
 /// `x` and `div`, compared and printed; structs with integer fields in every layout, built with `[ ]`, their fields read and changed;
 /// functions that list failures, some carrying data, and `fail` them; calls handled with `?`,
@@ -17,7 +17,7 @@
 /// integer parameters and results; printing a variable with `fmt_print` to an unbuffered writer.
 pub const NOT_GENERATED: &[&str] = &[
     "1.13 printing: shapes, named holes, `.stored`, more than one value, buffered writers, stderr",
-    "2.3 `const`",
+    "2.3 `const` calling `fn.pure.baked` functions, float constants, constants whose maths overflows",
     "2.5 bounded parameters and fields, the test `if $n: T:` that checks a bound",
     "2.6, 2.7 `.fast` and `.ieee` floats, bounded floats, `exponent` literals, `fmt_print.stored`, floats in structs, arrays and calls",
     "2.9 strings: views, bounded and heap strings",

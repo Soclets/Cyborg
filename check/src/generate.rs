@@ -41,6 +41,8 @@ struct Generator<'random> {
     failing: Option<Vec<FailureDecl>>,
     structs: Vec<StructDecl>,
     unions: Vec<UnionDecl>,
+    /// Every constant's name, since only constants go into another.
+    constants: Vec<String>,
     functions: Vec<Function>,
 }
 
@@ -53,6 +55,7 @@ pub fn program(seed: u64) -> Program {
         failing: None,
         structs: Vec::new(),
         unions: Vec::new(),
+        constants: Vec::new(),
         functions: Vec::new(),
     };
     for _ in 0..generator.random.between(0, 2) {
@@ -243,6 +246,7 @@ impl Generator<'_> {
                     Type::Integer(_) | Type::Float(_) | Type::Bounded(..)
                 ) && !name.starts_with('i')
                     && !name.starts_with('x')
+                    && !name.starts_with('k')
                     && !name.starts_with('p')
             })
             .map(|(name, _)| name.clone())
@@ -251,6 +255,7 @@ impl Generator<'_> {
             0..=3 if !self.unions.is_empty() && self.random.chance(15) => {
                 self.union_statement(scope, 2, prints)
             }
+            0..=3 if self.random.chance(8) => self.constant(scope),
             9 if depth < 2 && !scope.cased.is_empty() && self.random.chance(60) => {
                 self.union_statement(scope, depth, prints)
             }
@@ -426,6 +431,55 @@ impl Generator<'_> {
             array,
             changes,
             body,
+        }
+    }
+
+    /// `const`, from literals and constants alone, joined with operators that can't overflow or
+    /// fail, so its value is known when compiling and nothing rests on how a compile-time
+    /// overflow is reported (2.3).
+    fn constant(&mut self, scope: &mut Scope) -> Statement {
+        let kind = self.integer_kind();
+        let value = self.constant_value(scope, kind, 2);
+        let name = self.name("k");
+        scope.variables.push((name.clone(), Type::Integer(kind)));
+        self.constants.push(name.clone());
+        Statement::Const { name, kind, value }
+    }
+
+    fn constant_value(&mut self, scope: &Scope, kind: Kind, depth: usize) -> Expression {
+        if depth == 0 || self.random.chance(40) {
+            let constants: Vec<String> = scope
+                .variables
+                .iter()
+                .filter(|(name, found)| {
+                    *found == Type::Integer(kind) && self.constants.contains(name)
+                })
+                .map(|(name, _)| name.clone())
+                .collect();
+            if self.random.chance(40) {
+                if let Some(name) = self.random.pick(&constants).cloned() {
+                    return Expression::Variable(name);
+                }
+            }
+            return self.literal(kind);
+        }
+        let operator = *self
+            .random
+            .pick(&[
+                Operator::PlusWrap,
+                Operator::MinusWrap,
+                Operator::TimesWrap,
+                Operator::AndBit,
+                Operator::OrBit,
+                Operator::XorBit,
+            ])
+            .unwrap_or(&Operator::PlusWrap);
+        let left = self.constant_value(scope, kind, depth - 1);
+        let right = self.constant_value(scope, kind, depth - 1);
+        Expression::Binary {
+            operator,
+            left: Box::new(left),
+            right: Box::new(right),
         }
     }
 
