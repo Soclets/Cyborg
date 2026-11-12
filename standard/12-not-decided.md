@@ -87,7 +87,6 @@ Waiting on the owner, most needed first. Each is `NotDesignedYet` unless it says
 - `str` narrowings other than `str.utf16`, and how string literals work.
 - The test on a value already known to be that type, like `if $n: bool:` on a `bool`. Claude suggested refusing it.
 
-- Strings (D326): the names of `std::text.done` and `std::text.from`.
 
 ## 12.3 Operators and conversion
 

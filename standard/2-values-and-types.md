@@ -163,12 +163,12 @@ let $a: str = "hi";
 let $b: str = empty;
 ```
 
-A string's memory works like a list's ([2.10](#210-lists)), with a `len.max` in bytes, since UTF-8 characters vary in size. A finite `len.max` holds the bytes inside the value: no allocator, nothing to free, and too much text is a failure. `len.max: inf bytes` grows on the heap, takes an allocator on each call that grows it, and is `must_Give` ([6.9](6-ownership.md#69-must_give)). `std::text.done` is a placeholder name.
+A string's memory works like a list's ([2.10](#210-lists)), with a `len.max` in bytes, since UTF-8 characters vary in size. A finite `len.max` holds the bytes inside the value: no allocator, nothing to free, and too much text is a failure. `len.max: inf bytes` grows on the heap, takes an allocator on each call that grows it, and is `must_Give` ([6.9](6-ownership.md#69-must_give)). It ends with `str.done`, the word that ends every owner ([6.9](6-ownership.md#69-must_give)).
 
 ```
 let $name: str[len.max: 32 bytes] = "Tankun";
 let mut $log: str[len.max: inf bytes] = empty;
-defer std::text.done(Give $log, alloc: Lend $alloc);
+defer str.done(Give $log, alloc: Lend $alloc);
 ```
 
 A bare `str` is a read-only view of text: any length, never owning memory, never changing and never `must_Give`. A literal is one that lasts the whole program, and lending any string gives one, so a function that takes `str` reads every kind of string. A view of another string is a borrow, following the rules for stored borrows ([6.10](6-ownership.md#610-stored-borrows)).
@@ -225,7 +225,7 @@ $xs.%%append(val: 4, alloc: Lend $alloc);
 
 The list doesn't hold its allocator: every call that allocates is handed it, so a list is plain data with no borrow inside, and moves, returns and sits in structs like any other value. The list remembers which allocator it uses, as a small ID, and handing it a different one is a failed check, like a bounds check.
 
-A list that can allocate, one with `len.max: inf items`, is `must_Give` ([6.9](6-ownership.md#69-must_give)), so its memory can't leak: it ends with `std::list.done(Give $xs, alloc: Lend $alloc);`, which frees it with the same allocator. A struct holding one is `must_Give` too. `std::list.done` is a placeholder name.
+A list that can allocate, one with `len.max: inf items`, is `must_Give` ([6.9](6-ownership.md#69-must_give)), so its memory can't leak: it ends with `std::list.done(Give $xs, alloc: Lend $alloc);`, which frees it with the same allocator. A struct holding one is `must_Give` too. 
 
 An allocator is anything that satisfies the `allocator` interface ([5.8](5-functions.md#58-generics)), written in a shield, since it deals in raw pointers:
 
@@ -300,9 +300,9 @@ A failed `as` is a failure, so it crashes unless handled ([8.9](8-failures.md#89
 
 A number converts bare, with no unit, so `$xs.len as str[len.max: 20 bytes]` gives `3`. A narrowing asks for the unit: `as str.with_unit`, a placeholder.
 
-Text from `as` goes into a bounded `str`, held inside the value, so no allocator is needed. Too much text is a failure, but for numbers the compiler knows the most bytes a type can need, 20 for an `i64` and 11 for an `i32`, so with a big enough bound it can't fail. Heap text comes from a function that takes an allocator, like `std::text.from($n, alloc: Lend $alloc)`, a placeholder, so every allocation is a visible call.
+Text from `as` goes into a bounded `str`, held inside the value, so no allocator is needed. Too much text is a failure, but for numbers the compiler knows the most bytes a type can need, 20 for an `i64` and 11 for an `i32`, so with a big enough bound it can't fail. Heap text comes from a function that takes an allocator, like `str.from($n, alloc: Lend $alloc)`, so every allocation is a visible call.
 
-**Refused:** `as str`, since a view has to point at text that already exists, with `fix: as str[len.max: 20 bytes]` giving the size the type needs, or `fix: Lend $name` when the value is already a string; and `as str[len.max: inf bytes]`, with `fix: std::text.from`.
+**Refused:** `as str`, since a view has to point at text that already exists, with `fix: as str[len.max: 20 bytes]` giving the size the type needs, or `fix: Lend $name` when the value is already a string; and `as str[len.max: inf bytes]`, with `fix: str.from`.
 
 **From:** D7, D96, D122, D328.
 

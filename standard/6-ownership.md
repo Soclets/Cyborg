@@ -136,7 +136,7 @@ $xs.std::%%append(val: 4);
 
 **Rule:** a `must_Give` type is linear: it's handed off with `Give` exactly once. Lending doesn't count.
 
-Every value that owns memory is `must_Give`, so nothing is ever freed automatically: you write every free, and the compiler checks every one, so a leak is a compile error as much as a double free or a use after free. That covers growable lists ([2.10](2-values-and-types.md#210-lists)), strings made with `as str`, maps, and any struct or type holding one. `defer` ([6.12](#612-defer)) keeps the freeing in one place.
+Every value that owns memory is `must_Give`, and ends with a function called `done`, as in `os::done`, `std::list.done`, `str.done` and `std::arena.done`. Nothing is ever freed automatically: you write every free, and the compiler checks every one, so a leak is a compile error as much as a double free or a use after free. That covers growable lists ([2.10](2-values-and-types.md#210-lists)), strings made with `as str`, maps, and any struct or type holding one. `defer` ([6.12](#612-defer)) keeps the freeing in one place.
 
 ```
 struct.must_Give open_file:
