@@ -4,8 +4,6 @@ What's waiting for when the owner unpauses Cyborg, written down on 2026-11-11 so
 
 ## Design
 
-- **Allocators, left:** where the `allocator` interface lives, and `std::arena`'s names. Memory up to there is D314
-  to D332.
 - **How limbs connect to the compiler:** what a limb is to `OKAY\n`, and what it can see and change. The Precog limb,
   `@csup` and every `inline.@limb::lang` wait on it.
 - **Concurrency:** threads, sharing data, and anything like goroutines or async (12.8).

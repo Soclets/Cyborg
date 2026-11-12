@@ -1166,6 +1166,8 @@ A `type_set` is a closed list of types that nothing can join later, as in `type_
 
 **D332. The operating system's allocator is `os::heap`.** `let $heap: os::heap = os::heap();` gives the allocator that takes memory from the operating system, passed as `alloc: Lend $heap`. "The heap" is what programmers already call this memory, and it's in `os` since the memory comes from the operating system, so a bare-metal program, which has no `os`, has no `os::heap` either, and brings its own allocator (D321). This settles D321's placeholder. Claude proposed it over `os::allocator` and `os::memory`; the owner chose: "yea". (Owner, 2026-11-12)
 
+**D333. The interface is `std::allocator`, and the arena is `std::arena`.** D324's interface lives in `std` as `std::allocator`, since `std` is freestanding (D271), so a bare-metal program can write its own allocator against it, and `std::list`, which needs it, is in `std` too. The arena keeps D330's names, `std::arena`, `std::arena.new(size: 1 mib, alloc: Lend $heap)` and `std::arena.done`, and is in `std` rather than `os`, since it only carves up memory it's given, which works anywhere, including on bare metal over a fixed block. This settles the last of D321's open allocator names. Claude proposed it; the owner chose: "yea". (Owner, 2026-11-12)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude
