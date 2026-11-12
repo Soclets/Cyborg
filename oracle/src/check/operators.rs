@@ -24,6 +24,18 @@ pub(super) fn arithmetic_word(operator: BinaryOperator) -> Option<&'static str> 
     }
 }
 
+/// Whether an expression is made only of number literals, like `(16 div.trunc 1)`, which can
+/// never be a struct or union.
+fn only_number_literals(expression: &Expression) -> bool {
+    match &expression.kind {
+        ExpressionKind::Group(inner) | ExpressionKind::Negate(inner) => only_number_literals(inner),
+        ExpressionKind::Binary { left, right, .. } => {
+            only_number_literals(left) && only_number_literals(right)
+        }
+        _ => super::expression::is_number_literal(expression),
+    }
+}
+
 /// An integer or float with no unit.
 fn plain_number(found: &Type) -> bool {
     matches!(
@@ -85,7 +97,7 @@ impl Checker<'_> {
                 // A number literal is never a struct or union, so next to a plain number it's
                 // built-in maths, since a type's own operator has its own type on a side. (D236)
                 // trace: D236
-                let literal = |side: &Expression| super::expression::is_number_literal(side);
+                let literal = |side: &Expression| only_number_literals(side);
                 let left_literal = literal(left);
                 let right_literal = literal(right);
                 let left = self.type_from_form(left);
