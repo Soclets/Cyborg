@@ -295,6 +295,12 @@ pub enum Expression {
         variable: String,
         target: Type,
     },
+    /// `($n as str[len.max: 2 bytes]) ?? "no"`: a failed `as` handled with a value instead, the
+    /// `as` grouped, since it goes on a single value (2.14, 8.5).
+    AsOrElse {
+        value: Box<Expression>,
+        instead: Box<Expression>,
+    },
     Bool(bool),
     Variable(String),
     /// A struct built in place, `rec3[fd4 = 1, fd5 = 2]` (7.2).
@@ -805,6 +811,14 @@ pub enum Statement {
         key: String,
         value: Kind,
     },
+    /// `let $c: Lend from <$a, $b> str = tpick($a, $b, …);`, a stored borrow of one of two views,
+    /// printed (2.9, 6.10).
+    PickText {
+        name: String,
+        left: String,
+        right: String,
+        test: Expression,
+    },
     /// A struct made by a value: a generic call or the struct's own operator (3.10, 5.8).
     LetStructValue {
         name: String,
@@ -929,6 +943,9 @@ pub struct Function {
 #[derive(Clone, Debug)]
 pub struct Program {
     pub unit_families: Vec<UnitFamily>,
+    /// Whether `tag`, a struct with a `str` field, `tpick`, which returns a borrow of one of
+    /// two views, and `tcount`, which takes one, are declared (2.9, 6.10).
+    pub strings: bool,
     /// The kinds that have `bk_…`, a `fn.pure.baked` function (5.11).
     pub baked: Vec<Kind>,
     /// Whether `main` also has `$err`, unbuffered to stderr, and `$buf`, buffered to stdout and
@@ -1346,6 +1363,13 @@ pub fn print(program: &Program) -> String {
     }
     if let Some(family) = &program.failure_family {
         print_failure_family(&mut out, family);
+    }
+    if program.strings {
+        out.push_str("struct tag:\n    name: str;\n    n: i32;\nend struct tag\n\n");
+        out.push_str("fn tpick [$a: str, $b: str, $first: bool] -> Lend from <$a, $b> str:\n    if $first:\n        return Lend $a;\n    end if\n    return Lend $b;\nend fn tpick\n\n");
+        out.push_str(
+            "fn tcount [$a: str, $n: i32] -> i32:\n    return $n plus.wrap 1;\nend fn tcount\n\n",
+        );
     }
     if program.recursion {
         out.push_str("fn rsum [$n: u64] -> u64:\n    if $n == 0:\n        return 0;\n    end if\n    return $n plus.wrap rsum($n - 1);\nend fn rsum\n\n");
@@ -1971,6 +1995,22 @@ fn print_block(out: &mut String, statements: &[Statement], depth: usize, style: 
                     "{indent}defer std::coll::map.done(Give ${name}, alloc: Lend $heap);"
                 );
             }
+            Statement::PickText {
+                name,
+                left,
+                right,
+                test,
+            } => {
+                let _ = writeln!(
+                    out,
+                    "{indent}let ${name}: Lend from <${left}, ${right}> str = tpick(${left}, ${right}, {});",
+                    style.expression(test)
+                );
+                let _ = writeln!(
+                    out,
+                    "{indent}std::io::fmt_print(Lend.mut $out, \"{{${name}}}{{newln}}\");"
+                );
+            }
             Statement::LetStructValue {
                 name,
                 struct_name,
@@ -2212,6 +2252,11 @@ impl Style {
             Expression::Float(text) => text.clone(),
             Expression::As { variable, target } => format!("${variable} as {}", target.word()),
             Expression::AsNamed { variable, written } => format!("${variable} as {written}"),
+            Expression::AsOrElse { value, instead } => format!(
+                "({}) ?? {}",
+                self.expression(value),
+                self.expression(instead)
+            ),
             Expression::WithUnit { number, unit } => format!("{number} {unit}"),
             Expression::FloatWithUnit { number, unit } => format!("{number} {unit}"),
             Expression::Convert {

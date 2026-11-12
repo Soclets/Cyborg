@@ -82,21 +82,24 @@
 ///   per print, with plain, numbered or named holes, named ones reading struct fields too;
 ///   shapes for width in every unit but points, alignment, bases, `zeros`, `sign`, `places:` and
 ///   `form: science`; and escapes, braces, `{tab}` and `{newln}` in the text; heap strings made
-///   by `str.from` from text or a number, ended by a deferred `str.done`.
+///   by `str.from` from text or a number, ended by a deferred `str.done`; a struct with a `str`
+///   field holding a literal; a function taking `str` views, which pass with no word, and one
+///   returning a borrow of one of two, stored as `Lend from <$a, $b> str`; a number into a
+///   string with `as`, its failure handled with `??` where it can fail;
 pub const NOT_GENERATED: &[&str] = &[
     "1.13 undecided: what a point is, for a width (12.2); `places:` or `form:` with `.stored`; a width with no `align:`",
     "2.6, 2.7 still to do: floats in structs, arrays and calls; undecided: a negative exponent (12.2)",
-    "2.9 still to do: strings in struct fields and function calls; undecided: escapes in string literals and how literals work (12.2), and `==` on `str` (12)",
+    "2.9 undecided: escapes in string literals and how literals work (12.2), and `==` on `str` (12)",
     "2.10 undecided: a full list's failure named in an `otherwise` arm (12.7)",
     "2.12 undecided: putting, getting and going through a map's items",
-    "2.14 `as` between other types, which isn't decided (12.3), `as` failures handled",
+    "2.14 undecided: what converts to what beyond numbers into strings and units (12.3)",
     "2.16 undecided: `std`'s units other than `time.seconds` and `angle`'s (12.2)",
     "2.18 named types over structs, lists or strings, `fam.type.alias`, maths on a `type.new`",
     "2.21 `simd` with one value, chunks, shuffles, `pick`, lookups, `lanes: max`, floats in lanes, `as` from arrays",
     "2.22 `bool.secret` values with `and.both`, `or.both` and `not`, secrets in arrays and `simd`, shifts on secrets",
     "4.4 `for` over a fresh collection, since generated functions don't return arrays or lists yet",
     "5.x undecided: specialization, value parameters, type slots and how laws are proven (12.5)",
-    "6.x stored borrows and `.held`, `Lend from` results, `must_Give` values that leave a loop or a `match`, and `defer` on anything but ending a value",
+    "6.x stored borrows of structs, and `.held`; `must_Give` values that leave a loop or a `match`; `defer` on anything but ending a value",
     "7.x structs holding other structs, lists or borrows, beyond the `must_Give` holder, handing unions to functions",
     "9.x still to do: tasks on `os::threads` and `os::events`, tasks that borrow, locks and atomics; `pub` and `use` between packages, once programs have more than one; NotBuiltYet: `.at(address:)`, which points at hardware the oracle doesn't have; undecided: a shield's own `requires` and `ensures` (12.9), your own allocator (2.10)",
     "10.x compiler-only: build modes, since the oracle runs one way and the live comparison runs every mode against it",

@@ -99,6 +99,8 @@ struct Generator<'random> {
     failure_family: Option<FailureFamily>,
     /// What the function being made returns, for an `otherwise` arm that returns (8.6).
     returns: Option<Type>,
+    /// Whether `tag`, `tpick` and `tcount` are declared (2.9).
+    strings: bool,
     /// Whether `main` has `$err` and `$buf` too (1.13).
     writers: bool,
     /// Whether the print being made is `.stored`, whose floats take no shapes (1.13).
@@ -165,6 +167,7 @@ pub fn program(seed: u64) -> Program {
         baked: Vec::new(),
         has_heap: false,
         writers: false,
+        strings: false,
         stored_print: false,
         uses: Vec::new(),
         float_units: None,
@@ -194,6 +197,7 @@ pub fn program(seed: u64) -> Program {
     generator.recursion = generator.random.chance(40);
     generator.failure_family();
     generator.writers = generator.random.chance(30);
+    generator.strings = generator.random.chance(50);
     // A unit from a kit is shortened with `use`, keeping its matching name (1.11, 2.16).
     if generator.random.chance(40) {
         generator.uses.push((
@@ -286,6 +290,7 @@ pub fn program(seed: u64) -> Program {
         views: generator.views,
         baked: generator.baked,
         writers: generator.writers,
+        strings: generator.strings,
         methods: generator.methods,
         arena: generator.arena,
         named: generator.named,
@@ -657,6 +662,7 @@ impl Generator<'_> {
                 }
             }
             6 if prints && self.writers && self.random.chance(15) => Statement::Flush,
+            6 if prints && self.strings && self.random.chance(25) => self.strings_statement(scope),
             // A string on the heap, from text or a number (2.9).
             6 if prints && self.random.chance(15) => {
                 // A number comes from a variable, whose type says what it is.
@@ -1967,6 +1973,75 @@ impl Generator<'_> {
         Some(statement)
     }
 
+    /// A `tag` holding a literal in its `str` field, printed through named holes, or a stored
+    /// borrow of one of two views, from `tpick`, printed (2.9, 6.10).
+    fn strings_statement(&mut self, scope: &Scope) -> Statement {
+        let views: Vec<String> = scope
+            .variables
+            .iter()
+            .filter(|(_, found)| *found == Type::Text(None))
+            .map(|(name, _)| name.clone())
+            .collect();
+        if self.random.chance(50) {
+            // Two views here, or two made for it from literals, which last the whole program.
+            let mut made = Vec::new();
+            let (left, right) = match (
+                self.random.pick(&views).cloned(),
+                self.random.pick(&views).cloned(),
+            ) {
+                (Some(left), Some(right)) if left != right => (left, right),
+                _ => {
+                    let mut pair = Vec::new();
+                    for _ in 0..2 {
+                        let name = self.name("tv");
+                        let text = match self.text(scope, Some(12)) {
+                            Expression::Text(text) if text.is_empty() => {
+                                Expression::Text("o".to_string())
+                            }
+                            other => other,
+                        };
+                        made.push(Statement::Let {
+                            name: name.clone(),
+                            value_type: Type::Text(None),
+                            value: text,
+                        });
+                        pair.push(name);
+                    }
+                    let right = pair.pop().unwrap_or_default();
+                    let left = pair.pop().unwrap_or_default();
+                    (left, right)
+                }
+            };
+            let test = self.boolean(scope, 2);
+            made.push(Statement::PickText {
+                name: self.name("pt"),
+                left,
+                right,
+                test,
+            });
+            return Statement::Sequence(made);
+        }
+        let name = self.name("g");
+        let text = match self.text(scope, Some(12)) {
+            Expression::Text(text) if text.is_empty() => Expression::Text("o".to_string()),
+            other => other,
+        };
+        let number = self.integer(scope, Kind::I32, 2);
+        Statement::Sequence(vec![
+            Statement::LetStruct {
+                name: name.clone(),
+                struct_name: "tag".to_string(),
+                fields: vec![("name".to_string(), text), ("n".to_string(), number)],
+            },
+            Statement::Format {
+                writer: "out",
+                stored: false,
+                text: format!("{{${name}.name}} {{${name}.n}}"),
+                values: Vec::new(),
+            },
+        ])
+    }
+
     /// A secret made public in a shield, into a plain variable that can change (2.22, 9.7).
     fn reveal(&mut self, scope: &Scope) -> Option<Statement> {
         let secrets: Vec<(String, Kind)> = scope
@@ -2116,17 +2191,38 @@ impl Generator<'_> {
         // A number into a bounded string with `as`, which fails when its text doesn't fit; a
         // single value, since `as` goes on nothing else (2.14, 3.9).
         if matches!(value_type, Type::Text(Some(_))) && self.random.chance(40) {
-            let integers: Vec<String> = scope
+            let integers: Vec<(String, Kind)> = scope
                 .variables
                 .iter()
-                .filter(|(_, found)| matches!(found, Type::Integer(_)))
-                .map(|(name, _)| name.clone())
+                .filter_map(|(name, found)| match found {
+                    Type::Integer(kind) => Some((name.clone(), *kind)),
+                    _ => None,
+                })
                 .collect();
-            if let Some(variable) = self.random.pick(&integers).cloned() {
+            if let Some((variable, kind)) = self.random.pick(&integers).cloned() {
                 value = Expression::As {
                     variable,
                     target: value_type,
                 };
+                // The most bytes a number of this type can need, so a string that holds them
+                // can't fail, and a `??` on it is refused (2.14).
+                let needed = match kind {
+                    Kind::U8 => 3,
+                    Kind::I32 => 11,
+                    Kind::U32 => 10,
+                    Kind::I64 | Kind::U64 => 20,
+                };
+                let can_fail = matches!(value_type, Type::Text(Some(bytes)) if bytes < needed);
+                // Now and then its failure is handled with text that fits instead (2.14, 8.5).
+                if let (true, true, Type::Text(bytes)) =
+                    (can_fail, self.random.chance(40), value_type)
+                {
+                    let instead = self.text(scope, bytes);
+                    value = Expression::AsOrElse {
+                        value: Box::new(value),
+                        instead: Box::new(instead),
+                    };
+                }
             }
         }
         let name = self.name("t");
@@ -3779,6 +3875,21 @@ impl Generator<'_> {
             }
             let argument = self.integer(scope, kind, depth.saturating_sub(1));
             return self.baked_call(kind, argument);
+        }
+        // `tcount` takes a `str`: a literal, or a view, which passes with no word (2.9, D368).
+        if roll == 4 && kind == Kind::I32 && self.strings && !self.no_calls && !self.pure_only {
+            if self.random.chance(40) {
+                let text = match self.text(scope, None) {
+                    Expression::Text(text) if text.is_empty() => Expression::Text("o".to_string()),
+                    other => other,
+                };
+                let number = self.integer(scope, kind, depth.saturating_sub(1));
+                return Expression::Call {
+                    function: "tcount".to_string(),
+                    arguments: vec![(None, text), (None, number)],
+                    handling: Handling::Crash,
+                };
+            }
         }
         // A recursive call, kept to a few levels by `mod.trunc` (5.1).
         if roll == 4
