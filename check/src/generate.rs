@@ -57,8 +57,7 @@ struct FloatUnits {
     decibels: &'static str,
 }
 
-/// `std`'s angles, which every program can use (2.16).
-const DEGREES: &str = "std::units::angle.degrees";
+/// `std`'s radians, which every program can use, as it can degrees (2.16).
 const RADIANS: &str = "std::units::angle.radians";
 
 #[allow(clippy::struct_excessive_bools)] // Independent switches for what's being generated now.
@@ -81,6 +80,10 @@ struct Generator<'random> {
     failure_family: Option<FailureFamily>,
     /// What the function being made returns, for an `otherwise` arm that returns (8.6).
     returns: Option<Type>,
+    /// `std`'s degrees as the program writes them: in full, or `degrees` after a `use` (1.11).
+    degrees: &'static str,
+    /// `use` lines, each a path and its short name (1.11).
+    uses: Vec<(String, String)>,
     /// Whether the recursive functions are declared (5.1).
     recursion: bool,
     /// The names of the loops around what's being generated, innermost last (4.8).
@@ -128,6 +131,8 @@ pub fn program(seed: u64) -> Program {
         recursion: false,
         failure_family: None,
         returns: None,
+        degrees: "std::units::angle.degrees",
+        uses: Vec::new(),
         float_units: None,
         units: Vec::new(),
         constants: Vec::new(),
@@ -154,6 +159,20 @@ pub fn program(seed: u64) -> Program {
     generator.untagged_union();
     generator.recursion = generator.random.chance(40);
     generator.failure_family();
+    // A unit from a kit is shortened with `use`, keeping its matching name (1.11, 2.16).
+    if generator.random.chance(40) {
+        generator.uses.push((
+            "std::units::angle.degrees".to_string(),
+            "degrees".to_string(),
+        ));
+        generator.degrees = "degrees";
+    }
+    if generator.random.chance(40) {
+        generator.uses.push((
+            "std::units::time.seconds".to_string(),
+            "seconds".to_string(),
+        ));
+    }
     for _ in 0..generator.random.between(0, 2) {
         let declared = generator.union_decl();
         generator.unions.push(declared);
@@ -221,6 +240,7 @@ pub fn program(seed: u64) -> Program {
         untagged: generator.untagged,
         recursion: generator.recursion,
         failure_family: generator.failure_family,
+        uses: generator.uses,
         methods: generator.methods,
         arena: generator.arena,
         named: generator.named,
@@ -247,7 +267,7 @@ impl Generator<'_> {
                 leak(format!("{}.span", units.celsius)),
                 leak(format!("{}.point", units.decibels)),
                 leak(format!("{}.span", units.decibels)),
-                DEGREES,
+                self.degrees,
                 RADIANS,
             ] {
                 let name = self.name("fw");
@@ -581,6 +601,9 @@ impl Generator<'_> {
                     value: self.integer_kind(),
                 }
             }
+            6 if self.random.chance(15) => self
+                .seconds(scope)
+                .unwrap_or_else(|| self.list_statement(scope)),
             6 if self.random.chance(30) => self
                 .generic_box(scope)
                 .unwrap_or_else(|| self.list_statement(scope)),
@@ -1572,6 +1595,86 @@ impl Generator<'_> {
         statement
     }
 
+    /// `std`'s seconds as integer points and spans: a point and a span, the point moved by the
+    /// span, the distance between the two points, taken off its unit into a variable that can
+    /// change (2.16).
+    fn seconds(&mut self, scope: &Scope) -> Option<Statement> {
+        let seconds = if self
+            .uses
+            .iter()
+            .any(|(path, _)| path == "std::units::time.seconds")
+        {
+            "seconds"
+        } else {
+            "std::units::time.seconds"
+        };
+        let targets: Vec<String> = scope
+            .variables
+            .iter()
+            .filter(|(name, found)| {
+                *found == Type::Integer(Kind::I64)
+                    && !name.starts_with('i')
+                    && !name.starts_with('p')
+                    && !name.starts_with('x')
+                    && !name.starts_with('k')
+            })
+            .map(|(name, _)| name.clone())
+            .collect();
+        let target = self.random.pick(&targets)?.clone();
+        let leak = |text: String| -> &'static str { Box::leak(text.into_boxed_str()) };
+        let point = Type::Unit(Kind::I64, leak(format!("{seconds}.point")), None);
+        let span = Type::Unit(Kind::I64, leak(format!("{seconds}.span")), None);
+        let [at, by, later, between] = [
+            self.name("ts"),
+            self.name("ts"),
+            self.name("ts"),
+            self.name("ts"),
+        ];
+        let literal = |number| Expression::WithUnit {
+            number,
+            unit: seconds,
+        };
+        let variable = |name: &String| Box::new(Expression::Variable(name.clone()));
+        Some(Statement::Sequence(vec![
+            Statement::Let {
+                name: at.clone(),
+                value_type: point,
+                value: literal(self.random.between(0, 100_000)),
+            },
+            Statement::Let {
+                name: by.clone(),
+                value_type: span,
+                value: literal(self.random.between(0, 3600)),
+            },
+            Statement::Let {
+                name: later.clone(),
+                value_type: point,
+                value: Expression::Binary {
+                    operator: Operator::Add,
+                    left: variable(&at),
+                    right: variable(&by),
+                },
+            },
+            Statement::Let {
+                name: between.clone(),
+                value_type: span,
+                value: Expression::Binary {
+                    operator: Operator::Subtract,
+                    left: variable(&later),
+                    right: variable(&at),
+                },
+            },
+            Statement::Change {
+                name: target,
+                value: Expression::Convert {
+                    variable: between,
+                    narrowing: "",
+                    target: Type::Integer(Kind::I64),
+                },
+            },
+        ]))
+    }
+
     /// A secret made public in a shield, into a plain variable that can change (2.22, 9.7).
     fn reveal(&mut self, scope: &Scope) -> Option<Statement> {
         let secrets: Vec<(String, Kind)> = scope
@@ -2391,7 +2494,7 @@ impl Generator<'_> {
             11 => leak(format!("{}.point", units.decibels)),
             12 => leak(format!("{}.span", units.decibels)),
             13 => leak(format!("{}.point", units.milliwatts)),
-            14 => DEGREES,
+            14 => self.degrees,
             _ => RADIANS,
         };
         let value_type = Type::FloatUnit(unit);
@@ -2458,7 +2561,7 @@ impl Generator<'_> {
         // A length converted from the same length with another prefix, or an angle from the
         // other angle.
         let lengths = [units.length, units.kilo, units.milli];
-        let angles = [DEGREES, RADIANS];
+        let angles = [self.degrees, RADIANS];
         let kin: &[&str] = if lengths.contains(&unit) {
             &lengths
         } else if angles.contains(&unit) {

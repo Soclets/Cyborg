@@ -860,6 +860,8 @@ pub struct Function {
 #[derive(Clone, Debug)]
 pub struct Program {
     pub unit_families: Vec<UnitFamily>,
+    /// `use` lines, each a path and its short name (1.11).
+    pub uses: Vec<(String, String)>,
     /// A named set of failures and its handlers (8.3, 8.7).
     pub failure_family: Option<FailureFamily>,
     /// Whether `rsum`, which calls itself, and `reven` and `rodd`, which call each other, are
@@ -1152,6 +1154,12 @@ pub fn print(program: &Program) -> String {
         out.push_str("import @csup;\n");
     }
     out.push('\n');
+    for (path, short) in &program.uses {
+        let _ = writeln!(out, "use {path} as {short};");
+    }
+    if !program.uses.is_empty() {
+        out.push('\n');
+    }
     for family in &program.unit_families {
         let _ = writeln!(out, "{} {}:", family.keyword, family.name);
         for (unit, definition) in &family.units {

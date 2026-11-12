@@ -45,7 +45,8 @@
 ///   bases, a `fam.prefix` the length opts into `with`, units made with `per`, `per` of a `per`
 ///   and `x`, built by `div` and `x` where they're stored; an offset family and a `decibels of`
 ///   one, whose points and spans add, subtract and convert; `std`'s angles converted to radians
-///   for `std::math::sin`; parameters whose label carries a unit, given a plain number;
+///   for `std::math::sin`, now and then shortened with `use`; `std`'s `time.seconds` as `i64`
+///   points and spans; parameters whose label carries a unit, given a plain number;
 /// - `must_Give`: a `struct.must_Give` with integer fields, ended by a function that `finish`es
 ///   it, made by one that returns it and handed through one that takes it `Given` and returns
 ///   it, and a `must_Give` holder whose field is moved out before it's `finish`ed; each value is
@@ -77,7 +78,7 @@ pub const NOT_GENERATED: &[&str] = &[
     "2.10 `.len`, views and splits, a full list's failure handled, growable lists in functions, `grow:`",
     "2.12 undecided: putting, getting and going through a map's items",
     "2.14 `as` between other types, which isn't decided (12.3), `as` failures handled",
-    "2.16 still to do: `use std::units::… as …`, `std`'s `time.seconds` as integer points and spans, and units on generic parameters, which come with generics; undecided: `std`'s other units (12.2)",
+    "2.16 undecided: `std`'s units other than `time.seconds` and `angle`'s (12.2)",
     "2.18 named types over structs, lists or strings, `fam.type.alias`, maths on a `type.new`",
     "2.21 `simd` with one value, chunks, shuffles, `pick`, lookups, `lanes: max`, floats in lanes, `as` from arrays",
     "2.22 `bool.secret` values with `and.both`, `or.both` and `not`, secrets in arrays and `simd`, shifts on secrets",
