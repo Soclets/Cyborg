@@ -239,7 +239,8 @@ pub enum Expression {
     },
     Call {
         function: String,
-        arguments: Vec<Expression>,
+        /// Each argument with its label, if its parameter has one (5.2).
+        arguments: Arguments,
         handling: Handling,
     },
     /// An array's item, `$a[pos: 2]` or `$a[offset.items: 1]` (2.17).
@@ -253,6 +254,9 @@ pub enum Expression {
         field: String,
     },
 }
+
+/// A call's arguments, each with its label if its parameter has one (5.2).
+pub type Arguments = Vec<(Option<String>, Expression)>;
 
 /// What a call does if it fails: nothing, so the program stops (8.9), `?` to pass it up (8.4),
 /// or `??` and a value to use instead (8.5).
@@ -439,6 +443,12 @@ pub enum Statement {
 pub struct Function {
     pub name: String,
     pub parameters: Vec<(String, Type)>,
+    /// Labels on the last parameters, which every call writes (5.2, 5.4).
+    pub labels: Vec<(String, String)>,
+    /// `labels.any_order`, so calls may write labelled arguments in any order (5.2).
+    pub any_order: bool,
+    /// Defaults for labelled parameters, which calls may leave off (5.4).
+    pub defaults: Vec<(String, Expression)>,
     pub result: Type,
     pub failures: Vec<FailureDecl>,
     pub body: Vec<Statement>,
@@ -515,6 +525,28 @@ pub fn print(program: &Program) -> String {
             function.name,
             function.result.word()
         );
+        // `labels` and `defaults` go first in the body, in that order (5.4).
+        if !function.labels.is_empty() {
+            let labels: Vec<String> = function
+                .labels
+                .iter()
+                .map(|(parameter, label)| format!("${parameter} as {label}"))
+                .collect();
+            let word = if function.any_order {
+                "labels.any_order"
+            } else {
+                "labels"
+            };
+            let _ = writeln!(out, "    {word} [{}];", labels.join(", "));
+        }
+        if !function.defaults.is_empty() {
+            let defaults: Vec<String> = function
+                .defaults
+                .iter()
+                .map(|(parameter, value)| format!("${parameter} = {}", style.expression(value)))
+                .collect();
+            let _ = writeln!(out, "    defaults [{}];", defaults.join(", "));
+        }
         print_block(&mut out, &function.body, 1, style);
         let _ = writeln!(out, "    return {};", style.expression(&function.returned));
         let _ = writeln!(out, "end fn {}\n", function.name);
@@ -829,7 +861,10 @@ impl Style {
             } => {
                 let arguments: Vec<String> = arguments
                     .iter()
-                    .map(|argument| self.expression(argument))
+                    .map(|(label, argument)| match label {
+                        Some(label) => format!("{label}: {}", self.expression(argument)),
+                        None => self.expression(argument),
+                    })
                     .collect();
                 let call = format!("{function}({})", arguments.join(", "));
                 match handling {

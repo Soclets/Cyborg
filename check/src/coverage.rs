@@ -14,7 +14,8 @@
 /// precedence with and without `( )`, as 3.9's table orders it; comparison chains; `let`,
 /// `change`, `if` and `else`, `while`, `for` over literal ranges and through arrays, reading or
 /// changing each item, `forever`, `break`; functions with
-/// integer parameters and results; printing a variable with `fmt_print` to an unbuffered writer.
+/// integer parameters and results, labels on the last ones, `labels.any_order`, and defaults
+/// calls leave off; printing a variable with `fmt_print` to an unbuffered writer.
 pub const NOT_GENERATED: &[&str] = &[
     "1.13 printing: shapes, named holes, `.stored`, more than one value, buffered writers, stderr",
     "2.3 `const` calling `fn.pure.baked` functions, float constants, constants whose maths overflows",
@@ -33,7 +34,7 @@ pub const NOT_GENERATED: &[&str] = &[
     "3.10 a type's own operators",
     "4.2 the test, `if $n: T:`",
     "4.3 to 4.8 `match`, `for … in Give`, `for` over lists, a range's counter in use, ranges that step past their end, named loops",
-    "5.x labels, defaults, `fn.pure`, contracts, generics, interfaces, methods, `bake`",
+    "5.x `fn.pure`, contracts, generics, interfaces, methods, `bake`, calling a function declared later",
     "6.x ownership words, `Lend.mut` parameters, stored borrows, `must_Give`, `finish`, `defer`",
     "7.x structs holding other structs, lists or borrows, `must_Give` structs, generic structs, handing structs and unions to functions, the test `if $u: u.case:`",
     "8.x named sets of failures, a `case` reading a failure's data, arms that `return`, `break` or `fail`, handler narrowings and `*`",

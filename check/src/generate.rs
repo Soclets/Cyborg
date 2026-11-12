@@ -5,8 +5,8 @@
 
 use crate::random::Random;
 use crate::tree::{
-    Comparison, Expression, FailureDecl, Filling, Function, Handling, Kind, Layout, Operator,
-    Position, Program, Statement, StructDecl, Type, UnionDecl,
+    Arguments, Comparison, Expression, FailureDecl, Filling, Function, Handling, Kind, Layout,
+    Operator, Position, Program, Statement, StructDecl, Type, UnionDecl,
 };
 
 /// How big a program gets.
@@ -156,6 +156,17 @@ impl Generator<'_> {
             scope.variables.push((parameter.clone(), parameter_type));
             parameters.push((parameter, parameter_type));
         }
+        // The last few parameters may have labels, some with defaults (5.2, 5.4).
+        let labelled = usize::try_from(self.random.between(0, count)).unwrap_or(0);
+        let mut labels = Vec::new();
+        let mut defaults = Vec::new();
+        for (parameter, parameter_type) in parameters.iter().skip(parameters.len() - labelled) {
+            labels.push((parameter.clone(), self.name("lb")));
+            if let (true, Type::Integer(kind)) = (self.random.chance(40), parameter_type) {
+                defaults.push((parameter.clone(), self.literal(*kind)));
+            }
+        }
+        let any_order = labels.len() > 1 && self.random.chance(40);
         let result = self.integer_type();
         // Some functions can fail, each with a test that decides when (8.1, 8.2).
         let mut own = Vec::new();
@@ -194,6 +205,9 @@ impl Generator<'_> {
         Function {
             name,
             parameters,
+            labels,
+            any_order,
+            defaults,
             result,
             failures,
             body,
@@ -949,29 +963,45 @@ impl Generator<'_> {
         scope: &Scope,
         kind: Kind,
         depth: usize,
-    ) -> Option<(String, Vec<Expression>, Vec<FailureDecl>)> {
-        let candidates: Vec<(String, Vec<Type>, Vec<FailureDecl>)> = self
+    ) -> Option<(String, Arguments, Vec<FailureDecl>)> {
+        let candidates: Vec<Function> = self
             .functions
             .iter()
             .filter(|function| function.result == Type::Integer(kind))
-            .map(|function| {
-                (
-                    function.name.clone(),
-                    function
-                        .parameters
-                        .iter()
-                        .map(|(_, found)| *found)
-                        .collect(),
-                    function.failures.clone(),
-                )
-            })
+            .cloned()
             .collect();
-        let (name, parameters, failures) = self.random.pick(&candidates)?.clone();
-        let arguments = parameters
-            .iter()
-            .map(|parameter| self.expression(scope, *parameter, depth.saturating_sub(1)))
-            .collect();
-        Some((name, arguments, failures))
+        let function = self.random.pick(&candidates)?.clone();
+        let mut unlabelled = Vec::new();
+        let mut labelled = Vec::new();
+        for (parameter, parameter_type) in &function.parameters {
+            let label = function
+                .labels
+                .iter()
+                .find(|(found, _)| found == parameter)
+                .map(|(_, label)| label.clone());
+            let defaulted = function
+                .defaults
+                .iter()
+                .any(|(found, _)| found == parameter);
+            // A label with a default can be left off (5.2).
+            if label.is_some() && defaulted && self.random.chance(40) {
+                continue;
+            }
+            let value = self.expression(scope, *parameter_type, depth.saturating_sub(1));
+            match label {
+                Some(label) => labelled.push((Some(label), value)),
+                None => unlabelled.push((None, value)),
+            }
+        }
+        // `labels.any_order` lets the labelled ones come in any order (5.2).
+        if function.any_order {
+            for at in (1..labelled.len()).rev() {
+                let other = usize::try_from(self.random.between(0, at as i128)).unwrap_or(0);
+                labelled.swap(at, other);
+            }
+        }
+        unlabelled.extend(labelled);
+        Some((function.name, unlabelled, function.failures))
     }
 
     /// `let` from a call that can fail, with an `otherwise:` arm for each failure, each using
