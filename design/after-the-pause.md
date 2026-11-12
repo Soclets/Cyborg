@@ -4,9 +4,8 @@ What's waiting for when the owner unpauses Cyborg, written down on 2026-11-11 so
 
 ## Design
 
-- **Arenas, next:** whether a list from an arena still ends with `done`, which frees nothing, with ending the arena
-  early a failed check (Claude's pick), or borrows the arena and needs no `done`. Then the placeholder names: `os::heap`,
-  `std::list.done`, `std::text.done` and `std::text.from`. Memory up to there is D314 to D328.
+- **Placeholder names, next:** `os::heap`, `std::list.done`, `std::text.done`, `std::text.from` and `std::arena`.
+  Memory up to there is D314 to D330.
 - **How limbs connect to the compiler:** what a limb is to `OKAY\n`, and what it can see and change. The Precog limb,
   `@csup` and every `inline.@limb::lang` wait on it.
 - **Concurrency:** threads, sharing data, and anything like goroutines or async (12.8).

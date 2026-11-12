@@ -239,9 +239,19 @@ end interface allocator
 
 `allocate` gives a block or fails with `out_of_memory`, the failure lists pass on. `resize` tries to change a block where it is and says whether it could, and `free` hands one back.
 
+An arena hands out memory from one big block and frees it all at once. Lists made from it still end with `done`, where freeing costs nothing, so every owner follows one rule. The arena counts what's still alive, and ending it while anything from it is alive is a failed check. The names are placeholders.
+
+```
+let mut $arena: std::arena = std::arena.new(size: 1 mib, alloc: Lend $heap);
+defer std::arena.done(Give $arena, alloc: Lend $heap);
+
+let mut $xs: std::list<i32>[len.max: inf items] = empty;
+defer std::list.done(Give $xs, alloc: Lend $arena);
+```
+
 **Refused:** `std::list<i32>` with no `len.max`, a list with a bare `len`, in favour of `array`, `= empty` on a list with `len.min` above 0, `[]`, with `fix: empty`, and too few or too many items.
 
-**From:** D11, D12, D13, D24, D102, D103, D140, D321, D322, D323, D324.
+**From:** D11, D12, D13, D24, D102, D103, D140, D321, D322, D323, D324, D330.
 
 ## 2.11 Arrays
 
