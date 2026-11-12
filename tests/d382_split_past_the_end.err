@@ -1,0 +1,6 @@
+check failed: d382_split_past_the_end.cy:8:42, line 8 column 42
+ 8 |     let $h: std::coll::halves.mut<i64> = $xs.%%split.mut(at.items: 4);
+   |                                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ what: this splits a list of 3 items at 4
+ why:  a split's place is inside the list or at its end, like any position (D382, D133)
+ when: `at.items: 4`

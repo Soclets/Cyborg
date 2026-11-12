@@ -116,8 +116,11 @@ impl Checker<'_> {
                     // ends it. (D315)
                     kind == UseKind::Write
                         || super::pointers::is_writing_pointer(&variable.held_type)
-                        // A task given something with `Lend.mut` has it to itself. (D347)
-                        || self.context.tasks_lending_mut.contains(slot)
+                        // A task given something with `Lend.mut` has it to itself, though reading
+                        // the variable on the way to another of its fields leaves a task holding
+                        // one field alone. (D347, D173, D382)
+                        || (self.context.tasks_lending_mut.contains(slot)
+                            && (!path.is_empty() || variable.borrowed_path.is_empty()))
                 };
                 variable.borrows.iter().any(|borrowed| borrowed == name)
                     && ended_by_this
@@ -436,6 +439,23 @@ impl Checker<'_> {
             // Reading through a borrow, or into a struct holding one, with its sources filled in.
             // trace: D171
             Type::Borrow { inner, .. } => self.find_field(base, inner, name),
+            // A split's two parts, each a view of its half of the list. (D382)
+            // trace: D382
+            Type::Halves { item, mutable } => {
+                let view = Type::ListView {
+                    item: item.clone(),
+                    mutable: *mutable,
+                };
+                match name.text.as_str() {
+                    "first" => Ok((0, view)),
+                    "second" => Ok((1, view)),
+                    other => Err(Report::refused(
+                        name.span,
+                        format!("a split has `.first` and `.second`, not `.{other}`"),
+                        "a split gives back its two parts as `.first` and `.second` (D382)",
+                    )),
+                }
+            }
             Type::Holding {
                 base: inner,
                 sources,
@@ -1003,7 +1023,7 @@ impl Checker<'_> {
         }
     }
 
-    fn type_of_place(&self, value: &Expression) -> Option<Type> {
+    pub(super) fn type_of_place(&self, value: &Expression) -> Option<Type> {
         match &value.kind {
             ExpressionKind::Variable(name) => {
                 let slot = self.find_variable(name)?;

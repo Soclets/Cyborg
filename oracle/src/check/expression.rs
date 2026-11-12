@@ -2684,6 +2684,17 @@ impl Checker<'_> {
             }
             return self.check_own_method(receiver, fresh, &signature, arguments, span);
         }
+        // `split` is written bare in the standard, as a list's own method. (D358, D382)
+        // trace: D382
+        if kit.is_none()
+            && matches!(name.text.as_str(), "split" | "split.mut")
+            && matches!(
+                receiver_type,
+                Type::List { .. } | Type::Array { .. } | Type::ListView { .. }
+            )
+        {
+            return self.check_split(receiver, &receiver_type, name, changes, arguments, span);
+        }
         match kit {
             None => {
                 // trace: D115
@@ -2720,6 +2731,16 @@ impl Checker<'_> {
             }
         }
         self.require_std(&format!("coll::list.%{}", name.text), span)?;
+        if matches!(name.text.as_str(), "split" | "split.mut") {
+            return Err(Report::not_designed(
+                name.span,
+                format!(
+                    "`.std::%{}`, since the standard writes `split` bare",
+                    name.text
+                ),
+                "",
+            ));
+        }
         if name.text != "append" || !is_std_list_method {
             return Err(Report::not_designed(
                 name.span,

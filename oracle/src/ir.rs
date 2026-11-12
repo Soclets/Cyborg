@@ -330,6 +330,11 @@ pub enum NodeKind {
     Spawn(Box<Node>),
     /// `@concur::task.done(Give $t)`: waits for the task and gives back its result. (D357)
     TaskDone(Box<Node>),
+    /// `$xs.%%split.mut(at.items: 2)`: two windows onto the list at this place. (D382)
+    Split {
+        place: Place,
+        at: Box<Node>,
+    },
     /// An atomic operation on the atomic at this place. (D354, D360)
     Atomic {
         place: Place,

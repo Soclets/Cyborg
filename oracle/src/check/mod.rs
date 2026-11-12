@@ -2001,7 +2001,7 @@ impl Checker<'_> {
 
 /// `std`'s groups, and the names in each that the oracle reads without the group. (D378)
 const STD_GROUPS: &[(&str, &[&str])] = &[
-    ("coll", &["list", "map", "array"]),
+    ("coll", &["list", "map", "array", "halves"]),
     ("mem", &["arena", "allocator"]),
     ("run", &["runner", "one_thread"]),
 ];
@@ -3274,6 +3274,24 @@ impl Checker<'_> {
                     format!("`std::{}` is the older spelling", grouped(other)),
                     "a collection's types go in `< >` (D24)",
                 ))
+            }
+            // trace: D382
+            "halves" | "halves.mut" => {
+                let [Fill {
+                    label: None,
+                    written_type,
+                }] = fill
+                else {
+                    return Err(Report::refused(
+                        written.span,
+                        format!("`std::coll::{rest}` fills in one type, bare, in `< >`"),
+                        "a collection's types go in `< >`, and one type can go bare (D24, D25)",
+                    ));
+                };
+                Ok(Type::Halves {
+                    item: Box::new(self.resolve_type(written_type)?),
+                    mutable: rest == "halves.mut",
+                })
             }
             // trace: D376, D377
             "one_thread" => Ok(Type::Struct("std::run::one_thread".to_string())),

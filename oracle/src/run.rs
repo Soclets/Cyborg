@@ -13,7 +13,7 @@ use crate::ir::{
     Table, Test,
 };
 use crate::report::{Kind, Outcome, Report, ReportExtra, Span};
-use crate::types::{show_float, FloatKind, FloatRules, IntegerKind, Value};
+use crate::types::{show_float, FloatKind, FloatRules, IntegerKind, Value, Window};
 
 /// How deep Cyborg calls can go here. Past this the oracle says so, instead of running out of
 /// stack and crashing, which rule 6 forbids. What running out of stack means isn't decided.
@@ -473,6 +473,54 @@ impl<'c> Runner<'c> {
         Ok((*function, bindings, tables))
     }
 
+    /// `$xs.%%split.mut(at.items: 2)`: two windows onto the list, the first holding that many
+    /// items and the second the rest. A place past the end is a failed check. (D382)
+    /// trace: D382
+    fn split(
+        &mut self,
+        place: &Place,
+        at: &Node,
+        frame: &mut Frame,
+        span: Span,
+    ) -> Result<Value, Stop> {
+        let Value::Integer(at) = self.evaluate(at, frame)? else {
+            return Err(oracle_bug(span, "a split's place isn't a number"));
+        };
+        let binding = self.binding_of(frame, place, span)?;
+        let (root, path, start, len) = match window_at(&binding) {
+            Some(window) => (window.root, window.path, window.start, window.len),
+            None => {
+                let count = match walk(&binding.root.borrow(), &binding.path) {
+                    Some(Value::List(items, _)) => items.len(),
+                    _ => return Err(oracle_bug(span, "a split of something that isn't a list")),
+                };
+                (binding.root, binding.path, 0, count)
+            }
+        };
+        let Some(first) = usize::try_from(at).ok().filter(|first| *first <= len) else {
+            return Err(Stop::Report(
+                Report::check_failed(
+                    span,
+                    format!("this splits a list of {len} items at {at}"),
+                    "a split's place is inside the list or at its end, like any position (D382, D133)",
+                )
+                .when(format!("`at.items: {at}`")),
+            ));
+        };
+        let window = |start: usize, len: usize| {
+            Value::Window(Window {
+                root: Rc::clone(&root),
+                path: path.clone(),
+                start,
+                len,
+            })
+        };
+        Ok(Value::Struct(vec![
+            window(start, first),
+            window(start + first, len - first),
+        ]))
+    }
+
     /// An atomic operation, in one step: with one task running at a time, nothing can come
     /// between its read and its write. (D354, D360)
     /// trace: D354, D360
@@ -625,14 +673,26 @@ impl<'c> Runner<'c> {
                 Step::Field(index) => binding.path.push(*index),
                 Step::Item(position) => {
                     let number = self.position_number(position, frame)?;
-                    let count = {
-                        let root = binding.root.borrow();
-                        match walk(&root, &binding.path) {
-                            Some(Value::List(items, _)) => items.len(),
-                            _ => return Err(oracle_bug(span, "an item of something else")),
+                    // An item of half a split is an item of the list it views. (D382)
+                    let (start, count) = match window_at(&binding) {
+                        Some(window) => {
+                            binding = Binding {
+                                root: window.root,
+                                path: window.path,
+                            };
+                            (window.start, window.len)
+                        }
+                        None => {
+                            let root = binding.root.borrow();
+                            match walk(&root, &binding.path) {
+                                Some(Value::List(items, _)) => (0, items.len()),
+                                _ => return Err(oracle_bug(span, "an item of something else")),
+                            }
                         }
                     };
-                    binding.path.push(item_index(number, count, position)?);
+                    binding
+                        .path
+                        .push(start + item_index(number, count, position)?);
                 }
             }
         }
@@ -735,11 +795,15 @@ impl<'c> Runner<'c> {
                 collection,
                 body,
             } => {
-                let Value::List(items, _) = self.evaluate(collection, frame)? else {
-                    return Err(oracle_bug(
-                        span,
-                        "`for` on something that isn't a collection",
-                    ));
+                let items = match self.evaluate(collection, frame)? {
+                    Value::List(items, _) => items,
+                    Value::Window(window) => window_items(&window),
+                    _ => {
+                        return Err(oracle_bug(
+                            span,
+                            "`for` on something that isn't a collection",
+                        ))
+                    }
                 };
                 for item in items {
                     Self::set_slot(frame, *slot, Binding::fresh(item), span)?;
@@ -757,17 +821,26 @@ impl<'c> Runner<'c> {
                 place,
                 body,
             } => {
-                let base = self.binding_of(frame, place, span)?;
-                let count = match walk(&base.root.borrow(), &base.path) {
-                    Some(Value::List(items, _)) => items.len(),
-                    _ => {
-                        return Err(oracle_bug(
-                            span,
-                            "`for` on something that isn't a collection",
-                        ))
+                let mut base = self.binding_of(frame, place, span)?;
+                let (start, count) = match window_at(&base) {
+                    Some(window) => {
+                        base = Binding {
+                            root: window.root,
+                            path: window.path,
+                        };
+                        (window.start, window.len)
                     }
+                    None => match walk(&base.root.borrow(), &base.path) {
+                        Some(Value::List(items, _)) => (0, items.len()),
+                        _ => {
+                            return Err(oracle_bug(
+                                span,
+                                "`for` on something that isn't a collection",
+                            ))
+                        }
+                    },
                 };
-                for index in 0..count {
+                for index in start..start + count {
                     let mut path = base.path.clone();
                     path.push(index);
                     let item = Binding {
@@ -1251,13 +1324,15 @@ impl<'c> Runner<'c> {
                 )
             }
             NodeKind::Length(value) => {
-                let Value::List(items, _) = self.evaluate(value, frame)? else {
-                    return Err(oracle_bug(span, "`.len` on something else"));
+                let count = match self.evaluate(value, frame)? {
+                    Value::List(items, _) => items.len(),
+                    Value::Window(window) => window.len,
+                    _ => return Err(oracle_bug(span, "`.len` on something else")),
                 };
-                Ok(Value::Integer(
-                    i128::try_from(items.len()).unwrap_or(i128::MAX),
-                ))
+                Ok(Value::Integer(i128::try_from(count).unwrap_or(i128::MAX)))
             }
+            // trace: D382
+            NodeKind::Split { place, at } => self.split(place, at, frame, span),
             // trace: D158, D20
             NodeKind::FitFloat {
                 value,
@@ -2113,6 +2188,27 @@ fn atomic_maths(
             "an atomic's `.%add` is checked for overflow like `+`, with `.wrap` and `.saturate` when meant (D42, D354, D360)",
         )
         .when(format!("`{left}` and `{right}`"))),
+    }
+}
+
+/// The half of a split a binding holds, if it holds one. (D382)
+fn window_at(binding: &Binding) -> Option<Window> {
+    match walk(&binding.root.borrow(), &binding.path) {
+        Some(Value::Window(window)) => Some(window.clone()),
+        _ => None,
+    }
+}
+
+/// The items half of a split shows, read from the list it views. (D382)
+fn window_items(window: &Window) -> Vec<Value> {
+    match walk(&window.root.borrow(), &window.path) {
+        Some(Value::List(items, _)) => items
+            .iter()
+            .skip(window.start)
+            .take(window.len)
+            .cloned()
+            .collect(),
+        _ => Vec::new(),
     }
 }
 

@@ -169,15 +169,16 @@ impl Checker<'_> {
     /// What a spawn's call lends, which the task keeps for as long as it exists, and whether any
     /// of it is lent to change. (D347)
     /// trace: D347
-    pub(super) fn spawn_borrows(&self, value: &Expression) -> (Vec<String>, bool) {
+    pub(super) fn spawn_borrows(&self, value: &Expression) -> (Vec<String>, bool, Vec<usize>) {
         let ExpressionKind::Spawn { call, .. } = &value.kind else {
-            return (Vec::new(), false);
+            return (Vec::new(), false, Vec::new());
         };
         let ExpressionKind::Call { arguments, .. } = &call.kind else {
-            return (Vec::new(), false);
+            return (Vec::new(), false, Vec::new());
         };
         let mut borrows = Vec::new();
         let mut changes = false;
+        let mut lent_places = Vec::new();
         for argument in arguments {
             if let ExpressionKind::Hand {
                 word: word @ (HandWord::Lend | HandWord::LendMut),
@@ -185,6 +186,7 @@ impl Checker<'_> {
             } = &argument.value.kind
             {
                 if let Some(root) = super::body::root_variable(value) {
+                    lent_places.push(self.field_keys(value));
                     for name in self.borrow_roots(&root) {
                         if !borrows.contains(&name) {
                             borrows.push(name);
@@ -194,7 +196,27 @@ impl Checker<'_> {
                 }
             }
         }
-        (borrows, changes)
+        // One part lent, like `$h.first`, leaves the other parts free, as fields are. (D173)
+        let path = match lent_places.as_slice() {
+            [Some(path)] => path.clone(),
+            _ => Vec::new(),
+        };
+        (borrows, changes, path)
+    }
+
+    /// The fields a place goes through from its variable, as positions. (D173)
+    fn field_keys(&self, value: &Expression) -> Option<Vec<usize>> {
+        match &value.kind {
+            ExpressionKind::Variable(_) => Some(Vec::new()),
+            ExpressionKind::Field { base, name } => {
+                let mut keys = self.field_keys(base)?;
+                let base_type = self.type_of_place(base)?;
+                let (index, _) = self.find_field(base, &base_type, name).ok()?;
+                keys.push(index);
+                Some(keys)
+            }
+            _ => None,
+        }
     }
 
     /// `@concur::task.done(Give $left)` waits for the task, gives back its result, passes its
@@ -789,5 +811,117 @@ impl Checker<'_> {
         self.context.scopes.pop();
         scope_check?;
         Ok((code, terminated))
+    }
+}
+
+impl Checker<'_> {
+    /// `$xs.%%split.mut(at.items: 500)` splits a list into two parts that don't overlap, each a
+    /// view a task can change, and `$xs.%split(at.items: 500)` into two to read. (D358, D382)
+    /// trace: D358, D382
+    pub(super) fn check_split(
+        &mut self,
+        receiver: &Expression,
+        receiver_type: &Type,
+        name: &crate::ast::Name,
+        changes: bool,
+        arguments: &[Argument],
+        span: Span,
+    ) -> Outcome<RawCall> {
+        let mutable = name.text == "split.mut";
+        if changes != mutable {
+            return Err(Self::wrong_receiver_mark(name, mutable));
+        }
+        let [at] = arguments else {
+            return Err(Report::refused(
+                span,
+                format!("`.%{}` takes `at.items:`", name.text),
+                "a split says where, counting items (D358, D382)",
+            ));
+        };
+        if at
+            .label
+            .as_ref()
+            .is_none_or(|label| label.text != "at.items")
+        {
+            return Err(Report::refused(
+                at.value.span,
+                format!("`.%{}` takes `at.items:`", name.text),
+                "`at.items:` says its unit, like `offset.items:` (D316, D358)",
+            ));
+        }
+        let item = match receiver_type {
+            Type::List { item, .. } | Type::Array { item, .. } => item.clone(),
+            Type::ListView {
+                item,
+                mutable: view_mutable,
+            } => {
+                if mutable && !view_mutable {
+                    return Err(Report::refused(
+                        receiver.span,
+                        "a read-only view can't be split into parts to change",
+                        "`.%%split.mut` needs a list that can change (D379, D382)",
+                    ));
+                }
+                item.clone()
+            }
+            _ => {
+                return Err(Report::refused(
+                    receiver.span,
+                    "only a list or an array splits",
+                    "(D382)",
+                ))
+            }
+        };
+        let word = if mutable {
+            HandWord::LendMut
+        } else {
+            HandWord::Lend
+        };
+        let held = self.check_lent_place(receiver, word)?;
+        let Some(place) = held.place else {
+            return Err(Report::refused(
+                receiver.span,
+                "a split views a list where it lives, in a variable",
+                "(D382)",
+            ));
+        };
+        let (at_node, found) = self.check_expression(
+            &at.value,
+            Some(&Type::plain_integer(crate::types::IntegerKind::U64)),
+        )?;
+        if !matches!(found, Type::Integer { .. }) {
+            return Err(Report::refused(
+                at.value.span,
+                format!("a split's place is an integer, and this is `{found}`"),
+                "(D358, D382)",
+            ));
+        }
+        Ok(RawCall {
+            node: Node {
+                span,
+                kind: NodeKind::Split {
+                    place,
+                    at: Box::new(at_node),
+                },
+            },
+            value_type: Type::Halves { item, mutable },
+            failures: Vec::new(),
+            unnamed: None,
+        })
+    }
+
+    /// What a split in a `let` lends, which its halves keep until both are done, and whether
+    /// they change it. (D382)
+    pub(super) fn split_borrows(&self, value: &Expression) -> (Vec<String>, bool) {
+        let ExpressionKind::Method { receiver, name, .. } = &value.kind else {
+            return (Vec::new(), false);
+        };
+        if !matches!(name.text.as_str(), "split" | "split.mut") {
+            return (Vec::new(), false);
+        }
+        let Some(root) = super::body::root_variable(receiver) else {
+            return (Vec::new(), false);
+        };
+        (self.borrow_roots(&root), name.text == "split.mut")
     }
 }

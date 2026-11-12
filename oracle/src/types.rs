@@ -191,6 +191,12 @@ pub enum Type {
     Task(Box<Type>),
     /// `@concur::atomic<u64>`: an integer or `bool` changed by indivisible instructions. (D354)
     Atomic(Box<Type>),
+    /// `std::coll::halves.mut<i32>`: a list split in two, `.first` and `.second`, each a view
+    /// of its part. (D382)
+    Halves {
+        item: Box<Type>,
+        mutable: bool,
+    },
     /// `@concur::lock<i64>`: a lock holding the data it protects. (D348)
     Lock(Box<Type>),
     /// A view of some or all of a list, which reads it, or with `.mut` changes its items but
@@ -373,6 +379,11 @@ impl fmt::Display for Type {
             Type::Task(result) => write!(formatter, "@concur::task<{result}>"),
             Type::Atomic(inner) => write!(formatter, "@concur::atomic<{inner}>"),
             Type::Lock(inner) => write!(formatter, "@concur::lock<{inner}>"),
+            Type::Halves { item, mutable } => write!(
+                formatter,
+                "std::coll::halves{}<{item}>",
+                if *mutable { ".mut" } else { "" }
+            ),
             Type::ListView { item, mutable } => write!(
                 formatter,
                 "std::coll::list{}<{item}>",
@@ -444,6 +455,16 @@ impl fmt::Display for Type {
     }
 }
 
+/// A view onto part of a list that lives elsewhere: half of a split, through which reads and
+/// writes reach the list itself. (D382)
+#[derive(Clone, Debug, PartialEq)]
+pub struct Window {
+    pub root: std::rc::Rc<std::cell::RefCell<Value>>,
+    pub path: Vec<usize>,
+    pub start: usize,
+    pub len: usize,
+}
+
 #[derive(Clone, Debug, PartialEq)]
 pub enum Value {
     Void,
@@ -459,6 +480,8 @@ pub enum Value {
     /// which allocator it uses, by number, once it first allocates. (D322)
     List(Vec<Value>, Option<usize>),
     Map,
+    /// Half of a split. (D382)
+    Window(Window),
 }
 
 impl Value {

@@ -1072,13 +1072,23 @@ impl Checker<'_> {
         // A pointer from `.of` keeps its variable lent while it exists. (D315)
         // trace: D315
         borrows.extend(Self::pointed_at(value));
-        // A task keeps what its call lent for as long as it exists. (D347)
-        // trace: D347
-        let (lent_to_task, task_changes) = self.spawn_borrows(value);
+        // A task keeps what its call lent for as long as it exists, and a split keeps its list
+        // lent until both halves are done. (D347, D382)
+        // trace: D347, D382
+        let (lent_to_task, task_changes, task_path) = self.spawn_borrows(value);
+        let borrowed_path = if borrows.is_empty() {
+            task_path
+        } else {
+            Vec::new()
+        };
         borrows.extend(lent_to_task);
+        let (split_from, split_changes) = self.split_borrows(value);
+        borrows.extend(split_from);
         self.context.spawned_failures = None;
         let node = self.check_into(value, &held_type)?;
         let spawned_failures = self.context.spawned_failures.take();
+        // Halves to change are lent on with `Lend.mut` with no `let mut`. (D382)
+        let mutable = mutable || matches!(held_type, Type::Halves { mutable: true, .. });
         let slot = self.declare_variable(Variable {
             name: name.text.clone(),
             held_type,
@@ -1088,13 +1098,16 @@ impl Checker<'_> {
             must_give,
             constant: None,
             borrows,
-            borrowed_path: Vec::new(),
+            borrowed_path,
         });
         if let Some(failures) = spawned_failures {
             self.context.task_failures.insert(slot, failures);
             if task_changes {
                 self.context.tasks_lending_mut.insert(slot);
             }
+        }
+        if split_changes {
+            self.context.tasks_lending_mut.insert(slot);
         }
         Ok(InstructionKind::Let { slot, value: node })
     }

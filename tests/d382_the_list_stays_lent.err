@@ -1,0 +1,9 @@
+refused: d382_the_list_stays_lent.cy:14:36, line 14 column 36
+14 |     let $one: i64 = first(Lend.mut $h.first);
+   |                                    ^^
+ what: `$h` can't be used after what it borrows was used
+ why:  a stored `Lend.mut` means nothing else uses it meanwhile, and a `Lend` means it can't change (D2)
+ because: d382_the_list_stays_lent.cy:13:12, line 13 column 12
+13 |     change $xs[pos: 1] = 9;
+   |            ^^^
+     what it borrows was used here
