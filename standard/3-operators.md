@@ -132,11 +132,11 @@ let $volume: u8[min: 0, max: 100] = 95;
 let $louder: u8[min: 0, max: 100] = $volume plus.saturate 10;
 ```
 
-`$louder` is 100. Saturating sticks at the bounds of the type the result goes into, the written type of the `let`, `change` or field, so two values with different bounds give no puzzle. To stick at the hardware's limit and check a bound afterwards, saturate in the plain type first, then assign.
+`$louder` is 100. Saturating sticks at the bounds of the type the result goes into, the written type of the `let`, `change` or field, so two values with different bounds give no puzzle. On a float with written bounds, `.saturate` sticks at the bound the same way, and `.wrap` is refused, since floats go to infinity rather than wrapping. To stick at the hardware's limit and check a bound afterwards, saturate in the plain type first, then assign.
 
 **Refused:** `+.wrap` and other narrowings on a symbol, with `fix: plus.wrap`, and a bare `plus`, `minus` or `times`, with `fix: +`, `-` or `x`.
 
-**From:** D42, D294, D295, D372.
+**From:** D42, D294, D295, D372, D373.
 
 ## 3.9 Grouping and precedence
 
