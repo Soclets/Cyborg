@@ -217,6 +217,11 @@ pub enum Expression {
     Float(String),
     /// A string literal's text, `empty` when it has none (2.9).
     Text(String),
+    /// `$v as str[len.max: 11 bytes]`, on a single value (2.14, 3.9).
+    As {
+        variable: String,
+        target: Type,
+    },
     Bool(bool),
     Variable(String),
     Binary {
@@ -911,6 +916,7 @@ impl Style {
         match value {
             Expression::Integer(number) => number.to_string(),
             Expression::Float(text) => text.clone(),
+            Expression::As { variable, target } => format!("${variable} as {}", target.word()),
             Expression::Text(text) if text.is_empty() => "empty".to_string(),
             Expression::Text(text) => {
                 format!("\"{}\"", text.replace('\\', "\\\\").replace('"', "\\\""))

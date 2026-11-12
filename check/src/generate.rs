@@ -659,9 +659,25 @@ impl Generator<'_> {
         let value_type = if self.random.chance(50) {
             Type::Text(None)
         } else {
-            Type::Text(Some(self.random.between(1, 12)))
+            Type::Text(Some(self.random.between(1, 22)))
         };
-        let value = self.expression(scope, value_type, LIMITS.depth);
+        let mut value = self.expression(scope, value_type, LIMITS.depth);
+        // A number into a bounded string with `as`, which fails when its text doesn't fit; a
+        // single value, since `as` goes on nothing else (2.14, 3.9).
+        if matches!(value_type, Type::Text(Some(_))) && self.random.chance(40) {
+            let integers: Vec<String> = scope
+                .variables
+                .iter()
+                .filter(|(_, found)| matches!(found, Type::Integer(_)))
+                .map(|(name, _)| name.clone())
+                .collect();
+            if let Some(variable) = self.random.pick(&integers).cloned() {
+                value = Expression::As {
+                    variable,
+                    target: value_type,
+                };
+            }
+        }
         let name = self.name("t");
         scope.variables.push((name.clone(), value_type));
         Statement::Let {

@@ -4,7 +4,8 @@
 
 /// Generated today:
 /// - values: `i32`, `i64`, `u8`, `u32` and `u64`; strings, as views from literals or other
-///   views, and holding up to some bytes from literals that fit, counting a two-byte `é`; bounded integers from literals that fit or
+///   views, and holding up to some bytes from literals that fit, counting a two-byte `é`, or from
+///   a number with `as`, which fails when its text doesn't fit; bounded integers from literals that fit or
 ///   checked values; `f32.stable` and `f64.stable` from exact literals and ones marked `~`;
 ///   `const` from literals and other constants; `decl mut` with an `assign` on each path;
 /// - maths: `+`, `-`, `x`, the `.wrap` and `.saturate` words, `div` and `mod` with `.trunc` and
@@ -33,7 +34,7 @@ pub const NOT_GENERATED: &[&str] = &[
     "2.6, 2.7 `.fast` and `.ieee` floats, bounded floats, `exponent` literals, `fmt_print.stored`, floats in structs, arrays and calls",
     "2.9 heap strings, escapes in string literals, comparing strings, strings as values in prints, fields and calls",
     "2.10 and 2.12 growable lists and maps, allocators, `done`, `.len`, views and splits, a full list's failure handled",
-    "2.14 `as`, and its failures",
+    "2.14 `as` between other types, which isn't decided (12.3), `as` failures handled",
     "2.16 units, their conversions, points and spans",
     "2.18 `type.alias`, `type.new` and type families",
     "2.19 `decl` assigned in loops or `match` arms, or never changed",
