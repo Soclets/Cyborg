@@ -107,7 +107,7 @@ Waiting on the owner, most needed first. Each is `NotDesignedYet` unless it says
 
 ## 12.5 Functions
 
-- Generics (D85, D87): the spelling, including `?T` and declaring a bound, how a bound is defined, whether you can declare one for a type from someone else's kit, and how specialization and value parameters are written.
+- Generics: how specialization and value parameters are written. The spelling, requirements and `satisfies` are decided (D234 to D241, 5.8).
 - Whether a `fn.pure` may allocate or fail.
 - Assembly blocks (D233): one variable going both in and out of the same register, like CyborgPL's `<->`, since reading one variable into a register and writing it out to another is already shown in 9.4, lending an address into a register, `on.target`'s narrowings like `.chip` and `.os`, and chips' names.
 - How a C function is declared and called through `@csup` (D225), and whether D220 covers a limb function's narrowing.
