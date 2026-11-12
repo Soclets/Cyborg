@@ -989,11 +989,18 @@ impl Checker<'_> {
         else {
             return false;
         };
-        *target == Type::Str
-            && matches!(
+        match target {
+            Type::Str => matches!(
                 self.type_of_place(inner),
                 Some(Type::BoundedStr(_) | Type::GrowableStr)
-            )
+            ),
+            // Lending a list or an array gives a view of it. (D379, D381)
+            Type::ListView { .. } => matches!(
+                self.type_of_place(inner),
+                Some(Type::List { .. } | Type::Array { .. })
+            ),
+            _ => false,
+        }
     }
 
     fn type_of_place(&self, value: &Expression) -> Option<Type> {

@@ -250,6 +250,7 @@ impl Type {
     pub fn why_copied(&self) -> &'static str {
         match self {
             Type::Str => "a bare `str` is a view, a pointer and a length to read-only text, so copying one can't change or free anything, and it takes no word (D368)",
+            Type::ListView { .. } => "a read-only list view is copied like a `str` view, since copying read-only data can't change or free anything, and it takes no word (D368, D381)",
             _ => "plain numbers and `bool` are always copied, and take no word (D2, D123)",
         }
     }
@@ -266,7 +267,10 @@ impl Type {
             | Type::Float { .. }
             | Type::Bool
             | Type::Pointer { .. }
-            | Type::Str => true,
+            | Type::Str
+            // A read-only list view copies freely too, and a `.mut` one can't. (D381)
+            // trace: D381
+            | Type::ListView { mutable: false, .. } => true,
             Type::Secret(inner) => inner.is_always_copied(),
             // A vector is a machine type like `i32`, so it's copied the same way. (D291)
             Type::Simd { item, .. } => item.is_always_copied(),

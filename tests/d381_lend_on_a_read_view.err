@@ -1,0 +1,5 @@
+refused: d381_lend_on_a_read_view.cy:10:18, line 10 column 18
+10 |     return first(Lend $xs);
+   |                  ^^^^^^^^
+ fix:  `$xs`
+ why:  a read-only list view is copied like a `str` view, since copying read-only data can't change or free anything, and it takes no word (D368, D381)
