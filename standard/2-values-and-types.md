@@ -138,13 +138,13 @@ On `f64.ieee`, both print NaN and infinity as the words `NaN`, `inf` and `-inf`.
 
 `std::math::sqrt` is correctly rounded on every float kind, `.stable` included, since square root is one of IEEE 754's basic operations, like `+` and `div`, and every CPU's square-root instruction already gives the closest float. So it needs no CORE-MATH, compiles to that one instruction, and is reproducible at no cost. On a chip with no instruction for that float, like `f64` on the Uno R4 WiFi's Cortex-M4, it's software, still correctly rounded.
 
-It takes and gives values 0 or above, written as bounds in its own signature, `[min: 0.0, max: inf]`, so a negative input is out of bounds and follows 10.4's row for that. Where the compiler can prove the input isn't negative, like a sum of squares, the check costs nothing, and the bounded result lets later checks go too.
+It takes and gives values 0 or above, written as bounds in its own signature, `[min: 0.0, max: inf]`, so a negative input is out of bounds and follows 10.4's row for that. Where the compiler can prove the input isn't negative, like a sum of squares, the check costs nothing, and the bounded result lets later checks go too. It halves every unit power, so square meters give meters and meters squared per second squared give meters per second, a plain number stays plain, and an odd power, like plain meters, is refused, with a fix that takes the unit off with `as` first.
 
 ```
 let $r: f64.stable = std::math::sqrt($d2);
 ```
 
-**From:** D54, D59, D158, D159, D160, D161, D162, D163, D166, D167, D257, D405, D406.
+**From:** D54, D59, D158, D159, D160, D161, D162, D163, D166, D167, D257, D405, D406, D407.
 
 ## 2.7 Inexact literals: `~`
 

@@ -1314,6 +1314,8 @@ A `type_set` is a closed list of types that nothing can join later, as in `type_
 
 **D406. `std::math::sqrt` takes and gives values 0 or above, as bounds.** Its signature writes `[min: 0.0, max: inf]` on both its parameter and its result, so a negative input is an out-of-bounds value, following 10.4's existing row: a crash in `Working`, a trap in `FinalSafe` and `Literal`, and UB in `FinalPerf`, `FinalShit` and `FinalSmall`. Where `OKAY\n` can prove the input isn't negative (D312), like n-body's sum of squares, there's no check at all, and the bounded result lets later checks go too. That's over returning NaN, which spreads silently and which 10.4 treats as an error anyway, and over a `fails [negative]`, which would put a `?` on every square root. Claude proposed it; the owner asked "Why?" twice, and chose: "Yea, just asking". (Owner, 2026-11-12)
 
+**D407. `std::math::sqrt` halves every unit power, and refuses odd ones.** Units are tracked as powers of their bases (2.16, D242), so a square root halves each: `std::math::sqrt` of a value in square meters is in meters, and of meters squared per second squared is in meters per second, which is how physics already works, and the result still has to be stored in a declared unit whose powers match. An odd power, like plain meters, would give meters to the ½, which no unit uses, so it's refused, with a fix that takes the unit off with `as` first (D255) for code that really means it. A plain number stays plain. Claude proposed it; the owner chose: "yea". (Owner, 2026-11-12)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude
