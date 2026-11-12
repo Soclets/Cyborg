@@ -2,4 +2,4 @@ refused: d232_use_inline_asm.cy:4:1, line 4 column 1
  4 | use inline.asm as asm;
    | ^^^^^^^^^^^^^^^^^^^^^^
  fix:  ``
- why:  `use` only shortens a path with `::` into a kit or limb, so every `inline.…` stays written in full (D232)
+ why:  `use` only shortens a path with `::` into a kit or limb, so a base family like `inline.…` or `union.…` stays written in full, a limb's members included (D232, D399)

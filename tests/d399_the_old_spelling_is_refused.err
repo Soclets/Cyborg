@@ -1,0 +1,5 @@
+refused: d399_the_old_spelling_is_refused.cy:8:5, line 8 column 5
+ 8 |     @csup::union.untagged number:
+   |     ^^^^^^^^^^^^^^^^^^^^^
+ fix:  `union.@csup::untagged`
+ why:  the limb's untagged union joins the base `union` family, as `inline.@llvm::ir` joins `inline.` (D399, D227)

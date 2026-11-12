@@ -1,7 +1,7 @@
 // trace: D155, D225
-import @csup;
+import @money;
 
-use @csup::union.untagged as @untagged;
+use @money::round as @round;
 
 fn.main [none] -> void:
     return void;

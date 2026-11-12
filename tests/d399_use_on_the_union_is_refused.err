@@ -1,0 +1,5 @@
+refused: d399_use_on_the_union_is_refused.cy:5:1, line 5 column 1
+ 5 | use union.@csup::untagged as untagged;
+   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ fix:  ``
+ why:  `use` only shortens a path with `::` into a kit or limb, so a base family like `inline.…` or `union.…` stays written in full, a limb's members included (D232, D399)

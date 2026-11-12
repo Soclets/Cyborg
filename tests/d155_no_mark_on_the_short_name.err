@@ -1,5 +1,5 @@
-refused: d155_no_mark_on_the_short_name.cy:4:30, line 4 column 30
- 4 | use @csup::union.untagged as @untagged;
-   |                              ^^^^^^^^^
- fix:  `untagged`
- why:  `@` with no `::` is a compiler builtin, so `@untagged` looks like one (D155, D56)
+refused: d155_no_mark_on_the_short_name.cy:4:22, line 4 column 22
+ 4 | use @money::round as @round;
+   |                      ^^^^^^
+ fix:  `round`
+ why:  `@` with no `::` is a compiler builtin, so `@round` looks like one (D155, D56)

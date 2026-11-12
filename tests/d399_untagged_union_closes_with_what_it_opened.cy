@@ -1,14 +1,13 @@
-// trace: D155, D38, D257
+// The closer repeats all of what it opens, the limb's narrowing included.
+// trace: D121, D399
+import std;
 import @csup;
-
-use @csup::union.untagged as untagged;
 
 shield c_number:
     reason "matches the union in libfoo's header"
-    untagged number:
+    union.@csup::untagged number:
         i: i32;
-        f: f32.ieee;
-    end untagged number
+    end union.untagged number
 end shield c_number
 
 fn.main [none] -> void:

@@ -628,11 +628,20 @@ impl Checker<'_> {
             return Err(report);
         }
         let text = &declared.path.text;
-        if text.starts_with("inline.") || !text.contains("::") {
+        // trace: D399
+        if text == "@csup::union.untagged" {
+            return Err(Report::refused(
+                declared.path.span,
+                "C's untagged union is `union.@csup::untagged`",
+                "the limb's untagged union joins the base `union` family, as `inline.@llvm::ir` joins `inline.` (D399, D227)",
+            )
+            .fix("union.@csup::untagged"));
+        }
+        if text.starts_with("inline.") || text.starts_with("union.") || !text.contains("::") {
             return Err(Report::refused(
                 declared.span,
                 format!("`{text}` is in the base language, so it has no shorter name"),
-                "`use` only shortens a path with `::` into a kit or limb, so every `inline.…` stays written in full (D232)",
+                "`use` only shortens a path with `::` into a kit or limb, so a base family like `inline.…` or `union.…` stays written in full, a limb's members included (D232, D399)",
             )
             .fix(""));
         }
@@ -1010,7 +1019,7 @@ impl Checker<'_> {
                 }
                 for content in &shield.items {
                     if let ShieldContent::UntaggedUnion { path, .. } = content {
-                        if path.text != "@csup::union.untagged" {
+                        if path.text != "union.@csup::untagged" {
                             return Err(Report::not_designed(
                                 path.span,
                                 format!("`{}`", path.text),

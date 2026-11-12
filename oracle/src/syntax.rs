@@ -1261,6 +1261,17 @@ const DEPTH_LIMIT: usize = 2000;
 
 const BLOCK_WHY: &str = "`;` ends a statement, `:` opens a block, and `end` closes it (D33)";
 
+/// `@csup::union.untagged`, the spelling from before limbs joined base families.
+/// trace: D399
+fn old_untagged(span: Span) -> Box<Report> {
+    Report::refused(
+        span,
+        "C's untagged union is `union.@csup::untagged`",
+        "the limb's untagged union joins the base `union` family, as `inline.@llvm::ir` joins `inline.` (D399, D227)",
+    )
+    .fix("union.@csup::untagged")
+}
+
 impl Parser {
     fn peek(&self) -> &Token {
         self.peek_at(0)
@@ -1897,7 +1908,9 @@ impl Parser {
             // `inline.@llvm::ir`: a limb's inline language, the one place a path sits inside a
             // narrowing. (D227)
             // trace: D227
-            if text == "inline" && separator == "." && self.symbol_at(1, "@") {
+            // `union.@csup::untagged` joins the base `union` family the same way. (D399)
+            // trace: D399
+            if (text == "inline" || text == "union") && separator == "." && self.symbol_at(1, "@") {
                 let Lexeme::Word(limb) = self.peek_at(2).lexeme.clone() else {
                     break;
                 };
@@ -2116,11 +2129,7 @@ impl Parser {
         if self.at_symbol("@") {
             let path = self.parse_path()?;
             if path.text == "@csup::union.untagged" {
-                return Err(Report::refused(
-                    path.span,
-                    "`@csup::union.untagged` must be inside a shield",
-                    "a shield is the only place dangerous code may live (D34, D38)",
-                ));
+                return Err(old_untagged(path.span));
             }
             return Err(Report::not_designed(
                 path.span,
@@ -2683,6 +2692,15 @@ impl Parser {
             .fix("union.tagged"));
         }
         self.advance();
+        // trace: D399, D38
+        if self.at_symbol("@") {
+            let end = self.span();
+            return Err(Report::refused(
+                start.to(end),
+                "`union.@csup::untagged` must be inside a shield",
+                "a shield is the only place dangerous code may live (D34, D38)",
+            ));
+        }
         let narrowing = self.expect_name("a narrowing of `union`")?;
         match narrowing.text.as_str() {
             "tagged" => {}
@@ -2690,9 +2708,10 @@ impl Parser {
             "untagged" => {
                 return Err(Report::refused(
                     start.to(narrowing.span),
-                    "C's untagged union is `@csup::union.untagged`, inside a shield",
-                    "C support is the limb `@csup`, and that union must be inside a shield (D35, D38)",
-                ));
+                    "C's untagged union is `union.@csup::untagged`, inside a shield",
+                    "C support is the limb `@csup`, and that union must be inside a shield (D35, D38, D399)",
+                )
+                .fix("union.@csup::untagged"));
             }
             other => {
                 return Err(Report::not_designed(
@@ -3020,8 +3039,13 @@ impl Parser {
                     .cloned(),
                 _ => None,
             };
-            if self.at_symbol("@") || short_limb.is_some() {
+            let joined = self.at_word("union") && self.symbol_at(1, ".") && self.symbol_at(2, "@");
+            if self.at_symbol("@") || short_limb.is_some() || joined {
                 let written = self.parse_path()?;
+                // trace: D399
+                if written.text == "@csup::union.untagged" {
+                    return Err(old_untagged(written.span));
+                }
                 let path = match &short_limb {
                     Some((_, whole)) => Path {
                         text: whole.clone(),
@@ -3082,9 +3106,12 @@ impl Parser {
         // `@csup::union.untagged number` names a C union, which is built and read in shields.
         // trace: D398
         if path.text == "@csup::union.untagged" {
+            return Err(old_untagged(path.span));
+        }
+        if path.text == "union.@csup::untagged" {
             return Err(Report::not_built(
                 path.span,
-                "building and reading a `@csup::union.untagged`",
+                "building and reading a `union.@csup::untagged`",
             ));
         }
         // `f64.?u`: a unit parameter, where a unit goes. (D243)

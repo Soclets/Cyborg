@@ -1,11 +1,11 @@
-// trace: D155, D121
+// `@csup::union.untagged` dates from before limbs joined base families.
+// trace: D399
+import std;
 import @csup;
-
-use @csup::union.untagged as untagged;
 
 shield c_number:
     reason "matches the union in libfoo's header"
-    untagged number:
+    @csup::union.untagged number:
         i: i32;
     end @csup::union.untagged number
 end shield c_number

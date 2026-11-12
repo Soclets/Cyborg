@@ -1,5 +1,0 @@
-refused: d155_untagged_union_closes_with_what_it_opened.cy:10:5, line 10 column 5
-10 |     end @csup::union.untagged number
-   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
- fix:  `end untagged number`
- why:  the closer repeats all of what it closes, including its narrowings and name (D33, D121)
