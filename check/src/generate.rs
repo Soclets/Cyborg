@@ -28,6 +28,8 @@ struct Scope {
     variables: Vec<(String, Type)>,
     /// Arrays, with their item type and length.
     arrays: Vec<(String, Kind, i128)>,
+    /// Bounded lists, with their item type and `len.max`.
+    lists: Vec<(String, Kind, i128)>,
     /// Struct variables, with which struct each is.
     records: Vec<(String, usize)>,
     /// Union variables, with which union each is.
@@ -82,6 +84,7 @@ pub fn program(seed: u64) -> Program {
     let mut scope = Scope {
         variables: Vec::new(),
         arrays: Vec::new(),
+        lists: Vec::new(),
         records: Vec::new(),
         cased: Vec::new(),
         case_fields: Vec::new(),
@@ -153,6 +156,7 @@ impl Generator<'_> {
         let mut scope = Scope {
             variables: Vec::new(),
             arrays: Vec::new(),
+            lists: Vec::new(),
             records: Vec::new(),
             cased: Vec::new(),
             case_fields: Vec::new(),
@@ -259,6 +263,7 @@ impl Generator<'_> {
     ) -> Vec<Statement> {
         let declared_before = scope.variables.len();
         let arrays_before = scope.arrays.len();
+        let lists_before = scope.lists.len();
         let records_before = scope.records.len();
         let cased_before = scope.cased.len();
         let case_fields_before = scope.case_fields.len();
@@ -270,6 +275,7 @@ impl Generator<'_> {
         // What a block declares ends with it.
         scope.variables.truncate(declared_before);
         scope.arrays.truncate(arrays_before);
+        scope.lists.truncate(lists_before);
         scope.records.truncate(records_before);
         scope.cased.truncate(cased_before);
         scope.case_fields.truncate(case_fields_before);
@@ -406,6 +412,7 @@ impl Generator<'_> {
             }
             8 if depth < 2 => self.range_loop(scope, depth, prints),
             9 if depth < 2 && self.random.chance(30) => self.loop_over(scope, depth, prints),
+            9 if self.random.chance(30) => self.list_statement(scope),
             9 if self.random.chance(50) => self.array_statement(scope),
             9 if self.random.chance(50) => self.record_statement(scope),
             9 => self.union_statement(scope, depth, prints),
@@ -842,6 +849,45 @@ impl Generator<'_> {
         }
     }
 
+    /// A new bounded list, from `[ ]` or `empty`, an `append` to one in scope, which stops the
+    /// program when it's full, or a change to one of its items, which is checked while
+    /// running (2.10, 2.17, 8.9).
+    fn list_statement(&mut self, scope: &mut Scope) -> Statement {
+        if let Some((list, kind, max)) = self.random.pick(&scope.lists).cloned() {
+            if self.random.chance(50) {
+                let value = self.expression(scope, Type::Integer(kind), LIMITS.depth);
+                return Statement::Append { list, value };
+            }
+            if self.random.chance(50) {
+                let position = if self.random.chance(50) {
+                    Position::Pos(self.random.between(1, max))
+                } else {
+                    Position::Offset(self.random.between(0, max - 1))
+                };
+                let value = self.expression(scope, Type::Integer(kind), LIMITS.depth);
+                return Statement::ChangeItem {
+                    array: list,
+                    position,
+                    value,
+                };
+            }
+        }
+        let kind = self.integer_kind();
+        let max = self.random.between(1, 6);
+        let count = self.random.between(0, max);
+        let items = (0..count)
+            .map(|_| self.expression(scope, Type::Integer(kind), LIMITS.depth))
+            .collect();
+        let name = self.name("l");
+        scope.lists.push((name.clone(), kind, max));
+        Statement::LetList {
+            name,
+            kind,
+            max,
+            items,
+        }
+    }
+
     /// A new array, or a change to an item of one in scope.
     fn array_statement(&mut self, scope: &mut Scope) -> Statement {
         if let Some((array, kind, len)) = self.random.pick(&scope.arrays).cloned() {
@@ -977,6 +1023,7 @@ impl Generator<'_> {
             let arrays: Vec<(String, i128)> = scope
                 .arrays
                 .iter()
+                .chain(&scope.lists)
                 .filter(|(_, found, _)| *found == kind)
                 .map(|(name, _, len)| (name.clone(), *len))
                 .collect();

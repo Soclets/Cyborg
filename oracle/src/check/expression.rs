@@ -1256,7 +1256,10 @@ impl Checker<'_> {
                 ));
             }
         };
-        if self.is_pure() && matches!(target, Type::List { .. }) {
+        // A list with a finite `len.max` holds its items inside it, so filling one allocates
+        // nothing, and only one that grows on the heap could. (D321, 12.5)
+        // trace: D321
+        if self.is_pure() && matches!(target, Type::List { max: None, .. }) {
             return Err(Report::not_designed(
                 span,
                 "whether a `fn.pure` may allocate",

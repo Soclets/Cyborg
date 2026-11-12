@@ -364,6 +364,18 @@ pub enum Statement {
         field: String,
         value: Expression,
     },
+    /// `let mut $l: std::coll::list<i32>[len.max: 4 items] = [1, 2];`, or `= empty` (2.10)
+    LetList {
+        name: String,
+        kind: Kind,
+        max: i128,
+        items: Vec<Expression>,
+    },
+    /// `$l.std::%%append(val: …);`, which stops the program when the list is full (2.10, 8.9).
+    Append {
+        list: String,
+        value: Expression,
+    },
     /// `change $a[pos: 2] = …;` (2.17)
     ChangeItem {
         array: String,
@@ -637,6 +649,32 @@ fn print_block(out: &mut String, statements: &[Statement], depth: usize, style: 
                     out,
                     "{indent}let mut ${name}: std::coll::array<{}>[len: {len} items] = {filling};",
                     kind.word()
+                );
+            }
+            Statement::LetList {
+                name,
+                kind,
+                max,
+                items,
+            } => {
+                let items = if items.is_empty() {
+                    "empty".to_string()
+                } else {
+                    let items: Vec<String> =
+                        items.iter().map(|item| style.expression(item)).collect();
+                    format!("[{}]", items.join(", "))
+                };
+                let _ = writeln!(
+                    out,
+                    "{indent}let mut ${name}: std::coll::list<{}>[len.max: {max} items] = {items};",
+                    kind.word()
+                );
+            }
+            Statement::Append { list, value } => {
+                let _ = writeln!(
+                    out,
+                    "{indent}${list}.std::%%append(val: {});",
+                    style.expression(value)
                 );
             }
             Statement::LetStruct {
