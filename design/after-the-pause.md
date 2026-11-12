@@ -10,8 +10,8 @@ What's waiting for when the owner unpauses Cyborg, written down on 2026-11-11 so
 
 ## compiler claude
 
-Starts later than the oracle (owner, 2026-11-12). It does its remaining work first, the list below and its own plan,
-then catches up on the decisions it missed.
+Starts on 2026-11-13 (owner), with `design/compiler-resume-prompt.md`: its own remaining work first, against the tests at
+`37a5f03b`, then a separate catch-up prompt for D288 onwards.
 
 Waited for Lyftar's embedded clang (Lyftar's D55, Cyborg's D308), which is ready since 2026-11-12: `lyftar::compile_c`
 (SystemTarget, the C file, the object, CCompileOptions with include folders and defines). Lyftar renamed `LinkTarget` to
