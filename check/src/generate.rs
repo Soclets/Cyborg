@@ -215,7 +215,7 @@ impl Generator<'_> {
                 };
                 let data = carried.as_ref().and_then(|(_, found)| match found {
                     Type::Integer(kind) => Some(*kind),
-                    Type::Bool | Type::Float(_) | Type::Bounded(..) => None,
+                    Type::Bool | Type::Float(_) | Type::Bounded(..) | Type::Text(_) => None,
                 });
                 let test = self.expression(&scope, Type::Bool, LIMITS.depth);
                 body.push(Statement::If {
@@ -297,7 +297,7 @@ impl Generator<'_> {
             .filter(|(name, value_type)| {
                 matches!(
                     value_type,
-                    Type::Integer(_) | Type::Float(_) | Type::Bounded(..)
+                    Type::Integer(_) | Type::Float(_) | Type::Bounded(..) | Type::Text(_)
                 ) && !name.starts_with('i')
                     && !name.starts_with('x')
                     && !name.starts_with('k')
@@ -310,6 +310,7 @@ impl Generator<'_> {
                 self.union_statement(scope, 2, prints)
             }
             0..=3 if self.random.chance(8) => self.constant(scope),
+            0..=3 if self.random.chance(10) => self.text_let(scope),
             0..=3 if self.random.chance(8) => {
                 let kind = self.integer_kind();
                 let test = self.expression(scope, Type::Bool, LIMITS.depth);
@@ -512,17 +513,25 @@ impl Generator<'_> {
             .variables
             .iter()
             .filter(|(_, found)| {
-                matches!(found, Type::Integer(_) | Type::Float(_) | Type::Bounded(..))
+                matches!(
+                    found,
+                    Type::Integer(_) | Type::Float(_) | Type::Bounded(..) | Type::Text(_)
+                )
             })
             .cloned()
             .collect();
+        let style = self.random.between(0, 2);
         let mut chosen = Vec::new();
         for _ in 0..self.random.between(1, 3) {
             if let Some(found) = self.random.pick(&printable).cloned() {
+                // A string holding its bytes prints through a named hole here, since how one
+                // goes in as a value isn't shown (1.13).
+                if style != 2 && matches!(found.1, Type::Text(Some(_))) {
+                    continue;
+                }
                 chosen.push(found);
             }
         }
-        let style = self.random.between(0, 2);
         let mut text = String::new();
         let mut values = Vec::new();
         let mut order: Vec<usize> = (0..chosen.len()).collect();
@@ -580,6 +589,17 @@ impl Generator<'_> {
         let mut shapes: Vec<String> = Vec::new();
         let width = self.random.between(1, 12);
         match value_type {
+            Type::Text(_) => {
+                if self.random.chance(50) {
+                    let align = *self
+                        .random
+                        .pick(&["left", "right", "center"])
+                        .unwrap_or(&"left");
+                    shapes.push(format!("align: {align}"));
+                    shapes.push(format!("width: {width} cols"));
+                }
+                return shapes.join(", ");
+            }
             Type::Float(_) => match self.random.between(0, 3) {
                 0 => shapes.push(format!("places: {}", self.random.between(0, 4))),
                 1 => {
@@ -631,6 +651,48 @@ impl Generator<'_> {
             shapes.push("sign".to_string());
         }
         shapes.join(", ")
+    }
+
+    /// A string variable: a view, from a literal or another view, or one holding up to some
+    /// bytes inside it, from a literal that fits (2.9).
+    fn text_let(&mut self, scope: &mut Scope) -> Statement {
+        let value_type = if self.random.chance(50) {
+            Type::Text(None)
+        } else {
+            Type::Text(Some(self.random.between(1, 12)))
+        };
+        let value = self.expression(scope, value_type, LIMITS.depth);
+        let name = self.name("t");
+        scope.variables.push((name.clone(), value_type));
+        Statement::Let {
+            name,
+            value_type,
+            value,
+        }
+    }
+
+    /// Text for a string of this type: a literal of letters, spaces or a two-byte `é`, since
+    /// escapes in a string literal aren't decided (12.2), no longer than a bounded string holds, `empty`, or for a view now and then
+    /// another view, which copies with no word (2.9, D368).
+    fn text(&mut self, scope: &Scope, bytes: Option<i128>) -> Expression {
+        if bytes.is_none() && self.random.chance(30) {
+            if let Some(variable) = self.variable_of(scope, Type::Text(None)) {
+                return variable;
+            }
+        }
+        let room = usize::try_from(bytes.unwrap_or(12)).unwrap_or(12);
+        let mut text = String::new();
+        for _ in 0..self.random.between(0, 10) {
+            let piece = *self
+                .random
+                .pick(&["a", "b", "k", "o", "z", " ", "é"])
+                .unwrap_or(&"a");
+            if text.len() + piece.len() > room {
+                break;
+            }
+            text.push_str(piece);
+        }
+        Expression::Text(text)
     }
 
     /// `const`, from literals and constants alone, joined with operators that can't overflow or
@@ -976,6 +1038,7 @@ impl Generator<'_> {
             Type::Bool => self.boolean(scope, depth),
             // Into a bounded integer, anything not a literal is checked while running (2.5).
             Type::Integer(kind) | Type::Bounded(kind, ..) => self.integer(scope, kind, depth),
+            Type::Text(bytes) => self.text(scope, bytes),
             Type::Float(wide) => self.float(scope, wide, depth),
         }
     }

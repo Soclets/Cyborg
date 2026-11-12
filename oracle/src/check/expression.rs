@@ -2770,15 +2770,22 @@ impl Checker<'_> {
         if !changes {
             return Err(Self::wrong_receiver_mark(name, true));
         }
+        // trace: D5
+        let held = self.check_lent_place(receiver, crate::ast::HandWord::LendMut)?;
+        // A list that grows on the heap allocates, and one with a finite `len.max` doesn't but
+        // fails when it's full; whether a pure function may do either isn't decided. (D321, 12.5)
         if self.is_pure() {
+            let growable = matches!(held.value_type, Type::List { max: None, .. });
             return Err(Report::not_designed(
                 span,
-                "whether a `fn.pure` may allocate",
+                if growable {
+                    "whether a `fn.pure` may allocate"
+                } else {
+                    "whether a `fn.pure` may fail, as appending to a full list does"
+                },
                 "12.5",
             ));
         }
-        // trace: D5
-        let held = self.check_lent_place(receiver, crate::ast::HandWord::LendMut)?;
         let (
             Some(place),
             Type::List {

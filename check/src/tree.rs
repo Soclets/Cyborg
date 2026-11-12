@@ -55,6 +55,8 @@ pub enum Type {
     Float(bool),
     /// `i32[min: 0, max: 100]`: still the integer, holding only that range (2.5).
     Bounded(Kind, i128, i128),
+    /// `str`, a view, or `str[len.max: 8 bytes]`, holding that many bytes inside (2.9).
+    Text(Option<i128>),
 }
 
 impl Type {
@@ -65,6 +67,8 @@ impl Type {
             Type::Float(true) => "f64.stable".to_string(),
             Type::Float(false) => "f32.stable".to_string(),
             Type::Bounded(kind, low, high) => format!("{}[min: {low}, max: {high}]", kind.word()),
+            Type::Text(None) => "str".to_string(),
+            Type::Text(Some(bytes)) => format!("str[len.max: {bytes} bytes]"),
         }
     }
 }
@@ -211,6 +215,8 @@ pub enum Expression {
     /// A float literal as written, `1.25` or `~0.1`, which is negative when it starts with `-`
     /// or `~-` (2.7).
     Float(String),
+    /// A string literal's text, `empty` when it has none (2.9).
+    Text(String),
     Bool(bool),
     Variable(String),
     Binary {
@@ -905,6 +911,10 @@ impl Style {
         match value {
             Expression::Integer(number) => number.to_string(),
             Expression::Float(text) => text.clone(),
+            Expression::Text(text) if text.is_empty() => "empty".to_string(),
+            Expression::Text(text) => {
+                format!("\"{}\"", text.replace('\\', "\\\\").replace('"', "\\\""))
+            }
             Expression::Bool(truth) => truth.to_string(),
             Expression::Variable(name) => format!("${name}"),
             Expression::Binary {
@@ -1006,6 +1016,7 @@ impl Style {
                 ..
             } => format!("({})", self.expression(value)),
             Expression::Variable(_)
+            | Expression::Text(_)
             | Expression::Bool(_)
             | Expression::Call { .. }
             | Expression::Item { .. }

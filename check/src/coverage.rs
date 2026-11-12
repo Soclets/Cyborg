@@ -3,7 +3,8 @@
 //! generator learns it.
 
 /// Generated today:
-/// - values: `i32`, `i64`, `u8`, `u32` and `u64`; bounded integers from literals that fit or
+/// - values: `i32`, `i64`, `u8`, `u32` and `u64`; strings, as views from literals or other
+///   views, and holding up to some bytes from literals that fit, counting a two-byte `é`; bounded integers from literals that fit or
 ///   checked values; `f32.stable` and `f64.stable` from exact literals and ones marked `~`;
 ///   `const` from literals and other constants; `decl mut` with an `assign` on each path;
 /// - maths: `+`, `-`, `x`, the `.wrap` and `.saturate` words, `div` and `mod` with `.trunc` and
@@ -30,7 +31,7 @@ pub const NOT_GENERATED: &[&str] = &[
     "2.3 `const` calling `fn.pure.baked` functions, float constants, constants whose maths overflows",
     "2.5 bounded parameters and fields, the test `if $n: T:` that checks a bound",
     "2.6, 2.7 `.fast` and `.ieee` floats, bounded floats, `exponent` literals, `fmt_print.stored`, floats in structs, arrays and calls",
-    "2.9 strings: views, bounded and heap strings",
+    "2.9 heap strings, escapes in string literals, comparing strings, strings as values in prints, fields and calls",
     "2.10 and 2.12 growable lists and maps, allocators, `done`, `.len`, views and splits, a full list's failure handled",
     "2.14 `as`, and its failures",
     "2.16 units, their conversions, points and spans",
