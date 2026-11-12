@@ -8,6 +8,9 @@ What's waiting for when the owner unpauses Cyborg, written down on 2026-11-11 so
   D338.
 
 
+- **Handles for shared data:** a `std` slots collection with run-time checked handles, for things like game objects,
+  after the compiler's up (12.2).
+
 ## compiler claude
 
 Starts on 2026-11-13, which is about getting the compiler back up, with no big design that day (owner). It uses
