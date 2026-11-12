@@ -1296,6 +1296,8 @@ A `type_set` is a closed list of types that nothing can join later, as in `type_
 
 **D397. Comparing values with units follows storing's rule.** Two values compare when one could be stored into the other's type, so a computed `$dist div $time`, length per time, compares with a stored `f64.stable[unit: motion.speed]`, since 2.16 already lets it be stored there, their powers matching. What would need an `as` to store, like a different scale, needs the same `as` to compare. It would be odd for `let $s: … motion.speed = $dist div $time;` to work while `$s == $dist div $time` doesn't. Oracle claude found comparing unstated; Claude proposed it; the owner chose: "yea". (Owner, 2026-11-12)
 
+**D398. An untagged union is built by naming one field, and any field can be read, all inside shields.** `@csup::union.untagged` (D33, D35) is built like a struct, naming exactly the one field being written, as in `number[f = 1.5]`, and any field can be read, as `$n.i`, which nothing checks against the field written. That's C's `union`, for matching C's memory layouts through `@csup` and bit tricks, and why D38 keeps it inside shields: declaring, building and reading it are all shield code, where the reason vouches for it. Building one with no field or more than one is refused. Oracle claude found only its declaration written down; Claude proposed it; the owner chose: "yea". (Owner, 2026-11-12)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude

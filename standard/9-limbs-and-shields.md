@@ -165,7 +165,19 @@ shield c_number:
 end shield c_number
 ```
 
-**From:** D33, D35, D38.
+It's built like a struct, naming exactly one field, the one being written, and any field can be read, which nothing checks against the one written. Building and reading it are shield code too, where the reason vouches for it.
+
+```
+shield read_bits:
+    reason "reading the bits libfoo wrote as an i32"
+    let $n: @csup::union.untagged number = number[f = 1.5];
+    let $bits: i32 = $n.i;
+end shield read_bits
+```
+
+**Refused:** building one with no field or more than one, and declaring, building or reading one outside a shield.
+
+**From:** D33, D35, D38, D398.
 
 ## 9.7 Shields
 
