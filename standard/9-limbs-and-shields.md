@@ -63,9 +63,11 @@ need csup 2026y-09m-30d with headers
 
 ## 9.3 `std`'s two parts
 
-**Rule:** bare `std::` reaches the kit part, written in Cyborg and built by the compiler. `@std::` reaches the limb part, which lives in the compiler, in Rust, with its names and signatures visible in Cyborg.
+**Rule:** bare `std::` reaches the kit part, written in Cyborg and built by the compiler. `@std::` reaches the limb part, a limb like any other.
 
-**From:** D22, D28.
+Every limb is a native library for the machine compiling, a `.dylib`, `.so` or `.dll`, behind a stable C interface, loaded by `OKAY\n` while compiling. `std`'s limb half and Precog plug in the same way as anyone else's, with none privileged. A limb isn't sandboxed: it's trusted when the manifest lists it, and an unverified one gets a warning, not a refusal: "a limb runs inside the compiler and can change what your program does. Use it only if you trust where it came from." A limb runs only while compiling, so a program is the same whether its limbs were built in or loaded. A limb could make builds differ, by reading a clock or a file, and keeping them reproducible is its author's job.
+
+**From:** D22, D28, D334.
 
 ## 9.4 Inline code: `inline`
 
