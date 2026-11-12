@@ -165,19 +165,19 @@ shield c_number:
 end shield c_number
 ```
 
-It's built like a struct, naming exactly one field, the one being written, and any field can be read, which nothing checks against the one written. Building and reading it are shield code too, where the reason vouches for it.
+It's built like a struct, naming exactly one field, the one being written, and saying what the rest of its bytes are: `rest = empty` makes every byte the field doesn't cover zero, so reading a wider field gives the same answer everywhere. Any field can be read, which nothing checks against the one written, and a read checks the value like any value of that type, so a `bool` that isn't 0 or 1, a value outside its bounds, or a float that's NaN or infinity follows 10.4's rows for those ([10.4](10-build-modes.md#104-what-happens-when-something-goes-wrong)). Building and reading it are shield code too, where the reason vouches for it.
 
 ```
 shield read_bits:
     reason "reading the bits libfoo wrote as an i32"
-    let $n: union.@csup::untagged number = number[f = 1.5];
+    let $n: union.@csup::untagged number = number[f = 1.5, rest = empty];
     let $bits: i32 = $n.i;
 end shield read_bits
 ```
 
-**Refused:** `@csup::union.untagged`, with `fix: union.@csup::untagged`; building one with no field or more than one, and declaring, building or reading one outside a shield.
+**Refused:** `@csup::union.untagged`, with `fix: union.@csup::untagged`; building one without `rest`, with `fix: rest = empty`; building one with no field or more than one, and declaring, building or reading one outside a shield.
 
-**From:** D33, D35, D38, D398, D399.
+**From:** D33, D35, D38, D398, D399, D401.
 
 ## 9.7 Shields
 
