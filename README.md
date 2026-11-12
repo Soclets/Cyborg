@@ -1,5 +1,8 @@
 <p align="center">
-  <img src="brand/avatar.png" alt="Cyborg" width="96">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="brand/mark-light.svg">
+    <img src="brand/mark-dark.svg" alt="Cyborg" width="96">
+  </picture>
 </p>
 
 # Cyborg
