@@ -592,7 +592,8 @@ impl Generator<'_> {
         depth: usize,
         (prints, in_loop): (bool, bool),
     ) -> Statement {
-        let roll = self.random.between(0, 10);
+        // 10 and 11 are for the kinds of statement added later, so they share fairly.
+        let roll = self.random.between(0, 12);
         let integers: Vec<String> = scope
             .variables
             .iter()
@@ -629,7 +630,7 @@ impl Generator<'_> {
             }
             0..=3 if !self.named.is_empty() && self.random.chance(10) => self.named_let(scope),
             0..=3 if !self.named_others.is_empty() && self.random.chance(12) => self
-                .other_named_let(scope)
+                .other_named_let(scope, in_loop)
                 .unwrap_or_else(|| self.list_statement(scope)),
             0..=3 if self.random.chance(10) => self.text_let(scope),
             0..=3 if self.random.chance(8) => {
@@ -643,77 +644,87 @@ impl Generator<'_> {
                     value,
                 }
             }
-            6 if prints && self.random.chance(30) => self
-                .reveal(scope)
-                .unwrap_or_else(|| self.list_statement(scope)),
-            6 if !self.pure_only && self.random.chance(30) => self
-                .pointer(scope, prints)
-                .unwrap_or_else(|| self.list_statement(scope)),
-            6 if !self.pure_only && self.random.chance(20) => self
-                .assembly(scope)
-                .unwrap_or_else(|| self.list_statement(scope)),
-            6 if self.untagged.is_some() && self.random.chance(60) => self
-                .untagged_statement(scope)
-                .unwrap_or_else(|| self.list_statement(scope)),
-            6 if self.random.chance(30) => self
-                .token(scope, depth)
-                .unwrap_or_else(|| self.list_statement(scope)),
-            // Maps are made and ended; putting and getting isn't decided (2.12).
-            6 if self.in_main && self.random.chance(15) => {
-                let key = if self.random.chance(30) {
-                    "str".to_string()
-                } else {
-                    self.integer_kind().word().to_string()
-                };
-                Statement::Map {
-                    name: self.name("mp"),
-                    kind: if self.random.chance(50) {
-                        "hash"
+            // The kinds of statement added later share 10 and 11 evenly.
+            10 | 11 => match self.random.between(0, 14) {
+                0 if prints => self
+                    .reveal(scope)
+                    .unwrap_or_else(|| self.list_statement(scope)),
+                1 if !self.pure_only => self
+                    .pointer(scope, prints)
+                    .unwrap_or_else(|| self.list_statement(scope)),
+                2 if !self.pure_only => self
+                    .assembly(scope)
+                    .unwrap_or_else(|| self.list_statement(scope)),
+                3 if self.untagged.is_some() => self
+                    .untagged_statement(scope)
+                    .unwrap_or_else(|| self.list_statement(scope)),
+                4 => self
+                    .token(scope, depth)
+                    .unwrap_or_else(|| self.list_statement(scope)),
+                // Maps are made and ended; putting and getting isn't decided (2.12).
+                5 if self.in_main => {
+                    let key = if self.random.chance(30) {
+                        "str".to_string()
                     } else {
-                        "ordered"
-                    },
-                    key,
-                    value: self.integer_kind(),
+                        self.integer_kind().word().to_string()
+                    };
+                    Statement::Map {
+                        name: self.name("mp"),
+                        kind: if self.random.chance(50) {
+                            "hash"
+                        } else {
+                            "ordered"
+                        },
+                        key,
+                        value: self.integer_kind(),
+                    }
                 }
-            }
-            6 if prints && self.writers && self.random.chance(15) => Statement::Flush,
-            6 if prints && self.strings && self.random.chance(25) => self.strings_statement(scope),
-            // A string on the heap, from text or a number (2.9).
-            6 if prints && self.random.chance(15) => {
-                // A number comes from a variable, whose type says what it is.
-                let numbers: Vec<String> = scope
-                    .variables
-                    .iter()
-                    .filter(|(_, found)| matches!(found, Type::Integer(_)))
-                    .map(|(name, _)| name.clone())
-                    .collect();
-                // `empty` doesn't say what it's empty of here, so the text has something in it.
-                let from = match self.random.pick(&numbers).cloned() {
-                    Some(name) if self.random.chance(50) => Expression::Variable(name),
-                    _ => match self.text(scope, None) {
-                        Expression::Text(text) if text.is_empty() => {
-                            Expression::Text("o".to_string())
-                        }
-                        other => other,
-                    },
-                };
-                Statement::HeapText {
-                    name: self.name("hs"),
-                    from,
+                6 if prints && self.writers => Statement::Flush,
+                7 if prints && self.strings => self.strings_statement(scope),
+                // A string on the heap, from text or a number (2.9).
+                8 if prints => {
+                    // A number comes from a variable, whose type says what it is.
+                    let numbers: Vec<String> = scope
+                        .variables
+                        .iter()
+                        .filter(|(_, found)| matches!(found, Type::Integer(_)))
+                        .map(|(name, _)| name.clone())
+                        .collect();
+                    // `empty` doesn't say what it's empty of here, so the text has something in it.
+                    let from = match self.random.pick(&numbers).cloned() {
+                        Some(name) if self.random.chance(50) => Expression::Variable(name),
+                        _ => match self.text(scope, None) {
+                            Expression::Text(text) if text.is_empty() => {
+                                Expression::Text("o".to_string())
+                            }
+                            other => other,
+                        },
+                    };
+                    Statement::HeapText {
+                        name: self.name("hs"),
+                        from,
+                    }
                 }
-            }
-            6 if !scope.lists.is_empty() && self.random.chance(40) => self
-                .list_view(scope)
-                .unwrap_or_else(|| self.list_statement(scope)),
-            6 if self.random.chance(15) => self
-                .seconds(scope)
-                .unwrap_or_else(|| self.list_statement(scope)),
-            6 if self.random.chance(30) => self
-                .generic_box(scope)
-                .unwrap_or_else(|| self.list_statement(scope)),
-            6 if self.generics.is_some() && self.random.chance(30) => self
-                .generic_pair(scope)
-                .unwrap_or_else(|| self.list_statement(scope)),
+                9 => self
+                    .simd_statement(scope)
+                    .unwrap_or_else(|| self.list_statement(scope)),
+                10 if !scope.arrays.is_empty() || !scope.lists.is_empty() => self
+                    .chunks(scope)
+                    .unwrap_or_else(|| self.list_statement(scope)),
+                11 if !scope.lists.is_empty() => self
+                    .list_view(scope)
+                    .unwrap_or_else(|| self.list_statement(scope)),
+                12 => self
+                    .seconds(scope)
+                    .unwrap_or_else(|| self.list_statement(scope)),
+                13 => self
+                    .generic_box(scope)
+                    .unwrap_or_else(|| self.list_statement(scope)),
+                14 if self.generics.is_some() => self
+                    .generic_pair(scope)
+                    .unwrap_or_else(|| self.list_statement(scope)),
+                _ => self.list_statement(scope),
+            },
             0..=3 if self.random.chance(15) => self
                 .generic_struct(scope)
                 .unwrap_or_else(|| self.list_statement(scope)),
@@ -2057,6 +2068,146 @@ impl Generator<'_> {
         ])
     }
 
+    /// A `simd` from an array of its count with `as`, and back into an array; or one picked
+    /// lane by lane between two by a comparison; or one shuffled from another (2.21).
+    fn simd_statement(&mut self, scope: &mut Scope) -> Option<Statement> {
+        let name = self.name("sv");
+        let (value_type, value) = match self.random.between(0, 2) {
+            0 => {
+                let (array, kind, len) = self.random.pick(&scope.arrays)?.clone();
+                let value_type = Type::Simd(kind, len);
+                let back = self.name("a");
+                let written = format!("std::coll::array<{}>[len: {len} items]", kind.word());
+                let statement = Statement::Sequence(vec![
+                    Statement::Let {
+                        name: name.clone(),
+                        value_type,
+                        value: Expression::As {
+                            variable: array,
+                            target: value_type,
+                        },
+                    },
+                    Statement::LetNamed {
+                        name: back.clone(),
+                        written: written.clone(),
+                        value: Expression::AsNamed {
+                            variable: name.clone(),
+                            written,
+                        },
+                        back: None,
+                    },
+                ]);
+                scope.variables.push((name, value_type));
+                scope.arrays.push((back, kind, len));
+                return Some(statement);
+            }
+            1 => {
+                let vectors: Vec<(String, Type)> = scope
+                    .variables
+                    .iter()
+                    .filter(|(_, found)| matches!(found, Type::Simd(..)))
+                    .cloned()
+                    .collect();
+                let (left, value_type) = self.random.pick(&vectors)?.clone();
+                let right = self
+                    .variable_of(scope, value_type)
+                    .unwrap_or_else(|| Expression::Variable(left.clone()));
+                let comparison = *self
+                    .random
+                    .pick(&Comparison::ALL)
+                    .unwrap_or(&Comparison::Below);
+                (
+                    value_type,
+                    Expression::Pick {
+                        test: Box::new(Expression::Compare {
+                            comparison,
+                            left: Box::new(Expression::Variable(left.clone())),
+                            right: Box::new(right.clone()),
+                        }),
+                        if_true: Box::new(right),
+                        if_false: Box::new(Expression::Variable(left)),
+                    },
+                )
+            }
+            _ => {
+                let vectors: Vec<(String, Kind, i128)> = scope
+                    .variables
+                    .iter()
+                    .filter_map(|(name, found)| match found {
+                        Type::Simd(kind, count) => Some((name.clone(), *kind, *count)),
+                        _ => None,
+                    })
+                    .collect();
+                let (receiver, kind, count) = self.random.pick(&vectors)?.clone();
+                let lanes = self.random.between(1, 5);
+                let from_zero = self.random.chance(50);
+                let picked = (0..lanes)
+                    .map(|_| self.random.between(0, count - 1) + i128::from(!from_zero))
+                    .collect();
+                (
+                    Type::Simd(kind, lanes),
+                    Expression::Shuffle {
+                        receiver,
+                        lanes: picked,
+                        from_zero,
+                    },
+                )
+            }
+        };
+        scope.variables.push((name.clone(), value_type));
+        Some(Statement::Let {
+            name,
+            value_type,
+            value,
+        })
+    }
+
+    /// A loop over an array or list in `simd` chunks, padded, exact where the array's length is
+    /// a multiple of the lanes, or with its leftovers handed over after (2.21).
+    fn chunks(&mut self, scope: &Scope) -> Option<Statement> {
+        let collections: Vec<(String, Kind, i128, bool)> = scope
+            .arrays
+            .iter()
+            .map(|(name, kind, len)| (name.clone(), *kind, *len, true))
+            .chain(
+                scope
+                    .lists
+                    .iter()
+                    .map(|(name, kind, max)| (name.clone(), *kind, *max, false)),
+            )
+            .collect();
+        let (array, kind, len, is_array) = self.random.pick(&collections)?.clone();
+        let targets: Vec<String> = scope
+            .variables
+            .iter()
+            .filter(|(name, found)| {
+                *found == Type::Integer(kind)
+                    && !name.starts_with('i')
+                    && !name.starts_with('p')
+                    && !name.starts_with('x')
+                    && !name.starts_with('k')
+            })
+            .map(|(name, _)| name.clone())
+            .collect();
+        let target = self.random.pick(&targets)?.clone();
+        let lanes = self.random.between(1, 4);
+        // `exact` only where the length is known to be a multiple, which an array's is.
+        let exact = is_array && len % lanes == 0;
+        let mode = match self.random.between(0, 2) {
+            0 if exact => "exact",
+            1 => "leftovers",
+            _ => "pad",
+        };
+        Some(Statement::Chunks {
+            array,
+            lanes,
+            mode,
+            chunk: self.name("xc"),
+            leftover: self.name("xl"),
+            target,
+        })
+    }
+
     /// A secret made public in a shield, into a plain variable that can change (2.22, 9.7).
     fn reveal(&mut self, scope: &Scope) -> Option<Statement> {
         let secrets: Vec<(String, Kind)> = scope
@@ -2121,6 +2272,71 @@ impl Generator<'_> {
             if let Some(variable) = self.variable_of(scope, value_type) {
                 return variable;
             }
+        }
+        // An array of the same count crosses into a `simd` with `as`, which can't fail (2.21).
+        let arrays: Vec<String> = scope
+            .arrays
+            .iter()
+            .filter(|(_, found, len)| *found == kind && *len == lanes)
+            .map(|(name, ..)| name.clone())
+            .collect();
+        if let (true, Some(variable)) = (self.random.chance(30), self.random.pick(&arrays).cloned())
+        {
+            return Expression::As {
+                variable,
+                target: value_type,
+            };
+        }
+        // `.%pick` chooses each lane from one of two, by a lane-by-lane comparison (2.21).
+        if let (true, Some(Expression::Variable(left)), Some(Expression::Variable(right))) = (
+            depth > 0 && self.random.chance(20),
+            self.variable_of(scope, value_type),
+            self.variable_of(scope, value_type),
+        ) {
+            let comparison = *self
+                .random
+                .pick(&Comparison::ALL)
+                .unwrap_or(&Comparison::Below);
+            let if_false = self.lanes(scope, kind, lanes, depth - 1);
+            return Expression::Pick {
+                test: Box::new(Expression::Compare {
+                    comparison,
+                    left: Box::new(Expression::Variable(left.clone())),
+                    right: Box::new(Expression::Variable(right)),
+                }),
+                if_true: Box::new(Expression::Variable(left)),
+                if_false: Box::new(if_false),
+            };
+        }
+        // `.%shuffle` lists, for each lane, which lane of another `simd` it comes from, which
+        // can have another count and repeat (2.21).
+        let sources: Vec<(String, i128)> = scope
+            .variables
+            .iter()
+            .filter_map(|(name, found)| match found {
+                Type::Simd(other, count) if *other == kind => Some((name.clone(), *count)),
+                _ => None,
+            })
+            .collect();
+        if let (true, Some((receiver, count))) =
+            (self.random.chance(20), self.random.pick(&sources).cloned())
+        {
+            let from_zero = self.random.chance(50);
+            let lanes = (0..lanes)
+                .map(|_| {
+                    let at = self.random.between(0, count - 1);
+                    if from_zero {
+                        at
+                    } else {
+                        at + 1
+                    }
+                })
+                .collect();
+            return Expression::Shuffle {
+                receiver,
+                lanes,
+                from_zero,
+            };
         }
         if self.random.chance(20) {
             return Expression::AllLanes(Box::new(self.literal(kind)));
@@ -2409,7 +2625,7 @@ impl Generator<'_> {
     /// A value of a name for something other than an integer: a struct crossing into its
     /// `type.new` with `Copy` or `Give` and back out with `Give`, a bounded list or string
     /// through its alias, used as the list or string from then on (2.18).
-    fn other_named_let(&mut self, scope: &mut Scope) -> Option<Statement> {
+    fn other_named_let(&mut self, scope: &mut Scope, in_loop: bool) -> Option<Statement> {
         match self.random.between(0, 2) {
             0 => {
                 let new_type = self.wrap.clone()?;
@@ -2421,8 +2637,12 @@ impl Generator<'_> {
                     .map(|(name, _)| name.clone())
                     .collect();
                 let source = self.random.pick(&live)?.clone();
-                // Whether a pure function may `Copy` isn't decided, so one gives (12.5).
-                let give = self.pure_only || self.random.chance(40);
+                // Whether a pure function may `Copy` isn't decided, so one gives (12.5), and a
+                // loop would give it away again each round, so in a loop it copies.
+                if self.pure_only && in_loop {
+                    return None;
+                }
+                let give = self.pure_only || (!in_loop && self.random.chance(40));
                 if give {
                     self.given_away.push(source.clone());
                 }
@@ -2480,7 +2700,7 @@ impl Generator<'_> {
     /// plain variable with `as`, since it doesn't mix (2.18).
     fn named_let(&mut self, scope: &mut Scope) -> Statement {
         if self.random.chance(40) {
-            if let Some(statement) = self.other_named_let(scope) {
+            if let Some(statement) = self.other_named_let(scope, true) {
                 return statement;
             }
         }
@@ -3757,6 +3977,11 @@ impl Generator<'_> {
 
     /// A new array, or a change to an item of one in scope.
     fn array_statement(&mut self, scope: &mut Scope) -> Statement {
+        if self.random.chance(20) {
+            if let Some(statement) = self.chunks(scope) {
+                return statement;
+            }
+        }
         if let Some((array, kind, len)) = self.random.pick(&scope.arrays).cloned() {
             if self.random.chance(60) {
                 let position = self.position(scope, len);

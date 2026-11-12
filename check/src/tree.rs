@@ -268,6 +268,13 @@ pub enum Expression {
         if_true: Box<Expression>,
         if_false: Box<Expression>,
     },
+    /// `$v.%shuffle(pos: [4, 3, 2, 1])`, or with `offset.lanes:`, a new vector from the lanes
+    /// listed (2.21).
+    Shuffle {
+        receiver: String,
+        lanes: Vec<i128>,
+        from_zero: bool,
+    },
     /// A number with its unit behind it, `250 dist.cm` (2.16).
     WithUnit {
         number: i128,
@@ -811,6 +818,18 @@ pub enum Statement {
         fields: Vec<(String, Expression)>,
         ending: Ending,
         read_into: Option<(String, String)>,
+    },
+    /// A loop over an array or list in `simd`-sized chunks, saying how the leftovers go:
+    /// padded, exact, or handed over one at a time after the chunks; each chunk's greatest lane
+    /// is added to a variable, and each leftover too (2.21).
+    Chunks {
+        array: String,
+        lanes: i128,
+        /// `pad`, `exact` or `leftovers`.
+        mode: &'static str,
+        chunk: String,
+        leftover: String,
+        target: String,
     },
     /// A map, `empty`, ended with `std::coll::map.done` by a `defer` (2.12).
     Map {
@@ -2021,6 +2040,35 @@ fn print_block(out: &mut String, statements: &[Statement], depth: usize, style: 
                 (name, struct_name, holder),
                 (fields, ending, read_into.as_ref()),
             ),
+            Statement::Chunks {
+                array,
+                lanes,
+                mode,
+                chunk,
+                leftover,
+                target,
+            } => {
+                let how = match *mode {
+                    "pad" => format!("pad(lanes: {lanes}, pad: 0)"),
+                    other => format!("{other}(lanes: {lanes})"),
+                };
+                let _ = writeln!(
+                    out,
+                    "{indent}for ${chunk} in ${array}.std::%simd_chunks.{how}:"
+                );
+                let _ = writeln!(
+                    out,
+                    "{indent}    change ${target} = ${target} plus.wrap ${chunk}.%max_val();"
+                );
+                if *mode == "leftovers" {
+                    let _ = writeln!(out, "{indent}leftovers ${leftover}:");
+                    let _ = writeln!(
+                        out,
+                        "{indent}    change ${target} = ${target} plus.wrap ${leftover};"
+                    );
+                }
+                let _ = writeln!(out, "{indent}end for");
+            }
             Statement::Map {
                 name,
                 kind,
@@ -2321,6 +2369,15 @@ impl Style {
                 self.expression(if_true),
                 self.expression(if_false)
             ),
+            Expression::Shuffle {
+                receiver,
+                lanes,
+                from_zero,
+            } => {
+                let label = if *from_zero { "offset.lanes" } else { "pos" };
+                let lanes: Vec<String> = lanes.iter().map(ToString::to_string).collect();
+                format!("${receiver}.%shuffle({label}: [{}])", lanes.join(", "))
+            }
             Expression::Method { receiver, method } => {
                 format!("{}.%{method}()", self.grouped(receiver))
             }

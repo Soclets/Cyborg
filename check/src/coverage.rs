@@ -24,7 +24,9 @@
 /// - data: `simd` values from `[ ]` and `all`, maths lane by lane on two of one type, their
 ///   `sum`, `product`, `min_val` and `max_val`, and lane comparisons read with `any_true` and
 ///   `all_true`; arrays from `[ ]` and `all`, and bounded lists from `[ ]` or `empty`, their items by
-///   `pos:` and `offset.items:`, read and changed, and `append`; in `main`, lists that grow on the
+///   `pos:` and `offset.items:`, read and changed, and `append`; `simd` from arrays with `as`
+///   and back, chosen lane by lane with `.%pick`, shuffled with `pos:` or `offset.lanes:`, and
+///   loops over `simd_chunks` that pad, need an exact multiple, or hand over leftovers; in `main`, lists that grow on the
 ///   heap or in an arena with a random `room:`, from `list.from` or `empty`, ended by `defer`,
 ///   in functions with a heap of their own too, some saying `grow:`; appends handled with
 ///   `?? void`; lists read through views, `std::coll::list<…>` and `.mut`, split into halves,
@@ -97,7 +99,7 @@ pub const NOT_GENERATED: &[&str] = &[
     "2.14 undecided: what converts to what beyond numbers into strings and units (12.3)",
     "2.16 undecided: `std`'s units other than `time.seconds` and `angle`'s (12.2)",
     "2.18 undecided: maths and `==` between two of the same `type.new` (12)",
-    "2.21 `simd` with one value, chunks, shuffles, `pick`, lookups, `lanes: max`, floats in lanes, `as` from arrays",
+    "2.21 still to do: `.%lookup`, the named shuffles, `.%%simd_chunks.mut`, and floats in lanes; needs a target: `lanes: max`, whose count is the target's; undecided: maths between a `simd` and one value",
     "2.22 `bool.secret` values with `and.both`, `or.both` and `not`, secrets in arrays and `simd`, shifts on secrets",
     "4.4 `for` over a fresh collection, since generated functions don't return arrays or lists yet",
     "5.x undecided: specialization, value parameters, type slots and how laws are proven (12.5)",
