@@ -190,6 +190,7 @@ end shield sensor_driver
 - Your own allocator
 - `@csup` C calls
 - `@csup::union.untagged`
+- Making a secret public, with `.%reveal()` ([2.22](2-values-and-types.md#222-secrets-secret))
 
 So inside a shield, Cyborg goes as low as C, and a bare-metal program can run with no allocator at all.
 
@@ -225,7 +226,7 @@ Using a limb doesn't need a shield by itself: `@` says it's a compiler extension
 
 **Refused:** any of these outside a shield, except in `FinalShit`; writing through a `ptr.raw` or a `ptr.volatile`; and `.%moved` with a bare `offset:`, with `fix: offset.items:`.
 
-**From:** D38, D40, D226, D314, D315, D316, D317.
+**From:** D38, D40, D226, D314, D315, D316, D317, D342.
 
 ## 9.9 A shield's walls
 

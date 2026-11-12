@@ -7,7 +7,6 @@ What's waiting for when the owner unpauses Cyborg, written down on 2026-11-11 so
 - **Limbs, left:** the C interface itself, a limb's API and how it's versioned. What limbs are and can do is D334 to
   D338.
 - **Concurrency:** threads, sharing data, and anything like goroutines or async (12.8).
-- **Secrets, in progress:** `.secret` is decided (D339); what's allowed, overflow and making one public are next.
 
 - **Tuning for one machine: PGO and friends.** Profile-guided optimization (build with counters, run real work, rebuild
   with the profile), BOLT, and specialized copies of hot functions, which are JIT strategies done ahead of time. The
