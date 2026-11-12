@@ -242,6 +242,8 @@ end interface allocator
 
 An arena hands out memory from one big block and frees it all at once, as `std::arena`. It only carves up memory it's given, so it works anywhere, bare metal included. Lists made from it still end with `done`, where freeing costs nothing, so every owner follows one rule. The arena counts what's still alive, and ending it while anything from it is alive is a failed check.
 
+How much memory each allocation takes is fixed by the standard, so whether a program runs out is the same on every machine for a target. An item takes its type's size, which is known since a bare `struct` has an exact layout, at its natural alignment. A growable list's first allocation holds what it needs, rounded up to 4 items, and a full one doubles. `kib` and `mib` are 1024 and 1024² `bytes`.
+
 ```
 let mut $arena: std::arena = std::arena.new(size: 1 mib, alloc: Lend $heap);
 defer std::arena.done(Give $arena, alloc: Lend $heap);
@@ -252,7 +254,7 @@ defer std::list.done(Give $xs, alloc: Lend $arena);
 
 **Refused:** `[ ]` with items, or a string literal, given straight to a growable list or string, with `fix: std::list.from` or `str.from`; `std::list<i32>` with no `len.max`, a list with a bare `len`, in favour of `array`, `= empty` on a list with `len.min` above 0, `[]`, with `fix: empty`, and too few or too many items.
 
-**From:** D11, D12, D13, D24, D102, D103, D140, D321, D322, D323, D324, D330, D333, D369.
+**From:** D11, D12, D13, D24, D102, D103, D140, D321, D322, D323, D324, D330, D333, D369, D370.
 
 ## 2.11 Arrays
 

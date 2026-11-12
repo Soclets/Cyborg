@@ -88,6 +88,8 @@ Waiting on the owner, most needed first. Each is `NotDesignedYet` unless it says
 - The test on a value already known to be that type, like `if $n: bool:` on a `bool`. Claude suggested refusing it.
 
 
+- Allocation sizes (D370): how a growable string and a map grow, and how much an arena itself takes for its bookkeeping.
+
 ## 12.3 Operators and conversion
 
 - Whether `-` and `x` follow [10.4](10-build-modes.md#104-what-happens-when-something-goes-wrong)'s overflow row, which D42 states for `+`.
