@@ -487,16 +487,8 @@ impl<'c> Runner<'c> {
             return Err(oracle_bug(span, "a split's place isn't a number"));
         };
         let binding = self.binding_of(frame, place, span)?;
-        let (root, path, start, len) = match window_at(&binding) {
-            Some(window) => (window.root, window.path, window.start, window.len),
-            None => {
-                let count = match walk(&binding.root.borrow(), &binding.path) {
-                    Some(Value::List(items, _)) => items.len(),
-                    _ => return Err(oracle_bug(span, "a split of something that isn't a list")),
-                };
-                (binding.root, binding.path, 0, count)
-            }
-        };
+        let (Binding { root, path }, start, len) =
+            list_range(binding, span, "a split of something that isn't a list")?;
         let Some(first) = usize::try_from(at).ok().filter(|first| *first <= len) else {
             return Err(Stop::Report(
                 Report::check_failed(
@@ -674,22 +666,9 @@ impl<'c> Runner<'c> {
                 Step::Item(position) => {
                     let number = self.position_number(position, frame)?;
                     // An item of half a split is an item of the list it views. (D382)
-                    let (start, count) = match window_at(&binding) {
-                        Some(window) => {
-                            binding = Binding {
-                                root: window.root,
-                                path: window.path,
-                            };
-                            (window.start, window.len)
-                        }
-                        None => {
-                            let root = binding.root.borrow();
-                            match walk(&root, &binding.path) {
-                                Some(Value::List(items, _)) => (0, items.len()),
-                                _ => return Err(oracle_bug(span, "an item of something else")),
-                            }
-                        }
-                    };
+                    let (list, start, count) =
+                        list_range(binding, span, "an item of something else")?;
+                    binding = list;
                     binding
                         .path
                         .push(start + item_index(number, count, position)?);
@@ -821,25 +800,11 @@ impl<'c> Runner<'c> {
                 place,
                 body,
             } => {
-                let mut base = self.binding_of(frame, place, span)?;
-                let (start, count) = match window_at(&base) {
-                    Some(window) => {
-                        base = Binding {
-                            root: window.root,
-                            path: window.path,
-                        };
-                        (window.start, window.len)
-                    }
-                    None => match walk(&base.root.borrow(), &base.path) {
-                        Some(Value::List(items, _)) => (0, items.len()),
-                        _ => {
-                            return Err(oracle_bug(
-                                span,
-                                "`for` on something that isn't a collection",
-                            ))
-                        }
-                    },
-                };
+                let (base, start, count) = list_range(
+                    self.binding_of(frame, place, span)?,
+                    span,
+                    "`for` on something that isn't a collection",
+                )?;
                 for index in start..start + count {
                     let mut path = base.path.clone();
                     path.push(index);
@@ -2189,6 +2154,26 @@ fn atomic_maths(
         )
         .when(format!("`{left}` and `{right}`"))),
     }
+}
+
+/// The list a binding reaches and the range of it in view: all of it, or for half a split, the
+/// list the half views and the half's part of it. (D382)
+fn list_range(binding: Binding, span: Span, what: &str) -> Result<(Binding, usize, usize), Stop> {
+    if let Some(window) = window_at(&binding) {
+        return Ok((
+            Binding {
+                root: window.root,
+                path: window.path,
+            },
+            window.start,
+            window.len,
+        ));
+    }
+    let count = match walk(&binding.root.borrow(), &binding.path) {
+        Some(Value::List(items, _)) => items.len(),
+        _ => return Err(oracle_bug(span, what)),
+    };
+    Ok((binding, 0, count))
 }
 
 /// The half of a split a binding holds, if it holds one. (D382)
