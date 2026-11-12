@@ -20,7 +20,10 @@
 ///   `sum`, `product`, `min_val` and `max_val`, and lane comparisons read with `any_true` and
 ///   `all_true`; arrays from `[ ]` and `all`, and bounded lists from `[ ]` or `empty`, their items by
 ///   `pos:` and `offset.items:`, read and changed, and `append`; in `main`, lists that grow on the
-///   heap or in an arena with a random `room:`, from `list.from` or `empty`, ended by `defer`; structs with integer fields in every layout, built with `[ ]`, their fields read
+///   heap or in an arena with a random `room:`, from `list.from` or `empty`, ended by `defer`,
+///   in functions with a heap of their own too, some saying `grow:`; appends handled with
+///   `?? void`; lists read through views, `std::coll::list<…>` and `.mut`, split into halves,
+///   and their `.len` taken off its unit; structs with integer fields in every layout, built with `[ ]`, their fields read
 ///   and changed, and methods on them that read their fields or change one, called with `.%` and
 ///   `.%%`; tagged unions whose cases carry integer data or none, and `match` covering every
 ///   case in any order, an arm naming its case to read its data;
@@ -75,7 +78,7 @@ pub const NOT_GENERATED: &[&str] = &[
     "2.3 `const` calling `fn.pure.baked` functions, float constants, constants whose maths overflows",
     "2.6, 2.7 `.fast` and `.ieee` floats, bounded floats, `exponent` literals, `fmt_print.stored`, floats in structs, arrays and calls",
     "2.9 heap strings, escapes in string literals, comparing strings, strings as values in prints, fields and calls",
-    "2.10 `.len`, views and splits, a full list's failure handled, growable lists in functions, `grow:`",
+    "2.10 undecided: a full list's failure named in an `otherwise` arm (12.7)",
     "2.12 undecided: putting, getting and going through a map's items",
     "2.14 `as` between other types, which isn't decided (12.3), `as` failures handled",
     "2.16 undecided: `std`'s units other than `time.seconds` and `angle`'s (12.2)",

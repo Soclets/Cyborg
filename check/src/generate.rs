@@ -80,6 +80,10 @@ struct Generator<'random> {
     failure_family: Option<FailureFamily>,
     /// What the function being made returns, for an `otherwise` arm that returns (8.6).
     returns: Option<Type>,
+    /// The kinds whose list-view functions some call uses, so they're declared (2.10).
+    views: Vec<Kind>,
+    /// Whether the function being made has a heap of its own, so its lists can grow (2.10).
+    has_heap: bool,
     /// `std`'s degrees as the program writes them: in full, or `degrees` after a `use` (1.11).
     degrees: &'static str,
     /// `use` lines, each a path and its short name (1.11).
@@ -132,6 +136,8 @@ pub fn program(seed: u64) -> Program {
         failure_family: None,
         returns: None,
         degrees: "std::units::angle.degrees",
+        views: Vec::new(),
+        has_heap: false,
         uses: Vec::new(),
         float_units: None,
         units: Vec::new(),
@@ -241,6 +247,7 @@ pub fn program(seed: u64) -> Program {
         recursion: generator.recursion,
         failure_family: generator.failure_family,
         uses: generator.uses,
+        views: generator.views,
         methods: generator.methods,
         arena: generator.arena,
         named: generator.named,
@@ -463,7 +470,13 @@ impl Generator<'_> {
         }
         self.returns = Some(result);
         self.failing = Some(own);
+        // Now and then a heap of its own, so lists made here can grow (2.10).
+        self.has_heap = !pure && self.random.chance(30);
+        if self.has_heap {
+            body.insert(0, Statement::Heap);
+        }
         body.extend(self.block(&mut scope, 3, 1, (false, false)));
+        self.has_heap = false;
         let returned = self.expression(&scope, result, LIMITS.depth);
         let failures = self.failing.take().unwrap_or_default();
         self.pure_only = false;
@@ -601,6 +614,9 @@ impl Generator<'_> {
                     value: self.integer_kind(),
                 }
             }
+            6 if !scope.lists.is_empty() && self.random.chance(40) => self
+                .list_view(scope)
+                .unwrap_or_else(|| self.list_statement(scope)),
             6 if self.random.chance(15) => self
                 .seconds(scope)
                 .unwrap_or_else(|| self.list_statement(scope)),
@@ -1673,6 +1689,84 @@ impl Generator<'_> {
                 },
             },
         ]))
+    }
+
+    /// A list read through a view: summed by `vsum_…`, which takes any list, changed by
+    /// `vbump_…`, which takes a `.mut` view, split into halves read one by one, or its `.len`
+    /// taken off its unit (2.10, D379, D382).
+    fn list_view(&mut self, scope: &Scope) -> Option<Statement> {
+        if self.pure_only || self.no_calls {
+            return None;
+        }
+        let (list, kind, _) = self.random.pick(&scope.lists)?.clone();
+        let changeable = |kind: Kind| -> Vec<String> {
+            scope
+                .variables
+                .iter()
+                .filter(|(name, found)| {
+                    *found == Type::Integer(kind)
+                        && !name.starts_with('i')
+                        && !name.starts_with('p')
+                        && !name.starts_with('x')
+                        && !name.starts_with('k')
+                })
+                .map(|(name, _)| name.clone())
+                .collect()
+        };
+        let call = |function: &str, argument: Expression| Expression::Call {
+            function: format!("{function}_{}", kind.word()),
+            arguments: vec![(None, argument)],
+            handling: Handling::Crash,
+        };
+        if !self.views.contains(&kind) {
+            self.views.push(kind);
+        }
+        let statement = match self.random.between(0, 3) {
+            0 => Statement::Call(call("vbump", Expression::LendMut(list))),
+            1 => {
+                let target = self.random.pick(&changeable(kind))?.clone();
+                let halves = self.name("h");
+                let half = |side: &str| Expression::Field {
+                    variable: halves.clone(),
+                    field: side.to_string(),
+                };
+                Statement::Sequence(vec![
+                    Statement::Split {
+                        name: halves.clone(),
+                        kind,
+                        list,
+                        at_end: self.random.chance(50),
+                    },
+                    Statement::Change {
+                        name: target,
+                        value: Expression::Binary {
+                            operator: Operator::PlusWrap,
+                            left: Box::new(call("vsum", half("first"))),
+                            right: Box::new(call("vsum", half("second"))),
+                        },
+                    },
+                ])
+            }
+            2 => {
+                let target = self.random.pick(&changeable(Kind::U64))?.clone();
+                Statement::Change {
+                    name: target,
+                    value: Expression::Convert {
+                        variable: format!("{list}.len"),
+                        narrowing: "",
+                        target: Type::Integer(Kind::U64),
+                    },
+                }
+            }
+            _ => {
+                let target = self.random.pick(&changeable(kind))?.clone();
+                Statement::Change {
+                    name: target,
+                    value: call("vsum", Expression::Lend(list)),
+                }
+            }
+        };
+        Some(statement)
     }
 
     /// A secret made public in a shield, into a plain variable that can change (2.22, 9.7).
@@ -3114,6 +3208,11 @@ impl Generator<'_> {
     /// program when it's full, or a change to one of its items, which is checked while
     /// running (2.10, 2.17, 8.9).
     fn list_statement(&mut self, scope: &mut Scope) -> Statement {
+        if !scope.lists.is_empty() && self.random.chance(30) {
+            if let Some(statement) = self.list_view(scope) {
+                return statement;
+            }
+        }
         if let Some((list, kind, max)) = self.random.pick(&scope.lists).cloned() {
             if self.random.chance(50) {
                 // The value doesn't read the list, since reading a list in the call that lends
@@ -3127,6 +3226,7 @@ impl Generator<'_> {
                     .find(|(found, _)| *found == list)
                     .map(|(_, allocator)| allocator.clone());
                 return Statement::Append {
+                    handled: self.random.chance(30),
                     list,
                     value,
                     allocator,
@@ -3154,9 +3254,10 @@ impl Generator<'_> {
             .collect();
         let name = self.name("l");
         scope.lists.push((name.clone(), kind, max));
-        // In `main`, a list may grow, on the heap or in the arena (D321, D330).
-        let allocator = (self.in_main && self.random.chance(40)).then(|| {
-            if self.arena.is_some() && self.random.chance(60) {
+        // In `main`, or a function with a heap, a list may grow, on the heap or in `main`'s
+        // arena (D321, D330).
+        let allocator = ((self.in_main || self.has_heap) && self.random.chance(40)).then(|| {
+            if self.in_main && self.arena.is_some() && self.random.chance(60) {
                 "arena".to_string()
             } else {
                 "heap".to_string()
@@ -3165,12 +3266,22 @@ impl Generator<'_> {
         if let Some(allocator) = &allocator {
             self.growable.push((name.clone(), allocator.clone()));
         }
+        // Now and then it says how it grows: only what each append needs, or in steps (2.10).
+        let grow = allocator
+            .as_ref()
+            .and_then(|_| match self.random.between(0, 5) {
+                0 => Some("exact".to_string()),
+                1 => Some(format!("by {} items", self.random.between(1, 8))),
+                2 => Some(format!("by {} kib", self.random.between(1, 2))),
+                _ => None,
+            });
         Statement::LetList {
             name,
             kind,
             max,
             items,
             allocator,
+            grow,
         }
     }
 

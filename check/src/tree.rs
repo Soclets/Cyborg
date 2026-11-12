@@ -287,6 +287,8 @@ pub enum Expression {
     Variable(String),
     /// A variable lent to a call, `Lend $r` (6.4).
     Lend(String),
+    /// A variable lent to a call to change, `Lend.mut $l` (6.5).
+    LendMut(String),
     Binary {
         operator: Operator,
         left: Box<Expression>,
@@ -597,10 +599,26 @@ pub enum Statement {
         /// For a list that grows: the allocator it takes memory from, `heap` or `arena`, with
         /// `len.max: inf items`, `list.from`, and a `defer` that ends it (D321, D323, D369).
         allocator: Option<String>,
+        /// How a growable list grows, as `exact` or `by 4 items`, when it says (2.10).
+        grow: Option<String>,
+    },
+    /// `let $heap: os::heap = os::heap();`, so a function's lists can grow (2.10).
+    Heap,
+    /// A call made for what it does, `vbump_i32(Lend.mut $l);` (2.10).
+    Call(Expression),
+    /// `let $h: std::coll::halves<i32> = $l.std::%split(at.items: …);`, at its start or its end
+    /// (2.10, D382).
+    Split {
+        name: String,
+        kind: Kind,
+        list: String,
+        at_end: bool,
     },
     /// `$l.std::%%append(val: …);`, which stops the program when the list is full, or for a
     /// list that grows, names its allocator and can run out of memory (2.10, 8.9, D321).
     Append {
+        /// `?? void`, so a full list or a lack of memory just skips the append (8.5).
+        handled: bool,
         list: String,
         value: Expression,
         allocator: Option<String>,
@@ -860,6 +878,8 @@ pub struct Function {
 #[derive(Clone, Debug)]
 pub struct Program {
     pub unit_families: Vec<UnitFamily>,
+    /// The kinds that have `vsum_…`, reading a list view, and `vbump_…`, changing one (2.10).
+    pub views: Vec<Kind>,
     /// `use` lines, each a path and its short name (1.11).
     pub uses: Vec<(String, String)>,
     /// A named set of failures and its handlers (8.3, 8.7).
@@ -1225,6 +1245,17 @@ pub fn print(program: &Program) -> String {
     if let Some(generics) = &program.generics {
         print_generics(&mut out, generics);
     }
+    for kind in &program.views {
+        let kind = kind.word();
+        let _ = writeln!(
+            out,
+            "fn vsum_{kind} [$xs: std::coll::list<{kind}>] -> {kind}:\n    let mut $t: {kind} = 0;\n    for $x in Lend $xs:\n        change $t = $t plus.wrap $x;\n    end for\n    return $t;\nend fn vsum_{kind}\n"
+        );
+        let _ = writeln!(
+            out,
+            "fn vbump_{kind} [$xs: std::coll::list.mut<{kind}>] -> void:\n    for $x in Lend.mut $xs:\n        change $x = $x plus.wrap 1;\n    end for\n    return void;\nend fn vbump_{kind}\n"
+        );
+    }
     if let Some(family) = &program.failure_family {
         print_failure_family(&mut out, family);
     }
@@ -1444,6 +1475,7 @@ fn print_block(out: &mut String, statements: &[Statement], depth: usize, style: 
                 max,
                 items,
                 allocator,
+                grow,
             } => {
                 let shown = if items.is_empty() {
                     "empty".to_string()
@@ -1466,9 +1498,12 @@ fn print_block(out: &mut String, statements: &[Statement], depth: usize, style: 
                         } else {
                             format!("std::coll::list.from({shown}, alloc: Lend ${allocator})")
                         };
+                        let grow = grow
+                            .as_ref()
+                            .map_or_else(String::new, |grow| format!(", grow: {grow}"));
                         let _ = writeln!(
                             out,
-                            "{indent}let mut ${name}: std::coll::list<{kind}>[len.max: inf items] = {value};"
+                            "{indent}let mut ${name}: std::coll::list<{kind}>[len.max: inf items{grow}] = {value};"
                         );
                         let _ = writeln!(
                             out,
@@ -1478,6 +1513,7 @@ fn print_block(out: &mut String, statements: &[Statement], depth: usize, style: 
                 }
             }
             Statement::Append {
+                handled,
                 list,
                 value,
                 allocator,
@@ -1485,10 +1521,34 @@ fn print_block(out: &mut String, statements: &[Statement], depth: usize, style: 
                 let allocator = allocator
                     .as_ref()
                     .map_or_else(String::new, |found| format!(", alloc: Lend ${found}"));
+                let handled = if *handled { " ?? void" } else { "" };
                 let _ = writeln!(
                     out,
-                    "{indent}${list}.std::%%append(val: {}{allocator});",
+                    "{indent}${list}.std::%%append(val: {}{allocator}){handled};",
                     style.expression(value)
+                );
+            }
+            Statement::Heap => {
+                let _ = writeln!(out, "{indent}let $heap: os::heap = os::heap();");
+            }
+            Statement::Call(call) => {
+                let _ = writeln!(out, "{indent}{};", style.expression(call));
+            }
+            Statement::Split {
+                name,
+                kind,
+                list,
+                at_end,
+            } => {
+                let at = if *at_end {
+                    format!("${list}.len")
+                } else {
+                    "0".to_string()
+                };
+                let _ = writeln!(
+                    out,
+                    "{indent}let ${name}: std::coll::halves<{}> = ${list}.std::%split(at.items: {at});",
+                    kind.word()
                 );
             }
             Statement::LetStruct {
@@ -2124,6 +2184,7 @@ impl Style {
             Expression::Item { array, position } => item(array, position),
             Expression::Field { variable, field } => format!("${variable}.{field}"),
             Expression::Lend(variable) => format!("Lend ${variable}"),
+            Expression::LendMut(variable) => format!("Lend.mut ${variable}"),
             Expression::CallMethod { receiver, name } => format!("${receiver}.%{name}()"),
         }
     }
