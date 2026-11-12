@@ -1306,6 +1306,8 @@ A `type_set` is a closed list of types that nothing can join later, as in `type_
 
 **D402. A union fills the rest of its bytes with `rest = all 0`, not `empty`.** `empty` means a thing holds nothing, as strings, lists, maps and channels can (D103), and `all 0` sets every slot of something whose slots always exist, as arrays and `simd` are filled (D102, 2.21). A union's bytes always exist, so `number[f = 1.5, rest = all 0]` replaces D401's `rest = empty`, which would have been the one place `empty` meant zeroed. `rest = empty` is refused, and leaving out `rest` is refused with `fix: rest = all 0`. The owner asked "what do arr & lists say?" and "check the other types first", and chose: "yea". (Owner, 2026-11-12)
 
+**D403. `lanes: max` is the target's baseline register width divided by the lane's size.** One SIMD instruction works on one register, so the most lanes it handles (D292) is however many values fit side by side in it. Each target's baseline register, the one every chip of that target has, is used, so a program gives the same lane count on every machine of a target: 128 bits on `macos_aarch64` and `linux_aarch64`, and on `linux_x86_64`, whose baseline is SSE2, giving 4 `i32`s or 16 `u8`s; and 32 bits on `arduino_uno_r4_wifi`, whose Cortex-M4 has packed byte and half-word maths, giving 1 `i32` or 4 `u8`s. A `bool` lane takes a byte. Wider registers, like newer x86 chips' 256 or 512 bits, only come with `--machine.cpu=` (D365). Oracle claude asked; Claude proposed it; the owner asked "What" and "Why? Just asking", and chose: "yea". (Owner, 2026-11-12)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude
