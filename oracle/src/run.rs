@@ -9,7 +9,7 @@ use crate::ast::{CompareOperator, Narrowing, WordOperator};
 use crate::ir::Alias;
 use crate::ir::{
     Argument, Arithmetic, Code, Contract, Function, Implementation, Instruction, InstructionKind,
-    Node, NodeKind, Number, Place, Position, RangeCode, Step, Table, Test,
+    Node, NodeKind, Number, Place, Position, RangeCode, Reduction, Step, Table, Test,
 };
 use crate::report::{Kind, Outcome, Report, ReportExtra, Span};
 use crate::types::{show_float, FloatKind, FloatRules, IntegerKind, Value};
@@ -964,6 +964,13 @@ impl<'c> Runner<'c> {
                 let number = i128::try_from(self.writers.len() - 1).unwrap_or(i128::MAX);
                 Ok(Value::Struct(vec![Value::Integer(number)]))
             }
+            NodeKind::Lanewise { .. }
+            | NodeKind::LanewiseCompare { .. }
+            | NodeKind::Reduce { .. }
+            | NodeKind::LanePick { .. }
+            | NodeKind::Shuffle { .. }
+            | NodeKind::JoinLanes { .. }
+            | NodeKind::Lookup { .. } => self.evaluate_simd(node, frame),
             // Both sides run before one is chosen. (D340, D302)
             // trace: D340
             NodeKind::Pick {
@@ -1385,6 +1392,229 @@ impl<'c> Runner<'c> {
         items.push(item);
         Ok(Value::Void)
     }
+}
+
+impl Runner<'_> {
+    /// A `simd`'s lanes, which run as a list.
+    fn lanes(&mut self, node: &Node, frame: &mut Frame) -> Result<Vec<Value>, Stop> {
+        match self.evaluate(node, frame)? {
+            Value::List(lanes, _) => Ok(lanes),
+            _ => Err(oracle_bug(node.span, "a `simd` that isn't lanes")),
+        }
+    }
+
+    /// Everything that works on `simd` lanes. (D291 to D307)
+    /// trace: D291, D293, D296, D297, D301, D302, D304, D306, D307
+    fn evaluate_simd(&mut self, node: &Node, frame: &mut Frame) -> Result<Value, Stop> {
+        let span = node.span;
+        let lanes_of = |lanes: Vec<Value>| Value::List(lanes, None);
+        match &node.kind {
+            NodeKind::Lanewise {
+                operator,
+                number,
+                left,
+                right,
+            } => {
+                let left = self.lanes(left, frame)?;
+                let right = self.lanes(right, frame)?;
+                let mut result = Vec::with_capacity(left.len());
+                for (lane, (left, right)) in left.iter().zip(&right).enumerate() {
+                    let value = arithmetic(*operator, *number, left, right, span)
+                        .map_err(|report| in_lane(report, lane))?;
+                    result.push(value);
+                }
+                Ok(lanes_of(result))
+            }
+            NodeKind::LanewiseCompare {
+                operator,
+                left,
+                right,
+            } => {
+                let left = self.lanes(left, frame)?;
+                let right = self.lanes(right, frame)?;
+                let mut result = Vec::with_capacity(left.len());
+                for (left, right) in left.iter().zip(&right) {
+                    result.push(Value::Bool(compare(*operator, left, right, span)?));
+                }
+                Ok(lanes_of(result))
+            }
+            NodeKind::Reduce { how, number, value } => {
+                let lanes = self.lanes(value, frame)?;
+                reduce(*how, *number, lanes, span).map_err(Stop::Report)
+            }
+            NodeKind::LanePick {
+                condition,
+                if_true,
+                if_false,
+            } => {
+                let condition = self.lanes(condition, frame)?;
+                let if_true = self.lanes(if_true, frame)?;
+                let if_false = self.lanes(if_false, frame)?;
+                let picked = condition
+                    .iter()
+                    .zip(if_true.into_iter().zip(if_false))
+                    .map(|(chosen, (yes, no))| {
+                        if *chosen == Value::Bool(true) {
+                            yes
+                        } else {
+                            no
+                        }
+                    })
+                    .collect();
+                Ok(lanes_of(picked))
+            }
+            NodeKind::Shuffle { value, from } => {
+                let lanes = self.lanes(value, frame)?;
+                let mut result = Vec::with_capacity(from.len());
+                for lane in from {
+                    let Some(value) = lanes.get(*lane) else {
+                        return Err(oracle_bug(span, "a shuffle past the lanes"));
+                    };
+                    result.push(value.clone());
+                }
+                Ok(lanes_of(result))
+            }
+            NodeKind::JoinLanes { left, right } => {
+                let mut left = self.lanes(left, frame)?;
+                left.extend(self.lanes(right, frame)?);
+                Ok(lanes_of(left))
+            }
+            NodeKind::Lookup {
+                table,
+                which,
+                counts_from_zero,
+            } => {
+                let table = self.lanes(table, frame)?;
+                let which = self.lanes(which, frame)?;
+                lookup(&table, &which, *counts_from_zero, span).map(lanes_of)
+            }
+            _ => Err(oracle_bug(span, "something that isn't `simd` work")),
+        }
+    }
+}
+
+/// `.%lookup`: each lane from a position worked out while running, where one past the end is a
+/// bounds failure that says which lane. (D306)
+fn lookup(
+    table: &[Value],
+    which: &[Value],
+    counts_from_zero: bool,
+    span: Span,
+) -> Result<Vec<Value>, Stop> {
+    let mut result = Vec::with_capacity(which.len());
+    for (lane, position) in which.iter().enumerate() {
+        let Value::Integer(position) = position else {
+            return Err(oracle_bug(span, "a lookup position that isn't a number"));
+        };
+        let index = if counts_from_zero {
+            *position
+        } else {
+            position - 1
+        };
+        let found = usize::try_from(index)
+            .ok()
+            .and_then(|index| table.get(index));
+        let Some(found) = found else {
+            let word = if counts_from_zero {
+                "offset.lanes"
+            } else {
+                "pos"
+            };
+            return Err(Stop::Report(
+                Report::check_failed(
+                    span,
+                    format!("`{word}: {position}` is outside the table"),
+                    "a lane of `.%lookup` pointing past the end is a bounds failure that says which lane (D306)",
+                )
+                .when(format!(
+                    "in lane {}, and the table has {} lanes",
+                    lane + 1,
+                    table.len()
+                )),
+            ));
+        };
+        result.push(found.clone());
+    }
+    Ok(result)
+}
+
+/// A lane's failure says which lane, counting from 1 as `pos:` does. (D293)
+fn in_lane(mut report: Box<Report>, lane: usize) -> Box<Report> {
+    report.when = Some(match report.when.take() {
+        Some(when) => format!("in lane {}, {when}", lane + 1),
+        None => format!("in lane {}", lane + 1),
+    });
+    report
+}
+
+/// Combining lanes in the fixed pairwise order: neighbours in pairs, then the results in pairs,
+/// with an odd lane out carried up, so `.stable` floats and integer overflow come out the same
+/// on every CPU. (D296, D297)
+/// trace: D296, D297
+fn reduce(how: Reduction, number: Option<Number>, lanes: Vec<Value>, span: Span) -> Outcome<Value> {
+    let pair = |left: &Value, right: &Value| -> Outcome<Value> {
+        match how {
+            Reduction::AllTrue => Ok(Value::Bool(
+                *left == Value::Bool(true) && *right == Value::Bool(true),
+            )),
+            Reduction::AnyTrue => Ok(Value::Bool(
+                *left == Value::Bool(true) || *right == Value::Bool(true),
+            )),
+            Reduction::Sum | Reduction::Product => {
+                let operator = if how == Reduction::Sum {
+                    Arithmetic::Add
+                } else {
+                    Arithmetic::Multiply
+                };
+                let number = number.ok_or_else(|| {
+                    Report::check_failed(
+                        span,
+                        "the oracle got lost: maths on bool lanes",
+                        "this is a bug in the oracle, not in your program (rule 6)",
+                    )
+                })?;
+                arithmetic(operator, number, left, right, span)
+            }
+            Reduction::Min | Reduction::Max => {
+                let below = compare(CompareOperator::Below, right, left, span).map_err(|_| {
+                    Report::check_failed(
+                        span,
+                        "the oracle got lost: comparing lanes",
+                        "this is a bug in the oracle, not in your program (rule 6)",
+                    )
+                })?;
+                let take_right = if how == Reduction::Min {
+                    below
+                } else {
+                    compare(CompareOperator::Above, right, left, span).unwrap_or(false)
+                };
+                Ok(if take_right {
+                    right.clone()
+                } else {
+                    left.clone()
+                })
+            }
+        }
+    };
+    let mut round = lanes;
+    while round.len() > 1 {
+        let mut next = Vec::with_capacity(round.len().div_ceil(2));
+        for chunk in round.chunks(2) {
+            match chunk {
+                [left, right] => next.push(pair(left, right)?),
+                [carried] => next.push(carried.clone()),
+                _ => {}
+            }
+        }
+        round = next;
+    }
+    round.into_iter().next().ok_or_else(|| {
+        Report::check_failed(
+            span,
+            "the oracle got lost: a `simd` with no lanes",
+            "this is a bug in the oracle, not in your program (rule 6)",
+        )
+    })
 }
 
 /// A list handed an allocator other than the one it took its memory from, a failed check

@@ -1,0 +1,6 @@
+check failed: d293_a_lane_overflows.cy:5:35, line 5 column 35
+ 5 |     let $b: simd<i32>[lanes: 3] = $a + $a;
+   |                                   ^^^^^^^
+ what: this `+` overflows `i32`
+ why:  a plain `+` that overflows traps in `Working` (D42)
+ when: in lane 2, `2147483647 + 2147483647`

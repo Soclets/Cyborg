@@ -160,6 +160,11 @@ pub enum Type {
     BoundedStr(i128),
     /// `str[len.max: inf bytes]`: text that grows on the heap, and is `must_Give`. (D326)
     GrowableStr,
+    /// `simd<i32>[lanes: 4]`: several values, its lanes, worked on together. (D291)
+    Simd {
+        item: Box<Type>,
+        lanes: usize,
+    },
     /// `u32.secret` or `bool.secret`: a value that mustn't affect how long the program takes.
     /// (D339)
     Secret(Box<Type>),
@@ -232,6 +237,8 @@ impl Type {
         match self {
             Type::Integer { .. } | Type::Float { .. } | Type::Bool => true,
             Type::Secret(inner) => inner.is_always_copied(),
+            // A vector is a machine type like `i32`, so it's copied the same way. (D291)
+            Type::Simd { item, .. } => item.is_always_copied(),
             Type::New { underlying, .. } => underlying.is_always_copied(),
             _ => false,
         }
@@ -288,6 +295,7 @@ impl fmt::Display for Type {
             Type::Str => write!(formatter, "str"),
             Type::BoundedStr(bytes) => write!(formatter, "str[len.max: {bytes} bytes]"),
             Type::GrowableStr => write!(formatter, "str[len.max: inf bytes]"),
+            Type::Simd { item, lanes } => write!(formatter, "simd<{item}>[lanes: {lanes}]"),
             // `.secret` goes on the type's own name, before any brackets. (D339)
             Type::Secret(inner) => match &**inner {
                 Type::Integer { kind, bound, unit } => {

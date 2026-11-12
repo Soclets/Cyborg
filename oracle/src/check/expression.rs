@@ -1196,6 +1196,17 @@ impl Checker<'_> {
                 }
                 ((**item).clone(), target.clone())
             }
+            // trace: D291
+            Some(target @ Type::Simd { item, lanes }) => {
+                if usize::try_from(count).ok() != Some(*lanes) {
+                    return Err(Report::refused(
+                        span,
+                        format!("`{target}` has exactly {lanes} lanes, and this gives {count}"),
+                        "`[ ]` gives a `simd` its lanes, one value for each (D291)",
+                    ));
+                }
+                ((**item).clone(), target.clone())
+            }
             Some(other) => {
                 return Err(Report::refused(
                     span,
@@ -1238,6 +1249,17 @@ impl Checker<'_> {
         span: Span,
         expected: Option<&Type>,
     ) -> Outcome<(Node, Type)> {
+        // `all 0` fills a `simd`'s lanes too. (D291)
+        if let Some(target @ Type::Simd { item, lanes }) = expected {
+            let node = self.check_into(value, item)?;
+            return Ok((
+                Node {
+                    span,
+                    kind: NodeKind::All(Box::new(node), *lanes),
+                },
+                target.clone(),
+            ));
+        }
         let Some(target @ Type::Array { item, len, .. }) = expected else {
             return Err(Report::refused(
                 span,
@@ -2496,6 +2518,15 @@ impl Checker<'_> {
             let (node, found) = self.check_expression(receiver, None)?;
             (Some(node), found)
         };
+        // trace: D297, D302, D304, D306, D307
+        if let (true, Type::Simd { .. }) = (percent, &receiver_type) {
+            let receiver_type = receiver_type.clone();
+            let node = match fresh {
+                Some(node) => node,
+                None => self.check_expression(receiver, None)?.0,
+            };
+            return self.check_simd_method(node, &receiver_type, name, arguments, span);
+        }
         // trace: D340, D342
         if let (true, Type::Secret(_)) = (percent, &receiver_type) {
             let receiver_type = receiver_type.clone();
@@ -3007,6 +3038,15 @@ impl Checker<'_> {
         }
         // `as` never allocates, so a pure function can use it. (D328)
         // trace: D328
+        if let Some(result) = Self::simd_as(found, &target_type, span) {
+            result?;
+            return Ok(RawCall {
+                node,
+                value_type: target_type,
+                failures: Vec::new(),
+                unnamed: None,
+            });
+        }
         // trace: D122
         // trace: D161
         if let (Type::BoundedStr(bytes), Type::Float { kind, rules, .. }) = (&target_type, found) {
@@ -3387,6 +3427,30 @@ impl Checker<'_> {
         Ok((left_checked, right_checked))
     }
 
+    /// The arithmetic a binary operator does. `and` and `or` never reach here.
+    fn arithmetic_of(operator: BinaryOperator) -> Arithmetic {
+        match operator {
+            // `and` and `or` left for `check_logic`.
+            BinaryOperator::Add
+            | BinaryOperator::And
+            | BinaryOperator::Or
+            | BinaryOperator::AndBoth
+            | BinaryOperator::OrBoth => Arithmetic::Add,
+            BinaryOperator::Subtract => Arithmetic::Subtract,
+            BinaryOperator::Multiply => Arithmetic::Multiply,
+            BinaryOperator::Wrap(word) => Arithmetic::Wrap(word),
+            // The bounds are filled in once both sides' types are known.
+            BinaryOperator::Saturate(word) => Arithmetic::Saturate(word, 0, 0),
+            BinaryOperator::Divide(narrowing) => Arithmetic::Divide(narrowing),
+            BinaryOperator::Remainder(narrowing) => Arithmetic::Remainder(narrowing),
+            BinaryOperator::BitAnd => Arithmetic::BitAnd,
+            BinaryOperator::BitOr => Arithmetic::BitOr,
+            BinaryOperator::BitXor => Arithmetic::BitXor,
+            BinaryOperator::ShiftLeft => Arithmetic::ShiftLeft,
+            BinaryOperator::ShiftRight => Arithmetic::ShiftRight,
+        }
+    }
+
     fn check_binary(
         &mut self,
         operator: BinaryOperator,
@@ -3425,32 +3489,24 @@ impl Checker<'_> {
         }
         let ((left_node, left_type), (right_node, right_type)) =
             self.check_operands(left, right, expected)?;
+        // trace: D291, D293
+        if matches!(left_type, Type::Simd { .. }) || matches!(right_type, Type::Simd { .. }) {
+            let arithmetic = Self::arithmetic_of(operator);
+            return self.check_simd_binary(
+                arithmetic,
+                (left_node, left_type),
+                (right_node, right_type),
+                right,
+                span,
+            );
+        }
         // A secret allows only what takes the same time for every value, and spreads to the
         // result. (D339, D340, D341)
         // trace: D339, D340
         let (left_type, left_secret) = super::secrets::unwrap_secret(&left_type);
         let (right_type, right_secret) = super::secrets::unwrap_secret(&right_type);
         Self::refuse_secret_operator(operator, left_secret, right_secret, span)?;
-        let arithmetic = match operator {
-            // `and` and `or` left for `check_logic` above.
-            BinaryOperator::Add
-            | BinaryOperator::And
-            | BinaryOperator::Or
-            | BinaryOperator::AndBoth
-            | BinaryOperator::OrBoth => Arithmetic::Add,
-            BinaryOperator::Subtract => Arithmetic::Subtract,
-            BinaryOperator::Multiply => Arithmetic::Multiply,
-            BinaryOperator::Wrap(word) => Arithmetic::Wrap(word),
-            // The bounds are filled in once both sides' types are known.
-            BinaryOperator::Saturate(word) => Arithmetic::Saturate(word, 0, 0),
-            BinaryOperator::Divide(narrowing) => Arithmetic::Divide(narrowing),
-            BinaryOperator::Remainder(narrowing) => Arithmetic::Remainder(narrowing),
-            BinaryOperator::BitAnd => Arithmetic::BitAnd,
-            BinaryOperator::BitOr => Arithmetic::BitOr,
-            BinaryOperator::BitXor => Arithmetic::BitXor,
-            BinaryOperator::ShiftLeft => Arithmetic::ShiftLeft,
-            BinaryOperator::ShiftRight => Arithmetic::ShiftRight,
-        };
+        let arithmetic = Self::arithmetic_of(operator);
         let (number, mut result) =
             self.arithmetic_type(arithmetic, &left_type, &right_type, right, span)?;
         // trace: D294
@@ -3488,7 +3544,7 @@ impl Checker<'_> {
     /// Where a saturating operator sticks: the written `min:` and `max:` of whichever side has
     /// them, or the hardware's, and the bound the result keeps. (D294)
     /// trace: D294
-    fn saturate_bounds(
+    pub(super) fn saturate_bounds(
         left: &Type,
         right: &Type,
         span: Span,
@@ -3527,7 +3583,7 @@ impl Checker<'_> {
 
     /// The result type of maths on two operands, with every unit rule. (D100, D111)
     #[allow(clippy::too_many_lines)] // Integers and floats each have their own rules here.
-    fn arithmetic_type(
+    pub(super) fn arithmetic_type(
         &self,
         operator: Arithmetic,
         left: &Type,
@@ -3837,6 +3893,7 @@ impl Checker<'_> {
         }) {
             return self.own_comparison_chain(first, rest, span);
         }
+
         let mut nodes = Vec::new();
         let mut previous: Option<Type> = None;
         let mut first_node = None;
@@ -3856,6 +3913,25 @@ impl Checker<'_> {
             };
             let (left_node, left_type) = left_checked;
             let (right_node, right_type) = right_checked;
+            // trace: D301
+            if matches!(left_type, Type::Simd { .. }) || matches!(right_type, Type::Simd { .. }) {
+                let left_node = left_node.ok_or_else(|| {
+                    Report::not_designed(span, "a chain of comparisons on `simd` values", "")
+                })?;
+                if rest.len() != 1 {
+                    return Err(Report::not_designed(
+                        span,
+                        "a chain of comparisons on `simd` values",
+                        "",
+                    ));
+                }
+                return Self::simd_compare(
+                    *operator,
+                    (left_node, left_type),
+                    (right_node, right_type),
+                    span,
+                );
+            }
             // A comparison of a secret gives a `bool.secret`. (D340)
             // trace: D340
             let (left_plain, left_secret) = super::secrets::unwrap_secret(&left_type);

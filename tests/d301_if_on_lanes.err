@@ -1,0 +1,5 @@
+refused: d301_if_on_lanes.cy:6:8, line 6 column 8
+ 6 |     if $a == $b:
+   |        ^^^^^^^^
+ what: this is `simd<bool>[lanes: 2]`, one answer per lane, where `if` needs one `bool`
+ why:  `if` takes one `bool`, so the code says `.%all_true()` for every lane or `.%any_true()` for any lane, rather than one being picked quietly (D301)

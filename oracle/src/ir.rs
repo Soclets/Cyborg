@@ -98,6 +98,17 @@ pub enum Arithmetic {
     ShiftRight,
 }
 
+/// How a `simd`'s lanes combine into one value. (D297)
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Reduction {
+    Sum,
+    Product,
+    Min,
+    Max,
+    AllTrue,
+    AnyTrue,
+}
+
 impl Arithmetic {
     /// The plain operator whose unit rules this follows: `plus.wrap` adds units as `+` does.
     pub fn unit_rule(self) -> Arithmetic {
@@ -206,6 +217,47 @@ pub enum NodeKind {
     Writer {
         stderr: bool,
         size: Option<usize>,
+    },
+    /// An operator on two `simd` values, lane by lane, each lane checked like one value. (D293)
+    Lanewise {
+        operator: Arithmetic,
+        number: Number,
+        left: Box<Node>,
+        right: Box<Node>,
+    },
+    /// A comparison of two `simd` values, giving a `simd<bool>`. (D301)
+    LanewiseCompare {
+        operator: CompareOperator,
+        left: Box<Node>,
+        right: Box<Node>,
+    },
+    /// Combining a `simd`'s lanes into one value, in the fixed pairwise order. (D296, D297)
+    Reduce {
+        how: Reduction,
+        number: Option<Number>,
+        value: Box<Node>,
+    },
+    /// `.%pick` on a `simd<bool>`, lane by lane. (D302)
+    LanePick {
+        condition: Box<Node>,
+        if_true: Box<Node>,
+        if_false: Box<Node>,
+    },
+    /// A new vector whose lanes come from these lanes of another, counting from 0. (D304)
+    Shuffle {
+        value: Box<Node>,
+        from: Vec<usize>,
+    },
+    /// Two vectors end to end. (D307)
+    JoinLanes {
+        left: Box<Node>,
+        right: Box<Node>,
+    },
+    /// `.%lookup`: lanes from positions worked out while running, each checked. (D306)
+    Lookup {
+        table: Box<Node>,
+        which: Box<Node>,
+        counts_from_zero: bool,
     },
     /// `$same.%pick(if_true: $x, if_false: $y)`: both sides worked out, then one chosen, with
     /// no branch on the secret. (D340)

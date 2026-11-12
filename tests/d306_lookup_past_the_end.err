@@ -1,0 +1,6 @@
+check failed: d306_lookup_past_the_end.cy:14:37, line 14 column 37
+14 |     let $boom: simd<u8>[lanes: 3] = $table.%lookup(pos: $bad);
+   |                                     ^^^^^^^^^^^^^^^^^^^^^^^^^
+ what: `pos: 5` is outside the table
+ why:  a lane of `.%lookup` pointing past the end is a bounds failure that says which lane (D306)
+ when: in lane 2, and the table has 4 lanes

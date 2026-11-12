@@ -1,0 +1,5 @@
+refused: d305_a_bare_offset.cy:5:47, line 5 column 47
+ 5 |     let $r: simd<i32>[lanes: 1] = $v.%shuffle(offset: [0]);
+   |                                               ^^^^^^
+ fix:  `offset.lanes`
+ why:  a shuffle counting from 0 says `offset.lanes:`, matching the type's `lanes:` (D305)

@@ -8,6 +8,7 @@ mod hand;
 mod memory;
 mod operators;
 mod secrets;
+mod simd;
 mod units;
 mod writers;
 
@@ -2466,6 +2467,10 @@ impl Checker<'_> {
             None => (text.as_str(), None),
         };
         match head {
+            // trace: D291
+            "simd" if narrowing.is_none() => {
+                return self.resolve_simd_type(fill, describe, written.span);
+            }
             // trace: D339
             "bool" if narrowing == Some("secret") => {
                 return Ok(Type::Secret(Box::new(Type::Bool)));

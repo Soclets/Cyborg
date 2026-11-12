@@ -4734,7 +4734,16 @@ impl Parser {
         let percent = self.eat_symbol("%");
         // trace: D211
         let changes = percent && self.eat_symbol("%");
-        let name = self.expect_name("a field or a method")?;
+        let mut name = self.expect_name("a field or a method")?;
+        // A method can be narrowed, as in `.%rotate.left(by: 1)`. (D300, D307)
+        while percent && self.at_symbol(".") && matches!(self.peek_at(1).lexeme, Lexeme::Word(_)) {
+            self.advance();
+            let narrowing = self.expect_name("a narrowing")?;
+            name = Name {
+                text: format!("{}.{}", name.text, narrowing.text),
+                span: name.span.to(narrowing.span),
+            };
+        }
         if self.at_symbol("(") {
             let (arguments, end) = self.parse_arguments()?;
             return Ok(Expression {

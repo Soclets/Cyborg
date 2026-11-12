@@ -1,0 +1,5 @@
+NotBuiltYet: d292_lanes_max.cy:4:30, line 4 column 30
+ 4 |     let $d: simd<i32>[lanes: max] = all 0;
+   |                              ^^^
+ what: `lanes: max`, which is the target's own width, and the oracle builds for no target
+ why:  decided, but the oracle doesn't handle it yet (D286)

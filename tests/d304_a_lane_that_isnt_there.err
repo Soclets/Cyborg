@@ -1,0 +1,5 @@
+refused: d304_a_lane_that_isnt_there.cy:5:53, line 5 column 53
+ 5 |     let $r: simd<i32>[lanes: 1] = $v.%shuffle(pos: [5]);
+   |                                                     ^
+ what: this `simd` has 4 lanes, so there's no lane 5
+ why:  a shuffle lists, for each lane of the result, which lane it comes from, with `pos:` counting from 1 or `offset.lanes:` from 0, fixed when compiling (D304, D305)

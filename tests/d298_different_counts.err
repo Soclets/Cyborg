@@ -1,0 +1,5 @@
+refused: d298_different_counts.cy:7:35, line 7 column 35
+ 7 |     let $v: simd<i32>[lanes: 4] = $a as simd<i32>[lanes: 4];
+   |                                   ^^^^^^^^^^^^^^^^^^^^^^^^^
+ what: `std::array<i32>[len: 3 items]` and `simd<i32>[lanes: 4]` have different counts
+ why:  `as` converts between an array and a `simd` of the same count, so it can't fail (D298)

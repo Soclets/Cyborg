@@ -1,0 +1,6 @@
+check failed: d296_pairwise_sum.cy:12:52, line 12 column 52
+12 |     std::io::fmt_print(Lend.mut $out, "{}{newln}", $b.%sum());
+   |                                                    ^^^^^^^^^
+ what: this `+` overflows `i32`
+ why:  a plain `+` that overflows traps in `Working` (D42)
+ when: `1 + 2147483647`
