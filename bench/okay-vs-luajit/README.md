@@ -49,7 +49,7 @@ What's behind them:
 
 ## Versions and machine
 
-- An Apple M5, macOS 27.2, with a load average of about 2 on 10 cores, so not a quiet machine.
+- An Apple M5, macOS 27.2.1, with a load average of about 2 on 10 cores, so not a quiet machine.
 - `OKAY\n` at the compiler clone's `12483ed9`, a debug build of the compiler, from before the compiler stopped on
   2026-11-11. So the Cyborg programs are written in that day's syntax: the manifest's `okay` line instead of
   `dialect original` (D310), `size:` instead of `room:` (D386), `std::array` instead of `std::coll::array` (D378), and
