@@ -1290,6 +1290,8 @@ A `type_set` is a closed list of types that nothing can join later, as in `type_
 
 **D394. A generic parameter writes its word when a struct could fill it.** Under D393 and D244, a parameter of type `?item` has a choice whenever a struct could fill `?item`, so it says `Lent`, `Lent.mut` or `Given`, as in `fn largest<?item: ordered> [$a: Lent ?item, $b: Lent ?item] -> ?item:`, and a bare one is refused, with a fix asking which. A call writes the word its actual argument needs, so `largest(3, 5)` stays bare, since numbers have no choice, and `largest(Lend $morning, Lend $noon)` lends its structs. When a requirement can only be filled by plain numbers, like `whole`, a `type_set` of `i32` and `i64`, there's no choice, so the parameter is bare, as in `fn smaller<?item: whole and ordered> [$a: ?item, $b: ?item]`. Claude left generic parameters out of D393's edits; the owner said "design the generic params"; Claude proposed it; the owner chose: "yea". (Owner, 2026-11-12)
 
+**D395. Interface signatures write ownership words like any other signature.** An interface declares the exact shape every type's version must have, so a `?self` a struct could fill says its word: `op below [$a: Lent ?self, $b: Lent ?self] -> bool;` in `interface ordered`, following D393 and D394, and a type's own `op below` matches it. 5.8's example had it bare. Oracle claude asked; Claude proposed it; the owner chose: "yea". (Owner, 2026-11-12)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude
