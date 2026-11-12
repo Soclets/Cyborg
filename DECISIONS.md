@@ -1192,6 +1192,8 @@ A `type_set` is a closed list of types that nothing can join later, as in `type_
 
 **D345. Tasks run on an explicit runner.** Every `@concur::spawn` names where its task runs, as in `@concur::spawn(on: Lend $pool) sum(…)`, the way every `append` names its allocator (D322). `std` has a runner interface, like `std::allocator` (D333), so anyone can write a runner, like a board package for a dual-core chip or a test runner, and `std` has a runner that runs tasks one after another on any machine, bare metal included, giving the same answers without the speed-up. `os::threads(count: 8)` gives real threads on an operating system. The thread count is always written, never quietly taken from the machine, so a program behaves the same everywhere unless it chooses otherwise. How to ask for every core is not settled here, since the owner said `os::cores` "doesn't say it uses all cores", and neither are the runners' names. Claude proposed it; the owner chose: "yea". (Owner, 2026-11-12)
 
+**D346. `os::threads(count: max)` asks for a thread for every core.** `max` as a value already means "as many as this machine has" in `--max_cores=max` (D224) and `lanes: max` (D292), so `count: max` follows them. It's written, so a reader sees the count depends on the machine, and a program that wants the same behaviour everywhere writes a number instead (D345). The owner said `os::cores` "doesn't say it uses all cores"; Claude proposed `max`; the owner chose: "Y". (Owner, 2026-11-12)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude
