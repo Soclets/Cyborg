@@ -34,7 +34,8 @@ Each works in its own clone, on `main` with no branch, and runs `git pull --reba
    `NotDesignedYet` error, with the question going to the owner through design claude.
    Something decided that a session hasn't built yet gives `NotBuiltYet` instead, never `NotDesignedYet`. (D286)
 5. **Tests.** Output matches the oracle byte for byte, except `f64.fast`, which only has to be close, and may crash where the
-   oracle doesn't. (D163) Nothing is pushed while a test fails.
+   oracle doesn't. (D163) Nothing is pushed while a test fails. The oracle knows each target's sizes, and a test whose
+   answer depends on them, like an arena running out with pointers inside, names its target. (D387)
 6. **A bad program never crashes the compiler.** No `unwrap`, `expect` or panic on a path real programs take. If the compiler
    itself fails, it says so and how to report it.
 7. **Style.** `rustfmt`, `clippy`, and comments that say why. Every crate has these lints (D65):
