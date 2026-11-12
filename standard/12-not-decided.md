@@ -133,7 +133,7 @@ These are inherited from Radium with D2:
 
 And one of Cyborg's own:
 
-- Concurrency: threads, sharing data between them, and anything like Go's goroutines or async. Nothing is designed yet, and how it fits ownership and reproducibility is open.
+- Concurrency (D343): tasks are structured, and the rest is open: spelling, where threads come from, sharing data, and waiting on many things at once.
 
 ## 12.9 Limbs and projects
 
