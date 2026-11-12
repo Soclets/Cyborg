@@ -67,7 +67,21 @@ need csup 2026y-09m-30d with headers
 
 Every limb is a native library for the machine compiling, a `.dylib`, `.so` or `.dll`, behind a stable C interface, loaded by `OKAY\n` while compiling. `std`'s limb half and Precog plug in the same way as anyone else's, with none privileged. A limb isn't sandboxed: it's trusted when the manifest lists it, and an unverified one gets a warning, not a refusal: "a limb runs inside the compiler and can change what your program does. Use it only if you trust where it came from." A limb runs only while compiling, so a program is the same whether its limbs were built in or loaded. A limb could make builds differ, by reading a clock or a file, and keeping them reproducible is its author's job.
 
-**From:** D22, D28, D334.
+A limb's syntax is only ever `@`-marked items, in a fixed menu of positions, so it never reserves a plain word and two limbs never clash:
+
+| Position | Example |
+|---|---|
+| A type | `@csup::union.untagged` |
+| A call or value | `@money::round_half_even($x)` |
+| A statement | `@trace::here;` |
+| A block with Cyborg inside | `@gpu::kernel …: … end @gpu::kernel` |
+| A raw block in another language | `inline.@llvm::ir: … end inline.@llvm::ir` |
+| In place of `=` in a `let` | `let $count @precog::set_to_best 0;` |
+| A rule in the manifest | `rule @house_style::fn::name_length` |
+
+Raw text that Cyborg doesn't parse is only allowed inside an `inline.` block, so every file stays readable by any Cyborg reader, editor and tool. The names in the examples are made up.
+
+**From:** D22, D28, D334, D335.
 
 ## 9.4 Inline code: `inline`
 
