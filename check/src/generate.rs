@@ -2021,6 +2021,7 @@ impl Generator<'_> {
         Expression::Integer(value)
     }
 
+    #[allow(clippy::too_many_lines)] // One roll per kind of integer value, read top to bottom.
     fn integer(&mut self, scope: &Scope, kind: Kind, depth: usize) -> Expression {
         let roll = self.random.between(0, 9);
         if depth == 0 || roll < 3 {
