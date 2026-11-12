@@ -172,7 +172,7 @@ let mut $log: str[len.max: inf bytes] = empty;
 defer str.done(Give $log, alloc: Lend $alloc);
 ```
 
-A bare `str` is a read-only view of text: any length, never owning memory, never changing and never `must_Give`. A literal is one that lasts the whole program, and lending any string gives one, so a function that takes `str` reads every kind of string. A view of another string is a borrow, following the rules for stored borrows ([6.10](6-ownership.md#610-stored-borrows)).
+A bare `str` is a read-only view of text: any length, never owning memory, never changing and never `must_Give`. A literal is one that lasts the whole program, and lending any string gives one, so a function that takes `str` reads every kind of string. A literal never goes away, so a view of one is stored and returned freely, as in a struct field holding `"kitchen"`. A view of another string is a borrow: passing one into a function needs nothing, but storing or returning one writes its source, following the rules for stored borrows ([6.10](6-ownership.md#610-stored-borrows)), as in `fn first_word [$text: str] -> Lend from $text str:`.
 
 ```
 fn load [$path: str] -> config fails [file_failed, bad_syntax]:
@@ -192,7 +192,7 @@ load(Lend $log);
 
 **Refused:** `str.utf8`, because it's the default ([1.7](1-programs.md#17-bare-names)), and `""`, with `fix: empty`, because it could look like unfinished work.
 
-**From:** D48, D50, D51, D103, D326, D327.
+**From:** D48, D50, D51, D103, D326, D327, D367.
 
 ## 2.10 Lists
 
