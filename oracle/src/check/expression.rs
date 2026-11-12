@@ -401,7 +401,7 @@ impl Checker<'_> {
         expression: &Expression,
     ) -> Outcome<Node> {
         if *found == Type::Str {
-            return Self::text_into(node, target, expression);
+            return self.text_into(node, target, expression);
         }
         self.coerce_secret(node, found, target, expression)
     }
@@ -436,13 +436,19 @@ impl Checker<'_> {
     }
 
     /// Heap text needs heap memory, which takes an allocator. (D321, D326)
-    fn text_into(node: Node, target: &Type, expression: &Expression) -> Outcome<Node> {
+    fn text_into(&self, node: Node, target: &Type, expression: &Expression) -> Outcome<Node> {
         let Type::BoundedStr(bytes) = *target else {
+            // trace: D369
             return Err(Report::refused(
                 expression.span,
                 format!("this text needs heap memory to go into `{target}`, which takes an allocator"),
-                "anything that takes heap memory takes an allocator, so heap text comes from a call like `str.from(…, alloc: Lend $heap)` (D321, D326, D328)",
-            ));
+                "anything that takes heap memory takes an allocator, so heap text comes from a call like `str.from(…, alloc: Lend $heap)` (D321, D326, D328, D369)",
+            )
+            .fix(format!(
+                "str.from({}, alloc: Lend {})",
+                self.text_of(expression.span),
+                self.an_allocator_name()
+            )));
         };
         let NodeKind::Constant(Value::Str(text)) = &node.kind else {
             return Err(Report::not_built(
@@ -1183,6 +1189,21 @@ impl Checker<'_> {
                         ),
                         "",
                     ));
+                }
+                // Filling a growable list allocates, and every allocation names its allocator.
+                // (D321, D369)
+                // trace: D369
+                if max.is_none() {
+                    return Err(Report::refused(
+                        span,
+                        format!("these items need heap memory to go into `{target}`, which takes an allocator"),
+                        "a list that grows on the heap is filled with `std::coll::list.from([…], alloc: Lend $heap)`, since every allocation names its allocator (D321, D369)",
+                    )
+                    .fix(format!(
+                        "std::coll::list.from({}, alloc: Lend {})",
+                        self.text_of(span),
+                        self.an_allocator_name()
+                    )));
                 }
                 if min.is_some_and(|min| count < min) || max.is_some_and(|max| count > max) {
                     return Err(Report::refused(
@@ -2047,6 +2068,10 @@ impl Checker<'_> {
         // trace: D323, D325, D331
         if rest == "list.done" || rest == "map.done" {
             return self.check_list_done(rest, arguments, span, path_span);
+        }
+        // trace: D369
+        if rest == "list.from" {
+            return self.check_list_from(arguments, span, path_span);
         }
         // trace: D330, D333
         if rest.starts_with("arena.") {

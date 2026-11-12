@@ -5,7 +5,8 @@ import os;
 
 fn.main [none] -> void:
     let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
-    let $xs: std::coll::list<i32>[len.max: inf items] = [1, 2, 3];
+    let $heap: os::heap = os::heap();
+    let $xs: std::coll::list<i32>[len.max: inf items] = std::coll::list.from([1, 2, 3], alloc: Lend $heap);
     for $n in Give $xs:
         if $n == 2:
             break;

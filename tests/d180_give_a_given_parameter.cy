@@ -21,7 +21,8 @@ fn close_all [$files: Given std::coll::list<open_file>[len.max: inf items]] -> v
 end fn close_all
 
 fn.main [none] -> void:
-    let $files: std::coll::list<open_file>[len.max: inf items] = [open_file[fd = 3], open_file[fd = 4]];
+    let $heap: os::heap = os::heap();
+    let $files: std::coll::list<open_file>[len.max: inf items] = std::coll::list.from([open_file[fd = 3], open_file[fd = 4]], alloc: Lend $heap);
     close_all(Give $files);
     return void;
 end fn.main

@@ -12,7 +12,7 @@ end fn eat
 
 fn.main [none] -> void:
     let $heap: os::heap = os::heap();
-    let $xs: std::coll::list<box>[len.max: inf items] = [box[s = "a"]];
+    let $xs: std::coll::list<box>[len.max: inf items] = std::coll::list.from([box[s = "a"]], alloc: Lend $heap);
     defer std::coll::list.done(Give $xs, alloc: Lend $heap);
     for $b in $xs:
         eat(Give $b.s);

@@ -9,7 +9,7 @@ end fn grow
 
 fn.main [none] -> void:
     let $heap: os::heap = os::heap();
-    let mut $xs: std::coll::list<i32>[len.max: inf items] = [1];
+    let mut $xs: std::coll::list<i32>[len.max: inf items] = std::coll::list.from([1], alloc: Lend $heap);
     defer std::coll::list.done(Give $xs, alloc: Lend $heap);
     change $xs[pos: 1] = grow(Lend.mut $xs);
     return void;

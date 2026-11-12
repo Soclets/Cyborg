@@ -10,7 +10,7 @@ end struct box
 fn.main [none] -> void:
     let $heap: os::heap = os::heap();
     let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
-    let $xs: std::coll::list<box>[len.max: inf items] = [box[n = 1]];
+    let $xs: std::coll::list<box>[len.max: inf items] = std::coll::list.from([box[n = 1]], alloc: Lend $heap);
     defer std::coll::list.done(Give $xs, alloc: Lend $heap);
     for $b in $xs:
         std::io::fmt_print(Lend.mut $out, "{}{newln}", $b.n);

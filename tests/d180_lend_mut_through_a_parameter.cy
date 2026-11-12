@@ -16,7 +16,7 @@ end fn warm_all
 fn.main [none] -> void:
     let $heap: os::heap = os::heap();
     let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
-    let mut $readings: std::coll::list<reading>[len.max: inf items] = [reading[celsius = 1]];
+    let mut $readings: std::coll::list<reading>[len.max: inf items] = std::coll::list.from([reading[celsius = 1]], alloc: Lend $heap);
     defer std::coll::list.done(Give $readings, alloc: Lend $heap);
     warm_all(Lend.mut $readings);
     for $r in $readings:

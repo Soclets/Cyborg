@@ -8,7 +8,7 @@ end struct reading
 
 fn.main [none] -> void:
     let $heap: os::heap = os::heap();
-    let mut $readings: std::coll::list<reading>[len.max: inf items] = [reading[celsius = 20]];
+    let mut $readings: std::coll::list<reading>[len.max: inf items] = std::coll::list.from([reading[celsius = 20]], alloc: Lend $heap);
     defer std::coll::list.done(Give $readings, alloc: Lend $heap);
     for $r in $readings:
         change $r.celsius = 0;

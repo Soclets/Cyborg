@@ -18,7 +18,8 @@ fn open [$fd: i32] -> open_file:
 end fn open
 
 fn.main [none] -> void:
-    let $files: std::coll::list<open_file>[len.max: inf items] = [open(3)];
+    let $heap: os::heap = os::heap();
+    let $files: std::coll::list<open_file>[len.max: inf items] = std::coll::list.from([open(3)], alloc: Lend $heap);
     finish $files;
     return void;
 end fn.main

@@ -14,7 +14,8 @@ fn close [$f: Given open_file] -> void:
 end fn close
 
 fn.main [none] -> void:
-    let mut $files: std::coll::list<open_file>[len.max: inf items] = [open_file[fd = 3]];
+    let $heap: os::heap = os::heap();
+    let mut $files: std::coll::list<open_file>[len.max: inf items] = std::coll::list.from([open_file[fd = 3]], alloc: Lend $heap);
     for $f in Lend.mut $files:
         close(Give $f);
     end for

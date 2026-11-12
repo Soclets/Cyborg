@@ -325,6 +325,12 @@ pub enum NodeKind {
         text: Box<Node>,
         allocator: Box<Node>,
     },
+    /// `std::coll::list.from([1, 2, 3], alloc: Lend $heap)`, a growable list filled from items,
+    /// which remembers its allocator. (D369)
+    ListFrom {
+        items: Box<Node>,
+        allocator: Box<Node>,
+    },
     /// `str.done(Give $log, alloc: Lend $heap)`, which ends heap text. (D331)
     TextDone {
         text: Box<Node>,

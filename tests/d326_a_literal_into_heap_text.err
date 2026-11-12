@@ -1,5 +1,5 @@
 refused: d326_a_literal_into_heap_text.cy:4:41, line 4 column 41
  4 |     let $log: str[len.max: inf bytes] = "abc";
    |                                         ^^^^^
- what: this text needs heap memory to go into `str[len.max: inf bytes]`, which takes an allocator
- why:  anything that takes heap memory takes an allocator, so heap text comes from a call like `str.from(…, alloc: Lend $heap)` (D321, D326, D328)
+ fix:  `str.from("abc", alloc: Lend $heap)`
+ why:  anything that takes heap memory takes an allocator, so heap text comes from a call like `str.from(…, alloc: Lend $heap)` (D321, D326, D328, D369)

@@ -1022,6 +1022,17 @@ impl<'c> Runner<'c> {
                 self.allocator_number(allocator, frame)?;
                 self.evaluate(text, frame)
             }
+            // trace: D369
+            NodeKind::ListFrom { items, allocator } => {
+                let Value::List(items, _) = self.evaluate(items, frame)? else {
+                    return Err(oracle_bug(
+                        span,
+                        "`list.from` on something that isn't a list",
+                    ));
+                };
+                let allocator = self.allocator_number(allocator, frame)?;
+                Ok(Value::List(items, Some(allocator)))
+            }
             NodeKind::TextDone { text, allocator } => {
                 self.evaluate(text, frame)?;
                 self.allocator_number(allocator, frame)?;

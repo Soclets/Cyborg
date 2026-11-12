@@ -1,9 +1,9 @@
-refused: d180_give_list_gone_inside.cy:20:9, line 20 column 9
-20 |         std::io::fmt_print(Lend.mut $out, "{}{newln}", $files.len);
+refused: d180_give_list_gone_inside.cy:21:9, line 21 column 9
+21 |         std::io::fmt_print(Lend.mut $out, "{}{newln}", $files.len);
    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
  what: `$files` was already given away
  why:  a given value is dead afterwards (D2)
- because: d180_give_list_gone_inside.cy:19:15, line 19 column 15
-19 |     for $f in Give $files:
+ because: d180_give_list_gone_inside.cy:20:15, line 20 column 15
+20 |     for $f in Give $files:
    |               ^^^^^^^^^^^
      `$files` was given away here

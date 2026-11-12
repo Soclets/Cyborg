@@ -1,8 +1,10 @@
 // trace: D180, D2
 import std;
+import os;
 
 fn make [none] -> std::coll::list<i32>[len.max: inf items]:
-    return [1, 2];
+    let $heap: os::heap = os::heap();
+    return std::coll::list.from([1, 2], alloc: Lend $heap);
 end fn make
 
 fn.main [none] -> void:

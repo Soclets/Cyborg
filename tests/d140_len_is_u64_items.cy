@@ -5,7 +5,7 @@ import os;
 fn.main [none] -> void:
     let $heap: os::heap = os::heap();
     let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
-    let mut $xs: std::coll::list<i32>[len.max: inf items] = [1, 2, 3];
+    let mut $xs: std::coll::list<i32>[len.max: inf items] = std::coll::list.from([1, 2, 3], alloc: Lend $heap);
     defer std::coll::list.done(Give $xs, alloc: Lend $heap);
     let $n: u64[unit: items] = $xs.len;
     std::io::fmt_print(Lend.mut $out, "{}{newln}", $n);

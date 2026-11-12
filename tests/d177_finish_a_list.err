@@ -1,15 +1,15 @@
-NotDesignedYet: d177_finish_a_list.cy:22:12, line 22 column 12
-22 |     finish $files;
+NotDesignedYet: d177_finish_a_list.cy:23:12, line 23 column 12
+23 |     finish $files;
    |            ^^^^^^
  what: `finish` on a collection of `must_Give` values
  why:  not decided yet, and the standard doesn't say
 
-refused: d177_finish_a_list.cy:23:5, line 23 column 5
-23 |     return void;
+refused: d177_finish_a_list.cy:24:5, line 24 column 5
+24 |     return void;
    |     ^^^^^^^^^^^^
  what: this leaves with `$files` never given away or finished
  why:  a list that can grow on the heap is `must_Give`, and `std::coll::list.done` frees it with the allocator it came from, so a leak doesn't compile (D323, D325, D331)
- because: d177_finish_a_list.cy:21:9, line 21 column 9
-21 |     let $files: std::coll::list<open_file>[len.max: inf items] = [open(3)];
+ because: d177_finish_a_list.cy:22:9, line 22 column 9
+22 |     let $files: std::coll::list<open_file>[len.max: inf items] = std::coll::list.from([open(3)], alloc: Lend $heap);
    |         ^^^^^^
      `$files` was made here

@@ -45,6 +45,24 @@ pub(super) fn out_of_memory() -> Failure {
 const WHY_ALLOCATOR: &str = "anything that takes heap memory is handed an allocator, as in `alloc: Lend $heap`, so where memory comes from is always said (D321, D322)";
 
 impl Checker<'_> {
+    /// The name of an allocator in scope, for a fix, or `$heap` when there's none yet.
+    pub(super) fn an_allocator_name(&self) -> String {
+        self.context
+            .scopes
+            .iter()
+            .rev()
+            .flat_map(|scope| scope.iter())
+            .filter(|(_, slot)| {
+                self.context
+                    .variables
+                    .get(**slot)
+                    .is_some_and(|variable| is_allocator(&variable.held_type))
+            })
+            .map(|(name, _)| format!("${name}"))
+            .min()
+            .unwrap_or_else(|| "$heap".to_string())
+    }
+
     /// The type of the variable an argument names, through any ownership word, read without
     /// handing it over yet.
     pub(super) fn variable_type_of(&self, value: &Expression) -> Option<Type> {
@@ -233,6 +251,87 @@ impl Checker<'_> {
 }
 
 impl Checker<'_> {
+    /// `std::coll::list.from([1, 2, 3], alloc: Lend $heap)` fills a growable list from items,
+    /// since filling one allocates, and every allocation names its allocator. It takes its type
+    /// from where it goes, as a literal does. (D321, D369)
+    /// trace: D369
+    pub(super) fn check_list_from(
+        &mut self,
+        arguments: &[Argument],
+        span: Span,
+        path_span: Span,
+    ) -> Outcome<RawCall> {
+        const WHY: &str = "a list that grows on the heap is filled with `std::coll::list.from([1, 2, 3], alloc: Lend $heap)`, since every allocation names its allocator (D321, D369)";
+        let target = self.context.call_expected.clone();
+        let Some(Type::List {
+            item,
+            min,
+            max: None,
+            len_type,
+        }) = target.clone()
+        else {
+            return Err(Report::refused(
+                path_span,
+                "`std::coll::list.from` makes a list that grows on the heap, so it goes where one is written, with `len.max: inf items`",
+                WHY,
+            ));
+        };
+        let [items, allocator] = arguments else {
+            return Err(Report::refused(
+                path_span,
+                "`std::coll::list.from` takes the items, then `alloc:`",
+                WHY,
+            ));
+        };
+        if items.label.is_some()
+            || allocator
+                .label
+                .as_ref()
+                .is_none_or(|label| label.text != "alloc")
+        {
+            return Err(Report::refused(
+                path_span,
+                "`std::coll::list.from` takes the items, then `alloc:`",
+                WHY,
+            ));
+        }
+        let ExpressionKind::Items(written) = &items.value.kind else {
+            return Err(Report::not_designed(
+                items.value.span,
+                "`std::coll::list.from` on anything but `[ ]` items",
+                "",
+            ));
+        };
+        // The items go in as a list just big enough for them, checked against `len.min:`.
+        let count = i128::try_from(written.len()).unwrap_or(i128::MAX);
+        let holder = Type::List {
+            item: item.clone(),
+            min,
+            max: Some(count),
+            len_type,
+        };
+        let (items_node, _) = self.check_expression(&items.value, Some(&holder))?;
+        let mut handed = Vec::new();
+        let allocator = self.allocator_argument(&allocator.value, &mut handed)?;
+        Ok(RawCall {
+            node: Node {
+                span,
+                kind: NodeKind::ListFrom {
+                    items: Box::new(items_node),
+                    allocator: Box::new(allocator),
+                },
+            },
+            value_type: Type::List {
+                item,
+                min,
+                max: None,
+                len_type,
+            },
+            failures: vec![out_of_memory()],
+            unnamed: None,
+        })
+    }
+
     /// `str.from($n, alloc: Lend $heap)` makes heap text, and `str.done(Give $log, alloc: Lend
     /// $heap)` ends it. They're led by the type's own name, since `str` is a base type. (D331)
     /// trace: D326, D328, D331
@@ -311,7 +410,9 @@ impl Checker<'_> {
                 span,
                 kind: NodeKind::FloatToStr(crate::ir::Number::Float(*kind, *rules), Box::new(node)),
             },
-            Type::Str if matches!(value.value.kind, ExpressionKind::Text(_)) => node,
+            // `str.from` takes a string as well as a number, and copies its text. (D369)
+            // trace: D369
+            Type::Str | Type::BoundedStr(_) | Type::GrowableStr => node,
             other => {
                 return Err(Report::not_built(
                     value.value.span,

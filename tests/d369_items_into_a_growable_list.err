@@ -1,0 +1,15 @@
+refused: d369_items_into_a_growable_list.cy:9:61, line 9 column 61
+ 9 |     let mut $xs: std::coll::list<i32>[len.max: inf items] = [1, 2, 3];
+   |                                                             ^^^^^^^^^
+ fix:  `std::coll::list.from([1, 2, 3], alloc: Lend $heap)`
+ why:  a list that grows on the heap is filled with `std::coll::list.from([…], alloc: Lend $heap)`, since every allocation names its allocator (D321, D369)
+
+refused: d369_items_into_a_growable_list.cy:10:11, line 10 column 11
+10 |     defer std::coll::list.done(Give $xs, alloc: Lend $heap);
+   |           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ what: `$xs` never got a value
+ why:  a variable is read only after it has one (D203)
+ because: d369_items_into_a_growable_list.cy:9:61, line 9 column 61
+ 9 |     let mut $xs: std::coll::list<i32>[len.max: inf items] = [1, 2, 3];
+   |                                                             ^^^^^^^^^
+     with `std::coll::list.from([1, 2, 3], alloc: Lend $heap)` here, this error goes away
