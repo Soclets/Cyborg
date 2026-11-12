@@ -627,6 +627,9 @@ impl Checker<'_> {
             }),
             Type::Bool => Ok((1, 1)),
             Type::Pointer { .. } => Ok((pointer, pointer)),
+            // A view is where its text or items are, and how many, each pointer-sized. (D390)
+            // trace: D390
+            Type::Str | Type::ListView { .. } => Ok((pointer.saturating_mul(2), pointer)),
             Type::Array { item, len, .. } => {
                 let (size, align) = self.layout_of(item, pointer)?;
                 let count = u64::try_from(*len).unwrap_or(u64::MAX);
