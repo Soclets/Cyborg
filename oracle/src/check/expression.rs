@@ -1942,9 +1942,13 @@ impl Checker<'_> {
         span: Span,
         path_span: Span,
     ) -> Outcome<RawCall> {
-        // trace: D323, D331
-        if rest == "list.done" {
-            return self.check_list_done(arguments, span, path_span);
+        // trace: D323, D325, D331
+        if rest == "list.done" || rest == "map.done" {
+            return self.check_list_done(rest, arguments, span, path_span);
+        }
+        // trace: D330, D333
+        if rest.starts_with("arena.") {
+            return Err(Report::not_built(path_span, format!("`std::{rest}`")));
         }
         // `std` is grouped with `::`, and `.` after a function is a narrowing.
         // trace: D196, D161

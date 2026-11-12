@@ -1,0 +1,5 @@
+NotBuiltYet: d333_an_arena_isnt_built_yet.cy:8:21, line 8 column 21
+ 8 |     let mut $arena: std::arena = std::arena.new(size: 1 mib, alloc: Lend $heap);
+   |                     ^^^^^^^^^^
+ what: `std::arena`
+ why:  decided, but the oracle doesn't handle it yet (D286)

@@ -606,6 +606,9 @@ impl Checker<'_> {
         // trace: D273
         let why = if super::writers::is_buffered_writer(&variable.held_type) {
             "a buffered writer is `must_Give`, and `os::done(Give $out);` flushes it for the last time and ends its duty, so no output is lost (D272, D273)"
+        } else if matches!(variable.held_type, Type::Map { .. }) {
+            // trace: D325, D331
+            "a map owns heap memory, so it's `must_Give`, and `std::map.done` frees it with the allocator it came from, so a leak doesn't compile (D325, D331)"
         } else if variable.held_type == Type::GrowableStr {
             // trace: D326, D331
             "heap text is `must_Give`, and `str.done` frees it with the allocator it came from, so a leak doesn't compile (D326, D331)"

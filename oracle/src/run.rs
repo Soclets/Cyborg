@@ -1002,13 +1002,11 @@ impl<'c> Runner<'c> {
             NodeKind::ListDone { list, allocator } => {
                 let list = self.evaluate(list, frame)?;
                 let allocator = self.allocator_number(allocator, frame)?;
-                let Value::List(_, used) = list else {
-                    return Err(oracle_bug(
-                        span,
-                        "`std::list.done` on something that isn't a list",
-                    ));
-                };
-                check_allocator(used, allocator, "this list", span)?;
+                match list {
+                    Value::List(_, used) => check_allocator(used, allocator, "this list", span)?,
+                    Value::Map => {}
+                    _ => return Err(oracle_bug(span, "`done` on something that isn't a list")),
+                }
                 Ok(Value::Void)
             }
             NodeKind::Flush { writer, .. } => {

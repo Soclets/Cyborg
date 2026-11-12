@@ -1986,7 +1986,9 @@ impl Checker<'_> {
         }
         // A list that can grow on the heap owns memory, so it's ended with `done`. (D323, D325)
         // trace: D323, D325
-        if memory::is_growable(value_type) || *value_type == Type::GrowableStr {
+        if memory::is_growable(value_type)
+            || matches!(value_type, Type::GrowableStr | Type::Map { .. })
+        {
             return true;
         }
         match value_type {
@@ -3042,6 +3044,8 @@ impl Checker<'_> {
                     "a collection's types go in `< >` (D24)",
                 ))
             }
+            // trace: D330, D333
+            "arena" | "allocator" => Err(Report::not_built(path.span, format!("`std::{rest}`"))),
             other => Err(Report::not_designed(
                 path.span,
                 format!("the type `std::{other}`"),

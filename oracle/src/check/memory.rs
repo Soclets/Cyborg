@@ -24,6 +24,15 @@ pub(super) fn is_growable(value_type: &Type) -> bool {
     matches!(value_type, Type::List { max: None, .. })
 }
 
+/// What `std::list.done` or `std::map.done` ends: a growable list, or any map, since a map
+/// always owns heap memory. (D323, D325)
+fn ended_by(done: &str, value_type: &Type) -> bool {
+    match done {
+        "map.done" => matches!(value_type, Type::Map { .. }),
+        _ => is_growable(value_type),
+    }
+}
+
 /// Running out of memory is a failure, handled like any other. (D321, D324)
 pub(super) fn out_of_memory() -> Failure {
     Failure {
@@ -150,11 +159,12 @@ impl Checker<'_> {
     /// trace: D323, D331
     pub(super) fn check_list_done(
         &mut self,
+        done: &str,
         arguments: &[Argument],
         span: Span,
         path_span: Span,
     ) -> Outcome<RawCall> {
-        const WHY: &str = "`std::list.done(Give $xs, alloc: Lend $heap);` ends a list that grows on the heap, freeing it with the allocator it came from (D323, D331)";
+        const WHY: &str = "`std::list.done(Give $xs, alloc: Lend $heap);` ends a list that grows on the heap, and `std::map.done` a map, freeing it with the allocator it came from (D323, D325, D331)";
         let (list, allocator) = match arguments {
             [list, allocator]
                 if list.label.is_none()
@@ -168,15 +178,22 @@ impl Checker<'_> {
             _ => {
                 return Err(Report::refused(
                     path_span,
-                    "`std::list.done` takes a list, then `alloc:`",
+                    format!("`std::{done}` takes what it ends, then `alloc:`"),
                     WHY,
                 ))
             }
         };
-        let Some(list_type) = self.variable_type_of(&list.value).filter(is_growable) else {
+        let Some(list_type) = self
+            .variable_type_of(&list.value)
+            .filter(|found| ended_by(done, found))
+        else {
             return Err(Report::refused(
                 list.value.span,
-                "`std::list.done` ends a list that grows on the heap, with `len.max: inf items`",
+                if done == "map.done" {
+                    "`std::map.done` ends a map"
+                } else {
+                    "`std::list.done` ends a list that grows on the heap, with `len.max: inf items`"
+                },
                 WHY,
             ));
         };
