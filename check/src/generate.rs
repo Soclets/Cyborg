@@ -103,6 +103,8 @@ struct Generator<'random> {
     writers: bool,
     /// Whether the print being made is `.stored`, whose floats take no shapes (1.13).
     stored_print: bool,
+    /// The kinds whose `fn.pure.baked` function something calls, so it's declared (5.11).
+    baked: Vec<Kind>,
     /// The kinds whose list-view functions some call uses, so they're declared (2.10).
     views: Vec<Kind>,
     /// Whether the function being made has a heap of its own, so its lists can grow (2.10).
@@ -160,6 +162,7 @@ pub fn program(seed: u64) -> Program {
         returns: None,
         degrees: "std::units::angle.degrees",
         views: Vec::new(),
+        baked: Vec::new(),
         has_heap: false,
         writers: false,
         stored_print: false,
@@ -281,6 +284,7 @@ pub fn program(seed: u64) -> Program {
         failure_family: generator.failure_family,
         uses: generator.uses,
         views: generator.views,
+        baked: generator.baked,
         writers: generator.writers,
         methods: generator.methods,
         arena: generator.arena,
@@ -2088,12 +2092,41 @@ impl Generator<'_> {
     /// fail, so its value is known when compiling and nothing rests on how a compile-time
     /// overflow is reported (2.3).
     fn constant(&mut self, scope: &mut Scope) -> Statement {
+        // Now and then a float constant, from a literal (2.3).
+        if self.random.chance(20) {
+            let value_type = Type::Float(self.random.chance(50));
+            let value = self.float_literal();
+            let name = self.name("k");
+            scope.variables.push((name.clone(), value_type));
+            return Statement::Const {
+                name,
+                value_type,
+                value,
+            };
+        }
         let kind = self.integer_kind();
         let value = self.constant_value(scope, kind, 2);
         let name = self.name("k");
         scope.variables.push((name.clone(), Type::Integer(kind)));
         self.constants.push(name.clone());
-        Statement::Const { name, kind, value }
+        Statement::Const {
+            name,
+            value_type: Type::Integer(kind),
+            value,
+        }
+    }
+
+    /// A call to `bk_…`, the `fn.pure.baked` function for this kind, declared once it's used
+    /// (5.11).
+    fn baked_call(&mut self, kind: Kind, argument: Expression) -> Expression {
+        if !self.baked.contains(&kind) {
+            self.baked.push(kind);
+        }
+        Expression::Call {
+            function: format!("bk_{}", kind.word()),
+            arguments: vec![(None, argument)],
+            handling: Handling::Crash,
+        }
     }
 
     fn constant_value(&mut self, scope: &Scope, kind: Kind, depth: usize) -> Expression {
@@ -2112,6 +2145,11 @@ impl Generator<'_> {
                 }
             }
             return self.literal(kind);
+        }
+        // A constant can call a `fn.pure.baked` function (2.3, 5.11).
+        if self.random.chance(25) {
+            let argument = self.constant_value(scope, kind, depth - 1);
+            return self.baked_call(kind, argument);
         }
         let operator = *self
             .random
@@ -3649,6 +3687,17 @@ impl Generator<'_> {
             if let Some(call) = self.generic_integer(scope, kind, depth) {
                 return call;
             }
+        }
+        // A `fn.pure.baked` function, called while running, or baked in place with `bake`
+        // from a value known while compiling (5.11).
+        if roll == 4 && !self.no_calls && self.random.chance(30) {
+            if self.random.chance(50) {
+                let argument = self.constant_value(scope, kind, 1);
+                let call = self.baked_call(kind, argument);
+                return Expression::Bake(Box::new(call));
+            }
+            let argument = self.integer(scope, kind, depth.saturating_sub(1));
+            return self.baked_call(kind, argument);
         }
         // A recursive call, kept to a few levels by `mod.trunc` (5.1).
         if roll == 4

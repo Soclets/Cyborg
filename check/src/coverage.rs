@@ -9,7 +9,8 @@
 ///   checked values, as variables, parameters and struct fields; `f32.stable` and `f64.stable` from exact literals, ones marked `~`, and
 ///   `exponent` ones; `.ieee` floats, dividing by zero now and then, crossing into `.stable`
 ///   with `as`; `.fast` floats; bounded floats;
-///   `const` from literals and other constants; `type.alias` names used as their integer, and
+///   `const` from literals, other constants and calls to `fn.pure.baked` functions, and float
+///   `const`s; `bake` on such a call, and the same functions called while running; `type.alias` names used as their integer, and
 ///   `type.new` names, alone or in a `fam.type.new` family, crossing in and out with `as`; `decl` and `decl mut` with an `assign` straight after, in both arms of an `if`, or in every arm of a `match`;
 /// - maths: `+`, `-`, `x`, the `.wrap` and `.saturate` words, `div` and `mod` with `.trunc` and
 ///   `.floor`, a bare `div` on floats, the `.bit` operators, and `shl` and `shr` on unsigned
@@ -80,7 +81,6 @@
 ///   by `str.from` from text or a number, ended by a deferred `str.done`.
 pub const NOT_GENERATED: &[&str] = &[
     "1.13 undecided: what a point is, for a width (12.2); `places:` or `form:` with `.stored`; a width with no `align:`",
-    "2.3 `const` calling `fn.pure.baked` functions, float constants, constants whose maths overflows",
     "2.6, 2.7 still to do: floats in structs, arrays and calls; undecided: a negative exponent (12.2)",
     "2.9 still to do: strings in struct fields and function calls; undecided: escapes in string literals and how literals work (12.2), and `==` on `str` (12)",
     "2.10 undecided: a full list's failure named in an `otherwise` arm (12.7)",
@@ -91,7 +91,7 @@ pub const NOT_GENERATED: &[&str] = &[
     "2.21 `simd` with one value, chunks, shuffles, `pick`, lookups, `lanes: max`, floats in lanes, `as` from arrays",
     "2.22 `bool.secret` values with `and.both`, `or.both` and `not`, secrets in arrays and `simd`, shifts on secrets",
     "4.4 `for` over a fresh collection, since generated functions don't return arrays or lists yet",
-    "5.x contracts that call pure functions, methods with labels or on other types, `bake`; generics with more than one type parameter, and generic structs holding structs; undecided: specialization, value parameters, type slots and how laws are proven (12.5)",
+    "5.x contracts that call pure functions, methods with labels or on other types; generics with more than one type parameter, and generic structs holding structs; undecided: specialization, value parameters, type slots and how laws are proven (12.5)",
     "6.x stored borrows and `.held`, `Lend from` results, `must_Give` values that leave a loop or a `match`, and `defer` on anything but ending a value",
     "7.x structs holding other structs, lists or borrows, beyond the `must_Give` holder, handing unions to functions",
     "9.x still to do: tasks on `os::threads` and `os::events`, tasks that borrow, locks and atomics; `pub` and `use` between packages, once programs have more than one; NotBuiltYet: `.at(address:)`, which points at hardware the oracle doesn't have; undecided: a shield's own `requires` and `ensures` (12.9), your own allocator (2.10)",

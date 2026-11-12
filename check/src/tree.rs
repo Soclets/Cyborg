@@ -297,6 +297,8 @@ pub enum Expression {
     },
     Bool(bool),
     Variable(String),
+    /// `bake …`, a call to a `fn.pure.baked` function worked out while compiling (5.11).
+    Bake(Box<Expression>),
     /// A variable lent to a call, `Lend $r` (6.4).
     Lend(String),
     /// A variable lent to a call to change, `Lend.mut $l` (6.5).
@@ -723,7 +725,8 @@ pub enum Statement {
     /// `const $k: i32 = 60 times.wrap 60;`, known when compiling (2.3).
     Const {
         name: String,
-        kind: Kind,
+        /// An integer, or a `.stable` float (2.3).
+        value_type: Type,
         value: Expression,
     },
     /// `let mut $u: u1 = u1.c3[g4 = …];` (7.5)
@@ -902,6 +905,8 @@ pub struct Function {
 #[derive(Clone, Debug)]
 pub struct Program {
     pub unit_families: Vec<UnitFamily>,
+    /// The kinds that have `bk_…`, a `fn.pure.baked` function (5.11).
+    pub baked: Vec<Kind>,
     /// Whether `main` also has `$err`, unbuffered to stderr, and `$buf`, buffered to stdout and
     /// finished by a deferred `os::done` (1.13).
     pub writers: bool,
@@ -1271,6 +1276,13 @@ pub fn print(program: &Program) -> String {
     }
     if let Some(generics) = &program.generics {
         print_generics(&mut out, generics);
+    }
+    for kind in &program.baked {
+        let kind = kind.word();
+        let _ = writeln!(
+            out,
+            "fn.pure.baked bk_{kind} [$n: {kind}] -> {kind}:\n    return ($n times.wrap 3) plus.wrap 1;\nend fn.pure.baked bk_{kind}\n"
+        );
     }
     for kind in &program.views {
         let kind = kind.word();
@@ -1766,11 +1778,15 @@ fn print_block(out: &mut String, statements: &[Statement], depth: usize, style: 
                 );
                 let _ = writeln!(out, "{indent}end if");
             }
-            Statement::Const { name, kind, value } => {
+            Statement::Const {
+                name,
+                value_type,
+                value,
+            } => {
                 let _ = writeln!(
                     out,
                     "{indent}const ${name}: {} = {};",
-                    kind.word(),
+                    value_type.word(),
                     style.expression(value)
                 );
             }
@@ -2242,6 +2258,7 @@ impl Style {
             Expression::Item { array, position } => item(array, position),
             Expression::Field { variable, field } => format!("${variable}.{field}"),
             Expression::Lend(variable) => format!("Lend ${variable}"),
+            Expression::Bake(call) => format!("bake {}", self.expression(call)),
             Expression::LendMut(variable) => format!("Lend.mut ${variable}"),
             Expression::CallMethod { receiver, name } => format!("${receiver}.%{name}()"),
         }
