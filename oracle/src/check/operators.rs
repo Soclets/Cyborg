@@ -82,9 +82,18 @@ impl Checker<'_> {
                 left,
                 right,
             } => {
+                // A number literal is never a struct or union, so next to a plain number it's
+                // built-in maths, since a type's own operator has its own type on a side. (D236)
+                // trace: D236
+                let literal = |side: &Expression| super::expression::is_number_literal(side);
+                let left_literal = literal(left);
+                let right_literal = literal(right);
                 let left = self.type_from_form(left);
                 let right = self.type_from_form(right);
-                if let Some(word) = arithmetic_word(*operator) {
+                let built_in = (left_literal && right.as_ref().is_some_and(plain_number))
+                    || (right_literal && left.as_ref().is_some_and(plain_number))
+                    || (left_literal && right_literal);
+                if let (false, Some(word)) = (built_in, arithmetic_word(*operator)) {
                     if let Some(found) = self.find_operator(word, left.as_ref(), right.as_ref()) {
                         return Some(found.result.clone());
                     }
