@@ -7,8 +7,10 @@ struct reading:
 end struct reading
 
 fn.main [none] -> void:
+    let $heap: os::heap = os::heap();
     let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     let mut $readings: std::list<reading>[len.max: inf items] = [reading[celsius = 20], reading[celsius = 30]];
+    defer std::list.done(Give $readings, alloc: Lend $heap);
     for $r in Lend.mut $readings:
         change $r.celsius = $r.celsius + 1;
     end for

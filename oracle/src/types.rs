@@ -366,8 +366,9 @@ pub enum Value {
     Struct(Vec<Value>),
     /// A union's case by its index, with its fields.
     Case(usize, Vec<Value>),
-    /// Lists and arrays look the same once running.
-    List(Vec<Value>),
+    /// Lists and arrays look the same once running. A list that grows on the heap remembers
+    /// which allocator it uses, by number, once it first allocates. (D322)
+    List(Vec<Value>, Option<usize>),
     Map,
 }
 

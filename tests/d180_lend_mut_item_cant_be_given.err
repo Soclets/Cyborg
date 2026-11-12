@@ -8,7 +8,7 @@ refused: d180_lend_mut_item_cant_be_given.cy:21:5, line 21 column 5
 21 |     return void;
    |     ^^^^^^^^^^^^
  what: this leaves with `$files` never given away or finished
- why:  a `must_Give` value is handed off with `Give` exactly once, or `finish` ends it (D2, D129)
+ why:  a list that can grow on the heap is `must_Give`, and `std::list.done` frees it with the allocator it came from, so a leak doesn't compile (D323, D325, D331)
  because: d180_lend_mut_item_cant_be_given.cy:17:13, line 17 column 13
 17 |     let mut $files: std::list<open_file>[len.max: inf items] = [open_file[fd = 3]];
    |             ^^^^^^

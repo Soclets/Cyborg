@@ -5,6 +5,7 @@ mod body;
 mod expression;
 mod generics;
 mod hand;
+mod memory;
 mod operators;
 mod units;
 mod writers;
@@ -114,6 +115,9 @@ struct GlobalInfo {
 #[derive(Clone, Debug, Default)]
 struct VariableState {
     given: Option<Span>,
+    /// A `defer` will give it away when its block ends, so its duty is met and nothing else
+    /// may give it away. (D325)
+    promised: Option<Span>,
     /// Given on one path and not on another, as a join of branches leaves it.
     given_on_some_path: bool,
     trust: Option<usize>,
@@ -211,6 +215,9 @@ struct FunctionContext {
     return_type: Type,
     failures: Option<Vec<Failure>>,
     scopes: Vec<HashMap<String, usize>>,
+    /// What each `defer` promised to give away, with how many scopes deep it was, so the
+    /// promise becomes a real give when that block ends. (D325)
+    promises: Vec<(usize, usize, Span)>,
     variables: Vec<Variable>,
     state: Vec<VariableState>,
     in_contract: bool,
@@ -272,6 +279,7 @@ impl FunctionContext {
             return_type: Type::Void,
             failures: None,
             scopes: vec![HashMap::new()],
+            promises: Vec::new(),
             variables: Vec::new(),
             state: Vec::new(),
             in_contract: false,
@@ -1974,6 +1982,11 @@ impl Checker<'_> {
     fn is_must_give(&self, value_type: &Type) -> bool {
         // trace: D272, D273
         if writers::is_buffered_writer(value_type) {
+            return true;
+        }
+        // A list that can grow on the heap owns memory, so it's ended with `done`. (D323, D325)
+        // trace: D323, D325
+        if memory::is_growable(value_type) {
             return true;
         }
         match value_type {

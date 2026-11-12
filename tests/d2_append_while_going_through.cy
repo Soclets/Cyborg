@@ -1,11 +1,14 @@
 // `for` reads in place, and `Lend.mut` means nothing else uses it meanwhile.
 // trace: D2
 import std;
+import os;
 
 fn.main [none] -> void:
+    let $heap: os::heap = os::heap();
     let mut $xs: std::list<i32>[len.max: inf items] = [1, 2];
+    defer std::list.done(Give $xs, alloc: Lend $heap);
     for $x in $xs:
-        $xs.std::%%append(val: $x);
+        $xs.std::%%append(val: $x, alloc: Lend $heap);
     end for
     return void;
 end fn.main

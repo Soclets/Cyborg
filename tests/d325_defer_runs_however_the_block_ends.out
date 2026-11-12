@@ -1,0 +1,8 @@
+returning early
+second deferred, first to run
+first deferred, last to run
+reaching the end
+second deferred, first to run
+first deferred, last to run
+end of round 1
+end of round 2

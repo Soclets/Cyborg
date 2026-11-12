@@ -1009,7 +1009,7 @@ impl Checker<'_> {
                         "`empty` is refused where it can't be true, so a list with `len.min` above 0 can't use it (D102, D103)",
                     ));
                 }
-                Ok((node(Value::List(Vec::new())), target.clone()))
+                Ok((node(Value::List(Vec::new(), None)), target.clone()))
             }
             Some(target @ Type::Map { .. }) => Ok((node(Value::Map), target.clone())),
             Some(other) => Err(Report::refused(
@@ -1885,6 +1885,10 @@ impl Checker<'_> {
         span: Span,
         path_span: Span,
     ) -> Outcome<RawCall> {
+        // trace: D323, D331
+        if rest == "list.done" {
+            return self.check_list_done(arguments, span, path_span);
+        }
         // `std` is grouped with `::`, and `.` after a function is a narrowing.
         // trace: D196, D161
         if let Some(inside) = rest.strip_prefix("math.") {
@@ -2512,7 +2516,10 @@ impl Checker<'_> {
             default: None,
             label_has_unit: false,
         }];
-        let bound = self.bind_arguments(&parameters, false, arguments, span, "append")?;
+        // trace: D321, D322
+        let growable = max.is_none();
+        let (arguments, allocator) = Self::split_allocator(arguments, growable, span)?;
+        let bound = self.bind_arguments(&parameters, false, &arguments, span, "append")?;
         let mut handed = vec![HandedOff {
             root: held.root_name.clone(),
             path: place.keys(),
@@ -2536,6 +2543,15 @@ impl Checker<'_> {
                 }
             }
         }
+        let allocator_node = match allocator {
+            Some(allocator) => {
+                written.push(&allocator.value);
+                Some(Box::new(
+                    self.allocator_argument(&allocator.value, &mut handed)?,
+                ))
+            }
+            None => None,
+        };
         Self::check_handed_together(&handed, &Self::reads_in_place(&written))?;
         let Some(item_node) = item_node else {
             return Err(Report::refused(
@@ -2551,13 +2567,20 @@ impl Checker<'_> {
                     receiver: place,
                     shown: receiver_text,
                     item: Box::new(item_node),
+                    allocator: allocator_node,
                     max,
                     count_limit: len_type.range().1,
                 },
             },
             value_type: Type::Void,
-            failures: Vec::new(),
-            unnamed: Some(("what the failure is called when a list is full", "12.7")),
+            // A growable list can run out of memory, and a finite one can be full. (D321)
+            failures: if growable {
+                vec![super::memory::out_of_memory()]
+            } else {
+                Vec::new()
+            },
+            unnamed: (!growable)
+                .then_some(("what the failure is called when a list is full", "12.7")),
         })
     }
 

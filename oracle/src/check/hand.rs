@@ -605,6 +605,20 @@ impl Checker<'_> {
                 ));
             }
         }
+        // trace: D325
+        if let Some(promised) = self
+            .context
+            .state
+            .get(slot)
+            .and_then(|state| state.promised)
+        {
+            return Err(Report::refused(
+                value.span,
+                format!("`${name}` is promised to a `defer`, so it can't be given away here"),
+                "a deferred `Give` ends the value's duty when its block ends, so the value is yours to read and change until then, but not to give away (D325)",
+            )
+            .because(promised, "it's promised here"));
+        }
         self.refuse_while_read(&name, &[], value.span)?;
         self.note_use(&name, UseKind::Write, value.span);
         let given_span = self.use_span(hand_span);

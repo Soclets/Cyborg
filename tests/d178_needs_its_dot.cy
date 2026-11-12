@@ -1,11 +1,14 @@
 // `.` never runs code, so the short name still goes after `.%`.
 // trace: D178, D8
 import std;
+import os;
 
 use std::list.%%append as %%append;
 
 fn.main [none] -> void:
+    let $heap: os::heap = os::heap();
     let mut $xs: std::list<i32>[len.max: inf items] = empty;
-    $xs.append(val: 4);
+    defer std::list.done(Give $xs, alloc: Lend $heap);
+    $xs.append(val: 4, alloc: Lend $heap);
     return void;
 end fn.main

@@ -12,11 +12,13 @@ fn total [$xs: std::list<i32>[len.max: inf items]] -> i32:
 end fn total
 
 fn.main [none] -> void:
+    let $heap: os::heap = os::heap();
     let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     let mut $xs: std::list<i32>[len.max: inf items] = empty;
-    $xs.std::%%append(val: 4);
-    $xs.std::%%append(val: 6);
-    $xs.std::%%append(val: 5);
+    defer std::list.done(Give $xs, alloc: Lend $heap);
+    $xs.std::%%append(val: 4, alloc: Lend $heap);
+    $xs.std::%%append(val: 6, alloc: Lend $heap);
+    $xs.std::%%append(val: 5, alloc: Lend $heap);
 
     let $t: i32 = total(Lend $xs);
     std::io::fmt_print(Lend.mut $out, "count: {}{newln}", $xs.len);

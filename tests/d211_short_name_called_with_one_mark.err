@@ -1,5 +1,5 @@
-refused: d211_short_name_called_with_one_mark.cy:7:9, line 7 column 9
- 7 |     $xs.%append(val: 4);
+refused: d211_short_name_called_with_one_mark.cy:10:9, line 10 column 9
+10 |     $xs.%append(val: 4, alloc: Lend $heap);
    |         ^^^^^^^
  fix:  `%%append`
  why:  `.%` lends a receiver read-only and `.%%` lends it to change, so the call shows which (D211)

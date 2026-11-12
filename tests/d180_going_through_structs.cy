@@ -8,8 +8,10 @@ struct box:
 end struct box
 
 fn.main [none] -> void:
+    let $heap: os::heap = os::heap();
     let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     let $xs: std::list<box>[len.max: inf items] = [box[n = 1]];
+    defer std::list.done(Give $xs, alloc: Lend $heap);
     for $b in $xs:
         std::io::fmt_print(Lend.mut $out, "{}{newln}", $b.n);
     end for

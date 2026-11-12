@@ -1,0 +1,5 @@
+refused: d321_a_finite_list_takes_no_allocator.cy:9:38, line 9 column 38
+ 9 |     $xs.std::%%append(val: 4, alloc: Lend $heap);
+   |                                      ^^^^^^^^^^
+ what: a list with a finite `len.max` holds its items inside it, so it takes no allocator
+ why:  a list with a finite `len.max` needs no allocator, since its size is known (D321)

@@ -319,6 +319,7 @@ impl Checker<'_> {
         } else {
             self.check_innermost_scope_end(end_span)
         };
+        self.keep_promises();
         self.context.scopes.pop();
         scope_check?;
         Ok((code, terminated))
@@ -528,6 +529,51 @@ impl Checker<'_> {
         Ok(())
     }
 
+    /// `defer`: the statement is checked where it's written, and what it gives away is promised
+    /// rather than gone, so the value stays usable until the block ends, and nothing else may
+    /// give it away. (D325)
+    /// trace: D325
+    fn check_defer(&mut self, inner: &Statement, span: Span) -> Outcome<InstructionKind> {
+        if !matches!(
+            inner.kind,
+            StatementKind::Expression(_) | StatementKind::Change { .. }
+        ) {
+            return Err(Report::not_built(
+                inner.span,
+                "deferring anything but a call or a `change`",
+            ));
+        }
+        let before: Vec<Option<Span>> =
+            self.context.state.iter().map(|state| state.given).collect();
+        let (instruction, _) = self.check_statement(inner)?;
+        let depth = self.context.scopes.len();
+        for (slot, state) in self.context.state.iter_mut().enumerate() {
+            if state.given.is_some() && before.get(slot).copied().flatten().is_none() {
+                state.given = None;
+                state.promised = Some(span);
+                self.context.promises.push((depth, slot, span));
+            }
+        }
+        Ok(InstructionKind::Defer(Box::new(instruction)))
+    }
+
+    /// When a block ends, what its `defer`s promised is given away. (D325)
+    fn keep_promises(&mut self) {
+        let depth = self.context.scopes.len();
+        let (kept, pending): (Vec<_>, Vec<_>) = self
+            .context
+            .promises
+            .drain(..)
+            .partition(|(promised_at, _, _)| *promised_at == depth);
+        self.context.promises = pending;
+        for (_, slot, span) in kept {
+            if let Some(state) = self.context.state.get_mut(slot) {
+                state.promised = None;
+                state.given = Some(span);
+            }
+        }
+    }
+
     /// A `must_Give` value has to have been given or finished by the time its holder goes away.
     /// trace: D2, D129
     pub(super) fn check_duty_ended(&self, slot: usize, exit: Option<Span>) -> Outcome<()> {
@@ -535,6 +581,16 @@ impl Checker<'_> {
             return Ok(());
         };
         if !variable.must_give {
+            return Ok(());
+        }
+        // A deferred `Give` ends the duty on every path. (D325)
+        // trace: D325
+        if self
+            .context
+            .state
+            .get(slot)
+            .is_some_and(|state| state.promised.is_some())
+        {
             return Ok(());
         }
         let given = self.context.state.get(slot).and_then(|state| state.given);
@@ -550,6 +606,9 @@ impl Checker<'_> {
         // trace: D273
         let why = if super::writers::is_buffered_writer(&variable.held_type) {
             "a buffered writer is `must_Give`, and `os::done(Give $out);` flushes it for the last time and ends its duty, so no output is lost (D272, D273)"
+        } else if super::memory::is_growable(&variable.held_type) {
+            // trace: D323, D325
+            "a list that can grow on the heap is `must_Give`, and `std::list.done` frees it with the allocator it came from, so a leak doesn't compile (D323, D325, D331)"
         } else {
             "a `must_Give` value is handed off with `Give` exactly once, or `finish` ends it (D2, D129)"
         };
@@ -853,6 +912,7 @@ impl Checker<'_> {
                 name,
                 written_type,
             } => self.check_decl(*mutable, name, written_type)?,
+            StatementKind::Defer(inner) => self.check_defer(inner, span)?,
             StatementKind::Assign { name, value } => self.check_assign(name, value, span)?,
             StatementKind::Constant {
                 name,

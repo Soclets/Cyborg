@@ -99,7 +99,7 @@ fn walk<'v>(value: &'v Value, path: &[usize]) -> Option<&'v Value> {
     let mut current = value;
     for step in path {
         current = match current {
-            Value::Struct(fields) | Value::Case(_, fields) | Value::List(fields) => {
+            Value::Struct(fields) | Value::Case(_, fields) | Value::List(fields, _) => {
                 fields.get(*step)?
             }
             _ => return None,
@@ -112,7 +112,7 @@ fn walk_mut<'v>(value: &'v mut Value, path: &[usize]) -> Option<&'v mut Value> {
     let mut current = value;
     for step in path {
         current = match current {
-            Value::Struct(fields) | Value::Case(_, fields) | Value::List(fields) => {
+            Value::Struct(fields) | Value::Case(_, fields) | Value::List(fields, _) => {
                 fields.get_mut(*step)?
             }
             _ => return None,
@@ -136,6 +136,8 @@ struct Runner<'c> {
     out: std::io::BufWriter<std::io::Stdout>,
     /// The terminal writers the program made, by number. (D273)
     writers: Vec<Writer>,
+    /// How many allocators the program has made, so each gets its own number. (D322)
+    allocators: usize,
 }
 
 /// A terminal writer: which stream, and for a buffered one, its size and what it holds.
@@ -274,6 +276,7 @@ impl<'c> Runner<'c> {
             step_limit,
             out: std::io::BufWriter::new(std::io::stdout()),
             writers: Vec::new(),
+            allocators: 0,
         }
     }
 
@@ -387,11 +390,28 @@ impl<'c> Runner<'c> {
         Err(Stop::Report(report.because(because, note)))
     }
 
+    /// Runs a block, then its `defer`s in reverse order, however it ended. (D325)
+    /// trace: D325
     fn run_block(&mut self, body: &[Instruction], frame: &mut Frame) -> Result<(), Stop> {
+        let mut deferred: Vec<&Instruction> = Vec::new();
+        let mut result = Ok(());
         for instruction in body {
-            self.run_instruction(instruction, frame)?;
+            if let InstructionKind::Defer(inner) = &instruction.kind {
+                deferred.push(inner);
+                continue;
+            }
+            result = self.run_instruction(instruction, frame);
+            if result.is_err() {
+                break;
+            }
         }
-        Ok(())
+        for inner in deferred.into_iter().rev() {
+            let ran = self.run_instruction(inner, frame);
+            if result.is_ok() {
+                result = ran;
+            }
+        }
+        result
     }
 
     /// Works out where a place is right now. An item's position runs here, and is checked here.
@@ -441,7 +461,7 @@ impl<'c> Runner<'c> {
                     let count = {
                         let root = binding.root.borrow();
                         match walk(&root, &binding.path) {
-                            Some(Value::List(items)) => items.len(),
+                            Some(Value::List(items, _)) => items.len(),
                             _ => return Err(oracle_bug(span, "an item of something else")),
                         }
                     };
@@ -484,6 +504,8 @@ impl<'c> Runner<'c> {
         let span = instruction.span;
         self.step(span)?;
         match &instruction.kind {
+            // A `defer` outside a block's own list, which `run_block` keeps, runs at once.
+            InstructionKind::Defer(inner) => self.run_instruction(inner, frame),
             InstructionKind::Let { slot, value } => {
                 let value = self.evaluate(value, frame)?;
                 Self::set_slot(frame, *slot, Binding::fresh(value), span)
@@ -546,7 +568,7 @@ impl<'c> Runner<'c> {
                 collection,
                 body,
             } => {
-                let Value::List(items) = self.evaluate(collection, frame)? else {
+                let Value::List(items, _) = self.evaluate(collection, frame)? else {
                     return Err(oracle_bug(
                         span,
                         "`for` on something that isn't a collection",
@@ -569,7 +591,7 @@ impl<'c> Runner<'c> {
             } => {
                 let base = self.binding_of(frame, place, span)?;
                 let count = match walk(&base.root.borrow(), &base.path) {
-                    Some(Value::List(items)) => items.len(),
+                    Some(Value::List(items, _)) => items.len(),
                     _ => {
                         return Err(oracle_bug(
                             span,
@@ -791,7 +813,7 @@ impl<'c> Runner<'c> {
             NodeKind::Item(base, position) => {
                 let value = self.evaluate(base, frame)?;
                 let number = self.position_number(position, frame)?;
-                let Value::List(items) = value else {
+                let Value::List(items, _) = value else {
                     return Err(oracle_bug(span, "an item of something else"));
                 };
                 let index = item_index(number, items.len(), position)?;
@@ -820,11 +842,11 @@ impl<'c> Runner<'c> {
                 for item in items {
                     values.push(self.evaluate(item, frame)?);
                 }
-                Ok(Value::List(values))
+                Ok(Value::List(values, None))
             }
             NodeKind::All(value, count) => {
                 let value = self.evaluate(value, frame)?;
-                Ok(Value::List(vec![value; *count]))
+                Ok(Value::List(vec![value; *count], None))
             }
             NodeKind::Arithmetic {
                 operator,
@@ -942,6 +964,25 @@ impl<'c> Runner<'c> {
                 let number = i128::try_from(self.writers.len() - 1).unwrap_or(i128::MAX);
                 Ok(Value::Struct(vec![Value::Integer(number)]))
             }
+            // trace: D322, D332
+            NodeKind::Allocator => {
+                self.allocators += 1;
+                let number = i128::try_from(self.allocators).unwrap_or(i128::MAX);
+                Ok(Value::Struct(vec![Value::Integer(number)]))
+            }
+            // trace: D322, D323
+            NodeKind::ListDone { list, allocator } => {
+                let list = self.evaluate(list, frame)?;
+                let allocator = self.allocator_number(allocator, frame)?;
+                let Value::List(_, used) = list else {
+                    return Err(oracle_bug(
+                        span,
+                        "`std::list.done` on something that isn't a list",
+                    ));
+                };
+                check_allocator(used, allocator, "this list", span)?;
+                Ok(Value::Void)
+            }
             NodeKind::Flush { writer, .. } => {
                 let number = self.writer_number(writer, frame)?;
                 self.flush_writer(number, span)?;
@@ -951,11 +992,27 @@ impl<'c> Runner<'c> {
                 receiver,
                 shown,
                 item,
+                allocator,
                 max,
                 count_limit,
-            } => self.append(receiver, shown, item, *max, *count_limit, frame, span),
+            } => {
+                let allocator = match allocator {
+                    Some(allocator) => Some(self.allocator_number(allocator, frame)?),
+                    None => None,
+                };
+                self.append(
+                    receiver,
+                    shown,
+                    item,
+                    allocator,
+                    *max,
+                    *count_limit,
+                    frame,
+                    span,
+                )
+            }
             NodeKind::Length(value) => {
-                let Value::List(items) = self.evaluate(value, frame)? else {
+                let Value::List(items, _) = self.evaluate(value, frame)? else {
                     return Err(oracle_bug(span, "`.len` on something else"));
                 };
                 Ok(Value::Integer(
@@ -1113,6 +1170,18 @@ impl<'c> Runner<'c> {
         }
     }
 
+    /// Which allocator an allocator's value is.
+    fn allocator_number(&mut self, allocator: &Node, frame: &mut Frame) -> Result<usize, Stop> {
+        match self.evaluate(allocator, frame)? {
+            Value::Struct(fields) => match fields.first() {
+                Some(Value::Integer(number)) => usize::try_from(*number)
+                    .map_err(|_| oracle_bug(allocator.span, "an allocator with a bad number")),
+                _ => Err(oracle_bug(allocator.span, "an allocator with no number")),
+            },
+            _ => Err(oracle_bug(allocator.span, "an allocator that isn't one")),
+        }
+    }
+
     /// Which writer a writer's value is.
     fn writer_number(&mut self, writer: &Node, frame: &mut Frame) -> Result<usize, Stop> {
         match self.evaluate(writer, frame)? {
@@ -1235,6 +1304,7 @@ impl<'c> Runner<'c> {
         receiver: &Place,
         shown: &str,
         item: &Node,
+        allocator: Option<usize>,
         max: Option<i128>,
         count_limit: i128,
         frame: &mut Frame,
@@ -1243,7 +1313,7 @@ impl<'c> Runner<'c> {
         let item = self.evaluate(item, frame)?;
         let binding = self.binding_of(frame, receiver, span)?;
         let mut root = binding.root.borrow_mut();
-        let Some(Value::List(items)) = walk_mut(&mut root, &binding.path) else {
+        let Some(Value::List(items, alloc)) = walk_mut(&mut root, &binding.path) else {
             return Err(oracle_bug(span, "`append` on something that isn't a list"));
         };
         let count = i128::try_from(items.len()).unwrap_or(i128::MAX);
@@ -1264,8 +1334,31 @@ impl<'c> Runner<'c> {
                 "",
             )));
         }
+        // A growable list remembers the allocator it first takes memory from. (D322)
+        // trace: D322
+        if let Some(allocator) = allocator {
+            check_allocator(*alloc, allocator, &format!("`{shown}`"), span)?;
+            *alloc = Some(allocator);
+        }
         items.push(item);
         Ok(Value::Void)
+    }
+}
+
+/// A list handed an allocator other than the one it took its memory from, a failed check
+/// like a bounds check. (D322)
+/// trace: D322
+fn check_allocator(used: Option<usize>, given: usize, shown: &str, span: Span) -> Result<(), Stop> {
+    match used {
+        Some(used) if used != given => Err(Stop::Report(
+            Report::check_failed(
+                span,
+                format!("{shown} took its memory from another allocator"),
+                "a list remembers which allocator it uses, and handing it another is a failed check (D322)",
+            )
+            .when(format!("it uses allocator {used}, and this is allocator {given}")),
+        )),
+        _ => Ok(()),
     }
 }
 

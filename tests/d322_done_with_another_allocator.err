@@ -1,0 +1,6 @@
+check failed: d322_done_with_another_allocator.cy:11:5, line 11 column 5
+11 |     std::list.done(Give $xs, alloc: Lend $other);
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ what: this list took its memory from another allocator
+ why:  a list remembers which allocator it uses, and handing it another is a failed check (D322)
+ when: it uses allocator 1, and this is allocator 2

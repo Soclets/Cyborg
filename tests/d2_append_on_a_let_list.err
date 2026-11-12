@@ -1,5 +1,5 @@
-refused: d2_append_on_a_let_list.cy:7:5, line 7 column 5
- 7 |     $xs.std::%%append(val: 1);
+refused: d2_append_on_a_let_list.cy:10:5, line 10 column 5
+10 |     $xs.std::%%append(val: 1, alloc: Lend $heap);
    |     ^^^
  what: `$xs` can't change, so it can't be lent with `Lend.mut`
  why:  `let` declares a variable that can't change, and `let mut` one that can (D3)

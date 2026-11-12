@@ -1,8 +1,11 @@
 // trace: D113, D114
 import std;
+import os;
 
 fn.main [none] -> void:
+    let $heap: os::heap = os::heap();
     let mut $xs: std::list<i32>[len.max: inf items] = empty;
-    $xs.std::%%append(4);
+    defer std::list.done(Give $xs, alloc: Lend $heap);
+    $xs.std::%%append(4, alloc: Lend $heap);
     return void;
 end fn.main

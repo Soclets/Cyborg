@@ -58,7 +58,7 @@ impl Checker<'_> {
     /// `os::stdout.buffered` and the other writers, as types. Nothing else in `os` is designed.
     /// trace: D271, D273
     pub(super) fn resolve_os_type(rest: &str, span: Span, plain: bool) -> Outcome<Type> {
-        if writer_kind(&format!("os::{rest}")).is_some() {
+        if writer_kind(&format!("os::{rest}")).is_some() || rest == "heap" {
             if !plain {
                 return Err(Report::refused(
                     span,
@@ -106,6 +106,10 @@ impl Checker<'_> {
         }
         if rest == "done" {
             return self.check_done(arguments, span, path_span);
+        }
+        // trace: D332
+        if rest == "heap" {
+            return Self::check_heap_call(arguments, span);
         }
         let Some((stderr, buffered)) = writer_kind(&format!("os::{rest}")) else {
             if rest == "stdout" || rest == "stderr" {

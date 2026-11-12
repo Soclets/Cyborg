@@ -1,5 +1,5 @@
-NotDesignedYet: d140_lists_with_different_len_types.cy:11:7, line 11 column 7
-11 |     f(Lend $xs);
+NotDesignedYet: d140_lists_with_different_len_types.cy:14:7, line 14 column 7
+14 |     f(Lend $xs);
    |       ^^^^^^^^
  what: whether `std::list<i32>[len.max: inf items, len.type: u32]` is accepted where `std::list<i32>[len.max: inf items]` is asked for
  why:  not decided yet, and the standard doesn't say

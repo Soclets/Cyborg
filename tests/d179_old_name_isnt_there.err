@@ -1,5 +1,5 @@
-refused: d179_old_name_isnt_there.cy:9:5, line 9 column 5
- 9 |     $xs.%append(val: 4);
-   |     ^^^^^^^^^^^^^^^^^^^
- fix:  `$xs.std::%%append(val: 4)`
+refused: d179_old_name_isnt_there.cy:12:5, line 12 column 5
+12 |     $xs.%append(val: 4, alloc: Lend $heap);
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ fix:  `$xs.std::%%append(val: 4, alloc: Lend $heap)`
  why:  a method from a kit says its path, because bare means base or your own (D115)

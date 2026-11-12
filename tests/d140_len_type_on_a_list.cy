@@ -7,9 +7,11 @@ fn total [$xs: std::list<i32>[len.max: inf items, len.type: u32]] -> u32[unit: i
 end fn total
 
 fn.main [none] -> void:
+    let $heap: os::heap = os::heap();
     let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     let mut $xs: std::list<i32>[len.max: inf items, len.type: u32] = empty;
-    $xs.std::%%append(val: 1);
+    defer std::list.done(Give $xs, alloc: Lend $heap);
+    $xs.std::%%append(val: 1, alloc: Lend $heap);
     let $n: u32[unit: items] = $xs.len;
     std::io::fmt_print(Lend.mut $out, "{}{newln}", $n);
     std::io::fmt_print(Lend.mut $out, "{}{newln}", total(Lend $xs));

@@ -207,6 +207,13 @@ pub enum NodeKind {
         stderr: bool,
         size: Option<usize>,
     },
+    /// `os::heap()`: a new allocator, numbered so a list can remember which it uses. (D322)
+    Allocator,
+    /// `std::list.done(Give $xs, alloc: Lend $heap)`, which checks the list's allocator. (D323)
+    ListDone {
+        list: Box<Node>,
+        allocator: Box<Node>,
+    },
     /// `$out.%%flush()`, or `os::done(Give $out)`, which is the same flush with the duty ended
     /// when checking. (D273)
     Flush {
@@ -216,6 +223,8 @@ pub enum NodeKind {
         receiver: Place,
         shown: String,
         item: Box<Node>,
+        /// The allocator a growable list takes memory from. (D322)
+        allocator: Option<Box<Node>>,
         max: Option<i128>,
         /// The most its `len.type` can count, which `inf` can run into. (D140)
         count_limit: i128,
@@ -290,6 +299,8 @@ pub struct Instruction {
 
 #[derive(Clone, Debug)]
 pub enum InstructionKind {
+    /// Kept by the block it's in, and run when that block ends, however it ends. (D325)
+    Defer(Box<Instruction>),
     Let {
         slot: usize,
         value: Node,

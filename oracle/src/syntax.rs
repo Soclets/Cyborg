@@ -23,6 +23,7 @@ const CLASHING_WORDS: &[&str] = &[
     "fn",
     "end",
     "let",
+    "defer",
     "mut",
     "change",
     "const",
@@ -3253,6 +3254,15 @@ impl Parser {
                     });
                 }
                 "const" => return self.parse_constant(),
+                // trace: D325
+                "defer" => {
+                    let start = self.advance().span;
+                    let inner = self.parse_statement()?;
+                    return Ok(Statement {
+                        span: start.to(inner.span),
+                        kind: StatementKind::Defer(Box::new(inner)),
+                    });
+                }
                 "change" => return self.parse_change(),
                 "if" => return self.parse_if(),
                 "match" => return self.parse_match(),

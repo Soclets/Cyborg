@@ -384,6 +384,9 @@ pub enum StatementKind {
         written_type: TypeExpression,
         value: Expression,
     },
+    /// `defer std::list.done(Give $xs, alloc: Lend $heap);`, run when its block ends, however
+    /// it ends. (D325)
+    Defer(Box<Statement>),
     /// `decl $x: i32;`, a variable with no value yet. (D203)
     Decl {
         mutable: bool,

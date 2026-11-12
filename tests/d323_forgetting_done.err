@@ -1,0 +1,9 @@
+refused: d323_forgetting_done.cy:10:5, line 10 column 5
+10 |     return void;
+   |     ^^^^^^^^^^^^
+ what: this leaves with `$xs` never given away or finished
+ why:  a list that can grow on the heap is `must_Give`, and `std::list.done` frees it with the allocator it came from, so a leak doesn't compile (D323, D325, D331)
+ because: d323_forgetting_done.cy:8:13, line 8 column 13
+ 8 |     let mut $xs: std::list<i32>[len.max: inf items] = empty;
+   |             ^^^
+     `$xs` was made here

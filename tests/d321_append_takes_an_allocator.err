@@ -1,0 +1,5 @@
+refused: d321_append_takes_an_allocator.cy:10:5, line 10 column 5
+10 |     $xs.std::%%append(val: 4);
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^
+ what: this list grows on the heap, so `append` says where the memory comes from
+ why:  anything that takes heap memory is handed an allocator, as in `alloc: Lend $heap`, so where memory comes from is always said (D321, D322)
