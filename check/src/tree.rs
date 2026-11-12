@@ -53,15 +53,18 @@ pub enum Type {
     Bool,
     /// `f64.stable` when true, `f32.stable` when false: the same bits everywhere (2.6).
     Float(bool),
+    /// `i32[min: 0, max: 100]`: still the integer, holding only that range (2.5).
+    Bounded(Kind, i128, i128),
 }
 
 impl Type {
-    pub fn word(self) -> &'static str {
+    pub fn word(self) -> String {
         match self {
-            Type::Integer(kind) => kind.word(),
-            Type::Bool => "bool",
-            Type::Float(true) => "f64.stable",
-            Type::Float(false) => "f32.stable",
+            Type::Integer(kind) => kind.word().to_string(),
+            Type::Bool => "bool".to_string(),
+            Type::Float(true) => "f64.stable".to_string(),
+            Type::Float(false) => "f32.stable".to_string(),
+            Type::Bounded(kind, low, high) => format!("{}[min: {low}, max: {high}]", kind.word()),
         }
     }
 }

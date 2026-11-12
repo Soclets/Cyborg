@@ -68,7 +68,7 @@ pub fn program(seed: u64) -> Program {
     for statement in main.clone() {
         if let Statement::Let {
             name,
-            value_type: Type::Integer(_) | Type::Float(_),
+            value_type: Type::Integer(_) | Type::Float(_) | Type::Bounded(..),
             ..
         }
         | Statement::LetOtherwise { name, .. } = statement
@@ -152,7 +152,7 @@ impl Generator<'_> {
                 };
                 let data = carried.as_ref().and_then(|(_, found)| match found {
                     Type::Integer(kind) => Some(*kind),
-                    Type::Bool | Type::Float(_) => None,
+                    Type::Bool | Type::Float(_) | Type::Bounded(..) => None,
                 });
                 let test = self.expression(&scope, Type::Bool, LIMITS.depth);
                 body.push(Statement::If {
@@ -219,8 +219,10 @@ impl Generator<'_> {
             .iter()
             // A loop's counter, `$i…`, and a plain parameter, `$p…`, can't change (D184).
             .filter(|(name, value_type)| {
-                matches!(value_type, Type::Integer(_) | Type::Float(_))
-                    && !name.starts_with('i')
+                matches!(
+                    value_type,
+                    Type::Integer(_) | Type::Float(_) | Type::Bounded(..)
+                ) && !name.starts_with('i')
                     && !name.starts_with('p')
             })
             .map(|(name, _)| name.clone())
@@ -236,9 +238,13 @@ impl Generator<'_> {
                 let value_type = match self.random.between(0, 99) {
                     0..=19 => Type::Bool,
                     20..=35 => Type::Float(self.random.chance(50)),
+                    36..=47 => self.bounded_type(),
                     _ => self.integer_type(),
                 };
-                let value = self.expression(scope, value_type, LIMITS.depth);
+                let value = match value_type {
+                    Type::Bounded(kind, low, high) => self.bounded_value(scope, kind, low, high),
+                    _ => self.expression(scope, value_type, LIMITS.depth),
+                };
                 let name = self.name("v");
                 scope.variables.push((name.clone(), value_type));
                 Statement::Let {
@@ -254,7 +260,23 @@ impl Generator<'_> {
                     .iter()
                     .find(|(found, _)| *found == name)
                     .map_or(Type::Integer(Kind::I32), |(_, found)| *found);
-                let value = self.expression(scope, value_type, LIMITS.depth);
+                let mut value = self.expression(scope, value_type, LIMITS.depth);
+                // A bare literal that can't fit a bounded integer is refused, so it's one that
+                // fits; anything else is checked while running (2.5).
+                // A negated literal, as in `-7`, is a literal too.
+                let literal = match &value {
+                    Expression::Integer(number) => Some(*number),
+                    Expression::Negate(inner) => match inner.as_ref() {
+                        Expression::Integer(number) => Some(-number),
+                        _ => None,
+                    },
+                    _ => None,
+                };
+                if let (Type::Bounded(_, low, high), Some(number)) = (value_type, literal) {
+                    if !(low..=high).contains(&number) {
+                        value = Expression::Integer(self.random.between(low, high));
+                    }
+                }
                 Statement::Change { name, value }
             }
             6 if depth < 2 => {
@@ -298,7 +320,10 @@ impl Generator<'_> {
                     .variables
                     .iter()
                     .filter(|(_, value_type)| {
-                        matches!(value_type, Type::Integer(_) | Type::Float(_))
+                        matches!(
+                            value_type,
+                            Type::Integer(_) | Type::Float(_) | Type::Bounded(..)
+                        )
                     })
                     .map(|(name, _)| name.clone())
                     .collect();
@@ -344,6 +369,26 @@ impl Generator<'_> {
             layout,
             fields,
         }
+    }
+
+    /// A bounded integer type, its range inside its kind's (2.5).
+    fn bounded_type(&mut self) -> Type {
+        let kind = self.integer_kind();
+        let (low, high) = kind.range();
+        let low = self.random.between(low.max(-50), high.min(50));
+        let high = self.random.between(low, high.min(low + 100));
+        Type::Bounded(kind, low, high)
+    }
+
+    /// A first value for a bounded integer: a literal it holds, which needs no check, or a
+    /// variable of its kind, which is checked while running (2.5).
+    fn bounded_value(&mut self, scope: &Scope, kind: Kind, low: i128, high: i128) -> Expression {
+        if self.random.chance(40) {
+            if let Some(variable) = self.variable_of(scope, Type::Integer(kind)) {
+                return variable;
+            }
+        }
+        Expression::Integer(self.random.between(low, high))
     }
 
     fn integer_kind(&mut self) -> Kind {
@@ -479,16 +524,21 @@ impl Generator<'_> {
     fn expression(&mut self, scope: &Scope, value_type: Type, depth: usize) -> Expression {
         match value_type {
             Type::Bool => self.boolean(scope, depth),
-            Type::Integer(kind) => self.integer(scope, kind, depth),
+            // Into a bounded integer, anything not a literal is checked while running (2.5).
+            Type::Integer(kind) | Type::Bounded(kind, ..) => self.integer(scope, kind, depth),
             Type::Float(wide) => self.float(scope, wide, depth),
         }
     }
 
     fn variable_of(&mut self, scope: &Scope, value_type: Type) -> Option<Expression> {
+        // A bounded value goes into its plain integer with no check (2.5).
         let found: Vec<&String> = scope
             .variables
             .iter()
-            .filter(|(_, found)| *found == value_type)
+            .filter(|(_, found)| {
+                *found == value_type
+                    || matches!((value_type, found), (Type::Integer(kind), Type::Bounded(bounded, ..)) if kind == *bounded)
+            })
             .map(|(name, _)| name)
             .collect();
         self.random
