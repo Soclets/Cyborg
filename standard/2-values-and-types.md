@@ -676,10 +676,10 @@ let $out: simd<u8>[lanes: 16] = $table.%lookup(pos: $which);
 
 ```
 let $key: u32.secret = load_key();
-let $x: u32.secret = $key xor $nonce;
+let $x: u32.secret = $key xor.bit $nonce;
 ```
 
-Allowed is what takes the same time for every value on real CPUs: `xor`, `and`, `or` and `not`; the word forms `plus.wrap`, `minus.wrap`, `times.wrap` and their `.saturate` forms ([3.8](3-operators.md#38-wrapping-and-saturating-pluswrap-plussaturate)); shifts and rotates by a public amount; comparisons, which give a `bool.secret`; and `.%pick(if_true:, if_false:)` on a `bool.secret`, which works out both sides and takes no branch, as on SIMD lanes ([2.21](#221-simd)). A secret mixed with a plain value gives a secret, so secrecy spreads to everything it touches and can't be lost by accident.
+Allowed is what takes the same time for every value on real CPUs: `and.bit`, `or.bit`, `xor.bit` and `not.bit` on secret integers; the word forms `plus.wrap`, `minus.wrap`, `times.wrap` and their `.saturate` forms ([3.8](3-operators.md#38-wrapping-and-saturating-pluswrap-plussaturate)); shifts and rotates by a public amount; comparisons, which give a `bool.secret`; and `.%pick(if_true:, if_false:)` on a `bool.secret`, which works out both sides and takes no branch, as on SIMD lanes ([2.21](#221-simd)). A secret mixed with a plain value gives a secret, as in `$key xor.bit 5`, so secrecy spreads to everything it touches and can't be lost by accident.
 
 ```
 let $same: bool.secret = $a == $b;
@@ -697,4 +697,4 @@ end shield publish
 
 **Refused:** `.%reveal()` outside a shield; plain `+`, `-` and `x` on a secret, since their overflow check is a branch that leaks it, with `fix: plus.wrap` or `plus.saturate`; bounds on a secret, as in `u8.secret[max: 100]`, unless the check is proven away; `if`, `while` or `match` on a secret, since the path taken leaks it; a secret as a position, as in `$xs[pos: $s]`, since which memory is touched leaks it through the cache; shifting by a secret amount, since some CPUs take longer for bigger shifts; `div` and `mod` with a secret on either side, since division takes longer for some values on most CPUs; and passing a secret where a plain value is expected, printing included.
 
-**From:** D339, D340, D341, D342.
+**From:** D339, D340, D341, D342, D361.

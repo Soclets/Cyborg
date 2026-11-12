@@ -339,7 +339,7 @@ $hits.%add(val: 1);
 let $now: u64 = $hits.%load();
 ```
 
-`.%swap(val:)` sets a new value and gives back the old one. `.%compare_swap(expect:, val:)` sets it only if the current value is still `expect`, and otherwise fails with `not_expected[val: …]`, carrying what's there now, so a lost race can't be ignored. `.%sub`, `.%and`, `.%or` and `.%xor` work like `.%add`, and every operation takes the ordering narrowings.
+`.%swap(val:)` sets a new value and gives back the old one. `.%compare_swap(expect:, val:)` sets it only if the current value is still `expect`, and otherwise fails with `not_expected[val: …]`, carrying what's there now, so a lost race can't be ignored. `.%sub`, `.%and.bit`, `.%or.bit` and `.%xor.bit` work like `.%add`, and every operation takes the ordering narrowings.
 
 ```
 $owner.%compare_swap(expect: 0, val: $me) otherwise:
@@ -356,4 +356,4 @@ There's no `async` or `await`. A function that waits takes the runner, and the r
 
 **Refused:** a task that isn't joined; a spawn onto an event runner without `stack:`, or with less than the task is known to need; two tasks both given `Lend.mut` of one thing; locking inside a locked block; and the same lock twice in one block.
 
-**From:** D343, D344, D345, D346, D347, D348, D349, D350, D351, D352, D353, D354, D355, D356, D357, D358, D359, D360.
+**From:** D343, D344, D345, D346, D347, D348, D349, D350, D351, D352, D353, D354, D355, D356, D357, D358, D359, D360, D361.
