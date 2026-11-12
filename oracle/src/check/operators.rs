@@ -142,10 +142,16 @@ impl Checker<'_> {
         if left.is_none() && right.is_none() {
             return None;
         }
+        // A bounded value goes into a plain one with no check, and a plain one into a bounded
+        // one with a check, so bounds don't decide which operator fits. (D20, D236)
+        // trace: D20
+        let fits = |side: &Type, declared: &Type| {
+            super::generics::unbounded(side) == super::generics::unbounded(declared)
+        };
         let mut fitting = self.operators.iter().filter(|found| {
             found.operator == word
-                && left.is_none_or(|left| *left == found.left)
-                && right.is_none_or(|right| *right == found.right)
+                && left.is_none_or(|left| fits(left, &found.left))
+                && right.is_none_or(|right| fits(right, &found.right))
         });
         let first = fitting.next()?;
         fitting.next().is_none().then_some(first)

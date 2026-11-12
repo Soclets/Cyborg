@@ -589,6 +589,17 @@ impl Checker<'_> {
                 unread.get_or_insert(argument.value.span);
                 continue;
             };
+            // `gpair<?left, ?right>` from a `gpair<i32, reading>`: each field of the generic
+            // struct against the same field of the instance. (D241, D234)
+            // trace: D241
+            if let (Type::Struct(pattern), Type::Struct(instance)) =
+                (&parameter.parameter_type, &found)
+            {
+                if pattern.contains('?') {
+                    self.unify_instance(&mut filled, pattern, instance, argument.value.span)?;
+                    continue;
+                }
+            }
             filled.unify(&parameter.parameter_type, &found, argument.value.span)?;
         }
         let mut tables = Vec::new();
@@ -886,6 +897,8 @@ impl Filled {
     /// A type with what's filled put in.
     fn put_into(&self, found: &Type) -> Type {
         match found {
+            // A generic struct's instance names each filled type in its `< >`. (D234)
+            Type::Struct(text) if text.contains('?') => Type::Struct(self.fill_instance(text)),
             Type::Parameter(name) => self
                 .types
                 .get(name)
@@ -940,6 +953,43 @@ impl Filled {
             },
             other => other.clone(),
         }
+    }
+
+    /// `gpair<?left, ?right>` with each filled type parameter put in, written the way an
+    /// instance is named.
+    fn fill_instance(&self, text: &str) -> String {
+        let Some((head, rest)) = text.split_once('<') else {
+            return text.to_string();
+        };
+        let inside = rest.strip_suffix('>').unwrap_or(rest);
+        let mut parts = Vec::new();
+        let mut depth = 0usize;
+        let mut current = String::new();
+        for character in inside.chars() {
+            match character {
+                '<' => depth += 1,
+                '>' => depth = depth.saturating_sub(1),
+                ',' if depth == 0 => {
+                    parts.push(std::mem::take(&mut current));
+                    continue;
+                }
+                _ => {}
+            }
+            current.push(character);
+        }
+        parts.push(current);
+        let filled: Vec<String> = parts
+            .iter()
+            .map(|part| {
+                let part = part.trim();
+                match part.strip_prefix('?').and_then(|name| self.types.get(name)) {
+                    Some(found) => found.to_string(),
+                    None if part.contains('<') => self.fill_instance(part),
+                    None => part.to_string(),
+                }
+            })
+            .collect();
+        format!("{head}<{}>", filled.join(", "))
     }
 
     fn unit(&self, unit: Option<&String>) -> Option<String> {
@@ -1063,6 +1113,33 @@ impl Checker<'_> {
             return Ok((signature, Vec::new()));
         }
         self.fill_type_parameters(&signature, arguments, expected.as_ref(), span)
+    }
+
+    /// Fills type parameters from a generic struct's instance: each of the generic struct's
+    /// fields against the same field of the instance. (D241, D234)
+    fn unify_instance(
+        &self,
+        filled: &mut Filled,
+        pattern: &str,
+        instance: &str,
+        span: Span,
+    ) -> Outcome<()> {
+        let head = pattern.split('<').next().unwrap_or(pattern);
+        let generic = self.structs.get(head).cloned();
+        let concrete = self.instances.borrow().get(instance).cloned();
+        let (Some(generic), Some(concrete), true) =
+            (generic, concrete, instance.split('<').next() == Some(head))
+        else {
+            return Err(Report::refused(
+                span,
+                format!("this is `{instance}`, where `{pattern}` is needed"),
+                super::WHY_TYPES,
+            ));
+        };
+        for ((_, wanted), (_, found)) in generic.fields.iter().zip(&concrete.fields) {
+            filled.unify(wanted, found, span)?;
+        }
+        Ok(())
     }
 
     /// A generic struct is built as the instance the line names, as in
