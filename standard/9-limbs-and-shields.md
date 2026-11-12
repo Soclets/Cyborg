@@ -89,7 +89,9 @@ end @inln_stuff::sql
 
 The names in the examples are made up.
 
-**From:** D22, D28, D334, D335, D336.
+A limb hands back either Cyborg code, which is checked like hand-written code, so ownership, bounds, units and failures all still apply to it, or LLVM IR, through Lyftar, for what plain Cyborg can't say, like a GPU kernel or an instruction Cyborg doesn't have. LLVM IR is unchecked, like `inline.asm`, so the build report lists it with the limb that produced it, as it lists shields.
+
+**From:** D22, D28, D334, D335, D336, D337.
 
 ## 9.4 Inline code: `inline`
 
