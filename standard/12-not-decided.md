@@ -124,7 +124,7 @@ Waiting on the owner, most needed first. Each is `NotDesignedYet` unless it says
 - Whether `FinalSmall` treats contracts as facts.
 - What the failure is called when a list is full, or at `len.min` when removing.
 - `Literal` (D282): how code asks for inlining.
-- Secrets (D339): what's allowed and refused on a `.secret` value, how arithmetic on one handles overflow, and how a secret becomes public.
+- Secrets (D339): how arithmetic on a `.secret` value handles overflow, and how a secret becomes public.
 
 ## 12.8 Ownership
 

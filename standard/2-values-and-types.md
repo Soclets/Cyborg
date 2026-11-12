@@ -679,6 +679,13 @@ let $key: u32.secret = load_key();
 let $x: u32.secret = $key xor $nonce;
 ```
 
-What's allowed and refused on a secret isn't decided yet ([12.7](12-not-decided.md#127-build-modes)).
+Allowed is what takes the same time for every value on real CPUs: `xor`, `and`, `or` and `not`; `plus`, `minus` and `times`; shifts and rotates by a public amount; comparisons, which give a `bool.secret`; and `.%pick(if_true:, if_false:)` on a `bool.secret`, which works out both sides and takes no branch, as on SIMD lanes ([2.21](#221-simd)). A secret mixed with a plain value gives a secret, so secrecy spreads to everything it touches and can't be lost by accident.
 
-**From:** D339.
+```
+let $same: bool.secret = $a == $b;
+let $out: u32.secret = $same.%pick(if_true: $x, if_false: $y);
+```
+
+**Refused:** `if`, `while` or `match` on a secret, since the path taken leaks it; a secret as a position, as in `$xs[pos: $s]`, since which memory is touched leaks it through the cache; shifting by a secret amount, since some CPUs take longer for bigger shifts; `div` and `mod` with a secret on either side, since division takes longer for some values on most CPUs; and passing a secret where a plain value is expected, printing included.
+
+**From:** D339, D340.
