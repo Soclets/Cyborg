@@ -1967,11 +1967,22 @@ impl Checker<'_> {
             let Some((_, argument)) = bound.iter().find(|(found, _)| *found == index) else {
                 continue;
             };
+            // A view passes with no word, so a named one is its own source. (D368, D170)
+            // trace: D368
+            let view = parameters.get(index).is_some_and(|parameter| {
+                matches!(
+                    parameter.parameter_type,
+                    Type::Str | Type::ListView { mutable: false, .. }
+                )
+            });
             let lent_root = match &argument.kind {
                 ExpressionKind::Hand {
                     word: HandWord::Lend | HandWord::LendMut,
                     value,
                 } => root_variable(value),
+                ExpressionKind::Variable(_) | ExpressionKind::Field { .. } if view => {
+                    root_variable(argument)
+                }
                 _ => None,
             };
             let Some(root) = lent_root else {
