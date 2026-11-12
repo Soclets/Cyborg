@@ -43,7 +43,11 @@
 /// - methods: `%%` ones whose `$by` has a label, and `.%size` on a union, which matches it
 ///   and returns from every arm; contracts calling pure functions;
 /// - functions: printed in a shuffled order, so calls reach ones declared later; calls started
-///   as `@concur` tasks on `std::run::one_thread` and ended with `task.done`; void ones taking integers lent to change with `Lend.mut`, and structs lent or
+///   as `@concur` tasks on `std::run::one_thread`, `os::threads` or `os::events`, with
+///   `alloc:` and `stack:` where the runner switches tasks, and ended with `task.done`; tasks
+///   reading split halves of a list; atomics added to, swapped, compared and swapped with the
+///   lost race handled, and read, now and then `.acquire`; one or two locks taken in one
+///   `@concur::locked` block; void ones taking integers lent to change with `Lend.mut`, and structs lent or
 ///   handed over with `Give` or `Copy`, called as statements; integer parameters and results, `fn.pure` ones calling only pure ones, `requires`
 ///   and `ensures result` contracts, labels on the last parameters, `labels.any_order`, and
 ///   defaults calls leave off;
@@ -105,7 +109,7 @@ pub const NOT_GENERATED: &[&str] = &[
     "5.x undecided: specialization, value parameters, type slots and how laws are proven (12.5)",
     "6.x stored borrows of structs, and `.held`; `must_Give` values that leave a loop or a `match`; `defer` on anything but ending a value",
     "7.x structs holding other structs, lists or borrows, beyond the `must_Give` holder, handing unions to functions",
-    "9.x still to do: tasks on `os::threads` and `os::events`, tasks that borrow, locks and atomics; `pub` and `use` between packages, once programs have more than one; NotBuiltYet: `.at(address:)`, which points at hardware the oracle doesn't have; undecided: a shield's own `requires` and `ensures` (12.9), your own allocator (2.10)",
+    "9.x still to do: `pub` and `use` between packages, once programs have more than one; NotBuiltYet: channels, waiting on the run loop's rewrite, and `.at(address:)`, which points at hardware the oracle doesn't have; undecided: a shield's own `requires` and `ensures` (12.9), your own allocator (2.10)",
     "10.x compiler-only: build modes, since the oracle runs one way and the live comparison runs every mode against it",
     "recursion in generated functions, beyond the three fixed ones",
 ];

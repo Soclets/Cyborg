@@ -105,6 +105,8 @@ struct Generator<'random> {
     list_alias: Option<(String, Kind, i128)>,
     text_alias: Option<(String, i128)>,
     named_others: Vec<(String, bool, String)>,
+    /// Whether `main` has `$pool` and `$events` (D346, D392).
+    runners: bool,
     /// Whether `tag`, `tpick` and `tcount` are declared (2.9).
     strings: bool,
     /// Whether `main` has `$err` and `$buf` too (1.13).
@@ -174,6 +176,7 @@ pub fn program(seed: u64) -> Program {
         has_heap: false,
         writers: false,
         strings: false,
+        runners: false,
         wrap: None,
         list_alias: None,
         text_alias: None,
@@ -208,6 +211,7 @@ pub fn program(seed: u64) -> Program {
     generator.failure_family();
     generator.writers = generator.random.chance(30);
     generator.other_named_types();
+    generator.runners = generator.random.chance(40);
     generator.strings = generator.random.chance(50);
     // A unit from a kit is shortened with `use`, keeping its matching name (1.11, 2.16).
     if generator.random.chance(40) {
@@ -302,6 +306,7 @@ pub fn program(seed: u64) -> Program {
         baked: generator.baked,
         writers: generator.writers,
         named_others: generator.named_others,
+        runners: generator.runners,
         strings: generator.strings,
         methods: generator.methods,
         arena: generator.arena,
@@ -645,7 +650,7 @@ impl Generator<'_> {
                 }
             }
             // The kinds of statement added later share 10 and 11 evenly.
-            10 | 11 => match self.random.between(0, 14) {
+            10 | 11 => match self.random.between(0, 16) {
                 0 if prints => self
                     .reveal(scope)
                     .unwrap_or_else(|| self.list_statement(scope)),
@@ -722,6 +727,12 @@ impl Generator<'_> {
                     .unwrap_or_else(|| self.list_statement(scope)),
                 14 if self.generics.is_some() => self
                     .generic_pair(scope)
+                    .unwrap_or_else(|| self.list_statement(scope)),
+                15 if prints => self
+                    .split_tasks(scope)
+                    .unwrap_or_else(|| self.list_statement(scope)),
+                16 if !self.pure_only => self
+                    .shared(scope)
                     .unwrap_or_else(|| self.list_statement(scope)),
                 _ => self.list_statement(scope),
             },
@@ -2813,6 +2824,7 @@ impl Generator<'_> {
         let task = self.name("task");
         let name = self.name("v");
         scope.variables.push((name.clone(), Type::Integer(kind)));
+        let runner = self.runner();
         Some(Statement::Task {
             task,
             name,
@@ -2822,6 +2834,109 @@ impl Generator<'_> {
                 arguments,
                 handling: Handling::Crash,
             },
+            runner,
+        })
+    }
+
+    /// Which of `main`'s runners a task goes on (D346, D356, D392).
+    fn runner(&mut self) -> &'static str {
+        if self.runners {
+            self.random
+                .pick(&["runner", "pool", "events"])
+                .copied()
+                .unwrap_or("runner")
+        } else {
+            "runner"
+        }
+    }
+
+    /// A list split into halves, each summed by a task that reads it, joined and added (D343,
+    /// D382).
+    fn split_tasks(&mut self, scope: &Scope) -> Option<Statement> {
+        let (list, kind, _) = self.random.pick(&scope.lists)?.clone();
+        let targets: Vec<String> = scope
+            .variables
+            .iter()
+            .filter(|(name, found)| {
+                *found == Type::Integer(kind)
+                    && !name.starts_with('i')
+                    && !name.starts_with('p')
+                    && !name.starts_with('x')
+                    && !name.starts_with('k')
+            })
+            .map(|(name, _)| name.clone())
+            .collect();
+        let target = self.random.pick(&targets)?.clone();
+        if !self.views.contains(&kind) {
+            self.views.push(kind);
+        }
+        Some(Statement::SplitTasks {
+            halves: self.name("h"),
+            list,
+            kind,
+            at_end: self.random.chance(50),
+            tasks: (self.name("task"), self.name("task")),
+            runner: self.runner(),
+            target,
+        })
+    }
+
+    /// An atomic, used every way a task would, or one or two locks taken together (D358,
+    /// D361).
+    fn shared(&mut self, scope: &mut Scope) -> Option<Statement> {
+        if self.random.chance(50) {
+            let kind = *self
+                .random
+                .pick(&[Kind::U32, Kind::U64, Kind::I64])
+                .unwrap_or(&Kind::U64);
+            let (old, now) = (self.name("k"), self.name("k"));
+            scope.variables.push((old.clone(), Type::Integer(kind)));
+            scope.variables.push((now.clone(), Type::Integer(kind)));
+            return Some(Statement::Atomic {
+                name: self.name("at"),
+                kind,
+                numbers: (
+                    self.random.between(0, 20),
+                    self.random.between(0, 20),
+                    self.random.between(0, 40),
+                ),
+                old,
+                now,
+                acquire: self.random.chance(40),
+            });
+        }
+        let targets: Vec<(String, Kind)> = scope
+            .variables
+            .iter()
+            .filter_map(|(name, found)| match found {
+                Type::Integer(kind)
+                    if !name.starts_with('i')
+                        && !name.starts_with('p')
+                        && !name.starts_with('x')
+                        && !name.starts_with('k') =>
+                {
+                    Some((name.clone(), *kind))
+                }
+                _ => None,
+            })
+            .collect();
+        let (target, kind) = self.random.pick(&targets)?.clone();
+        let count = self.random.between(1, 2);
+        let mut locks = Vec::new();
+        let mut bound = Vec::new();
+        for _ in 0..count {
+            let (low, high) = kind.range();
+            locks.push((
+                self.name("lk"),
+                self.random.between(low.max(0), high.min(50)),
+            ));
+            bound.push(self.name("lb"));
+        }
+        Some(Statement::Locks {
+            locks,
+            bound,
+            kind,
+            target,
         })
     }
 

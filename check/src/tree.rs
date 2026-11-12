@@ -772,6 +772,8 @@ pub enum Statement {
         name: String,
         kind: Kind,
         call: Expression,
+        /// `runner`, `main`'s one-thread runner, or `pool` or `events` when it has them.
+        runner: &'static str,
     },
     /// `let mut $w: wrap3 = Copy $r as wrap3;`, a struct crossing into a `type.new` over it,
     /// then out again with `Give … as`, into a struct variable (2.18).
@@ -818,6 +820,36 @@ pub enum Statement {
         fields: Vec<(String, Expression)>,
         ending: Ending,
         read_into: Option<(String, String)>,
+    },
+    /// A list split into halves, each summed by its own task reading it, the two results joined
+    /// and added into a variable (D343, D382).
+    SplitTasks {
+        halves: String,
+        list: String,
+        kind: Kind,
+        at_end: bool,
+        tasks: (String, String),
+        runner: &'static str,
+        target: String,
+    },
+    /// An atomic: made, added to with wrapping, swapped, compared and swapped with the lost race
+    /// handled, and read into a variable (D361, D378).
+    Atomic {
+        name: String,
+        kind: Kind,
+        numbers: (i128, i128, i128),
+        old: String,
+        now: String,
+        /// Whether the read says the weaker `.acquire` ordering (D361).
+        acquire: bool,
+    },
+    /// One or two locks, taken together in one block, which changes each and copies the first
+    /// into a variable (D358, D359).
+    Locks {
+        locks: Vec<(String, i128)>,
+        bound: Vec<String>,
+        kind: Kind,
+        target: String,
     },
     /// A loop over an array or list in `simd`-sized chunks, saying how the leftovers go:
     /// padded, exact, or handed over one at a time after the chunks; each chunk's greatest lane
@@ -973,6 +1005,9 @@ pub struct Function {
 #[allow(clippy::struct_excessive_bools)] // Independent switches for what a program declares.
 pub struct Program {
     pub unit_families: Vec<UnitFamily>,
+    /// Whether `main` also has `$pool`, an `os::threads`, and `$events`, an `os::events`, each
+    /// ended by a deferred `os::done` (D346, D392).
+    pub runners: bool,
     /// Names for things other than integers: each name, whether it's an alias, and what it
     /// names, as written (2.18).
     pub named_others: Vec<(String, bool, String)>,
@@ -1047,6 +1082,16 @@ fn print_failure_family(out: &mut String, family: &FailureFamily) {
     }
     let _ = writeln!(out, "    end {handler}.bail");
     let _ = writeln!(out, "end fam.handler {handler}\n");
+}
+
+/// Where a task runs: threads take no stack, and a runner that switches tasks takes the
+/// allocator and size of each task's stack (D351, D356).
+fn spawn_options(runner: &str) -> String {
+    match runner {
+        "pool" => "on: Lend $pool".to_string(),
+        "events" => "on: Lend $events, alloc: Lend $heap, stack: 64 kib".to_string(),
+        _ => "on: Lend $runner, alloc: Lend $heap, stack: 16 kib".to_string(),
+    }
 }
 
 /// A named loop's name after `for`, and after `end for` (4.8).
@@ -1571,6 +1616,12 @@ pub fn print(program: &Program) -> String {
     out.push_str("    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();\n");
     out.push_str("    let $runner: std::run::one_thread = std::run::one_thread();\n");
     out.push_str("    let $heap: os::heap = os::heap();\n");
+    if program.runners {
+        out.push_str("    let $pool: os::threads = os::threads(count: 2);\n");
+        out.push_str("    defer os::done(Give $pool);\n");
+        out.push_str("    let $events: os::events = os::events(count: 1, alloc: Lend $heap);\n");
+        out.push_str("    defer os::done(Give $events);\n");
+    }
     if program.writers {
         out.push_str("    let mut $err: os::stderr.unbuffered = os::stderr.unbuffered();\n");
         out.push_str(
@@ -1948,11 +1999,13 @@ fn print_block(out: &mut String, statements: &[Statement], depth: usize, style: 
                 name,
                 kind,
                 call,
+                runner,
             } => {
                 let kind = kind.word();
                 let _ = writeln!(
                     out,
-                    "{indent}let ${task}: @concur::task<{kind}> = @concur::spawn(on: Lend $runner, alloc: Lend $heap, stack: 16 kib) {};",
+                    "{indent}let ${task}: @concur::task<{kind}> = @concur::spawn({}) {};",
+                    spawn_options(runner),
                     style.expression(call)
                 );
                 let _ = writeln!(
@@ -2040,6 +2093,97 @@ fn print_block(out: &mut String, statements: &[Statement], depth: usize, style: 
                 (name, struct_name, holder),
                 (fields, ending, read_into.as_ref()),
             ),
+            Statement::SplitTasks {
+                halves,
+                list,
+                kind,
+                at_end,
+                tasks: (left, right),
+                runner,
+                target,
+            } => {
+                let kind = kind.word();
+                let at = if *at_end {
+                    format!("${list}.len")
+                } else {
+                    "0".to_string()
+                };
+                let _ = writeln!(
+                    out,
+                    "{indent}let ${halves}: std::coll::halves<{kind}> = ${list}.std::%split(at.items: {at});"
+                );
+                for (task, half) in [(left, "first"), (right, "second")] {
+                    let _ = writeln!(
+                        out,
+                        "{indent}let ${task}: @concur::task<{kind}> = @concur::spawn({}) vsum_{kind}(${halves}.{half});",
+                        spawn_options(runner)
+                    );
+                }
+                let _ = writeln!(
+                    out,
+                    "{indent}change ${target} = @concur::task.done(Give ${left}) plus.wrap @concur::task.done(Give ${right});"
+                );
+            }
+            Statement::Atomic {
+                name,
+                kind,
+                numbers: (start, add, expect),
+                old,
+                now,
+                acquire,
+            } => {
+                let kind = kind.word();
+                let _ = writeln!(
+                    out,
+                    "{indent}let ${name}: @concur::atomic<{kind}> = @concur::atomic.new({start});"
+                );
+                let _ = writeln!(out, "{indent}${name}.%add.wrap(val: {add});");
+                let _ = writeln!(
+                    out,
+                    "{indent}let ${old}: {kind} = ${name}.%swap(val: {expect});"
+                );
+                let _ = writeln!(
+                    out,
+                    "{indent}${name}.%compare_swap(expect: {expect}, val: {add}) otherwise:"
+                );
+                let _ = writeln!(out, "{indent}    case not_expected $f:");
+                let _ = writeln!(out, "{indent}        ${name}.%add.wrap(val: $f.val);");
+                let _ = writeln!(out, "{indent}end otherwise");
+                let ordering = if *acquire { ".acquire" } else { "" };
+                let _ = writeln!(
+                    out,
+                    "{indent}let ${now}: {kind} = ${name}.%load{ordering}();"
+                );
+            }
+            Statement::Locks {
+                locks,
+                bound,
+                kind,
+                target,
+            } => {
+                let kind = kind.word();
+                for (lock, start) in locks {
+                    let _ = writeln!(
+                        out,
+                        "{indent}let mut ${lock}: @concur::lock<{kind}> = @concur::lock.new({start});"
+                    );
+                }
+                let names: Vec<String> = locks.iter().map(|(lock, _)| format!("${lock}")).collect();
+                let as_names: Vec<String> = bound.iter().map(|name| format!("${name}")).collect();
+                let _ = writeln!(
+                    out,
+                    "{indent}@concur::locked {} as {}:",
+                    names.join(", "),
+                    as_names.join(", ")
+                );
+                for name in bound {
+                    let _ = writeln!(out, "{indent}    change ${name} = ${name} plus.wrap 1;");
+                }
+                if let Some(first) = bound.first() {
+                    let _ = writeln!(out, "{indent}    change ${target} = ${first};");
+                }
+                let _ = writeln!(out, "{indent}end @concur::locked");
+            }
             Statement::Chunks {
                 array,
                 lanes,
