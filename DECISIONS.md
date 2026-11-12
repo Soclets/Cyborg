@@ -1194,6 +1194,8 @@ A `type_set` is a closed list of types that nothing can join later, as in `type_
 
 **D346. `os::threads(count: max)` asks for a thread for every core.** `max` as a value already means "as many as this machine has" in `--max_cores=max` (D224) and `lanes: max` (D292), so `count: max` follows them. It's written, so a reader sees the count depends on the machine, and a program that wants the same behaviour everywhere writes a number instead (D345). The owner said `os::cores` "doesn't say it uses all cores"; Claude proposed `max`; the owner chose: "Y". (Owner, 2026-11-12)
 
+**D347. Sharing between tasks follows the ownership words.** `Give $xs` hands a value to one task, which owns it from then on; `Lend $xs` lets any number of tasks read it at once; and `Lend.mut $xs` goes to one task only, with nobody else reading it meanwhile, so two tasks both getting `Lend.mut $xs` is refused, the same rule that stops two `Lend.mut` borrows in plain code. Structured tasks (D343) make every borrow into a task end before its block does. Changing a big list in parallel means splitting it into parts that don't overlap, as with `$xs.%%split_mut(at.items: 500)`, a placeholder spelling, giving each task one part, the way different fields are separate (D173). So there are no data races and nothing new to learn, and since each task's result comes back through its own join, in the order the code joins them, results don't depend on which task finishes first. Shared data many tasks change together, which needs a lock, is not settled here. Claude proposed it; the owner chose: "yea". (Owner, 2026-11-12)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude
