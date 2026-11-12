@@ -7,9 +7,9 @@ use std::fmt::Write as _;
 
 use crate::random::Random;
 use crate::tree::{
-    Arguments, Comparison, Expression, FailureDecl, Filling, Function, Generics, Handling, Kind,
-    Layout, MethodDecl, NamedType, Operator, ParamKind, Position, Procedure, Program, Statement,
-    StructDecl, Style, Type, UnionDecl, UnitFamily,
+    Arguments, Comparison, Ending, Expression, FailureDecl, Filling, Function, Generics, Handling,
+    Kind, Layout, MethodDecl, NamedType, Operator, ParamKind, Position, Procedure, Program,
+    Statement, StructDecl, Style, Tokens, Type, UnionDecl, UnitFamily,
 };
 
 /// How big a program gets.
@@ -74,6 +74,8 @@ struct Generator<'random> {
     unit_families: Vec<UnitFamily>,
     /// Generics, when the program declares them (5.8).
     generics: Option<Generics>,
+    /// A `must_Give` struct, when the program declares one (6.9).
+    tokens: Option<Tokens>,
     /// Float units, when the program has them.
     float_units: Option<FloatUnits>,
     /// Every unit, with how many of its family's base it is.
@@ -109,6 +111,7 @@ pub fn program(seed: u64) -> Program {
         methods: Vec::new(),
         unit_families: Vec::new(),
         generics: None,
+        tokens: None,
         float_units: None,
         units: Vec::new(),
         constants: Vec::new(),
@@ -131,6 +134,7 @@ pub fn program(seed: u64) -> Program {
         generator.method_decls(index);
     }
     generator.generics();
+    generator.tokens();
     for _ in 0..generator.random.between(0, 2) {
         let declared = generator.union_decl();
         generator.unions.push(declared);
@@ -194,6 +198,7 @@ pub fn program(seed: u64) -> Program {
     Program {
         unit_families: generator.unit_families,
         generics: generator.generics,
+        tokens: generator.tokens,
         methods: generator.methods,
         arena: generator.arena,
         named: generator.named,
@@ -499,6 +504,27 @@ impl Generator<'_> {
             6 if !self.pure_only && self.random.chance(20) => self
                 .assembly(scope)
                 .unwrap_or_else(|| self.list_statement(scope)),
+            6 if self.random.chance(30) => self
+                .token(scope, depth)
+                .unwrap_or_else(|| self.list_statement(scope)),
+            // Maps are made and ended; putting and getting isn't decided (2.12).
+            6 if self.in_main && self.random.chance(15) => {
+                let key = if self.random.chance(30) {
+                    "str".to_string()
+                } else {
+                    self.integer_kind().word().to_string()
+                };
+                Statement::Map {
+                    name: self.name("mp"),
+                    kind: if self.random.chance(50) {
+                        "hash"
+                    } else {
+                        "ordered"
+                    },
+                    key,
+                    value: self.integer_kind(),
+                }
+            }
             6 if self.random.chance(30) => self
                 .generic_box(scope)
                 .unwrap_or_else(|| self.list_statement(scope)),
@@ -1075,6 +1101,84 @@ impl Generator<'_> {
             easter,
             unit_parameter: self.float_units.is_some(),
         });
+    }
+
+    /// Now and then a `must_Give` struct with one to three integer fields, and its holder (6.9).
+    fn tokens(&mut self) {
+        if !self.random.chance(50) {
+            return;
+        }
+        let name = self.name("tok");
+        let count = self.random.between(1, 3);
+        let mut fields = Vec::new();
+        for _ in 0..count {
+            let field = self.name("tf");
+            fields.push((field, self.integer_kind()));
+        }
+        self.tokens = Some(Tokens {
+            name,
+            fields,
+            holder: self.name("hold"),
+        });
+    }
+
+    /// A `must_Give` value made and handed off on every path: ended straight away, by a
+    /// `defer`, in both arms of an `if`, passed through a function first, or inside a holder
+    /// that's closed. A field may be read on the way, which lends it and doesn't count (6.9,
+    /// 6.12).
+    fn token(&mut self, scope: &Scope, depth: usize) -> Option<Statement> {
+        if self.pure_only || self.no_calls {
+            return None;
+        }
+        let tokens = self.tokens.clone()?;
+        let fields: Vec<(String, Expression)> = tokens
+            .fields
+            .iter()
+            .map(|(field, kind)| (field.clone(), self.integer(scope, *kind, LIMITS.depth)))
+            .collect();
+        let ending = match self.random.between(0, 4) {
+            0 => Ending::Direct,
+            1 => Ending::Deferred,
+            2 => Ending::Branches(self.boolean(scope, depth.min(2))),
+            3 => {
+                let kind = tokens.fields.first().map_or(Kind::I32, |(_, kind)| *kind);
+                Ending::Passed {
+                    made_from: self.integer(scope, kind, LIMITS.depth),
+                    passed: self.name("tk"),
+                }
+            }
+            _ => Ending::Held,
+        };
+        // A field read into a variable of its kind that can change.
+        let read_into = if matches!(ending, Ending::Held) {
+            None
+        } else {
+            let (field, kind) = self.random.pick(&tokens.fields)?.clone();
+            let targets: Vec<String> = scope
+                .variables
+                .iter()
+                .filter(|(name, found)| {
+                    *found == Type::Integer(kind)
+                        && !name.starts_with('i')
+                        && !name.starts_with('p')
+                        && !name.starts_with('x')
+                        && !name.starts_with('k')
+                })
+                .map(|(name, _)| name.clone())
+                .collect();
+            self.random
+                .pick(&targets)
+                .cloned()
+                .map(|target| (target, field))
+        };
+        Some(Statement::Token {
+            name: self.name("tk"),
+            struct_name: tokens.name,
+            holder: tokens.holder,
+            fields,
+            ending,
+            read_into,
+        })
     }
 
     /// Whether a generic function can be called here: not from a pure function, since generic

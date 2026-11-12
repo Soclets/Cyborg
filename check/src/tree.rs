@@ -451,6 +451,34 @@ pub struct StructDecl {
     pub fields: Vec<(String, Kind)>,
 }
 
+/// A `must_Give` struct, `tok…`, with integer fields, ended by `tend`, which `finish`es it, made
+/// by `tmake` and handed through by `tpass`, and a `must_Give` holder of one, closed by `tclose`,
+/// which moves the field out and then `finish`es the holder (6.9).
+#[derive(Clone, Debug)]
+pub struct Tokens {
+    pub name: String,
+    pub fields: Vec<(String, Kind)>,
+    pub holder: String,
+}
+
+/// How a `must_Give` value is handed off on every path (6.9, 6.12).
+#[derive(Clone, Debug)]
+pub enum Ending {
+    /// `tend(Give $t);` straight after.
+    Direct,
+    /// `defer tend(Give $t);` right after it's made.
+    Deferred,
+    /// `tend(Give $t);` in both arms of an `if`.
+    Branches(Expression),
+    /// Made by `tmake`, handed through `tpass` into a new name, then ended.
+    Passed {
+        made_from: Expression,
+        passed: String,
+    },
+    /// Inside a holder, closed by `tclose`.
+    Held,
+}
+
 /// What a program declares for generics: the interfaces `equatable`, `ordered` and `addable`, the
 /// `type_set` `whole` of `i32` and `i64`, which types say they satisfy which, a struct with its
 /// own `below`, `==` and `+`, a generic struct `gbox`, and generic functions (3.10, 5.8).
@@ -631,6 +659,25 @@ pub enum Statement {
         target: String,
         secret: String,
     },
+    /// A `must_Give` value made and handed off on every path, one field read into a variable
+    /// that can change on the way (6.9).
+    Token {
+        name: String,
+        struct_name: String,
+        holder: String,
+        fields: Vec<(String, Expression)>,
+        ending: Ending,
+        read_into: Option<(String, String)>,
+    },
+    /// A map, `empty`, ended with `std::coll::map.done` by a `defer` (2.12).
+    Map {
+        name: String,
+        /// `hash` or `ordered`.
+        kind: &'static str,
+        /// The key's type, as written.
+        key: String,
+        value: Kind,
+    },
     /// A struct made by a value: a generic call or the struct's own operator (3.10, 5.8).
     LetStructValue {
         name: String,
@@ -738,6 +785,7 @@ pub struct Function {
 #[derive(Clone, Debug)]
 pub struct Program {
     pub unit_families: Vec<UnitFamily>,
+    pub tokens: Option<Tokens>,
     pub generics: Option<Generics>,
     pub methods: Vec<MethodDecl>,
     /// The room of an arena `main` makes, if it makes one (D330, D386).
@@ -750,6 +798,112 @@ pub struct Program {
     pub main: Vec<Statement>,
     /// Whether the printer leaves out `( )` where 3.9's table already gives the order.
     pub fewer_brackets: bool,
+}
+
+/// A `must_Give` value made, perhaps read, and handed off on every path (6.9, 6.12).
+#[allow(clippy::type_complexity)] // The statement's parts, grouped as the printer reads them.
+fn print_token(
+    out: &mut String,
+    (indent, style): (&str, Style),
+    (name, struct_name, holder): (&str, &str, &str),
+    (fields, ending, read_into): (&[(String, Expression)], &Ending, Option<&(String, String)>),
+) {
+    let built: Vec<String> = fields
+        .iter()
+        .map(|(field, value)| format!("{field} = {}", style.expression(value)))
+        .collect();
+    let built = format!("{struct_name}[{}]", built.join(", "));
+    let read = |out: &mut String, from: &str| {
+        if let Some((target, field)) = read_into {
+            let _ = writeln!(out, "{indent}change ${target} = ${from}.{field};");
+        }
+    };
+    match ending {
+        Ending::Direct => {
+            let _ = writeln!(out, "{indent}let ${name}: {struct_name} = {built};");
+            read(out, name);
+            let _ = writeln!(out, "{indent}tend(Give ${name});");
+        }
+        Ending::Deferred => {
+            let _ = writeln!(out, "{indent}let ${name}: {struct_name} = {built};");
+            let _ = writeln!(out, "{indent}defer tend(Give ${name});");
+            read(out, name);
+        }
+        Ending::Branches(test) => {
+            let _ = writeln!(out, "{indent}let ${name}: {struct_name} = {built};");
+            read(out, name);
+            let _ = writeln!(out, "{indent}if {}:", style.expression(test));
+            let _ = writeln!(out, "{indent}    tend(Give ${name});");
+            let _ = writeln!(out, "{indent}else:");
+            let _ = writeln!(out, "{indent}    tend(Give ${name});");
+            let _ = writeln!(out, "{indent}end if");
+        }
+        Ending::Passed { made_from, passed } => {
+            let _ = writeln!(
+                out,
+                "{indent}let ${name}: {struct_name} = tmake({});",
+                style.expression(made_from)
+            );
+            let _ = writeln!(
+                out,
+                "{indent}let ${passed}: {struct_name} = tpass(Give ${name});"
+            );
+            read(out, passed);
+            let _ = writeln!(out, "{indent}tend(Give ${passed});");
+        }
+        Ending::Held => {
+            let _ = writeln!(
+                out,
+                "{indent}let ${name}: {holder} = {holder}[inner = {built}, n = 3];"
+            );
+            let _ = writeln!(out, "{indent}tclose(Give ${name});");
+        }
+    }
+}
+
+/// The `must_Give` struct, its holder, and the functions that make, pass and end them.
+fn print_tokens(out: &mut String, tokens: &Tokens) {
+    let name = &tokens.name;
+    let holder = &tokens.holder;
+    let _ = writeln!(out, "struct.must_Give {name}:");
+    for (field, kind) in &tokens.fields {
+        let _ = writeln!(out, "    {field}: {};", kind.word());
+    }
+    let _ = writeln!(out, "end struct.must_Give {name}\n");
+    let _ = writeln!(
+        out,
+        "struct.must_Give {holder}:\n    inner: {name};\n    n: i64;\nend struct.must_Give {holder}\n"
+    );
+    let _ = writeln!(
+        out,
+        "fn tend [$t: Given {name}] -> void:\n    finish $t;\n    return void;\nend fn tend\n"
+    );
+    let first = tokens.fields.first().map_or("i32", |(_, kind)| kind.word());
+    let filled: Vec<String> = tokens
+        .fields
+        .iter()
+        .enumerate()
+        .map(|(at, (field, _))| {
+            if at == 0 {
+                format!("{field} = $v")
+            } else {
+                format!("{field} = 1")
+            }
+        })
+        .collect();
+    let _ = writeln!(
+        out,
+        "fn tmake [$v: {first}] -> {name}:\n    return {name}[{}];\nend fn tmake\n",
+        filled.join(", ")
+    );
+    let _ = writeln!(
+        out,
+        "fn tpass [$t: Given {name}] -> {name}:\n    return Give $t;\nend fn tpass\n"
+    );
+    let _ = writeln!(
+        out,
+        "fn tclose [$h: Given {holder}] -> void:\n    tend(Give $h.inner);\n    finish $h;\n    return void;\nend fn tclose\n"
+    );
 }
 
 /// The interfaces, the type set, the operators and `satisfies` lines, `gbox`, and the generic
@@ -886,6 +1040,9 @@ pub fn print(program: &Program) -> String {
     }
     if let Some(generics) = &program.generics {
         print_generics(&mut out, generics);
+    }
+    if let Some(tokens) = &program.tokens {
+        print_tokens(&mut out, tokens);
     }
     for function in &program.functions {
         let parameters: Vec<String> = function
@@ -1345,6 +1502,35 @@ fn print_block(out: &mut String, statements: &[Statement], depth: usize, style: 
                 );
                 let _ = writeln!(out, "{indent}    change ${target} = ${secret}.%reveal();");
                 let _ = writeln!(out, "{indent}end shield {shield}");
+            }
+            Statement::Token {
+                name,
+                struct_name,
+                holder,
+                fields,
+                ending,
+                read_into,
+            } => print_token(
+                out,
+                (&indent, style),
+                (name, struct_name, holder),
+                (fields, ending, read_into.as_ref()),
+            ),
+            Statement::Map {
+                name,
+                kind,
+                key,
+                value,
+            } => {
+                let _ = writeln!(
+                    out,
+                    "{indent}let ${name}: std::coll::map.{kind}<key.type: {key}, val.type: {}> = empty;",
+                    value.word()
+                );
+                let _ = writeln!(
+                    out,
+                    "{indent}defer std::coll::map.done(Give ${name}, alloc: Lend $heap);"
+                );
             }
             Statement::LetStructValue {
                 name,
