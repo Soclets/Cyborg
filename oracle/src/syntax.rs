@@ -5198,6 +5198,24 @@ impl Parser {
                 kind: ExpressionKind::Build { path, fields },
             });
         }
+        // trace: D314, D315, D317
+        if path.text.starts_with("ptr.") && self.at_symbol("<") && !self.peek().space_before {
+            self.advance(); // `<`
+            let target = Box::new(self.parse_type()?);
+            self.expect_symbol(">")?;
+            self.expect_symbol(".")?;
+            let how = self.expect_name("`at` or `of`")?;
+            let (arguments, end) = self.parse_arguments()?;
+            return Ok(Expression {
+                span: start.to(end),
+                kind: ExpressionKind::Pointer {
+                    family: path,
+                    target,
+                    how,
+                    arguments,
+                },
+            });
+        }
         if self.at_symbol("<") && !self.peek().space_before {
             return Err(Report::not_designed(
                 self.span(),

@@ -1059,7 +1059,10 @@ impl Checker<'_> {
         let must_give = self.is_must_give(&held_type);
         // A struct holding borrows borrows from what its type names, so using one of those
         // ends it, as with a stored borrow. (D171)
-        let borrows = self.borrows_named_by(&held_type, written_type.span)?;
+        let mut borrows = self.borrows_named_by(&held_type, written_type.span)?;
+        // A pointer from `.of` keeps its variable lent while it exists. (D315)
+        // trace: D315
+        borrows.extend(Self::pointed_at(value));
         let node = self.check_into(value, &held_type)?;
         let slot = self.declare_variable(Variable {
             name: name.text.clone(),

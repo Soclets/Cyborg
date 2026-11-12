@@ -1,0 +1,5 @@
+refused: d316_moved_says_its_unit.cy:7:51, line 7 column 51
+ 7 |         let $next: ptr.raw.mut<u32> = $reg.%moved(offset: 1);
+   |                                                   ^^^^^^
+ fix:  `offset.items`
+ why:  C's trap is `p + 1` moving a whole item silently, so the unit is always written (D316)

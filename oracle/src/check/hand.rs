@@ -112,7 +112,10 @@ impl Checker<'_> {
                 let ended_by_this = if variable.origin == Origin::StoredBorrow {
                     variable.mutable || kind == UseKind::Write
                 } else {
+                    // A pointer that writes is like `Lend.mut`: any use of what it points at
+                    // ends it. (D315)
                     kind == UseKind::Write
+                        || super::pointers::is_writing_pointer(&variable.held_type)
                 };
                 variable.borrows.iter().any(|borrowed| borrowed == name)
                     && ended_by_this

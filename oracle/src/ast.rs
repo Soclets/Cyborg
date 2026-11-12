@@ -703,6 +703,14 @@ pub enum ExpressionKind {
         arguments: Vec<Argument>,
     },
     Builtin(Path),
+    /// `ptr.raw.mut<u32>.at(address: 0x4004_0000)` or `ptr.raw<i32>.of(Lend $count)`, which
+    /// make a pointer, in a shield. (D314, D315, D317)
+    Pointer {
+        family: Path,
+        target: Box<TypeExpression>,
+        how: Name,
+        arguments: Vec<Argument>,
+    },
     Binary {
         operator: BinaryOperator,
         left: Box<Expression>,

@@ -1,0 +1,9 @@
+refused: d315_the_variable_stays_lent.cy:9:9, line 9 column 9
+ 9 |         $p.%%write(val: 6);
+   |         ^^
+ what: `$p` can't be used after what it borrows was used
+ why:  a stored `Lend.mut` means nothing else uses it meanwhile, and a `Lend` means it can't change (D2)
+ because: d315_the_variable_stays_lent.cy:8:16, line 8 column 16
+ 8 |         change $count = 7;
+   |                ^^^^^^
+     what it borrows was used here

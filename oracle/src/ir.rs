@@ -284,6 +284,22 @@ pub enum NodeKind {
         which: Box<Node>,
         counts_from_zero: bool,
     },
+    /// A pointer to a variable, through `.of`. (D315)
+    PointerOf(Place),
+    /// A pointer to an address, through `.at`. (D315)
+    PointerAt(Box<Node>),
+    /// `$p.%read()`. (D315)
+    PointerRead(Box<Node>),
+    /// `$p.%%write(val: 1)`. (D315)
+    PointerWrite {
+        pointer: Box<Node>,
+        value: Box<Node>,
+    },
+    /// `$p.%moved(offset.bytes: 2)`, counted in bytes here. (D316)
+    PointerMoved {
+        pointer: Box<Node>,
+        bytes: Box<Node>,
+    },
     /// `$same.%pick(if_true: $x, if_false: $y)`: both sides worked out, then one chosen, with
     /// no branch on the secret. (D340)
     Pick {

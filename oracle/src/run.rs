@@ -138,6 +138,14 @@ struct Runner<'c> {
     writers: Vec<Writer>,
     /// How many allocators the program has made, so each gets its own number. (D322)
     allocators: usize,
+    /// What each pointer the program made points at, by number. (D315)
+    pointers: Vec<PointerTarget>,
+}
+
+/// A pointer's target: a variable from `.of`, or an address from `.at`. (D315)
+enum PointerTarget {
+    Variable(Binding),
+    Address,
 }
 
 /// A terminal writer: which stream, and for a buffered one, its size and what it holds.
@@ -277,6 +285,7 @@ impl<'c> Runner<'c> {
             out: std::io::BufWriter::new(std::io::stdout()),
             writers: Vec::new(),
             allocators: 0,
+            pointers: Vec::new(),
         }
     }
 
@@ -965,6 +974,11 @@ impl<'c> Runner<'c> {
                 let number = i128::try_from(self.writers.len() - 1).unwrap_or(i128::MAX);
                 Ok(Value::Struct(vec![Value::Integer(number)]))
             }
+            NodeKind::PointerOf(_)
+            | NodeKind::PointerAt(_)
+            | NodeKind::PointerRead(_)
+            | NodeKind::PointerWrite { .. }
+            | NodeKind::PointerMoved { .. } => self.evaluate_pointer(node, frame),
             NodeKind::Lanewise { .. }
             | NodeKind::LanewiseCompare { .. }
             | NodeKind::Reduce { .. }
@@ -1512,6 +1526,99 @@ impl Runner<'_> {
         };
         *found = value;
         Ok(())
+    }
+
+    /// Making, reading, writing and moving a pointer. A pointer runs as its number and how
+    /// many bytes it has moved. (D315, D316)
+    /// trace: D315, D316
+    fn evaluate_pointer(&mut self, node: &Node, frame: &mut Frame) -> Result<Value, Stop> {
+        let span = node.span;
+        let pointer = |number: usize, moved: i128| {
+            Value::Struct(vec![
+                Value::Integer(i128::try_from(number).unwrap_or(i128::MAX)),
+                Value::Integer(moved),
+            ])
+        };
+        match &node.kind {
+            NodeKind::PointerOf(place) => {
+                let binding = self.binding_of(frame, place, span)?;
+                self.pointers.push(PointerTarget::Variable(binding));
+                Ok(pointer(self.pointers.len() - 1, 0))
+            }
+            NodeKind::PointerAt(address) => {
+                self.evaluate(address, frame)?;
+                self.pointers.push(PointerTarget::Address);
+                Ok(pointer(self.pointers.len() - 1, 0))
+            }
+            NodeKind::PointerMoved {
+                pointer: from,
+                bytes,
+            } => {
+                let (number, moved) = self.pointer_parts(from, frame)?;
+                let Value::Integer(bytes) = self.evaluate(bytes, frame)? else {
+                    return Err(oracle_bug(
+                        span,
+                        "a pointer moved by something that isn't a number",
+                    ));
+                };
+                Ok(pointer(number, moved.wrapping_add(bytes)))
+            }
+            NodeKind::PointerRead(from) => {
+                let binding = self.pointer_target(from, frame, span)?;
+                let root = binding.root.borrow();
+                walk(&root, &binding.path)
+                    .cloned()
+                    .ok_or_else(|| oracle_bug(span, "a pointer to nothing"))
+            }
+            NodeKind::PointerWrite { pointer: to, value } => {
+                let value = self.evaluate(value, frame)?;
+                let binding = self.pointer_target(to, frame, span)?;
+                let mut root = binding.root.borrow_mut();
+                let Some(found) = walk_mut(&mut root, &binding.path) else {
+                    return Err(oracle_bug(span, "a pointer to nothing"));
+                };
+                *found = value;
+                Ok(Value::Void)
+            }
+            _ => Err(oracle_bug(span, "something that isn't pointer work")),
+        }
+    }
+
+    fn pointer_parts(&mut self, pointer: &Node, frame: &mut Frame) -> Result<(usize, i128), Stop> {
+        match self.evaluate(pointer, frame)? {
+            Value::Struct(fields) => match fields.as_slice() {
+                [Value::Integer(number), Value::Integer(moved)] => Ok((
+                    usize::try_from(*number)
+                        .map_err(|_| oracle_bug(pointer.span, "a pointer with a bad number"))?,
+                    *moved,
+                )),
+                _ => Err(oracle_bug(pointer.span, "a pointer that isn't one")),
+            },
+            _ => Err(oracle_bug(pointer.span, "a pointer that isn't one")),
+        }
+    }
+
+    /// The variable a pointer reads or writes. One from `.at`, or one moved off its variable,
+    /// points at memory the oracle doesn't have. (D315, D316)
+    fn pointer_target(
+        &mut self,
+        pointer: &Node,
+        frame: &mut Frame,
+        span: Span,
+    ) -> Result<Binding, Stop> {
+        let (number, moved) = self.pointer_parts(pointer, frame)?;
+        match self.pointers.get(number) {
+            Some(PointerTarget::Variable(binding)) if moved == 0 => Ok(binding.clone()),
+            Some(PointerTarget::Variable(_)) => Err(Stop::Report(Report::not_built(
+                span,
+                "reading or writing next to a variable, through a pointer moved off it",
+            ))),
+            Some(PointerTarget::Address) => Err(Stop::Report(Report::not_built(
+                span,
+                "reading or writing memory at an address, which the oracle doesn't have",
+            ))),
+            None => Err(oracle_bug(span, "a pointer that was never made")),
+        }
     }
 
     /// A `simd`'s lanes, which run as a list.

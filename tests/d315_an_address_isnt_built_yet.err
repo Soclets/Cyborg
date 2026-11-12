@@ -1,0 +1,5 @@
+NotBuiltYet: d315_an_address_isnt_built_yet.cy:8:9, line 8 column 9
+ 8 |         $led.%%write(val: 1);
+   |         ^^^^^^^^^^^^^^^^^^^^
+ what: reading or writing memory at an address, which the oracle doesn't have
+ why:  decided, but the oracle doesn't handle it yet (D286)

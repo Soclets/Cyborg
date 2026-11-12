@@ -7,6 +7,7 @@ mod generics;
 mod hand;
 mod memory;
 mod operators;
+mod pointers;
 mod secrets;
 mod simd;
 mod units;
@@ -2467,6 +2468,21 @@ impl Checker<'_> {
             None => (text.as_str(), None),
         };
         match head {
+            // trace: D314, D317
+            "ptr" => {
+                let [Fill {
+                    label: None,
+                    written_type: target,
+                }] = fill.as_slice()
+                else {
+                    return Err(Report::refused(
+                        written.span,
+                        "a pointer fills in the type it points at, bare, in `< >`",
+                        "a pointer is `ptr.raw<T>` or `ptr.volatile<T>`, with `.mut` when it can write (D314, D317)",
+                    ));
+                };
+                return self.resolve_pointer_type(&text, target, written.span);
+            }
             // trace: D291
             "simd" if narrowing.is_none() => {
                 return self.resolve_simd_type(fill, describe, written.span);

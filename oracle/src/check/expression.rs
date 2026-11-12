@@ -876,6 +876,13 @@ impl Checker<'_> {
                     "a builtin looks like a function call and can't be written as a Cyborg function, so `let`, `+` and `as` aren't builtins (D56)",
                 ))
             }
+            // trace: D314, D315
+            ExpressionKind::Pointer {
+                family,
+                target,
+                how,
+                arguments,
+            } => self.check_pointer(family, target, how, arguments, span),
             ExpressionKind::Builtin(path) => Err(Report::not_designed(
                 path.span,
                 format!("the builtin `{}`", path.text),
@@ -2518,6 +2525,15 @@ impl Checker<'_> {
             let (node, found) = self.check_expression(receiver, None)?;
             (Some(node), found)
         };
+        // trace: D315, D316
+        if let (true, Type::Pointer { .. }) = (percent, &receiver_type) {
+            let receiver_type = receiver_type.clone();
+            let node = match fresh {
+                Some(node) => node,
+                None => self.check_expression(receiver, None)?.0,
+            };
+            return self.check_pointer_method(node, &receiver_type, name, changes, arguments, span);
+        }
         // trace: D297, D302, D304, D306, D307
         if let (true, Type::Simd { .. }) = (percent, &receiver_type) {
             let receiver_type = receiver_type.clone();

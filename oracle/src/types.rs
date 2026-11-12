@@ -160,6 +160,12 @@ pub enum Type {
     BoundedStr(i128),
     /// `str[len.max: inf bytes]`: text that grows on the heap, and is `must_Give`. (D326)
     GrowableStr,
+    /// `ptr.raw.mut<u32>` and the rest: a pointer, which only lives in a shield. (D314, D317)
+    Pointer {
+        volatile: bool,
+        mutable: bool,
+        target: Box<Type>,
+    },
     /// `simd<i32>[lanes: 4]`: several values, its lanes, worked on together. (D291)
     Simd {
         item: Box<Type>,
@@ -235,7 +241,8 @@ impl Type {
     /// trace: D2, D123
     pub fn is_always_copied(&self) -> bool {
         match self {
-            Type::Integer { .. } | Type::Float { .. } | Type::Bool => true,
+            // A pointer is an address, copied as one. (D314)
+            Type::Integer { .. } | Type::Float { .. } | Type::Bool | Type::Pointer { .. } => true,
             Type::Secret(inner) => inner.is_always_copied(),
             // A vector is a machine type like `i32`, so it's copied the same way. (D291)
             Type::Simd { item, .. } => item.is_always_copied(),
@@ -296,6 +303,16 @@ impl fmt::Display for Type {
             Type::BoundedStr(bytes) => write!(formatter, "str[len.max: {bytes} bytes]"),
             Type::GrowableStr => write!(formatter, "str[len.max: inf bytes]"),
             Type::Simd { item, lanes } => write!(formatter, "simd<{item}>[lanes: {lanes}]"),
+            Type::Pointer {
+                volatile,
+                mutable,
+                target,
+            } => write!(
+                formatter,
+                "ptr.{}{}<{target}>",
+                if *volatile { "volatile" } else { "raw" },
+                if *mutable { ".mut" } else { "" }
+            ),
             // `.secret` goes on the type's own name, before any brackets. (D339)
             Type::Secret(inner) => match &**inner {
                 Type::Integer { kind, bound, unit } => {

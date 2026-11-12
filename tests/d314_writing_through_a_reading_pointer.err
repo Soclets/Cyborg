@@ -1,0 +1,5 @@
+refused: d314_writing_through_a_reading_pointer.cy:8:9, line 8 column 9
+ 8 |         $p.%%write(val: 6);
+   |         ^^^^^^^^^^^^^^^^^^
+ what: `ptr.raw<i32>` can only read
+ why:  writing through a pointer needs `ptr.raw.mut` or `ptr.volatile.mut`, since even in a shield that mistake is cheap to catch (D314, D317)

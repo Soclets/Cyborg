@@ -1,0 +1,5 @@
+refused: d314_pointers_live_in_a_shield.cy:5:13, line 5 column 13
+ 5 |     let $p: ptr.raw.mut<i32> = ptr.raw.mut<i32>.of(Lend.mut $count);
+   |             ^^^^^^^^^^^^^^^^
+ what: a pointer lives only in a shield
+ why:  raw and volatile pointers live only in a shield, where the programmer takes over what the compiler can't check (D38, D226, D314)
