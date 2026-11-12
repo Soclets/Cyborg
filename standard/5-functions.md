@@ -19,7 +19,7 @@
 **Rule:** a function is declared with `[ ]`, and its parameters are lent unless they say otherwise ([6.1](6-ownership.md#61-the-words)).
 
 ```
-fn total [$xs: std::coll::list<i32>[len.max: inf items]] -> i32:
+fn total [$xs: Lent std::coll::list<i32>[len.max: inf items]] -> i32:
     …
 end fn total
 ```

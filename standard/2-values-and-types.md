@@ -435,7 +435,7 @@ let $s: f64.stable = std::math::sin($a as f64.stable[unit: radians]);
 A generic can work for any unit and keep it, with a unit parameter. `any.unit` means any unit, and a family's name, like `length`, means any unit in that family:
 
 ```
-fn average<?u: any.unit> [$xs: std::coll::list<f64.stable[unit: ?u]>[len.min: 1 items]] -> f64.stable[unit: ?u]:
+fn average<?u: any.unit> [$xs: Lent std::coll::list<f64.stable[unit: ?u]>[len.min: 1 items]] -> f64.stable[unit: ?u]:
     …
 end fn average
 

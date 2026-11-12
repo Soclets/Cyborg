@@ -51,7 +51,7 @@ Its manifest says `need std` and `need os`. Examples elsewhere in the standard a
 **Rule:** `;` ends a statement, `:` opens a block, and `end` closes it. The closer repeats what it closes, including the name.
 
 ```
-fn total [$xs: std::coll::list<i32>[len.max: inf items]] -> i32:
+fn total [$xs: Lent std::coll::list<i32>[len.max: inf items]] -> i32:
     …
 end fn total
 
@@ -228,7 +228,7 @@ Units keep the matching name, as in `use std::units::time.seconds as seconds;`.
 
 ```
 /// Adds up every item in the list.
-fn total [$xs: std::coll::list<i32>[len.max: inf items]] -> i32:
+fn total [$xs: Lent std::coll::list<i32>[len.max: inf items]] -> i32:
     // a note for whoever reads this
     …
 end fn total

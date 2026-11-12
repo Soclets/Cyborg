@@ -5,7 +5,7 @@
 | [6.1](#61-the-words) | All the words | One table |
 | [6.2](#62-give-and-given) | `Give`, `Given` | Ownership moves |
 | [6.3](#63-copy) | `Copy` | A separate copy |
-| [6.4](#64-lend-and-bare-parameters) | `Lend`, bare | Read-only borrow |
+| [6.4](#64-lend-and-lent) | `Lend`, `Lent` | Read-only borrow |
 | [6.5](#65-lendmut-and-lentmut) | `Lend.mut`, `Lent.mut` | Borrow that may change it |
 | [6.6](#66-plain-numbers-and-bool) | Plain numbers, `bool` | Always copied, no word |
 | [6.7](#67-no-implicit-ownership) | No implicit ownership | Every hand-off shows |
@@ -54,21 +54,21 @@ close(Give $f);
 
 **From:** D2.
 
-## 6.4 `Lend` and bare parameters
+## 6.4 `Lend` and `Lent`
 
-**Rule:** a bare parameter is lent, read-only, and the call still writes `Lend`.
+**Rule:** a parameter that's only read says `Lent`, and the call writes `Lend`. A parameter holding something with a choice of how it's held, like a struct or a list, always says `Lent`, `Lent.mut` or `Given`. A plain number, a `bool` or a view has no such choice, since it's only ever copied, so it's bare.
 
 ```
-fn total [$xs: std::coll::list<i32>[len.max: inf items]] -> i32:
+fn total [$xs: Lent std::coll::list<i32>[len.max: inf items]] -> i32:
     …
 end fn total
 
 let $t: i32 = total(Lend $xs);
 ```
 
-**Refused:** writing `Lent` alone on a parameter, because it's the default.
+**Refused:** a bare parameter of a struct or list, with a fix asking for `Lent`, `Lent.mut` or `Given`.
 
-**From:** D2, D182.
+**From:** D2, D182, D393.
 
 ## 6.5 `Lend.mut` and `Lent.mut`
 
@@ -210,7 +210,7 @@ The `change` is fine, because `$view` isn't used after the print. After `$lock`,
 A function can return a borrow by naming where it comes from. That's Cyborg's lifetime: `from $a` means it lives as long as `$a`.
 
 ```
-fn warmer [$a: reading, $b: reading] -> Lend from <$a, $b> reading:
+fn warmer [$a: Lent reading, $b: Lent reading] -> Lend from <$a, $b> reading:
     if $a.celsius above $b.celsius:
         return Lend $a;
     end if
@@ -235,7 +235,7 @@ struct index <`text`, `table`: lasts_at_least `text`>:
     lookup: Lend from `table` reading;
 end struct index
 
-fn build [$article: reading, $list: reading] -> index<`text`: $article, `table`: $list>:
+fn build [$article: Lent reading, $list: Lent reading] -> index<`text`: $article, `table`: $list>:
     requires $list lasts_at_least $article;
     return index[words = Lend $article, lookup = Lend $list];
 end fn build
@@ -260,7 +260,7 @@ end union.tagged lookup
 Lending an item locks the whole list, and its type names the list:
 
 ```
-fn first [$xs: std::coll::list<reading>[len.min: 1 items]] -> Lend from $xs reading:
+fn first [$xs: Lent std::coll::list<reading>[len.min: 1 items]] -> Lend from $xs reading:
     return Lend $xs[pos: 1];
 end fn first
 ```
@@ -283,23 +283,22 @@ change $m.celsius = 30;
 
 While `Lend.mut $m` is held, `$m` can't be used. While `Lend $m` is held, `$m` can be read but not changed. `Give $m` is refused.
 
-A parameter is never typed as a stored borrow, because a bare parameter already is one, and `Lent.mut` already is the changing one.
+A parameter is never typed as a stored borrow, because `Lent` already is one, and `Lent.mut` already is the changing one.
 
-**Refused:** `fn show [$v: Lend from $r reading]`, with `fix: $v: reading`, and `Lend.mut from` on a parameter, with `fix: Lent.mut`.
+**Refused:** `fn show [$v: Lend from $r reading]`, with `fix: $v: Lent reading`, and `Lend.mut from` on a parameter, with `fix: Lent.mut`.
 
 **From:** D2, D169, D170, D171, D172, D173, D174, D175, D176.
 
 ## 6.11 No word needed
 
-**Rule:** reading in place, and a fresh value that has no holder yet, take no word.
+**Rule:** reading a field in place, and a fresh value that has no holder yet, take no word, since there's no choice to write.
 
 ```
 $xs.len
-for $x in $xs:
 reading[celsius = 21, time = 3600 std::units::time.seconds]
 ```
 
-**From:** D2, D182.
+**From:** D2, D182, D393.
 
 ## 6.12 `defer`
 
