@@ -223,6 +223,7 @@ impl Generator<'_> {
                     value_type,
                     Type::Integer(_) | Type::Float(_) | Type::Bounded(..)
                 ) && !name.starts_with('i')
+                    && !name.starts_with('x')
                     && !name.starts_with('p')
             })
             .map(|(name, _)| name.clone())
@@ -311,6 +312,7 @@ impl Generator<'_> {
                 }
             }
             8 if depth < 2 => self.range_loop(scope, depth, prints),
+            9 if depth < 2 && self.random.chance(30) => self.loop_over(scope, depth, prints),
             9 if self.random.chance(50) => self.array_statement(scope),
             9 => self.record_statement(scope),
             _ if prints => {
@@ -354,6 +356,50 @@ impl Generator<'_> {
                     value,
                 }
             }
+        }
+    }
+
+    /// `for` through an array, reading or changing each item, or `forever` with a counter that
+    /// stops it. The array is out of reach in the body, which a `for` holds it for (4.4, 4.7).
+    fn loop_over(&mut self, scope: &mut Scope, depth: usize, prints: bool) -> Statement {
+        let Some((array, kind, _)) = self.random.pick(&scope.arrays).cloned() else {
+            let counter = self.name("i");
+            let rounds = self.random.between(0, 4);
+            scope
+                .variables
+                .push((counter.clone(), Type::Integer(Kind::I32)));
+            let body = self.block(scope, 3, depth + 1, (prints, true));
+            return Statement::Forever {
+                counter,
+                rounds,
+                body,
+            };
+        };
+        let changes = self.random.chance(50);
+        // The item's name starts `x`, so it's never chosen for `change`; one lent to change is
+        // changed once in the body instead.
+        let item = self.name("x");
+        let held_arrays = std::mem::take(&mut scope.arrays);
+        let held_variables = scope.variables.len();
+        scope.variables.push((item.clone(), Type::Integer(kind)));
+        let mut body = self.block(scope, 3, depth + 1, (prints, true));
+        if changes {
+            let value = self.expression(scope, Type::Integer(kind), LIMITS.depth);
+            body.insert(
+                0,
+                Statement::Change {
+                    name: item.clone(),
+                    value,
+                },
+            );
+        }
+        scope.variables.truncate(held_variables);
+        scope.arrays = held_arrays;
+        Statement::ForEach {
+            item,
+            array,
+            changes,
+            body,
         }
     }
 

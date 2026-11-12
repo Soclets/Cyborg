@@ -12,7 +12,8 @@
 /// `??`, `otherwise:` arms that use a value `instead`, or nothing, so a failure stops the
 /// program; arrays from `[ ]` and `all`, their items by `pos:` and `offset.items:`, read and changed;
 /// precedence with and without `( )`, as 3.9's table orders it; comparison chains; `let`,
-/// `change`, `if` and `else`, `while`, `for` over literal ranges, `break`; functions with
+/// `change`, `if` and `else`, `while`, `for` over literal ranges and through arrays, reading or
+/// changing each item, `forever`, `break`; functions with
 /// integer parameters and results; printing a variable with `fmt_print` to an unbuffered writer.
 pub const NOT_GENERATED: &[&str] = &[
     "1.13 printing: shapes, named holes, `.stored`, more than one value, buffered writers, stderr",
@@ -31,7 +32,7 @@ pub const NOT_GENERATED: &[&str] = &[
     "3.9 chains that change direction, like `$a below $b above $c`",
     "3.10 a type's own operators",
     "4.2 the test, `if $n: T:`",
-    "4.3 to 4.8 `match`, `for` over collections, a range's counter in use, ranges that step past their end, `forever`, named loops",
+    "4.3 to 4.8 `match`, `for … in Give`, `for` over lists, a range's counter in use, ranges that step past their end, named loops",
     "5.x labels, defaults, `fn.pure`, contracts, generics, interfaces, methods, `bake`",
     "6.x ownership words, `Lend.mut` parameters, stored borrows, `must_Give`, `finish`, `defer`",
     "7.x structs holding other structs, lists or borrows, `must_Give` structs, generic structs, unions and `match` on them, handing structs to functions",

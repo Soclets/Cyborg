@@ -128,6 +128,21 @@ fn block_cuts(block: &[Statement]) -> Vec<Vec<Statement>> {
                     }]);
                 }
             }
+            Statement::ForEach {
+                item,
+                array,
+                changes,
+                body,
+            } => {
+                for smaller in block_cuts(body) {
+                    replace(vec![Statement::ForEach {
+                        item: item.clone(),
+                        array: array.clone(),
+                        changes: *changes,
+                        body: smaller,
+                    }]);
+                }
+            }
             Statement::For {
                 counter,
                 from,

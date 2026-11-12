@@ -382,6 +382,19 @@ pub enum Statement {
     },
     /// `break;`, which stops the innermost loop (4.8).
     Break,
+    /// `for $x in $a:`, reading each item, or `for $x in Lend.mut $a:`, changing each (4.4).
+    ForEach {
+        item: String,
+        array: String,
+        changes: bool,
+        body: Vec<Statement>,
+    },
+    /// `forever:`, which a counter always stops with `break` (4.7, 4.8).
+    Forever {
+        counter: String,
+        rounds: i128,
+        body: Vec<Statement>,
+    },
     /// `fail bad3;` or `fail bad4[got = $p2];` (8.2).
     Fail {
         name: String,
@@ -606,6 +619,31 @@ fn print_block(out: &mut String, statements: &[Statement], depth: usize, style: 
             }
             Statement::Break => {
                 let _ = writeln!(out, "{indent}break;");
+            }
+            Statement::ForEach {
+                item,
+                array,
+                changes,
+                body,
+            } => {
+                let word = if *changes { "Lend.mut " } else { "" };
+                let _ = writeln!(out, "{indent}for ${item} in {word}${array}:");
+                print_block(out, body, depth + 1, style);
+                let _ = writeln!(out, "{indent}end for");
+            }
+            Statement::Forever {
+                counter,
+                rounds,
+                body,
+            } => {
+                let _ = writeln!(out, "{indent}let mut ${counter}: i32 = 0;");
+                let _ = writeln!(out, "{indent}forever:");
+                let _ = writeln!(out, "{indent}    change ${counter} = ${counter} + 1;");
+                let _ = writeln!(out, "{indent}    if ${counter} above {rounds}:");
+                let _ = writeln!(out, "{indent}        break;");
+                let _ = writeln!(out, "{indent}    end if");
+                print_block(out, body, depth + 1, style);
+                let _ = writeln!(out, "{indent}end forever");
             }
             Statement::Fail { name, data } => match data {
                 Some(value) => {
