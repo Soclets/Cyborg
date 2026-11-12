@@ -1254,6 +1254,8 @@ A `type_set` is a closed list of types that nothing can join later, as in `type_
 
 **D376. `std`'s runner switches tasks when one has to wait, and every task waiting is a failed check.** D345's runner, which works on any machine, ran tasks strictly one after another, which hangs with channels: a task filling a channel nobody is receiving from yet would wait forever, where real threads would be fine. So it runs one task at a time and switches to the next ready one, in the order they were spawned, whenever the current one has to wait, the way an event runner does on one thread, so it's still single-threaded, gives the same answers every run, and works on bare metal. If every task is waiting at once, that's a real deadlock, and a failed check, "every task is waiting", instead of a hang. This corrects D345's "one after another". Oracle claude's first reading hit the problem; Claude proposed the fix; the owner chose: "yea". (Owner, 2026-11-12)
 
+**D377. `std`'s runner is `std::one_thread`.** `let $runner: std::one_thread = std::one_thread();` names D376's runner for what it does, run every task on the one thread that's already running, next to `os::threads` and `os::events`, which are named for where their threads come from, so one thread against many is obvious. `std::in_order` stopped being true once it switches tasks, and `std::local` was vague. This settles D345's runner name. Claude proposed it; the owner chose: "yea". (Owner, 2026-11-12)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude
