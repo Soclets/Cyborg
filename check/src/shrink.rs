@@ -5,7 +5,7 @@
 use std::path::Path;
 
 use crate::compare::{run_okay, run_oracle, Mode, Outcome};
-use crate::tree::{print, Program, Statement};
+use crate::tree::{print, Expression, Handling, Program, Statement};
 
 /// What kind of outcome a run had, which a cut has to keep.
 fn kind_of(outcome: &Outcome) -> u8 {
@@ -46,6 +46,34 @@ fn cuts(program: &Program) -> Vec<Program> {
         let mut smaller = program.clone();
         smaller.functions.remove(index);
         found.push(smaller);
+    }
+    // A declaration nothing uses goes; one in use leaves a refusal, which isn't kept.
+    for index in 0..program.unions.len() {
+        let mut smaller = program.clone();
+        smaller.unions.remove(index);
+        found.push(smaller);
+    }
+    for index in 0..program.structs.len() {
+        let mut smaller = program.clone();
+        smaller.structs.remove(index);
+        found.push(smaller);
+    }
+    for (index, function) in program.functions.iter().enumerate() {
+        if function.requires.is_some() || function.ensures.is_some() {
+            let mut smaller = program.clone();
+            if let Some(function) = smaller.functions.get_mut(index) {
+                function.requires = None;
+                function.ensures = None;
+            }
+            found.push(smaller);
+        }
+        for returned in expression_cuts(&function.returned) {
+            let mut smaller = program.clone();
+            if let Some(function) = smaller.functions.get_mut(index) {
+                function.returned = returned;
+            }
+            found.push(smaller);
+        }
     }
     for (index, function) in program.functions.iter().enumerate() {
         for body in block_cuts(&function.body) {
@@ -164,6 +192,144 @@ fn block_cuts(block: &[Statement]) -> Vec<Vec<Statement>> {
             }
             _ => {}
         }
+        // A statement with its expression made smaller.
+        for smaller in statement_cuts(statement) {
+            replace(vec![smaller]);
+        }
+    }
+    found
+}
+
+/// A statement one expression cut smaller.
+fn statement_cuts(statement: &Statement) -> Vec<Statement> {
+    let mut found = Vec::new();
+    match statement {
+        Statement::Let {
+            name,
+            value_type,
+            value,
+        } => {
+            for value in expression_cuts(value) {
+                found.push(Statement::Let {
+                    name: name.clone(),
+                    value_type: *value_type,
+                    value,
+                });
+            }
+        }
+        Statement::Change { name, value } => {
+            for value in expression_cuts(value) {
+                found.push(Statement::Change {
+                    name: name.clone(),
+                    value,
+                });
+            }
+        }
+        Statement::Print(value) => {
+            for value in expression_cuts(value) {
+                found.push(Statement::Print(value));
+            }
+        }
+        Statement::If {
+            test,
+            then,
+            otherwise,
+        } => {
+            for test in expression_cuts(test) {
+                found.push(Statement::If {
+                    test,
+                    then: then.clone(),
+                    otherwise: otherwise.clone(),
+                });
+            }
+        }
+        _ => {}
+    }
+    found
+}
+
+/// An expression one step smaller: an operation replaced by one of its sides, a call's
+/// handling dropped, or a part inside made smaller. A side of another type leaves a refusal,
+/// which isn't kept.
+fn expression_cuts(value: &Expression) -> Vec<Expression> {
+    let mut found = Vec::new();
+    match value {
+        Expression::Binary {
+            operator,
+            left,
+            right,
+        } => {
+            found.push((**left).clone());
+            found.push((**right).clone());
+            for smaller in expression_cuts(left) {
+                found.push(Expression::Binary {
+                    operator: *operator,
+                    left: Box::new(smaller),
+                    right: right.clone(),
+                });
+            }
+            for smaller in expression_cuts(right) {
+                found.push(Expression::Binary {
+                    operator: *operator,
+                    left: left.clone(),
+                    right: Box::new(smaller),
+                });
+            }
+        }
+        Expression::Compare {
+            comparison,
+            left,
+            right,
+        } => {
+            for smaller in expression_cuts(right) {
+                found.push(Expression::Compare {
+                    comparison: *comparison,
+                    left: left.clone(),
+                    right: Box::new(smaller),
+                });
+            }
+        }
+        Expression::Logic { and, left, right } => {
+            found.push((**left).clone());
+            found.push((**right).clone());
+            for smaller in expression_cuts(left) {
+                found.push(Expression::Logic {
+                    and: *and,
+                    left: Box::new(smaller),
+                    right: right.clone(),
+                });
+            }
+        }
+        Expression::Not(inner) | Expression::Negate(inner) => {
+            found.push((**inner).clone());
+        }
+        Expression::Call {
+            function,
+            arguments,
+            handling,
+        } => {
+            if !matches!(handling, Handling::Crash) {
+                found.push(Expression::Call {
+                    function: function.clone(),
+                    arguments: arguments.clone(),
+                    handling: Handling::Crash,
+                });
+            }
+            for (index, (label, argument)) in arguments.iter().enumerate() {
+                for smaller in expression_cuts(argument) {
+                    let mut arguments = arguments.clone();
+                    if let Some(slot) = arguments.get_mut(index) {
+                        *slot = (label.clone(), smaller);
+                    }
+                    found.push(Expression::Call {
+                        function: function.clone(),
+                        arguments,
+                        handling: handling.clone(),
+                    });
+                }
+            }
+        }
+        _ => {}
     }
     found
 }
