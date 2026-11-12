@@ -17,7 +17,9 @@ What's waiting for when the owner unpauses Cyborg, written down on 2026-11-11 so
 
 ## compiler claude
 
-Waits for Lyftar's embedded clang (Lyftar's D55, Cyborg's D308) before starting again (owner, 2026-11-12).
+Waited for Lyftar's embedded clang (Lyftar's D55, Cyborg's D308), which is ready since 2026-11-12: `lyftar::compile_c`
+(SystemTarget, the C file, the object, CCompileOptions with include folders and defines). Lyftar renamed `LinkTarget` to
+`SystemTarget` (its D56), so the compiler's `link` calls need the new name. CORE-MATH also needs `fma` and `round`.
 
 - `FinalPerf` and `FinalShit` still keep overflow checks, where 10.1 says none (`bench/okay-vs-rust`).
 - `FinalSmall` doesn't build: LLVM 23 has removed the `Oz` pipeline name (`bench/okay-vs-node`).

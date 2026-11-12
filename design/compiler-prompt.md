@@ -37,7 +37,7 @@ oracle's source isn't.
   It needs LLVM 23, installed at /opt/homebrew/opt/llvm@23.
 - `okay` links by itself, like Zig (D261): building for a supported target
   needs nothing else installed. Lyftar now builds with its own static LLVM
-  and lld, so link with `lyftar::link(LinkTarget::…, objects, output,
+  and lld, so link with `lyftar::link(SystemTarget::…, objects, output,
   script)`, for `MacOsAarch64`, `LinuxAarch64`, `LinuxX86_64` and
   `CortexM4`, and never call an outside linker. Linux programs come out
   static with musl. Cyborg ships each target's startup code and linker
