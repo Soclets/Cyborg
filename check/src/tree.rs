@@ -667,8 +667,8 @@ pub enum Statement {
         target: String,
         secret: String,
     },
-    /// A C union built in a shield by naming one field, and another field no wider read back
-    /// into a variable that can change, from the same bytes (9.6, D398).
+    /// A C union built in a shield by naming one field and `rest = all 0`, and any field read
+    /// back into a variable that can change, from the same bytes (9.6, D398, D402).
     Untagged {
         shield: String,
         name: String,
@@ -1610,7 +1610,7 @@ fn print_block(out: &mut String, statements: &[Statement], depth: usize, style: 
                 );
                 let _ = writeln!(
                     out,
-                    "{indent}    let ${name}: union.@csup::untagged {union} = {union}[{field} = {}];",
+                    "{indent}    let ${name}: union.@csup::untagged {union} = {union}[{field} = {}, rest = all 0];",
                     style.expression(value)
                 );
                 let _ = writeln!(out, "{indent}    change ${read_into} = ${name}.{read};");

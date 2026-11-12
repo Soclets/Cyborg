@@ -62,7 +62,7 @@
 ///   back in bytes with `.%moved`; and around one aarch64 `inline.asm` instruction in an
 ///   `on.target aarch64:` branch whose `else:` works out the same value; and a
 ///   `union.@csup::untagged` declared in a shield, built in another with one integer field and
-///   read back as a field no wider;
+///   `rest = all 0`, and read back as any field;
 /// - printing: `fmt_print` to an unbuffered writer, one to three values per print, with plain,
 ///   numbered or named holes, shapes for width, alignment, bases, `zeros`, `sign`, `places:` and
 ///   `form: science`, and escaped braces and `{tab}` in the text.
@@ -85,7 +85,7 @@ pub const NOT_GENERATED: &[&str] = &[
     "6.x stored borrows and `.held`, `Lend from` results, `must_Give` values that leave a loop or a `match`, and `defer` on anything but ending a value",
     "7.x structs holding other structs, lists or borrows, beyond the `must_Give` holder, handing unions to functions",
     "8.x named sets of failures, a `case` reading a failure's data, arms that `return`, `break` or `fail`, handler narrowings and `*`",
-    "9.x still to do: tasks on `os::threads` and `os::events`, tasks that borrow, locks and atomics; `pub` and `use` between packages, once programs have more than one; NotBuiltYet: `.at(address:)`, which points at hardware the oracle doesn't have; undecided: a shield's own `requires` and `ensures` (12.9), your own allocator (2.10), and reading more of a C union than its written field filled (asked)",
+    "9.x still to do: tasks on `os::threads` and `os::events`, tasks that borrow, locks and atomics; `pub` and `use` between packages, once programs have more than one; NotBuiltYet: `.at(address:)`, which points at hardware the oracle doesn't have; undecided: a shield's own `requires` and `ensures` (12.9), your own allocator (2.10)",
     "10.x build modes beyond comparing outputs",
     "recursion, since calls only reach functions declared earlier",
 ];

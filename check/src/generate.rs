@@ -1168,20 +1168,16 @@ impl Generator<'_> {
         self.untagged = Some((name, fields));
     }
 
-    /// A C union built with one field and read as another no wider, whose bytes the written
-    /// one filled, into a variable of that kind that can change (9.6, D398).
+    /// A C union built with one field and `rest = all 0`, and read as any field, into a variable
+    /// of that kind that can change (9.6, D398, D402).
     fn untagged_statement(&mut self, scope: &Scope) -> Option<Statement> {
         if self.pure_only || self.no_calls {
             return None;
         }
         let (union, fields) = self.untagged.clone()?;
         let (written, written_kind) = self.random.pick(&fields)?.clone();
-        let narrower: Vec<(String, Kind)> = fields
-            .iter()
-            .filter(|(_, kind)| kind.bytes() <= written_kind.bytes())
-            .cloned()
-            .collect();
-        let (read, read_kind) = self.random.pick(&narrower)?.clone();
+        // `rest = all 0` zeroes what the written field doesn't cover, so any field reads (D402).
+        let (read, read_kind) = self.random.pick(&fields)?.clone();
         let targets: Vec<String> = scope
             .variables
             .iter()
