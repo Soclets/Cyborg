@@ -4,8 +4,8 @@ What's waiting for when the owner unpauses Cyborg, written down on 2026-11-11 so
 
 ## Design
 
-- **How limbs connect to the compiler:** what a limb is to `OKAY\n`, and what it can see and change. The Precog limb,
-  `@csup` and every `inline.@limb::lang` wait on it.
+- **Limbs, left:** the C interface itself, a limb's API and how it's versioned. What limbs are and can do is D334 to
+  D338.
 - **Concurrency:** threads, sharing data, and anything like goroutines or async (12.8).
 - **A secret type** for constant-time code (12.7).
 
