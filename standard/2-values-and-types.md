@@ -67,7 +67,17 @@ It can call `fn.pure.baked` functions ([5.11](5-functions.md#511-baking)).
 
 **Rule:** a 32-bit signed integer is `i32`. There is one spelling and no alias, and `int.signed.32_bit` does not exist. `i64` also appears in the decisions. The full list isn't decided ([12.2](12-not-decided.md#122-types)).
 
-**From:** D10, D57.
+A literal in another base says so with a word in front, the same words printing uses for `base:`: `hex`, `bin` and `oct`. `_` groups digits in any base, and hex digits can be either case.
+
+```
+let $reg: u32 = hex 4004_0000;
+let $mask: u8 = bin 1111_1110;
+let $mode: u16 = oct 755;
+```
+
+**Refused:** `0x4004_0000`, with `fix: hex 4004_0000`, and `0b` and `0o` the same way.
+
+**From:** D10, D57, D374.
 
 ## 2.5 Bounded integers
 

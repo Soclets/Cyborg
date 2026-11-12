@@ -199,7 +199,7 @@ So inside a shield, Cyborg goes as low as C, and a bare-metal program can run wi
 A raw pointer is `ptr.raw<T>`, which can only read, or `ptr.raw.mut<T>`, which can read and write. `ptr` is a family, so other kinds of pointer can join it as narrowings.
 
 ```
-let $reg: ptr.raw.mut<u32> = ptr.raw.mut<u32>.at(address: 0x4004_0000);
+let $reg: ptr.raw.mut<u32> = ptr.raw.mut<u32>.at(address: hex 4004_0000);
 let $p: ptr.raw.mut<i32> = ptr.raw.mut<i32>.of(Lend.mut $count);
 let $now: u32 = $reg.%read();
 $reg.%%write(val: 1);
@@ -217,7 +217,7 @@ let $odd: ptr.raw.mut<u32> = $reg.%moved(offset.bytes: 2);
 A volatile pointer, `ptr.volatile<T>` or `ptr.volatile.mut<T>`, is for hardware registers: every read and write through it happens, exactly once and in order, and the compiler never skips, merges or reorders them. It works like `ptr.raw`, with `.at`, `.of`, `.%read()`, `.%%write(val:)` and `.%moved`.
 
 ```
-let $led: ptr.volatile.mut<u32> = ptr.volatile.mut<u32>.at(address: 0x4004_0000);
+let $led: ptr.volatile.mut<u32> = ptr.volatile.mut<u32>.at(address: hex 4004_0000);
 $led.%%write(val: 1);
 $led.%%write(val: 0);
 ```

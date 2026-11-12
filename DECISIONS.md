@@ -1248,6 +1248,8 @@ A `type_set` is a closed list of types that nothing can join later, as in `type_
 
 **D373. `.saturate` works on floats with written bounds, and `.wrap` on a float is refused.** Floats don't wrap the way integers do: too big becomes infinity. So `let $temp: f64.stable[min: -40.0, max: 125.0] = $a plus.saturate $b;` sticks at 125.0, following D372, and `plus.wrap` on a float is refused, since wrapping means nothing for floats. Oracle claude made it NotDesignedYet; Claude proposed it; the owner chose: "yea". (Owner, 2026-11-12)
 
+**D374. Hex, binary and octal literals say their base with a word in front: `hex`, `bin` and `oct`.** `hex 4004_0000`, `bin 1111_1110` and `oct 755`, following D165, where an exponent literal says `exponent` in front so a stray `e` can't quietly change a number, and using the same words printing uses for `base:` (D194). C's `0x`, `0b` and `0o` are refused, with `fix: hex 4004_0000` and so on. `_` groups digits in any base, as in decimal, and hex digits can be either case, so values copied from a datasheet need no retyping. Examples in 3.7 and 9.8, and D315's, had used `0x` and `0b` with nothing behind them, which oracle claude found. Claude proposed `0x` prefixes; the owner said "look at how we write our `e`", and chose: "yea". (Owner, 2026-11-12)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude

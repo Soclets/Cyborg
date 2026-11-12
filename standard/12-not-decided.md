@@ -90,7 +90,6 @@ Waiting on the owner, most needed first. Each is `NotDesignedYet` unless it says
 
 - Allocation sizes (D370): how a growable string and a map grow, and how much an arena itself takes for its bookkeeping.
 
-- Hex and binary literals, like `0x4004_0000` and `0b1111_1110`, and `_` separators in them, which examples already use.
 - SIMD: an operator or comparison between a `simd` and one plain value, and comparison chains on `simd` values.
 - Two narrowings on one struct, like `struct.packed.must_Give`, and their order.
 

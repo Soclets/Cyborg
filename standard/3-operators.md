@@ -106,7 +106,7 @@ if $n != 0 and 10 div.trunc $n above 1:
 **Rule:** the logic operators narrowed with `.bit` work on an integer's bits: `and.bit`, `or.bit`, `xor.bit` and `not.bit`. Plain `and`, `or` and `not` stay `bool` logic. There's no plain `xor`, since `!=` does that for bools. `shl` and `shr` are words.
 
 ```
-$flags and.bit 0b1111_1110
+$flags and.bit bin 1111_1110
 not.bit $mask
 ```
 
