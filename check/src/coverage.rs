@@ -13,6 +13,9 @@
 ///   `.floor`, a bare `div` on floats, the `.bit` operators, and `shl` and `shr` on unsigned
 ///   types; comparisons and comparison chains; `and`, `or`, `and.both`, `or.both` and `not`;
 ///   precedence with and without `( )`, as 3.9's table orders it;
+/// - secrets: integer `.secret` values from literals or plain values, joined by `.bit`, `.wrap`
+///   and `.saturate` operators, chosen between with `.%pick` on secrets compared, and made public
+///   with `.%reveal()` in a shield;
 /// - data: `simd` values from `[ ]` and `all`, maths lane by lane on two of one type, their
 ///   `sum`, `product`, `min_val` and `max_val`, and lane comparisons read with `any_true` and
 ///   `all_true`; arrays from `[ ]` and `all`, and bounded lists from `[ ]` or `empty`, their items by
@@ -45,7 +48,7 @@ pub const NOT_GENERATED: &[&str] = &[
     "2.18 named types over structs, lists or strings, `fam.type.alias`, maths on a `type.new`",
     "2.19 `decl` assigned in loops or `match` arms, or never changed",
     "2.21 `simd` with one value, chunks, shuffles, `pick`, lookups, `lanes: max`, floats in lanes, `as` from arrays",
-    "2.22 secrets",
+    "2.22 `bool.secret` values with `and.both`, `or.both` and `not`, secrets in arrays and `simd`, shifts on secrets",
     "3.9 chains that change direction, like `$a below $b above $c`",
     "3.10 a type's own operators",
     "4.3 to 4.8 `match`, `for … in Give`, `for` over lists, a range's counter in use, ranges that step past their end, named loops",

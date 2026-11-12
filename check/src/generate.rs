@@ -50,6 +50,8 @@ struct Generator<'random> {
     procedures: Vec<Procedure>,
     /// Every constant's name, since only constants go into another.
     constants: Vec<String>,
+    /// Struct variables handed over with `Give`, which are gone from then on.
+    given_away: Vec<String>,
     /// Making a pure function, which calls only pure ones (5.9).
     pure_only: bool,
     /// Making a contract, which calls nothing here (5.5).
@@ -69,6 +71,7 @@ pub fn program(seed: u64) -> Program {
         unions: Vec::new(),
         procedures: Vec::new(),
         constants: Vec::new(),
+        given_away: Vec::new(),
         pure_only: false,
         no_calls: false,
         functions: Vec::new(),
@@ -238,7 +241,8 @@ impl Generator<'_> {
                     | Type::Float(_)
                     | Type::Bounded(..)
                     | Type::Text(_)
-                    | Type::Simd(..) => None,
+                    | Type::Simd(..)
+                    | Type::Secret(_) => None,
                 });
                 let test = self.expression(&scope, Type::Bool, LIMITS.depth);
                 body.push(Statement::If {
@@ -325,6 +329,7 @@ impl Generator<'_> {
                         | Type::Bounded(..)
                         | Type::Text(_)
                         | Type::Simd(..)
+                        | Type::Secret(_)
                 ) && !name.starts_with('i')
                     && !name.starts_with('x')
                     && !name.starts_with('k')
@@ -339,6 +344,20 @@ impl Generator<'_> {
             0..=3 if self.random.chance(8) => self.constant(scope),
             0..=3 if !self.named.is_empty() && self.random.chance(10) => self.named_let(scope),
             0..=3 if self.random.chance(10) => self.text_let(scope),
+            0..=3 if self.random.chance(8) => {
+                let value_type = Type::Secret(self.integer_kind());
+                let value = self.expression(scope, value_type, LIMITS.depth);
+                let name = self.name("sec");
+                scope.variables.push((name.clone(), value_type));
+                Statement::Let {
+                    name,
+                    value_type,
+                    value,
+                }
+            }
+            6 if prints && self.random.chance(30) => self
+                .reveal(scope)
+                .unwrap_or_else(|| self.list_statement(scope)),
             0..=3 if self.random.chance(10) => {
                 let value_type = Type::Simd(self.integer_kind(), self.random.between(1, 5));
                 let value = self.expression(scope, value_type, LIMITS.depth);
@@ -369,7 +388,7 @@ impl Generator<'_> {
                 .task(scope)
                 .unwrap_or_else(|| self.list_statement(scope)),
             4 | 5 if prints && !self.procedures.is_empty() && self.random.chance(50) => self
-                .call_procedure(scope)
+                .call_procedure(scope, in_loop)
                 .unwrap_or_else(|| self.list_statement(scope)),
             6 if depth < 2 && self.random.chance(25) => self.test_statement(scope, depth, prints),
             9 if depth < 2 && !scope.cased.is_empty() && self.random.chance(60) => {
@@ -697,6 +716,104 @@ impl Generator<'_> {
             shapes.push("sign".to_string());
         }
         shapes.join(", ")
+    }
+
+    /// A secret value: a literal or plain value, which becomes secret where it goes, a secret
+    /// variable, a choice by `.%pick` on two secrets compared, or two joined by an operator that
+    /// takes the same time for every value (2.22).
+    fn secret(&mut self, scope: &Scope, kind: Kind, depth: usize) -> Expression {
+        let value_type = Type::Secret(kind);
+        let roll = self.random.between(0, 9);
+        if depth == 0 || roll < 4 {
+            if roll < 2 {
+                if let Some(variable) = self.variable_of(scope, value_type) {
+                    return variable;
+                }
+            }
+            return self.integer(scope, kind, depth.min(1));
+        }
+        if roll == 4 {
+            if let (Some(left), Some(right)) = (
+                self.variable_of(scope, value_type),
+                self.variable_of(scope, value_type),
+            ) {
+                let comparison = *self
+                    .random
+                    .pick(&Comparison::ALL)
+                    .unwrap_or(&Comparison::Equal);
+                // Each side is a secret variable, so `.%pick` has a type to give back.
+                let if_true = self
+                    .variable_of(scope, value_type)
+                    .unwrap_or_else(|| left.clone());
+                let if_false = self
+                    .variable_of(scope, value_type)
+                    .unwrap_or_else(|| right.clone());
+                return Expression::Pick {
+                    test: Box::new(Expression::Compare {
+                        comparison,
+                        left: Box::new(left),
+                        right: Box::new(right),
+                    }),
+                    if_true: Box::new(if_true),
+                    if_false: Box::new(if_false),
+                };
+            }
+        }
+        let operator = *self
+            .random
+            .pick(&[
+                Operator::AndBit,
+                Operator::OrBit,
+                Operator::XorBit,
+                Operator::PlusWrap,
+                Operator::MinusWrap,
+                Operator::TimesWrap,
+                Operator::PlusSaturate,
+                Operator::MinusSaturate,
+                Operator::TimesSaturate,
+            ])
+            .unwrap_or(&Operator::XorBit);
+        // One side is a secret variable when there is one, so the maths is on a secret.
+        let left = self
+            .variable_of(scope, value_type)
+            .unwrap_or_else(|| self.integer(scope, kind, 1));
+        let right = self.secret(scope, kind, depth - 1);
+        Expression::Binary {
+            operator,
+            left: Box::new(left),
+            right: Box::new(right),
+        }
+    }
+
+    /// A secret made public in a shield, into a plain variable that can change (2.22, 9.7).
+    fn reveal(&mut self, scope: &Scope) -> Option<Statement> {
+        let secrets: Vec<(String, Kind)> = scope
+            .variables
+            .iter()
+            .filter_map(|(name, found)| match found {
+                Type::Secret(kind) => Some((name.clone(), *kind)),
+                _ => None,
+            })
+            .collect();
+        let (secret, kind) = self.random.pick(&secrets)?.clone();
+        let targets: Vec<String> = scope
+            .variables
+            .iter()
+            .filter(|(name, found)| {
+                *found == Type::Integer(kind)
+                    && !name.starts_with('i')
+                    && !name.starts_with('p')
+                    && !name.starts_with('x')
+                    && !name.starts_with('k')
+            })
+            .map(|(name, _)| name.clone())
+            .collect();
+        let target = self.random.pick(&targets)?.clone();
+        Some(Statement::Reveal {
+            shield: self.name("sh"),
+            target,
+            secret,
+        })
     }
 
     /// A `simd` value for a `let` or `change`: its lanes, `all` of one value, a variable, or
@@ -1087,7 +1204,7 @@ impl Generator<'_> {
     /// A call to a void function as a statement: a different variable lent to change for each
     /// integer it changes, literals for plain integers, and structs lent or handed over with
     /// `Give` or `Copy`, a given one gone afterwards (6.1, 6.2, 6.5).
-    fn call_procedure(&mut self, scope: &mut Scope) -> Option<Statement> {
+    fn call_procedure(&mut self, scope: &Scope, in_loop: bool) -> Option<Statement> {
         let procedure = self.random.pick(&self.procedures.clone())?.clone();
         let mut changeable: Vec<(String, Kind)> = scope
             .variables
@@ -1103,9 +1220,13 @@ impl Generator<'_> {
                 _ => None,
             })
             .collect();
-        let mut records = scope.records.clone();
+        let mut records: Vec<(String, usize)> = scope
+            .records
+            .iter()
+            .filter(|(name, _)| !self.given_away.contains(name))
+            .cloned()
+            .collect();
         let mut arguments = Vec::new();
-        let mut given_away = Vec::new();
         for (_, kind) in &procedure.parameters {
             match kind {
                 ParamKind::Changed(kind) => {
@@ -1129,9 +1250,10 @@ impl Generator<'_> {
                     })?;
                     let (name, _) = records.remove(at);
                     if *given {
-                        if self.random.chance(50) {
+                        // In a loop, `Give` would hand it over again on the next round.
+                        if !in_loop && self.random.chance(50) {
                             arguments.push(format!("Give ${name}"));
-                            given_away.push(name);
+                            self.given_away.push(name);
                         } else {
                             arguments.push(format!("Copy ${name}"));
                         }
@@ -1141,7 +1263,6 @@ impl Generator<'_> {
                 }
             }
         }
-        scope.records.retain(|(name, _)| !given_away.contains(name));
         Some(Statement::CallProcedure {
             name: procedure.name,
             arguments,
@@ -1274,7 +1395,13 @@ impl Generator<'_> {
 
     /// A new struct, built with `[ ]`, or a change to a field of one in scope (7.2, 7.3).
     fn record_statement(&mut self, scope: &mut Scope) -> Statement {
-        if let Some((variable, index)) = self.random.pick(&scope.records).cloned() {
+        let live: Vec<(String, usize)> = scope
+            .records
+            .iter()
+            .filter(|(name, _)| !self.given_away.contains(name))
+            .cloned()
+            .collect();
+        if let Some((variable, index)) = self.random.pick(&live).cloned() {
             if self.random.chance(50) {
                 if let Some(declared) = self.structs.get(index).cloned() {
                     if let Some((field, kind)) = self.random.pick(&declared.fields).cloned() {
@@ -1448,6 +1575,7 @@ impl Generator<'_> {
             Type::Integer(kind) | Type::Bounded(kind, ..) => self.integer(scope, kind, depth),
             Type::Text(bytes) => self.text(scope, bytes),
             Type::Simd(kind, lanes) => self.lanes(scope, kind, lanes, depth),
+            Type::Secret(kind) => self.secret(scope, kind, depth),
             Type::Float(wide) => self.float(scope, wide, depth),
         }
     }
@@ -1513,6 +1641,7 @@ impl Generator<'_> {
             let fields: Vec<(String, String)> = scope
                 .records
                 .iter()
+                .filter(|(name, _)| !self.given_away.contains(name))
                 .flat_map(|(variable, index)| {
                     self.structs
                         .get(*index)

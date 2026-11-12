@@ -59,6 +59,8 @@ pub enum Type {
     Text(Option<i128>),
     /// `simd<i32>[lanes: 4]` (2.21).
     Simd(Kind, i128),
+    /// `u32.secret` (2.22).
+    Secret(Kind),
 }
 
 impl Type {
@@ -72,6 +74,7 @@ impl Type {
             Type::Text(None) => "str".to_string(),
             Type::Text(Some(bytes)) => format!("str[len.max: {bytes} bytes]"),
             Type::Simd(kind, lanes) => format!("simd<{}>[lanes: {lanes}]", kind.word()),
+            Type::Secret(kind) => format!("{}.secret", kind.word()),
         }
     }
 }
@@ -227,6 +230,12 @@ pub enum Expression {
     Method {
         receiver: Box<Expression>,
         method: &'static str,
+    },
+    /// `($a == $b).%pick(if_true: …, if_false: …)`, choosing with no branch (2.22).
+    Pick {
+        test: Box<Expression>,
+        if_true: Box<Expression>,
+        if_false: Box<Expression>,
     },
     /// `$v as user_id`, crossing into or out of a named type (2.18).
     AsNamed {
@@ -527,6 +536,13 @@ pub enum Statement {
         value: Expression,
         /// For a `type.new`: the plain variable it crosses back out into, and its kind.
         back: Option<(String, Kind)>,
+    },
+    /// `shield …: reason "…" change $v = $s.%reveal(); end shield …`: a secret made public,
+    /// which only a shield may do (2.22, 9.7).
+    Reveal {
+        shield: String,
+        target: String,
+        secret: String,
     },
     /// The test, `if $w: un1.cs2:` or `if $v: i32[min: 0, max: 9]:`, inside which the value is
     /// taken as that case or bound (4.2).
@@ -1034,6 +1050,19 @@ fn print_block(out: &mut String, statements: &[Statement], depth: usize, style: 
                     let _ = writeln!(out, "{indent}let mut ${back}: {kind} = ${name} as {kind};");
                 }
             }
+            Statement::Reveal {
+                shield,
+                target,
+                secret,
+            } => {
+                let _ = writeln!(out, "{indent}shield {shield}:");
+                let _ = writeln!(
+                    out,
+                    "{indent}    reason \"a generated program shows its secrets\""
+                );
+                let _ = writeln!(out, "{indent}    change ${target} = ${secret}.%reveal();");
+                let _ = writeln!(out, "{indent}end shield {shield}");
+            }
             Statement::Test {
                 variable,
                 written,
@@ -1108,6 +1137,16 @@ impl Style {
                 format!("[{}]", lanes.join(", "))
             }
             Expression::AllLanes(value) => format!("all {}", self.grouped(value)),
+            Expression::Pick {
+                test,
+                if_true,
+                if_false,
+            } => format!(
+                "{}.%pick(if_true: {}, if_false: {})",
+                self.grouped(test),
+                self.expression(if_true),
+                self.expression(if_false)
+            ),
             Expression::Method { receiver, method } => {
                 format!("{}.%{method}()", self.grouped(receiver))
             }
@@ -1221,6 +1260,7 @@ impl Style {
             | Expression::Call { .. }
             | Expression::Item { .. }
             | Expression::Method { .. }
+            | Expression::Pick { .. }
             | Expression::Field { .. } => self.expression(value),
             Expression::Integer(number) if *number >= 0 => self.expression(value),
             Expression::Float(text) if !text.starts_with('-') && !text.starts_with("~-") => {
