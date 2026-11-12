@@ -1242,6 +1242,8 @@ A `type_set` is a closed list of types that nothing can join later, as in `type_
 
 **D370. The standard fixes how much memory each allocation takes.** So that running out, as with an arena (D330), happens at the same point on every machine for a target, and the oracle and the compiler can't disagree, every implementation follows one rule: an item takes its type's size, known since a bare `struct` has an exact layout (D319), at its natural alignment; a growable list's first allocation holds what it needs, rounded up to 4 items; and a full list doubles. Sizes can still differ between targets, as pointers do on a 32-bit chip. `kib` and `mib` are byte units, 1024 and 1024² `bytes`, the binary prefixes (D250). How growable strings and maps grow, and what an arena takes for its own bookkeeping, are not settled here. Oracle claude asked when an arena runs out; Claude proposed it; the owner chose: "yea". (Owner, 2026-11-12)
 
+**D371. Every `os::heap()` is a handle to the one OS heap.** There's only one operating-system heap, so all `os::heap()` handles count as one allocator for D322's check: memory grown through one can be freed through another, since it really is the same memory. Every arena and every allocator a program writes is its own, so the check still catches real mix-ups, like heap memory freed into an arena. Oracle claude asked whether each `os::heap()` is separate; Claude proposed one; the owner chose: "yea". (Owner, 2026-11-12)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude

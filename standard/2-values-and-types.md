@@ -216,7 +216,7 @@ std::list<i32>[len.max: inf items, len.type: u32]
 let $b: std::list<i32>[len.min: 1 items, len.max: 8 items] = [4, 6];
 ```
 
-Allocation is explicit, as in Zig: anything that takes heap memory takes an allocator, the way printing takes a writer ([1.13](1-programs.md#113-printing-stdiofmt_print)). A list with a finite `len.max` needs none, since its size is known. A growable list can't take items straight from `[ ]`, since filling it allocates: `std::list.from([1, 2, 3], alloc: Lend $heap)` does it, and a growable string comes from `str.from("abc", alloc: Lend $heap)`, which takes a string or a number. Running out of memory is a failure, handled like any other, and a program with no allocator, as on bare metal, can't call anything that allocates. `os::heap()` is the operating system's allocator, so bare metal has none.
+Allocation is explicit, as in Zig: anything that takes heap memory takes an allocator, the way printing takes a writer ([1.13](1-programs.md#113-printing-stdiofmt_print)). A list with a finite `len.max` needs none, since its size is known. A growable list can't take items straight from `[ ]`, since filling it allocates: `std::list.from([1, 2, 3], alloc: Lend $heap)` does it, and a growable string comes from `str.from("abc", alloc: Lend $heap)`, which takes a string or a number. Running out of memory is a failure, handled like any other, and a program with no allocator, as on bare metal, can't call anything that allocates. `os::heap()` is the operating system's allocator, so bare metal has none. Every `os::heap()` is a handle to the one OS heap, so memory from one can be freed through another, while every arena and every allocator you write is its own.
 
 ```
 let $alloc: os::heap = os::heap();
@@ -254,7 +254,7 @@ defer std::list.done(Give $xs, alloc: Lend $arena);
 
 **Refused:** `[ ]` with items, or a string literal, given straight to a growable list or string, with `fix: std::list.from` or `str.from`; `std::list<i32>` with no `len.max`, a list with a bare `len`, in favour of `array`, `= empty` on a list with `len.min` above 0, `[]`, with `fix: empty`, and too few or too many items.
 
-**From:** D11, D12, D13, D24, D102, D103, D140, D321, D322, D323, D324, D330, D333, D369, D370.
+**From:** D11, D12, D13, D24, D102, D103, D140, D321, D322, D323, D324, D330, D333, D369, D370, D371.
 
 ## 2.11 Arrays
 
