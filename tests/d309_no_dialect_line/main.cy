@@ -1,5 +1,5 @@
-// Nothing says whether a manifest can leave out a line its examples all have.
-// trace: D183, D228
+// A manifest says which compiler builds it, so one with no `dialect` line is refused.
+// trace: D309, D183
 import std;
 import os;
 

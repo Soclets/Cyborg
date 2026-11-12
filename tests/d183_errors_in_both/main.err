@@ -2,7 +2,7 @@ refused: CyJet.siml:5:24, line 5 column 24
  5 | need std 2026y-11m-01d extra
    |                        ^^^^^
  what: a `need` line ends before this
- why:  a manifest has one line per fact, starting with what it is: `name`, `ver`, `okay` or `need` (D228, D229)
+ why:  a manifest has one line per fact, starting with what it is: `name`, `ver`, `dialect` or `need` (D228, D229, D309)
 
 refused: main.cy:9:26, line 9 column 26
  9 |     let $a: f64.stable = 0.1;

@@ -2,4 +2,4 @@ refused: CyJet.siml:5:1, line 5 column 1
  5 | package main
    | ^^^^^^^
  what: `package` isn't something a manifest says
- why:  a manifest has one line per fact, starting with what it is: `name`, `ver`, `okay` or `need` (D228, D229)
+ why:  a manifest has one line per fact, starting with what it is: `name`, `ver`, `dialect` or `need` (D228, D229, D309)

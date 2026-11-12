@@ -4,7 +4,7 @@
 //! ```text
 //! name weather
 //! ver 2026y-11m-14d same
-//! okay 2026y-11m-01d
+//! dialect original 2026y-11m-01d
 //!
 //! need std 2026y-11m-01d
 //! ```
@@ -21,7 +21,7 @@ pub struct Manifest {
 const KNOWN_PACKAGES: &[&str] = &["std", "csup", "os"];
 
 const WHY_LINES: &str =
-    "a manifest has one line per fact, starting with what it is: `name`, `ver`, `okay` or `need` (D228, D229)";
+    "a manifest has one line per fact, starting with what it is: `name`, `ver`, `dialect` or `need` (D228, D229, D309)";
 const WHY_VERSION: &str =
     "a version is a labelled date, biggest first, as in `2026y-11m-14d`, with `.2` for a second release that day (D231)";
 
@@ -49,8 +49,13 @@ pub fn read(text: &str) -> (Manifest, Vec<Report>) {
             Ok(words) => words,
             Err(report) => {
                 errors.push(*report);
-                if let Some(fact) = fact.filter(|fact| matches!(*fact, "name" | "ver" | "okay")) {
+                if let Some(fact) = fact.filter(|fact| matches!(*fact, "name" | "ver" | "dialect"))
+                {
                     seen.push(fact.to_string());
+                }
+                // A refused `okay` line still says which compiler builds this.
+                if fact == Some("okay") {
+                    seen.push("dialect".to_string());
                 }
                 if let (Some("need"), Some(package)) = (fact, named) {
                     needs.push(package.to_string());
@@ -72,9 +77,21 @@ pub fn read(text: &str) -> (Manifest, Vec<Report>) {
             }
         }
     }
-    // `name`, `ver` and `okay` are in every example, but nothing says one can't be left out.
+    // Every manifest says which compiler builds it, so a reader always sees it. (D309)
+    // trace: D309
     let end = Span::new(text.len(), text.len());
-    for fact in ["name", "ver", "okay"] {
+    if !seen.iter().any(|found| found == "dialect") {
+        errors.push(
+            *Report::refused(
+                end,
+                "this manifest doesn't say which compiler builds it",
+                "every manifest has a `dialect` line, and plain Cyborg says `dialect original` and the version of `okay` that builds it (D309, D310)",
+            )
+            .fix_elsewhere("dialect original"),
+        );
+    }
+    // `name` and `ver` are in every example, but nothing says one can't be left out.
+    for fact in ["name", "ver"] {
         if !seen.iter().any(|found| found == fact) {
             errors.push(*Report::not_designed(
                 end,
@@ -172,7 +189,7 @@ fn read_fact(words: &[Word], seen: &mut Vec<String>) -> Outcome<Option<String>> 
         .to(words.last().map_or(first.span, |last| last.span));
     let fact = first.text.as_str();
     match fact {
-        "name" | "ver" | "okay" => {
+        "name" | "ver" | "dialect" => {
             if seen.iter().any(|found| found == fact) {
                 return Err(Report::not_designed(
                     line_span,
@@ -183,6 +200,12 @@ fn read_fact(words: &[Word], seen: &mut Vec<String>) -> Outcome<Option<String>> 
             seen.push(fact.to_string());
         }
         "need" => {}
+        // One line says which compiler builds the project and which version of it. (D310)
+        // trace: D310
+        "okay" => {
+            seen.push("dialect".to_string());
+            return Err(refuse_okay_line(words, line_span));
+        }
         // trace: D265
         "rule" => {
             return Err(Report::not_designed(
@@ -228,28 +251,14 @@ fn read_fact(words: &[Word], seen: &mut Vec<String>) -> Outcome<Option<String>> 
             refuse_extra(2)?;
             Ok(None)
         }
-        "okay" => {
-            check_version(value(1, "compiler version")?)?;
-            refuse_extra(2)?;
+        "dialect" => {
+            read_dialect(value(1, "compiler")?, value(2, "version")?)?;
+            refuse_extra(3)?;
             Ok(None)
         }
         "ver" => {
             check_version(value(1, "version")?)?;
-            // trace: D231
-            let flag = words.get(2).ok_or_else(|| {
-                Report::refused(
-                    line_span,
-                    "a release says whether it `breaks` anything or stays the `same`",
-                    "a release's version is its date plus whether it breaks (D231)",
-                )
-            })?;
-            if flag.text != "breaks" && flag.text != "same" {
-                return Err(Report::refused(
-                    flag.span,
-                    format!("`{}` isn't `breaks` or `same`", flag.text),
-                    "a release's version is its date plus whether it breaks (D231)",
-                ));
-            }
+            read_release_flag(words.get(2), line_span)?;
             refuse_extra(3)?;
             Ok(None)
         }
@@ -267,6 +276,59 @@ fn read_fact(words: &[Word], seen: &mut Vec<String>) -> Outcome<Option<String>> 
             Ok(Some(package.text.clone()))
         }
     }
+}
+
+/// Whether a release `breaks` anything or stays the `same`.
+/// trace: D231
+fn read_release_flag(flag: Option<&Word>, line_span: Span) -> Outcome<()> {
+    let flag = flag.ok_or_else(|| {
+        Report::refused(
+            line_span,
+            "a release says whether it `breaks` anything or stays the `same`",
+            "a release's version is its date plus whether it breaks (D231)",
+        )
+    })?;
+    if flag.text != "breaks" && flag.text != "same" {
+        return Err(Report::refused(
+            flag.span,
+            format!("`{}` isn't `breaks` or `same`", flag.text),
+            "a release's version is its date plus whether it breaks (D231)",
+        ));
+    }
+    Ok(())
+}
+
+/// `okay 2026y-11m-01d`, which the `dialect` line replaced, with that line as its fix.
+/// trace: D310
+fn refuse_okay_line(words: &[Word], line_span: Span) -> Box<Report> {
+    let refused = Report::refused(
+        line_span,
+        "`dialect` says which compiler builds this, so there's no `okay` line",
+        "`dialect` says which compiler builds the project and which version of it, so plain Cyborg says `dialect original` and its version (D309, D310)",
+    );
+    match words.get(1) {
+        Some(version) if words.len() == 2 => {
+            refused.fix(format!("dialect original {}", version.text))
+        }
+        _ => refused.fix("dialect original"),
+    }
+}
+
+/// `dialect original 2026y-11m-01d` is plain Cyborg, built by `okay` at that version. Any
+/// other name is a Dialect, which CyJet loads from its registry. (D309, D310)
+/// trace: D309, D310
+fn read_dialect(compiler: &Word, version: &Word) -> Outcome<()> {
+    check_version(version)?;
+    if compiler.text != "original" {
+        return Err(Report::not_built(
+            compiler.span,
+            format!(
+                "building with the Dialect `{}`, which CyJet loads from its registry",
+                compiler.text
+            ),
+        ));
+    }
+    Ok(())
 }
 
 /// A `need` line's version, and any features after it.

@@ -1,0 +1,5 @@
+NotBuiltYet: CyJet.siml:3:9, line 3 column 9
+ 3 | dialect mc_mod 2026y-11m-01d
+   |         ^^^^^^
+ what: building with the Dialect `mc_mod`, which CyJet loads from its registry
+ why:  decided, but the oracle doesn't handle it yet (D286)
