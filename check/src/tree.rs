@@ -217,6 +217,11 @@ pub enum Expression {
     Float(String),
     /// A string literal's text, `empty` when it has none (2.9).
     Text(String),
+    /// `$v as user_id`, crossing into or out of a named type (2.18).
+    AsNamed {
+        variable: String,
+        written: String,
+    },
     /// `$v as str[len.max: 11 bytes]`, on a single value (2.14, 3.9).
     As {
         variable: String,
@@ -303,6 +308,26 @@ impl Layout {
             Layout::Compact => "struct.compact",
             Layout::AnyOrder => "struct.any_order",
             Layout::Packed => "struct.packed",
+        }
+    }
+}
+
+/// A named integer type: `type.alias`, fully interchangeable, or `type.new`, which doesn't mix,
+/// alone or in a `fam.type.new` family, where it's used as `family.member` (2.18).
+#[derive(Clone, Debug)]
+pub struct NamedType {
+    pub name: String,
+    pub alias: bool,
+    pub family: Option<String>,
+    pub kind: Kind,
+}
+
+impl NamedType {
+    /// How it's written where it's used.
+    pub fn used(&self) -> String {
+        match &self.family {
+            Some(family) => format!("{family}.{}", self.name),
+            None => self.name.clone(),
         }
     }
 }
@@ -483,6 +508,15 @@ pub enum Statement {
         kind: Kind,
         call: Expression,
     },
+    /// `let mut $v: al3 = …;`, or for a `type.new`, a value crossing in with a literal or `as`,
+    /// then back out into a plain variable with `as` (2.18).
+    LetNamed {
+        name: String,
+        written: String,
+        value: Expression,
+        /// For a `type.new`: the plain variable it crosses back out into, and its kind.
+        back: Option<(String, Kind)>,
+    },
     /// The test, `if $w: un1.cs2:` or `if $v: i32[min: 0, max: 9]:`, inside which the value is
     /// taken as that case or bound (4.2).
     Test {
@@ -539,6 +573,7 @@ pub struct Function {
 
 #[derive(Clone, Debug)]
 pub struct Program {
+    pub named: Vec<NamedType>,
     pub structs: Vec<StructDecl>,
     pub unions: Vec<UnionDecl>,
     pub procedures: Vec<Procedure>,
@@ -557,6 +592,35 @@ pub fn print(program: &Program) -> String {
         fewer_brackets: program.fewer_brackets,
     };
     let mut out = String::from("import std;\nimport os;\nimport @concur;\n\n");
+    let mut families: Vec<&String> = Vec::new();
+    for named in &program.named {
+        match &named.family {
+            None => {
+                let word = if named.alias {
+                    "type.alias"
+                } else {
+                    "type.new"
+                };
+                let _ = writeln!(out, "{word} {} = {};", named.name, named.kind.word());
+            }
+            Some(family) if !families.contains(&family) => {
+                families.push(family);
+                let _ = writeln!(out, "fam.type.new {family}:");
+                for member in program
+                    .named
+                    .iter()
+                    .filter(|other| other.family.as_ref() == Some(family))
+                {
+                    let _ = writeln!(out, "    {} = {};", member.used(), member.kind.word());
+                }
+                let _ = writeln!(out, "end fam.type.new {family}");
+            }
+            Some(_) => {}
+        }
+    }
+    if !program.named.is_empty() {
+        out.push('\n');
+    }
     for declared in &program.unions {
         let _ = writeln!(out, "union.tagged {}:", declared.name);
         for (case, fields) in &declared.cases {
@@ -943,6 +1007,22 @@ fn print_block(out: &mut String, statements: &[Statement], depth: usize, style: 
                     "{indent}let mut ${name}: {kind} = @concur::task.done(Give ${task});"
                 );
             }
+            Statement::LetNamed {
+                name,
+                written,
+                value,
+                back,
+            } => {
+                let _ = writeln!(
+                    out,
+                    "{indent}let mut ${name}: {written} = {};",
+                    style.expression(value)
+                );
+                if let Some((back, kind)) = back {
+                    let kind = kind.word();
+                    let _ = writeln!(out, "{indent}let mut ${back}: {kind} = ${name} as {kind};");
+                }
+            }
             Statement::Test {
                 variable,
                 written,
@@ -1010,6 +1090,7 @@ impl Style {
             Expression::Integer(number) => number.to_string(),
             Expression::Float(text) => text.clone(),
             Expression::As { variable, target } => format!("${variable} as {}", target.word()),
+            Expression::AsNamed { variable, written } => format!("${variable} as {written}"),
             Expression::Text(text) if text.is_empty() => "empty".to_string(),
             Expression::Text(text) => {
                 format!("\"{}\"", text.replace('\\', "\\\\").replace('"', "\\\""))

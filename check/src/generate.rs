@@ -8,7 +8,8 @@ use std::fmt::Write as _;
 use crate::random::Random;
 use crate::tree::{
     Arguments, Comparison, Expression, FailureDecl, Filling, Function, Handling, Kind, Layout,
-    Operator, ParamKind, Position, Procedure, Program, Statement, StructDecl, Type, UnionDecl,
+    NamedType, Operator, ParamKind, Position, Procedure, Program, Statement, StructDecl, Type,
+    UnionDecl,
 };
 
 /// How big a program gets.
@@ -43,6 +44,7 @@ struct Generator<'random> {
     next_name: usize,
     /// The failures the function being made lists, which `?` adds to; none in `main`.
     failing: Option<Vec<FailureDecl>>,
+    named: Vec<NamedType>,
     structs: Vec<StructDecl>,
     unions: Vec<UnionDecl>,
     procedures: Vec<Procedure>,
@@ -62,6 +64,7 @@ pub fn program(seed: u64) -> Program {
         random: &mut random,
         next_name: 0,
         failing: None,
+        named: Vec::new(),
         structs: Vec::new(),
         unions: Vec::new(),
         procedures: Vec::new(),
@@ -70,6 +73,7 @@ pub fn program(seed: u64) -> Program {
         no_calls: false,
         functions: Vec::new(),
     };
+    generator.named_types();
     for _ in 0..generator.random.between(0, 2) {
         let declared = generator.struct_decl();
         generator.structs.push(declared);
@@ -117,6 +121,7 @@ pub fn program(seed: u64) -> Program {
     }
     let fewer_brackets = generator.random.chance(50);
     Program {
+        named: generator.named,
         structs: generator.structs,
         unions: generator.unions,
         procedures: generator.procedures,
@@ -324,6 +329,7 @@ impl Generator<'_> {
                 self.union_statement(scope, 2, prints)
             }
             0..=3 if self.random.chance(8) => self.constant(scope),
+            0..=3 if !self.named.is_empty() && self.random.chance(10) => self.named_let(scope),
             0..=3 if self.random.chance(10) => self.text_let(scope),
             0..=3 if self.random.chance(8) => {
                 let kind = self.integer_kind();
@@ -778,6 +784,63 @@ impl Generator<'_> {
             operator,
             left: Box::new(left),
             right: Box::new(right),
+        }
+    }
+
+    /// Up to three named integer types: aliases, new types, and now and then a family of new
+    /// types (2.18).
+    fn named_types(&mut self) {
+        for _ in 0..self.random.between(0, 3) {
+            let alias = self.random.chance(50);
+            let family = (!alias && self.random.chance(40)).then(|| self.name("fam"));
+            let kind = self.integer_kind();
+            let name = self.name(if alias { "al" } else { "nt" });
+            self.named.push(NamedType {
+                name,
+                alias,
+                family,
+                kind,
+            });
+        }
+    }
+
+    /// A variable of a named type. An alias takes any value of its integer and is used as one
+    /// from then on; a new type crosses in from a literal or with `as`, and back out into a
+    /// plain variable with `as`, since it doesn't mix (2.18).
+    fn named_let(&mut self, scope: &mut Scope) -> Statement {
+        let Some(named) = self.random.pick(&self.named.clone()).cloned() else {
+            return self.list_statement(scope);
+        };
+        let name = self.name("v");
+        if named.alias {
+            let value = self.expression(scope, Type::Integer(named.kind), LIMITS.depth);
+            scope
+                .variables
+                .push((name.clone(), Type::Integer(named.kind)));
+            return Statement::LetNamed {
+                name,
+                written: named.used(),
+                value,
+                back: None,
+            };
+        }
+        let plain = self.variable_of(scope, Type::Integer(named.kind));
+        let value = match plain {
+            Some(Expression::Variable(variable)) if self.random.chance(60) => Expression::AsNamed {
+                variable,
+                written: named.used(),
+            },
+            _ => self.literal(named.kind),
+        };
+        let back = self.name("v");
+        scope
+            .variables
+            .push((back.clone(), Type::Integer(named.kind)));
+        Statement::LetNamed {
+            name,
+            written: named.used(),
+            value,
+            back: Some((back, named.kind)),
         }
     }
 
