@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="brand/avatar.png" alt="Cyborg" width="96">
+</p>
+
 # Cyborg
 
 **Merging with the Machine.**
