@@ -21,7 +21,7 @@ fn load [$path: str] -> config fails [file_failed, bad_syntax]:
     …
 end fn load
 
-fn half [$n: i32] -> i32 fails [odd, negative[val: i32]]:
+fn half [$n: i32] -> i32 fails [odd, negative[got: i32]]:
     …
 end fn half
 ```
@@ -36,7 +36,7 @@ end fn half
 
 ```
 fail odd;
-fail negative[val = $n];
+fail negative[got = $n];
 ```
 
 **From:** D52.
@@ -97,7 +97,7 @@ end otherwise
 ```
 let $h: i32 = half($n) otherwise:
     case negative $f:
-        std::io::fmt_print(Lend.mut $out, "{}{newln}", $f.val);
+        std::io::fmt_print(Lend.mut $out, "{}{newln}", $f.got);
         instead 0;
 end otherwise
 ```
