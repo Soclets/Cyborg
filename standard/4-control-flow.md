@@ -100,7 +100,7 @@ end match
 
 ## 4.4 `for`
 
-**Rule:** `for` goes through a collection or range. `Lend` reads each item in place, `Lend.mut` lets each item change, and `Give` hands you each item, so a loop over a collection always says which. A range takes no word, since it's a fresh value. Its own value can't change inside.
+**Rule:** `for` goes through a collection or range. `Lend` reads each item in place, `Lend.mut` lets each item change, and `Give` hands you each item, so a loop over a held collection always says which. A fresh collection, like a function's result, has no holder and no choice, so its loop is bare, like a range's. If it owns memory, it has to end with `done`, which a bare loop can't do, so it's stored first, under the `must_Give` rules ([6.9](6-ownership.md#69-must_give)). A range takes no word, since it's a fresh value. Its own value can't change inside.
 
 ```
 for $x in Lend $xs:
@@ -120,7 +120,7 @@ With `Lend`, the list is locked for the loop. With `Lend.mut`, each item can cha
 
 **Refused:** a bare `for $x in $xs:`, with a fix asking for `Lend`, `Lend.mut` or `Give`.
 
-**From:** D2, D128, D180, D182, D393, the sketch.
+**From:** D2, D128, D180, D182, D393, D396, the sketch.
 
 ## 4.5 Ranges
 
