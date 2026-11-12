@@ -10,7 +10,8 @@ What's waiting for when the owner unpauses Cyborg, written down on 2026-11-11 so
 
 ## compiler claude
 
-Starts on 2026-11-13 (owner), with `design/compiler-resume-prompt.md`: its own remaining work first, against the tests at
+Starts on 2026-11-13, which is about getting the compiler back up, with no big design that day (owner). It uses
+`design/compiler-resume-prompt.md`: its own remaining work first, against the tests at
 `37a5f03b`, then a separate catch-up prompt for D288 onwards.
 
 Waited for Lyftar's embedded clang (Lyftar's D55, Cyborg's D308), which is ready since 2026-11-12: `lyftar::compile_c`
