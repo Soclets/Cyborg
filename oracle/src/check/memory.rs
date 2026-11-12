@@ -662,7 +662,7 @@ impl Checker<'_> {
                 for (_, field) in &info.fields {
                     fields.push(self.layout_of(field, pointer)?);
                 }
-                struct_layout(name, info.layout, fields)
+                Ok(struct_layout(info.layout, fields))
             }
             other => undecided(format!("how much `{other}` takes in a list's block")),
         }
@@ -679,26 +679,22 @@ fn round_up(value: u64, step: u64) -> u64 {
 
 /// A struct's size and alignment from its fields', by its layout: the written order with
 /// natural padding, sorted by alignment for `struct.compact`, and no padding for
-/// `struct.packed`. `struct.any_order` is the compiler's own. (D319, D388)
-fn struct_layout(
-    name: &str,
-    layout: crate::ast::StructLayout,
-    mut fields: Vec<(u64, u64)>,
-) -> Result<(u64, u64), NoSize> {
+/// `struct.packed`. `struct.any_order` is the compiler's own, and the oracle sorts it like
+/// `struct.compact`. (D319, D388, D389)
+fn struct_layout(layout: crate::ast::StructLayout, mut fields: Vec<(u64, u64)>) -> (u64, u64) {
     use crate::ast::StructLayout;
     match layout {
-        StructLayout::AnyOrder => {
-            return Err((
-                format!("how much `{name}` takes, a `struct.any_order`, whose layout is the compiler's own (D388)"),
-                true,
-            ));
-        }
         StructLayout::Packed => {
             let size = fields.iter().map(|(size, _)| *size).sum();
-            return Ok((size, 1));
+            return (size, 1);
         }
         // Largest alignment first, ties in the written order, which a stable sort keeps.
-        StructLayout::Compact => fields.sort_by_key(|field| std::cmp::Reverse(field.1)),
+        // `struct.any_order` is the compiler's own choice, and what depends on it is outside the
+        // shared tests, so the oracle picks this one too. (D388, D389)
+        // trace: D388, D389
+        StructLayout::Compact | StructLayout::AnyOrder => {
+            fields.sort_by_key(|field| std::cmp::Reverse(field.1))
+        }
         StructLayout::Written => {}
     }
     let mut offset = 0;
@@ -707,5 +703,5 @@ fn struct_layout(
         offset = round_up(offset, field_align).saturating_add(size);
         align = align.max(field_align);
     }
-    Ok((round_up(offset, align), align))
+    (round_up(offset, align), align)
 }
