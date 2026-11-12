@@ -1,0 +1,10 @@
+[package]
+name = "check"
+version = "0.1.0"
+edition = "2021"
+description = "Cyborg's random program generator and the live comparison of the oracle and OKAY\\n (D68, D313)."
+publish = false
+
+[[bin]]
+name = "check"
+path = "src/main.rs"
