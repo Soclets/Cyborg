@@ -30,6 +30,10 @@ Waited for Lyftar's embedded clang (Lyftar's D55, Cyborg's D308), which is ready
 
 ## oracle claude
 
-- Decisions since it stopped, D288 to D365, under rule 16. Its test `d42_minus_wrap_isnt_decided` is out of date since
-  D295.
-- Then the random generator and the live comparison with the compiler, in `check/` (D313).
+Idle since 2026-11-12, with the generator's coverage finished. When woken: build D403 to D407 (`lanes: max` per target,
+`shift.left` and `rotate.left`, and `std::math::sqrt`), then channels when Tankun picks the run-loop rewrite.
+
+## bench
+
+- Rerun `bench/okay-vs-luajit`'s n-body once the compiler has `std::math::sqrt` or `inline.asm`, since today's numbers
+  measure Newton's method against a hardware instruction.
