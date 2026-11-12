@@ -1,0 +1,5 @@
+refused: d367_a_field_holding_a_view.cy:10:24, line 10 column 24
+10 |     return room[name = $text];
+   |                        ^^^^^
+ what: `$text` is a view of another string, so storing or returning it writes where it's from, as `Lend from $text str`
+ why:  a view of a literal is stored and returned freely, and a view of another string is a borrow, so storing or returning one writes its source, as in `-> Lend from $text str`, and a field holds owned text instead, as `str[len.max: 64 bytes]` (D170, D367)

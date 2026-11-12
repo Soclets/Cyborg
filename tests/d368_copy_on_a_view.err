@@ -1,0 +1,5 @@
+refused: d368_copy_on_a_view.cy:7:19, line 7 column 19
+ 7 |     let $b: str = Copy $a;
+   |                   ^^^^^^^
+ fix:  `$a`
+ why:  a bare `str` is a view, a pointer and a length to read-only text, so copying one can't change or free anything, and it takes no word (D368)

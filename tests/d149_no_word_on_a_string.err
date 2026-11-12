@@ -1,5 +1,5 @@
 refused: d149_no_word_on_a_string.cy:7:21, line 7 column 21
  7 |     let $t: title = $s as title;
    |                     ^^
- what: `$s` is `str`, so this says `Give` or `Copy`
+ what: `$s` is `str[len.max: 32 bytes]`, so this says `Give` or `Copy`
  why:  `as` on a whole value says its ownership: `Give` leaves it dead, and `Copy` pays for a copy (D3, D149)

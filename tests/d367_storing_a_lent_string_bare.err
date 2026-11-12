@@ -1,0 +1,5 @@
+refused: d367_storing_a_lent_string_bare.cy:7:19, line 7 column 19
+ 7 |     let $v: str = Lend $owned;
+   |                   ^^^^^^^^^^^
+ what: `Lend` here needs a stored borrow's type
+ why:  a stored borrow is a type, such as `Lend from $r reading` (D2)

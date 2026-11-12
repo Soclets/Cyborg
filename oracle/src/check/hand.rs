@@ -823,11 +823,44 @@ impl Checker<'_> {
         Ok(held)
     }
 
+    /// A `str` that views another string rather than a literal: a `str` parameter, or a stored
+    /// borrow of text. (D367)
+    fn view_of_another_string(&self, value: &Expression) -> Option<String> {
+        match &value.kind {
+            ExpressionKind::Group(inner) => self.view_of_another_string(inner),
+            ExpressionKind::Variable(name) => {
+                let variable = self.context.variables.get(self.find_variable(name)?)?;
+                let parameter = matches!(
+                    variable.origin,
+                    super::Origin::LentParameter
+                        | super::Origin::GivenParameter
+                        | super::Origin::LentMutParameter
+                );
+                let views = (parameter && variable.held_type == Type::Str)
+                    || matches!(&variable.held_type, Type::Borrow { inner, .. } if **inner == Type::Str);
+                views.then(|| name.clone())
+            }
+            _ => None,
+        }
+    }
+
     /// A value stored into a name, a `return`, a field or an item: it must show its hand-off. (D3)
     pub(super) fn check_into(&mut self, value: &Expression, target: &Type) -> Outcome<Node> {
+        // A view of a literal is stored and returned freely, and a view of another string is a
+        // borrow, which writes its source when it's stored or returned. (D367)
+        // trace: D367
+        if *target == Type::Str {
+            if let Some(source) = self.view_of_another_string(value) {
+                return Err(Report::refused(
+                    value.span,
+                    format!("`${source}` is a view of another string, so storing or returning it writes where it's from, as `Lend from ${source} str`"),
+                    "a view of a literal is stored and returned freely, and a view of another string is a borrow, so storing or returning one writes its source, as in `-> Lend from $text str`, and a field holds owned text instead, as `str[len.max: 64 bytes]` (D170, D367)",
+                ));
+            }
+        }
         if let ExpressionKind::Hand { word, value: inner } = &value.kind {
             // trace: D2
-            if target.is_always_copied() {
+            if target.is_always_copied() && !self.lends_owned_text(value, target) {
                 return Err(Self::word_on_a_copied_value(
                     value,
                     self.text_of(inner.span),
@@ -891,7 +924,7 @@ impl Checker<'_> {
         Report::refused(
             expression.span,
             format!("`{value_type}` is always copied, and takes no word"),
-            "plain numbers and `bool` are always copied, and take no word (D2, D123)",
+            value_type.why_copied(),
         )
         .fix(shown)
     }
@@ -931,6 +964,24 @@ impl Checker<'_> {
     }
 
     /// The type a variable or a field of one holds, worked out from the declarations.
+    /// `Lend $name` of a string that owns its text, going where a `str` view goes: lending any
+    /// string gives a view, so a function taking `str` reads every kind. (D326, D327, D368)
+    /// trace: D327, D368
+    pub(super) fn lends_owned_text(&self, value: &Expression, target: &Type) -> bool {
+        let ExpressionKind::Hand {
+            word: HandWord::Lend,
+            value: inner,
+        } = &value.kind
+        else {
+            return false;
+        };
+        *target == Type::Str
+            && matches!(
+                self.type_of_place(inner),
+                Some(Type::BoundedStr(_) | Type::GrowableStr)
+            )
+    }
+
     fn type_of_place(&self, value: &Expression) -> Option<Type> {
         match &value.kind {
             ExpressionKind::Variable(name) => {
@@ -1050,7 +1101,7 @@ impl Checker<'_> {
         if target.is_always_copied() && parameter.word == ParameterWord::LentMut {
             return self.check_number_lent_to_change(value, parameter, handed);
         }
-        if target.is_always_copied() {
+        if target.is_always_copied() && !self.lends_owned_text(value, target) {
             // trace: D2
             if let ExpressionKind::Hand { value: inner, .. } = &value.kind {
                 return Err(Self::word_on_a_copied_value(

@@ -4,11 +4,11 @@ import std;
 import os;
 
 struct pair:
-    a: str;
-    b: str;
+    a: str[len.max: 32 bytes];
+    b: str[len.max: 32 bytes];
 end struct pair
 
-fn eat [$s: Given str] -> void:
+fn eat [$s: Given str[len.max: 32 bytes]] -> void:
     let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     std::io::fmt_print(Lend.mut $out, "{}{newln}", $s);
     return void;

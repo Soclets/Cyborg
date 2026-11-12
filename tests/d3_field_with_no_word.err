@@ -1,5 +1,5 @@
 refused: d3_field_with_no_word.cy:9:40, line 9 column 40
  9 |     let $t: name_tag = name_tag[text = $s];
    |                                        ^^
- what: `$s` is `str`, so this needs `Give` or `Copy`
+ what: `$s` is `str[len.max: 32 bytes]`, so this needs `Give` or `Copy`
  why:  every hand-off shows on the page, including one into a name, a `return` or a field (D3)

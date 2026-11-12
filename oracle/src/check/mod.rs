@@ -892,8 +892,10 @@ impl Checker<'_> {
         else {
             return Ok(());
         };
-        // trace: D123
-        if inner.is_always_copied() {
+        // A `str` view is copied freely, but a view of another string still borrows it, so it
+        // writes its source when it's returned. (D367, D368)
+        // trace: D123, D367
+        if inner.is_always_copied() && **inner != Type::Str {
             return Err(Report::refused(
                 span,
                 format!("a borrow of `{inner}`, which is always copied"),
@@ -1616,7 +1618,7 @@ impl Checker<'_> {
                     return Err(Report::refused(
                         parameter.word_span,
                         format!("`{parameter_type}` is always copied, and takes no word"),
-                        "plain numbers and `bool` are always copied, and take no word (D2, D123)",
+                        parameter_type.why_copied(),
                     ));
                 }
                 // trace: D86

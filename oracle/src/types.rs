@@ -237,12 +237,28 @@ impl Type {
         }
     }
 
+    /// Why a type is always copied, for the refusal of a word on one.
+    /// trace: D368
+    pub fn why_copied(&self) -> &'static str {
+        match self {
+            Type::Str => "a bare `str` is a view, a pointer and a length to read-only text, so copying one can't change or free anything, and it takes no word (D368)",
+            _ => "plain numbers and `bool` are always copied, and take no word (D2, D123)",
+        }
+    }
+
     /// These are always copied, and take no ownership word.
     /// trace: D2, D123
     pub fn is_always_copied(&self) -> bool {
         match self {
             // A pointer is an address, copied as one. (D314)
-            Type::Integer { .. } | Type::Float { .. } | Type::Bool | Type::Pointer { .. } => true,
+            // A bare `str` is a pointer and a length to read-only text, so copying one can't
+            // change or free anything. (D368)
+            // trace: D368
+            Type::Integer { .. }
+            | Type::Float { .. }
+            | Type::Bool
+            | Type::Pointer { .. }
+            | Type::Str => true,
             Type::Secret(inner) => inner.is_always_copied(),
             // A vector is a machine type like `i32`, so it's copied the same way. (D291)
             Type::Simd { item, .. } => item.is_always_copied(),

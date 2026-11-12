@@ -2,12 +2,12 @@
 // trace: D133, D2
 import std;
 
-fn eat [$s: Given str] -> void:
+fn eat [$s: Given str[len.max: 32 bytes]] -> void:
     return void;
 end fn eat
 
 fn.main [none] -> void:
-    let $a: std::coll::array<str>[len: 1 items] = ["hi"];
+    let $a: std::coll::array<str[len.max: 32 bytes]>[len: 1 items] = ["hi"];
     eat(Give $a[pos: 1]);
     return void;
 end fn.main

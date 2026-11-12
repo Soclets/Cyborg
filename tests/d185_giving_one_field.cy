@@ -1,10 +1,10 @@
 // trace: D185, D2
 
 struct box:
-    s: str;
+    s: str[len.max: 32 bytes];
 end struct box
 
-fn eat [$s: Given str] -> void:
+fn eat [$s: Given str[len.max: 32 bytes]] -> void:
     return void;
 end fn eat
 

@@ -3,13 +3,13 @@
 import std;
 import os;
 
-fn eat [$s: Given str] -> void:
+fn eat [$s: Given str[len.max: 32 bytes]] -> void:
     let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     std::io::fmt_print(Lend.mut $out, "{}{newln}", $s);
     return void;
 end fn eat
 
-fn pick [$s: Given str, $first: bool] -> void:
+fn pick [$s: Given str[len.max: 32 bytes], $first: bool] -> void:
     if $first:
         eat(Give $s);
     else:

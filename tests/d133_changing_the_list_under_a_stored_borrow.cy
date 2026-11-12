@@ -2,9 +2,9 @@
 import std;
 
 fn.main [none] -> void:
-    let mut $xs: std::coll::array<str>[len: 2 items] = ["a", "b"];
-    let $l: Lend from $xs str = Lend $xs[pos: 2];
+    let mut $xs: std::coll::array<str[len.max: 32 bytes]>[len: 2 items] = ["a", "b"];
+    let $l: Lend from $xs str[len.max: 32 bytes] = Lend $xs[pos: 2];
     change $xs = ["c", "d"];
-    let $k: str = Copy $l;
+    let $k: str[len.max: 32 bytes] = Copy $l;
     return void;
 end fn.main

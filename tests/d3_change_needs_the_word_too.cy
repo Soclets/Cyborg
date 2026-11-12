@@ -3,8 +3,8 @@
 import std;
 
 fn.main [none] -> void:
-    let $s: str = "a";
-    let mut $t: str = "b";
+    let $s: str[len.max: 32 bytes] = "a";
+    let mut $t: str[len.max: 32 bytes] = "b";
     change $t = $s;
     return void;
 end fn.main

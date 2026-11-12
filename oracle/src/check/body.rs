@@ -1574,7 +1574,11 @@ impl Checker<'_> {
         let place = self.check_lent_place(lent, *word)?;
         // A borrow taken through a stored borrow names the original value. (D174)
         let roots = self.borrow_roots_named(&place.root_name, names, value.span)?;
-        if place.value_type != **inner {
+        // A stored `str` view of a string that owns its text. (D327, D367)
+        // trace: D367
+        let views_owned_text = **inner == Type::Str
+            && matches!(place.value_type, Type::BoundedStr(_) | Type::GrowableStr);
+        if place.value_type != **inner && !views_owned_text {
             return Err(Self::mismatch(value.span, inner, &place.value_type));
         }
         let Some(source) = place.place else {

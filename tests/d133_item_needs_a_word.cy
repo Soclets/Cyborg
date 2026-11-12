@@ -3,7 +3,7 @@
 import std;
 
 fn.main [none] -> void:
-    let $a: std::coll::array<str>[len: 1 items] = ["hi"];
-    let $s: str = $a[pos: 1];
+    let $a: std::coll::array<str[len.max: 32 bytes]>[len: 1 items] = ["hi"];
+    let $s: str[len.max: 32 bytes] = $a[pos: 1];
     return void;
 end fn.main

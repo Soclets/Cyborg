@@ -12,7 +12,7 @@ end struct inner
 
 struct reading:
     celsius: i32[min: -50, max: 50];
-    label: str;
+    label: str[len.max: 32 bytes];
     at: i32[unit: time.seconds];
     deep: inner;
 end struct reading
@@ -28,7 +28,7 @@ fn.main [none] -> void:
     change $r.celsius = 22;
     warm(Lend.mut $r);
     change $r.label = "b";
-    let $s: str = "c";
+    let $s: str[len.max: 32 bytes] = "c";
     change $r.label = Give $s;
     change $r.at = $r.at + 5 time.seconds;
     change $r.deep.n = 9;

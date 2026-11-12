@@ -5,11 +5,11 @@ import os;
 
 union.tagged token:
     number[value: i32];
-    word[text: str];
+    word[text: str[len.max: 32 bytes]];
     done;
 end union.tagged token
 
-fn describe [$t: Given token] -> str:
+fn describe [$t: Given token] -> str[len.max: 32 bytes]:
     match $t:
         case token.number $n:
             return "(number)";
@@ -20,13 +20,13 @@ fn describe [$t: Given token] -> str:
     end match
 end fn describe
 
-fn make_word [$text: Given str] -> token:
+fn make_word [$text: Given str[len.max: 32 bytes]] -> token:
     return token.word[text = Give $text];
 end fn make_word
 
 fn.main [none] -> void:
     let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
-    let $name: str = "hello";
+    let $name: str[len.max: 32 bytes] = "hello";
     std::io::fmt_print(Lend.mut $out, "{}{newln}", describe(token.number[value = 42]));
     std::io::fmt_print(Lend.mut $out, "{}{newln}", describe(make_word(Give $name)));
     std::io::fmt_print(Lend.mut $out, "{}{newln}", describe(token.done));

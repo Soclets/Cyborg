@@ -27,8 +27,8 @@ end fn keep
 
 fn.main [none] -> void:
     let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
-    let $text: str = "kept";
-    let $k: str = keep(Give $text);
+    let $text: str[len.max: 32 bytes] = "kept";
+    let $k: str[len.max: 32 bytes] = keep(Give $text);
     let $b: box<i32> = box[held = 5];
     std::io::fmt_print(Lend.mut $out, "{} {}{newln}", $k, $b.held);
     return void;
