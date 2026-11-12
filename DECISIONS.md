@@ -1164,6 +1164,8 @@ A `type_set` is a closed list of types that nothing can join later, as in `type_
 
 **D331. `done` ends every owner, and strings use `str.done` and `str.from`.** Every `must_Give` owner ends with a function called `done`: `os::done` for a buffered writer (D273), `std::list.done` for a growable list, `str.done` for a growable string and `std::arena.done` for an arena, so nobody has to remember whether a type says `free`, `close`, `drop` or `deinit`, and `done` fits writers, files and anything else `must_Give`, where `free` only fits memory. Strings' functions are `str.done` and `str.from`, led by the type's own name, with no `std::`, since `str` is a base type, like `ptr.raw.mut<u32>.at` (D315). This settles D323's `std::list.done` and replaces D326 and D328's placeholders `std::text.done` and `std::text.from`. Claude proposed `done` and had invented `std::text`; the owner asked "why `text`?", and chose: "yea". (Owner, 2026-11-12)
 
+**D332. The operating system's allocator is `os::heap`.** `let $heap: os::heap = os::heap();` gives the allocator that takes memory from the operating system, passed as `alloc: Lend $heap`. "The heap" is what programmers already call this memory, and it's in `os` since the memory comes from the operating system, so a bare-metal program, which has no `os`, has no `os::heap` either, and brings its own allocator (D321). This settles D321's placeholder. Claude proposed it over `os::allocator` and `os::memory`; the owner chose: "yea". (Owner, 2026-11-12)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude

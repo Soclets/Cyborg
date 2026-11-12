@@ -215,7 +215,7 @@ std::list<i32>[len.max: inf items, len.type: u32]
 let $b: std::list<i32>[len.min: 1 items, len.max: 8 items] = [4, 6];
 ```
 
-Allocation is explicit, as in Zig: anything that takes heap memory takes an allocator, the way printing takes a writer ([1.13](1-programs.md#113-printing-stdiofmt_print)). A list with a finite `len.max` needs none, since its size is known. Running out of memory is a failure, handled like any other, and a program with no allocator, as on bare metal, can't call anything that allocates. The names below are placeholders.
+Allocation is explicit, as in Zig: anything that takes heap memory takes an allocator, the way printing takes a writer ([1.13](1-programs.md#113-printing-stdiofmt_print)). A list with a finite `len.max` needs none, since its size is known. Running out of memory is a failure, handled like any other, and a program with no allocator, as on bare metal, can't call anything that allocates. `os::heap()` is the operating system's allocator, so bare metal has none.
 
 ```
 let $alloc: os::heap = os::heap();
