@@ -1631,33 +1631,7 @@ impl Checker<'_> {
                     )
                     .fix(fix));
                 }
-                // How a struct or list is held is a choice, so it's written, and a number, a
-                // `bool` or a view has none, so nothing is. (D393, D394)
-                // trace: D393, D394
-                let choice = self.holding_is_a_choice(&parameter_type);
-                if parameter.word == ParameterWord::Bare && choice {
-                    return Err(Report::refused(
-                        parameter.written_type.span,
-                        format!(
-                            "`${}` doesn't say how it holds its `{parameter_type}`: `Lent`, `Lent.mut` or `Given`",
-                            parameter.name.text
-                        ),
-                        "where there's a choice, the choice is written, and a parameter holding a struct or list chooses how it's held (D393, D394)",
-                    ));
-                }
-                if parameter.word == ParameterWord::Lent && !choice {
-                    let type_text = self.text_of(parameter.written_type.span).to_string();
-                    return Err(Report::refused(
-                        parameter.word_span.to(parameter.written_type.span),
-                        format!("`{parameter_type}` has no choice of how it's held, so it takes no word"),
-                        if matches!(parameter_type, Type::Parameter(_)) {
-                            "only plain numbers can fill this type parameter, and they're always copied, so there's no choice to write (D394)"
-                        } else {
-                            parameter_type.why_copied()
-                        },
-                    )
-                    .fix(type_text));
-                }
+                self.check_parameter_word(parameter, &parameter_type)?;
                 // A number takes `Lent.mut`, since that says it changes, and no other word.
                 // trace: D2, D184
                 if parameter.word == ParameterWord::Given && parameter_type.is_always_copied() {
@@ -2093,6 +2067,42 @@ impl Checker<'_> {
 }
 
 impl Checker<'_> {
+    /// How a struct or list is held is a choice, so a parameter holding one writes it, and a
+    /// number, a `bool` or a view has none, so nothing is written. An interface's signatures
+    /// follow the same rule. (D393, D394, D395)
+    /// trace: D393, D394, D395
+    pub(super) fn check_parameter_word(
+        &self,
+        parameter: &crate::ast::Parameter,
+        parameter_type: &Type,
+    ) -> Outcome<()> {
+        let choice = self.holding_is_a_choice(parameter_type);
+        if parameter.word == ParameterWord::Bare && choice {
+            return Err(Report::refused(
+                parameter.written_type.span,
+                format!(
+                    "`${}` doesn't say how it holds its `{parameter_type}`: `Lent`, `Lent.mut` or `Given`",
+                    parameter.name.text
+                ),
+                "where there's a choice, the choice is written, and a parameter holding a struct or list chooses how it's held (D393, D394)",
+            ));
+        }
+        if parameter.word == ParameterWord::Lent && !choice {
+            let type_text = self.text_of(parameter.written_type.span).to_string();
+            return Err(Report::refused(
+                parameter.word_span.to(parameter.written_type.span),
+                format!("`{parameter_type}` has no choice of how it's held, so it takes no word"),
+                if matches!(parameter_type, Type::Parameter(_)) {
+                    "only plain numbers can fill this type parameter, and they're always copied, so there's no choice to write (D394)"
+                } else {
+                    parameter_type.why_copied()
+                },
+            )
+            .fix(type_text));
+        }
+        Ok(())
+    }
+
     /// Whether a parameter of this type has a choice of how it's held. A number, a `bool`, a
     /// pointer and a view are only ever copied, so they don't, and neither does a type
     /// parameter whose requirement only plain numbers can fill, like a `type_set` of `i32` and

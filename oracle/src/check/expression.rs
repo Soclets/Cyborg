@@ -4171,7 +4171,10 @@ impl Checker<'_> {
                         WHY_TYPES,
                     ));
                 }
-                if left_unit != right_unit {
+                // Two values compare when one could be stored into the other's type, as a
+                // computed length per time can into a declared speed. (D397, D242)
+                // trace: D397
+                if !self.same_unit(left_unit.as_ref(), right_unit.as_ref()) {
                     // trace: D101
                     let plain_literal = match (left_unit, right_unit) {
                         (Some(unit), None) if literal_integer(right_expression).is_some() => {
@@ -4214,7 +4217,10 @@ impl Checker<'_> {
                     ..
                 },
             ) => {
-                if left_kind != right_kind || left_unit != right_unit {
+                // trace: D397
+                if left_kind != right_kind
+                    || !self.same_unit(left_unit.as_ref(), right_unit.as_ref())
+                {
                     return Err(Report::refused(
                         span,
                         format!("this compares `{left}` and `{right}`"),

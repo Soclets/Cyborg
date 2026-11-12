@@ -8,8 +8,8 @@ use std::collections::{HashMap, HashSet};
 
 use super::{Checker, Signature};
 use crate::ast::{
-    CompareOperator, Expression, ExpressionKind, InterfaceDeclaration, Item, Satisfies,
-    TypeParameter, TypeSetDeclaration,
+    CompareOperator, Expression, ExpressionKind, InterfaceDeclaration, Item, ParameterWord,
+    Satisfies, TypeParameter, TypeSetDeclaration,
 };
 use crate::ir::{Arithmetic, Implementation, Node, NodeKind, Number, Table};
 use crate::report::{Outcome, Report, Span};
@@ -201,12 +201,28 @@ impl Checker<'_> {
                 ));
             };
             let resolved = (|| -> Outcome<InterfaceOperatorInfo> {
-                Ok(InterfaceOperatorInfo {
+                let info = InterfaceOperatorInfo {
                     operator: operator.operator.clone(),
                     left: self.resolve_type(&left.written_type)?,
                     right: self.resolve_type(&right.written_type)?,
                     result: self.resolve_type(&operator.return_type)?,
-                })
+                };
+                // An interface's signature writes its words like any other. (D395)
+                // trace: D395
+                for (parameter, found) in [(left, &info.left), (right, &info.right)] {
+                    self.check_parameter_word(parameter, found)?;
+                    if matches!(
+                        parameter.word,
+                        ParameterWord::Given | ParameterWord::LentMut
+                    ) {
+                        return Err(Report::not_designed(
+                            parameter.word_span,
+                            "an operator's value that's `Given` or `Lent.mut`, since the operator shows no word",
+                            "",
+                        ));
+                    }
+                }
+                Ok(info)
             })();
             match resolved {
                 Ok(info) => operators.push(info),

@@ -1,0 +1,5 @@
+refused: d395_bare_interface_signature_is_refused.cy:6:19, line 6 column 19
+ 6 |     op below [$a: ?self, $b: ?self] -> bool;
+   |                   ^^^^^
+ what: `$a` doesn't say how it holds its `?self`: `Lent`, `Lent.mut` or `Given`
+ why:  where there's a choice, the choice is written, and a parameter holding a struct or list chooses how it's held (D393, D394)

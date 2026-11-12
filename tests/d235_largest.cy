@@ -5,12 +5,12 @@ import std;
 import os;
 
 interface equatable<?self>:
-    op == [$a: ?self, $b: ?self] -> bool;
+    op == [$a: Lent ?self, $b: Lent ?self] -> bool;
 end interface equatable
 
 interface ordered<?self>:
     includes equatable;
-    op below [$a: ?self, $b: ?self] -> bool;
+    op below [$a: Lent ?self, $b: Lent ?self] -> bool;
     law if $a below $b and $b below $c then $a below $c;
 end interface ordered
 

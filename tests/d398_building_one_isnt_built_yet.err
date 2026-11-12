@@ -1,0 +1,5 @@
+NotBuiltYet: d398_building_one_isnt_built_yet.cy:20:17, line 20 column 17
+20 |         let $n: @csup::union.untagged number = number[f = 1.5];
+   |                 ^^^^^^^^^^^^^^^^^^^^^
+ what: building and reading a `@csup::union.untagged`
+ why:  decided, but the oracle doesn't handle it yet (D286)

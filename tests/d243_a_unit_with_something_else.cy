@@ -12,7 +12,7 @@ fam.unit time:
 end fam.unit time
 
 interface ordered<?self>:
-    op below [$a: ?self, $b: ?self] -> bool;
+    op below [$a: Lent ?self, $b: Lent ?self] -> bool;
 end interface ordered
 
 fn keep<?u: length and ordered> [$a: f64.stable[unit: ?u]] -> f64.stable[unit: ?u]:

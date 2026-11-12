@@ -3,11 +3,11 @@
 import std;
 
 interface ordered<?self>:
-    op below [$a: ?self, $b: ?self] -> bool;
+    op below [$a: Lent ?self, $b: Lent ?self] -> bool;
 end interface ordered
 
 interface addable<?self>:
-    op + [$a: ?self, $b: ?self] -> ?self;
+    op + [$a: Lent ?self, $b: Lent ?self] -> ?self;
 end interface addable
 
 type_set whole:

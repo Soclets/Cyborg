@@ -3079,6 +3079,14 @@ impl Parser {
             return self.parse_stored_borrow();
         }
         let mut path = self.parse_path()?;
+        // `@csup::union.untagged number` names a C union, which is built and read in shields.
+        // trace: D398
+        if path.text == "@csup::union.untagged" {
+            return Err(Report::not_built(
+                path.span,
+                "building and reading a `@csup::union.untagged`",
+            ));
+        }
         // `f64.?u`: a unit parameter, where a unit goes. (D243)
         // trace: D243
         if self.at_symbol(".") && self.symbol_at(1, "?") {

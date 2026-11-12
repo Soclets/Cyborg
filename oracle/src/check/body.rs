@@ -2666,6 +2666,18 @@ impl Checker<'_> {
                     "where there's a choice, the choice is written, and a loop reads, changes or takes each item (D393)",
                 ));
             }
+            // A fresh list that grows on the heap has to end with `done`, which a bare loop
+            // can't do, so it's stored first. (D396)
+            // trace: D396
+            if let ExpressionKind::Call { path, .. } = &collection.kind {
+                if self.canonical(&path.text) == "std::coll::list.from" {
+                    return Err(Report::refused(
+                        collection.span,
+                        "this fresh list grows on the heap, so it has to end with `done`, which a loop over it can't do",
+                        "a loop over a fresh collection takes no word, and one that owns memory is stored first, read with `Lend` and ended with `defer` (D396, D325)",
+                    ));
+                }
+            }
             let (node, item_type, (root, path)) = self.check_for_read(collection)?;
             return Ok((
                 LoopCollection::Value(node),

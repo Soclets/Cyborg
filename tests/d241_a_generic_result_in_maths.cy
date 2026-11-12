@@ -5,7 +5,7 @@ import std;
 import os;
 
 interface addable<?self>:
-    op + [$a: ?self, $b: ?self] -> ?self;
+    op + [$a: Lent ?self, $b: Lent ?self] -> ?self;
 end interface addable
 
 type_set whole:

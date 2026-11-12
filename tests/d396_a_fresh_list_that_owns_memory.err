@@ -1,0 +1,5 @@
+refused: d396_a_fresh_list_that_owns_memory.cy:9:15, line 9 column 15
+ 9 |     for $x in std::coll::list.from([1, 2], alloc: Lend $heap):
+   |               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ what: this fresh list grows on the heap, so it has to end with `done`, which a loop over it can't do
+ why:  a loop over a fresh collection takes no word, and one that owns memory is stored first, read with `Lend` and ended with `defer` (D396, D325)

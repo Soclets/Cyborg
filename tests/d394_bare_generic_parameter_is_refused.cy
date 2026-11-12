@@ -3,7 +3,7 @@
 import std;
 
 interface ordered<?self>:
-    op below [$a: ?self, $b: ?self] -> bool;
+    op below [$a: Lent ?self, $b: Lent ?self] -> bool;
 end interface ordered
 
 fn smallest<?item: ordered> [$a: ?item, $b: ?item] -> ?item:

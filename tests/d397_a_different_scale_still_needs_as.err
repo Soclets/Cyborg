@@ -1,0 +1,5 @@
+refused: d397_a_different_scale_still_needs_as.cy:13:8, line 13 column 8
+13 |     if $a below $b:
+   |        ^^^^^^^^^^^
+ what: this compares `f64.stable[unit: length.meters]` and `f64.stable[unit: length.kilometers]`
+ why:  `:` doesn't convert, and `as` builds a new value of another type (D7)
