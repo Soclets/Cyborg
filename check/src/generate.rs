@@ -3,6 +3,8 @@
 //! loops that always end, and calls only to functions declared earlier, so nothing recurses.
 //! What it doesn't generate is listed in `coverage.rs`, since all passing doesn't mean covered.
 
+use std::fmt::Write as _;
+
 use crate::random::Random;
 use crate::tree::{
     Arguments, Comparison, Expression, FailureDecl, Filling, Function, Handling, Kind, Layout,
@@ -360,6 +362,7 @@ impl Generator<'_> {
             9 if self.random.chance(50) => self.array_statement(scope),
             9 if self.random.chance(50) => self.record_statement(scope),
             9 => self.union_statement(scope, depth, prints),
+            _ if prints && self.random.chance(40) => self.format_print(scope),
             _ if prints => {
                 // A print's value is an integer variable, so its type is never left for a
                 // literal to guess, and how a `bool` prints isn't decided (12.3).
@@ -446,6 +449,134 @@ impl Generator<'_> {
             changes,
             body,
         }
+    }
+
+    /// A print of one to three variables, with plain, numbered or named holes, shapes that
+    /// apply to each value's type, and text between them with escaped braces and tabs (1.13).
+    fn format_print(&mut self, scope: &Scope) -> Statement {
+        let printable: Vec<(String, Type)> = scope
+            .variables
+            .iter()
+            .filter(|(_, found)| {
+                matches!(found, Type::Integer(_) | Type::Float(_) | Type::Bounded(..))
+            })
+            .cloned()
+            .collect();
+        let mut chosen = Vec::new();
+        for _ in 0..self.random.between(1, 3) {
+            if let Some(found) = self.random.pick(&printable).cloned() {
+                chosen.push(found);
+            }
+        }
+        let style = self.random.between(0, 2);
+        let mut text = String::new();
+        let mut values = Vec::new();
+        let mut order: Vec<usize> = (0..chosen.len()).collect();
+        if style == 1 {
+            for at in (1..order.len()).rev() {
+                let other = usize::try_from(self.random.between(0, at as i128)).unwrap_or(0);
+                order.swap(at, other);
+            }
+        }
+        for index in &order {
+            let Some((name, value_type)) = chosen.get(*index).cloned() else {
+                continue;
+            };
+            text.push_str(
+                self.random
+                    .pick(&["", " ", ": ", "\\{", "\\}", "{tab}", "x="])
+                    .copied()
+                    .unwrap_or(""),
+            );
+            let shapes = self.shapes(value_type);
+            match style {
+                // Numbered holes take no shapes here, since whether they can isn't shown.
+                1 => {
+                    let _ = write!(text, "{{{}}}", index + 1);
+                }
+                2 => {
+                    if shapes.is_empty() {
+                        let _ = write!(text, "{{${name}}}");
+                    } else {
+                        let _ = write!(text, "{{${name}, {shapes}}}");
+                    }
+                }
+                _ => {
+                    let _ = write!(text, "{{{shapes}}}");
+                }
+            }
+        }
+        if style != 2 {
+            values = chosen
+                .into_iter()
+                .map(|(name, _)| Expression::Variable(name))
+                .collect();
+        }
+        Statement::Format { text, values }
+    }
+
+    /// Shapes that apply to a value of this type: a width with its unit and an alignment, a
+    /// base with or without `zeros`, `sign` on a signed number, `places:` or `form: science` on
+    /// a float, or none (1.13).
+    fn shapes(&mut self, value_type: Type) -> String {
+        let signed = match value_type {
+            Type::Integer(kind) | Type::Bounded(kind, ..) => kind.range().0 < 0,
+            _ => true,
+        };
+        let mut shapes: Vec<String> = Vec::new();
+        let width = self.random.between(1, 12);
+        match value_type {
+            Type::Float(_) => match self.random.between(0, 3) {
+                0 => shapes.push(format!("places: {}", self.random.between(0, 4))),
+                1 => {
+                    shapes.push("form: science".to_string());
+                    if self.random.chance(50) {
+                        shapes.push(format!("places: {}", self.random.between(0, 3)));
+                    }
+                }
+                2 => {}
+                _ => {
+                    let align = *self
+                        .random
+                        .pick(&["left", "right", "center"])
+                        .unwrap_or(&"left");
+                    shapes.push(format!("align: {align}"));
+                    shapes.push(format!("width: {width} cols"));
+                }
+            },
+            _ => match self.random.between(0, 3) {
+                0 => {
+                    let base = *self
+                        .random
+                        .pick(&["bin", "oct", "hex", "hex.upper"])
+                        .unwrap_or(&"hex");
+                    shapes.push(format!("base: {base}"));
+                    if self.random.chance(50) {
+                        shapes.push("zeros".to_string());
+                        shapes.push(format!("width: {width} cols"));
+                    }
+                }
+                1 => {
+                    let align = *self
+                        .random
+                        .pick(&["left", "right", "center"])
+                        .unwrap_or(&"left");
+                    shapes.push(format!("align: {align}"));
+                    shapes.push(format!("width: {width} cols"));
+                }
+                2 => {}
+                _ => {
+                    if self.random.chance(50) {
+                        shapes.push("zeros".to_string());
+                        shapes.push(format!("width: {width} cols"));
+                    }
+                }
+            },
+        }
+        if signed && self.random.chance(20) {
+            shapes.push("sign".to_string());
+        }
+        shapes.join(", ")
     }
 
     /// `const`, from literals and constants alone, joined with operators that can't overflow or

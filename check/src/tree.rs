@@ -369,6 +369,11 @@ pub enum Statement {
         value: Expression,
     },
     Print(Expression),
+    /// A print with its own format text and values (1.13).
+    Format {
+        text: String,
+        values: Vec<Expression>,
+    },
     If {
         test: Expression,
         then: Vec<Statement>,
@@ -647,6 +652,16 @@ fn print_block(out: &mut String, statements: &[Statement], depth: usize, style: 
                     out,
                     "{indent}std::io::fmt_print(Lend.mut $out, \"{{}}{{newln}}\", {});",
                     style.expression(value)
+                );
+            }
+            Statement::Format { text, values } => {
+                let values: String = values
+                    .iter()
+                    .map(|value| format!(", {}", style.expression(value)))
+                    .collect();
+                let _ = writeln!(
+                    out,
+                    "{indent}std::io::fmt_print(Lend.mut $out, \"{text}{{newln}}\"{values});"
                 );
             }
             Statement::If {

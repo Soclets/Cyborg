@@ -17,7 +17,7 @@
 /// integer parameters and results, labels on the last ones, `labels.any_order`, and defaults
 /// calls leave off; printing a variable with `fmt_print` to an unbuffered writer.
 pub const NOT_GENERATED: &[&str] = &[
-    "1.13 printing: shapes, named holes, `.stored`, more than one value, buffered writers, stderr",
+    "1.13 printing: `.stored`, named holes reading fields, widths in units other than `cols`, `unit`, other escapes, buffered writers, stderr",
     "2.3 `const` calling `fn.pure.baked` functions, float constants, constants whose maths overflows",
     "2.5 bounded parameters and fields, the test `if $n: T:` that checks a bound",
     "2.6, 2.7 `.fast` and `.ieee` floats, bounded floats, `exponent` literals, `fmt_print.stored`, floats in structs, arrays and calls",
