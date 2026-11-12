@@ -76,6 +76,8 @@ struct Generator<'random> {
     generics: Option<Generics>,
     /// A `must_Give` struct, when the program declares one (6.9).
     tokens: Option<Tokens>,
+    /// Whether the recursive functions are declared (5.1).
+    recursion: bool,
     /// The names of the loops around what's being generated, innermost last (4.8).
     loop_names: Vec<String>,
     /// A C union, when the program declares one (9.6, D398).
@@ -118,6 +120,7 @@ pub fn program(seed: u64) -> Program {
         tokens: None,
         untagged: None,
         loop_names: Vec::new(),
+        recursion: false,
         float_units: None,
         units: Vec::new(),
         constants: Vec::new(),
@@ -142,6 +145,7 @@ pub fn program(seed: u64) -> Program {
     generator.generics();
     generator.tokens();
     generator.untagged_union();
+    generator.recursion = generator.random.chance(40);
     for _ in 0..generator.random.between(0, 2) {
         let declared = generator.union_decl();
         generator.unions.push(declared);
@@ -207,6 +211,7 @@ pub fn program(seed: u64) -> Program {
         generics: generator.generics,
         tokens: generator.tokens,
         untagged: generator.untagged,
+        recursion: generator.recursion,
         methods: generator.methods,
         arena: generator.arena,
         named: generator.named,
@@ -558,21 +563,7 @@ impl Generator<'_> {
                     value,
                 }
             }
-            0..=3 if self.random.chance(8) => {
-                let kind = self.integer_kind();
-                let test = self.expression(scope, Type::Bool, LIMITS.depth);
-                let then_value = self.expression(scope, Type::Integer(kind), LIMITS.depth);
-                let else_value = self.expression(scope, Type::Integer(kind), LIMITS.depth);
-                let name = self.name("d");
-                scope.variables.push((name.clone(), Type::Integer(kind)));
-                Statement::DeclAssign {
-                    name,
-                    kind,
-                    test,
-                    then_value,
-                    else_value,
-                }
-            }
+            0..=3 if self.random.chance(8) => self.declare(scope),
             0..=3 if prints && self.random.chance(10) => self
                 .task(scope)
                 .unwrap_or_else(|| self.list_statement(scope)),
@@ -1460,6 +1451,77 @@ impl Generator<'_> {
             value,
             read_into,
         })
+    }
+
+    /// `decl`, or `decl mut`, given its value once on each path: in both arms of an `if`, in
+    /// every arm of a `match` on a union, or straight after. One without `mut` is named `k…`,
+    /// so nothing changes it after (2.19).
+    fn declare(&mut self, scope: &mut Scope) -> Statement {
+        let kind = self.integer_kind();
+        let mutable = self.random.chance(50);
+        let name = self.name(if mutable { "d" } else { "k" });
+        let union = self
+            .random
+            .pick(&scope.cased)
+            .cloned()
+            .and_then(|(variable, index)| Some((variable, self.unions.get(index)?.clone())));
+        let statement = match (self.random.between(0, 2), union) {
+            (0, Some((variable, declared))) => {
+                let mut arms = Vec::new();
+                for (case, _) in declared.cases {
+                    let value = self.expression(scope, Type::Integer(kind), LIMITS.depth);
+                    arms.push((
+                        case,
+                        None,
+                        vec![Statement::Assign {
+                            name: name.clone(),
+                            value,
+                        }],
+                    ));
+                }
+                Statement::Sequence(vec![
+                    Statement::Decl {
+                        name: name.clone(),
+                        mutable,
+                        kind,
+                    },
+                    Statement::Match {
+                        variable,
+                        union_name: declared.name,
+                        arms,
+                    },
+                ])
+            }
+            (1, _) => {
+                let value = self.expression(scope, Type::Integer(kind), LIMITS.depth);
+                Statement::Sequence(vec![
+                    Statement::Decl {
+                        name: name.clone(),
+                        mutable,
+                        kind,
+                    },
+                    Statement::Assign {
+                        name: name.clone(),
+                        value,
+                    },
+                ])
+            }
+            _ => {
+                let test = self.expression(scope, Type::Bool, LIMITS.depth);
+                let then_value = self.expression(scope, Type::Integer(kind), LIMITS.depth);
+                let else_value = self.expression(scope, Type::Integer(kind), LIMITS.depth);
+                Statement::DeclAssign {
+                    name: name.clone(),
+                    mutable,
+                    kind,
+                    test,
+                    then_value,
+                    else_value,
+                }
+            }
+        };
+        scope.variables.push((name, Type::Integer(kind)));
+        statement
     }
 
     /// A secret made public in a shield, into a plain variable that can change (2.22, 9.7).
@@ -3106,6 +3168,32 @@ impl Generator<'_> {
             if let Some(call) = self.generic_integer(scope, kind, depth) {
                 return call;
             }
+        }
+        // A recursive call, kept to a few levels by `mod.trunc` (5.1).
+        if roll == 4
+            && kind == Kind::U64
+            && self.recursion
+            && !self.pure_only
+            && !self.no_calls
+            && self.random.chance(50)
+        {
+            let inner = self.integer(scope, kind, depth.saturating_sub(1));
+            let function = *self
+                .random
+                .pick(&["rsum", "reven", "rodd"])
+                .unwrap_or(&"rsum");
+            return Expression::Call {
+                function: function.to_string(),
+                arguments: vec![(
+                    None,
+                    Expression::Binary {
+                        operator: Operator::RemainderTrunc,
+                        left: Box::new(inner),
+                        right: Box::new(Expression::Integer(30)),
+                    },
+                )],
+                handling: Handling::Crash,
+            };
         }
         if roll == 5 {
             let arrays: Vec<(String, i128)> = scope

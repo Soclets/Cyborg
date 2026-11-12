@@ -8,7 +8,7 @@
 ///   a number with `as`, which fails when its text doesn't fit; bounded integers from literals that fit or
 ///   checked values; `f32.stable` and `f64.stable` from exact literals and ones marked `~`;
 ///   `const` from literals and other constants; `type.alias` names used as their integer, and
-///   `type.new` names, alone or in a `fam.type.new` family, crossing in and out with `as`; `decl mut` with an `assign` on each path;
+///   `type.new` names, alone or in a `fam.type.new` family, crossing in and out with `as`; `decl` and `decl mut` with an `assign` straight after, in both arms of an `if`, or in every arm of a `match`;
 /// - maths: `+`, `-`, `x`, the `.wrap` and `.saturate` words, `div` and `mod` with `.trunc` and
 ///   `.floor`, a bare `div` on floats, the `.bit` operators, and `shl` and `shr` on unsigned
 ///   types; comparisons and comparison chains; `and`, `or`, `and.both`, `or.both` and `not`;
@@ -63,6 +63,7 @@
 ///   `on.target aarch64:` branch whose `else:` works out the same value; and a
 ///   `union.@csup::untagged` declared in a shield, built in another with one integer field and
 ///   `rest = all 0`, and read back as any field;
+/// - recursion: `rsum`, which calls itself, and `reven` and `rodd`, which call each other;
 /// - printing: `fmt_print` to an unbuffered writer, one to three values per print, with plain,
 ///   numbered or named holes, shapes for width, alignment, bases, `zeros`, `sign`, `places:` and
 ///   `form: science`, and escaped braces and `{tab}` in the text.
@@ -77,7 +78,6 @@ pub const NOT_GENERATED: &[&str] = &[
     "2.14 `as` between other types, which isn't decided (12.3), `as` failures handled",
     "2.16 still to do: `use std::units::… as …`, `std`'s `time.seconds` as integer points and spans, and units on generic parameters, which come with generics; undecided: `std`'s other units (12.2)",
     "2.18 named types over structs, lists or strings, `fam.type.alias`, maths on a `type.new`",
-    "2.19 `decl` assigned in loops or `match` arms, or never changed",
     "2.21 `simd` with one value, chunks, shuffles, `pick`, lookups, `lanes: max`, floats in lanes, `as` from arrays",
     "2.22 `bool.secret` values with `and.both`, `or.both` and `not`, secrets in arrays and `simd`, shifts on secrets",
     "4.4 `for` over a fresh collection, since generated functions don't return arrays or lists yet",
@@ -86,6 +86,6 @@ pub const NOT_GENERATED: &[&str] = &[
     "7.x structs holding other structs, lists or borrows, beyond the `must_Give` holder, handing unions to functions",
     "8.x named sets of failures, a `case` reading a failure's data, arms that `return`, `break` or `fail`, handler narrowings and `*`",
     "9.x still to do: tasks on `os::threads` and `os::events`, tasks that borrow, locks and atomics; `pub` and `use` between packages, once programs have more than one; NotBuiltYet: `.at(address:)`, which points at hardware the oracle doesn't have; undecided: a shield's own `requires` and `ensures` (12.9), your own allocator (2.10)",
-    "10.x build modes beyond comparing outputs",
-    "recursion, since calls only reach functions declared earlier",
+    "10.x compiler-only: build modes, since the oracle runs one way and the live comparison runs every mode against it",
+    "recursion in generated functions, beyond the three fixed ones",
 ];

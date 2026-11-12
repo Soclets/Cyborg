@@ -619,11 +619,26 @@ pub enum Statement {
     /// (2.19).
     DeclAssign {
         name: String,
+        /// `decl mut`, which can change after, or `decl`, which can't.
+        mutable: bool,
         kind: Kind,
         test: Expression,
         then_value: Expression,
         else_value: Expression,
     },
+    /// `decl $d: i32;` or `decl mut`, with no value yet (2.19).
+    Decl {
+        name: String,
+        mutable: bool,
+        kind: Kind,
+    },
+    /// `assign $d = …;`, a `decl`'s value, once on each path (2.19).
+    Assign {
+        name: String,
+        value: Expression,
+    },
+    /// Statements that belong together, printed one after another.
+    Sequence(Vec<Statement>),
     /// `const $k: i32 = 60 times.wrap 60;`, known when compiling (2.3).
     Const {
         name: String,
@@ -803,6 +818,9 @@ pub struct Function {
 #[derive(Clone, Debug)]
 pub struct Program {
     pub unit_families: Vec<UnitFamily>,
+    /// Whether `rsum`, which calls itself, and `reven` and `rodd`, which call each other, are
+    /// declared (5.1).
+    pub recursion: bool,
     /// A C union, declared in a shield, with its integer fields (9.6, D398).
     pub untagged: Option<(String, Vec<(String, Kind)>)>,
     pub tokens: Option<Tokens>,
@@ -1111,6 +1129,11 @@ pub fn print(program: &Program) -> String {
     }
     if let Some(generics) = &program.generics {
         print_generics(&mut out, generics);
+    }
+    if program.recursion {
+        out.push_str("fn rsum [$n: u64] -> u64:\n    if $n == 0:\n        return 0;\n    end if\n    return $n plus.wrap rsum($n - 1);\nend fn rsum\n\n");
+        out.push_str("fn reven [$n: u64] -> u64:\n    if $n == 0:\n        return 1;\n    end if\n    return rodd($n - 1);\nend fn reven\n\n");
+        out.push_str("fn rodd [$n: u64] -> u64:\n    if $n == 0:\n        return 0;\n    end if\n    return reven($n - 1);\nend fn rodd\n\n");
     }
     if let Some(tokens) = &program.tokens {
         print_tokens(&mut out, tokens);
@@ -1487,14 +1510,28 @@ fn print_block(out: &mut String, statements: &[Statement], depth: usize, style: 
                 print_block(out, body, depth + 1, style);
                 let _ = writeln!(out, "{indent}end for{closer}");
             }
+            Statement::Decl {
+                name,
+                mutable,
+                kind,
+            } => {
+                let word = if *mutable { "decl mut" } else { "decl" };
+                let _ = writeln!(out, "{indent}{word} ${name}: {};", kind.word());
+            }
+            Statement::Assign { name, value } => {
+                let _ = writeln!(out, "{indent}assign ${name} = {};", style.expression(value));
+            }
+            Statement::Sequence(statements) => print_block(out, statements, depth, style),
             Statement::DeclAssign {
                 name,
+                mutable,
                 kind,
                 test,
                 then_value,
                 else_value,
             } => {
-                let _ = writeln!(out, "{indent}decl mut ${name}: {};", kind.word());
+                let word = if *mutable { "decl mut" } else { "decl" };
+                let _ = writeln!(out, "{indent}{word} ${name}: {};", kind.word());
                 let _ = writeln!(out, "{indent}if {}:", style.expression(test));
                 let _ = writeln!(
                     out,
