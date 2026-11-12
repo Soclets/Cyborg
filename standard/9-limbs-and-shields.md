@@ -311,7 +311,7 @@ let $total: i64 = @concur::task.done(Give $left) + @concur::task.done(Give $righ
 
 Sharing follows the ownership words: `Give` hands a value to one task, `Lend` lets many read, and `Lend.mut` goes to one task only, so data races can't happen. A list is changed in parallel by splitting it into parts that don't overlap, with `$xs.%%split.mut(at.items: 500)`. Results come back through each task's own join, so they don't depend on which task finishes first.
 
-A lock holds its data, and locking gives a `Lend.mut` of it for one block, unlocking when the block ends, however it ends. Several locks are taken in one block, always in an order set by the locks themselves, and nesting is refused, so deadlocks can't happen. Which task locks first changes between runs, so locks are where timing can reach results.
+A lock holds its data, made with `@concur::lock.new(0)`, or `@concur::lock.new(Give $list)` for a value that owns something. A lock holding a `must_Give` value is `must_Give` too, and ends with `@concur::lock.done`, which gives the value back. Locking gives a `Lend.mut` of it for one block, unlocking when the block ends, however it ends. Several locks are taken in one block, always in an order set by the locks themselves, and nesting is refused, so deadlocks can't happen. Which task locks first changes between runs, so locks are where timing can reach results.
 
 ```
 @concur::locked $from, $to as $a, $b:
@@ -356,4 +356,4 @@ There's no `async` or `await`. A function that waits takes the runner, and the r
 
 **Refused:** a task that isn't joined; a spawn onto an event runner without `stack:`, or with less than the task is known to need; two tasks both given `Lend.mut` of one thing; locking inside a locked block; and the same lock twice in one block.
 
-**From:** D343, D344, D345, D346, D347, D348, D349, D350, D351, D352, D353, D354, D355, D356, D357, D358, D359, D360, D361, D375, D376, D377, D378, D380.
+**From:** D343, D344, D345, D346, D347, D348, D349, D350, D351, D352, D353, D354, D355, D356, D357, D358, D359, D360, D361, D375, D376, D377, D378, D380, D383.
