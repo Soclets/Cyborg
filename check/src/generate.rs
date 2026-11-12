@@ -4808,7 +4808,9 @@ impl Generator<'_> {
             }
         }
         if let Some((list, kind, max)) = self.random.pick(&scope.lists).cloned() {
-            if self.random.chance(50) {
+            // Whether a pure function may fail, as appending to a full list can, isn't decided
+            // (12.5), so a pure one doesn't append.
+            if !self.pure_only && self.random.chance(50) {
                 // The value doesn't read the list, since reading a list in the call that lends
                 // it to change isn't decided.
                 let lists = std::mem::take(&mut scope.lists);
@@ -5241,11 +5243,13 @@ impl Generator<'_> {
         }
         let mut operator = *self.random.pick(&Operator::ALL).unwrap_or(&Operator::Add);
         // Whether plain `-` and `x` follow `+`'s overflow row isn't decided (12.3), so they're
-        // usually their `.wrap` forms here, to keep more programs in scope.
-        if self.random.chance(70) {
+        // usually their `.wrap` forms here, to keep more programs in scope, and what `shl` does
+        // when bits fall off isn't either, so it's usually `shr`.
+        if self.random.chance(85) {
             operator = match operator {
                 Operator::Subtract => Operator::MinusWrap,
                 Operator::Multiply => Operator::TimesWrap,
+                Operator::ShiftLeft => Operator::ShiftRight,
                 other => other,
             };
         }
