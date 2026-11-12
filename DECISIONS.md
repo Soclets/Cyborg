@@ -1210,6 +1210,8 @@ A `type_set` is a closed list of types that nothing can join later, as in `type_
 
 **D354. Atomics are strictest by default, with weaker orderings as narrowings.** `@concur::atomic<u64>` is an integer or `bool` many tasks change without a lock, through the CPU's own indivisible instructions, for counters, flags and statistics. It's shared with plain `Lend`, like a lock (D348). `.%add(val: 1)` is checked for overflow like `+`, with `.%add.wrap` and `.%add.saturate` when meant (D295). The bare form uses the strictest memory ordering, sequentially consistent, where every task sees changes in one agreed order, since under D318 it's what people expect and the safe one. The weaker orderings, like `.%load.acquire()` and `.%add.relaxed(val: 1)`, are narrowings for experts, the sharp tool asked for by name (D329), and they can give surprising values but never corrupt memory, so they need no shield. Other operations, like swapping and compare-and-swap, and the names, are not settled here. Claude proposed it; the owner chose: "yea". (Owner, 2026-11-12)
 
+**D355. Tasks need no special block.** D343's sketched `parallel: … end parallel` is dropped: a task can start in any block, like a function body, a loop or an `if`, and still be structured, since it's `must_Give` and so must be joined before that block ends, however it ends, and a task holding a borrow is already made to end before what it borrows by the borrow checker. That's one less construct, with structure coming from rules Cyborg already has (D325, D169). Claude proposed it; the owner asked "What's `ends`", and chose: "yea". (Owner, 2026-11-12)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude
