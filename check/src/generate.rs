@@ -304,6 +304,21 @@ impl Generator<'_> {
                 self.union_statement(scope, 2, prints)
             }
             0..=3 if self.random.chance(8) => self.constant(scope),
+            0..=3 if self.random.chance(8) => {
+                let kind = self.integer_kind();
+                let test = self.expression(scope, Type::Bool, LIMITS.depth);
+                let then_value = self.expression(scope, Type::Integer(kind), LIMITS.depth);
+                let else_value = self.expression(scope, Type::Integer(kind), LIMITS.depth);
+                let name = self.name("d");
+                scope.variables.push((name.clone(), Type::Integer(kind)));
+                Statement::DeclAssign {
+                    name,
+                    kind,
+                    test,
+                    then_value,
+                    else_value,
+                }
+            }
             9 if depth < 2 && !scope.cased.is_empty() && self.random.chance(60) => {
                 self.union_statement(scope, depth, prints)
             }
@@ -1206,10 +1221,12 @@ impl Generator<'_> {
         }
         if roll < 4 {
             let and = self.random.chance(50);
+            let both = self.random.chance(25);
             let left = self.boolean(scope, depth - 1);
             let right = self.boolean(scope, depth - 1);
             return Expression::Logic {
                 and,
+                both,
                 left: Box::new(left),
                 right: Box::new(right),
             };

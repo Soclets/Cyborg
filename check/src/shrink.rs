@@ -289,12 +289,18 @@ fn expression_cuts(value: &Expression) -> Vec<Expression> {
                 });
             }
         }
-        Expression::Logic { and, left, right } => {
+        Expression::Logic {
+            and,
+            both,
+            left,
+            right,
+        } => {
             found.push((**left).clone());
             found.push((**right).clone());
             for smaller in expression_cuts(left) {
                 found.push(Expression::Logic {
                     and: *and,
+                    both: *both,
                     left: Box::new(smaller),
                     right: right.clone(),
                 });

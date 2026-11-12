@@ -226,6 +226,8 @@ pub enum Expression {
     /// `and` when true, `or` when false.
     Logic {
         and: bool,
+        /// `and.both` or `or.both`, which run both sides (3.6).
+        both: bool,
         left: Box<Expression>,
         right: Box<Expression>,
     },
@@ -404,6 +406,15 @@ pub enum Statement {
         array: String,
         changes: bool,
         body: Vec<Statement>,
+    },
+    /// `decl mut $d: i32;` then an `if` that gives it a value on each path with `assign`
+    /// (2.19).
+    DeclAssign {
+        name: String,
+        kind: Kind,
+        test: Expression,
+        then_value: Expression,
+        else_value: Expression,
     },
     /// `const $k: i32 = 60 times.wrap 60;`, known when compiling (2.3).
     Const {
@@ -740,6 +751,28 @@ fn print_block(out: &mut String, statements: &[Statement], depth: usize, style: 
                 print_block(out, body, depth + 1, style);
                 let _ = writeln!(out, "{indent}end for");
             }
+            Statement::DeclAssign {
+                name,
+                kind,
+                test,
+                then_value,
+                else_value,
+            } => {
+                let _ = writeln!(out, "{indent}decl mut ${name}: {};", kind.word());
+                let _ = writeln!(out, "{indent}if {}:", style.expression(test));
+                let _ = writeln!(
+                    out,
+                    "{indent}    assign ${name} = {};",
+                    style.expression(then_value)
+                );
+                let _ = writeln!(out, "{indent}else:");
+                let _ = writeln!(
+                    out,
+                    "{indent}    assign ${name} = {};",
+                    style.expression(else_value)
+                );
+                let _ = writeln!(out, "{indent}end if");
+            }
             Statement::Const { name, kind, value } => {
                 let _ = writeln!(
                     out,
@@ -871,14 +904,26 @@ impl Style {
                 }
                 text
             }
-            Expression::Logic { and, left, right } => {
+            Expression::Logic {
+                and,
+                both,
+                left,
+                right,
+            } => {
                 let level = if *and { 7 } else { 8 };
-                let (left, right) = if self.fewer_brackets {
+                // The table doesn't list the `.both` forms, so their sides are always grouped.
+                let (left, right) = if self.fewer_brackets && !both {
                     (self.side(left, level, false), self.side(right, level, true))
                 } else {
                     (self.grouped(left), self.grouped(right))
                 };
-                format!("{left} {} {right}", if *and { "and" } else { "or" })
+                let word = match (and, both) {
+                    (true, false) => "and",
+                    (true, true) => "and.both",
+                    (false, false) => "or",
+                    (false, true) => "or.both",
+                };
+                format!("{left} {word} {right}")
             }
             Expression::Not(inner) => {
                 let inner = if self.fewer_brackets {
@@ -942,9 +987,12 @@ impl Style {
             Expression::Binary { operator, .. } => operator.level(),
             Expression::Compare { .. } => Some(5),
             Expression::Not(_) => Some(6),
-            Expression::Logic { and, .. } => Some(if *and { 7 } else { 8 }),
-            // A chain is grouped wherever it sits, so it's never read as a longer chain.
-            Expression::Chain { .. } => None,
+            Expression::Logic {
+                and, both: false, ..
+            } => Some(if *and { 7 } else { 8 }),
+            // A chain is grouped wherever it sits, so it's never read as a longer chain, and so
+            // is a `.both` form, which the table doesn't list.
+            Expression::Chain { .. } | Expression::Logic { .. } => None,
             _ => return self.grouped(value),
         };
         match inner {
