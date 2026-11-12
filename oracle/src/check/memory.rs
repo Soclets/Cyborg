@@ -92,6 +92,11 @@ impl Checker<'_> {
             ExpressionKind::Hand { value, .. } => value,
             _ => value,
         };
+        // A field of something you own can be handed off whole, as in `Give $b.items`. (D177)
+        // trace: D177
+        if let ExpressionKind::Field { .. } = &inner.kind {
+            return self.type_from_form(inner);
+        }
         let ExpressionKind::Variable(name) = &inner.kind else {
             return None;
         };
