@@ -167,7 +167,7 @@ impl Checker<'_> {
             .any(|scope| scope.values().any(|found| *found == slot))
     }
 
-    fn refuse_invalidated(&self, slot: usize, span: Span) -> Outcome<()> {
+    pub(super) fn refuse_invalidated(&self, slot: usize, span: Span) -> Outcome<()> {
         let Some(variable) = self.context.variables.get(slot) else {
             return Ok(());
         };

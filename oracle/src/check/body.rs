@@ -1860,6 +1860,12 @@ impl Checker<'_> {
         // trace: D173
         self.note_use_at(&held.root_name, &keys, UseKind::Write, target.span);
         let node = self.check_into(value, &held.value_type)?;
+        // The value is worked out before the write, so a stored `Lend.mut` written through
+        // here is still held while the value reads what it borrows. (D2, D169)
+        // trace: D2, D169
+        if let Some(slot) = self.find_variable(&held.root_name) {
+            self.refuse_invalidated(slot, target.span)?;
+        }
         Ok(InstructionKind::Set { place, value: node })
     }
 
