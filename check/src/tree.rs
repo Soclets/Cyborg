@@ -443,11 +443,16 @@ pub enum Statement {
         kind: Kind,
         max: i128,
         items: Vec<Expression>,
+        /// For a list that grows: the allocator it takes memory from, `heap` or `arena`, with
+        /// `len.max: inf items`, `list.from`, and a `defer` that ends it (D321, D323, D369).
+        allocator: Option<String>,
     },
-    /// `$l.std::%%append(val: …);`, which stops the program when the list is full (2.10, 8.9).
+    /// `$l.std::%%append(val: …);`, which stops the program when the list is full, or for a
+    /// list that grows, names its allocator and can run out of memory (2.10, 8.9, D321).
     Append {
         list: String,
         value: Expression,
+        allocator: Option<String>,
     },
     /// `change $a[pos: 2] = …;` (2.17)
     ChangeItem {
@@ -600,6 +605,8 @@ pub struct Function {
 
 #[derive(Clone, Debug)]
 pub struct Program {
+    /// The room of an arena `main` makes, if it makes one (D330, D386).
+    pub arena: Option<i128>,
     pub named: Vec<NamedType>,
     pub structs: Vec<StructDecl>,
     pub unions: Vec<UnionDecl>,
@@ -766,6 +773,13 @@ pub fn print(program: &Program) -> String {
     out.push_str("    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();\n");
     out.push_str("    let $runner: std::run::one_thread = std::run::one_thread();\n");
     out.push_str("    let $heap: os::heap = os::heap();\n");
+    if let Some(room) = program.arena {
+        let _ = writeln!(
+            out,
+            "    let $arena: std::mem::arena = std::mem::arena.new(room: {room} bytes, alloc: Lend $heap);"
+        );
+        out.push_str("    defer std::mem::arena.done(Give $arena, alloc: Lend $heap);\n");
+    }
     print_block(&mut out, &program.main, 1, style);
     out.push_str("    return void;\nend fn.main\n");
     out
@@ -822,24 +836,51 @@ fn print_block(out: &mut String, statements: &[Statement], depth: usize, style: 
                 kind,
                 max,
                 items,
+                allocator,
             } => {
-                let items = if items.is_empty() {
+                let shown = if items.is_empty() {
                     "empty".to_string()
                 } else {
                     let items: Vec<String> =
                         items.iter().map(|item| style.expression(item)).collect();
                     format!("[{}]", items.join(", "))
                 };
-                let _ = writeln!(
-                    out,
-                    "{indent}let mut ${name}: std::coll::list<{}>[len.max: {max} items] = {items};",
-                    kind.word()
-                );
+                let kind = kind.word();
+                match allocator {
+                    None => {
+                        let _ = writeln!(
+                            out,
+                            "{indent}let mut ${name}: std::coll::list<{kind}>[len.max: {max} items] = {shown};"
+                        );
+                    }
+                    Some(allocator) => {
+                        let value = if items.is_empty() {
+                            shown
+                        } else {
+                            format!("std::coll::list.from({shown}, alloc: Lend ${allocator})")
+                        };
+                        let _ = writeln!(
+                            out,
+                            "{indent}let mut ${name}: std::coll::list<{kind}>[len.max: inf items] = {value};"
+                        );
+                        let _ = writeln!(
+                            out,
+                            "{indent}defer std::coll::list.done(Give ${name}, alloc: Lend ${allocator});"
+                        );
+                    }
+                }
             }
-            Statement::Append { list, value } => {
+            Statement::Append {
+                list,
+                value,
+                allocator,
+            } => {
+                let allocator = allocator
+                    .as_ref()
+                    .map_or_else(String::new, |found| format!(", alloc: Lend ${found}"));
                 let _ = writeln!(
                     out,
-                    "{indent}${list}.std::%%append(val: {});",
+                    "{indent}${list}.std::%%append(val: {}{allocator});",
                     style.expression(value)
                 );
             }

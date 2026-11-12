@@ -52,6 +52,11 @@ struct Generator<'random> {
     constants: Vec<String>,
     /// Struct variables handed over with `Give`, which are gone from then on.
     given_away: Vec<String>,
+    /// Making `main`, where `$heap` and any `$arena` are, for lists that grow.
+    in_main: bool,
+    arena: Option<i128>,
+    /// Lists that grow, with the allocator each takes memory from.
+    growable: Vec<(String, String)>,
     /// Making a pure function, which calls only pure ones (5.9).
     pure_only: bool,
     /// Making a contract, which calls nothing here (5.5).
@@ -72,6 +77,9 @@ pub fn program(seed: u64) -> Program {
         procedures: Vec::new(),
         constants: Vec::new(),
         given_away: Vec::new(),
+        in_main: false,
+        arena: None,
+        growable: Vec::new(),
         pure_only: false,
         no_calls: false,
         functions: Vec::new(),
@@ -108,6 +116,11 @@ pub fn program(seed: u64) -> Program {
         cased: Vec::new(),
         case_fields: Vec::new(),
     };
+    // An arena with room for a few lists, so some programs run it out (D389).
+    if generator.random.chance(40) {
+        generator.arena = Some(generator.random.between(16, 256));
+    }
+    generator.in_main = true;
     let mut main = generator.block(&mut scope, LIMITS.statements, 0, (true, false));
     // `main` ends by printing what it made, so a program's work shows in its output.
     for statement in main.clone() {
@@ -124,6 +137,7 @@ pub fn program(seed: u64) -> Program {
     }
     let fewer_brackets = generator.random.chance(50);
     Program {
+        arena: generator.arena,
         named: generator.named,
         structs: generator.structs,
         unions: generator.unions,
@@ -1453,7 +1467,16 @@ impl Generator<'_> {
                 let lists = std::mem::take(&mut scope.lists);
                 let value = self.expression(scope, Type::Integer(kind), LIMITS.depth);
                 scope.lists = lists;
-                return Statement::Append { list, value };
+                let allocator = self
+                    .growable
+                    .iter()
+                    .find(|(found, _)| *found == list)
+                    .map(|(_, allocator)| allocator.clone());
+                return Statement::Append {
+                    list,
+                    value,
+                    allocator,
+                };
             }
             if self.random.chance(50) {
                 let position = if self.random.chance(50) {
@@ -1477,11 +1500,23 @@ impl Generator<'_> {
             .collect();
         let name = self.name("l");
         scope.lists.push((name.clone(), kind, max));
+        // In `main`, a list may grow, on the heap or in the arena (D321, D330).
+        let allocator = (self.in_main && self.random.chance(40)).then(|| {
+            if self.arena.is_some() && self.random.chance(60) {
+                "arena".to_string()
+            } else {
+                "heap".to_string()
+            }
+        });
+        if let Some(allocator) = &allocator {
+            self.growable.push((name.clone(), allocator.clone()));
+        }
         Statement::LetList {
             name,
             kind,
             max,
             items,
+            allocator,
         }
     }
 

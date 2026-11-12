@@ -19,7 +19,8 @@
 /// - data: `simd` values from `[ ]` and `all`, maths lane by lane on two of one type, their
 ///   `sum`, `product`, `min_val` and `max_val`, and lane comparisons read with `any_true` and
 ///   `all_true`; arrays from `[ ]` and `all`, and bounded lists from `[ ]` or `empty`, their items by
-///   `pos:` and `offset.items:`, read and changed, and `append` to a bounded list; structs with integer fields in every layout, built with `[ ]`, their fields read
+///   `pos:` and `offset.items:`, read and changed, and `append`; in `main`, lists that grow on the
+///   heap or in an arena with a random `room:`, from `list.from` or `empty`, ended by `defer`; structs with integer fields in every layout, built with `[ ]`, their fields read
 ///   and changed; tagged unions whose cases carry integer data or none, and `match` covering every
 ///   case in any order, an arm naming its case to read its data;
 /// - control: `let`, `change`, `if` and `else`, the test `if $v: T:` on a union's case or an
@@ -42,7 +43,7 @@ pub const NOT_GENERATED: &[&str] = &[
     "2.5 bounded parameters and fields",
     "2.6, 2.7 `.fast` and `.ieee` floats, bounded floats, `exponent` literals, `fmt_print.stored`, floats in structs, arrays and calls",
     "2.9 heap strings, escapes in string literals, comparing strings, strings as values in prints, fields and calls",
-    "2.10 and 2.12 growable lists and maps, allocators, `done`, `.len`, views and splits, a full list's failure handled",
+    "2.10 and 2.12 maps, `.len`, views and splits, a full list's failure handled, growable lists in functions, `grow:`",
     "2.14 `as` between other types, which isn't decided (12.3), `as` failures handled",
     "2.16 units, their conversions, points and spans",
     "2.18 named types over structs, lists or strings, `fam.type.alias`, maths on a `type.new`",
