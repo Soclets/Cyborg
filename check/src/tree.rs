@@ -756,11 +756,11 @@ pub struct Program {
 /// functions, as 5.8 and 3.10 spell them.
 fn print_generics(out: &mut String, generics: &Generics) {
     out.push_str(
-        "interface equatable<?self>:\n    op == [$a: ?self, $b: ?self] -> bool;\nend interface equatable\n\n",
+        "interface equatable<?self>:\n    op == [$a: Lent ?self, $b: Lent ?self] -> bool;\nend interface equatable\n\n",
     );
-    out.push_str("interface ordered<?self>:\n    includes equatable;\n    op below [$a: ?self, $b: ?self] -> bool;\n    law if $a below $b and $b below $c then $a below $c;\nend interface ordered\n\n");
+    out.push_str("interface ordered<?self>:\n    includes equatable;\n    op below [$a: Lent ?self, $b: Lent ?self] -> bool;\n    law if $a below $b and $b below $c then $a below $c;\nend interface ordered\n\n");
     out.push_str(
-        "interface addable<?self>:\n    op + [$a: ?self, $b: ?self] -> ?self;\nend interface addable\n\n",
+        "interface addable<?self>:\n    op + [$a: Lent ?self, $b: Lent ?self] -> ?self;\nend interface addable\n\n",
     );
     out.push_str("type_set whole:\n    i32;\n    i64;\nend type_set whole\n\n");
     let mut lines: Vec<(String, &str)> = generics

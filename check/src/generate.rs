@@ -2104,10 +2104,9 @@ impl Generator<'_> {
         let point = unit.strip_suffix(".point").is_some();
         let span = unit.strip_suffix(".span").is_some();
         let leak = |text: String| -> &'static str { Box::leak(text.into_boxed_str()) };
-        // Maths makes a combination of units, which only storing it gives its declared name, so
-        // a speed, acceleration or area is made only where it's stored (2.16).
-        let stored = depth == LIMITS.depth;
-        if unit == units.accel && stored {
+        // Maths makes a combination of units, which storing gives its declared name, and which
+        // compares with a value of that name too (2.16, D397).
+        if unit == units.accel {
             if let (Some(speed), Some(time)) = (
                 self.random.pick(&of(units.speed)).cloned(),
                 self.random.pick(&of(units.time)).cloned(),
@@ -2148,7 +2147,7 @@ impl Generator<'_> {
                 };
             }
         }
-        if (unit == units.speed || unit == units.area) && stored {
+        if unit == units.speed || unit == units.area {
             let lengths = of(units.length);
             let times = of(units.time);
             if unit == units.speed {
