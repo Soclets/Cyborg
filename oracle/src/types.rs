@@ -211,6 +211,8 @@ pub enum Type {
         max: Option<i128>,
         /// What `$xs.len` is, counting `items`, and how the list stores its length. (D140)
         len_type: IntegerKind,
+        /// How it grows when it's full. (D385)
+        grow: Growth,
     },
     Array {
         item: Box<Type>,
@@ -406,6 +408,7 @@ impl fmt::Display for Type {
                 min,
                 max,
                 len_type,
+                grow,
             } => {
                 write!(formatter, "std::coll::list<{item}>[")?;
                 if let Some(min) = min {
@@ -420,6 +423,11 @@ impl fmt::Display for Type {
                 }
                 if *len_type != IntegerKind::U64 {
                     write!(formatter, ", len.type: {}", len_type.word())?;
+                }
+                match grow {
+                    Growth::Double => {}
+                    Growth::Exact => write!(formatter, ", grow: exact")?,
+                    Growth::By { count, unit } => write!(formatter, ", grow: by {count} {unit}")?,
                 }
                 write!(formatter, "]")
             }
@@ -453,6 +461,14 @@ impl fmt::Display for Type {
             } => write_borrow(formatter, *mutable, sources, inner),
         }
     }
+}
+
+/// How a growable list grows when it's full: doubling, unless its type says `grow:`. (D385)
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum Growth {
+    Double,
+    Exact,
+    By { count: i128, unit: String },
 }
 
 /// A view onto part of a list that lives elsewhere: half of a split, through which reads and

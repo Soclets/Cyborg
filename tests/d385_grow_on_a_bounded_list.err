@@ -1,0 +1,5 @@
+NotDesignedYet: d385_grow_on_a_bounded_list.cy:6:52, line 6 column 52
+ 6 |     let $a: std::coll::list<i32>[len.max: 4 items, grow: exact] = empty;
+   |                                                    ^^^^
+ what: `grow:` on a list with a finite `len.max`, which never grows
+ why:  not decided yet, and the standard doesn't say

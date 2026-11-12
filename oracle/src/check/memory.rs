@@ -405,6 +405,7 @@ impl Checker<'_> {
             min,
             max: None,
             len_type,
+            grow,
         }) = target.clone()
         else {
             return Err(Report::refused(
@@ -446,6 +447,7 @@ impl Checker<'_> {
             min,
             max: Some(count),
             len_type,
+            grow: grow.clone(),
         };
         let (items_node, _) = self.check_expression(&items.value, Some(&holder))?;
         let mut handed = Vec::new();
@@ -463,6 +465,7 @@ impl Checker<'_> {
                 min,
                 max: None,
                 len_type,
+                grow,
             },
             failures: vec![out_of_memory()],
             unnamed: None,

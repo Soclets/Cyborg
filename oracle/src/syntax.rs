@@ -3119,6 +3119,22 @@ impl Parser {
                         span: path.span,
                         kind: ExpressionKind::Path(path),
                     }
+                } else if label.text == "grow" && self.at_word("by") {
+                    // `grow: by 4 kib` grows in fixed steps. (D385)
+                    // trace: D385
+                    self.advance();
+                    let value = self.parse_compare()?;
+                    describe.push(Describe {
+                        label: Path {
+                            text: "grow.by".to_string(),
+                            span: label.span,
+                        },
+                        value,
+                    });
+                    if !self.eat_symbol(",") {
+                        break;
+                    }
+                    continue;
                 } else {
                     self.parse_compare()?
                 };

@@ -1182,6 +1182,7 @@ impl Checker<'_> {
                     min,
                     max,
                     len_type,
+                    ..
                 },
             ) => {
                 // trace: D140

@@ -1,0 +1,5 @@
+refused: d385_grow_says_how.cy:8:64, line 8 column 64
+ 8 |     let mut $a: std::coll::list<i32>[len.max: inf items, grow: fast] = empty;
+   |                                                                ^^^^
+ what: `grow:` is `exact`, or `by` a size
+ why:  a growable list doubles when it's full, unless it says `grow: exact` or `grow: by 4 kib` or `grow: by 64 items` (D385)

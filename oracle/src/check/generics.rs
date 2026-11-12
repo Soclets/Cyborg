@@ -889,11 +889,13 @@ impl Filled {
                 min,
                 max,
                 len_type,
+                grow,
             } => Type::List {
                 item: Box::new(self.put_into(item)),
                 min: *min,
                 max: *max,
                 len_type: *len_type,
+                grow: grow.clone(),
             },
             Type::Array {
                 item,

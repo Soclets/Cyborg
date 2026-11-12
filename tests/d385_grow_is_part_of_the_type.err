@@ -1,0 +1,5 @@
+NotDesignedYet: d385_grow_is_part_of_the_type.cy:15:11, line 15 column 11
+15 |     count(Lend.mut $a);
+   |           ^^^^^^^^^^^
+ what: whether `std::coll::list<i32>[len.max: inf items, grow: exact]` is accepted where `std::coll::list<i32>[len.max: inf items]` is asked for
+ why:  not decided yet, and the standard doesn't say

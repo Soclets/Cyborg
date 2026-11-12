@@ -3065,6 +3065,45 @@ impl Checker<'_> {
         }
     }
 
+    /// `grow: exact`, `grow: by 4 kib` or `grow: by 64 items`. (D385)
+    /// trace: D385
+    fn read_growth(entry: &Describe) -> Outcome<crate::types::Growth> {
+        const WHY: &str = "a growable list doubles when it's full, unless it says `grow: exact` or `grow: by 4 kib` or `grow: by 64 items` (D385)";
+        if entry.label.text == "grow" {
+            return match &entry.value.kind {
+                crate::ast::ExpressionKind::Path(path) if path.text == "exact" => {
+                    Ok(crate::types::Growth::Exact)
+                }
+                _ => Err(Report::refused(
+                    entry.value.span,
+                    "`grow:` is `exact`, or `by` a size",
+                    WHY,
+                )),
+            };
+        }
+        let crate::ast::ExpressionKind::WithUnit { number, unit } = &entry.value.kind else {
+            return Err(Report::refused(
+                entry.value.span,
+                "`grow: by` takes a number with its unit, `items`, `bytes`, `kib` or `mib`",
+                WHY,
+            ));
+        };
+        let count = expression::literal_integer(number).filter(|count| *count > 0);
+        match (count, unit.text.as_str()) {
+            (Some(count), unit @ ("items" | "bytes" | "kib" | "mib")) => {
+                Ok(crate::types::Growth::By {
+                    count,
+                    unit: unit.to_string(),
+                })
+            }
+            _ => Err(Report::refused(
+                entry.value.span,
+                "`grow: by` takes a whole number above zero of `items`, `bytes`, `kib` or `mib`",
+                WHY,
+            )),
+        }
+    }
+
     #[allow(clippy::too_many_lines)] // Lists, arrays and maps all read their labels here.
     fn resolve_std_type(
         &self,
@@ -3118,9 +3157,17 @@ impl Checker<'_> {
                 let (mut len, mut min, mut max) = (None, None, None);
                 // trace: D140
                 let mut len_type = IntegerKind::U64;
+                // trace: D385
+                let mut grow = crate::types::Growth::Double;
+                let mut grow_entry = None;
                 for entry in describe {
                     if entry.label.text == "len.type" {
                         len_type = Self::read_length_type(&entry.value)?;
+                        continue;
+                    }
+                    if entry.label.text == "grow" || entry.label.text == "grow.by" {
+                        grow = Self::read_growth(entry)?;
+                        grow_entry = Some(entry);
                         continue;
                     }
                     let value = Self::read_item_count(&entry.value)?;
@@ -3188,11 +3235,20 @@ impl Checker<'_> {
                         }
                     }
                     Self::refuse_count_too_big(max_value, len_type, max_entry)?;
+                    // Only a list that can grow says how. (D385)
+                    if let (Some(_), Some(entry)) = (max_value, &grow_entry) {
+                        return Err(Report::not_designed(
+                            entry.label.span,
+                            "`grow:` on a list with a finite `len.max`, which never grows",
+                            "",
+                        ));
+                    }
                     return Ok(Type::List {
                         item,
                         min: min_value,
                         max: max_value,
                         len_type,
+                        grow,
                     });
                 }
                 if let Some((_, entry)) = min.or(max) {
