@@ -1238,6 +1238,8 @@ A `type_set` is a closed list of types that nothing can join later, as in `type_
 
 **D368. Copying a view needs no word, and a `let mut` view can point at other text.** A bare `str` is a pointer and a length to read-only text (D327), so copying one can't change or free anything, and `let $k: str = $s;` needs no `Copy`, like a plain number (6.6): under D182's test, a word there would hide no mistake. Owned strings, with a `len.max`, still take `Copy` or `Give`, so 6.7's example now copies a `str[len.max: 32 bytes]`. A view's text can't change, but `let mut $s: str = "a";` then `change $s = "b";` points the variable at other text, so 2.9's "can't change" means the text. Oracle claude asked both; Claude proposed them; the owner chose: "yea". (Owner, 2026-11-12)
 
+**D369. Growable lists and strings are filled from literals with `std::list.from` and `str.from`.** `let $xs: std::list<i32>[len.max: inf items] = [1, 2, 3];` is refused, since filling a growable list allocates and every allocation names its allocator (D321), with `fix: std::list.from([1, 2, 3], alloc: Lend $heap)`. A string literal given straight to a `str[len.max: inf bytes]` is refused the same way, with `fix: str.from("abc", alloc: Lend $heap)`, and `str.from` takes a string as well as a number (D328). Bounded lists and strings still take literals directly, as in `str[len.max: 32 bytes] = "abc"`, since they need no allocator. Oracle claude asked; Claude proposed it; the owner chose: "yea". (Owner, 2026-11-12)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude
