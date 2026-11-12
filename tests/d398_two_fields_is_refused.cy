@@ -18,7 +18,7 @@ end shield c_number
 fn.main [none] -> void:
     shield bits:
         reason "two fields at once"
-        let $n: union.@csup::untagged number = number[i = 1, b = 2];
+        let $n: union.@csup::untagged number = number[i = 1, b = 2, rest = all 0];
     end shield bits
     return void;
 end fn.main

@@ -13,6 +13,8 @@ mod secrets;
 mod simd;
 mod units;
 mod untagged;
+
+pub(crate) use untagged::field_bytes;
 mod writers;
 
 use std::collections::{HashMap, HashSet};

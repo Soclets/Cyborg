@@ -1,0 +1,5 @@
+refused: d402_rest_empty_is_refused.cy:21:65, line 21 column 65
+21 |         let $n: union.@csup::untagged bits = bits[b = 1, rest = empty];
+   |                                                                 ^^^^^
+ fix:  `all 0`
+ why:  a union fills the rest of its bytes with `rest = all 0`, as `all 0` fills an array (D402, D103)

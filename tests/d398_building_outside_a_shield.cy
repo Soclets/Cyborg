@@ -16,6 +16,6 @@ end shield c_number
 
 
 fn.main [none] -> void:
-    let $n: union.@csup::untagged number = number[i = 1];
+    let $n: union.@csup::untagged number = number[i = 1, rest = all 0];
     return void;
 end fn.main

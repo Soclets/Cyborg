@@ -1,0 +1,5 @@
+check failed: d401_a_stable_float_from_nan_bits.cy:22:30, line 22 column 30
+22 |         let $x: f32.stable = $n.f;
+   |                              ^^^^
+ what: this reads a `f32.stable` from bits that make NaN or infinity
+ why:  a union's field is checked like any value of its type, and a float can't be NaN or infinity (D401, D158)

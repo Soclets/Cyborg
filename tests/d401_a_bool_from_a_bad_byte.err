@@ -1,0 +1,5 @@
+check failed: d401_a_bool_from_a_bad_byte.cy:23:26, line 23 column 26
+23 |         let $yes: bool = $n.flag;
+   |                          ^^^^^^^
+ what: this reads a `bool` from the byte 2, which is neither 0 nor 1
+ why:  a union's field is checked like any value of its type, and a `bool` is 0 or 1 (D401)

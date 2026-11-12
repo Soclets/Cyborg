@@ -1193,11 +1193,13 @@ impl<'c> Runner<'c> {
                     .ok_or_else(|| oracle_bug(span, "a field wasn't where the checker said"))
             }
             // trace: D398
-            NodeKind::Encode(value, written) => {
+            NodeKind::Encode(value, written, size) => {
                 let value = self.evaluate(value, frame)?;
-                encode(&value, written)
-                    .map(Value::Bytes)
-                    .ok_or_else(|| oracle_bug(span, "a C union field the checker let through"))
+                let mut bytes = encode(&value, written)
+                    .ok_or_else(|| oracle_bug(span, "a C union field the checker let through"))?;
+                // `rest = all 0`: every byte the field doesn't cover is 0. (D402)
+                bytes.resize((*size).max(bytes.len()), 0);
+                Ok(Value::Bytes(bytes))
             }
             // trace: D398
             NodeKind::Decode(union, read) => {
@@ -2887,22 +2889,9 @@ fn decibels(
     })
 }
 
-/// How many bytes a C union field takes.
-fn field_bytes(field: &crate::types::Type) -> Option<usize> {
-    match field {
-        crate::types::Type::Integer { kind, .. } => usize::try_from(kind.bits() / 8).ok(),
-        crate::types::Type::Float { kind, .. } => Some(match kind {
-            crate::types::FloatKind::F32 => 4,
-            crate::types::FloatKind::F64 => 8,
-        }),
-        crate::types::Type::Bool => Some(1),
-        _ => None,
-    }
-}
-
 /// A C union field's bytes, least significant first, as on every target. (D398)
 fn encode(value: &Value, written: &crate::types::Type) -> Option<Vec<u8>> {
-    let size = field_bytes(written)?;
+    let size = crate::check::field_bytes(written)?;
     match value {
         Value::Integer(number) => Some(number.to_le_bytes().get(..size)?.to_vec()),
         Value::F32(number) => Some(number.to_le_bytes().to_vec()),
@@ -2912,22 +2901,15 @@ fn encode(value: &Value, written: &crate::types::Type) -> Option<Vec<u8>> {
     }
 }
 
-/// A C union field read from the bytes another field wrote. Reading more bytes than were
-/// written, a `bool` from a byte that's neither 0 nor 1, and a `.stable` float from bits that
-/// make NaN or infinity aren't said. (D398)
+/// A C union field read from its bytes, checked like any value of its type, so a `bool` from a
+/// byte that's neither 0 nor 1, or a `.stable` float from bits that make NaN or infinity, is a
+/// failure, as 10.4 says for `Working`. (D398, D401)
 fn decode(bytes: &[u8], read: &crate::types::Type, span: Span) -> Result<Value, Stop> {
-    let size = field_bytes(read)
+    let size = crate::check::field_bytes(read)
         .ok_or_else(|| oracle_bug(span, "a C union field the checker let through"))?;
-    let Some(used) = bytes.get(..size) else {
-        return Err(Stop::Report(Report::not_designed(
-            span,
-            format!(
-                "reading {size} bytes of a C union whose field written holds {}",
-                bytes.len()
-            ),
-            "",
-        )));
-    };
+    let used = bytes
+        .get(..size)
+        .ok_or_else(|| oracle_bug(span, "a C union smaller than its field"))?;
     match read {
         crate::types::Type::Integer { kind, .. } => {
             let (low, _) = kind.range();
@@ -2964,10 +2946,10 @@ fn decode(bytes: &[u8], read: &crate::types::Type, span: Span) -> Result<Value, 
                 _ => true,
             };
             if !finite && *rules != crate::types::FloatRules::Ieee {
-                return Err(Stop::Report(Report::not_designed(
+                return Err(Stop::Report(Report::check_failed(
                     span,
-                    format!("a `{read}` read from bits that make NaN or infinity"),
-                    "",
+                    format!("this reads a `{read}` from bits that make NaN or infinity"),
+                    "a union's field is checked like any value of its type, and a float can't be NaN or infinity (D401, D158)",
                 )));
             }
             Ok(value)
@@ -2975,11 +2957,12 @@ fn decode(bytes: &[u8], read: &crate::types::Type, span: Span) -> Result<Value, 
         crate::types::Type::Bool => match used.first() {
             Some(0) => Ok(Value::Bool(false)),
             Some(1) => Ok(Value::Bool(true)),
-            _ => Err(Stop::Report(Report::not_designed(
+            Some(other) => Err(Stop::Report(Report::check_failed(
                 span,
-                "a `bool` read from a byte that's neither 0 nor 1",
-                "",
+                format!("this reads a `bool` from the byte {other}, which is neither 0 nor 1"),
+                "a union's field is checked like any value of its type, and a `bool` is 0 or 1 (D401)",
             ))),
+            None => Err(oracle_bug(span, "a `bool` with no byte")),
         },
         _ => Err(oracle_bug(span, "a C union field the checker let through")),
     }

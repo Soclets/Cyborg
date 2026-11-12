@@ -1,5 +1,0 @@
-NotDesignedYet: d398_reading_more_than_was_written.cy:22:23, line 22 column 23
-22 |         let $w: i64 = $n.w;
-   |                       ^^^^
- what: reading 8 bytes of a C union whose field written holds 1
- why:  not decided yet, and the standard doesn't say

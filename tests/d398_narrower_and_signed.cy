@@ -20,9 +20,9 @@ fn.main [none] -> void:
     let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     shield bits:
         reason "reading the bytes back as other fields"
-        let $n: union.@csup::untagged number = number[i = -2];
+        let $n: union.@csup::untagged number = number[i = -2, rest = all 0];
         std::io::fmt_print(Lend.mut $out, "{} {}{newln}", $n.b, $n.i);
-        let $m: union.@csup::untagged number = number[f = -0.5];
+        let $m: union.@csup::untagged number = number[f = -0.5, rest = all 0];
         std::io::fmt_print(Lend.mut $out, "{}{newln}", $m.i);
     end shield bits
     return void;

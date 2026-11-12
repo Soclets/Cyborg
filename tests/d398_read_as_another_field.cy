@@ -16,7 +16,7 @@ fn.main [none] -> void:
     let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     shield read_bits:
         reason "reading the bits libfoo wrote as an i32"
-        let $n: union.@csup::untagged number = number[f = 1.5];
+        let $n: union.@csup::untagged number = number[f = 1.5, rest = all 0];
         let $bits: i32 = $n.i;
         std::io::fmt_print(Lend.mut $out, "{}{newln}", $bits);
     end shield read_bits

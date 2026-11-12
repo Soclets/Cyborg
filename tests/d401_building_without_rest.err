@@ -1,0 +1,5 @@
+refused: d401_building_without_rest.cy:21:46, line 21 column 46
+21 |         let $n: union.@csup::untagged bits = bits[b = 1];
+   |                                              ^^^^^^^^^^^
+ fix:  `rest = all 0`
+ why:  the bytes a union's written field doesn't cover are a choice, so the build says it, and `rest = all 0` sets them to 0 (D401, D402)

@@ -200,7 +200,8 @@ pub enum NodeKind {
     Global(usize),
     Field(Box<Node>, usize),
     /// A C union built from one field's value, as that field's bytes. (D398)
-    Encode(Box<Node>, crate::types::Type),
+    /// The bytes it fills come first, and the rest, up to the union's size, are 0. (D402)
+    Encode(Box<Node>, crate::types::Type, usize),
     /// A C union's field read from its bytes. (D398)
     Decode(Box<Node>, crate::types::Type),
     /// An item of something with no variable to walk from, such as a constant or a call's result.

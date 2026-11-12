@@ -1,5 +1,5 @@
 refused: d398_two_fields_is_refused.cy:21:48, line 21 column 48
-21 |         let $n: union.@csup::untagged number = number[i = 1, b = 2];
-   |                                                ^^^^^^^^^^^^^^^^^^^^
+21 |         let $n: union.@csup::untagged number = number[i = 1, b = 2, rest = all 0];
+   |                                                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
  what: this builds `number` with 2 fields, and C's union is built by naming exactly the one written
  why:  a C union's fields share the same bytes, so building one names the field it writes (D398)
