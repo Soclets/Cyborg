@@ -23,6 +23,7 @@
 | [2.19](#219-decl-and-assign) | `decl`, `assign` | A value given later, once |
 | [2.20](#220-types-are-always-written-and-precogs-pick-precogset_to_best) | `@precog::set_to_best` | Precog picks the type |
 | [2.21](#221-simd) | `simd<i32>[lanes: 4]` | Several values worked on by one instruction |
+| [2.22](#222-secrets-secret) | `u32.secret` | A value that can't affect timing |
 
 ## 2.1 `let`
 
@@ -668,3 +669,16 @@ let $out: simd<u8>[lanes: 16] = $table.%lookup(pos: $which);
 **Refused:** a shuffle list only known while running, with `fix: .%lookup`; a lane that doesn't exist, like `pos: [5]` on 4 lanes; a shuffle with neither `pos:` nor `offset.lanes:`; a bare `offset:`, with `fix: offset.lanes:`; changing a chunk from `simd_chunks`; `.%%simd_chunks`, with `fix: .%`, and `.%simd_chunks_mut`, with `fix: .%%`; `if` on a `simd<bool>`, with `fix: .%all_true()` or `.%any_true()`; a bare `simd_chunks`, asking which of the three; `.leftovers` without a `leftovers` section; and a `leftovers` section on any other loop.
 
 **From:** D255, D291, D292, D293, D296, D297, D298, D299, D300, D301, D302, D303, D304, D305, D306, D307.
+
+## 2.22 Secrets: `.secret`
+
+**Rule:** `.secret` on an integer or a `bool` marks a value that mustn't affect how long the program takes, for constant-time code like cryptography. The compiler refuses anything whose timing or path could depend on it. It works inside other types, as in `std::array<u8.secret>[len: 32 items]` or `simd<u8.secret>[lanes: 16]`.
+
+```
+let $key: u32.secret = load_key();
+let $x: u32.secret = $key xor $nonce;
+```
+
+What's allowed and refused on a secret isn't decided yet ([12.7](12-not-decided.md#127-build-modes)).
+
+**From:** D339.
