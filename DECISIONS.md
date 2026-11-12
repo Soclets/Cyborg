@@ -1212,6 +1212,8 @@ A `type_set` is a closed list of types that nothing can join later, as in `type_
 
 **D355. Tasks need no special block.** D343's sketched `parallel: … end parallel` is dropped: a task can start in any block, like a function body, a loop or an `if`, and still be structured, since it's `must_Give` and so must be joined before that block ends, however it ends, and a task holding a borrow is already made to end before what it borrows by the borrow checker. That's one less construct, with structure coming from rules Cyborg already has (D325, D169). Claude proposed it; the owner asked "What's `ends`", and chose: "yea". (Owner, 2026-11-12)
 
+**D356. `spawn` is a prefix before a call.** `@concur::spawn(on: Lend $pool) sum(Lend $xs)` starts `sum` as a task, like Go's `go f(x)`, so turning a call into a task is only adding a prefix and the call keeps its normal look and labels. The arguments, borrows included, are taken where it's written, and only the body runs later, as a task. That's over a block handing back a value with `instead`, which is heavy for a one-line task, and over the function and its arguments apart, like Zig's `io.async(sum, .{xs})`, which loses the call's look. It adds "a prefix before a call" to D335's menu of limb positions, for any limb. Claude proposed it; the owner chose: "yea". (Owner, 2026-11-12)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude
