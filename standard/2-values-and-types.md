@@ -221,7 +221,7 @@ Allocation is explicit, as in Zig: anything that takes heap memory takes an allo
 ```
 let $alloc: os::heap = os::heap();
 let mut $xs: std::list<i32>[len.max: inf items] = empty;
-$xs.%%append(val: 4, alloc: Lend $alloc);
+$xs.std::%%append(val: 4, alloc: Lend $alloc);
 ```
 
 The list doesn't hold its allocator: every call that allocates is handed it, so a list is plain data with no borrow inside, and moves, returns and sits in structs like any other value. The list remembers which allocator it uses, as a small ID, and handing it a different one is a failed check, like a bounds check.
@@ -279,9 +279,11 @@ std::map.hash<key: str, val: i32>
 
 The label names are a placeholder.
 
+A map owns memory, so it's `must_Give` and ends with `std::map.done(Give $m, alloc: Lend $heap)`, like every owner ([6.9](6-ownership.md#69-must_give)).
+
 **Refused:** `std::map.hash<str, i32>`, and a bare `std::map`.
 
-**From:** D24, D25, D138.
+**From:** D24, D25, D138, D325, D331.
 
 ## 2.13 Labels in `< >`
 
