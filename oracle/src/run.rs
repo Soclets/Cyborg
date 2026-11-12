@@ -583,6 +583,7 @@ impl<'c> Runner<'c> {
                 Ok(())
             }
             // Each round's name is the item itself, so a change goes into the list. (D180)
+            InstructionKind::ForChunks(chunks) => self.run_chunks(chunks, frame, span),
             InstructionKind::ForInPlace {
                 loop_id,
                 slot,
@@ -1395,6 +1396,124 @@ impl<'c> Runner<'c> {
 }
 
 impl Runner<'_> {
+    /// `simd_chunks`: whole chunks first, then the leftovers as the loop says. A writing loop
+    /// puts each chunk back at the end of its round, dropping padding. (D299, D300, D303)
+    /// trace: D299, D300, D303
+    fn run_chunks(
+        &mut self,
+        chunks: &crate::ir::ChunkLoop,
+        frame: &mut Frame,
+        span: Span,
+    ) -> Result<(), Stop> {
+        let base = self.binding_of(frame, &chunks.place, span)?;
+        let items = match walk(&base.root.borrow(), &base.path) {
+            Some(Value::List(items, _)) => items.clone(),
+            _ => {
+                return Err(oracle_bug(
+                    span,
+                    "chunks of something that isn't a collection",
+                ))
+            }
+        };
+        let lanes = chunks.lanes;
+        let whole = items.len() / lanes;
+        let left = items.len() % lanes;
+        if left != 0 && matches!(chunks.leftovers, crate::ir::Leftovers::Exact) {
+            return Err(Stop::Report(
+                Report::check_failed(
+                    span,
+                    format!("`{}` isn't a multiple of {lanes} items long", chunks.shown),
+                    "`.exact` requires a multiple, checked while running for a list (D299)",
+                )
+                .when(format!("it holds {} items", items.len())),
+            ));
+        }
+        let pad = match &chunks.leftovers {
+            crate::ir::Leftovers::Pad(pad) if left != 0 => Some(self.evaluate(pad, frame)?),
+            _ => None,
+        };
+        let rounds = whole + usize::from(pad.is_some());
+        for round in 0..rounds {
+            let start = round * lanes;
+            let taken = lanes.min(items.len() - start);
+            let mut chunk: Vec<Value> = items[start..start + taken].to_vec();
+            if let Some(pad) = &pad {
+                chunk.resize(lanes, pad.clone());
+            }
+            Self::set_slot(
+                frame,
+                chunks.slot,
+                Binding::fresh(Value::List(chunk, None)),
+                span,
+            )?;
+            let stop = self.run_loop_body(chunks.loop_id, &chunks.body, frame, span)?;
+            if chunks.writes {
+                Self::write_back(frame, chunks.slot, &base, start, taken, span)?;
+            }
+            if stop {
+                return Ok(());
+            }
+        }
+        if let crate::ir::Leftovers::Apart { slot, body } = &chunks.leftovers {
+            for (index, item) in items.iter().enumerate().skip(whole * lanes) {
+                Self::set_slot(frame, *slot, Binding::fresh(item.clone()), span)?;
+                let stop = self.run_loop_body(chunks.loop_id, body, frame, span)?;
+                if chunks.writes {
+                    let value = Self::slot_value(frame, *slot, span)?;
+                    Self::put_item(&base, index, value, span)?;
+                }
+                if stop {
+                    break;
+                }
+            }
+        }
+        Ok(())
+    }
+
+    /// What a slot holds right now.
+    fn slot_value(frame: &Frame, slot: usize, span: Span) -> Result<Value, Stop> {
+        let Some(Some(binding)) = frame.slots.get(slot) else {
+            return Err(oracle_bug(span, "a chunk with no slot"));
+        };
+        let root = binding.root.borrow();
+        walk(&root, &binding.path)
+            .cloned()
+            .ok_or_else(|| oracle_bug(span, "a chunk that isn't there"))
+    }
+
+    /// Puts a changed chunk's lanes back into the collection, leaving out any padding.
+    fn write_back(
+        frame: &Frame,
+        slot: usize,
+        base: &Binding,
+        start: usize,
+        taken: usize,
+        span: Span,
+    ) -> Result<(), Stop> {
+        let Value::List(lanes, _) = Self::slot_value(frame, slot, span)? else {
+            return Err(oracle_bug(span, "a chunk that isn't lanes"));
+        };
+        for (offset, value) in lanes.into_iter().take(taken).enumerate() {
+            Self::put_item(base, start + offset, value, span)?;
+        }
+        Ok(())
+    }
+
+    fn put_item(base: &Binding, index: usize, value: Value, span: Span) -> Result<(), Stop> {
+        let mut root = base.root.borrow_mut();
+        let Some(Value::List(items, _)) = walk_mut(&mut root, &base.path) else {
+            return Err(oracle_bug(
+                span,
+                "writing back into something that isn't a collection",
+            ));
+        };
+        let Some(found) = items.get_mut(index) else {
+            return Err(oracle_bug(span, "writing back past the end"));
+        };
+        *found = value;
+        Ok(())
+    }
+
     /// A `simd`'s lanes, which run as a list.
     fn lanes(&mut self, node: &Node, frame: &mut Frame) -> Result<Vec<Value>, Stop> {
         match self.evaluate(node, frame)? {

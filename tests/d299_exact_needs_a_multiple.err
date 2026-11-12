@@ -1,0 +1,5 @@
+refused: d299_exact_needs_a_multiple.cy:8:19, line 8 column 19
+ 8 |     for $chunk in $xs.%simd_chunks.exact(lanes: 4):
+   |                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ what: this array has 10 items, which isn't a multiple of 4 lanes
+ why:  `.exact` requires a multiple, checked when compiling for an array, whose `len` is known (D299)

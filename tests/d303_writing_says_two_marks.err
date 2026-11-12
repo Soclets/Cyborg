@@ -1,0 +1,5 @@
+refused: d303_writing_says_two_marks.cy:8:23, line 8 column 23
+ 8 |     for $chunk in $xs.%simd_chunks.mut.pad(lanes: 4, pad: 0):
+   |                       ^^^^^^^^^^^^^^^^^^^^
+ fix:  `%%simd_chunks.mut.pad`
+ why:  `.%` lends a receiver read-only and `.%%` lends it to change, so the call shows which (D211)

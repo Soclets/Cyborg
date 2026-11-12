@@ -1,0 +1,5 @@
+refused: d303_a_read_chunk_is_a_copy.cy:9:16, line 9 column 16
+ 9 |         change $chunk = $chunk + $chunk;
+   |                ^^^^^^
+ what: `$chunk` is a copy from `simd_chunks`, so changing it is refused
+ why:  `simd_chunks` only reads, and `.%%simd_chunks.mut` writes each chunk back into the list or array (D303, D358)

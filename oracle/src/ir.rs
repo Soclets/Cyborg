@@ -98,6 +98,31 @@ pub enum Arithmetic {
     ShiftRight,
 }
 
+/// A `for` over `simd_chunks`. (D299, D300, D303)
+#[derive(Clone, Debug)]
+pub struct ChunkLoop {
+    pub loop_id: usize,
+    pub place: Place,
+    /// How the collection is written, for a failure's message.
+    pub shown: String,
+    pub lanes: usize,
+    pub slot: usize,
+    pub body: Vec<Instruction>,
+    pub leftovers: Leftovers,
+    pub writes: bool,
+}
+
+/// What happens to the items after the last whole chunk. (D299)
+#[derive(Clone, Debug)]
+pub enum Leftovers {
+    /// The last chunk is filled out with this value.
+    Pad(Node),
+    /// A list's length has to be a multiple, checked as the loop starts.
+    Exact,
+    /// Each leftover item goes through this section, in this slot.
+    Apart { slot: usize, body: Vec<Instruction> },
+}
+
 /// How a `simd`'s lanes combine into one value. (D297)
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Reduction {
@@ -409,6 +434,10 @@ pub enum InstructionKind {
         place: Place,
         body: Vec<Instruction>,
     },
+    /// `for $chunk in $xs.%simd_chunks.pad(lanes: 4, pad: 0):` and its kin: the collection in
+    /// chunks of `lanes`, with the leftovers padded, required to be none, or handed over one
+    /// at a time. A writing loop puts each chunk back. (D299, D300, D303)
+    ForChunks(Box<ChunkLoop>),
     ForRange {
         loop_id: usize,
         slot: usize,

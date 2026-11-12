@@ -423,6 +423,9 @@ pub enum StatementKind {
         name: Name,
         source: ForSource,
         body: Vec<Statement>,
+        /// `leftovers $x:`, which hands over the items left after a `simd_chunks.leftovers`'s
+        /// chunks, one at a time. (D300)
+        leftovers: Option<(Name, Vec<Statement>)>,
     },
     While {
         loop_name: Option<Name>,

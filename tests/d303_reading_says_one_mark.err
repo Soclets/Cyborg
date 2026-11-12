@@ -1,0 +1,5 @@
+refused: d303_reading_says_one_mark.cy:8:23, line 8 column 23
+ 8 |     for $chunk in $xs.%%simd_chunks.pad(lanes: 4, pad: 0):
+   |                       ^^^^^^^^^^^^^^^^^
+ fix:  `%simd_chunks.pad`
+ why:  `.%` lends a receiver read-only and `.%%` lends it to change, so the call shows which (D211)

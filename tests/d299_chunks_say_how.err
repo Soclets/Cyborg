@@ -1,0 +1,5 @@
+refused: d299_chunks_say_how.cy:8:24, line 8 column 24
+ 8 |     for $chunk in $xs.%simd_chunks(lanes: 4):
+   |                        ^^^^^^^^^^^
+ what: `simd_chunks` says what happens to the leftovers: `.pad`, `.exact` or `.leftovers`
+ why:  walking in `simd` chunks says how the leftovers are handled: `.pad` fills the last chunk, `.exact` requires a multiple, and `.leftovers` hands them to a `leftovers` section, since dropping them quietly is a classic SIMD bug (D299, D300)

@@ -24,6 +24,7 @@ const CLASHING_WORDS: &[&str] = &[
     "end",
     "let",
     "defer",
+    "leftovers",
     "mut",
     "change",
     "const",
@@ -3208,7 +3209,11 @@ impl Parser {
     fn parse_block(&mut self) -> Outcome<Vec<Statement>> {
         self.enter()?;
         let mut statements = Vec::new();
-        while !self.at_word("end") && !self.at_word("case") && !self.at_word("else") {
+        while !self.at_word("end")
+            && !self.at_word("case")
+            && !self.at_word("else")
+            && !self.at_leftovers()
+        {
             if matches!(self.peek().lexeme, Lexeme::End) {
                 return Err(Report::refused(
                     self.previous_span(),
@@ -3220,6 +3225,11 @@ impl Parser {
         }
         self.leave();
         Ok(statements)
+    }
+
+    /// `leftovers $x:`, the section that ends a `for` over `simd_chunks.leftovers`. (D300)
+    fn at_leftovers(&self) -> bool {
+        self.at_word("leftovers") && matches!(self.peek_at(1).lexeme, Lexeme::Variable(_))
     }
 
     /// Nothing is written after an `otherwise:` block's closer. (8.6)
@@ -3634,6 +3644,16 @@ impl Parser {
         };
         self.expect_symbol(":")?;
         let body = self.parse_block()?;
+        // trace: D300
+        let leftovers = if self.at_leftovers() {
+            self.mark_line_start();
+            self.advance(); // `leftovers`
+            let item = self.expect_variable("the leftover item's name, starting with `$`")?;
+            self.expect_symbol(":")?;
+            Some((item, self.parse_block()?))
+        } else {
+            None
+        };
         let end = self.expect_loop_closer("for", loop_name.as_ref())?;
         Ok(Statement {
             span: start.to(end),
@@ -3642,6 +3662,7 @@ impl Parser {
                 name,
                 source,
                 body,
+                leftovers,
             },
         })
     }

@@ -1,0 +1,5 @@
+refused: d300_leftovers_need_their_section.cy:8:19, line 8 column 19
+ 8 |     for $chunk in $xs.%simd_chunks.leftovers(lanes: 4):
+   |                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ what: `.leftovers` hands the leftover items to a `leftovers` section, which this loop doesn't have
+ why:  the `leftovers` section is required, so the leftovers can't be forgotten (D300)

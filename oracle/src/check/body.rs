@@ -941,7 +941,27 @@ impl Checker<'_> {
                 name,
                 source,
                 body,
-            } => self.check_for(loop_name.as_ref(), name, source, body)?,
+                leftovers,
+            } => {
+                // trace: D299, D300
+                if let Some(chunks) = Self::chunked_source(source) {
+                    self.check_chunked_for(
+                        loop_name.as_ref(),
+                        name,
+                        chunks,
+                        body,
+                        leftovers.as_ref(),
+                    )?
+                } else if let Some((item, _)) = leftovers {
+                    return Err(Report::refused(
+                        item.span,
+                        "a `leftovers` section belongs to a `for` over `simd_chunks.leftovers`",
+                        "`.leftovers` hands the leftover items to a `leftovers` section, and no other loop has one (D300)",
+                    ));
+                } else {
+                    self.check_for(loop_name.as_ref(), name, source, body)?
+                }
+            }
             StatementKind::While {
                 condition, body, ..
             } => self.check_while(condition, body)?,
@@ -1642,6 +1662,18 @@ impl Checker<'_> {
                 "a function can't quietly change its own copy, and `Lent.mut` says it changes the caller's (D184, D125)",
             ));
         }
+        // A chunk from `simd_chunks` is a copy, so nobody thinks the array changed. (D303)
+        // trace: D303
+        if !variable.mutable
+            && variable.origin == Origin::ForItem
+            && matches!(variable.held_type, Type::Simd { .. })
+        {
+            return Err(Report::refused(
+                target.span,
+                format!("`${name}` is a copy from `simd_chunks`, so changing it is refused"),
+                "`simd_chunks` only reads, and `.%%simd_chunks.mut` writes each chunk back into the list or array (D303, D358)",
+            ));
+        }
         // trace: D3
         if !variable.mutable {
             return Err(Report::refused(
@@ -2143,6 +2175,275 @@ impl Checker<'_> {
             .pop()
             .map(|finished| finished.break_states)
             .unwrap_or_default()
+    }
+
+    /// The method a `for` walks in chunks, if it does: `$xs.%simd_chunks.pad(…)` and its kin.
+    fn chunked_source(source: &ForSource) -> Option<&Expression> {
+        match source {
+            ForSource::Collection(expression) => match &expression.kind {
+                ExpressionKind::Method { name, .. } if name.text.starts_with("simd_chunks") => {
+                    Some(expression)
+                }
+                _ => None,
+            },
+            ForSource::Range(_) => None,
+        }
+    }
+
+    /// `for $chunk in $xs.%simd_chunks.pad(lanes: 4, pad: 0):`: the collection in `simd`
+    /// chunks, always saying what happens to the leftovers, which are never dropped quietly.
+    /// `.%%simd_chunks.mut` writes each chunk back, and the collection is locked for the whole
+    /// loop. (D299, D300, D303, D358)
+    /// trace: D299, D300, D303, D358
+    #[allow(clippy::too_many_lines)] // The method, its arguments, and the loop's two sections.
+    fn check_chunked_for(
+        &mut self,
+        loop_name: Option<&crate::ast::Name>,
+        name: &crate::ast::Name,
+        source: &Expression,
+        body: &[Statement],
+        leftovers: Option<&(crate::ast::Name, Vec<Statement>)>,
+    ) -> Outcome<InstructionKind> {
+        const WHY: &str = "walking in `simd` chunks says how the leftovers are handled: `.pad` fills the last chunk, `.exact` requires a multiple, and `.leftovers` hands them to a `leftovers` section, since dropping them quietly is a classic SIMD bug (D299, D300)";
+        let ExpressionKind::Method {
+            receiver,
+            kit,
+            name: method,
+            percent,
+            changes,
+            arguments,
+        } = &source.kind
+        else {
+            return Err(Report::refused(
+                source.span,
+                "this isn't `simd_chunks`",
+                WHY,
+            ));
+        };
+        if kit.is_some() || !percent {
+            return Err(Report::refused(
+                method.span,
+                "`simd_chunks` is a method, written `.%simd_chunks`",
+                WHY,
+            ));
+        }
+        let parts: Vec<&str> = method.text.split('.').collect();
+        // D358 narrows with a dot everywhere, so D303's `simd_chunks_mut` is `simd_chunks.mut`.
+        if let Some(rest) = method.text.strip_prefix("simd_chunks_mut") {
+            return Err(Report::refused(
+                method.span,
+                "the version that writes back is narrowed with `.mut`",
+                "Cyborg narrows with a dot everywhere, as in `ptr.raw.mut` and `Lend.mut`, so it's `simd_chunks.mut` (D358)",
+            )
+            .fix(format!("simd_chunks.mut{rest}")));
+        }
+        let (writes, how) = match parts.as_slice() {
+            ["simd_chunks"] | ["simd_chunks", "mut"] => {
+                return Err(Report::refused(
+                    method.span,
+                    "`simd_chunks` says what happens to the leftovers: `.pad`, `.exact` or `.leftovers`",
+                    WHY,
+                ));
+            }
+            ["simd_chunks", "mut", how] => (true, *how),
+            ["simd_chunks", how] => (false, *how),
+            _ => {
+                return Err(Report::refused(
+                    method.span,
+                    format!("there's no `.%{}`", method.text),
+                    WHY,
+                ));
+            }
+        };
+        if !matches!(how, "pad" | "exact" | "leftovers") {
+            return Err(Report::refused(
+                method.span,
+                format!("`simd_chunks.{how}` isn't one of `.pad`, `.exact` and `.leftovers`"),
+                WHY,
+            ));
+        }
+        // `.%%` lends the collection to change, and only the writing version does. (D303, D211)
+        if *changes != writes {
+            return Err(Self::wrong_receiver_mark(method, writes));
+        }
+        // `lanes:` first, then `pad:` for `.pad`.
+        let lanes_argument = arguments.first().filter(|argument| {
+            argument
+                .label
+                .as_ref()
+                .is_some_and(|label| label.text == "lanes")
+        });
+        let lanes = lanes_argument
+            .and_then(|argument| super::expression::literal_integer(&argument.value))
+            .and_then(|count| usize::try_from(count).ok())
+            .filter(|count| *count >= 1)
+            .ok_or_else(|| {
+                Report::refused(
+                    source.span,
+                    "`simd_chunks` takes `lanes:`, a whole number fixed when compiling",
+                    WHY,
+                )
+            })?;
+        let pad_argument = arguments.get(1).filter(|argument| {
+            argument
+                .label
+                .as_ref()
+                .is_some_and(|label| label.text == "pad")
+        });
+        let expected = if how == "pad" { 2 } else { 1 };
+        if arguments.len() != expected || (how == "pad" && pad_argument.is_none()) {
+            return Err(Report::refused(
+                source.span,
+                if how == "pad" {
+                    "`.pad` takes `lanes:` and `pad:`, the value the last chunk is filled out with"
+                } else {
+                    "this takes only `lanes:`"
+                },
+                WHY,
+            ));
+        }
+        match (how, leftovers) {
+            ("leftovers", None) => {
+                return Err(Report::refused(
+                    source.span,
+                    "`.leftovers` hands the leftover items to a `leftovers` section, which this loop doesn't have",
+                    "the `leftovers` section is required, so the leftovers can't be forgotten (D300)",
+                ));
+            }
+            (other, Some((item, _))) if other != "leftovers" => {
+                return Err(Report::refused(
+                    item.span,
+                    "a `leftovers` section belongs to a `for` over `simd_chunks.leftovers`",
+                    "`.leftovers` hands the leftover items to a `leftovers` section, and no other loop has one (D300)",
+                ));
+            }
+            _ => {}
+        }
+        let held = if writes {
+            self.check_lent_place(receiver, crate::ast::HandWord::LendMut)?
+        } else {
+            self.check_held(receiver)?
+        };
+        let Some(place) = held.place.clone() else {
+            return Err(Report::not_designed(
+                receiver.span,
+                "walking something that isn't a variable in `simd` chunks",
+                "",
+            ));
+        };
+        let (item, array_len) = match &held.value_type {
+            Type::List { item, .. } => ((**item).clone(), None),
+            Type::Array { item, len, .. } => ((**item).clone(), Some(*len)),
+            other => {
+                return Err(Report::refused(
+                    receiver.span,
+                    format!("`simd_chunks` walks a list or an array, and this is `{other}`"),
+                    WHY,
+                ));
+            }
+        };
+        if !matches!(
+            item,
+            Type::Integer { bound: None, .. } | Type::Float { bound: None, .. } | Type::Bool
+        ) {
+            return Err(Report::not_built(
+                receiver.span,
+                format!("`simd` chunks of `{item}`"),
+            ));
+        }
+        if how == "exact" {
+            if let Some(len) = array_len {
+                let count = i128::try_from(lanes).unwrap_or(i128::MAX);
+                if len % count != 0 {
+                    return Err(Report::refused(
+                        source.span,
+                        format!("this array has {len} items, which isn't a multiple of {lanes} lanes"),
+                        "`.exact` requires a multiple, checked when compiling for an array, whose `len` is known (D299)",
+                    ));
+                }
+            }
+        }
+        let pad = match pad_argument {
+            Some(argument) => Some(self.check_into(&argument.value, &item)?),
+            None => None,
+        };
+        let shown = self.text_of(receiver.span).to_string();
+        let root = held.root_name.clone();
+        let before = self.context.state.clone();
+        let loop_id = self.enter_loop(loop_name)?;
+        self.context.scopes.push(HashMap::new());
+        let chunk_type = Type::Simd {
+            item: Box::new(item.clone()),
+            lanes,
+        };
+        let slot = self.declare_variable(Variable {
+            name: name.text.clone(),
+            held_type: chunk_type,
+            mutable: writes,
+            origin: Origin::ForItem,
+            declared: name.span,
+            must_give: false,
+            constant: None,
+            borrows: Vec::new(),
+            borrowed_path: Vec::new(),
+        });
+        if writes {
+            self.context.being_changed.push(root);
+            self.context.being_read.push((String::new(), Vec::new()));
+        } else {
+            self.context.being_read.push((root, Vec::new()));
+        }
+        let result = self.check_loop_body(&mut |this| this.check_block(body));
+        let leftover_code = match (&result, leftovers) {
+            (Ok(_), Some((item_name, leftover_body))) => {
+                self.context.scopes.push(HashMap::new());
+                let item_slot = self.declare_variable(Variable {
+                    name: item_name.text.clone(),
+                    held_type: item.clone(),
+                    mutable: writes,
+                    origin: Origin::ForItem,
+                    declared: item_name.span,
+                    must_give: false,
+                    constant: None,
+                    borrows: Vec::new(),
+                    borrowed_path: Vec::new(),
+                });
+                let checked = self.check_loop_body(&mut |this| this.check_block(leftover_body));
+                self.context.scopes.pop();
+                Some(checked.map(|code| (item_slot, code)))
+            }
+            _ => None,
+        };
+        if writes {
+            self.context.being_changed.pop();
+        }
+        self.context.being_read.pop();
+        self.context.scopes.pop();
+        let code = result?;
+        let mut exits = self.leave_loop();
+        if !exits.is_empty() {
+            exits.push(self.context.state.clone());
+            self.join_states(&exits);
+        }
+        self.restore_trust(&before);
+        let leftovers = match (how, pad, leftover_code) {
+            ("pad", Some(pad), _) => ir::Leftovers::Pad(pad),
+            ("leftovers", _, Some(checked)) => {
+                let (slot, body) = checked?;
+                ir::Leftovers::Apart { slot, body }
+            }
+            _ => ir::Leftovers::Exact,
+        };
+        Ok(InstructionKind::ForChunks(Box::new(ir::ChunkLoop {
+            loop_id,
+            place,
+            shown,
+            lanes,
+            slot,
+            body: code,
+            leftovers,
+            writes,
+        })))
     }
 
     /// A test's trust ends with its block, even when a `break` is how the block was left. (D9)

@@ -1,0 +1,5 @@
+refused: d300_a_leftovers_section_elsewhere.cy:11:15, line 11 column 15
+11 |     leftovers $y:
+   |               ^^
+ what: a `leftovers` section belongs to a `for` over `simd_chunks.leftovers`
+ why:  `.leftovers` hands the leftover items to a `leftovers` section, and no other loop has one (D300)

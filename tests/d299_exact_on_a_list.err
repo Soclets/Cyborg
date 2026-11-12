@@ -1,0 +1,6 @@
+check failed: d299_exact_on_a_list.cy:8:5, line 8 column 5
+ 8 |     for $chunk in $xs.%simd_chunks.exact(lanes: 2):
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ what: `$xs` isn't a multiple of 2 items long
+ why:  `.exact` requires a multiple, checked while running for a list (D299)
+ when: it holds 3 items
