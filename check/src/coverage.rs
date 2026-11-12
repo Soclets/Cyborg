@@ -35,18 +35,24 @@
 /// - failures: functions that list failures, some carrying data, and `fail` them; calls handled
 ///   with `?`, `??`, `otherwise:` arms that use a value `instead`, or nothing, so a failure stops
 ///   the program;
+/// - units: `fam.unit` families of whole multiples, integer values in them, added, bounded in
+///   units, converted with `as` and its narrowings, taken off with `as`; float units with two
+///   bases, a `fam.prefix` the length opts into `with`, units made with `per`, `per` of a `per`
+///   and `x`, built by `div` and `x` where they're stored; an offset family and a `decibels of`
+///   one, whose points and spans add, subtract and convert; `std`'s angles converted to radians
+///   for `std::math::sin`; parameters whose label carries a unit, given a plain number;
 /// - printing: `fmt_print` to an unbuffered writer, one to three values per print, with plain,
 ///   numbered or named holes, shapes for width, alignment, bases, `zeros`, `sign`, `places:` and
 ///   `form: science`, and escaped braces and `{tab}` in the text.
 pub const NOT_GENERATED: &[&str] = &[
-    "1.13 printing: `.stored`, named holes reading fields, widths in units other than `cols`, `unit`, other escapes, buffered writers, stderr",
+    "1.13 printing: `.stored`, named holes reading fields, widths in units other than `cols`, other escapes, buffered writers, stderr",
     "2.3 `const` calling `fn.pure.baked` functions, float constants, constants whose maths overflows",
     "2.5 bounded parameters and fields",
     "2.6, 2.7 `.fast` and `.ieee` floats, bounded floats, `exponent` literals, `fmt_print.stored`, floats in structs, arrays and calls",
     "2.9 heap strings, escapes in string literals, comparing strings, strings as values in prints, fields and calls",
     "2.10 and 2.12 maps, `.len`, views and splits, a full list's failure handled, growable lists in functions, `grow:`",
     "2.14 `as` between other types, which isn't decided (12.3), `as` failures handled",
-    "2.16 units, their conversions, points and spans",
+    "2.16 still to do: `use std::units::… as …`, `std`'s `time.seconds` as integer points and spans, and units on generic parameters, which come with generics; undecided: `std`'s other units (12.2), and comparing a stored unit with an unstored combination, which the standard doesn't say",
     "2.18 named types over structs, lists or strings, `fam.type.alias`, maths on a `type.new`",
     "2.19 `decl` assigned in loops or `match` arms, or never changed",
     "2.21 `simd` with one value, chunks, shuffles, `pick`, lookups, `lanes: max`, floats in lanes, `as` from arrays",

@@ -61,6 +61,8 @@ pub enum Type {
     Simd(Kind, i128),
     /// `u32.secret` (2.22).
     Secret(Kind),
+    /// `f64.stable[unit: fv1.a2]`, or with `.point` or `.span` on a unit with an offset (2.16).
+    FloatUnit(&'static str),
     /// `i32[unit: dist.cm]`, or with bounds in units: the bounds as written, and the range in
     /// the type's own unit (2.16).
     Unit(Kind, &'static str, Option<(&'static str, i128, i128)>),
@@ -78,6 +80,7 @@ impl Type {
             Type::Text(Some(bytes)) => format!("str[len.max: {bytes} bytes]"),
             Type::Simd(kind, lanes) => format!("simd<{}>[lanes: {lanes}]", kind.word()),
             Type::Secret(kind) => format!("{}.secret", kind.word()),
+            Type::FloatUnit(unit) => format!("f64.stable[unit: {unit}]"),
             Type::Unit(kind, unit, None) => format!("{}[unit: {unit}]", kind.word()),
             Type::Unit(kind, unit, Some((bounds, ..))) => {
                 format!("{}[unit: {unit}, {bounds}]", kind.word())
@@ -249,6 +252,11 @@ pub enum Expression {
         number: i128,
         unit: &'static str,
     },
+    /// A float with its unit behind it, `2.5 fv1.a2` (2.16).
+    FloatWithUnit {
+        number: String,
+        unit: &'static str,
+    },
     /// `$v as i32[unit: dist.mm]`, `$v as.trunc …` or `$v as i32`, changing or taking off a
     /// unit (2.16).
     Convert {
@@ -356,12 +364,15 @@ impl Layout {
     }
 }
 
-/// A family of units, each a base or a whole number of an earlier one (2.16).
+/// A family of units: each a base, a whole number of another, made of others with `per` or
+/// `x`, or a base with an offset (2.16).
 #[derive(Clone, Debug)]
 pub struct UnitFamily {
+    /// `fam.unit`, or `fam.prefix` for a family of prefixes.
+    pub keyword: &'static str,
     pub name: String,
-    /// Each unit's full name, and for one that isn't a base, how many of which unit it is.
-    pub units: Vec<(String, Option<(i128, String)>)>,
+    /// Each unit's full name, and what follows it on its line, as `: base` or `= 12 fu1.b2`.
+    pub units: Vec<(String, String)>,
 }
 
 /// A named integer type: `type.alias`, fully interchangeable, or `type.new`, which doesn't mix,
@@ -680,18 +691,11 @@ pub fn print(program: &Program) -> String {
     };
     let mut out = String::from("import std;\nimport os;\nimport @concur;\n\n");
     for family in &program.unit_families {
-        let _ = writeln!(out, "fam.unit {}:", family.name);
-        for (unit, made_of) in &family.units {
-            match made_of {
-                None => {
-                    let _ = writeln!(out, "    {unit}: base;");
-                }
-                Some((count, other)) => {
-                    let _ = writeln!(out, "    {unit} = {count} {other};");
-                }
-            }
+        let _ = writeln!(out, "{} {}:", family.keyword, family.name);
+        for (unit, definition) in &family.units {
+            let _ = writeln!(out, "    {unit}{definition};");
         }
-        let _ = writeln!(out, "end fam.unit {}\n", family.name);
+        let _ = writeln!(out, "end {} {}\n", family.keyword, family.name);
     }
     let mut families: Vec<&String> = Vec::new();
     for named in &program.named {
@@ -1282,6 +1286,7 @@ impl Style {
             Expression::As { variable, target } => format!("${variable} as {}", target.word()),
             Expression::AsNamed { variable, written } => format!("${variable} as {written}"),
             Expression::WithUnit { number, unit } => format!("{number} {unit}"),
+            Expression::FloatWithUnit { number, unit } => format!("{number} {unit}"),
             Expression::Convert {
                 variable,
                 narrowing,

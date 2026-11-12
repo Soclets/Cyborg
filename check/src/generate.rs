@@ -39,6 +39,28 @@ struct Scope {
     case_fields: Vec<(String, String, Kind)>,
 }
 
+/// The float units a program declares: two bases, the length with prefixes, units made of them
+/// with `per` and `x`, a base with an offset and a logarithmic unit, whose values are points or
+/// spans (2.16).
+#[derive(Clone, Copy)]
+struct FloatUnits {
+    length: &'static str,
+    kilo: &'static str,
+    milli: &'static str,
+    time: &'static str,
+    speed: &'static str,
+    accel: &'static str,
+    area: &'static str,
+    kelvin: &'static str,
+    celsius: &'static str,
+    milliwatts: &'static str,
+    decibels: &'static str,
+}
+
+/// `std`'s angles, which every program can use (2.16).
+const DEGREES: &str = "std::units::angle.degrees";
+const RADIANS: &str = "std::units::angle.radians";
+
 struct Generator<'random> {
     random: &'random mut Random,
     next_name: usize,
@@ -50,6 +72,8 @@ struct Generator<'random> {
     procedures: Vec<Procedure>,
     methods: Vec<MethodDecl>,
     unit_families: Vec<UnitFamily>,
+    /// Float units, when the program has them.
+    float_units: Option<FloatUnits>,
     /// Every unit, with how many of its family's base it is.
     units: Vec<(&'static str, i128)>,
     /// Every constant's name, since only constants go into another.
@@ -81,6 +105,7 @@ pub fn program(seed: u64) -> Program {
         procedures: Vec::new(),
         methods: Vec::new(),
         unit_families: Vec::new(),
+        float_units: None,
         units: Vec::new(),
         constants: Vec::new(),
         given_away: Vec::new(),
@@ -93,6 +118,7 @@ pub fn program(seed: u64) -> Program {
     };
     generator.named_types();
     generator.unit_families();
+    generator.float_unit_families();
     for _ in 0..generator.random.between(0, 2) {
         let declared = generator.struct_decl();
         generator.structs.push(declared);
@@ -132,7 +158,9 @@ pub fn program(seed: u64) -> Program {
         generator.arena = Some(generator.random.between(16, 256));
     }
     generator.in_main = true;
+    let prelude = generator.float_prelude(&mut scope);
     let mut main = generator.block(&mut scope, LIMITS.statements, 0, (true, false));
+    main.splice(0..0, prelude);
     // `main` ends by printing what it made, so a program's work shows in its output.
     for statement in main.clone() {
         if let Statement::Let {
@@ -144,6 +172,17 @@ pub fn program(seed: u64) -> Program {
         | Statement::Task { name, .. } = statement
         {
             main.push(Statement::Print(Expression::Variable(name)));
+        } else if let Statement::Let {
+            name,
+            value_type: Type::FloatUnit(_),
+            ..
+        } = statement
+        {
+            // A value in a unit prints with its unit (1.13).
+            main.push(Statement::Format {
+                text: "{unit}".to_string(),
+                values: vec![Expression::Variable(name)],
+            });
         }
     }
     let fewer_brackets = generator.random.chance(50);
@@ -162,6 +201,35 @@ pub fn program(seed: u64) -> Program {
 }
 
 impl Generator<'_> {
+    /// With float units, `main` starts with a length, a time, points and spans, and angles, so
+    /// the units made from them have something to be made from (2.16).
+    fn float_prelude(&mut self, scope: &mut Scope) -> Vec<Statement> {
+        let mut prelude = Vec::new();
+        if let Some(units) = self.float_units {
+            let leak = |text: String| -> &'static str { Box::leak(text.into_boxed_str()) };
+            for unit in [
+                units.length,
+                units.time,
+                leak(format!("{}.point", units.celsius)),
+                leak(format!("{}.span", units.celsius)),
+                leak(format!("{}.point", units.decibels)),
+                leak(format!("{}.span", units.decibels)),
+                DEGREES,
+                RADIANS,
+            ] {
+                let name = self.name("fw");
+                let value = self.float_unit_value(scope, unit, LIMITS.depth);
+                scope.variables.push((name.clone(), Type::FloatUnit(unit)));
+                prelude.push(Statement::Let {
+                    name,
+                    value_type: Type::FloatUnit(unit),
+                    value,
+                });
+            }
+        }
+        prelude
+    }
+
     /// A comparison chain of three values, all going one way, like `$x below 5 at_most 9`, so
     /// it reads as the range it looks like (3.9). The first is a variable, so each value after
     /// it has a typed side to take its type from.
@@ -199,6 +267,7 @@ impl Generator<'_> {
         Type::Integer(*self.random.pick(&Kind::ALL).unwrap_or(&Kind::I32))
     }
 
+    #[allow(clippy::too_many_lines)] // A function's parts in the order they're written.
     fn function(&mut self) -> Function {
         let name = self.name("fun");
         let count = self.random.between(1, 3);
@@ -221,7 +290,29 @@ impl Generator<'_> {
         let labelled = usize::try_from(self.random.between(0, count)).unwrap_or(0);
         let mut labels = Vec::new();
         let mut defaults = Vec::new();
-        for (parameter, parameter_type) in parameters.iter().skip(parameters.len() - labelled) {
+        let first_labelled = parameters.len() - labelled;
+        for (parameter, parameter_type) in parameters.iter_mut().skip(first_labelled) {
+            // A label can carry a unit, so a plain number passed to it takes that unit (2.16).
+            if let (Type::Integer(kind), Some((unit, _))) =
+                (*parameter_type, self.random.pick(&self.units).copied())
+            {
+                // Two parameters can't share a label, so each unit labels one.
+                let taken = labels
+                    .iter()
+                    .any(|(_, label)| *label == format!("at.{unit}"));
+                if !taken && self.random.chance(30) {
+                    *parameter_type = Type::Unit(kind, unit, None);
+                    if let Some(entry) = scope
+                        .variables
+                        .iter_mut()
+                        .find(|(name, _)| name == parameter)
+                    {
+                        entry.1 = *parameter_type;
+                    }
+                    labels.push((parameter.clone(), format!("at.{unit}")));
+                    continue;
+                }
+            }
             labels.push((parameter.clone(), self.name("lb")));
             if let (true, Type::Integer(kind)) = (self.random.chance(40), parameter_type) {
                 defaults.push((parameter.clone(), self.literal(*kind)));
@@ -270,7 +361,8 @@ impl Generator<'_> {
                     | Type::Text(_)
                     | Type::Simd(..)
                     | Type::Secret(_)
-                    | Type::Unit(..) => None,
+                    | Type::Unit(..)
+                    | Type::FloatUnit(_) => None,
                 });
                 let test = self.expression(&scope, Type::Bool, LIMITS.depth);
                 body.push(Statement::If {
@@ -359,6 +451,7 @@ impl Generator<'_> {
                         | Type::Simd(..)
                         | Type::Secret(_)
                         | Type::Unit(_, _, None)
+                        | Type::FloatUnit(_)
                 ) && !name.starts_with('i')
                     && !name.starts_with('x')
                     && !name.starts_with('k')
@@ -372,6 +465,9 @@ impl Generator<'_> {
             }
             0..=3 if self.random.chance(8) => self.constant(scope),
             0..=3 if !self.units.is_empty() && self.random.chance(15) => self.unit_let(scope),
+            0..=3 if self.float_units.is_some() && self.random.chance(35) => {
+                self.float_unit_let(scope)
+            }
             0..=3 if !self.structs.is_empty() && self.random.chance(15) => {
                 self.record_statement(scope)
             }
@@ -618,6 +714,7 @@ impl Generator<'_> {
                         | Type::Bounded(..)
                         | Type::Text(_)
                         | Type::Unit(..)
+                        | Type::FloatUnit(_)
                 )
             })
             .cloned()
@@ -632,7 +729,7 @@ impl Generator<'_> {
                     continue;
                 }
                 // A unit prints with the `unit` shape, which a numbered hole doesn't take here.
-                if style == 1 && matches!(found.1, Type::Unit(..)) {
+                if style == 1 && matches!(found.1, Type::Unit(..) | Type::FloatUnit(_)) {
                     continue;
                 }
                 chosen.push(found);
@@ -695,7 +792,7 @@ impl Generator<'_> {
         let mut shapes: Vec<String> = Vec::new();
         let width = self.random.between(1, 12);
         match value_type {
-            Type::Unit(..) => return "unit".to_string(),
+            Type::Unit(..) | Type::FloatUnit(_) => return "unit".to_string(),
             Type::Text(_) => {
                 if self.random.chance(50) {
                     let align = *self
@@ -1486,21 +1583,390 @@ impl Generator<'_> {
                 .push((Box::leak(base.clone().into_boxed_str()), 1));
             let mut factor = 1;
             let mut previous = base.clone();
-            units.push((base, None));
+            units.push((base, ": base".to_string()));
             for _ in 0..self.random.between(1, 3) {
                 let count = self.random.between(2, 12);
                 factor *= count;
                 let unit = format!("{family}.{}", self.name("m"));
                 self.units
                     .push((Box::leak(unit.clone().into_boxed_str()), factor));
-                units.push((unit.clone(), Some((count, previous.clone()))));
+                units.push((unit.clone(), format!(" = {count} {previous}")));
                 previous = unit;
             }
             self.unit_families.push(UnitFamily {
+                keyword: "fam.unit",
                 name: family,
                 units,
             });
         }
+    }
+
+    /// Now and then float units: two bases in one family, a family of units made of them with
+    /// `per` and `x`, and a base with an offset, whose values say `.point` or `.span` (2.16).
+    fn float_unit_families(&mut self) {
+        if !self.random.chance(50) {
+            return;
+        }
+        let leak = |text: String| -> &'static str { Box::leak(text.into_boxed_str()) };
+        let bases = self.name("fv");
+        let length = leak(format!("{bases}.{}", self.name("a")));
+        let time = leak(format!("{bases}.{}", self.name("t")));
+        let made = self.name("fc");
+        let speed = leak(format!("{made}.{}", self.name("sp")));
+        let area = leak(format!("{made}.{}", self.name("ar")));
+        let scale = self.name("fo");
+        let kelvin = leak(format!("{scale}.{}", self.name("k")));
+        let celsius = leak(format!("{scale}.{}", self.name("c")));
+        let offset = *self
+            .random
+            .pick(&["~-273.15", "32.5", "-40.0", "100.25"])
+            .unwrap_or(&"32.5");
+        // A prefix family, which the length opts into with `with`, making its prefixed units by
+        // joining the names.
+        let prefixes = self.name("fp");
+        let short = length.split('.').nth(1).unwrap_or("a");
+        let kilo = leak(format!("{bases}.kilo{short}"));
+        let milli = leak(format!("{bases}.milli{short}"));
+        self.unit_families.push(UnitFamily {
+            keyword: "fam.prefix",
+            name: prefixes.clone(),
+            units: vec![
+                (format!("{prefixes}.kilo"), " = 1000".to_string()),
+                (format!("{prefixes}.milli"), " = 1 per 1000".to_string()),
+            ],
+        });
+        self.unit_families.push(UnitFamily {
+            keyword: "fam.unit",
+            name: bases,
+            units: vec![
+                (length.to_string(), format!(": base with {prefixes}")),
+                (time.to_string(), ": base".to_string()),
+            ],
+        });
+        let accel = leak(format!("{made}.{}", self.name("ac")));
+        self.unit_families.push(UnitFamily {
+            keyword: "fam.unit",
+            name: made,
+            units: vec![
+                (speed.to_string(), format!(" = {length} per {time}")),
+                (accel.to_string(), format!(" = {speed} per {time}")),
+                (area.to_string(), format!(" = {length} x {length}")),
+            ],
+        });
+        // A logarithmic unit, whose levels are points and gains spans.
+        let power = self.name("fl");
+        let milliwatts = leak(format!("{power}.{}", self.name("w")));
+        let decibels = leak(format!("{power}.{}", self.name("db")));
+        self.unit_families.push(UnitFamily {
+            keyword: "fam.unit",
+            name: power,
+            units: vec![
+                (milliwatts.to_string(), ": base".to_string()),
+                (
+                    decibels.to_string(),
+                    format!(" = decibels of 1 {milliwatts}"),
+                ),
+            ],
+        });
+        self.unit_families.push(UnitFamily {
+            keyword: "fam.unit",
+            name: scale,
+            units: vec![
+                (kelvin.to_string(), ": base".to_string()),
+                (celsius.to_string(), format!(" = {kelvin} offset {offset}")),
+            ],
+        });
+        self.float_units = Some(FloatUnits {
+            length,
+            kilo,
+            milli,
+            time,
+            speed,
+            accel,
+            area,
+            kelvin,
+            celsius,
+            milliwatts,
+            decibels,
+        });
+    }
+
+    /// A float variable in a unit: a length or time, a speed or area made of them with `div` or
+    /// `x`, or a point or span on the offset scale (2.16).
+    fn float_unit_let(&mut self, scope: &mut Scope) -> Statement {
+        let Some(units) = self.float_units else {
+            return self.list_statement(scope);
+        };
+        let leak = |text: String| -> &'static str { Box::leak(text.into_boxed_str()) };
+        let has = |unit: &str| {
+            scope
+                .variables
+                .iter()
+                .any(|(_, found)| matches!(found, Type::FloatUnit(written) if *written == unit))
+        };
+        let celsius_point = leak(format!("{}.point", units.celsius));
+        // Lengths and times first, and points before spans, so the units made from them have
+        // something to be made from.
+        let roll = if !has(units.length) {
+            0
+        } else if !has(units.time) && self.random.chance(70) {
+            1
+        } else if !has(celsius_point) && self.random.chance(50) {
+            4
+        } else {
+            // Mostly the units made from others, now that there's something to make them from.
+            *self
+                .random
+                .pick(&[2, 3, 5, 5, 4, 0, 1, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15])
+                .unwrap_or(&2)
+        };
+        let celsius_span = leak(format!("{}.span", units.celsius));
+        // A speed needs a time, and a point plus a span needs a span.
+        let roll = match roll {
+            2 if !has(units.time) => 1,
+            4 if has(celsius_point) && !has(celsius_span) => 5,
+            other => other,
+        };
+        let unit = match roll {
+            0 => units.length,
+            1 => units.time,
+            10 if has(units.speed) => units.accel,
+            2 | 10 => units.speed,
+            3 => units.area,
+            4 => celsius_point,
+            5 => celsius_span,
+            6 => leak(format!("{}.point", units.kelvin)),
+            7 => leak(format!("{}.span", units.kelvin)),
+            8 => units.kilo,
+            9 => units.milli,
+            11 => leak(format!("{}.point", units.decibels)),
+            12 => leak(format!("{}.span", units.decibels)),
+            13 => leak(format!("{}.point", units.milliwatts)),
+            14 => DEGREES,
+            _ => RADIANS,
+        };
+        let value_type = Type::FloatUnit(unit);
+        let value = self.float_unit_value(scope, unit, LIMITS.depth);
+        let name = self.name("fw");
+        scope.variables.push((name.clone(), value_type));
+        Statement::Let {
+            name,
+            value_type,
+            value,
+        }
+    }
+
+    /// A value in a float unit: a variable in it, a literal, two added, a speed or area made
+    /// from a length and a time, a point plus a span or one point minus another, or a point
+    /// converted across the offset (2.16).
+    #[allow(clippy::too_many_lines)] // One branch per kind of unit, read top to bottom.
+    fn float_unit_value(&mut self, scope: &Scope, unit: &'static str, depth: usize) -> Expression {
+        let Some(units) = self.float_units else {
+            return self.float_literal();
+        };
+        let of = |wanted: &str| -> Vec<String> {
+            scope
+                .variables
+                .iter()
+                .filter(
+                    |(_, found)| matches!(found, Type::FloatUnit(written) if *written == wanted),
+                )
+                .map(|(name, _)| name.clone())
+                .collect()
+        };
+        let same = of(unit);
+        let roll = self.random.between(0, 9);
+        if roll < 2 {
+            if let Some(name) = self.random.pick(&same).cloned() {
+                return Expression::Variable(name);
+            }
+        }
+        let bare = unit
+            .strip_suffix(".point")
+            .or_else(|| unit.strip_suffix(".span"))
+            .unwrap_or(unit);
+        let point = unit.strip_suffix(".point").is_some();
+        let span = unit.strip_suffix(".span").is_some();
+        let leak = |text: String| -> &'static str { Box::leak(text.into_boxed_str()) };
+        // Maths makes a combination of units, which only storing it gives its declared name, so
+        // a speed, acceleration or area is made only where it's stored (2.16).
+        let stored = depth == LIMITS.depth;
+        if unit == units.accel && stored {
+            if let (Some(speed), Some(time)) = (
+                self.random.pick(&of(units.speed)).cloned(),
+                self.random.pick(&of(units.time)).cloned(),
+            ) {
+                return Expression::Binary {
+                    operator: Operator::Divide,
+                    left: Box::new(Expression::Variable(speed)),
+                    right: Box::new(Expression::Variable(time)),
+                };
+            }
+            return Expression::FloatWithUnit {
+                number: self.positive_float(),
+                unit,
+            };
+        }
+        // A length converted from the same length with another prefix, or an angle from the
+        // other angle.
+        let lengths = [units.length, units.kilo, units.milli];
+        let angles = [DEGREES, RADIANS];
+        let kin: &[&str] = if lengths.contains(&unit) {
+            &lengths
+        } else if angles.contains(&unit) {
+            &angles
+        } else {
+            &[]
+        };
+        if !kin.is_empty() && roll < 5 {
+            let others: Vec<String> = kin
+                .iter()
+                .filter(|other| **other != unit)
+                .flat_map(|other| of(other))
+                .collect();
+            if let Some(source) = self.random.pick(&others).cloned() {
+                return Expression::Convert {
+                    variable: source,
+                    narrowing: "",
+                    target: Type::FloatUnit(unit),
+                };
+            }
+        }
+        if (unit == units.speed || unit == units.area) && stored {
+            let lengths = of(units.length);
+            let times = of(units.time);
+            if unit == units.speed {
+                if let (Some(length), Some(time)) = (
+                    self.random.pick(&lengths).cloned(),
+                    self.random.pick(&times).cloned(),
+                ) {
+                    return Expression::Binary {
+                        operator: Operator::Divide,
+                        left: Box::new(Expression::Variable(length)),
+                        right: Box::new(Expression::Variable(time)),
+                    };
+                }
+            } else if let (Some(left), Some(right)) = (
+                self.random.pick(&lengths).cloned(),
+                self.random.pick(&lengths).cloned(),
+            ) {
+                return Expression::Binary {
+                    operator: Operator::Multiply,
+                    left: Box::new(Expression::Variable(left)),
+                    right: Box::new(Expression::Variable(right)),
+                };
+            }
+            // A speed or area with no length and time to make it from is written as one.
+            return Expression::FloatWithUnit {
+                number: self.positive_float(),
+                unit,
+            };
+        }
+        if depth > 0 && roll < 8 {
+            if point {
+                // A point plus a span, or a point converted from the other scale.
+                let spans = of(leak(format!("{bare}.span")));
+                let points = of(unit);
+                if let (Some(at), Some(by)) = (
+                    self.random.pick(&points).cloned(),
+                    self.random.pick(&spans).cloned(),
+                ) {
+                    return Expression::Binary {
+                        operator: Operator::Add,
+                        left: Box::new(Expression::Variable(at)),
+                        right: Box::new(Expression::Variable(by)),
+                    };
+                }
+                let other = match bare {
+                    found if found == units.celsius => units.kelvin,
+                    found if found == units.kelvin => units.celsius,
+                    found if found == units.decibels => units.milliwatts,
+                    _ => units.decibels,
+                };
+                if let Some(source) = self
+                    .random
+                    .pick(&of(leak(format!("{other}.point"))))
+                    .cloned()
+                {
+                    return Expression::Convert {
+                        variable: source,
+                        narrowing: "",
+                        target: Type::FloatUnit(unit),
+                    };
+                }
+            } else if span
+                && (bare == units.celsius || bare == units.kelvin)
+                && self.random.chance(30)
+            {
+                // A span converted from the other scale, which only scales it.
+                let other = if bare == units.celsius {
+                    units.kelvin
+                } else {
+                    units.celsius
+                };
+                if let Some(source) = self
+                    .random
+                    .pick(&of(leak(format!("{other}.span"))))
+                    .cloned()
+                {
+                    return Expression::Convert {
+                        variable: source,
+                        narrowing: "",
+                        target: Type::FloatUnit(unit),
+                    };
+                }
+            } else if span {
+                // One point minus another, or two spans added.
+                let points = of(leak(format!("{bare}.point")));
+                if let (Some(later), Some(earlier)) = (
+                    self.random.pick(&points).cloned(),
+                    self.random.pick(&points).cloned(),
+                ) {
+                    return Expression::Binary {
+                        operator: Operator::Subtract,
+                        left: Box::new(Expression::Variable(later)),
+                        right: Box::new(Expression::Variable(earlier)),
+                    };
+                }
+                if let (Some(left), Some(right)) = (
+                    self.random.pick(&same).cloned(),
+                    self.random.pick(&same).cloned(),
+                ) {
+                    return Expression::Binary {
+                        operator: Operator::Add,
+                        left: Box::new(Expression::Variable(left)),
+                        right: Box::new(Expression::Variable(right)),
+                    };
+                }
+            } else if let (Some(left), Some(right)) = (
+                self.random.pick(&same).cloned(),
+                self.random.pick(&same).cloned(),
+            ) {
+                return Expression::Binary {
+                    operator: Operator::Add,
+                    left: Box::new(Expression::Variable(left)),
+                    right: Box::new(Expression::Variable(right)),
+                };
+            }
+        }
+        // A literal says its unit's name, with no `.point` or `.span`, which only a declared type
+        // says, so a point or span compared with something is compared with a variable.
+        if point || span {
+            if let Some(name) = self.random.pick(&same).cloned() {
+                return Expression::Variable(name);
+            }
+        }
+        Expression::FloatWithUnit {
+            number: self.positive_float(),
+            unit: leak(bare.to_string()),
+        }
+    }
+
+    /// A float literal that isn't negative, exact in quarters.
+    fn positive_float(&mut self) -> String {
+        let whole = self.random.between(0, 40);
+        let quarter = *self.random.pick(&["0", "25", "5", "75"]).unwrap_or(&"5");
+        format!("{whole}.{quarter}")
     }
 
     /// A variable with a unit, its unit taken off with `as` (2.16).
@@ -1991,6 +2457,7 @@ impl Generator<'_> {
             Type::Simd(kind, lanes) => self.lanes(scope, kind, lanes, depth),
             Type::Secret(kind) => self.secret(scope, kind, depth),
             Type::Unit(kind, unit, _) => self.unit_value(scope, kind, unit, depth),
+            Type::FloatUnit(unit) => self.float_unit_value(scope, unit, depth),
             Type::Float(wide) => self.float(scope, wide, depth),
         }
     }
@@ -2153,6 +2620,22 @@ impl Generator<'_> {
             let inner = self.float(scope, wide, depth - 1);
             return Expression::Negate(Box::new(inner));
         }
+        // `std::math::sin` takes an angle in radians (2.16).
+        if roll == 5 && wide {
+            let angles: Vec<String> = scope
+                .variables
+                .iter()
+                .filter(|(_, found)| *found == Type::FloatUnit(RADIANS))
+                .map(|(name, _)| name.clone())
+                .collect();
+            if let Some(angle) = self.random.pick(&angles).cloned() {
+                return Expression::Call {
+                    function: "std::math::sin".to_string(),
+                    arguments: vec![(None, Expression::Variable(angle))],
+                    handling: Handling::Crash,
+                };
+            }
+        }
         let operator = *self
             .random
             .pick(&[
@@ -2248,7 +2731,13 @@ impl Generator<'_> {
             if label.is_some() && defaulted && self.random.chance(40) {
                 continue;
             }
-            let value = self.expression(scope, *parameter_type, depth.saturating_sub(1));
+            let value = match (parameter_type, &label) {
+                // A label carrying a unit takes a plain number, which gets the label's unit.
+                (Type::Unit(kind, ..), Some(label)) if label.starts_with("at.") => {
+                    self.literal(*kind)
+                }
+                _ => self.expression(scope, *parameter_type, depth.saturating_sub(1)),
+            };
             match label {
                 Some(label) => labelled.push((Some(label), value)),
                 None => unlabelled.push((None, value)),
@@ -2355,7 +2844,10 @@ impl Generator<'_> {
             .variables
             .iter()
             .filter(|(_, found)| {
-                matches!(found, Type::Integer(_) | Type::Float(_) | Type::Unit(..))
+                matches!(
+                    found,
+                    Type::Integer(_) | Type::Float(_) | Type::Unit(..) | Type::FloatUnit(_)
+                )
             })
             .cloned()
             .collect();
