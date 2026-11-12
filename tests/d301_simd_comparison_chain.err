@@ -1,0 +1,5 @@
+NotDesignedYet: d301_simd_comparison_chain.cy:9:36, line 9 column 36
+ 9 |     let $m: simd<bool>[lanes: 4] = $a below $b below $a;
+   |                                    ^^^^^^^^^^^^^^^^^^^^
+ what: a chain of comparisons on `simd` values
+ why:  not decided yet (standard 12.2)

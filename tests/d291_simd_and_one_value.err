@@ -1,0 +1,5 @@
+NotDesignedYet: d291_simd_and_one_value.cy:8:35, line 8 column 35
+ 8 |     let $c: simd<i32>[lanes: 4] = $a + 1;
+   |                                   ^^^^^^
+ what: an operator between `simd<i32>[lanes: 4]` and `i32`, a `simd` and one value
+ why:  not decided yet (standard 12.2)

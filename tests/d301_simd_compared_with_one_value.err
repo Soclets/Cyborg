@@ -1,0 +1,5 @@
+NotDesignedYet: d301_simd_compared_with_one_value.cy:9:36, line 9 column 36
+ 9 |     let $m: simd<bool>[lanes: 4] = $a below $i;
+   |                                    ^^^^^^^^^^^
+ what: comparing `simd<i32>[lanes: 4]` and `i32`, a `simd` and one value
+ why:  not decided yet (standard 12.2)
