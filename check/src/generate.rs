@@ -1321,7 +1321,11 @@ impl Generator<'_> {
     fn list_statement(&mut self, scope: &mut Scope) -> Statement {
         if let Some((list, kind, max)) = self.random.pick(&scope.lists).cloned() {
             if self.random.chance(50) {
+                // The value doesn't read the list, since reading a list in the call that lends
+                // it to change isn't decided.
+                let lists = std::mem::take(&mut scope.lists);
                 let value = self.expression(scope, Type::Integer(kind), LIMITS.depth);
+                scope.lists = lists;
                 return Statement::Append { list, value };
             }
             if self.random.chance(50) {
