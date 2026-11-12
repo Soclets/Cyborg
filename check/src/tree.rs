@@ -1049,6 +1049,8 @@ pub struct Function {
 #[allow(clippy::struct_excessive_bools)] // Independent switches for what a program declares.
 pub struct Program {
     pub unit_families: Vec<UnitFamily>,
+    /// The target the program's answer depends on, when it does, as with `lanes: max` (D389).
+    pub target: Option<&'static str>,
     /// Whether `fpoint`, a struct with float fields, `fhalf`, a function on a float, and `bag`,
     /// a `must_Give` struct holding a growable list, with `bag_done`, are declared (2.6, 6.9).
     pub extras: bool,

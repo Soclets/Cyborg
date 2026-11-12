@@ -76,6 +76,20 @@ fn prepare(folder: &Path) -> Result<(), String> {
         .map_err(|problem| format!("check: couldn't write to {}: {problem}", folder.display()))
 }
 
+/// A generated program, and `name.target` beside it when its answer depends on the target's
+/// sizes, as a test names it (D387, D389).
+fn write_program(path: &Path, program: &tree::Program) -> Result<(), String> {
+    let written = |path: &Path, text: &str| {
+        std::fs::write(path, text)
+            .map_err(|problem| format!("check: couldn't write {}: {problem}", path.display()))
+    };
+    written(path, &tree::print(program))?;
+    if let Some(target) = program.target {
+        written(&path.with_extension("target"), target)?;
+    }
+    Ok(())
+}
+
 fn generate_programs(seed: &str, count: &str, folder: &Path) -> Result<bool, String> {
     let seed = number(seed, "seed")?;
     let count = number(count, "count")?;
@@ -83,8 +97,7 @@ fn generate_programs(seed: &str, count: &str, folder: &Path) -> Result<bool, Str
     for offset in 0..count {
         let program = generate::program(seed.wrapping_add(offset));
         let path = folder.join(format!("generated_{}.cy", seed.wrapping_add(offset)));
-        std::fs::write(&path, tree::print(&program))
-            .map_err(|problem| format!("check: couldn't write {}: {problem}", path.display()))?;
+        write_program(&path, &program)?;
     }
     println!("wrote {count} programs to {}", folder.display());
     Ok(true)
@@ -214,8 +227,7 @@ fn fuzz(
         let this_seed = seed.wrapping_add(offset);
         let program = generate::program(this_seed);
         let path = folder.join(format!("generated_{this_seed}.cy"));
-        std::fs::write(&path, tree::print(&program))
-            .map_err(|problem| format!("check: couldn't write {}: {problem}", path.display()))?;
+        write_program(&path, &program)?;
         let (expected, verdict) = compare::compare(oracle, okay, &modes, &path);
         tally.add(&path, &expected, &verdict);
         if let compare::Verdict::Different(modes) = &verdict {

@@ -105,6 +105,8 @@ struct Generator<'random> {
     list_alias: Option<(String, Kind, i128)>,
     text_alias: Option<(String, i128)>,
     named_others: Vec<(String, bool, String)>,
+    /// The target the program's answer depends on, once something uses its sizes (D389).
+    target: Option<&'static str>,
     /// Whether `fpoint`, `fhalf`, `bag` and `bag_done` are declared (2.6, 6.9).
     extras: bool,
     /// The first struct, and the kind of `nest`'s list, when `nest` and `view` are declared
@@ -189,6 +191,7 @@ pub fn program(seed: u64) -> Program {
         trios: Vec::new(),
         warm: None,
         extras: false,
+        target: None,
         nest: None,
         wrap: None,
         list_alias: None,
@@ -338,6 +341,7 @@ pub fn program(seed: u64) -> Program {
         warm: generator.warm,
         nest: generator.nest,
         extras: generator.extras,
+        target: generator.target,
         strings: generator.strings,
         methods: generator.methods,
         arena: generator.arena,
@@ -1334,6 +1338,44 @@ impl Generator<'_> {
             })
             .collect();
         let (first, kind) = self.random.pick(&secrets)?.clone();
+        // Now and then they go in a list that grows on the heap instead (2.22, 2.10).
+        if (self.in_main || self.has_heap) && self.random.chance(40) {
+            let name = self.name("sl");
+            let second = self.secret(scope, kind, 1);
+            let word = kind.word();
+            return Some(Statement::Sequence(vec![
+                Statement::LetNamed {
+                    name: name.clone(),
+                    written: format!("std::coll::list<{word}.secret>[len.max: inf items]"),
+                    value: Expression::Call {
+                        function: "std::coll::list.from".to_string(),
+                        arguments: vec![
+                            (
+                                None,
+                                Expression::Lanes(vec![Expression::Variable(first), second]),
+                            ),
+                            (
+                                Some("alloc".to_string()),
+                                Expression::Lend("heap".to_string()),
+                            ),
+                        ],
+                        handling: Handling::Crash,
+                    },
+                    back: None,
+                },
+                Statement::Defer(Box::new(Statement::Call(Expression::Call {
+                    function: "std::coll::list.done".to_string(),
+                    arguments: vec![
+                        (None, Expression::Give(name)),
+                        (
+                            Some("alloc".to_string()),
+                            Expression::Lend("heap".to_string()),
+                        ),
+                    ],
+                    handling: Handling::Crash,
+                }))),
+            ]));
+        }
         let second = self.secret(scope, kind, 1);
         let items = vec![Expression::Variable(first), second];
         // A `simd` of secrets is decided, and the oracle doesn't run one yet (D286).
@@ -3435,6 +3477,35 @@ impl Generator<'_> {
                             function: format!("utake_{}", declared.name),
                             arguments: vec![(None, Expression::Give(name))],
                             handling: Handling::Crash,
+                        },
+                    },
+                ]))
+            }
+            // `lanes: max` is the most one instruction takes on the target, so the program names
+            // its target, and fills the lanes with `all`, whatever their count (2.21, D389).
+            3 if self.random.chance(40) => {
+                let kind = *self
+                    .random
+                    .pick(&[Kind::I32, Kind::I64])
+                    .unwrap_or(&Kind::I32);
+                self.target = Some("macos_aarch64");
+                let (name, read) = (self.name("sm"), self.name("k"));
+                scope.variables.push((read.clone(), Type::Integer(kind)));
+                Some(Statement::Sequence(vec![
+                    Statement::LetNamed {
+                        name: name.clone(),
+                        written: format!("simd<{}>[lanes: max]", kind.word()),
+                        value: Expression::AllLanes(Box::new(Expression::Integer(
+                            self.random.between(0, 50),
+                        ))),
+                        back: None,
+                    },
+                    Statement::Let {
+                        name: read,
+                        value_type: Type::Integer(kind),
+                        value: Expression::Method {
+                            receiver: Box::new(Expression::Variable(name)),
+                            method: "sum",
                         },
                     },
                 ]))

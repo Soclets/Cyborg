@@ -30,7 +30,9 @@
 ///   and back, chosen lane by lane with `.%pick`, shuffled with `pos:` or `offset.lanes:`, and
 ///   loops over `simd_chunks` that pad, need an exact multiple, or hand over leftovers, and
 ///   `.%%simd_chunks.mut` ones that change each chunk; `.%reverse`, `.%rotate.left` and
-///   `.right`, `.%join`, `.%interleave`, and `.%lookup`; `not.bit` on integers and secrets; in `main`, lists that grow on the
+///   `.right`, `.%join`, `.%interleave`, and `.%lookup`; `not.bit` on integers and secrets;
+///   `lanes: max`, in a program that names its target in `name.target`; secrets in a list that
+///   grows on the heap; in `main`, lists that grow on the
 ///   heap or in an arena with a random `room:`, from `list.from` or `empty`, ended by `defer`,
 ///   in functions with a heap of their own too, some saying `grow:`; appends handled with
 ///   `?? void`; lists read through views, `std::coll::list<…>` and `.mut`, split into halves,
@@ -119,8 +121,8 @@ pub const NOT_GENERATED: &[&str] = &[
     "2.14 undecided: what converts to what beyond numbers into strings and units (12.3)",
     "2.16 undecided: `std`'s units other than `time.seconds` and `angle`'s (12.2)",
     "2.18 undecided: maths and `==` between two of the same `type.new` (12)",
-    "2.21 NotBuiltYet: bounded lanes, as in `simd<u8[min: 1, max: 16]>`; needs a target: `lanes: max`, whose count is the target's; undecided: maths between a `simd` and one value",
-    "2.22 NotBuiltYet: a `simd` of secrets; still to do: secrets in growable lists; undecided: rotating an integer, which has no spelling, and `shr` on a negative (12)",
+    "2.21 NotBuiltYet: bounded lanes, as in `simd<u8[min: 1, max: 16]>`; undecided: maths between a `simd` and one value, and how many lanes `max` is on `linux_x86_64`, for `bool`, and for bytes on the Uno R4",
+    "2.22 NotBuiltYet: a `simd` of secrets; undecided: rotating an integer, which has no spelling, and `shr` on a negative (12)",
     "5.x undecided: specialization, value parameters, type slots and how laws are proven (12.5)",
     "9.x undecided: `pub` and `use` between packages, since how a kit of your own is found isn't decided (12.9); NotBuiltYet: channels, waiting on the run loop's rewrite, and `.at(address:)`, which points at hardware the oracle doesn't have; undecided: a shield's own `requires` and `ensures` (12.9), your own allocator (2.10)",
     "10.x compiler-only: build modes, since the oracle runs one way and the live comparison runs every mode against it",
