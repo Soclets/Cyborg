@@ -252,7 +252,11 @@ end interface allocator
 
 An arena hands out memory from one big block and frees it all at once, as `std::mem::arena`. It only carves up memory it's given, so it works anywhere, bare metal included. Lists made from it still end with `done`, where freeing costs nothing, so every owner follows one rule. The arena counts what's still alive, and ending it while anything from it is alive is a failed check.
 
-How much memory each allocation takes is fixed by the standard, so whether a program runs out is the same on every machine for a target. An item takes its type's size, which is known since a bare `struct` has an exact layout, at its natural alignment. A growable list's first allocation holds what it needs, rounded up to 4 items, and a full one doubles. `kib` and `mib` are 1024 and 1024² `bytes`.
+How much memory each allocation takes is fixed by the standard, so whether a program runs out is the same on every machine for a target. An item takes its type's size, which is known since a bare `struct` has an exact layout, at its natural alignment. A growable list's first allocation holds what it needs, but room for at least 4 items, and a full one doubles, so appending to an empty list goes 4, 8, 16, and a list made from 5 items goes 5, 10, 20. A list can choose otherwise with an optional `grow:` label: `grow: exact` takes only what each append needs, using the least memory but growing slowly, and `grow: by 4 kib` or `grow: by 64 items` grows in fixed steps.
+
+```
+let mut $log: std::coll::list<line>[len.max: inf items, grow: exact] = empty;
+``` `kib` and `mib` are 1024 and 1024² `bytes`.
 
 ```
 let mut $arena: std::mem::arena = std::mem::arena.new(size: 1 mib, alloc: Lend $heap);
@@ -272,7 +276,7 @@ let $h: std::coll::halves.mut<i32> = $xs.std::%%split.mut(at.items: 500);
 
 **Refused:** `[ ]` with items, or a string literal, given straight to a growable list or string, with `fix: std::coll::list.from` or `str.from`; `std::coll::list.mut<i32>` growing or shrinking, a list with a bare `len`, in favour of `array`, `= empty` on a list with `len.min` above 0, `[]`, with `fix: empty`, and too few or too many items.
 
-**From:** D11, D12, D13, D24, D102, D103, D140, D321, D322, D323, D324, D330, D333, D369, D370, D371, D379, D381, D382.
+**From:** D11, D12, D13, D24, D102, D103, D140, D321, D322, D323, D324, D330, D333, D369, D370, D371, D379, D381, D382, D385.
 
 ## 2.11 Arrays
 
