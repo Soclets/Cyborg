@@ -1,6 +1,0 @@
-check failed: d322_another_allocator.cy:12:5, line 12 column 5
-12 |     $xs.std::%%append(val: 5, alloc: Lend $other);
-   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
- what: `$xs` took its memory from another allocator
- why:  a list remembers which allocator it uses, and handing it another is a failed check (D322)
- when: it uses allocator 1, and this is allocator 2

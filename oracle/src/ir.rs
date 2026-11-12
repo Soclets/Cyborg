@@ -89,6 +89,12 @@ pub enum Arithmetic {
     Wrap(crate::ast::WordOperator),
     /// Sticks at these bounds: the type's written ones, or the hardware's. (D294)
     Saturate(crate::ast::WordOperator, i128, i128),
+    /// Sticks at a float type's written bounds, where it would otherwise reach infinity. (D373)
+    SaturateFloat(
+        crate::ast::WordOperator,
+        crate::types::FloatBound,
+        crate::types::FloatBound,
+    ),
     Divide(Narrowing),
     Remainder(Narrowing),
     BitAnd,
@@ -139,7 +145,9 @@ impl Arithmetic {
     pub fn unit_rule(self) -> Arithmetic {
         use crate::ast::WordOperator;
         match self {
-            Arithmetic::Wrap(word) | Arithmetic::Saturate(word, ..) => match word {
+            Arithmetic::Wrap(word)
+            | Arithmetic::Saturate(word, ..)
+            | Arithmetic::SaturateFloat(word, ..) => match word {
                 WordOperator::Plus => Arithmetic::Add,
                 WordOperator::Minus => Arithmetic::Subtract,
                 WordOperator::Times => Arithmetic::Multiply,

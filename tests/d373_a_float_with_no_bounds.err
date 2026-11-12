@@ -1,0 +1,5 @@
+NotDesignedYet: d373_a_float_with_no_bounds.cy:6:26, line 6 column 26
+ 6 |     let $b: f64.stable = $a plus.saturate 1.0;
+   |                          ^^^^^^^^^^^^^^^^^^^^
+ what: saturating `f64.stable`, a float with no written bounds
+ why:  not decided yet, and the standard doesn't say

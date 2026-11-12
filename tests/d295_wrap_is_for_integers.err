@@ -2,4 +2,4 @@ refused: d295_wrap_is_for_integers.cy:5:26, line 5 column 26
  5 |     let $b: f64.stable = $a minus.wrap 1.0;
    |                          ^^^^^^^^^^^^^^^^^
  what: `minus.wrap` is for integers
- why:  a wrapping operator wraps an integer in every mode (D42, D295)
+ why:  floats don't wrap: too big becomes infinity, so wrapping means nothing for them (D295, D373)

@@ -140,7 +140,7 @@ impl Checker<'_> {
             self.arithmetic_type(operator, left_item, right_item, right, span)?;
         let operator = match operator {
             Arithmetic::Saturate(word, ..) => {
-                let (low, high, _) = Self::saturate_bounds(left_item, right_item, span)?;
+                let (low, high, _) = Self::saturate_bounds(left_item, right_item, None, span)?;
                 Arithmetic::Saturate(word, low, high)
             }
             other => other,

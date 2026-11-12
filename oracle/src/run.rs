@@ -136,8 +136,6 @@ struct Runner<'c> {
     out: std::io::BufWriter<std::io::Stdout>,
     /// The terminal writers the program made, by number. (D273)
     writers: Vec<Writer>,
-    /// How many allocators the program has made, so each gets its own number. (D322)
-    allocators: usize,
     /// What each pointer the program made points at, by number. (D315)
     pointers: Vec<PointerTarget>,
 }
@@ -284,7 +282,6 @@ impl<'c> Runner<'c> {
             step_limit,
             out: std::io::BufWriter::new(std::io::stdout()),
             writers: Vec::new(),
-            allocators: 0,
             pointers: Vec::new(),
         }
     }
@@ -1030,12 +1027,10 @@ impl<'c> Runner<'c> {
                 self.allocator_number(allocator, frame)?;
                 Ok(Value::Void)
             }
-            // trace: D322, D332
-            NodeKind::Allocator => {
-                self.allocators += 1;
-                let number = i128::try_from(self.allocators).unwrap_or(i128::MAX);
-                Ok(Value::Struct(vec![Value::Integer(number)]))
-            }
+            // Every `os::heap()` is a handle to the one OS heap, so they share its number, 0;
+            // what a program makes itself gets its own. (D371)
+            // trace: D322, D332, D371
+            NodeKind::Allocator => Ok(Value::Struct(vec![Value::Integer(0)])),
             // trace: D322, D323
             NodeKind::ListDone { list, allocator } => {
                 let list = self.evaluate(list, frame)?;
@@ -1999,6 +1994,11 @@ fn arithmetic(
                 Arithmetic::Subtract => left - right,
                 // trace: D164
                 Arithmetic::Divide(_) => left / right,
+                // A bound held as f64 came from an f32 type, so it fits back exactly.
+                #[allow(clippy::cast_possible_truncation)]
+                Arithmetic::SaturateFloat(word, low, high) => {
+                    float_word(word, *left, *right).clamp(low.value() as f32, high.value() as f32)
+                }
                 _ => left * right,
             };
             check_float_made(
@@ -2024,11 +2024,30 @@ fn arithmetic(
                 Arithmetic::Subtract => left - right,
                 // trace: D164
                 Arithmetic::Divide(_) => left / right,
+                Arithmetic::SaturateFloat(word, low, high) => {
+                    float_word(word, *left, *right).clamp(low.value(), high.value())
+                }
                 _ => left * right,
             };
             check_float_made(FloatKind::F64, rules, result, *left, *right, span)?;
             Ok(Value::F64(result))
         }
+    }
+}
+
+/// `plus`, `minus` or `times` on two floats, which saturating then clamps: an infinity it
+/// reaches sticks at the bound like any other value past it. (D373)
+fn float_word<
+    F: std::ops::Add<Output = F> + std::ops::Sub<Output = F> + std::ops::Mul<Output = F>,
+>(
+    word: WordOperator,
+    left: F,
+    right: F,
+) -> F {
+    match word {
+        WordOperator::Plus => left + right,
+        WordOperator::Minus => left - right,
+        WordOperator::Times => left * right,
     }
 }
 
@@ -2120,6 +2139,7 @@ fn integer_arithmetic(
         )),
         // trace: D294
         Arithmetic::Saturate(word, low, high) => Ok(saturate(word, left, right, low, high)),
+        Arithmetic::SaturateFloat(..) => Err(oracle_lost(span, "float saturating on integers")),
         Arithmetic::Divide(narrowing) => {
             division_by_zero(right, span)?;
             let value = match narrowing {

@@ -1,5 +1,6 @@
-// `done` frees a list with the allocator it came from, which is checked too.
-// trace: D322, D323
+// A list grown through one `os::heap()` can be freed through another, since there's only one
+// OS heap.
+// trace: D322, D323, D371
 import std;
 import os;
 

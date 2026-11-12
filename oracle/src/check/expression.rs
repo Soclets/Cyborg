@@ -3526,9 +3526,25 @@ impl Checker<'_> {
         let (number, mut result) =
             self.arithmetic_type(arithmetic, &left_type, &right_type, right, span)?;
         // trace: D294
+        let destination = expected.map(|found| super::secrets::unwrap_secret(found).0);
         let arithmetic = match arithmetic {
+            // trace: D373
+            Arithmetic::Saturate(word, ..) if matches!(number, Number::Float(..)) => {
+                let (low, high) =
+                    Self::float_saturate_bounds(&left_type, destination.as_ref(), span)?;
+                if let Type::Float {
+                    bound: result_bound,
+                    ..
+                } = &mut result
+                {
+                    *result_bound = Some((low, high));
+                }
+                Arithmetic::SaturateFloat(word, low, high)
+            }
+            // trace: D372
             Arithmetic::Saturate(word, ..) => {
-                let (low, high, bound) = Self::saturate_bounds(&left_type, &right_type, span)?;
+                let (low, high, bound) =
+                    Self::saturate_bounds(&left_type, &right_type, destination.as_ref(), span)?;
                 if let Type::Integer {
                     bound: result_bound,
                     ..
@@ -3557,12 +3573,14 @@ impl Checker<'_> {
         ))
     }
 
-    /// Where a saturating operator sticks: the written `min:` and `max:` of whichever side has
-    /// them, or the hardware's, and the bound the result keeps. (D294)
-    /// trace: D294
+    /// Where a saturating operator sticks: the bounds of the type the result goes into, written
+    /// or the hardware's, and the bound the result keeps. With nowhere written to go, as inside a
+    /// comparison, it's the bounds the two sides share. (D294, D372)
+    /// trace: D294, D372
     pub(super) fn saturate_bounds(
         left: &Type,
         right: &Type,
+        destination: Option<&Type>,
         span: Span,
     ) -> Outcome<(i128, i128, Option<Bound>)> {
         let (
@@ -3578,10 +3596,21 @@ impl Checker<'_> {
         else {
             return Err(Report::refused(
                 span,
-                "saturating is for integers",
-                "a saturating operator sticks at an integer type's bounds (D294)",
+                "saturating is for numbers",
+                "a saturating operator sticks at a number type's bounds (D294, D373)",
             ));
         };
+        if let Some(Type::Integer {
+            kind: destination_kind,
+            bound,
+            ..
+        }) = destination
+        {
+            if destination_kind == kind {
+                let (low, high) = bound.unwrap_or_else(|| kind.range());
+                return Ok((low, high, *bound));
+            }
+        }
         let bound = match (left_bound, right_bound) {
             (Some(left_bound), Some(right_bound)) if left_bound != right_bound => {
                 return Err(Report::not_designed(
@@ -3595,6 +3624,30 @@ impl Checker<'_> {
         };
         let (low, high) = bound.unwrap_or_else(|| kind.range());
         Ok((low, high, bound))
+    }
+
+    /// Where a saturating operator on floats sticks: the written bounds of the type the result
+    /// goes into, since floats go to infinity rather than having a hardware bound. (D372, D373)
+    /// trace: D373
+    fn float_saturate_bounds(
+        left: &Type,
+        destination: Option<&Type>,
+        span: Span,
+    ) -> Outcome<(crate::types::FloatBound, crate::types::FloatBound)> {
+        let written = match destination {
+            Some(Type::Float { bound, .. }) => *bound,
+            _ => match left {
+                Type::Float { bound, .. } => *bound,
+                _ => None,
+            },
+        };
+        written.ok_or_else(|| {
+            Report::not_designed(
+                span,
+                format!("saturating `{left}`, a float with no written bounds"),
+                "",
+            )
+        })
     }
 
     /// The result type of maths on two operands, with every unit rule. (D100, D111)
@@ -3688,7 +3741,9 @@ impl Checker<'_> {
                     Arithmetic::Add
                     | Arithmetic::Subtract
                     | Arithmetic::Multiply
-                    | Arithmetic::Divide(Narrowing::Bare(_)) => {}
+                    | Arithmetic::Divide(Narrowing::Bare(_))
+                    // trace: D373
+                    | Arithmetic::Saturate(..) => {}
                     Arithmetic::Divide(narrowing) => {
                         return Err(Report::not_designed(
                             span,
@@ -3699,18 +3754,12 @@ impl Checker<'_> {
                     Arithmetic::Remainder(_) => {
                         return Err(Report::not_designed(span, "`mod` on floats", "12.2"));
                     }
+                    // trace: D373
                     Arithmetic::Wrap(word) => {
                         return Err(Report::refused(
                             span,
                             format!("`{}.wrap` is for integers", word.word()),
-                            "a wrapping operator wraps an integer in every mode (D42, D295)",
-                        ));
-                    }
-                    Arithmetic::Saturate(word, ..) => {
-                        return Err(Report::not_designed(
-                            span,
-                            format!("`{}.saturate` on a float", word.word()),
-                            "",
+                            "floats don't wrap: too big becomes infinity, so wrapping means nothing for them (D295, D373)",
                         ));
                     }
                     _ => {
