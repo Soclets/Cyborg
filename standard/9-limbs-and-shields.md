@@ -317,7 +317,14 @@ A lock holds its data, and locking gives a `Lend.mut` of it for one block, unloc
 end @concur::locked
 ```
 
-There's no `async` or `await`. A function that waits takes the runner, and the runner decides how waiting works: a thread blocks, or an event runner parks the task and runs another, with each task on its own small stack, whose size the compiler works out. A spawn onto an event runner takes the allocator for that stack. The spellings are placeholders.
+There's no `async` or `await`. A function that waits takes the runner, and the runner decides how waiting works: a thread blocks, or an event runner parks the task and runs another, with each task on its own small stack, whose size the compiler works out. A spawn onto an event runner takes the allocator for that stack, so the writer picks where stacks live, like the heap or an arena, and running out is an `out_of_memory` failure from the spawn. Recursive code, whose stack the compiler can't measure, writes a size. A spawn onto `os::threads` takes none, since the OS gives its threads their stacks.
+
+```
+@concur::spawn(on: Lend $events, alloc: Lend $arena) handle(Lend $conn);
+@concur::spawn(on: Lend $events, alloc: Lend $arena, stack: 64 kib) walk(Lend $tree);
+```
+
+The spellings are placeholders.
 
 **Refused:** a task that isn't joined; two tasks both given `Lend.mut` of one thing; locking inside a locked block; and the same lock twice in one block.
 
