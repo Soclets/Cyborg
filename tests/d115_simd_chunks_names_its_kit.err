@@ -1,0 +1,5 @@
+refused: d115_simd_chunks_names_its_kit.cy:7:23, line 7 column 23
+ 7 |     for $chunk in $xs.%simd_chunks.exact(lanes: 4):
+   |                       ^^^^^^^^^^^^^^^^^^
+ fix:  `std::%simd_chunks.exact`
+ why:  a method from a kit says its path, because bare means base or your own (D115)

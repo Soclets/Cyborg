@@ -122,7 +122,7 @@ impl Checker<'_> {
             return Err(Report::not_designed(
                 path_span,
                 "how `os::events` is made",
-                "",
+                "12.2",
             ));
         }
         let Some((stderr, buffered)) = writer_kind(&format!("os::{rest}")) else {

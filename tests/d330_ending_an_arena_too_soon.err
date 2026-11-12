@@ -1,0 +1,6 @@
+check failed: d330_ending_an_arena_too_soon.cy:11:5, line 11 column 5
+11 |     std::mem::arena.done(Give $arena, alloc: Lend $heap);
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ what: this arena ends while lists from it are still alive
+ why:  an arena counts what's still alive from it, and ending it then is a failed check, so nothing can dangle into a freed arena (D330)
+ when: 1 still alive

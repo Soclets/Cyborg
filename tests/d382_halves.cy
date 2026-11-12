@@ -25,11 +25,11 @@ fn.main [none] -> void:
     let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
     let $pool: os::threads = os::threads(count: 2);
     let mut $xs: std::coll::list<i64>[len.max: 8 items] = [1, 2, 3, 4, 5];
-    let $h: std::coll::halves.mut<i64> = $xs.%%split.mut(at.items: 2);
+    let $h: std::coll::halves.mut<i64> = $xs.std::%%split.mut(at.items: 2);
     let $a: @concur::task<i64> = @concur::spawn(on: Lend $pool) double(Lend.mut $h.first);
     let $b: @concur::task<i64> = @concur::spawn(on: Lend $pool) double(Lend.mut $h.second);
     let $counted: i64 = @concur::task.done(Give $a) + @concur::task.done(Give $b);
-    let $r: std::coll::halves<i64> = $xs.%split(at.items: 4);
+    let $r: std::coll::halves<i64> = $xs.std::%split(at.items: 4);
     std::io::fmt_print(Lend.mut $out, "{} {} {} {}{newln}", $counted, total($r.first), total($r.second), $xs[pos: 5]);
     return void;
 end fn.main

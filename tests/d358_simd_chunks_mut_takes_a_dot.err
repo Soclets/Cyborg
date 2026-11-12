@@ -1,5 +1,5 @@
-refused: d358_simd_chunks_mut_takes_a_dot.cy:8:25, line 8 column 25
- 8 |     for $chunk in $xs.%%simd_chunks_mut.pad(lanes: 4, pad: 0):
-   |                         ^^^^^^^^^^^^^^^^^^^
+refused: d358_simd_chunks_mut_takes_a_dot.cy:8:30, line 8 column 30
+ 8 |     for $chunk in $xs.std::%%simd_chunks_mut.pad(lanes: 4, pad: 0):
+   |                              ^^^^^^^^^^^^^^^^^^^
  fix:  `simd_chunks.mut.pad`
  why:  Cyborg narrows with a dot everywhere, as in `ptr.raw.mut` and `Lend.mut`, so it's `simd_chunks.mut` (D358)

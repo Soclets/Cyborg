@@ -1,0 +1,5 @@
+refused: d115_split_names_its_kit.cy:7:46, line 7 column 46
+ 7 |     let $h: std::coll::halves.mut<i64> = $xs.%%split.mut(at.items: 1);
+   |                                              ^^^^^^^^^^^
+ fix:  `std::%%split.mut`
+ why:  a method from a kit says its path, because bare means base or your own (D115)

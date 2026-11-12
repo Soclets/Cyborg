@@ -14,9 +14,14 @@ use crate::ir::{self, Node, NodeKind};
 use crate::report::{Outcome, Report, Span};
 use crate::types::Type;
 
-/// Whether a type is an allocator the oracle has. (D332)
+/// Whether a type is an allocator the oracle has: the OS heap, or an arena. (D330, D332)
 pub(super) fn is_allocator(value_type: &Type) -> bool {
-    matches!(value_type, Type::Struct(name) if name == "os::heap")
+    matches!(value_type, Type::Struct(name) if name == "os::heap") || is_arena(value_type)
+}
+
+/// An arena, which owns its block, so it's `must_Give` and ends with `arena.done`. (D330)
+pub(super) fn is_arena(value_type: &Type) -> bool {
+    matches!(value_type, Type::Struct(name) if name == "std::mem::arena")
 }
 
 /// A list that can grow on the heap, which takes an allocator and is `must_Give`. (D323)
@@ -31,6 +36,23 @@ fn ended_by(done: &str, value_type: &Type) -> bool {
         "map.done" => matches!(value_type, Type::Map { .. }),
         _ => is_growable(value_type),
     }
+}
+
+/// A literal size: a number of `bytes`, `kib` or `mib`, in bytes. (D370)
+/// trace: D370
+pub(super) fn byte_size(value: &Expression) -> Option<i128> {
+    let ExpressionKind::WithUnit { number, unit } = &value.kind else {
+        return None;
+    };
+    let scale = match unit.text.as_str() {
+        "bytes" => 1,
+        "kib" => 1024,
+        "mib" => 1024 * 1024,
+        _ => return None,
+    };
+    super::expression::literal_integer(number)
+        .filter(|count| *count > 0)
+        .and_then(|count| count.checked_mul(scale))
 }
 
 /// Running out of memory is a failure, handled like any other. (D321, D324)
@@ -251,6 +273,121 @@ impl Checker<'_> {
 }
 
 impl Checker<'_> {
+    /// `std::mem::arena.new(size: 1 mib, alloc: Lend $heap)` takes one block from another
+    /// allocator, which `std::mem::arena.done(Give $arena, alloc: Lend $heap)` hands back. (D330,
+    /// D333, D378)
+    /// trace: D330, D333
+    #[allow(clippy::too_many_lines)] // `new` and `done` share their argument checks.
+    pub(super) fn check_arena_call(
+        &mut self,
+        word: &str,
+        arguments: &[Argument],
+        span: Span,
+        path_span: Span,
+    ) -> Outcome<RawCall> {
+        const WHY: &str = "an arena takes one block, `std::mem::arena.new(size: 1 mib, alloc: Lend $heap)`, hands it out, and gives it back all at once with `std::mem::arena.done(Give $arena, alloc: Lend $heap)` (D330, D333)";
+        let [first, allocator] = arguments else {
+            return Err(Report::refused(
+                path_span,
+                format!("`std::mem::arena.{word}` takes two arguments"),
+                WHY,
+            ));
+        };
+        if allocator
+            .label
+            .as_ref()
+            .is_none_or(|label| label.text != "alloc")
+        {
+            return Err(Report::refused(
+                allocator.value.span,
+                format!("`std::mem::arena.{word}` takes `alloc:` last"),
+                WHY,
+            ));
+        }
+        let mut handed = Vec::new();
+        match word {
+            "new" => {
+                if first
+                    .label
+                    .as_ref()
+                    .is_none_or(|label| label.text != "size")
+                {
+                    return Err(Report::refused(
+                        first.value.span,
+                        "`std::mem::arena.new` takes `size:`",
+                        WHY,
+                    ));
+                }
+                let Some(bytes) = byte_size(&first.value) else {
+                    return Err(Report::not_designed(
+                        first.value.span,
+                        "an arena's `size:` that isn't a literal number of `bytes`, `kib` or `mib`",
+                        "",
+                    ));
+                };
+                let allocator = self.allocator_argument(&allocator.value, &mut handed)?;
+                Ok(RawCall {
+                    node: Node {
+                        span,
+                        kind: NodeKind::ArenaNew {
+                            bytes,
+                            allocator: Box::new(allocator),
+                        },
+                    },
+                    value_type: Type::Struct("std::mem::arena".to_string()),
+                    failures: vec![out_of_memory()],
+                    unnamed: None,
+                })
+            }
+            "done" => {
+                if first.label.is_some()
+                    || !self
+                        .variable_type_of(&first.value)
+                        .is_some_and(|found| is_arena(&found))
+                {
+                    return Err(Report::refused(
+                        first.value.span,
+                        "`std::mem::arena.done` ends an arena",
+                        WHY,
+                    ));
+                }
+                let parameter = ParameterInfo {
+                    name: "arena".to_string(),
+                    label: None,
+                    word: ParameterWord::Given,
+                    parameter_type: Type::Struct("std::mem::arena".to_string()),
+                    default: None,
+                    label_has_unit: false,
+                };
+                let arena = match self.check_argument(&first.value, &parameter, &mut handed)? {
+                    ir::Argument::Value(node) => node,
+                    ir::Argument::Alias(place) => Node {
+                        span: first.value.span,
+                        kind: NodeKind::Read(place),
+                    },
+                };
+                let allocator = self.allocator_argument(&allocator.value, &mut handed)?;
+                Ok(RawCall {
+                    node: Node {
+                        span,
+                        kind: NodeKind::ArenaDone {
+                            arena: Box::new(arena),
+                            allocator: Box::new(allocator),
+                        },
+                    },
+                    value_type: Type::Void,
+                    failures: Vec::new(),
+                    unnamed: None,
+                })
+            }
+            other => Err(Report::not_designed(
+                path_span,
+                format!("`std::mem::arena.{other}`"),
+                "",
+            )),
+        }
+    }
+
     /// `std::coll::list.from([1, 2, 3], alloc: Lend $heap)` fills a growable list from items,
     /// since filling one allocates, and every allocation names its allocator. It takes its type
     /// from where it goes, as a literal does. (D321, D369)

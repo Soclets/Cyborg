@@ -325,6 +325,21 @@ pub enum NodeKind {
         text: Box<Node>,
         allocator: Box<Node>,
     },
+    /// `std::mem::arena.new(size: 1 mib, alloc: Lend $heap)`: a new arena of that many bytes.
+    /// (D330)
+    ArenaNew {
+        // Counted against once design says how lists grow in an arena and what its own
+        // bookkeeping takes (D370, 12.2).
+        #[allow(dead_code)]
+        bytes: i128,
+        allocator: Box<Node>,
+    },
+    /// `std::mem::arena.done(Give $arena, alloc: Lend $heap)`, a failed check while anything
+    /// from it is alive. (D330)
+    ArenaDone {
+        arena: Box<Node>,
+        allocator: Box<Node>,
+    },
     /// `@concur::spawn(…) f(…)`: the call's arguments are taken now, and its body runs as a
     /// task. (D356)
     Spawn(Box<Node>),

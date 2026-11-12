@@ -141,6 +141,14 @@ struct Runner<'c> {
     pointers: Vec<PointerTarget>,
     /// Every task spawned, by number, in the order spawned. (D356, D376)
     tasks: Vec<TaskRun>,
+    /// Every arena made, numbered from 1 as allocators, since the OS heap is 0. (D330, D371)
+    arenas: Vec<Arena>,
+}
+
+/// An arena: how many lists from it are still alive, and whether it has ended. (D330)
+struct Arena {
+    live: usize,
+    ended: bool,
 }
 
 /// A call's function, its arguments, and its tables, ready to run.
@@ -303,6 +311,7 @@ impl<'c> Runner<'c> {
             writers: Vec::new(),
             pointers: Vec::new(),
             tasks: Vec::new(),
+            arenas: Vec::new(),
         }
     }
 
@@ -471,6 +480,30 @@ impl<'c> Runner<'c> {
         }
         let tables = Self::resolve_tables(tables, frame, node.span)?;
         Ok((*function, bindings, tables))
+    }
+
+    /// A list took its first memory from this allocator, which an arena counts. (D330)
+    fn arena_gained(&mut self, allocator: usize, span: Span) -> Result<(), Stop> {
+        if let Some(state) = allocator
+            .checked_sub(1)
+            .and_then(|index| self.arenas.get_mut(index))
+        {
+            if state.ended {
+                return Err(oracle_bug(span, "memory from an arena that has ended"));
+            }
+            state.live += 1;
+        }
+        Ok(())
+    }
+
+    /// A list from this allocator ended, which an arena counts. (D330)
+    fn arena_lost(&mut self, allocator: usize) {
+        if let Some(state) = allocator
+            .checked_sub(1)
+            .and_then(|index| self.arenas.get_mut(index))
+        {
+            state.live = state.live.saturating_sub(1);
+        }
     }
 
     /// `$xs.%%split.mut(at.items: 2)`: two windows onto the list, the first holding that many
@@ -1238,6 +1271,7 @@ impl<'c> Runner<'c> {
                     ));
                 };
                 let allocator = self.allocator_number(allocator, frame)?;
+                self.arena_gained(allocator, span)?;
                 Ok(Value::List(items, Some(allocator)))
             }
             NodeKind::TextDone { text, allocator } => {
@@ -1249,12 +1283,49 @@ impl<'c> Runner<'c> {
             // what a program makes itself gets its own. (D371)
             // trace: D322, D332, D371
             NodeKind::Allocator => Ok(Value::Struct(vec![Value::Integer(0)])),
+            // trace: D330
+            NodeKind::ArenaNew { allocator, .. } => {
+                self.allocator_number(allocator, frame)?;
+                self.arenas.push(Arena {
+                    live: 0,
+                    ended: false,
+                });
+                let number = i128::try_from(self.arenas.len()).unwrap_or(i128::MAX);
+                Ok(Value::Struct(vec![Value::Integer(number)]))
+            }
+            NodeKind::ArenaDone { arena, allocator } => {
+                let number = self.allocator_number(arena, frame)?;
+                self.allocator_number(allocator, frame)?;
+                let Some(state) = number
+                    .checked_sub(1)
+                    .and_then(|index| self.arenas.get_mut(index))
+                else {
+                    return Err(oracle_bug(span, "an arena that was never made"));
+                };
+                if state.live > 0 {
+                    return Err(Stop::Report(
+                        Report::check_failed(
+                            span,
+                            "this arena ends while lists from it are still alive",
+                            "an arena counts what's still alive from it, and ending it then is a failed check, so nothing can dangle into a freed arena (D330)",
+                        )
+                        .when(format!("{} still alive", state.live)),
+                    ));
+                }
+                state.ended = true;
+                Ok(Value::Void)
+            }
             // trace: D322, D323
             NodeKind::ListDone { list, allocator } => {
                 let list = self.evaluate(list, frame)?;
                 let allocator = self.allocator_number(allocator, frame)?;
                 match list {
-                    Value::List(_, used) => check_allocator(used, allocator, "this list", span)?,
+                    Value::List(_, used) => {
+                        check_allocator(used, allocator, "this list", span)?;
+                        if used.is_some() {
+                            self.arena_lost(allocator);
+                        }
+                    }
                     Value::Map => {}
                     _ => return Err(oracle_bug(span, "`done` on something that isn't a list")),
                 }
@@ -1615,11 +1686,19 @@ impl<'c> Runner<'c> {
         }
         // A growable list remembers the allocator it first takes memory from. (D322)
         // trace: D322
+        let mut first_allocation = None;
         if let Some(allocator) = allocator {
             check_allocator(*alloc, allocator, &format!("`{shown}`"), span)?;
+            if alloc.is_none() {
+                first_allocation = Some(allocator);
+            }
             *alloc = Some(allocator);
         }
         items.push(item);
+        drop(root);
+        if let Some(allocator) = first_allocation {
+            self.arena_gained(allocator, span)?;
+        }
         Ok(Value::Void)
     }
 }

@@ -2088,11 +2088,8 @@ impl Checker<'_> {
             return Self::check_one_thread_call(arguments, span);
         }
         // trace: D330, D333
-        if rest.starts_with("arena.") {
-            return Err(Report::not_built(
-                path_span,
-                format!("`std::{}`", super::grouped(rest)),
-            ));
+        if let Some(word) = rest.strip_prefix("arena.") {
+            return self.check_arena_call(word, arguments, span, path_span);
         }
         // `std` is grouped with `::`, and `.` after a function is a narrowing.
         // trace: D196, D161
@@ -2471,6 +2468,21 @@ impl Checker<'_> {
     /// `.%` lends a receiver read-only, and `.%%` lends it to change, as the method says. (D211)
     /// The span covers the marks as written and the name, so the fix can replace them. The
     /// call wrote the other mark, `%` when it needs `%%` and `%%` when it needs `%`. (D207)
+    /// A list method from `std` written bare, with a fix that names its kit. (D115)
+    /// trace: D115
+    pub(super) fn bare_kit_method(name: &crate::ast::Name, changes: bool) -> Box<Report> {
+        let marks = if changes { "%%" } else { "%" };
+        Report::refused(
+            Span::new(name.span.start.saturating_sub(marks.len()), name.span.end),
+            format!(
+                "`{}` is from `std`, and a method from a kit says its path",
+                name.text
+            ),
+            "a method from a kit says its path, because bare means base or your own (D115)",
+        )
+        .fix(format!("std::{marks}{}", name.text))
+    }
+
     pub(super) fn wrong_receiver_mark(name: &crate::ast::Name, changes: bool) -> Box<Report> {
         let (what, mark, written) = if changes {
             (
@@ -2684,8 +2696,8 @@ impl Checker<'_> {
             }
             return self.check_own_method(receiver, fresh, &signature, arguments, span);
         }
-        // `split` is written bare in the standard, as a list's own method. (D358, D382)
-        // trace: D382
+        // `split` is a list method from `std`, so it says its kit. (D115, D382)
+        // trace: D115, D382
         if kit.is_none()
             && matches!(name.text.as_str(), "split" | "split.mut")
             && matches!(
@@ -2693,7 +2705,7 @@ impl Checker<'_> {
                 Type::List { .. } | Type::Array { .. } | Type::ListView { .. }
             )
         {
-            return self.check_split(receiver, &receiver_type, name, changes, arguments, span);
+            return Err(Self::bare_kit_method(name, changes));
         }
         match kit {
             None => {
@@ -2731,15 +2743,14 @@ impl Checker<'_> {
             }
         }
         self.require_std(&format!("coll::list.%{}", name.text), span)?;
-        if matches!(name.text.as_str(), "split" | "split.mut") {
-            return Err(Report::not_designed(
-                name.span,
-                format!(
-                    "`.std::%{}`, since the standard writes `split` bare",
-                    name.text
-                ),
-                "",
-            ));
+        // trace: D358, D382
+        if matches!(name.text.as_str(), "split" | "split.mut")
+            && matches!(
+                receiver_type,
+                Type::List { .. } | Type::Array { .. } | Type::ListView { .. }
+            )
+        {
+            return self.check_split(receiver, &receiver_type, name, changes, arguments, span);
         }
         if name.text != "append" || !is_std_list_method {
             return Err(Report::not_designed(

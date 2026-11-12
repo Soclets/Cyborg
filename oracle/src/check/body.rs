@@ -612,6 +612,9 @@ impl Checker<'_> {
         } else if matches!(variable.held_type, Type::Map { .. }) {
             // trace: D325, D331
             "a map owns heap memory, so it's `must_Give`, and `std::coll::map.done` frees it with the allocator it came from, so a leak doesn't compile (D325, D331)"
+        } else if super::memory::is_arena(&variable.held_type) {
+            // trace: D330
+            "an arena owns its block, so it's `must_Give`, and `std::mem::arena.done` hands it back to the allocator it came from (D330, D331)"
         } else if variable.held_type == Type::GrowableStr {
             // trace: D326, D331
             "heap text is `must_Give`, and `str.done` frees it with the allocator it came from, so a leak doesn't compile (D326, D331)"
@@ -2261,12 +2264,17 @@ impl Checker<'_> {
                 WHY,
             ));
         };
-        if kit.is_some() || !percent {
+        if !percent || kit.as_deref().is_some_and(|kit| kit != "std") {
             return Err(Report::refused(
                 method.span,
-                "`simd_chunks` is a method, written `.%simd_chunks`",
+                "`simd_chunks` is a list method from `std`, written `.std::%simd_chunks`",
                 WHY,
             ));
+        }
+        // A method from a kit says its path, since bare means base or your own. (D115)
+        // trace: D115
+        if kit.is_none() {
+            return Err(Self::bare_kit_method(method, *changes));
         }
         let parts: Vec<&str> = method.text.split('.').collect();
         // D358 narrows with a dot everywhere, so D303's `simd_chunks_mut` is `simd_chunks.mut`.

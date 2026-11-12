@@ -2078,6 +2078,11 @@ impl Checker<'_> {
         {
             return true;
         }
+        // An arena owns its block. (D330)
+        // trace: D330
+        if memory::is_arena(value_type) {
+            return true;
+        }
         match value_type {
             Type::Struct(name) => self.struct_info(name).is_some_and(|info| info.must_give),
             Type::Holding { base, .. } => self.is_must_give(base),
@@ -3297,7 +3302,9 @@ impl Checker<'_> {
             "one_thread" => Ok(Type::Struct("std::run::one_thread".to_string())),
             "runner" => Err(Report::not_built(path.span, "`std::run::runner`")),
             // trace: D330, D333
-            "arena" | "allocator" => Err(Report::not_built(path.span, format!("`std::{}`", grouped(rest)))),
+            // trace: D330, D333
+            "arena" => Ok(Type::Struct("std::mem::arena".to_string())),
+            "allocator" => Err(Report::not_built(path.span, "`std::mem::allocator`")),
             other => Err(Report::not_designed(
                 path.span,
                 format!("the type `std::{}`", grouped(other)),

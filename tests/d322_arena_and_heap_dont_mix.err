@@ -1,0 +1,6 @@
+check failed: d322_arena_and_heap_dont_mix.cy:11:5, line 11 column 5
+11 |     std::coll::list.done(Give $xs, alloc: Lend $heap);
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ what: this list took its memory from another allocator
+ why:  a list remembers which allocator it uses, and handing it another is a failed check (D322)
+ when: it uses allocator 1, and this is allocator 0
