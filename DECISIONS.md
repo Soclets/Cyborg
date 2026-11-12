@@ -1294,6 +1294,8 @@ A `type_set` is a closed list of types that nothing can join later, as in `type_
 
 **D396. A loop over a fresh collection is bare.** A collection with no holder, like a function's result in `for $w in words_in(Lend $text):`, is made there and gone after the loop, so there's no choice between reading in place and taking, and under D393 its loop takes no word, like a range (6.11). If the fresh collection owns memory, as a growable list does (D325), it has to end with `done`, which a bare loop can't do, so the `must_Give` rules refuse it and the fix stores it first, then loops with `Lend` and ends it with `defer`. Oracle claude asked; Claude proposed it; the owner chose: "yea". (Owner, 2026-11-12)
 
+**D397. Comparing values with units follows storing's rule.** Two values compare when one could be stored into the other's type, so a computed `$dist div $time`, length per time, compares with a stored `f64.stable[unit: motion.speed]`, since 2.16 already lets it be stored there, their powers matching. What would need an `as` to store, like a different scale, needs the same `as` to compare. It would be odd for `let $s: … motion.speed = $dist div $time;` to work while `$s == $dist div $time` doesn't. Oracle claude found comparing unstated; Claude proposed it; the owner chose: "yea". (Owner, 2026-11-12)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude

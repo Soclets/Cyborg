@@ -407,7 +407,7 @@ A family is only a group of related names that a generic can ask for. A unit fro
 
 **Refused:** a unit that says neither `base` nor `=`, a loop of `=` lines, and converting between units with different bases.
 
-A unit made of others is declared once, with `per` and `x`, which describe what it's made of rather than calculate anything. The compiler tracks every unit as powers of its bases, so maths can make any combination, but storing a value needs a declared unit whose powers match.
+A unit made of others is declared once, with `per` and `x`, which describe what it's made of rather than calculate anything. The compiler tracks every unit as powers of its bases, so maths can make any combination, but storing a value needs a declared unit whose powers match. Comparing follows the same rule: two values compare when one could be stored into the other's type, as a computed `$dist div $time` against a stored `motion.speed`, and what would need `as` to store needs it to compare.
 
 ```
 fam.unit motion:
