@@ -157,7 +157,6 @@ These are inherited from Radium with D2:
 
 These have a working name, but aren't chosen:
 
-- `key` and `val` in `std::map`.
 - `held` on a stored borrow.
 - `exponent` in front of a literal.
 - `result`.

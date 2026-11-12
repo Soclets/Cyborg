@@ -271,19 +271,17 @@ let mut $d: std::array<u8>[len: 4096 items] = all 0;
 
 ## 2.12 Maps
 
-**Rule:** you pick the kind of map, `std::map.hash` or `std::map.ordered`, and its types get labels. Those two names are placeholders.
+**Rule:** you pick the kind of map, `std::map.hash` or `std::map.ordered`, and its types get labels, `key.type:` and `val.type:`, the way a list's length type is `len.type:`. A bare `key:` or `val:` is always a value, as in a call, so the type says `.type`. The two kind names are placeholders.
 
 ```
-std::map.hash<key: str, val: i32>
+std::map.hash<key.type: str, val.type: i32>
 ```
-
-The label names are a placeholder.
 
 A map owns memory, so it's `must_Give` and ends with `std::map.done(Give $m, alloc: Lend $heap)`, like every owner ([6.9](6-ownership.md#69-must_give)).
 
-**Refused:** `std::map.hash<str, i32>`, and a bare `std::map`.
+**Refused:** `std::map.hash<str, i32>`, a bare `std::map`, and `std::map.hash<key: str, val: i32>`, with `fix: key.type:` and `val.type:`.
 
-**From:** D24, D25, D138, D325, D331.
+**From:** D24, D25, D138, D325, D331, D366.
 
 ## 2.13 Labels in `< >`
 
