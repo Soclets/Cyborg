@@ -1,0 +1,5 @@
+NotDesignedYet: d237_and_bit.cy:8:4, line 8 column 4
+ 8 | op and.bit [$a: money, $b: money] -> money:
+   |    ^^^^^^^
+ what: a type's own `and.bit`
+ why:  not decided yet (standard 12.3)

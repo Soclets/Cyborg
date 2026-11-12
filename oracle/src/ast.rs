@@ -549,12 +549,42 @@ impl HandWord {
     }
 }
 
+/// `plus`, `minus` and `times`: `+`, `-` and `x` written as words, so they can say how they
+/// handle overflow. (D295)
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum WordOperator {
+    Plus,
+    Minus,
+    Times,
+}
+
+impl WordOperator {
+    pub fn word(self) -> &'static str {
+        match self {
+            WordOperator::Plus => "plus",
+            WordOperator::Minus => "minus",
+            WordOperator::Times => "times",
+        }
+    }
+
+    pub fn symbol(self) -> &'static str {
+        match self {
+            WordOperator::Plus => "+",
+            WordOperator::Minus => "-",
+            WordOperator::Times => "x",
+        }
+    }
+}
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum BinaryOperator {
     Add,
     Subtract,
     Multiply,
-    PlusWrap,
+    /// `plus.wrap`, `minus.wrap` and `times.wrap`, which wrap in every mode. (D295)
+    Wrap(WordOperator),
+    /// `plus.saturate` and the rest, which stick at the type's bounds. (D294, D295)
+    Saturate(WordOperator),
     Divide(Narrowing),
     Remainder(Narrowing),
     And,

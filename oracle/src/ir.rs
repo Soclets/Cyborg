@@ -85,7 +85,10 @@ pub enum Arithmetic {
     Add,
     Subtract,
     Multiply,
-    PlusWrap,
+    /// Wraps in every mode. (D295)
+    Wrap(crate::ast::WordOperator),
+    /// Sticks at these bounds: the type's written ones, or the hardware's. (D294)
+    Saturate(crate::ast::WordOperator, i128, i128),
     Divide(Narrowing),
     Remainder(Narrowing),
     BitAnd,
@@ -93,6 +96,21 @@ pub enum Arithmetic {
     BitXor,
     ShiftLeft,
     ShiftRight,
+}
+
+impl Arithmetic {
+    /// The plain operator whose unit rules this follows: `plus.wrap` adds units as `+` does.
+    pub fn unit_rule(self) -> Arithmetic {
+        use crate::ast::WordOperator;
+        match self {
+            Arithmetic::Wrap(word) | Arithmetic::Saturate(word, ..) => match word {
+                WordOperator::Plus => Arithmetic::Add,
+                WordOperator::Minus => Arithmetic::Subtract,
+                WordOperator::Times => Arithmetic::Multiply,
+            },
+            other => other,
+        }
+    }
 }
 
 /// How a type parameter's type does each operation: by name, as `<` or `div.floor`.

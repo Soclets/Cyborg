@@ -1,0 +1,5 @@
+refused: d361_no_plain_xor.cy:5:22, line 5 column 22
+ 5 |     let $b: i32 = $a xor 3;
+   |                      ^^^
+ fix:  `xor.bit`
+ why:  the logic operators narrowed with `.bit` work on bits, and `!=` is `xor` for bools (D361)

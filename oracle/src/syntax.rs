@@ -12,6 +12,7 @@ use crate::ast::{
     ShieldContent, ShieldItem, SourceDeclaration, SourceFill, SourceValue, Statement,
     StatementKind, StructDeclaration, Together, TypeExpression, TypeKind, TypeName, TypeParameter,
     TypeSetDeclaration, UnionCase, UnionDeclaration, UnitMeaning, UnitMember, UnitSet, Use,
+    WordOperator,
 };
 use crate::report::{Kind, Outcome, Report, ReportExtra, Span};
 
@@ -77,6 +78,7 @@ const CLASHING_WORDS: &[&str] = &[
     "and",
     "or",
     "not",
+    "xor",
     "bit_and",
     "bit_or",
     "bit_xor",
@@ -497,6 +499,7 @@ pub fn could_be_called(text: &str) -> bool {
 /// A word that can follow a value as an operator, so it can't be that value's unit.
 const OPERATOR_WORDS: &[&str] = &[
     "x",
+    "xor",
     "below",
     "above",
     "set_to",
@@ -518,12 +521,21 @@ const OPERATOR_WORDS: &[&str] = &[
     "otherwise",
 ];
 
+/// The bit operators: the logic words narrowed with `.bit`, and the shifts. (D49, D361)
 const BIT_WORDS: &[(&str, BinaryOperator)] = &[
-    ("bit_and", BinaryOperator::BitAnd),
-    ("bit_or", BinaryOperator::BitOr),
-    ("bit_xor", BinaryOperator::BitXor),
+    ("and", BinaryOperator::BitAnd),
+    ("or", BinaryOperator::BitOr),
+    ("xor", BinaryOperator::BitXor),
     ("shl", BinaryOperator::ShiftLeft),
     ("shr", BinaryOperator::ShiftRight),
+];
+
+/// D49's bit words, which D361 replaced, and what replaced each.
+const OLD_BIT_WORDS: &[(&str, &str)] = &[
+    ("bit_and", "and.bit"),
+    ("bit_or", "or.bit"),
+    ("bit_xor", "xor.bit"),
+    ("bit_not", "not.bit"),
 ];
 
 #[derive(Clone, Debug, PartialEq)]
@@ -4050,7 +4062,8 @@ impl Parser {
     /// trace: D131
     fn parse_not(&mut self) -> Outcome<Expression> {
         let start = self.span();
-        if !self.eat_word("not") {
+        // `not.bit` is a bit operator, down with the maths. (D361)
+        if self.at_not_bit() || !self.eat_word("not") {
             return self.parse_compare();
         }
         self.enter()?;
@@ -4194,31 +4207,17 @@ impl Parser {
         loop {
             self.enter()?;
             let first = self.position;
+            self.refuse_narrowed_symbol()?;
             let operator = if self.at_symbol("+") {
                 self.advance();
                 BinaryOperator::Add
             } else if self.at_symbol("-") {
                 self.advance();
                 BinaryOperator::Subtract
-            } else if self.at_word("plus") && self.symbol_at(1, ".") {
-                self.advance();
-                self.advance();
-                let narrowing = self.expect_name("a narrowing of `plus`")?;
-                if narrowing.text != "wrap" {
-                    return Err(Report::not_designed(
-                        narrowing.span,
-                        format!("`plus.{}`", narrowing.text),
-                        "12.3",
-                    ));
-                }
-                // trace: D42
-                BinaryOperator::PlusWrap
-            } else if self.at_word("minus") || self.at_word("times") {
-                return Err(Report::not_designed(
-                    self.span(),
-                    "the wrapping forms of `-` and `x`",
-                    "12.3",
-                ));
+            } else if self.at_word("plus") {
+                self.parse_word_operator(WordOperator::Plus)?
+            } else if self.at_word("minus") {
+                self.parse_word_operator(WordOperator::Minus)?
             } else {
                 break;
             };
@@ -4229,6 +4228,60 @@ impl Parser {
         }
         self.depth = depth_before;
         Ok(left)
+    }
+
+    /// `plus.wrap`, `minus.saturate` and the rest: an operator written as a word, then how it
+    /// handles overflow. A bare `plus`, `minus` or `times` is the symbol. `plus` and `minus` sit
+    /// level with `+`, and `times` with `x`, since precedence follows maths. (D294, D295)
+    /// trace: D294, D295
+    fn parse_word_operator(&mut self, word: WordOperator) -> Outcome<BinaryOperator> {
+        let start = self.span();
+        if !self.symbol_at(1, ".") {
+            return Err(Report::refused(
+                start,
+                format!("a bare `{}` is `{}`", word.word(), word.symbol()),
+                "plain `+`, `-` and `x` are the checked defaults, and the words say how they handle overflow, as in `plus.wrap` (D295)",
+            )
+            .fix(word.symbol()));
+        }
+        self.advance();
+        self.advance();
+        let narrowing = self.expect_name(&format!("how `{}` handles overflow", word.word()))?;
+        match narrowing.text.as_str() {
+            "wrap" => Ok(BinaryOperator::Wrap(word)),
+            "saturate" => Ok(BinaryOperator::Saturate(word)),
+            other => Err(Report::refused(
+                start.to(narrowing.span),
+                format!("`{}.{other}` isn't an operator", word.word()),
+                "`plus`, `minus` and `times` are narrowed with `.wrap`, which wraps, or `.saturate`, which sticks at the type's bounds (D294, D295)",
+            )),
+        }
+    }
+
+    /// `+.wrap`: a narrowing goes on a word, so it's `plus.wrap`. (D295)
+    /// trace: D295
+    fn refuse_narrowed_symbol(&self) -> Outcome<()> {
+        let word = if self.at_symbol("+") {
+            WordOperator::Plus
+        } else if self.at_symbol("-") {
+            WordOperator::Minus
+        } else if self.at_word("x") {
+            WordOperator::Times
+        } else {
+            return Ok(());
+        };
+        if !self.symbol_at(1, ".") || self.peek_at(1).gap_before != Gap::Touching {
+            return Ok(());
+        }
+        let Lexeme::Word(narrowing) = &self.peek_at(2).lexeme else {
+            return Ok(());
+        };
+        Err(Report::refused(
+            self.span().to(self.peek_at(2).span),
+            format!("a narrowing goes on a word, so `{}.{narrowing}` is written `{}.{narrowing}`", word.symbol(), word.word()),
+            "`+`, `-` and `x` are written as words, `plus`, `minus` and `times`, to say how they handle overflow, the same shape as `div.trunc` (D295)",
+        )
+        .fix(format!("{}.{narrowing}", word.word())))
     }
 
     /// `$a + $b as str` is refused, because `as` needs a single value on its left. (D116)
@@ -4279,8 +4332,11 @@ impl Parser {
         loop {
             self.enter()?;
             let first = self.position;
+            self.refuse_narrowed_symbol()?;
             let operator = if self.eat_word("x") {
                 BinaryOperator::Multiply
+            } else if self.at_word("times") {
+                self.parse_word_operator(WordOperator::Times)?
             } else if self.at_word("div") {
                 BinaryOperator::Divide(self.parse_narrowed_operator("div")?)
             } else if self.at_word("mod") {
@@ -4326,14 +4382,18 @@ impl Parser {
     fn parse_unary_inner(&mut self) -> Outcome<Expression> {
         let start = self.span();
         // trace: D131
-        if self.at_word("not") {
+        if self.at_word("not") && !self.at_not_bit() {
             return Err(Report::refused(
                 start,
                 "`not` sits below comparisons and maths, so here it needs `( )`",
                 "`not` sits just above `and`, and `( )` groups (D116, D131)",
             ));
         }
-        let value = if self.eat_word("bit_not") {
+        self.refuse_old_bit_word()?;
+        let value = if self.at_not_bit() {
+            self.advance(); // `not`
+            self.advance(); // `.`
+            self.advance(); // `bit`
             let inner = self.parse_unary()?;
             Self::refuse_bit_mix(&inner)?;
             Self::refuse_as_on_the_right(&inner)?;
@@ -4363,9 +4423,14 @@ impl Parser {
             self.parse_as_level()?
         };
         // trace: D116
-        if let Some((_, operator)) = self.bit_word_here() {
+        if let Some((word, operator)) = self.bit_word_here()? {
             let first = self.position;
             self.advance();
+            // `and.bit` is three tokens, and `shl` one.
+            if word != "shl" && word != "shr" {
+                self.advance();
+                self.advance();
+            }
             self.check_operator(first);
             let right = self.parse_unary_operand()?;
             Self::refuse_bit_mix(&value)?;
@@ -4379,7 +4444,7 @@ impl Parser {
                     right: Box::new(right),
                 },
             };
-            if self.bit_word_here().is_some() {
+            if self.bit_word_here()?.is_some() {
                 return Self::refuse_bit_mix(&expression).map(|()| expression);
             }
             return Ok(expression);
@@ -4388,7 +4453,7 @@ impl Parser {
     }
 
     fn parse_unary_operand(&mut self) -> Outcome<Expression> {
-        if self.at_word("not") || self.at_word("bit_not") {
+        if self.at_word("not") {
             let start = self.span();
             return Err(Report::refused(
                 start,
@@ -4399,11 +4464,46 @@ impl Parser {
         self.parse_as_level()
     }
 
-    fn bit_word_here(&self) -> Option<(&'static str, BinaryOperator)> {
-        BIT_WORDS
+    /// A bit operator next: `and.bit`, `or.bit` or `xor.bit`, or a shift. A bare `xor` is
+    /// refused, since `!=` does that for bools. (D361)
+    /// trace: D361
+    fn bit_word_here(&self) -> Outcome<Option<(&'static str, BinaryOperator)>> {
+        self.refuse_old_bit_word()?;
+        if self.at_word("xor") && !(self.symbol_at(1, ".") && self.word_at(2, "bit")) {
+            return Err(Report::refused(
+                self.span(),
+                "there's no plain `xor`",
+                "the logic operators narrowed with `.bit` work on bits, and `!=` is `xor` for bools (D361)",
+            )
+            .fix("xor.bit"));
+        }
+        Ok(BIT_WORDS
             .iter()
-            .find(|(word, _)| self.at_word(word))
-            .copied()
+            .find(|(word, _)| {
+                self.at_word(word)
+                    && (matches!(*word, "shl" | "shr")
+                        || (self.symbol_at(1, ".") && self.word_at(2, "bit")))
+            })
+            .copied())
+    }
+
+    /// `not.bit $mask`, not `not` the logic word.
+    fn at_not_bit(&self) -> bool {
+        self.at_word("not") && self.symbol_at(1, ".") && self.word_at(2, "bit")
+    }
+
+    /// `bit_and` and the rest, which D361 replaced with `and.bit` and the rest. (D361)
+    /// trace: D361
+    fn refuse_old_bit_word(&self) -> Outcome<()> {
+        if let Some((old, new)) = OLD_BIT_WORDS.iter().find(|(old, _)| self.at_word(old)) {
+            return Err(Report::refused(
+                self.span(),
+                format!("`{old}` is now `{new}`"),
+                "the bit operators are the logic operators narrowed with `.bit`, as in `$a and.bit $b` (D361)",
+            )
+            .fix(*new));
+        }
+        Ok(())
     }
 
     fn parse_as_level(&mut self) -> Outcome<Expression> {
@@ -5260,6 +5360,26 @@ impl Parser {
         let token = self.peek().clone();
         let text = token.text.clone();
         let refused = |what: String, why: &str| Err(Report::refused(token.span, what, why));
+        // A type's own bit operators aren't designed, now spelled `and.bit` and so on. (D361)
+        // trace: D361, D237
+        if matches!(text.as_str(), "and" | "or" | "xor" | "not")
+            && self.symbol_at(1, ".")
+            && self.word_at(2, "bit")
+        {
+            return Err(Report::not_designed(
+                token.span.to(self.peek_at(2).span),
+                format!("a type's own `{text}.bit`"),
+                "12.3",
+            ));
+        }
+        if let Some((old, new)) = OLD_BIT_WORDS.iter().find(|(old, _)| *old == text) {
+            return Err(Report::refused(
+                token.span,
+                format!("`{old}` is now `{new}`"),
+                "the bit operators are the logic operators narrowed with `.bit`, as in `$a and.bit $b` (D361)",
+            )
+            .fix(*new));
+        }
         match text.as_str() {
             "+" | "-" | "below" | "==" | "x" => {
                 self.advance();
@@ -5306,8 +5426,7 @@ impl Parser {
                 format!("there's no `{text}`"),
                 "`at_least` and `at_most` are words, and there is no `<=` or `>=` (D49)",
             ),
-            "bit_and" | "bit_or" | "bit_xor" | "bit_not" | "shl" | "shr" | "mod" | "plus"
-            | "minus" | "times" => Err(Report::not_designed(
+            "shl" | "shr" | "mod" | "plus" | "minus" | "times" => Err(Report::not_designed(
                 token.span,
                 format!("a type's own `{text}`"),
                 "12.3",

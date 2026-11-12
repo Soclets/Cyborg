@@ -1,0 +1,5 @@
+refused: d295_a_bare_times.cy:4:21, line 4 column 21
+ 4 |     let $a: i32 = 2 times 3;
+   |                     ^^^^^
+ fix:  `x`
+ why:  plain `+`, `-` and `x` are the checked defaults, and the words say how they handle overflow, as in `plus.wrap` (D295)

@@ -1,5 +1,0 @@
-NotDesignedYet: d42_minus_wrap_isnt_decided.cy:4:21, line 4 column 21
- 4 |     let $a: i32 = 1 minus.wrap 1;
-   |                     ^^^^^
- what: the wrapping forms of `-` and `x`
- why:  not decided yet (standard 12.3)

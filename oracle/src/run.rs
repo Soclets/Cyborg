@@ -5,7 +5,7 @@ use std::cmp::Ordering::{Equal, Greater, Less};
 use std::io::Write;
 use std::rc::Rc;
 
-use crate::ast::{CompareOperator, Narrowing};
+use crate::ast::{CompareOperator, Narrowing, WordOperator};
 use crate::ir::Alias;
 use crate::ir::{
     Argument, Arithmetic, Code, Contract, Function, Implementation, Instruction, InstructionKind,
@@ -1292,6 +1292,24 @@ fn negate(number: Number, value: &Value, span: Span) -> Outcome<Value> {
     }
 }
 
+/// Sticks at the type's bounds instead of overflowing: its written `min:` and `max:`, or the
+/// hardware's. (D294)
+fn saturate(word: WordOperator, left: i128, right: i128, low: i128, high: i128) -> i128 {
+    let exact = match word {
+        WordOperator::Plus => left.checked_add(right),
+        WordOperator::Minus => left.checked_sub(right),
+        WordOperator::Times => left.checked_mul(right),
+    };
+    // Only a product of two 64-bit numbers can pass what 128 bits hold, and its sign says
+    // which bound it passed.
+    let exact = exact.unwrap_or(if (left < 0) == (right < 0) {
+        i128::MAX
+    } else {
+        i128::MIN
+    });
+    exact.clamp(low, high)
+}
+
 fn wrap(value: i128, kind: IntegerKind) -> i128 {
     let bits = kind.bits();
     let modulus = 1i128 << bits;
@@ -1499,8 +1517,18 @@ fn integer_arithmetic(
             Some(value) if kind.fits(value) => Ok(value),
             _ => Err(undecided_overflow("x", "12.3")),
         },
-        // trace: D42
-        Arithmetic::PlusWrap => Ok(wrap(left + right, kind)),
+        // trace: D42, D295
+        Arithmetic::Wrap(word) => Ok(wrap(
+            match word {
+                WordOperator::Plus => left.wrapping_add(right),
+                WordOperator::Minus => left.wrapping_sub(right),
+                // Wrapping in 128 bits keeps the low bits a narrower type wraps to.
+                WordOperator::Times => left.wrapping_mul(right),
+            },
+            kind,
+        )),
+        // trace: D294
+        Arithmetic::Saturate(word, low, high) => Ok(saturate(word, left, right, low, high)),
         Arithmetic::Divide(narrowing) => {
             division_by_zero(right, span)?;
             let value = match narrowing {

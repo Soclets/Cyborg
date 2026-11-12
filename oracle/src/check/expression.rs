@@ -36,6 +36,9 @@ fn expression_digits(expression: &Expression) -> &str {
     }
 }
 
+/// An integer type's written `min:` and `max:`.
+type Bound = (i128, i128);
+
 /// Whether `as` is only crossing: the same data, with a `type.new` or a unit on or off. (D141)
 fn crosses(found: &Type, target: &Type) -> bool {
     match (found, target) {
@@ -3203,7 +3206,9 @@ impl Checker<'_> {
             | BinaryOperator::OrBoth => Arithmetic::Add,
             BinaryOperator::Subtract => Arithmetic::Subtract,
             BinaryOperator::Multiply => Arithmetic::Multiply,
-            BinaryOperator::PlusWrap => Arithmetic::PlusWrap,
+            BinaryOperator::Wrap(word) => Arithmetic::Wrap(word),
+            // The bounds are filled in once both sides' types are known.
+            BinaryOperator::Saturate(word) => Arithmetic::Saturate(word, 0, 0),
             BinaryOperator::Divide(narrowing) => Arithmetic::Divide(narrowing),
             BinaryOperator::Remainder(narrowing) => Arithmetic::Remainder(narrowing),
             BinaryOperator::BitAnd => Arithmetic::BitAnd,
@@ -3212,8 +3217,23 @@ impl Checker<'_> {
             BinaryOperator::ShiftLeft => Arithmetic::ShiftLeft,
             BinaryOperator::ShiftRight => Arithmetic::ShiftRight,
         };
-        let (number, result) =
+        let (number, mut result) =
             self.arithmetic_type(arithmetic, &left_type, &right_type, right, span)?;
+        // trace: D294
+        let arithmetic = match arithmetic {
+            Arithmetic::Saturate(word, ..) => {
+                let (low, high, bound) = Self::saturate_bounds(&left_type, &right_type, span)?;
+                if let Type::Integer {
+                    bound: result_bound,
+                    ..
+                } = &mut result
+                {
+                    *result_bound = bound;
+                }
+                Arithmetic::Saturate(word, low, high)
+            }
+            other => other,
+        };
         Ok((
             Node {
                 span,
@@ -3226,6 +3246,46 @@ impl Checker<'_> {
             },
             result,
         ))
+    }
+
+    /// Where a saturating operator sticks: the written `min:` and `max:` of whichever side has
+    /// them, or the hardware's, and the bound the result keeps. (D294)
+    /// trace: D294
+    fn saturate_bounds(
+        left: &Type,
+        right: &Type,
+        span: Span,
+    ) -> Outcome<(i128, i128, Option<Bound>)> {
+        let (
+            Type::Integer {
+                kind,
+                bound: left_bound,
+                ..
+            },
+            Type::Integer {
+                bound: right_bound, ..
+            },
+        ) = (left, right)
+        else {
+            return Err(Report::refused(
+                span,
+                "saturating is for integers",
+                "a saturating operator sticks at an integer type's bounds (D294)",
+            ));
+        };
+        let bound = match (left_bound, right_bound) {
+            (Some(left_bound), Some(right_bound)) if left_bound != right_bound => {
+                return Err(Report::not_designed(
+                    span,
+                    format!("saturating `{left}` and `{right}`, whose bounds differ"),
+                    "",
+                ));
+            }
+            (Some(bound), _) | (None, Some(bound)) => Some(*bound),
+            (None, None) => None,
+        };
+        let (low, high) = bound.unwrap_or_else(|| kind.range());
+        Ok((low, high, bound))
     }
 
     /// The result type of maths on two operands, with every unit rule. (D100, D111)
@@ -3330,18 +3390,25 @@ impl Checker<'_> {
                     Arithmetic::Remainder(_) => {
                         return Err(Report::not_designed(span, "`mod` on floats", "12.2"));
                     }
-                    Arithmetic::PlusWrap => {
+                    Arithmetic::Wrap(word) => {
                         return Err(Report::refused(
                             span,
-                            "`plus.wrap` is for integers",
-                            "a wrapping operator wraps in every mode (D42)",
+                            format!("`{}.wrap` is for integers", word.word()),
+                            "a wrapping operator wraps an integer in every mode (D42, D295)",
+                        ));
+                    }
+                    Arithmetic::Saturate(word, ..) => {
+                        return Err(Report::not_designed(
+                            span,
+                            format!("`{}.saturate` on a float", word.word()),
+                            "",
                         ));
                     }
                     _ => {
                         return Err(Report::refused(
                             span,
                             "bit operators are for integers",
-                            "`bit_and`, `bit_or`, `bit_xor`, `bit_not`, `shl` and `shr` are words (D49)",
+                            "`and.bit`, `or.bit`, `xor.bit`, `not.bit`, `shl` and `shr` work on an integer's bits (D49, D361)",
                         ));
                     }
                 }
@@ -3390,8 +3457,10 @@ impl Checker<'_> {
         right_expression: &Expression,
         span: Span,
     ) -> Outcome<Option<String>> {
+        // `plus.wrap` follows `+`'s unit rules, and `times.wrap` follows `x`'s. (D295)
+        let operator = operator.unit_rule();
         match operator {
-            Arithmetic::Add | Arithmetic::Subtract | Arithmetic::PlusWrap => {
+            Arithmetic::Add | Arithmetic::Subtract => {
                 if let Some(result) =
                     Self::point_and_span(operator, left_unit, right_unit, left, right, span)?
                 {
