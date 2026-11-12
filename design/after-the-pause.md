@@ -6,8 +6,8 @@ What's waiting for when the owner unpauses Cyborg, written down on 2026-11-11 so
 
 - **Limbs, left:** the C interface itself, a limb's API and how it's versioned. What limbs are and can do is D334 to
   D338.
-- **Concurrency, left:** placeholder spellings (`locked`, the event runner) and atomics' other
-  operations. The design is D343 to D354, in 9.14.
+- **Concurrency, left:** atomics' other operations, like swap and compare-and-swap. The design is D343 to D359, in
+  9.14.
 
 - **Tuning for one machine: PGO and friends.** Profile-guided optimization (build with counters, run real work, rebuild
   with the profile), BOLT, and specialized copies of hot functions, which are JIT strategies done ahead of time. The

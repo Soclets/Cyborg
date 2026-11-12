@@ -1218,6 +1218,8 @@ A `type_set` is a closed list of types that nothing can join later, as in `type_
 
 **D358. Changing versions are narrowed with `.mut`, not `_mut`.** Splitting a list into parts tasks can change is `$xs.%%split.mut(at.items: 500)`, and D303's writing chunks become `$pixels.%%simd_chunks.mut.exact(lanes: 16)`, replacing D303's `simd_chunks_mut`. Cyborg narrows with a dot everywhere, as in `ptr.raw.mut`, `Lend.mut` and `div.trunc`, and a `_mut` glued onto a name was the odd one out. D303's worry still holds: the changing version looks different from the reading one by a whole word, not one extra `%`, and D211's `%%` says it again. `at.items:` says its unit, like `offset.items:`. Claude had proposed `_mut` in D303 and `split_mut` here; the owner asked "shouldn't it be `.mut`?", and chose: "yea". (Owner, 2026-11-12)
 
+**D359. `@concur::locked` and `os::events` keep their names.** Locking stays `@concur::locked $from, $to as $a, $b: … end @concur::locked`, a block with Cyborg inside from the limb menu (D335), where "locked … as" reads as what it does, and the event runner stays `os::events`, next to `os::threads`, named for what it runs on, the operating system's events, like `kqueue` and `epoll`. This settles D348 and D350's placeholders, so `@concur`'s spellings are all decided except atomics' other operations. Claude proposed keeping them; the owner chose: "yea". (Owner, 2026-11-12)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude
