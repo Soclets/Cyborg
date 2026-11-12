@@ -1,0 +1,5 @@
+refused: d354_two_marks.cy:8:11, line 8 column 11
+ 8 |     $hits.%%add(val: 1);
+   |           ^^^^^
+ fix:  `%add`
+ why:  an atomic is shared with plain `Lend` and changed by indivisible instructions, so its operations take `.%` (D354)

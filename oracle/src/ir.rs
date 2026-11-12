@@ -330,6 +330,13 @@ pub enum NodeKind {
     Spawn(Box<Node>),
     /// `@concur::task.done(Give $t)`: waits for the task and gives back its result. (D357)
     TaskDone(Box<Node>),
+    /// An atomic operation on the atomic at this place. (D354, D360)
+    Atomic {
+        place: Place,
+        operation: AtomicOperation,
+        kind: Option<crate::types::IntegerKind>,
+        values: Vec<Node>,
+    },
     /// `std::coll::list.from([1, 2, 3], alloc: Lend $heap)`, a growable list filled from items,
     /// which remembers its allocator. (D369)
     ListFrom {
@@ -569,4 +576,26 @@ pub struct Code {
     pub globals: Vec<Node>,
     /// Everything `bake` and local `const` need worked out while building.
     pub compile_time: Vec<Node>,
+}
+
+/// How an atomic's `add` or `sub` handles overflow: checked like `+`, or the narrowing written.
+/// (D354, D295)
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Overflow {
+    Checked,
+    Wrap,
+    Saturate,
+}
+
+/// What an atomic operation does, in one indivisible step. (D354, D360)
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum AtomicOperation {
+    Load,
+    Add(Overflow),
+    Sub(Overflow),
+    AndBit,
+    OrBit,
+    XorBit,
+    Swap,
+    CompareSwap,
 }

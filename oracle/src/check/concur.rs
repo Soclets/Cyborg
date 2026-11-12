@@ -6,14 +6,14 @@
 //! call lent for as long as it exists, the way a stored borrow does, so two tasks can't both
 //! change one value. Runners are `std::run::one_thread()` and `os::threads(count:)`. The oracle
 //! runs every task on one thread, the way `std::run::one_thread` does: a task's body runs when
-//! the code that spawned it first has to wait, in the order tasks were spawned. Channels, locks
-//! and atomics aren't built here yet.
+//! the code that spawned it first has to wait, in the order tasks were spawned. Atomics are
+//! plain values here, since one task runs at a time. Channels and locks aren't built yet.
 
 use super::expression::RawCall;
 use super::{Checker, ParameterInfo};
 use crate::ast::{Argument, Expression, ExpressionKind, HandWord, ParameterWord};
-use crate::ir::{self, Node, NodeKind};
-use crate::report::{Outcome, Report, Span};
+use crate::ir::{self, AtomicOperation, Node, NodeKind, Overflow};
+use crate::report::{Outcome, Report, ReportExtra, Span};
 use crate::types::{Type, Value};
 
 const WHY_DONE: &str = "`@concur::task.done(Give $left)` waits for a task, gives back what it made, and passes its failure up (D331, D357)";
@@ -162,6 +162,8 @@ impl Checker<'_> {
         self.require_limb("concur", path_span)?;
         match rest {
             "task.done" => {}
+            // trace: D354
+            "atomic.new" => return self.check_atomic_new(arguments, span, path_span),
             "spawn" => {
                 return Err(Report::refused(
                     path_span,
@@ -306,5 +308,242 @@ impl Checker<'_> {
             failures: Vec::new(),
             unnamed: None,
         })
+    }
+}
+
+/// The orderings D354 names. The oracle runs one task at a time, where every ordering gives
+/// the same answer.
+const ORDERINGS: &[&str] = &["acquire", "relaxed"];
+
+const WHY_ATOMIC: &str = "an atomic has `.%load()`, `.%add(val:)`, `.%sub(val:)`, `.%and.bit(val:)`, `.%or.bit(val:)`, `.%xor.bit(val:)`, `.%swap(val:)` and `.%compare_swap(expect:, val:)`, each with an ordering narrowing (D354, D360, D361)";
+
+impl Checker<'_> {
+    /// `@concur::atomic<u64>`: an integer or `bool` many tasks change without a lock. (D354)
+    /// trace: D354
+    pub(super) fn resolve_atomic_type(inner: Type, span: Span) -> Outcome<Type> {
+        match &inner {
+            Type::Integer {
+                bound: None,
+                unit: None,
+                ..
+            }
+            | Type::Bool => Ok(Type::Atomic(Box::new(inner))),
+            Type::Integer { .. } => Err(Report::not_designed(
+                span,
+                format!("an atomic `{inner}`, with a bound or a unit"),
+                "",
+            )),
+            _ => Err(Report::refused(
+                span,
+                format!("an atomic holds an integer or a `bool`, and this is `{inner}`"),
+                "an atomic is changed by the CPU's own indivisible instructions, which work on integers and `bool` (D354)",
+            )),
+        }
+    }
+
+    /// `@concur::atomic.new(0)`, with its type from where it goes. (D354)
+    /// trace: D354
+    pub(super) fn check_atomic_new(
+        &mut self,
+        arguments: &[Argument],
+        span: Span,
+        path_span: Span,
+    ) -> Outcome<RawCall> {
+        let target = self.context.call_expected.clone();
+        let Some(Type::Atomic(inner)) = target.clone() else {
+            return Err(Report::refused(
+                path_span,
+                "`@concur::atomic.new` goes where its type is written, as in `let $hits: @concur::atomic<u64>`",
+                "every `let` writes its type (D277, D354)",
+            ));
+        };
+        let [value] = arguments else {
+            return Err(Report::refused(
+                path_span,
+                "`@concur::atomic.new` takes the value it starts with",
+                "(D354)",
+            ));
+        };
+        if value.label.is_some() {
+            return Err(Report::refused(
+                value.value.span,
+                "`@concur::atomic.new` takes the value it starts with, with no label",
+                "(D354)",
+            ));
+        }
+        let node = self.check_into(&value.value, &inner)?;
+        Ok(RawCall {
+            node: Node {
+                span,
+                kind: node.kind,
+            },
+            value_type: Type::Atomic(inner),
+            failures: Vec::new(),
+            unnamed: None,
+        })
+    }
+
+    /// An operation on an atomic, through `.%`, since it's shared with plain `Lend`. (D354, D360)
+    /// trace: D354, D360, D361
+    pub(super) fn check_atomic_method(
+        &mut self,
+        receiver: &Expression,
+        inner: &Type,
+        name: &crate::ast::Name,
+        changes: bool,
+        arguments: &[Argument],
+        span: Span,
+    ) -> Outcome<RawCall> {
+        if changes {
+            return Err(Report::refused(
+                Span::new(name.span.start.saturating_sub(2), name.span.end),
+                "an atomic changes through `.%`, not `.%%`",
+                "an atomic is shared with plain `Lend` and changed by indivisible instructions, so its operations take `.%` (D354)",
+            )
+            .fix(format!("%{}", name.text)));
+        }
+        let (operation, ordering) = Self::atomic_operation(&name.text, inner, name.span)?;
+        if let Some(ordering) = ordering {
+            if !ORDERINGS.contains(&ordering.as_str()) {
+                return Err(Report::not_designed(
+                    name.span,
+                    format!("the ordering `.{ordering}`"),
+                    "",
+                ));
+            }
+        }
+        let wanted: &[&str] = match operation {
+            AtomicOperation::Load => &[],
+            AtomicOperation::CompareSwap => &["expect", "val"],
+            _ => &["val"],
+        };
+        let labels: Vec<Option<&str>> = arguments
+            .iter()
+            .map(|argument| argument.label.as_ref().map(|label| label.text.as_str()))
+            .collect();
+        if labels != wanted.iter().map(|label| Some(*label)).collect::<Vec<_>>() {
+            let shown: Vec<String> = wanted.iter().map(|label| format!("{label}:")).collect();
+            return Err(Report::refused(
+                span,
+                if shown.is_empty() {
+                    format!("`.%{}` takes nothing", name.text)
+                } else {
+                    format!("`.%{}` takes `{}`", name.text, shown.join(" "))
+                },
+                WHY_ATOMIC,
+            ));
+        }
+        let held = self.check_held(receiver)?;
+        let Some(place) = held.place else {
+            return Err(Report::refused(
+                receiver.span,
+                "an atomic is changed where it lives, in a variable",
+                WHY_ATOMIC,
+            ));
+        };
+        let mut values = Vec::new();
+        for argument in arguments {
+            values.push(self.check_into(&argument.value, inner)?);
+        }
+        let (value_type, failures) = match operation {
+            AtomicOperation::Load | AtomicOperation::Swap => (inner.clone(), Vec::new()),
+            AtomicOperation::CompareSwap => (
+                Type::Void,
+                vec![super::Failure {
+                    short: "not_expected".to_string(),
+                    full: "not_expected".to_string(),
+                    data: vec![("val".to_string(), inner.clone())],
+                }],
+            ),
+            _ => (Type::Void, Vec::new()),
+        };
+        let kind = match inner {
+            Type::Integer { kind, .. } => Some(*kind),
+            _ => None,
+        };
+        Ok(RawCall {
+            node: Node {
+                span,
+                kind: NodeKind::Atomic {
+                    place,
+                    operation,
+                    kind,
+                    values,
+                },
+            },
+            value_type,
+            failures,
+            unnamed: None,
+        })
+    }
+
+    /// The operation a method's name says, with any overflow narrowing, and the ordering
+    /// narrowing that ends it, if one is written.
+    fn atomic_operation(
+        written: &str,
+        inner: &Type,
+        span: Span,
+    ) -> Outcome<(AtomicOperation, Option<String>)> {
+        let parts: Vec<&str> = written.split('.').collect();
+        let (operation, rest) = match parts.as_slice() {
+            ["and", "bit", rest @ ..] => (AtomicOperation::AndBit, rest),
+            ["or", "bit", rest @ ..] => (AtomicOperation::OrBit, rest),
+            ["xor", "bit", rest @ ..] => (AtomicOperation::XorBit, rest),
+            ["load", rest @ ..] => (AtomicOperation::Load, rest),
+            ["swap", rest @ ..] => (AtomicOperation::Swap, rest),
+            ["compare_swap", rest @ ..] => (AtomicOperation::CompareSwap, rest),
+            [word @ ("add" | "sub"), rest @ ..] => {
+                let (overflow, rest) = match rest {
+                    ["wrap", rest @ ..] => (Overflow::Wrap, rest),
+                    ["saturate", rest @ ..] => (Overflow::Saturate, rest),
+                    _ => (Overflow::Checked, rest),
+                };
+                let operation = if *word == "add" {
+                    AtomicOperation::Add(overflow)
+                } else {
+                    AtomicOperation::Sub(overflow)
+                };
+                (operation, rest)
+            }
+            [word @ ("and" | "or" | "xor"), ..] => {
+                return Err(Report::refused(
+                    span,
+                    format!("an atomic's bit operation is `.%{word}.bit`"),
+                    "bit operators say `.bit`, so they can't be taken for logic (D361)",
+                )
+                .fix(format!("{word}.bit")));
+            }
+            _ => {
+                return Err(Report::refused(
+                    span,
+                    format!("an atomic has no operation `.%{written}`"),
+                    WHY_ATOMIC,
+                ));
+            }
+        };
+        let ordering = match rest {
+            [] => None,
+            [ordering] => Some((*ordering).to_string()),
+            _ => {
+                return Err(Report::not_designed(
+                    span,
+                    format!("the narrowings `.{}` together on an atomic", rest.join(".")),
+                    "",
+                ));
+            }
+        };
+        if *inner == Type::Bool
+            && !matches!(
+                operation,
+                AtomicOperation::Load | AtomicOperation::Swap | AtomicOperation::CompareSwap
+            )
+        {
+            return Err(Report::not_designed(
+                span,
+                format!("`.%{written}` on an atomic `bool`"),
+                "",
+            ));
+        }
+        Ok((operation, ordering))
     }
 }

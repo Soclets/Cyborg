@@ -8,8 +8,9 @@ use std::rc::Rc;
 use crate::ast::{CompareOperator, Narrowing, WordOperator};
 use crate::ir::Alias;
 use crate::ir::{
-    Argument, Arithmetic, Code, Contract, Function, Implementation, Instruction, InstructionKind,
-    Node, NodeKind, Number, Place, Position, RangeCode, Reduction, Step, Table, Test,
+    Argument, Arithmetic, AtomicOperation, Code, Contract, Function, Implementation, Instruction,
+    InstructionKind, Node, NodeKind, Number, Overflow, Place, Position, RangeCode, Reduction, Step,
+    Table, Test,
 };
 use crate::report::{Kind, Outcome, Report, ReportExtra, Span};
 use crate::types::{show_float, FloatKind, FloatRules, IntegerKind, Value};
@@ -470,6 +471,73 @@ impl<'c> Runner<'c> {
         }
         let tables = Self::resolve_tables(tables, frame, node.span)?;
         Ok((*function, bindings, tables))
+    }
+
+    /// An atomic operation, in one step: with one task running at a time, nothing can come
+    /// between its read and its write. (D354, D360)
+    /// trace: D354, D360
+    fn atomic(
+        &mut self,
+        place: &Place,
+        operation: AtomicOperation,
+        kind: Option<IntegerKind>,
+        values: &[Node],
+        frame: &mut Frame,
+        span: Span,
+    ) -> Result<Value, Stop> {
+        let mut given = Vec::new();
+        for value in values {
+            given.push(self.evaluate(value, frame)?);
+        }
+        let binding = self.binding_of(frame, place, span)?;
+        let mut root = binding.root.borrow_mut();
+        let Some(held) = walk_mut(&mut root, &binding.path) else {
+            return Err(oracle_bug(span, "an atomic wasn't where the checker said"));
+        };
+        let old = held.clone();
+        let integers = |value: &Value| match value {
+            Value::Integer(number) => Some(*number),
+            _ => None,
+        };
+        let new = match (operation, given.as_slice()) {
+            (AtomicOperation::Load, _) => return Ok(old),
+            (AtomicOperation::Swap, [value]) => {
+                *held = value.clone();
+                return Ok(old);
+            }
+            (AtomicOperation::CompareSwap, [expect, value]) => {
+                if old != *expect {
+                    let shown = old.shown();
+                    return Err(Stop::Raised(Raised {
+                        name: "not_expected".to_string(),
+                        shown: "`not_expected` failed".to_string(),
+                        when: shown.map(|text| format!("it carried {text}")),
+                        data: vec![old],
+                        span,
+                    }));
+                }
+                *held = value.clone();
+                return Ok(Value::Void);
+            }
+            (operation, [value]) => {
+                let (Some(left), Some(right), Some(kind)) = (integers(&old), integers(value), kind)
+                else {
+                    return Err(oracle_bug(
+                        span,
+                        "atomic maths on something that isn't an integer",
+                    ));
+                };
+                atomic_maths(operation, kind, left, right, span)?
+            }
+            _ => {
+                return Err(oracle_bug(
+                    span,
+                    "an atomic operation with the wrong values",
+                ))
+            }
+        };
+        *held = Value::Integer(new);
+        Ok(Value::Void)
     }
 
     /// `@concur::spawn`: the call's arguments are taken now, and its body waits to run as a
@@ -1042,6 +1110,12 @@ impl<'c> Runner<'c> {
                 self.generic(*parameter, operator, left, right, frame, span)
             }
             NodeKind::Spawn(call) => self.spawn(call, frame),
+            NodeKind::Atomic {
+                place,
+                operation,
+                kind,
+                values,
+            } => self.atomic(place, *operation, *kind, values, frame, span),
             NodeKind::TaskDone(task) => self.task_done(task, frame, span),
             NodeKind::Call { .. } => {
                 let binding = self.call_binding(node, frame)?;
@@ -2000,6 +2074,46 @@ fn saturate(word: WordOperator, left: i128, right: i128, low: i128, high: i128) 
         i128::MIN
     });
     exact.clamp(low, high)
+}
+
+/// `add`, `sub` and the bit operations on an atomic: checked for overflow like `+`, or wrapping
+/// or saturating when that's written. (D354, D360)
+/// trace: D354, D360
+fn atomic_maths(
+    operation: AtomicOperation,
+    kind: IntegerKind,
+    left: i128,
+    right: i128,
+    span: Span,
+) -> Outcome<i128> {
+    let (exact, overflow, word) = match operation {
+        AtomicOperation::Add(overflow) => (left + right, overflow, "add"),
+        AtomicOperation::Sub(overflow) => (left - right, overflow, "sub"),
+        AtomicOperation::AndBit => return Ok(left & right),
+        AtomicOperation::OrBit => return Ok(left | right),
+        AtomicOperation::XorBit => return Ok(left ^ right),
+        _ => {
+            return Err(Report::check_failed(
+                span,
+                "the oracle got lost: atomic maths",
+                "(rule 6)",
+            ))
+        }
+    };
+    match overflow {
+        Overflow::Wrap => Ok(wrap(exact, kind)),
+        Overflow::Saturate => {
+            let (low, high) = kind.range();
+            Ok(exact.clamp(low, high))
+        }
+        Overflow::Checked if kind.fits(exact) => Ok(exact),
+        Overflow::Checked => Err(Report::check_failed(
+            span,
+            format!("this `.%{word}` overflows `{}`", kind.word()),
+            "an atomic's `.%add` is checked for overflow like `+`, with `.wrap` and `.saturate` when meant (D42, D354, D360)",
+        )
+        .when(format!("`{left}` and `{right}`"))),
+    }
 }
 
 fn wrap(value: i128, kind: IntegerKind) -> i128 {

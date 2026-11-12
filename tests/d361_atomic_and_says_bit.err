@@ -1,0 +1,5 @@
+refused: d361_atomic_and_says_bit.cy:8:13, line 8 column 13
+ 8 |     $flags.%or(val: 1);
+   |             ^^
+ fix:  `or.bit`
+ why:  bit operators say `.bit`, so they can't be taken for logic (D361)

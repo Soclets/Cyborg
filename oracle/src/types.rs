@@ -189,6 +189,8 @@ pub enum Type {
     Union(String),
     /// `@concur::task<i64>`: a task that gives back an `i64` when it's done. (D344)
     Task(Box<Type>),
+    /// `@concur::atomic<u64>`: an integer or `bool` changed by indivisible instructions. (D354)
+    Atomic(Box<Type>),
     /// A view of some or all of a list, which reads it, or with `.mut` changes its items but
     /// can't grow or shrink it. It owns no memory. (D379)
     ListView {
@@ -367,6 +369,7 @@ impl fmt::Display for Type {
                 write!(formatter, "{name}")
             }
             Type::Task(result) => write!(formatter, "@concur::task<{result}>"),
+            Type::Atomic(inner) => write!(formatter, "@concur::atomic<{inner}>"),
             Type::ListView { item, mutable } => write!(
                 formatter,
                 "std::coll::list{}<{item}>",

@@ -2500,6 +2500,23 @@ impl Checker<'_> {
             };
             return Ok(Type::Task(Box::new(self.resolve_type(written_type)?)));
         }
+        // trace: D354
+        if text == "@concur::atomic" {
+            self.require_limb("concur", path.span)?;
+            let [Fill {
+                label: None,
+                written_type,
+            }] = &fill[..]
+            else {
+                return Err(Report::refused(
+                    written.span,
+                    "`@concur::atomic` fills in what it holds, bare, in `< >`",
+                    "an atomic's type says what it holds, as in `@concur::atomic<u64>` (D354)",
+                ));
+            };
+            let inner = self.resolve_type(written_type)?;
+            return Self::resolve_atomic_type(inner, written_type.span);
+        }
         if let Some(rest) = text.strip_prefix("@concur::") {
             self.require_limb("concur", path.span)?;
             return Err(Report::not_built(path.span, format!("`@concur::{rest}`")));

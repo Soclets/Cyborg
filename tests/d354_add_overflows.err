@@ -1,0 +1,6 @@
+check failed: d354_add_overflows.cy:8:5, line 8 column 5
+ 8 |     $small.%add(val: 10);
+   |     ^^^^^^^^^^^^^^^^^^^^
+ what: this `.%add` overflows `u8`
+ why:  an atomic's `.%add` is checked for overflow like `+`, with `.wrap` and `.saturate` when meant (D42, D354, D360)
+ when: `250` and `10`

@@ -2590,6 +2590,11 @@ impl Checker<'_> {
             };
             return self.check_simd_method(node, &receiver_type, name, arguments, span);
         }
+        // trace: D354, D360
+        if let (true, Type::Atomic(inner)) = (percent, &receiver_type) {
+            let inner = (**inner).clone();
+            return self.check_atomic_method(receiver, &inner, name, changes, arguments, span);
+        }
         // trace: D340, D342
         if let (true, Type::Secret(_)) = (percent, &receiver_type) {
             let receiver_type = receiver_type.clone();
