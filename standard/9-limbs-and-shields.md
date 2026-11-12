@@ -15,6 +15,7 @@
 | [9.11](#911-the-linter) | The linter | Part of the compiler |
 | [9.12](#912-pub) | `pub` | Seen outside its package |
 | [9.13](#913-rules-rule) | `rule` | The rules code is held to, in the manifest |
+| [9.14](#914-concurrency-concur) | `@concur` | Tasks, runners and locks |
 
 Bare `@`, with no `::`, is a compiler builtin instead ([5.7](5-functions.md#57-builtins-)).
 
@@ -293,3 +294,31 @@ Code has no rules lines of its own.
 **Refused:** `@config`, `@match_config`, `@tighten_config` and `@loosen_config`.
 
 **From:** D30, D56, D201, D202, D204, D265.
+
+## 9.14 Concurrency: `@concur`
+
+**Rule:** concurrency and parallelism come from the `@concur` limb, so a search for `@concur` finds every place a program goes parallel. Tasks are structured: every task is joined before the block that started it ends, and a task is `must_Give`, so none can leak or outlive its caller. Its failure comes back when it's joined.
+
+Every spawn names its runner, as every `append` names its allocator. `std` has the runner interface and a runner that runs tasks one after another on any machine, bare metal included. `os::threads(count: 8)` gives threads on an operating system, and `count: max` a thread for every core.
+
+```
+let $pool: os::threads = os::threads(count: max);
+let $left: @concur::task<i64> = @concur::spawn(on: Lend $pool) sum(Lend $xs.%first_half());
+```
+
+Sharing follows the ownership words: `Give` hands a value to one task, `Lend` lets many read, and `Lend.mut` goes to one task only, so data races can't happen. A list is changed in parallel by splitting it into parts that don't overlap. Results come back through each task's own join, so they don't depend on which task finishes first.
+
+A lock holds its data, and locking gives a `Lend.mut` of it for one block, unlocking when the block ends, however it ends. Several locks are taken in one block, always in an order set by the locks themselves, and nesting is refused, so deadlocks can't happen. Which task locks first changes between runs, so locks are where timing can reach results.
+
+```
+@concur::locked $from, $to as $a, $b:
+    change $a = $a minus.wrap $amount;
+    change $b = $b plus.wrap $amount;
+end @concur::locked
+```
+
+There's no `async` or `await`. A function that waits takes the runner, and the runner decides how waiting works: a thread blocks, or an event runner parks the task and runs another, with each task on its own small stack, whose size the compiler works out. A spawn onto an event runner takes the allocator for that stack. The spellings are placeholders.
+
+**Refused:** a task that isn't joined; two tasks both given `Lend.mut` of one thing; locking inside a locked block; and the same lock twice in one block.
+
+**From:** D343, D344, D345, D346, D347, D348, D349, D350, D351.
