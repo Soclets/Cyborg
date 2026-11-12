@@ -1264,6 +1264,8 @@ A `type_set` is a closed list of types that nothing can join later, as in `type_
 
 **D381. A read-only list view copies freely, and a `.mut` view can't be copied.** A `std::coll::list<i32>` view is passed on bare, as in `g($xs)`, with no word, like a `str` view (D368), since copying read-only data can't change or free anything. A `std::coll::list.mut<i32>` view can't be copied, since two changing views of one list would race, so passing one on takes `Lend.mut $xs`. Oracle claude had read `Lend $xs` for both; Claude proposed matching `str`; the owner chose: "yea". (Owner, 2026-11-12)
 
+**D382. A split gives back `std::coll::halves.mut<i32>`, and the list stays lent until both halves are done.** Since every `let` writes its type, `$xs.%%split.mut(at.items: 500)` gives a `std::coll::halves.mut<i32>`, with two fields, `.first` and `.second`, each a `std::coll::list.mut<i32>` view (D379), so both halves can be held at once, as in `let $h: std::coll::halves.mut<i32> = $xs.%%split.mut(at.items: 500);`. Reading the halves straight off the call would give one per call, and splitting again for the other would clash. `$xs` stays lent to change until the last use of either half, so nothing else touches the list while tasks have it. `$xs.%split(at.items: 500)` gives a read-only `std::coll::halves<i32>`, for reading two parts in parallel. Oracle claude asked what holds the result; Claude proposed it; the owner chose: "yea". (Owner, 2026-11-12)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude
