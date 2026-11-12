@@ -17,13 +17,13 @@ In milliseconds: the mean, ± the standard deviation, and the min. Each had 3 wa
 | Cyborg | Normal | `FinalPerf` | 21.2 ± 0.8 (min 19.4) | 24.9 ± 1.8 (min 23.4) |
 | Cyborg | Normal | `FinalShit` | 21.4 ± 1.0 (min 19.1) | 25.4 ± 1.9 (min 23.8) |
 | Cyborg | Normal | `Literal` | 34.2 ± 1.3 (min 30.9) | 269.5 ± 13.2 (min 238.6) |
-| Cyborg | Ceil | `FinalPerf` | 0.9 ± 0.2 (min 0.8) | 1.0 ± 0.1 (min 0.8) |
+| Cyborg | Ceil.source | `FinalPerf` | 0.9 ± 0.2 (min 0.8) | 1.0 ± 0.1 (min 0.8) |
 | Rust | Normal | `opt-level=0` | 37.0 ± 0.3 (min 36.5) | 109.5 ± 4.7 (min 106.6) |
 | Rust | Normal | `opt-level=3` | 14.3 ± 0.3 (min 13.7) | 1.2 ± 0.1 (min 1.1) |
 | Rust | Normal | `opt-level=3`, overflow checks on | 22.3 ± 0.8 (min 20.3) | 24.0 ± 0.4 (min 23.4) |
 | Rust | Purpose | `opt-level=3` | 24.8 ± 0.6 (min 23.9) | 32.2 ± 5.9 (min 24.8) |
 | Rust | Purpose | `opt-level=3`, overflow checks on | 23.0 ± 0.4 (min 22.6) | 56.2 ± 1.3 (min 54.7) |
-| Rust | Ceil | `opt-level=3`, `target-cpu=native`, fat LTO | 1.1 ± 0.1 (min 1.0) | 1.2 ± 0.1 (min 1.1) |
+| Rust | Ceil.machine | `opt-level=3`, `target-cpu=native`, fat LTO | 1.1 ± 0.1 (min 1.0) | 1.2 ± 0.1 (min 1.1) |
 
 Every Rust build used `codegen-units=1`. The Ceil one also used `panic=abort`.
 
@@ -56,3 +56,5 @@ Each Rust program builds with `rustc -C opt-level=3 -C codegen-units=1 fib_norma
 `-C overflow-checks=on` for the checked rows, and `-C target-cpu=native -C lto=fat -C panic=abort` for Ceil. Purpose
 takes the count as its argument: `fib_purpose 35` and `loop_purpose 100000000`. Then time them with
 `hyperfine -N --warmup 3 --min-runs 10`.
+
+The Ceil rows were relabelled `Ceil.source` or `Ceil.machine` on 2026-11-12, when D364 split Ceil. The numbers are unchanged.

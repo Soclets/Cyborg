@@ -30,16 +30,16 @@ Each is the whole process, timed from outside, so the JVM and Node pay their sta
 | C | Purpose | clang `-O3` | 21.0 ± 1.1 (min 18.3) | 24.9 ± 1.8 (min 23.5) |
 | C | Normal | clang `-O2` | 14.3 ± 0.4 (min 13.6) | 0.9 ± 0.1 (min 0.8) |
 | C | Normal | clang `-O3` | 14.0 ± 0.2 (min 13.7) | 0.9 ± 0.1 (min 0.8) |
-| C | Ceil | clang `-O3 -march=native` | 1.0 ± 0.3 (min 0.8) | 0.9 ± 0.0 (min 0.8) |
+| C | Ceil.machine | clang `-O3 -march=native` | 1.0 ± 0.3 (min 0.8) | 0.9 ± 0.0 (min 0.8) |
 | LuaJIT | Purpose | JIT on, by default | 34.1 ± 1.3 (min 32.1) | 54.1 ± 0.4 (min 53.4) |
 | LuaJIT | Normal | JIT on, by default | 34.1 ± 1.5 (min 32.0) | 54.5 ± 0.6 (min 53.3) |
-| LuaJIT | Ceil | JIT on, by default | 1.5 ± 0.6 (min 1.1) | 1.3 ± 0.1 (min 1.1) |
+| LuaJIT | Ceil.source | JIT on, by default | 1.5 ± 0.6 (min 1.1) | 1.3 ± 0.1 (min 1.1) |
 | Node (V8) | Purpose | no flags | 65.2 ± 5.5 (min 60.3) | 73.8 ± 0.7 (min 72.7) |
 | Node (V8) | Normal | no flags | 67.9 ± 8.3 (min 61.3) | 73.9 ± 0.8 (min 72.6) |
-| Node (V8) | Ceil | no flags | 20.2 ± 2.1 (min 17.9) | 20.0 ± 0.8 (min 18.9) |
+| Node (V8) | Ceil.source | no flags | 20.2 ± 2.1 (min 17.9) | 20.0 ± 0.8 (min 18.9) |
 | Java | Purpose | default flags | 32.3 ± 0.4 (min 31.5) | 49.4 ± 10.5 (min 46.1) |
 | Java | Normal | default flags | 32.6 ± 1.0 (min 31.4) | 48.0 ± 1.5 (min 45.6) |
-| Java | Ceil | `-XX:TieredStopAtLevel=1 -XX:+UseSerialGC -Xshare:auto` | 20.8 ± 2.0 (min 19.5) | 21.4 ± 2.8 (min 18.4) |
+| Java | Ceil.source | `-XX:TieredStopAtLevel=1 -XX:+UseSerialGC -Xshare:auto` | 20.8 ± 2.0 (min 19.5) | 21.4 ± 2.8 (min 18.4) |
 
 What's behind some of these:
 
@@ -114,3 +114,5 @@ luajit lua/steady.lua
 ```
 
 This replaces `bench/oracle-vs-v8`, which was two runs each with `time` against Node, for fun. Its Cyborg programs moved to `cyborg/` here.
+
+The Ceil rows were relabelled `Ceil.source` or `Ceil.machine` on 2026-11-12, when D364 split Ceil. The numbers are unchanged.

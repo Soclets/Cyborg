@@ -169,11 +169,15 @@ GAIM's favorite
 |---|---|---|
 | Purpose | Isolates one thing, and the result says what | As hard as it can, for that one thing |
 | Normal | How Cyborg does in everyday code | No `inline` code, shields or hand-tuning |
-| Ceil | How fast Cyborg can possibly go | Anything allowed |
+| `Ceil.source` | How fast Cyborg can possibly go, on any machine of the target | Anything in the code, built for the target's baseline CPU, with no profile |
+| `Ceil.machine` | The same, tuned for one CPU | Plus `--cpu=`, which only holds on that chip |
+| `Ceil.program` | The same, tuned for one workload | Plus `--profile.use=` ([10.10](#1010-tuning-for-one-workload-profile)), which only holds for that work |
 
-Other languages' versions follow the same rules.
+A build with both is `Ceil.machine.program`. There's no bare `Ceil`, so a number always says which kind of fastest it is. Other languages' versions follow the same rules, so a Rust build with `-C target-cpu=native` is `Ceil.machine`.
 
-**From:** D32, D77, D78.
+**Refused:** a bare `Ceil`.
+
+**From:** D32, D77, D78, D364.
 
 ## 10.10 Tuning for one workload: `--profile`
 

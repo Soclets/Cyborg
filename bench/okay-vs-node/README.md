@@ -19,10 +19,10 @@ In milliseconds: the mean, ± the standard deviation, and the min. Each had 3 wa
 | Cyborg | Normal | `FinalShit` | 22.6 ± 0.9 (min 19.6) | 24.0 ± 0.9 (min 22.9) |
 | Cyborg | Normal | `Literal` | 34.1 ± 1.4 (min 30.6) | 250.9 ± 23.1 (min 195.1) |
 | Cyborg | Normal | `FinalSmall` | didn't build | didn't build |
-| Cyborg | Ceil | `FinalPerf` | 1.0 ± 0.1 (min 0.9) | 0.9 ± 0.0 (min 0.8) |
+| Cyborg | Ceil.source | `FinalPerf` | 1.0 ± 0.1 (min 0.9) | 0.9 ± 0.0 (min 0.8) |
 | Node (V8) | Normal | no flags | 65.4 ± 5.5 (min 61.5) | 70.9 ± 0.5 (min 69.9) |
 | Node (V8) | Purpose | no flags | 63.9 ± 2.1 (min 60.1) | 70.8 ± 0.6 (min 69.8) |
-| Node (V8) | Ceil | no flags | 20.1 ± 0.9 (min 17.8) | 19.5 ± 1.1 (min 17.6) |
+| Node (V8) | Ceil.source | no flags | 20.1 ± 0.9 (min 17.8) | 19.5 ± 1.1 (min 17.6) |
 
 What's behind them:
 
@@ -56,3 +56,5 @@ From `bench/fib-and-loop/cyborg/`, build each mode with `okay comp --FinalSafe f
 `okay comp --Working --opt=O1 fib.cy` for `Working`, then time them with
 `hyperfine -N --warmup 3 --min-runs 10` next to `node ../js/fib_normal.js`. The Ceil programs here build with
 `okay comp --FinalPerf`.
+
+The Ceil rows were relabelled `Ceil.source` or `Ceil.machine` on 2026-11-12, when D364 split Ceil. The numbers are unchanged.
