@@ -105,6 +105,8 @@ struct Generator<'random> {
     list_alias: Option<(String, Kind, i128)>,
     text_alias: Option<(String, i128)>,
     named_others: Vec<(String, bool, String)>,
+    /// The kinds whose `trio_…` some loop calls, so it's declared (4.4).
+    trios: Vec<Kind>,
     /// Whether `main` has `$pool` and `$events` (D346, D392).
     runners: bool,
     /// Whether `tag`, `tpick` and `tcount` are declared (2.9).
@@ -177,6 +179,7 @@ pub fn program(seed: u64) -> Program {
         writers: false,
         strings: false,
         runners: false,
+        trios: Vec::new(),
         wrap: None,
         list_alias: None,
         text_alias: None,
@@ -307,6 +310,7 @@ pub fn program(seed: u64) -> Program {
         writers: generator.writers,
         named_others: generator.named_others,
         runners: generator.runners,
+        trios: generator.trios,
         strings: generator.strings,
         methods: generator.methods,
         arena: generator.arena,
@@ -650,7 +654,7 @@ impl Generator<'_> {
                 }
             }
             // The kinds of statement added later share 10 and 11 evenly.
-            10 | 11 => match self.random.between(0, 16) {
+            10 | 11 => match self.random.between(0, 17) {
                 0 if prints => self
                     .reveal(scope)
                     .unwrap_or_else(|| self.list_statement(scope)),
@@ -733,6 +737,9 @@ impl Generator<'_> {
                     .unwrap_or_else(|| self.list_statement(scope)),
                 16 if !self.pure_only => self
                     .shared(scope)
+                    .unwrap_or_else(|| self.list_statement(scope)),
+                17 => self
+                    .fresh_loop(scope)
                     .unwrap_or_else(|| self.list_statement(scope)),
                 _ => self.list_statement(scope),
             },
@@ -2835,6 +2842,42 @@ impl Generator<'_> {
                 handling: Handling::Crash,
             },
             runner,
+        })
+    }
+
+    /// A loop over the fresh array `trio_…` returns, which takes no word (4.4, D396).
+    fn fresh_loop(&mut self, scope: &Scope) -> Option<Statement> {
+        if self.pure_only || self.no_calls {
+            return None;
+        }
+        let targets: Vec<(String, Kind)> = scope
+            .variables
+            .iter()
+            .filter_map(|(name, found)| match found {
+                Type::Integer(kind)
+                    if !name.starts_with('i')
+                        && !name.starts_with('p')
+                        && !name.starts_with('x')
+                        && !name.starts_with('k') =>
+                {
+                    Some((name.clone(), *kind))
+                }
+                _ => None,
+            })
+            .collect();
+        let (target, kind) = self.random.pick(&targets)?.clone();
+        if !self.trios.contains(&kind) {
+            self.trios.push(kind);
+        }
+        let argument = self.integer(scope, kind, 2);
+        Some(Statement::FreshLoop {
+            item: self.name("x"),
+            call: Expression::Call {
+                function: format!("trio_{}", kind.word()),
+                arguments: vec![(None, argument)],
+                handling: Handling::Crash,
+            },
+            target,
         })
     }
 

@@ -34,7 +34,8 @@
 ///   and changed, and methods on them that read their fields or change one, called with `.%` and
 ///   `.%%`; tagged unions whose cases carry integer data or none, and `match` covering every
 ///   case in any order, an arm naming its case to read its data;
-/// - loops: `for` over arrays and lists with `Lend` or `Lend.mut`, over an array of `must_Give`
+/// - loops: `for` over a fresh array a call returns, bare; over arrays and lists with `Lend` or
+///   `Lend.mut`, over an array of `must_Give`
 ///   values with `Give`, and over ranges whose counter is read, whose end lies past the last
 ///   step or is only known while running; named loops, stopped with `break name` from inside;
 /// - control: `let`, `change`, `if` and `else`, the test `if $v: T:` on a union's case or an
@@ -105,7 +106,6 @@ pub const NOT_GENERATED: &[&str] = &[
     "2.18 undecided: maths and `==` between two of the same `type.new` (12)",
     "2.21 still to do: `.%lookup`, the named shuffles, `.%%simd_chunks.mut`, and floats in lanes; needs a target: `lanes: max`, whose count is the target's; undecided: maths between a `simd` and one value",
     "2.22 `bool.secret` values with `and.both`, `or.both` and `not`, secrets in arrays and `simd`, shifts on secrets",
-    "4.4 `for` over a fresh collection, since generated functions don't return arrays or lists yet",
     "5.x undecided: specialization, value parameters, type slots and how laws are proven (12.5)",
     "6.x stored borrows of structs, and `.held`; `must_Give` values that leave a loop or a `match`; `defer` on anything but ending a value",
     "7.x structs holding other structs, lists or borrows, beyond the `must_Give` holder, handing unions to functions",

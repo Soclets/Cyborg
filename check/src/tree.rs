@@ -851,6 +851,13 @@ pub enum Statement {
         kind: Kind,
         target: String,
     },
+    /// `for $x in trio_i32(…):`, a loop over a fresh array a call returns, which takes no word,
+    /// adding each item to a variable (4.4, D396).
+    FreshLoop {
+        item: String,
+        call: Expression,
+        target: String,
+    },
     /// A loop over an array or list in `simd`-sized chunks, saying how the leftovers go:
     /// padded, exact, or handed over one at a time after the chunks; each chunk's greatest lane
     /// is added to a variable, and each leftover too (2.21).
@@ -1005,6 +1012,8 @@ pub struct Function {
 #[allow(clippy::struct_excessive_bools)] // Independent switches for what a program declares.
 pub struct Program {
     pub unit_families: Vec<UnitFamily>,
+    /// The kinds that have `trio_…`, which returns a fresh array of three (4.4, D396).
+    pub trios: Vec<Kind>,
     /// Whether `main` also has `$pool`, an `os::threads`, and `$events`, an `os::events`, each
     /// ended by a deferred `os::done` (D346, D392).
     pub runners: bool,
@@ -1431,6 +1440,13 @@ pub fn print(program: &Program) -> String {
     }
     if let Some(generics) = &program.generics {
         print_generics(&mut out, generics);
+    }
+    for kind in &program.trios {
+        let kind = kind.word();
+        let _ = writeln!(
+            out,
+            "fn trio_{kind} [$n: {kind}] -> std::coll::array<{kind}>[len: 3 items]:\n    return [$n, $n, $n];\nend fn trio_{kind}\n"
+        );
     }
     for kind in &program.baked {
         let kind = kind.word();
@@ -2093,6 +2109,14 @@ fn print_block(out: &mut String, statements: &[Statement], depth: usize, style: 
                 (name, struct_name, holder),
                 (fields, ending, read_into.as_ref()),
             ),
+            Statement::FreshLoop { item, call, target } => {
+                let _ = writeln!(out, "{indent}for ${item} in {}:", style.expression(call));
+                let _ = writeln!(
+                    out,
+                    "{indent}    change ${target} = ${target} plus.wrap ${item};"
+                );
+                let _ = writeln!(out, "{indent}end for");
+            }
             Statement::SplitTasks {
                 halves,
                 list,
