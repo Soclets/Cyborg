@@ -1262,6 +1262,8 @@ A `type_set` is a closed list of types that nothing can join later, as in `type_
 
 **D380. The stack-size refusal is the compiler's own, outside the shared tests.** D352's refusal of a too-small `stack:` depends on the compiler's measurement of a task's stack, which comes from its machine code, so it differs between targets and compiler versions and can't match byte for byte (rule 5). So the compiler measures and refuses, with its own tests per target, the way `f64.fast` is an exception (D163), and the oracle accepts any `stack:` size and runs the task. Everything else about event-runner spawns, like `stack:` and `alloc:` being required, stays in the shared tests. Oracle claude asked; Claude proposed it; the owner chose: "yea". (Owner, 2026-11-12)
 
+**D381. A read-only list view copies freely, and a `.mut` view can't be copied.** A `std::coll::list<i32>` view is passed on bare, as in `g($xs)`, with no word, like a `str` view (D368), since copying read-only data can't change or free anything. A `std::coll::list.mut<i32>` view can't be copied, since two changing views of one list would race, so passing one on takes `Lend.mut $xs`. Oracle claude had read `Lend $xs` for both; Claude proposed matching `str`; the owner chose: "yea". (Owner, 2026-11-12)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude

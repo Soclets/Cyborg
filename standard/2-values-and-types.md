@@ -262,11 +262,11 @@ let mut $xs: std::coll::list<i32>[len.max: inf items] = empty;
 defer std::coll::list.done(Give $xs, alloc: Lend $arena);
 ```
 
-A list with no `len.max` is a view of some or all of a list, as a bare `str` is of text: `std::coll::list<i32>` reads only, and `std::coll::list.mut<i32>` can be changed through but can't grow or shrink. A view never owns memory, so it isn't `must_Give` and needs no allocator, and it follows the same borrow rules as a `str` view. A function taking `$xs: std::coll::list<i32>` reads any list, bounded or growable, whole or part. `$xs.%%split.mut(at.items: 500)` gives two changeable views, `.first` and `.second`, for two tasks.
+A list with no `len.max` is a view of some or all of a list, as a bare `str` is of text: `std::coll::list<i32>` reads only, and `std::coll::list.mut<i32>` can be changed through but can't grow or shrink. A view never owns memory, so it isn't `must_Give` and needs no allocator, and it follows the same borrow rules as a `str` view. A read-only view copies freely, with no word, like a `str` view, while a `.mut` view can't be copied, since two changing views of one list would race, so passing one on takes `Lend.mut`. A function taking `$xs: std::coll::list<i32>` reads any list, bounded or growable, whole or part. `$xs.%%split.mut(at.items: 500)` gives two changeable views, `.first` and `.second`, for two tasks.
 
 **Refused:** `[ ]` with items, or a string literal, given straight to a growable list or string, with `fix: std::coll::list.from` or `str.from`; `std::coll::list.mut<i32>` growing or shrinking, a list with a bare `len`, in favour of `array`, `= empty` on a list with `len.min` above 0, `[]`, with `fix: empty`, and too few or too many items.
 
-**From:** D11, D12, D13, D24, D102, D103, D140, D321, D322, D323, D324, D330, D333, D369, D370, D371, D379.
+**From:** D11, D12, D13, D24, D102, D103, D140, D321, D322, D323, D324, D330, D333, D369, D370, D371, D379, D381.
 
 ## 2.11 Arrays
 
