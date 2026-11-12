@@ -35,7 +35,7 @@ pub const NOT_GENERATED: &[&str] = &[
     "4.3 to 4.8 `match`, `for … in Give`, `for` over lists, a range's counter in use, ranges that step past their end, named loops",
     "5.x labels, defaults, `fn.pure`, contracts, generics, interfaces, methods, `bake`",
     "6.x ownership words, `Lend.mut` parameters, stored borrows, `must_Give`, `finish`, `defer`",
-    "7.x structs holding other structs, lists or borrows, `must_Give` structs, generic structs, unions and `match` on them, handing structs to functions",
+    "7.x structs holding other structs, lists or borrows, `must_Give` structs, generic structs, handing structs and unions to functions, the test `if $u: u.case:`",
     "8.x named sets of failures, a `case` reading a failure's data, arms that `return`, `break` or `fail`, handler narrowings and `*`",
     "9.x `use`, limbs, shields, `inline.asm`, pointers, `@concur`, `pub`",
     "10.x build modes beyond comparing outputs",

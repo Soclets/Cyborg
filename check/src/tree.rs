@@ -290,6 +290,13 @@ impl Layout {
     }
 }
 
+/// A tagged union, each case with integer data or none (7.5).
+#[derive(Clone, Debug)]
+pub struct UnionDecl {
+    pub name: String,
+    pub cases: Vec<(String, Vec<(String, Kind)>)>,
+}
+
 /// A struct with integer fields (7.1).
 #[derive(Clone, Debug)]
 pub struct StructDecl {
@@ -389,6 +396,19 @@ pub enum Statement {
         changes: bool,
         body: Vec<Statement>,
     },
+    /// `let mut $u: u1 = u1.c3[g4 = …];` (7.5)
+    LetCase {
+        name: String,
+        union_name: String,
+        case: String,
+        fields: Vec<(String, Expression)>,
+    },
+    /// `match $u:` with an arm for every case, naming its data when it has some (4.3).
+    Match {
+        variable: String,
+        union_name: String,
+        arms: Vec<(String, Option<String>, Vec<Statement>)>,
+    },
     /// `forever:`, which a counter always stops with `break` (4.7, 4.8).
     Forever {
         counter: String,
@@ -422,6 +442,7 @@ pub struct Function {
 #[derive(Clone, Debug)]
 pub struct Program {
     pub structs: Vec<StructDecl>,
+    pub unions: Vec<UnionDecl>,
     pub functions: Vec<Function>,
     pub main: Vec<Statement>,
     /// Whether the printer leaves out `( )` where 3.9's table already gives the order.
@@ -436,6 +457,21 @@ pub fn print(program: &Program) -> String {
         fewer_brackets: program.fewer_brackets,
     };
     let mut out = String::from("import std;\nimport os;\n\n");
+    for declared in &program.unions {
+        let _ = writeln!(out, "union.tagged {}:", declared.name);
+        for (case, fields) in &declared.cases {
+            if fields.is_empty() {
+                let _ = writeln!(out, "    {case};");
+            } else {
+                let fields: Vec<String> = fields
+                    .iter()
+                    .map(|(field, kind)| format!("{field}: {}", kind.word()))
+                    .collect();
+                let _ = writeln!(out, "    {case}[{}];", fields.join(", "));
+            }
+        }
+        let _ = writeln!(out, "end union.tagged {}\n", declared.name);
+    }
     for declared in &program.structs {
         let _ = writeln!(out, "{} {}:", declared.layout.word(), declared.name);
         for (field, kind) in &declared.fields {
@@ -630,6 +666,38 @@ fn print_block(out: &mut String, statements: &[Statement], depth: usize, style: 
                 let _ = writeln!(out, "{indent}for ${item} in {word}${array}:");
                 print_block(out, body, depth + 1, style);
                 let _ = writeln!(out, "{indent}end for");
+            }
+            Statement::LetCase {
+                name,
+                union_name,
+                case,
+                fields,
+            } => {
+                let value = if fields.is_empty() {
+                    format!("{union_name}.{case}")
+                } else {
+                    let fields: Vec<String> = fields
+                        .iter()
+                        .map(|(field, value)| format!("{field} = {}", style.expression(value)))
+                        .collect();
+                    format!("{union_name}.{case}[{}]", fields.join(", "))
+                };
+                let _ = writeln!(out, "{indent}let mut ${name}: {union_name} = {value};");
+            }
+            Statement::Match {
+                variable,
+                union_name,
+                arms,
+            } => {
+                let _ = writeln!(out, "{indent}match ${variable}:");
+                for (case, named, body) in arms {
+                    let named = named
+                        .as_ref()
+                        .map_or_else(String::new, |name| format!(" ${name}"));
+                    let _ = writeln!(out, "{indent}    case {union_name}.{case}{named}:");
+                    print_block(out, body, depth + 2, style);
+                }
+                let _ = writeln!(out, "{indent}end match");
             }
             Statement::Forever {
                 counter,

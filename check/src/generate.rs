@@ -6,7 +6,7 @@
 use crate::random::Random;
 use crate::tree::{
     Comparison, Expression, FailureDecl, Filling, Function, Handling, Kind, Layout, Operator,
-    Position, Program, Statement, StructDecl, Type,
+    Position, Program, Statement, StructDecl, Type, UnionDecl,
 };
 
 /// How big a program gets.
@@ -28,6 +28,10 @@ struct Scope {
     arrays: Vec<(String, Kind, i128)>,
     /// Struct variables, with which struct each is.
     records: Vec<(String, usize)>,
+    /// Union variables, with which union each is.
+    cased: Vec<(String, usize)>,
+    /// Fields a `match` arm's name reads: the name, the field and its kind.
+    case_fields: Vec<(String, String, Kind)>,
 }
 
 struct Generator<'random> {
@@ -36,6 +40,7 @@ struct Generator<'random> {
     /// The failures the function being made lists, which `?` adds to; none in `main`.
     failing: Option<Vec<FailureDecl>>,
     structs: Vec<StructDecl>,
+    unions: Vec<UnionDecl>,
     functions: Vec<Function>,
 }
 
@@ -47,11 +52,16 @@ pub fn program(seed: u64) -> Program {
         next_name: 0,
         failing: None,
         structs: Vec::new(),
+        unions: Vec::new(),
         functions: Vec::new(),
     };
     for _ in 0..generator.random.between(0, 2) {
         let declared = generator.struct_decl();
         generator.structs.push(declared);
+    }
+    for _ in 0..generator.random.between(0, 2) {
+        let declared = generator.union_decl();
+        generator.unions.push(declared);
     }
     let count = generator.random.between(0, LIMITS.functions);
     for _ in 0..count {
@@ -62,6 +72,8 @@ pub fn program(seed: u64) -> Program {
         variables: Vec::new(),
         arrays: Vec::new(),
         records: Vec::new(),
+        cased: Vec::new(),
+        case_fields: Vec::new(),
     };
     let mut main = generator.block(&mut scope, LIMITS.statements, 0, (true, false));
     // `main` ends by printing what it made, so a program's work shows in its output.
@@ -79,6 +91,7 @@ pub fn program(seed: u64) -> Program {
     let fewer_brackets = generator.random.chance(50);
     Program {
         structs: generator.structs,
+        unions: generator.unions,
         functions: generator.functions,
         main,
         fewer_brackets,
@@ -124,12 +137,14 @@ impl Generator<'_> {
     }
 
     fn function(&mut self) -> Function {
-        let name = self.name("f");
+        let name = self.name("fun");
         let count = self.random.between(1, 3);
         let mut scope = Scope {
             variables: Vec::new(),
             arrays: Vec::new(),
             records: Vec::new(),
+            cased: Vec::new(),
+            case_fields: Vec::new(),
         };
         let mut parameters = Vec::new();
         for _ in 0..count {
@@ -194,6 +209,8 @@ impl Generator<'_> {
         let declared_before = scope.variables.len();
         let arrays_before = scope.arrays.len();
         let records_before = scope.records.len();
+        let cased_before = scope.cased.len();
+        let case_fields_before = scope.case_fields.len();
         let count = self.random.between(1, most);
         let mut statements = Vec::new();
         for _ in 0..count {
@@ -203,6 +220,8 @@ impl Generator<'_> {
         scope.variables.truncate(declared_before);
         scope.arrays.truncate(arrays_before);
         scope.records.truncate(records_before);
+        scope.cased.truncate(cased_before);
+        scope.case_fields.truncate(case_fields_before);
         statements
     }
 
@@ -229,6 +248,12 @@ impl Generator<'_> {
             .map(|(name, _)| name.clone())
             .collect();
         match roll {
+            0..=3 if !self.unions.is_empty() && self.random.chance(15) => {
+                self.union_statement(scope, 2, prints)
+            }
+            9 if depth < 2 && !scope.cased.is_empty() && self.random.chance(60) => {
+                self.union_statement(scope, depth, prints)
+            }
             0..=3 => {
                 if self.random.chance(25) {
                     let kind = *self.random.pick(&Kind::ALL).unwrap_or(&Kind::I32);
@@ -314,7 +339,8 @@ impl Generator<'_> {
             8 if depth < 2 => self.range_loop(scope, depth, prints),
             9 if depth < 2 && self.random.chance(30) => self.loop_over(scope, depth, prints),
             9 if self.random.chance(50) => self.array_statement(scope),
-            9 => self.record_statement(scope),
+            9 if self.random.chance(50) => self.record_statement(scope),
+            9 => self.union_statement(scope, depth, prints),
             _ if prints => {
                 // A print's value is an integer variable, so its type is never left for a
                 // literal to guess, and how a `bool` prints isn't decided (12.3).
@@ -403,12 +429,98 @@ impl Generator<'_> {
         }
     }
 
+    /// A tagged union of two or three cases, some carrying integer data (7.5).
+    fn union_decl(&mut self) -> UnionDecl {
+        let name = self.name("un");
+        let cases = (0..self.random.between(2, 3))
+            .map(|_| {
+                let case = self.name("cs");
+                let fields = if self.random.chance(50) {
+                    (0..self.random.between(1, 2))
+                        .map(|_| (self.name("gd"), self.integer_kind()))
+                        .collect()
+                } else {
+                    Vec::new()
+                };
+                (case, fields)
+            })
+            .collect();
+        UnionDecl { name, cases }
+    }
+
+    /// A new union value, or a `match` on one in scope, whose arms cover every case in any
+    /// order, an arm with data now and then naming it to read it (4.3, 7.6).
+    fn union_statement(&mut self, scope: &mut Scope, depth: usize, prints: bool) -> Statement {
+        if depth < 2 {
+            if let Some((variable, index)) = self.random.pick(&scope.cased).cloned() {
+                if self.random.chance(60) {
+                    if let Some(declared) = self.unions.get(index).cloned() {
+                        let mut cases = declared.cases.clone();
+                        // A shuffle, so arms aren't always in the declared order.
+                        for at in (1..cases.len()).rev() {
+                            let other =
+                                usize::try_from(self.random.between(0, at as i128)).unwrap_or(0);
+                            cases.swap(at, other);
+                        }
+                        let mut arms = Vec::new();
+                        for (case, fields) in cases {
+                            let named = (!fields.is_empty() && self.random.chance(70))
+                                .then(|| self.name("m"));
+                            let held = scope.case_fields.len();
+                            if let Some(name) = &named {
+                                for (field, kind) in &fields {
+                                    scope.case_fields.push((name.clone(), field.clone(), *kind));
+                                }
+                            }
+                            let body = self.block(scope, 2, depth + 1, (prints, false));
+                            scope.case_fields.truncate(held);
+                            arms.push((case, named, body));
+                        }
+                        return Statement::Match {
+                            variable,
+                            union_name: declared.name,
+                            arms,
+                        };
+                    }
+                }
+            }
+        }
+        let count = i128::try_from(self.unions.len()).unwrap_or(0);
+        if count == 0 {
+            return self.array_statement(scope);
+        }
+        let index = usize::try_from(self.random.between(0, count - 1)).unwrap_or(0);
+        let Some(declared) = self.unions.get(index).cloned() else {
+            return self.array_statement(scope);
+        };
+        let Some((case, fields)) = self.random.pick(&declared.cases).cloned() else {
+            return self.array_statement(scope);
+        };
+        let fields = fields
+            .iter()
+            .map(|(field, kind)| {
+                (
+                    field.clone(),
+                    self.expression(scope, Type::Integer(*kind), LIMITS.depth),
+                )
+            })
+            .collect();
+        let name = self.name("w");
+        scope.cased.push((name.clone(), index));
+        Statement::LetCase {
+            name,
+            union_name: declared.name,
+            case,
+            fields,
+        }
+    }
+
     /// A struct with one to four integer fields, in any of the layouts (7.1).
     fn struct_decl(&mut self) -> StructDecl {
         let name = self.name("rec");
         let layout = *self.random.pick(&Layout::ALL).unwrap_or(&Layout::Written);
         let fields = (0..self.random.between(1, 4))
-            .map(|_| (self.name("f"), self.integer_kind()))
+            .map(|_| (self.name("fd"), self.integer_kind()))
             .collect();
         StructDecl {
             name,
@@ -641,6 +753,14 @@ impl Generator<'_> {
                         .map(move |(field, _)| (variable.clone(), field))
                 })
                 .collect();
+            let mut fields = fields;
+            fields.extend(
+                scope
+                    .case_fields
+                    .iter()
+                    .filter(|(_, _, found)| *found == kind)
+                    .map(|(variable, field, _)| (variable.clone(), field.clone())),
+            );
             if let Some((variable, field)) = self.random.pick(&fields).cloned() {
                 return Expression::Field { variable, field };
             }
