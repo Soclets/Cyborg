@@ -77,8 +77,6 @@ pub const NOT_GENERATED: &[&str] = &[
     "2.19 `decl` assigned in loops or `match` arms, or never changed",
     "2.21 `simd` with one value, chunks, shuffles, `pick`, lookups, `lanes: max`, floats in lanes, `as` from arrays",
     "2.22 `bool.secret` values with `and.both`, `or.both` and `not`, secrets in arrays and `simd`, shifts on secrets",
-    "3.9 chains that change direction, like `$a below $b above $c`",
-    "3.10 a type's own operators other than `below`, `==` and `+`, like `x` and a `div` narrowing",
     "4.3 to 4.8 `match`, `for … in Give`, `for` over lists, a range's counter in use, ranges that step past their end, named loops",
     "5.x contracts that call pure functions, methods with labels or on other types, `bake`; generics with more than one type parameter, and generic structs holding structs; undecided: specialization, value parameters, type slots and how laws are proven (12.5)",
     "6.x stored borrows and `.held`, `Lend from` results, `must_Give` values that leave a loop or a `match`, and `defer` on anything but ending a value",

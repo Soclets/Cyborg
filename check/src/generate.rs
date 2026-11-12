@@ -246,9 +246,10 @@ impl Generator<'_> {
         prelude
     }
 
-    /// A comparison chain of three values, all going one way, like `$x below 5 at_most 9`, so
-    /// it reads as the range it looks like (3.9). The first is a variable, so each value after
-    /// it has a typed side to take its type from.
+    /// A comparison chain of three values, usually all going one way, like `$x below 5 at_most
+    /// 9`, and now and then changing direction, like `$a below $b above $c`, which means each
+    /// comparison and stops at the first false (3.9). The first is a variable, so each value
+    /// after it has a typed side to take its type from.
     fn chain(&mut self, scope: &Scope, depth: usize) -> Option<Expression> {
         let integers: Vec<(String, Type)> = scope
             .variables
@@ -264,7 +265,11 @@ impl Generator<'_> {
             &[Comparison::Above, Comparison::AtLeast],
             &[Comparison::Equal],
         ];
-        let direction = *self.random.pick(&directions)?;
+        let direction = if self.random.chance(20) {
+            &Comparison::ALL[..]
+        } else {
+            *self.random.pick(&directions)?
+        };
         let comparisons = vec![*self.random.pick(direction)?, *self.random.pick(direction)?];
         let middle = self.integer(scope, kind, depth - 1);
         let last = self.integer(scope, kind, depth - 1);
@@ -1346,7 +1351,18 @@ impl Generator<'_> {
             .collect();
         let left = self.random.pick(&live)?.clone();
         let right = self.random.pick(&live)?.clone();
-        let value = match self.random.between(0, 2) {
+        let value = match self.random.between(0, 3) {
+            3 => {
+                let kind = structure
+                    .fields
+                    .first()
+                    .map_or(Kind::I32, |(_, kind)| *kind);
+                Expression::Binary {
+                    operator: Operator::DivideFloor,
+                    left: Box::new(Expression::Variable(left)),
+                    right: Box::new(self.integer(scope, kind, 1)),
+                }
+            }
             0 => Expression::Call {
                 function: "gmax".to_string(),
                 arguments: vec![
@@ -1361,7 +1377,10 @@ impl Generator<'_> {
                 handling: Handling::Crash,
             },
             _ => Expression::Binary {
-                operator: Operator::Add,
+                operator: *self
+                    .random
+                    .pick(&[Operator::Add, Operator::Subtract, Operator::Multiply])
+                    .unwrap_or(&Operator::Add),
                 left: Box::new(Expression::Variable(left)),
                 right: Box::new(Expression::Variable(right)),
             },

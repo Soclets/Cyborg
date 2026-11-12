@@ -950,16 +950,40 @@ fn print_generics(out: &mut String, generics: &Generics) {
             out,
             "op == [$a: Lent {name}, $b: Lent {name}] -> bool:\n    return $a.{first} == $b.{first};\nend op ==\n"
         );
-        let sums: Vec<String> = structure
+        // Its own `div.floor` by a number of its first field's type, dividing that field (3.10).
+        let (first_field, first_kind) = structure
+            .fields
+            .first()
+            .map_or(("", "i32"), |(field, kind)| (field.as_str(), kind.word()));
+        let divided: Vec<String> = structure
             .fields
             .iter()
-            .map(|(field, _)| format!("{field} = $a.{field} plus.wrap $b.{field}"))
+            .map(|(field, _)| {
+                if field == first_field {
+                    format!("{field} = $a.{field} div.floor $b")
+                } else {
+                    format!("{field} = $a.{field}")
+                }
+            })
             .collect();
         let _ = writeln!(
             out,
-            "op + [$a: Lent {name}, $b: Lent {name}] -> {name}:\n    return {name}[{}];\nend op +\n",
-            sums.join(", ")
+            "op div.floor [$a: Lent {name}, $b: {first_kind}] -> {name}:\n    return {name}[{}];\nend op div.floor\n",
+            divided.join(", ")
         );
+        // Its own `+`, `-` and `x`, field by field, wrapping so they never stop (3.10).
+        for (operator, word) in [("+", "plus.wrap"), ("-", "minus.wrap"), ("x", "times.wrap")] {
+            let fields: Vec<String> = structure
+                .fields
+                .iter()
+                .map(|(field, _)| format!("{field} = $a.{field} {word} $b.{field}"))
+                .collect();
+            let _ = writeln!(
+                out,
+                "op {operator} [$a: Lent {name}, $b: Lent {name}] -> {name}:\n    return {name}[{}];\nend op {operator}\n",
+                fields.join(", ")
+            );
+        }
         lines.push((name.clone(), "ordered"));
         lines.push((name.clone(), "addable"));
     }
