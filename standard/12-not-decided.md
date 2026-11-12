@@ -50,7 +50,7 @@ Waiting on the owner, most needed first. Each is `NotDesignedYet` unless it says
 - **How close `f64.fast` has to be.** Its tests check that the answer is close (D163), and how close isn't stated.
 - **Floats, what's stuck.** `$x as f64.ieee`, which can't fail. A bound on `f64.ieee`. `$reading as f64.stable[min: 0.0, max: 2.0]`. How `f64.fast` mixes with `f64.stable`. A literal too large for `f64.ieee`.
 - **Floats, readings.** NaN or infinity is a `check failed:` nothing can handle, and refused in a `const`. A failed `$reading as f64.stable` is a `check failed:` too. Float bounds behave like integers, and D59 applies, so `f64.stable[min: 0.1, …]` needs `~0.1`. `f32.ieee` and `f32.fast` work too. `f64.fast` can't be NaN or infinity either.
-- **`use`, readings.** D151 refuses every reserved word, including `"i32"`, plus `"2nd"` and `"$say"`. A limb still needs its `import`, and a short name still needs a shield where the limb would. `use @csup::union.untagged as untagged;` gives `untagged number:`, closed with `end untagged number`.
+- **`use`, readings.** D151 refuses every reserved word, including `"i32"`, plus `"2nd"` and `"$say"`. A limb still needs its `import`, and a short name still needs a shield where the limb would. `use` on `union.@csup::untagged` is refused, since `use` never works on a base family (D232).
 - **Dead variables.** Whether `eat(Give $s); change $s = "b";` is allowed. It's refused today.
 - **Names.** Declaring a name already in scope, or hiding an outer one.
 - **`ensures` on a `fail` path.** Checked only on `return` today, which is a guess.

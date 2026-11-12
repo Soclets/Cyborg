@@ -1298,6 +1298,8 @@ A `type_set` is a closed list of types that nothing can join later, as in `type_
 
 **D398. An untagged union is built by naming one field, and any field can be read, all inside shields.** `@csup::union.untagged` (D33, D35) is built like a struct, naming exactly the one field being written, as in `number[f = 1.5]`, and any field can be read, as `$n.i`, which nothing checks against the field written. That's C's `union`, for matching C's memory layouts through `@csup` and bit tricks, and why D38 keeps it inside shields: declaring, building and reading it are all shield code, where the reason vouches for it. Building one with no field or more than one is refused. Oracle claude found only its declaration written down; Claude proposed it; the owner chose: "yea". (Owner, 2026-11-12)
 
+**D399. C's union is `union.@csup::untagged`, joining the base `union` family.** A limb that adds to a base family joins it, the way `inline.@llvm::ir` joins `inline.` (D227, D336), so `@csup`'s untagged union is `union.@csup::untagged number: … end union.@csup::untagged number`, reading as a `union` with the limb's narrowing marked by `@`. `@csup::union.untagged` dated from D33 to D36, before D227 and D336, and is refused, with `fix: union.@csup::untagged`. Since `use` never works on a base family (D232), it can't be shortened, so the standard's `use` examples for limbs now use `@money::round_half_even`. The owner asked "isn't it supposed to be `union.@csup::untagged`?", and chose: "yea". (Owner, 2026-11-12)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude

@@ -194,7 +194,7 @@ let $a: i32[unit: seconds] = 3600 seconds;
 say(Lend.mut $out, "hi{newln}");
 ```
 
-A limb works the same way: `use @csup::union.untagged as untagged;`, or a quoted name.
+A limb works the same way: `use @money::round_half_even as round_half_even;`, or a quoted name.
 
 A kit method works the same way, with its type in the path and its `%` kept:
 
@@ -218,7 +218,7 @@ print_exact("{}{newln}", $x);
 
 Units keep the matching name, as in `use std::units::time.seconds as seconds;`.
 
-**Refused:** `use std::io::fmt_print.stored as stored;`, with `fix: use std::io::fmt_print as fmt_print;`, `use std::coll::list.%%append as "push";` and `as "%%push"`, with `fix: as %%"push"`, `as %append`, which drops a `%`, `use std::units::time.seconds as minutes;`, `use @csup::union.untagged as @untagged;`, because `@untagged` looks like a builtin, and a quoted name nothing could use, like `"my say"`, `""` or `"fn"`.
+**Refused:** `use std::io::fmt_print.stored as stored;`, with `fix: use std::io::fmt_print as fmt_print;`, `use std::coll::list.%%append as "push";` and `as "%%push"`, with `fix: as %%"push"`, `as %append`, which drops a `%`, `use std::units::time.seconds as minutes;`, `use @money::round_half_even as @round;`, because `@round` looks like a builtin, and a quoted name nothing could use, like `"my say"`, `""` or `"fn"`.
 
 **From:** D93, D150, D151, D155, D178, D179, D220, D225, D232, D248.
 

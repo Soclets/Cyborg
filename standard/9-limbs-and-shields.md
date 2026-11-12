@@ -7,7 +7,7 @@
 | [9.3](#93-stds-two-parts) | `std::`, `@std::` | The kit part and the limb part |
 | [9.4](#94-inline-code-inline) | `inline.asm`, `inline.@limb::lang` | In the base language, and limbs add to it |
 | [9.5](#95-c-support-csup) | `@csup` | C support |
-| [9.6](#96-cs-union) | `@csup::union.untagged` | Inside a shield |
+| [9.6](#96-cs-union) | `union.@csup::untagged` | Inside a shield |
 | [9.7](#97-shields) | `shield` | Dangerous code, with a reason |
 | [9.8](#98-what-must-live-in-a-shield) | What goes inside | The list |
 | [9.9](#99-a-shields-walls) | Entry, exit, containment | The three walls |
@@ -27,7 +27,7 @@ Bare `@`, with no `::`, is a compiler builtin instead ([5.7](5-functions.md#57-b
 |---|---|---|
 | Base | The language itself | Bare |
 | Kit | A library, written in Cyborg | Its path: `std::io::fmt_print` |
-| Limb | A compiler extension | `@` and its path: `@csup::union.untagged` |
+| Limb | A compiler extension | `@` and its path: `@precog::set_to_best` |
 | Package | What you install: a kit, a limb, or both, with one name and one version | Its halves, as `std::` and `@std::` |
 | Dialect | A compiler forked from `OKAY\n`, on CyJet's registry, with no rules of Cyborg's | A `dialect` line in the manifest |
 
@@ -72,7 +72,7 @@ A limb's syntax is only ever `@`-marked items, in a fixed menu of positions, so 
 
 | Position | Example |
 |---|---|
-| A type | `@csup::union.untagged` |
+| A type | `union.@csup::untagged` |
 | A call or value | `@money::round_half_even($x)` |
 | A prefix before a call | `@concur::spawn(on: Lend $pool) sum(Lend $xs)` |
 | A statement | `@trace::here;` |
@@ -158,10 +158,10 @@ The compiler reads the text through LLVM and refuses any register the code write
 ```
 shield c_number:
     reason "matches the union in libfoo's header"
-    @csup::union.untagged number:
+    union.@csup::untagged number:
         i: i32;
         f: f32.ieee;
-    end @csup::union.untagged number
+    end union.@csup::untagged number
 end shield c_number
 ```
 
@@ -170,14 +170,14 @@ It's built like a struct, naming exactly one field, the one being written, and a
 ```
 shield read_bits:
     reason "reading the bits libfoo wrote as an i32"
-    let $n: @csup::union.untagged number = number[f = 1.5];
+    let $n: union.@csup::untagged number = number[f = 1.5];
     let $bits: i32 = $n.i;
 end shield read_bits
 ```
 
-**Refused:** building one with no field or more than one, and declaring, building or reading one outside a shield.
+**Refused:** `@csup::union.untagged`, with `fix: union.@csup::untagged`; building one with no field or more than one, and declaring, building or reading one outside a shield.
 
-**From:** D33, D35, D38, D398.
+**From:** D33, D35, D38, D398, D399.
 
 ## 9.7 Shields
 
@@ -203,7 +203,7 @@ end shield sensor_driver
 - Volatile reads and writes, for hardware registers
 - Your own allocator
 - `@csup` C calls
-- `@csup::union.untagged`
+- `union.@csup::untagged`
 - Making a secret public, with `.%reveal()` ([2.22](2-values-and-types.md#222-secrets-secret))
 
 So inside a shield, Cyborg goes as low as C, and a bare-metal program can run with no allocator at all.
