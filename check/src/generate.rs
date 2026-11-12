@@ -5,8 +5,8 @@
 
 use crate::random::Random;
 use crate::tree::{
-    Comparison, Expression, FailureDecl, Filling, Function, Handling, Kind, Operator, Position,
-    Program, Statement, Type,
+    Comparison, Expression, FailureDecl, Filling, Function, Handling, Kind, Layout, Operator,
+    Position, Program, Statement, StructDecl, Type,
 };
 
 /// How big a program gets.
@@ -26,6 +26,8 @@ struct Scope {
     variables: Vec<(String, Type)>,
     /// Arrays, with their item type and length.
     arrays: Vec<(String, Kind, i128)>,
+    /// Struct variables, with which struct each is.
+    records: Vec<(String, usize)>,
 }
 
 struct Generator<'random> {
@@ -33,6 +35,7 @@ struct Generator<'random> {
     next_name: usize,
     /// The failures the function being made lists, which `?` adds to; none in `main`.
     failing: Option<Vec<FailureDecl>>,
+    structs: Vec<StructDecl>,
     functions: Vec<Function>,
 }
 
@@ -43,8 +46,13 @@ pub fn program(seed: u64) -> Program {
         random: &mut random,
         next_name: 0,
         failing: None,
+        structs: Vec::new(),
         functions: Vec::new(),
     };
+    for _ in 0..generator.random.between(0, 2) {
+        let declared = generator.struct_decl();
+        generator.structs.push(declared);
+    }
     let count = generator.random.between(0, LIMITS.functions);
     for _ in 0..count {
         let function = generator.function();
@@ -53,6 +61,7 @@ pub fn program(seed: u64) -> Program {
     let mut scope = Scope {
         variables: Vec::new(),
         arrays: Vec::new(),
+        records: Vec::new(),
     };
     let mut main = generator.block(&mut scope, LIMITS.statements, 0, (true, false));
     // `main` ends by printing what it made, so a program's work shows in its output.
@@ -69,6 +78,7 @@ pub fn program(seed: u64) -> Program {
     }
     let fewer_brackets = generator.random.chance(50);
     Program {
+        structs: generator.structs,
         functions: generator.functions,
         main,
         fewer_brackets,
@@ -119,6 +129,7 @@ impl Generator<'_> {
         let mut scope = Scope {
             variables: Vec::new(),
             arrays: Vec::new(),
+            records: Vec::new(),
         };
         let mut parameters = Vec::new();
         for _ in 0..count {
@@ -182,6 +193,7 @@ impl Generator<'_> {
     ) -> Vec<Statement> {
         let declared_before = scope.variables.len();
         let arrays_before = scope.arrays.len();
+        let records_before = scope.records.len();
         let count = self.random.between(1, most);
         let mut statements = Vec::new();
         for _ in 0..count {
@@ -190,6 +202,7 @@ impl Generator<'_> {
         // What a block declares ends with it.
         scope.variables.truncate(declared_before);
         scope.arrays.truncate(arrays_before);
+        scope.records.truncate(records_before);
         statements
     }
 
@@ -277,6 +290,7 @@ impl Generator<'_> {
             }
             8 if depth < 2 => self.range_loop(scope, depth, prints),
             9 if self.random.chance(50) => self.array_statement(scope),
+            9 => self.record_statement(scope),
             _ if prints => {
                 // A print's value is an integer variable, so its type is never left for a
                 // literal to guess, and how a `bool` prints isn't decided (12.3).
@@ -313,6 +327,67 @@ impl Generator<'_> {
                     value,
                 }
             }
+        }
+    }
+
+    /// A struct with one to four integer fields, in any of the layouts (7.1).
+    fn struct_decl(&mut self) -> StructDecl {
+        let name = self.name("rec");
+        let layout = *self.random.pick(&Layout::ALL).unwrap_or(&Layout::Written);
+        let fields = (0..self.random.between(1, 4))
+            .map(|_| (self.name("f"), self.integer_kind()))
+            .collect();
+        StructDecl {
+            name,
+            layout,
+            fields,
+        }
+    }
+
+    fn integer_kind(&mut self) -> Kind {
+        *self.random.pick(&Kind::ALL).unwrap_or(&Kind::I32)
+    }
+
+    /// A new struct, built with `[ ]`, or a change to a field of one in scope (7.2, 7.3).
+    fn record_statement(&mut self, scope: &mut Scope) -> Statement {
+        if let Some((variable, index)) = self.random.pick(&scope.records).cloned() {
+            if self.random.chance(50) {
+                if let Some(declared) = self.structs.get(index).cloned() {
+                    if let Some((field, kind)) = self.random.pick(&declared.fields).cloned() {
+                        let value = self.expression(scope, Type::Integer(kind), LIMITS.depth);
+                        return Statement::ChangeField {
+                            variable,
+                            field,
+                            value,
+                        };
+                    }
+                }
+            }
+        }
+        let count = i128::try_from(self.structs.len()).unwrap_or(0);
+        if count == 0 {
+            return self.array_statement(scope);
+        }
+        let index = usize::try_from(self.random.between(0, count - 1)).unwrap_or(0);
+        let Some(declared) = self.structs.get(index).cloned() else {
+            return self.array_statement(scope);
+        };
+        let fields = declared
+            .fields
+            .iter()
+            .map(|(field, kind)| {
+                (
+                    field.clone(),
+                    self.expression(scope, Type::Integer(*kind), LIMITS.depth),
+                )
+            })
+            .collect();
+        let name = self.name("r");
+        scope.records.push((name.clone(), index));
+        Statement::LetStruct {
+            name,
+            struct_name: declared.name,
+            fields,
         }
     }
 
@@ -451,6 +526,24 @@ impl Generator<'_> {
             if let Some((array, len)) = self.random.pick(&arrays).cloned() {
                 let position = self.position(scope, len);
                 return Expression::Item { array, position };
+            }
+        }
+        if roll == 6 {
+            let fields: Vec<(String, String)> = scope
+                .records
+                .iter()
+                .flat_map(|(variable, index)| {
+                    self.structs
+                        .get(*index)
+                        .map(|declared| declared.fields.clone())
+                        .unwrap_or_default()
+                        .into_iter()
+                        .filter(|(_, found)| *found == kind)
+                        .map(move |(field, _)| (variable.clone(), field))
+                })
+                .collect();
+            if let Some((variable, field)) = self.random.pick(&fields).cloned() {
+                return Expression::Field { variable, field };
             }
         }
         if roll == 4 && kind.range().0 < 0 {

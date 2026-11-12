@@ -232,6 +232,11 @@ pub enum Expression {
         array: String,
         position: Position,
     },
+    /// A struct's field, `$r.f3` (7.3).
+    Field {
+        variable: String,
+        field: String,
+    },
 }
 
 /// What a call does if it fails: nothing, so the program stops (8.9), `?` to pass it up (8.4),
@@ -241,6 +246,41 @@ pub enum Handling {
     Crash,
     Pass,
     Fallback(Box<Expression>),
+}
+
+/// How a struct lays out its fields, each a narrowing but the bare one (7.1).
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Layout {
+    Written,
+    Compact,
+    AnyOrder,
+    Packed,
+}
+
+impl Layout {
+    pub const ALL: [Layout; 4] = [
+        Layout::Written,
+        Layout::Compact,
+        Layout::AnyOrder,
+        Layout::Packed,
+    ];
+
+    pub fn word(self) -> &'static str {
+        match self {
+            Layout::Written => "struct",
+            Layout::Compact => "struct.compact",
+            Layout::AnyOrder => "struct.any_order",
+            Layout::Packed => "struct.packed",
+        }
+    }
+}
+
+/// A struct with integer fields (7.1).
+#[derive(Clone, Debug)]
+pub struct StructDecl {
+    pub name: String,
+    pub layout: Layout,
+    pub fields: Vec<(String, Kind)>,
 }
 
 /// A failure a function lists, `bad3` or `bad4[got: i32]` (8.1).
@@ -283,6 +323,18 @@ pub enum Statement {
         kind: Kind,
         len: i128,
         filling: Filling,
+    },
+    /// `let mut $r: rec1 = rec1[f2 = …, f3 = …];` (7.2)
+    LetStruct {
+        name: String,
+        struct_name: String,
+        fields: Vec<(String, Expression)>,
+    },
+    /// `change $r.f2 = …;` (7.3)
+    ChangeField {
+        variable: String,
+        field: String,
+        value: Expression,
     },
     /// `change $a[pos: 2] = …;` (2.17)
     ChangeItem {
@@ -341,6 +393,7 @@ pub struct Function {
 
 #[derive(Clone, Debug)]
 pub struct Program {
+    pub structs: Vec<StructDecl>,
     pub functions: Vec<Function>,
     pub main: Vec<Statement>,
     /// Whether the printer leaves out `( )` where 3.9's table already gives the order.
@@ -355,6 +408,13 @@ pub fn print(program: &Program) -> String {
         fewer_brackets: program.fewer_brackets,
     };
     let mut out = String::from("import std;\nimport os;\n\n");
+    for declared in &program.structs {
+        let _ = writeln!(out, "{} {}:", declared.layout.word(), declared.name);
+        for (field, kind) in &declared.fields {
+            let _ = writeln!(out, "    {field}: {};", kind.word());
+        }
+        let _ = writeln!(out, "end {} {}\n", declared.layout.word(), declared.name);
+    }
     for function in &program.functions {
         let parameters: Vec<String> = function
             .parameters
@@ -440,6 +500,32 @@ fn print_block(out: &mut String, statements: &[Statement], depth: usize, style: 
                     out,
                     "{indent}let mut ${name}: std::coll::array<{}>[len: {len} items] = {filling};",
                     kind.word()
+                );
+            }
+            Statement::LetStruct {
+                name,
+                struct_name,
+                fields,
+            } => {
+                let fields: Vec<String> = fields
+                    .iter()
+                    .map(|(field, value)| format!("{field} = {}", style.expression(value)))
+                    .collect();
+                let _ = writeln!(
+                    out,
+                    "{indent}let mut ${name}: {struct_name} = {struct_name}[{}];",
+                    fields.join(", ")
+                );
+            }
+            Statement::ChangeField {
+                variable,
+                field,
+                value,
+            } => {
+                let _ = writeln!(
+                    out,
+                    "{indent}change ${variable}.{field} = {};",
+                    style.expression(value)
                 );
             }
             Statement::ChangeItem {
@@ -617,6 +703,7 @@ impl Style {
                 }
             }
             Expression::Item { array, position } => item(array, position),
+            Expression::Field { variable, field } => format!("${variable}.{field}"),
         }
     }
 
@@ -632,7 +719,8 @@ impl Style {
             Expression::Variable(_)
             | Expression::Bool(_)
             | Expression::Call { .. }
-            | Expression::Item { .. } => self.expression(value),
+            | Expression::Item { .. }
+            | Expression::Field { .. } => self.expression(value),
             Expression::Integer(number) if *number >= 0 => self.expression(value),
             _ => format!("({})", self.expression(value)),
         }

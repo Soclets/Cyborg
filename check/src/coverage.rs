@@ -5,6 +5,7 @@
 /// Generated today: `i32`, `i64`, `u8`, `u32` and `u64` values and variables; `+`, `-`, `x`, the
 /// `.wrap` and `.saturate` words, `div` and `mod` with `.trunc` and `.floor`, the `.bit`
 /// operators, and `shl` and `shr` on unsigned types; comparisons; `and`, `or` and `not`;
+/// structs with integer fields in every layout, built with `[ ]`, their fields read and changed;
 /// functions that list failures, some carrying data, and `fail` them; calls handled with `?`,
 /// `??`, `otherwise:` arms that use a value `instead`, or nothing, so a failure stops the
 /// program; arrays from `[ ]` and `all`, their items by `pos:` and `offset.items:`, read and changed;
@@ -31,7 +32,7 @@ pub const NOT_GENERATED: &[&str] = &[
     "4.3 to 4.8 `match`, `for` over collections, a range's counter in use, ranges that step past their end, `forever`, named loops",
     "5.x labels, defaults, `fn.pure`, contracts, generics, interfaces, methods, `bake`",
     "6.x ownership words, `Lend.mut` parameters, stored borrows, `must_Give`, `finish`, `defer`",
-    "7.x structs, unions and `match` on them",
+    "7.x structs holding other structs, lists or borrows, `must_Give` structs, generic structs, unions and `match` on them, handing structs to functions",
     "8.x named sets of failures, a `case` reading a failure's data, arms that `return`, `break` or `fail`, handler narrowings and `*`",
     "9.x `use`, limbs, shields, `inline.asm`, pointers, `@concur`, `pub`",
     "10.x build modes beyond comparing outputs",
