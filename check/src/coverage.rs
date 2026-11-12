@@ -11,7 +11,9 @@
 ///   with `as`; `.fast` floats; bounded floats;
 ///   `const` from literals, other constants and calls to `fn.pure.baked` functions, and float
 ///   `const`s; `bake` on such a call, and the same functions called while running; `type.alias` names used as their integer, and
-///   `type.new` names, alone or in a `fam.type.new` family, crossing in and out with `as`; `decl` and `decl mut` with an `assign` straight after, in both arms of an `if`, or in every arm of a `match`;
+///   `type.new` names, alone or in a `fam.type.new` or `fam.type.alias` family, crossing in and
+///   out with `as`; a `type.new` over a struct, crossed into with `Copy` or `Give` and out with
+///   `Give`; aliases for a bounded list and a bounded string; `decl` and `decl mut` with an `assign` straight after, in both arms of an `if`, or in every arm of a `match`;
 /// - maths: `+`, `-`, `x`, the `.wrap` and `.saturate` words, `div` and `mod` with `.trunc` and
 ///   `.floor`, a bare `div` on floats, the `.bit` operators, and `shl` and `shr` on unsigned
 ///   types; comparisons and comparison chains; `and`, `or`, `and.both`, `or.both` and `not`;
@@ -94,7 +96,7 @@ pub const NOT_GENERATED: &[&str] = &[
     "2.12 undecided: putting, getting and going through a map's items",
     "2.14 undecided: what converts to what beyond numbers into strings and units (12.3)",
     "2.16 undecided: `std`'s units other than `time.seconds` and `angle`'s (12.2)",
-    "2.18 named types over structs, lists or strings, `fam.type.alias`, maths on a `type.new`",
+    "2.18 undecided: maths and `==` between two of the same `type.new` (12)",
     "2.21 `simd` with one value, chunks, shuffles, `pick`, lookups, `lanes: max`, floats in lanes, `as` from arrays",
     "2.22 `bool.secret` values with `and.both`, `or.both` and `not`, secrets in arrays and `simd`, shifts on secrets",
     "4.4 `for` over a fresh collection, since generated functions don't return arrays or lists yet",

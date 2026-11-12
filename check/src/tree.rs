@@ -766,6 +766,16 @@ pub enum Statement {
         kind: Kind,
         call: Expression,
     },
+    /// `let mut $w: wrap3 = Copy $r as wrap3;`, a struct crossing into a `type.new` over it,
+    /// then out again with `Give … as`, into a struct variable (2.18).
+    WrapStruct {
+        wrapped: String,
+        new_type: String,
+        word: &'static str,
+        source: String,
+        back: String,
+        struct_name: String,
+    },
     /// `let mut $v: al3 = …;`, or for a `type.new`, a value crossing in with a literal or `as`,
     /// then back out into a plain variable with `as` (2.18).
     LetNamed {
@@ -944,6 +954,9 @@ pub struct Function {
 #[allow(clippy::struct_excessive_bools)] // Independent switches for what a program declares.
 pub struct Program {
     pub unit_families: Vec<UnitFamily>,
+    /// Names for things other than integers: each name, whether it's an alias, and what it
+    /// names, as written (2.18).
+    pub named_others: Vec<(String, bool, String)>,
     /// Whether `tag`, a struct with a `str` field, `tpick`, which returns a borrow of one of
     /// two views, and `tcount`, which takes one, are declared (2.9, 6.10).
     pub strings: bool,
@@ -1276,7 +1289,13 @@ pub fn print(program: &Program) -> String {
             }
             Some(family) if !families.contains(&family) => {
                 families.push(family);
-                let _ = writeln!(out, "fam.type.new {family}:");
+                // A family states its kind once (2.18).
+                let word = if named.alias {
+                    "fam.type.alias"
+                } else {
+                    "fam.type.new"
+                };
+                let _ = writeln!(out, "{word} {family}:");
                 for member in program
                     .named
                     .iter()
@@ -1284,12 +1303,17 @@ pub fn print(program: &Program) -> String {
                 {
                     let _ = writeln!(out, "    {} = {};", member.used(), member.kind.word());
                 }
-                let _ = writeln!(out, "end fam.type.new {family}");
+                let _ = writeln!(out, "end {word} {family}");
             }
             Some(_) => {}
         }
     }
-    if !program.named.is_empty() {
+    // Names for a struct, a bounded list and a bounded string (2.18).
+    for (name, alias, written) in &program.named_others {
+        let word = if *alias { "type.alias" } else { "type.new" };
+        let _ = writeln!(out, "{word} {name} = {written};");
+    }
+    if !program.named.is_empty() || !program.named_others.is_empty() {
         out.push('\n');
     }
     for declared in &program.unions {
@@ -1915,6 +1939,23 @@ fn print_block(out: &mut String, statements: &[Statement], depth: usize, style: 
                 let _ = writeln!(
                     out,
                     "{indent}let mut ${name}: {kind} = @concur::task.done(Give ${task});"
+                );
+            }
+            Statement::WrapStruct {
+                wrapped,
+                new_type,
+                word,
+                source,
+                back,
+                struct_name,
+            } => {
+                let _ = writeln!(
+                    out,
+                    "{indent}let mut ${wrapped}: {new_type} = {word} ${source} as {new_type};"
+                );
+                let _ = writeln!(
+                    out,
+                    "{indent}let mut ${back}: {struct_name} = Give ${wrapped} as {struct_name};"
                 );
             }
             Statement::LetNamed {

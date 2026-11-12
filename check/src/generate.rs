@@ -99,6 +99,12 @@ struct Generator<'random> {
     failure_family: Option<FailureFamily>,
     /// What the function being made returns, for an `otherwise` arm that returns (8.6).
     returns: Option<Type>,
+    /// Names for other things: a `type.new` over the first struct, an alias for a bounded list,
+    /// and one for a bounded string, with what each needs (2.18).
+    wrap: Option<String>,
+    list_alias: Option<(String, Kind, i128)>,
+    text_alias: Option<(String, i128)>,
+    named_others: Vec<(String, bool, String)>,
     /// Whether `tag`, `tpick` and `tcount` are declared (2.9).
     strings: bool,
     /// Whether `main` has `$err` and `$buf` too (1.13).
@@ -168,6 +174,10 @@ pub fn program(seed: u64) -> Program {
         has_heap: false,
         writers: false,
         strings: false,
+        wrap: None,
+        list_alias: None,
+        text_alias: None,
+        named_others: Vec::new(),
         stored_print: false,
         uses: Vec::new(),
         float_units: None,
@@ -197,6 +207,7 @@ pub fn program(seed: u64) -> Program {
     generator.recursion = generator.random.chance(40);
     generator.failure_family();
     generator.writers = generator.random.chance(30);
+    generator.other_named_types();
     generator.strings = generator.random.chance(50);
     // A unit from a kit is shortened with `use`, keeping its matching name (1.11, 2.16).
     if generator.random.chance(40) {
@@ -290,6 +301,7 @@ pub fn program(seed: u64) -> Program {
         views: generator.views,
         baked: generator.baked,
         writers: generator.writers,
+        named_others: generator.named_others,
         strings: generator.strings,
         methods: generator.methods,
         arena: generator.arena,
@@ -616,6 +628,9 @@ impl Generator<'_> {
                 self.record_statement(scope)
             }
             0..=3 if !self.named.is_empty() && self.random.chance(10) => self.named_let(scope),
+            0..=3 if !self.named_others.is_empty() && self.random.chance(12) => self
+                .other_named_let(scope)
+                .unwrap_or_else(|| self.list_statement(scope)),
             0..=3 if self.random.chance(10) => self.text_let(scope),
             0..=3 if self.random.chance(8) => {
                 let value_type = Type::Secret(self.integer_kind());
@@ -2346,7 +2361,11 @@ impl Generator<'_> {
     fn named_types(&mut self) {
         for _ in 0..self.random.between(0, 3) {
             let alias = self.random.chance(50);
-            let family = (!alias && self.random.chance(40)).then(|| self.name("fam"));
+            // A family of new types, or of aliases, stating its kind once (2.18).
+            let family = self.random.chance(40).then(|| {
+                let kind_word = if alias { "faa" } else { "fam" };
+                self.name(kind_word)
+            });
             let kind = self.integer_kind();
             let name = self.name(if alias { "al" } else { "nt" });
             self.named.push(NamedType {
@@ -2358,10 +2377,113 @@ impl Generator<'_> {
         }
     }
 
+    /// Now and then a `type.new` over the first struct, an alias for a bounded list, and one for
+    /// a bounded string (2.18).
+    fn other_named_types(&mut self) {
+        if let (true, Some(declared)) = (self.random.chance(40), self.structs.first()) {
+            let struct_name = declared.name.clone();
+            let name = self.name("wrap");
+            self.named_others.push((name.clone(), false, struct_name));
+            self.wrap = Some(name);
+        }
+        if self.random.chance(40) {
+            let kind = self.integer_kind();
+            let max = self.random.between(1, 6);
+            let name = self.name("nums");
+            self.named_others.push((
+                name.clone(),
+                true,
+                format!("std::coll::list<{}>[len.max: {max} items]", kind.word()),
+            ));
+            self.list_alias = Some((name, kind, max));
+        }
+        if self.random.chance(40) {
+            let bytes = self.random.between(2, 16);
+            let name = self.name("txt");
+            self.named_others
+                .push((name.clone(), true, format!("str[len.max: {bytes} bytes]")));
+            self.text_alias = Some((name, bytes));
+        }
+    }
+
+    /// A value of a name for something other than an integer: a struct crossing into its
+    /// `type.new` with `Copy` or `Give` and back out with `Give`, a bounded list or string
+    /// through its alias, used as the list or string from then on (2.18).
+    fn other_named_let(&mut self, scope: &mut Scope) -> Option<Statement> {
+        match self.random.between(0, 2) {
+            0 => {
+                let new_type = self.wrap.clone()?;
+                let index = 0;
+                let live: Vec<String> = scope
+                    .records
+                    .iter()
+                    .filter(|(name, found)| *found == index && !self.given_away.contains(name))
+                    .map(|(name, _)| name.clone())
+                    .collect();
+                let source = self.random.pick(&live)?.clone();
+                // Whether a pure function may `Copy` isn't decided, so one gives (12.5).
+                let give = self.pure_only || self.random.chance(40);
+                if give {
+                    self.given_away.push(source.clone());
+                }
+                let back = self.name("r");
+                scope.records.push((back.clone(), index));
+                Some(Statement::WrapStruct {
+                    wrapped: self.name("w"),
+                    new_type,
+                    word: if give { "Give" } else { "Copy" },
+                    source,
+                    back,
+                    struct_name: self.structs.first()?.name.clone(),
+                })
+            }
+            1 => {
+                let (alias, kind, max) = self.list_alias.clone()?;
+                let count = self.random.between(0, max);
+                let value = if count == 0 {
+                    Expression::Text(String::new())
+                } else {
+                    Expression::Lanes(
+                        (0..count)
+                            .map(|_| self.expression(scope, Type::Integer(kind), LIMITS.depth))
+                            .collect(),
+                    )
+                };
+                let name = self.name("l");
+                scope.lists.push((name.clone(), kind, max));
+                Some(Statement::LetNamed {
+                    name,
+                    written: alias,
+                    value,
+                    back: None,
+                })
+            }
+            _ => {
+                let (alias, bytes) = self.text_alias.clone()?;
+                let value = self.text(scope, Some(bytes));
+                let name = self.name("t");
+                scope
+                    .variables
+                    .push((name.clone(), Type::Text(Some(bytes))));
+                Some(Statement::LetNamed {
+                    name,
+                    written: alias,
+                    value,
+                    back: None,
+                })
+            }
+        }
+    }
+
     /// A variable of a named type. An alias takes any value of its integer and is used as one
     /// from then on; a new type crosses in from a literal or with `as`, and back out into a
     /// plain variable with `as`, since it doesn't mix (2.18).
     fn named_let(&mut self, scope: &mut Scope) -> Statement {
+        if self.random.chance(40) {
+            if let Some(statement) = self.other_named_let(scope) {
+                return statement;
+            }
+        }
         let Some(named) = self.random.pick(&self.named.clone()).cloned() else {
             return self.list_statement(scope);
         };
