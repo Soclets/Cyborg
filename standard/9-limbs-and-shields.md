@@ -348,7 +348,7 @@ $owner.%compare_swap(expect: 0, val: $me) otherwise:
 end otherwise
 ```
 
-There's no `async` or `await`. A function that waits takes the runner, and the runner decides how waiting works: a thread blocks, or an event runner, `os::events`, parks the task and runs another, with each task on its own small stack. A spawn onto an event runner takes the allocator for that stack and always writes its size with `stack:`, so the writer picks where stacks live and how big they are, and running out of memory is an `out_of_memory` failure from the spawn. The compiler checks the size instead of choosing it: where it can measure what the task needs, a size that's too small is refused, with the number in the fix, and for recursive code, which it can't measure, running past the size is a failed check, a clean stack overflow. A spawn onto `os::threads` takes neither, since the OS gives its threads their stacks.
+There's no `async` or `await`. A function that waits takes the runner, and the runner decides how waiting works: a thread blocks, or an event runner, `os::events`, parks the task and runs another, with each task on its own small stack. A spawn onto an event runner takes the allocator for that stack and always writes its size with `stack:`, so the writer picks where stacks live and how big they are, and running out of memory is an `out_of_memory` failure from the spawn. The compiler checks the size instead of choosing it: where it can measure what the task needs, a size that's too small is refused, with the number in the fix, and for recursive code, which it can't measure, running past the size is a failed check, a clean stack overflow. The measurement depends on the machine code, so the too-small refusal is the compiler's own, tested per target outside the shared tests, while the oracle accepts any size. A spawn onto `os::threads` takes neither, since the OS gives its threads their stacks.
 
 ```
 @concur::spawn(on: Lend $events, alloc: Lend $arena, stack: 16 kib) handle(Lend $conn);
@@ -356,4 +356,4 @@ There's no `async` or `await`. A function that waits takes the runner, and the r
 
 **Refused:** a task that isn't joined; a spawn onto an event runner without `stack:`, or with less than the task is known to need; two tasks both given `Lend.mut` of one thing; locking inside a locked block; and the same lock twice in one block.
 
-**From:** D343, D344, D345, D346, D347, D348, D349, D350, D351, D352, D353, D354, D355, D356, D357, D358, D359, D360, D361, D375, D376, D377, D378.
+**From:** D343, D344, D345, D346, D347, D348, D349, D350, D351, D352, D353, D354, D355, D356, D357, D358, D359, D360, D361, D375, D376, D377, D378, D380.
