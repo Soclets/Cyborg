@@ -655,10 +655,11 @@ fn print_block(out: &mut String, statements: &[Statement], depth: usize, style: 
                 );
             }
             Statement::Format { text, values } => {
-                let values: String = values
-                    .iter()
-                    .map(|value| format!(", {}", style.expression(value)))
-                    .collect();
+                let mut shown = String::new();
+                for value in values {
+                    let _ = write!(shown, ", {}", style.expression(value));
+                }
+                let values = shown;
                 let _ = writeln!(
                     out,
                     "{indent}std::io::fmt_print(Lend.mut $out, \"{text}{{newln}}\"{values});"
