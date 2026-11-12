@@ -1,0 +1,6 @@
+check failed: d391_pointers_on_a_64_bit_target.cy:16:74, line 16 column 74
+16 |         let mut $ps: std::coll::list<ptr.raw<i32>>[len.max: inf items] = std::coll::list.from([$p], alloc: Lend $arena);
+   |                                                                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ what: `out_of_memory` failed, and nothing handled it
+ why:  a failure nothing handles stops the program (D96)
+ when: the arena has room for 16 bytes, 0 are taken, and this needs 32 from byte 0

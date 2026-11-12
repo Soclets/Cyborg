@@ -45,10 +45,15 @@ fn build(text: &str, needs: Option<&[String]>) -> Result<ir::Code, Vec<Report>> 
 /// Every program has a manifest next to it, `CyJet.siml`. Its errors show first, against it,
 /// and then the program's. Without one, nothing checks what the program imports against it.
 /// trace: D183, D229
-/// The targets the oracle knows, by name, with how many bytes a pointer takes on each. The
-/// standard names only this board so far. (D387, 10.2)
-/// trace: D387
-const TARGETS: &[(&str, u64)] = &[("arduino_uno_r4_wifi", 4)];
+/// The targets the oracle knows, by name, with how many bytes a pointer takes on each: an
+/// operating system by the OS and the chip family, and bare metal by the board. (D387, D391)
+/// trace: D387, D391
+const TARGETS: &[(&str, u64)] = &[
+    ("macos_aarch64", 8),
+    ("linux_aarch64", 8),
+    ("linux_x86_64", 8),
+    ("arduino_uno_r4_wifi", 4),
+];
 
 fn run_and_report(
     source: &Source,
