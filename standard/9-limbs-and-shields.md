@@ -309,6 +309,7 @@ defer os::done(Give $events);
 
 ```
 let $pool: os::threads = os::threads(count: max);
+defer os::done(Give $pool);
 let $h: std::coll::halves<i64> = $xs.std::%split(at.items: 500);
 let $left: @concur::task<i64> = @concur::spawn(on: Lend $pool) sum($h.first);
 let $right: @concur::task<i64> = @concur::spawn(on: Lend $pool) sum($h.second);
