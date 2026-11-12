@@ -272,6 +272,15 @@ pub enum Expression {
         if_true: Box<Expression>,
         if_false: Box<Expression>,
     },
+    /// `not.bit $x`, every bit flipped (3.7).
+    NotBit(Box<Expression>),
+    /// A named shuffle or a lookup on a `simd`: `$v.%reverse()`, `$v.%rotate.left(by: 1)`,
+    /// `$a.%join(then: $b)`, `$a.%interleave(with: $b)` or `$t.%lookup(pos: $which)` (2.21).
+    SimdMethod {
+        receiver: String,
+        method: &'static str,
+        argument: Option<(&'static str, Box<Expression>)>,
+    },
     /// `$v.%shuffle(pos: [4, 3, 2, 1])`, or with `offset.lanes:`, a new vector from the lanes
     /// listed (2.21).
     Shuffle {
@@ -2347,17 +2356,26 @@ fn print_block(out: &mut String, statements: &[Statement], depth: usize, style: 
                 target,
             } => {
                 let how = match *mode {
-                    "pad" => format!("pad(lanes: {lanes}, pad: 0)"),
+                    "pad" | "mut.pad" => format!("{mode}(lanes: {lanes}, pad: 0)"),
                     other => format!("{other}(lanes: {lanes})"),
                 };
+                // `.mut` writes each chunk back, so it's `%%`, and changes the chunk (2.21).
+                let marks = if mode.starts_with("mut") { "%%" } else { "%" };
                 let _ = writeln!(
                     out,
-                    "{indent}for ${chunk} in ${array}.std::%simd_chunks.{how}:"
+                    "{indent}for ${chunk} in ${array}.std::{marks}simd_chunks.{how}:"
                 );
-                let _ = writeln!(
-                    out,
-                    "{indent}    change ${target} = ${target} plus.wrap ${chunk}.%max_val();"
-                );
+                if mode.starts_with("mut") {
+                    let _ = writeln!(
+                        out,
+                        "{indent}    change ${chunk} = ${chunk} plus.wrap ${chunk};"
+                    );
+                } else {
+                    let _ = writeln!(
+                        out,
+                        "{indent}    change ${target} = ${target} plus.wrap ${chunk}.%max_val();"
+                    );
+                }
                 if *mode == "leftovers" {
                     let _ = writeln!(out, "{indent}leftovers ${leftover}:");
                     let _ = writeln!(
@@ -2667,6 +2685,17 @@ impl Style {
                 self.expression(if_true),
                 self.expression(if_false)
             ),
+            Expression::NotBit(inner) => format!("not.bit {}", self.grouped(inner)),
+            Expression::SimdMethod {
+                receiver,
+                method,
+                argument,
+            } => match argument {
+                Some((label, value)) => {
+                    format!("${receiver}.%{method}({label}: {})", self.expression(value))
+                }
+                None => format!("${receiver}.%{method}()"),
+            },
             Expression::Shuffle {
                 receiver,
                 lanes,

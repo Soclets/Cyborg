@@ -1401,8 +1401,15 @@ impl Generator<'_> {
                 };
             }
         }
-        // A shift by a public amount takes the same time for every value (2.22).
-        if roll == 5 {
+        // `not.bit` takes the same time for every value (2.22).
+        if roll == 6 {
+            if let Some(variable) = self.variable_of(scope, value_type) {
+                return Expression::NotBit(Box::new(variable));
+            }
+        }
+        // A shift by a public amount takes the same time for every value, on an unsigned one,
+        // since what `shr` does to a negative isn't decided (2.22, 12).
+        if roll == 5 && kind.range().0 == 0 {
             if let Some(variable) = self.variable_of(scope, value_type) {
                 return Expression::Binary {
                     operator: Operator::ShiftRight,
@@ -2249,9 +2256,111 @@ impl Generator<'_> {
 
     /// A `simd` from an array of its count with `as`, and back into an array; or one picked
     /// lane by lane between two by a comparison; or one shuffled from another (2.21).
+    #[allow(clippy::too_many_lines)] // One arm per way to make a `simd` from others.
     fn simd_statement(&mut self, scope: &mut Scope) -> Option<Statement> {
         let name = self.name("sv");
-        let (value_type, value) = match self.random.between(0, 2) {
+        let vectors: Vec<(String, Kind, i128)> = scope
+            .variables
+            .iter()
+            .filter_map(|(name, found)| match found {
+                Type::Simd(kind, count) => Some((name.clone(), *kind, *count)),
+                _ => None,
+            })
+            .collect();
+        // With a `simd` here, mostly a named shuffle or a lookup on it.
+        let roll = if !vectors.is_empty() && self.random.chance(60) {
+            self.random.between(3, 4)
+        } else {
+            self.random.between(0, 2)
+        };
+        let (value_type, value) = match roll {
+            // A named shuffle, or a lookup with lanes bounded to the table's count (2.21).
+            3 => {
+                let (receiver, kind, count) = self.random.pick(&vectors)?.clone();
+                let others: Vec<String> = vectors
+                    .iter()
+                    .filter(|(_, other, _)| *other == kind)
+                    .map(|(name, ..)| name.clone())
+                    .collect();
+                let other = self.random.pick(&others)?.clone();
+                let other_count = vectors
+                    .iter()
+                    .find(|(name, ..)| *name == other)
+                    .map_or(count, |(_, _, found)| *found);
+                let simd = |method, argument| Expression::SimdMethod {
+                    receiver: receiver.clone(),
+                    method,
+                    argument,
+                };
+                match self.random.between(0, 4) {
+                    0 => (Type::Simd(kind, count), simd("reverse", None)),
+                    1 => (
+                        Type::Simd(kind, count),
+                        simd(
+                            "rotate.left",
+                            Some((
+                                "by",
+                                Box::new(Expression::Integer(self.random.between(0, count - 1))),
+                            )),
+                        ),
+                    ),
+                    2 => (
+                        Type::Simd(kind, count),
+                        simd(
+                            "rotate.right",
+                            Some((
+                                "by",
+                                Box::new(Expression::Integer(self.random.between(0, count - 1))),
+                            )),
+                        ),
+                    ),
+                    3 => (
+                        Type::Simd(kind, count + other_count),
+                        simd(
+                            "join",
+                            Some(("then", Box::new(Expression::Variable(other)))),
+                        ),
+                    ),
+                    _ if other_count == count => (
+                        Type::Simd(kind, count * 2),
+                        simd(
+                            "interleave",
+                            Some(("with", Box::new(Expression::Variable(other)))),
+                        ),
+                    ),
+                    _ => (Type::Simd(kind, count), simd("reverse", None)),
+                }
+            }
+            4 => {
+                let (receiver, kind, count) = self.random.pick(&vectors)?.clone();
+                let lanes = self.random.between(1, 5);
+                let which = self.name("sw");
+                let picks = (0..lanes)
+                    .map(|_| Expression::Integer(self.random.between(1, count)))
+                    .collect();
+                let name = self.name("sv");
+                let value_type = Type::Simd(kind, lanes);
+                scope.variables.push((name.clone(), value_type));
+                return Some(Statement::Sequence(vec![
+                    Statement::LetNamed {
+                        name: which.clone(),
+                        // Plain lanes, each checked while running, since bounded lanes aren't
+                        // built in the oracle yet (D286).
+                        written: format!("simd<u8>[lanes: {lanes}]"),
+                        value: Expression::Lanes(picks),
+                        back: None,
+                    },
+                    Statement::Let {
+                        name,
+                        value_type,
+                        value: Expression::SimdMethod {
+                            receiver,
+                            method: "lookup",
+                            argument: Some(("pos", Box::new(Expression::Variable(which)))),
+                        },
+                    },
+                ]));
+            }
             0 => {
                 let (array, kind, len) = self.random.pick(&scope.arrays)?.clone();
                 let value_type = Type::Simd(kind, len);
@@ -2372,9 +2481,11 @@ impl Generator<'_> {
         let lanes = self.random.between(1, 4);
         // `exact` only where the length is known to be a multiple, which an array's is.
         let exact = is_array && len % lanes == 0;
-        let mode = match self.random.between(0, 2) {
+        let mode = match self.random.between(0, 4) {
             0 if exact => "exact",
             1 => "leftovers",
+            2 if exact => "mut.exact",
+            3 => "mut.pad",
             _ => "pad",
         };
         Some(Statement::Chunks {
@@ -4789,6 +4900,11 @@ impl Generator<'_> {
                     handling: Handling::Crash,
                 };
             }
+        }
+        // `not.bit` flips every bit (3.7).
+        if roll == 6 && self.random.chance(8) {
+            let inner = self.integer(scope, kind, depth - 1);
+            return Expression::NotBit(Box::new(inner));
         }
         // A recursive call, kept to a few levels by `mod.trunc` (5.1).
         if roll == 4
