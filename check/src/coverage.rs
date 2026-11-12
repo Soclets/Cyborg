@@ -69,6 +69,10 @@
 ///   it, and a `must_Give` holder whose field is moved out before it's `finish`ed; each value is
 ///   ended straight away, by `defer`, in both arms of an `if`, after being passed through, or
 ///   inside its holder, and a field may be read on the way;
+/// - borrows: stored borrows of a struct, read through, `.held` in a block of their own, and
+///   `Lend.mut` written through; a function returning a borrow of one of two structs, stored
+///   as `Lend from <$a, $b>`; `defer` on a print or a `change`; a `must_Give` value ended in
+///   every arm of a `match`;
 /// - maps: `std::coll::map.hash` and `std::coll::map.ordered` with `key.type:` and `val.type:`,
 ///   made `empty` in `main` and ended by a `defer` of `std::coll::map.done`;
 /// - generics: the interfaces `equatable`, `ordered`, which `includes` it and states a `law`,
@@ -107,7 +111,6 @@ pub const NOT_GENERATED: &[&str] = &[
     "2.21 still to do: `.%lookup`, the named shuffles, `.%%simd_chunks.mut`, and floats in lanes; needs a target: `lanes: max`, whose count is the target's; undecided: maths between a `simd` and one value",
     "2.22 `bool.secret` values with `and.both`, `or.both` and `not`, secrets in arrays and `simd`, shifts on secrets",
     "5.x undecided: specialization, value parameters, type slots and how laws are proven (12.5)",
-    "6.x stored borrows of structs, and `.held`; `must_Give` values that leave a loop or a `match`; `defer` on anything but ending a value",
     "7.x structs holding other structs, lists or borrows, beyond the `must_Give` holder, handing unions to functions",
     "9.x still to do: `pub` and `use` between packages, once programs have more than one; NotBuiltYet: channels, waiting on the run loop's rewrite, and `.at(address:)`, which points at hardware the oracle doesn't have; undecided: a shield's own `requires` and `ensures` (12.9), your own allocator (2.10)",
     "10.x compiler-only: build modes, since the oracle runs one way and the live comparison runs every mode against it",

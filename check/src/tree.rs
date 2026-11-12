@@ -532,6 +532,12 @@ pub enum Ending {
     Held,
     /// Two to four of them in an array, each taken by `for … in Give` and ended (4.4).
     Looped { count: i128, item: String },
+    /// Ended in every arm of a `match` on a union (4.3, 6.9).
+    Matched {
+        variable: String,
+        union: String,
+        cases: Vec<String>,
+    },
 }
 
 /// What a program declares for generics: the interfaces `equatable`, `ordered` and `addable`, the
@@ -858,6 +864,22 @@ pub enum Statement {
         call: Expression,
         target: String,
     },
+    /// A stored borrow of a struct: `Lend from $r rec`, read; `Lend.held from`, read, in a
+    /// block of its own, since nothing changes the struct until that block ends; `Lend.mut
+    /// from`, changing a field; or one `rwarm` returns from two structs (6.10).
+    BorrowStruct {
+        how: &'static str,
+        view: String,
+        records: (String, String),
+        struct_name: String,
+        field: String,
+        target: String,
+        /// The kind of a new variable the field is read into, or none to change `target`.
+        declare: Option<Kind>,
+        value: Expression,
+    },
+    /// `defer` on a print or a `change`, which runs when the block ends (6.12).
+    Defer(Box<Statement>),
     /// A loop over an array or list in `simd`-sized chunks, saying how the leftovers go:
     /// padded, exact, or handed over one at a time after the chunks; each chunk's greatest lane
     /// is added to a variable, and each leftover too (2.21).
@@ -1012,6 +1034,8 @@ pub struct Function {
 #[allow(clippy::struct_excessive_bools)] // Independent switches for what a program declares.
 pub struct Program {
     pub unit_families: Vec<UnitFamily>,
+    /// The struct `rwarm` takes two of, returning a borrow of one, when it's declared (6.10).
+    pub warm: Option<(String, String)>,
     /// The kinds that have `trio_…`, which returns a fresh array of three (4.4, D396).
     pub trios: Vec<Kind>,
     /// Whether `main` also has `$pool`, an `os::threads`, and `$events`, an `os::events`, each
@@ -1175,6 +1199,22 @@ fn print_token(
             }
             let _ = writeln!(out, "{indent}    tend(Give ${item});");
             let _ = writeln!(out, "{indent}end for");
+        }
+        Ending::Matched {
+            variable,
+            union,
+            cases,
+        } => {
+            let _ = writeln!(out, "{indent}let ${name}: {struct_name} = {built};");
+            if let Some((target, field)) = read_into {
+                let _ = writeln!(out, "{indent}change ${target} = ${name}.{field};");
+            }
+            let _ = writeln!(out, "{indent}match ${variable}:");
+            for case in cases {
+                let _ = writeln!(out, "{indent}    case {union}.{case}:");
+                let _ = writeln!(out, "{indent}        tend(Give ${name});");
+            }
+            let _ = writeln!(out, "{indent}end match");
         }
         Ending::Held => {
             let _ = writeln!(
@@ -1440,6 +1480,12 @@ pub fn print(program: &Program) -> String {
     }
     if let Some(generics) = &program.generics {
         print_generics(&mut out, generics);
+    }
+    if let Some((name, field)) = &program.warm {
+        let _ = writeln!(
+            out,
+            "fn rwarm [$a: Lent {name}, $b: Lent {name}] -> Lend from <$a, $b> {name}:\n    if $a.{field} above $b.{field}:\n        return Lend $a;\n    end if\n    return Lend $b;\nend fn rwarm\n"
+        );
     }
     for kind in &program.trios {
         let kind = kind.word();
@@ -2109,6 +2155,67 @@ fn print_block(out: &mut String, statements: &[Statement], depth: usize, style: 
                 (name, struct_name, holder),
                 (fields, ending, read_into.as_ref()),
             ),
+            Statement::BorrowStruct {
+                how,
+                view,
+                records: (record, other),
+                struct_name,
+                field,
+                target,
+                declare,
+                value,
+            } => {
+                let into = match declare {
+                    Some(kind) => format!("let ${target}: {} =", kind.word()),
+                    None => format!("change ${target} ="),
+                };
+                match *how {
+                    "held" => {
+                        let _ = writeln!(out, "{indent}if true:");
+                        let _ = writeln!(
+                        out,
+                        "{indent}    let ${view}: Lend.held from ${record} {struct_name} = Lend ${record};"
+                    );
+                        let _ = writeln!(out, "{indent}    {into} ${view}.{field};");
+                        let _ = writeln!(out, "{indent}end if");
+                    }
+                    "mut" => {
+                        let _ = writeln!(
+                        out,
+                        "{indent}let ${view}: Lend.mut from ${record} {struct_name} = Lend.mut ${record};"
+                    );
+                        let _ = writeln!(
+                            out,
+                            "{indent}change ${view}.{field} = {};",
+                            style.expression(value)
+                        );
+                    }
+                    "returned" => {
+                        let _ = writeln!(
+                        out,
+                        "{indent}let ${view}: Lend from <${record}, ${other}> {struct_name} = rwarm(Lend ${record}, Lend ${other});"
+                    );
+                        let _ = writeln!(out, "{indent}{into} ${view}.{field};");
+                    }
+                    _ => {
+                        let _ = writeln!(
+                        out,
+                        "{indent}let ${view}: Lend from ${record} {struct_name} = Lend ${record};"
+                    );
+                        let _ = writeln!(out, "{indent}{into} ${view}.{field};");
+                    }
+                }
+            }
+            Statement::Defer(statement) => {
+                let mut inner = String::new();
+                print_block(
+                    &mut inner,
+                    std::slice::from_ref(statement.as_ref()),
+                    0,
+                    style,
+                );
+                let _ = write!(out, "{indent}defer {inner}");
+            }
             Statement::FreshLoop { item, call, target } => {
                 let _ = writeln!(out, "{indent}for ${item} in {}:", style.expression(call));
                 let _ = writeln!(

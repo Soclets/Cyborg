@@ -105,6 +105,8 @@ struct Generator<'random> {
     list_alias: Option<(String, Kind, i128)>,
     text_alias: Option<(String, i128)>,
     named_others: Vec<(String, bool, String)>,
+    /// The first struct and its first field, when `rwarm` is declared (6.10).
+    warm: Option<(String, String)>,
     /// The kinds whose `trio_…` some loop calls, so it's declared (4.4).
     trios: Vec<Kind>,
     /// Whether `main` has `$pool` and `$events` (D346, D392).
@@ -180,6 +182,7 @@ pub fn program(seed: u64) -> Program {
         strings: false,
         runners: false,
         trios: Vec::new(),
+        warm: None,
         wrap: None,
         list_alias: None,
         text_alias: None,
@@ -215,6 +218,12 @@ pub fn program(seed: u64) -> Program {
     generator.writers = generator.random.chance(30);
     generator.other_named_types();
     generator.runners = generator.random.chance(40);
+    if generator.random.chance(50) {
+        generator.warm = generator.structs.first().and_then(|declared| {
+            let (field, _) = declared.fields.first()?;
+            Some((declared.name.clone(), field.clone()))
+        });
+    }
     generator.strings = generator.random.chance(50);
     // A unit from a kit is shortened with `use`, keeping its matching name (1.11, 2.16).
     if generator.random.chance(40) {
@@ -311,6 +320,7 @@ pub fn program(seed: u64) -> Program {
         named_others: generator.named_others,
         runners: generator.runners,
         trios: generator.trios,
+        warm: generator.warm,
         strings: generator.strings,
         methods: generator.methods,
         arena: generator.arena,
@@ -654,7 +664,7 @@ impl Generator<'_> {
                 }
             }
             // The kinds of statement added later share 10 and 11 evenly.
-            10 | 11 => match self.random.between(0, 17) {
+            10 | 11 => match self.random.between(0, 19) {
                 0 if prints => self
                     .reveal(scope)
                     .unwrap_or_else(|| self.list_statement(scope)),
@@ -740,6 +750,12 @@ impl Generator<'_> {
                     .unwrap_or_else(|| self.list_statement(scope)),
                 17 => self
                     .fresh_loop(scope)
+                    .unwrap_or_else(|| self.list_statement(scope)),
+                18 => self
+                    .borrow_struct(scope)
+                    .unwrap_or_else(|| self.list_statement(scope)),
+                19 => self
+                    .defer_statement(scope, prints)
                     .unwrap_or_else(|| self.list_statement(scope)),
                 _ => self.list_statement(scope),
             },
@@ -1505,7 +1521,20 @@ impl Generator<'_> {
             .iter()
             .map(|(field, kind)| (field.clone(), self.integer(scope, *kind, LIMITS.depth)))
             .collect();
-        let ending = match self.random.between(0, 5) {
+        let union = self
+            .random
+            .pick(&scope.cased)
+            .cloned()
+            .and_then(|(variable, index)| Some((variable, self.unions.get(index)?.clone())));
+        let ending = match self.random.between(0, 6) {
+            6 if union.is_some() => {
+                let (variable, declared) = union.clone()?;
+                Ending::Matched {
+                    variable,
+                    union: declared.name,
+                    cases: declared.cases.into_iter().map(|(case, _)| case).collect(),
+                }
+            }
             5 => Ending::Looped {
                 count: self.random.between(2, 4),
                 item: self.name("tk"),
@@ -2843,6 +2872,101 @@ impl Generator<'_> {
             },
             runner,
         })
+    }
+
+    /// A stored borrow of a struct in scope: read through, `.held` in a block of its own,
+    /// changed through with `Lend.mut`, or returned by `rwarm` from two (6.10).
+    fn borrow_struct(&mut self, scope: &mut Scope) -> Option<Statement> {
+        let live: Vec<(String, usize)> = scope
+            .records
+            .iter()
+            .filter(|(name, _)| !self.given_away.contains(name))
+            .cloned()
+            .collect();
+        let (record, index) = self.random.pick(&live)?.clone();
+        let declared = self.structs.get(index)?.clone();
+        let (field, kind) = self.random.pick(&declared.fields)?.clone();
+        // `rwarm` reads the first field of the first struct, from two of them.
+        let others: Vec<String> = live
+            .iter()
+            .filter(|(_, found)| *found == 0)
+            .map(|(name, _)| name.clone())
+            .collect();
+        let warm = self.warm.clone().filter(|_| index == 0 && others.len() > 1);
+        let how = match self.random.between(0, 3) {
+            0 => "held",
+            1 => "mut",
+            2 if warm.is_some() => "returned",
+            _ => "plain",
+        };
+        let (other, field, kind) = match (&warm, how) {
+            (Some((_, warm_field)), "returned") => {
+                let other = self.random.pick(&others)?.clone();
+                let kind = declared
+                    .fields
+                    .iter()
+                    .find(|(found, _)| found == warm_field)
+                    .map_or(kind, |(_, found)| *found);
+                (other, warm_field.clone(), kind)
+            }
+            _ => (record.clone(), field, kind),
+        };
+        // The value can't read the struct, which the `Lend.mut` holds until the write.
+        let value = match declared.field_type(&field, kind) {
+            Type::Bounded(_, low, high) => Expression::Integer(self.random.between(low, high)),
+            _ => self.literal(kind),
+        };
+        // What's read goes into a new variable, named `k…` so nothing changes it after.
+        let target = self.name("k");
+        let declare = (how != "mut").then_some(kind);
+        if how != "mut" && how != "held" {
+            scope.variables.push((target.clone(), Type::Integer(kind)));
+        }
+        Some(Statement::BorrowStruct {
+            how,
+            view: self.name("bw"),
+            records: (record, other),
+            struct_name: declared.name,
+            field,
+            target,
+            declare,
+            value,
+        })
+    }
+
+    /// `defer` on a print in `main`, or on a `change` to a variable that can change; it runs
+    /// when the block ends, in reverse order (6.12).
+    fn defer_statement(&mut self, scope: &Scope, prints: bool) -> Option<Statement> {
+        if prints && self.random.chance(50) {
+            let number = self.random.between(1, 99);
+            return Some(Statement::Defer(Box::new(Statement::Format {
+                writer: "out",
+                stored: false,
+                text: format!("deferred {number}"),
+                values: Vec::new(),
+            })));
+        }
+        let targets: Vec<(String, Kind)> = scope
+            .variables
+            .iter()
+            .filter_map(|(name, found)| match found {
+                Type::Integer(kind)
+                    if !name.starts_with('i')
+                        && !name.starts_with('p')
+                        && !name.starts_with('x')
+                        && !name.starts_with('k') =>
+                {
+                    Some((name.clone(), *kind))
+                }
+                _ => None,
+            })
+            .collect();
+        let (name, kind) = self.random.pick(&targets)?.clone();
+        let value = self.literal(kind);
+        Some(Statement::Defer(Box::new(Statement::Change {
+            name,
+            value,
+        })))
     }
 
     /// A loop over the fresh array `trio_…` returns, which takes no word (4.4, D396).
