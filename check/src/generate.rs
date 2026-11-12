@@ -487,6 +487,12 @@ impl Generator<'_> {
             6 if prints && self.random.chance(30) => self
                 .reveal(scope)
                 .unwrap_or_else(|| self.list_statement(scope)),
+            6 if !self.pure_only && self.random.chance(30) => self
+                .pointer(scope, prints)
+                .unwrap_or_else(|| self.list_statement(scope)),
+            6 if !self.pure_only && self.random.chance(20) => self
+                .assembly(scope)
+                .unwrap_or_else(|| self.list_statement(scope)),
             0..=3 if self.random.chance(10) => {
                 let value_type = Type::Simd(self.integer_kind(), self.random.between(1, 5));
                 let value = self.expression(scope, value_type, LIMITS.depth);
@@ -922,6 +928,114 @@ impl Generator<'_> {
             left: Box::new(left),
             right: Box::new(right),
         }
+    }
+
+    /// A shield going through a raw or volatile pointer to an integer variable, reading or
+    /// writing it, made with `.of` and the word that says its access, and moved on and back
+    /// with `.%moved`, whose unit is always written. `.at(address:)` points at hardware, which
+    /// running a generated program can't have (9.8).
+    fn pointer(&mut self, scope: &Scope, prints: bool) -> Option<Statement> {
+        let changeable = |name: &String| {
+            !name.starts_with('i')
+                && !name.starts_with('p')
+                && !name.starts_with('x')
+                && !name.starts_with('k')
+        };
+        let integers: Vec<(String, Kind)> = scope
+            .variables
+            .iter()
+            .filter_map(|(name, found)| match found {
+                Type::Integer(kind) => Some((name.clone(), *kind)),
+                _ => None,
+            })
+            .collect();
+        let (target, kind) = self.random.pick(&integers)?.clone();
+        // `Lend.mut` needs a variable that can change.
+        let mutable = changeable(&target) && self.random.chance(70);
+        let others: Vec<String> = integers
+            .iter()
+            .filter(|(name, found)| *found == kind && *name != target && changeable(name))
+            .map(|(name, _)| name.clone())
+            .collect();
+        let read_into = self.random.pick(&others).cloned();
+        if read_into.is_none() && !prints {
+            return None;
+        }
+        let writes = (mutable && self.random.chance(70)).then(|| {
+            let (low, high) = kind.range();
+            self.random.between(low.max(-50), high.min(50))
+        });
+        let moves = self
+            .random
+            .chance(50)
+            .then(|| (self.random.between(1, 3), self.name("q"), self.name("q")));
+        Some(Statement::Pointer {
+            shield: self.name("sh"),
+            family: if self.random.chance(50) {
+                "raw"
+            } else {
+                "volatile"
+            },
+            writes,
+            kind,
+            pointer: self.name("q"),
+            target,
+            moves,
+            read_into,
+            mutable,
+        })
+    }
+
+    /// One aarch64 instruction on `i64` variables, in a shield in an `on.target aarch64:`
+    /// branch, and the same sum in plain maths under `else:`, so a build for that chip and one
+    /// for any other give the same value. The registers wrap, so the maths does too (9.4).
+    fn assembly(&mut self, scope: &mut Scope) -> Option<Statement> {
+        let wide: Vec<String> = scope
+            .variables
+            .iter()
+            .filter(|(_, found)| *found == Type::Integer(Kind::I64))
+            .map(|(name, _)| name.clone())
+            .collect();
+        let mut reads = Vec::new();
+        for _ in 0..3 {
+            reads.push(self.random.pick(&wide)?.clone());
+        }
+        let variable = |at: usize| Box::new(Expression::Variable(reads[at].clone()));
+        let pair = |operator| Expression::Binary {
+            operator,
+            left: variable(0),
+            right: variable(1),
+        };
+        let (instruction, otherwise) = match self.random.between(0, 6) {
+            0 => ("add x0, x0, x1", pair(Operator::PlusWrap)),
+            1 => ("sub x0, x0, x1", pair(Operator::MinusWrap)),
+            2 => ("mul x0, x0, x1", pair(Operator::TimesWrap)),
+            3 => ("and x0, x0, x1", pair(Operator::AndBit)),
+            4 => ("orr x0, x0, x1", pair(Operator::OrBit)),
+            5 => ("eor x0, x0, x1", pair(Operator::XorBit)),
+            _ => (
+                "madd x0, x0, x1, x2",
+                Expression::Binary {
+                    operator: Operator::PlusWrap,
+                    left: Box::new(pair(Operator::TimesWrap)),
+                    right: variable(2),
+                },
+            ),
+        };
+        if !instruction.contains("x2") {
+            reads.truncate(2);
+        }
+        let result = self.name("k");
+        scope
+            .variables
+            .push((result.clone(), Type::Integer(Kind::I64)));
+        Some(Statement::Assembly {
+            shield: self.name("sh"),
+            result,
+            instruction,
+            reads,
+            otherwise,
+        })
     }
 
     /// A secret made public in a shield, into a plain variable that can change (2.22, 9.7).

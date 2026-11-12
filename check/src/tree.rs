@@ -27,6 +27,15 @@ impl Kind {
         }
     }
 
+    /// How many bytes one takes (2.4).
+    pub fn bytes(self) -> i128 {
+        match self {
+            Kind::U8 => 1,
+            Kind::I32 | Kind::U32 => 4,
+            Kind::I64 | Kind::U64 => 8,
+        }
+    }
+
     /// The smallest and largest value the type holds.
     pub fn range(self) -> (i128, i128) {
         match self {
@@ -604,6 +613,36 @@ pub enum Statement {
         shield: String,
         target: String,
         secret: String,
+    },
+    /// One aarch64 instruction in a shield, in an `on.target aarch64:` branch, with `else:`
+    /// working out the same value for every other chip, so the two have to agree (9.4).
+    Assembly {
+        shield: String,
+        result: String,
+        /// The instruction, as `madd x0, x0, x1, x2`.
+        instruction: &'static str,
+        /// The `i64` variables put in `x0`, `x1` and on.
+        reads: Vec<String>,
+        otherwise: Expression,
+    },
+    /// A shield going through a pointer to an integer variable: made with `.of`, written
+    /// through when it can write, moved some items on and the same bytes back, and read into
+    /// another variable or printed (9.7, 9.8).
+    Pointer {
+        shield: String,
+        /// `raw` or `volatile`.
+        family: &'static str,
+        /// Whether it's `.mut`, made with `Lend.mut` and able to write.
+        writes: Option<i128>,
+        kind: Kind,
+        pointer: String,
+        target: String,
+        /// How many items it moves on and back, and the names of the two moved pointers.
+        moves: Option<(i128, String, String)>,
+        /// Where the read goes: a variable, or a print when `None`.
+        read_into: Option<String>,
+        /// Whether it's `.mut` even without a write.
+        mutable: bool,
     },
     /// The test, `if $w: un1.cs2:` or `if $v: i32[min: 0, max: 9]:`, inside which the value is
     /// taken as that case or bound (4.2).
@@ -1205,6 +1244,96 @@ fn print_block(out: &mut String, statements: &[Statement], depth: usize, style: 
                     "{indent}    reason \"a generated program shows its secrets\""
                 );
                 let _ = writeln!(out, "{indent}    change ${target} = ${secret}.%reveal();");
+                let _ = writeln!(out, "{indent}end shield {shield}");
+            }
+            Statement::Assembly {
+                shield,
+                result,
+                instruction,
+                reads,
+                otherwise,
+            } => {
+                let reads: Vec<String> = reads
+                    .iter()
+                    .enumerate()
+                    .map(|(register, name)| format!("x{register} = ${name}"))
+                    .collect();
+                let _ = writeln!(out, "{indent}on.target aarch64:");
+                let _ = writeln!(out, "{indent}    shield {shield}:");
+                let _ = writeln!(
+                    out,
+                    "{indent}        reason \"a generated program's one instruction\""
+                );
+                let _ = writeln!(out, "{indent}        inline.asm:");
+                let _ = writeln!(out, "{indent}            reads: [{}];", reads.join(", "));
+                let _ = writeln!(out, "{indent}            writes: [x0 => ${result}];");
+                let _ = writeln!(out, "{indent}            clobbers: [none];");
+                let _ = writeln!(out, "{indent}            {instruction}");
+                let _ = writeln!(out, "{indent}        end inline.asm");
+                let _ = writeln!(out, "{indent}    end shield {shield}");
+                let _ = writeln!(out, "{indent}else:");
+                let _ = writeln!(
+                    out,
+                    "{indent}    let ${result}: i64 = {};",
+                    style.expression(otherwise)
+                );
+                let _ = writeln!(out, "{indent}end on.target");
+            }
+            Statement::Pointer {
+                shield,
+                family,
+                writes,
+                kind,
+                pointer,
+                target,
+                moves,
+                read_into,
+                mutable,
+            } => {
+                let inner = format!("{indent}    ");
+                let (word, lend) = if *mutable {
+                    (".mut", "Lend.mut")
+                } else {
+                    ("", "Lend")
+                };
+                let pointer_type = format!("ptr.{family}{word}<{}>", kind.word());
+                let _ = writeln!(out, "{indent}shield {shield}:");
+                let _ = writeln!(
+                    out,
+                    "{inner}reason \"a generated program goes through a pointer\""
+                );
+                let _ = writeln!(
+                    out,
+                    "{inner}let ${pointer}: {pointer_type} = {pointer_type}.of({lend} ${target});"
+                );
+                if let Some(value) = writes {
+                    let _ = writeln!(out, "{inner}${pointer}.%%write(val: {value});");
+                }
+                let mut last = pointer.clone();
+                if let Some((count, there, back)) = moves {
+                    let bytes = count * kind.bytes();
+                    let _ = writeln!(
+                        out,
+                        "{inner}let ${there}: {pointer_type} = ${pointer}.%moved(offset.items: {count});"
+                    );
+                    let _ = writeln!(
+                        out,
+                        "{inner}let ${back}: {pointer_type} = ${there}.%moved(offset.bytes: {});",
+                        -bytes
+                    );
+                    last.clone_from(back);
+                }
+                match read_into {
+                    Some(variable) => {
+                        let _ = writeln!(out, "{inner}change ${variable} = ${last}.%read();");
+                    }
+                    None => {
+                        let _ = writeln!(
+                            out,
+                            "{inner}std::io::fmt_print(Lend.mut $out, \"{{}}{{newln}}\", ${last}.%read());"
+                        );
+                    }
+                }
                 let _ = writeln!(out, "{indent}end shield {shield}");
             }
             Statement::Test {
