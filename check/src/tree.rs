@@ -225,12 +225,29 @@ pub enum Expression {
     Call {
         function: String,
         arguments: Vec<Expression>,
+        handling: Handling,
     },
     /// An array's item, `$a[pos: 2]` or `$a[offset.items: 1]` (2.17).
     Item {
         array: String,
         position: Position,
     },
+}
+
+/// What a call does if it fails: nothing, so the program stops (8.9), `?` to pass it up (8.4),
+/// or `??` and a value to use instead (8.5).
+#[derive(Clone, Debug)]
+pub enum Handling {
+    Crash,
+    Pass,
+    Fallback(Box<Expression>),
+}
+
+/// A failure a function lists, `bad3` or `bad4[got: i32]` (8.1).
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct FailureDecl {
+    pub name: String,
+    pub data: Option<Kind>,
 }
 
 /// Where an item is: `pos:` counts from 1, and `offset.items:` from 0 (2.17). A variable's
@@ -298,6 +315,18 @@ pub enum Statement {
     },
     /// `break;`, which stops the innermost loop (4.8).
     Break,
+    /// `fail bad3;` or `fail bad4[got = $p2];` (8.2).
+    Fail {
+        name: String,
+        data: Option<Expression>,
+    },
+    /// A `let` whose call's failures are each handled with `instead` (8.6).
+    LetOtherwise {
+        name: String,
+        value_type: Type,
+        call: Expression,
+        arms: Vec<(String, Expression)>,
+    },
 }
 
 #[derive(Clone, Debug)]
@@ -305,6 +334,7 @@ pub struct Function {
     pub name: String,
     pub parameters: Vec<(String, Type)>,
     pub result: Type,
+    pub failures: Vec<FailureDecl>,
     pub body: Vec<Statement>,
     pub returned: Expression,
 }
@@ -336,9 +366,22 @@ pub fn print(program: &Program) -> String {
         } else {
             parameters.join(", ")
         };
+        let fails = if function.failures.is_empty() {
+            String::new()
+        } else {
+            let listed: Vec<String> = function
+                .failures
+                .iter()
+                .map(|failure| match failure.data {
+                    Some(kind) => format!("{}[got: {}]", failure.name, kind.word()),
+                    None => failure.name.clone(),
+                })
+                .collect();
+            format!(" fails [{}]", listed.join(", "))
+        };
         let _ = writeln!(
             out,
-            "fn {} [{parameters}] -> {}:",
+            "fn {} [{parameters}] -> {}{fails}:",
             function.name,
             function.result.word()
         );
@@ -463,6 +506,36 @@ fn print_block(out: &mut String, statements: &[Statement], depth: usize, style: 
             Statement::Break => {
                 let _ = writeln!(out, "{indent}break;");
             }
+            Statement::Fail { name, data } => match data {
+                Some(value) => {
+                    let _ = writeln!(
+                        out,
+                        "{indent}fail {name}[got = {}];",
+                        style.expression(value)
+                    );
+                }
+                None => {
+                    let _ = writeln!(out, "{indent}fail {name};");
+                }
+            },
+            Statement::LetOtherwise {
+                name,
+                value_type,
+                call,
+                arms,
+            } => {
+                let _ = writeln!(
+                    out,
+                    "{indent}let mut ${name}: {} = {} otherwise:",
+                    value_type.word(),
+                    style.expression(call)
+                );
+                for (failure, value) in arms {
+                    let _ = writeln!(out, "{indent}    case {failure}:");
+                    let _ = writeln!(out, "{indent}        instead {};", style.expression(value));
+                }
+                let _ = writeln!(out, "{indent}end otherwise");
+            }
         }
     }
 }
@@ -530,12 +603,18 @@ impl Style {
             Expression::Call {
                 function,
                 arguments,
+                handling,
             } => {
                 let arguments: Vec<String> = arguments
                     .iter()
                     .map(|argument| self.expression(argument))
                     .collect();
-                format!("{function}({})", arguments.join(", "))
+                let call = format!("{function}({})", arguments.join(", "));
+                match handling {
+                    Handling::Crash => call,
+                    Handling::Pass => format!("{call}?"),
+                    Handling::Fallback(value) => format!("{call} ?? {}", self.grouped(value)),
+                }
             }
             Expression::Item { array, position } => item(array, position),
         }
@@ -544,6 +623,12 @@ impl Style {
     /// A single value as it is, anything else in `( )`.
     pub fn grouped(self, value: &Expression) -> String {
         match value {
+            // `??` binds as tightly as a call (3.9), but its value is grouped anyway, so no
+            // reading of that is relied on unless brackets are left out.
+            Expression::Call {
+                handling: Handling::Fallback(_),
+                ..
+            } => format!("({})", self.expression(value)),
             Expression::Variable(_)
             | Expression::Bool(_)
             | Expression::Call { .. }

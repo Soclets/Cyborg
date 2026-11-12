@@ -5,7 +5,8 @@
 
 use crate::random::Random;
 use crate::tree::{
-    Comparison, Expression, Filling, Function, Kind, Operator, Position, Program, Statement, Type,
+    Comparison, Expression, FailureDecl, Filling, Function, Handling, Kind, Operator, Position,
+    Program, Statement, Type,
 };
 
 /// How big a program gets.
@@ -30,6 +31,8 @@ struct Scope {
 struct Generator<'random> {
     random: &'random mut Random,
     next_name: usize,
+    /// The failures the function being made lists, which `?` adds to; none in `main`.
+    failing: Option<Vec<FailureDecl>>,
     functions: Vec<Function>,
 }
 
@@ -39,6 +42,7 @@ pub fn program(seed: u64) -> Program {
     let mut generator = Generator {
         random: &mut random,
         next_name: 0,
+        failing: None,
         functions: Vec::new(),
     };
     let count = generator.random.between(0, LIMITS.functions);
@@ -57,7 +61,8 @@ pub fn program(seed: u64) -> Program {
             name,
             value_type: Type::Integer(_),
             ..
-        } = statement
+        }
+        | Statement::LetOtherwise { name, .. } = statement
         {
             main.push(Statement::Print(Expression::Variable(name)));
         }
@@ -123,12 +128,45 @@ impl Generator<'_> {
             parameters.push((parameter, parameter_type));
         }
         let result = self.integer_type();
-        let body = self.block(&mut scope, 3, 1, (false, false));
+        // Some functions can fail, each with a test that decides when (8.1, 8.2).
+        let mut own = Vec::new();
+        let mut body = Vec::new();
+        if self.random.chance(40) {
+            for _ in 0..self.random.between(1, 2) {
+                let failure = self.name("bad");
+                let carried = if self.random.chance(50) {
+                    self.random.pick(&parameters).cloned()
+                } else {
+                    None
+                };
+                let data = carried.as_ref().and_then(|(_, found)| match found {
+                    Type::Integer(kind) => Some(*kind),
+                    Type::Bool => None,
+                });
+                let test = self.expression(&scope, Type::Bool, LIMITS.depth);
+                body.push(Statement::If {
+                    test,
+                    then: vec![Statement::Fail {
+                        name: failure.clone(),
+                        data: data.and(carried.map(|(name, _)| Expression::Variable(name))),
+                    }],
+                    otherwise: Vec::new(),
+                });
+                own.push(FailureDecl {
+                    name: failure,
+                    data,
+                });
+            }
+        }
+        self.failing = Some(own);
+        body.extend(self.block(&mut scope, 3, 1, (false, false)));
         let returned = self.expression(&scope, result, LIMITS.depth);
+        let failures = self.failing.take().unwrap_or_default();
         Function {
             name,
             parameters,
             result,
+            failures,
             body,
             returned,
         }
@@ -176,6 +214,12 @@ impl Generator<'_> {
             .collect();
         match roll {
             0..=3 => {
+                if self.random.chance(25) {
+                    let kind = *self.random.pick(&Kind::ALL).unwrap_or(&Kind::I32);
+                    if let Some(statement) = self.let_otherwise(scope, kind) {
+                        return statement;
+                    }
+                }
                 let value_type = if self.random.chance(20) {
                     Type::Bool
                 } else {
@@ -453,8 +497,42 @@ impl Generator<'_> {
         }
     }
 
+    /// A call to a function made earlier with this result. One that can fail is handled with
+    /// `?` where the function being made can pass its failures up, `??` and a value, or not at
+    /// all, so a failure stops the program (8.4, 8.5, 8.9).
     fn call(&mut self, scope: &Scope, kind: Kind, depth: usize) -> Option<Expression> {
-        let candidates: Vec<(String, Vec<Type>)> = self
+        let (function, arguments, failures) = self.plain_call(scope, kind, depth)?;
+        let handling = if failures.is_empty() {
+            Handling::Crash
+        } else if self.failing.is_some() && self.random.chance(40) {
+            if let Some(failing) = &mut self.failing {
+                for failure in failures {
+                    if !failing.iter().any(|found| found.name == failure.name) {
+                        failing.push(failure);
+                    }
+                }
+            }
+            Handling::Pass
+        } else if self.random.chance(70) {
+            Handling::Fallback(Box::new(self.literal(kind)))
+        } else {
+            Handling::Crash
+        };
+        Some(Expression::Call {
+            function,
+            arguments,
+            handling,
+        })
+    }
+
+    /// A function made earlier with this result, its arguments, and what it can fail with.
+    fn plain_call(
+        &mut self,
+        scope: &Scope,
+        kind: Kind,
+        depth: usize,
+    ) -> Option<(String, Vec<Expression>, Vec<FailureDecl>)> {
+        let candidates: Vec<(String, Vec<Type>, Vec<FailureDecl>)> = self
             .functions
             .iter()
             .filter(|function| function.result == Type::Integer(kind))
@@ -466,17 +544,40 @@ impl Generator<'_> {
                         .iter()
                         .map(|(_, found)| *found)
                         .collect(),
+                    function.failures.clone(),
                 )
             })
             .collect();
-        let (name, parameters) = self.random.pick(&candidates)?.clone();
+        let (name, parameters, failures) = self.random.pick(&candidates)?.clone();
         let arguments = parameters
             .iter()
-            .map(|parameter| self.expression(scope, *parameter, depth - 1))
+            .map(|parameter| self.expression(scope, *parameter, depth.saturating_sub(1)))
             .collect();
-        Some(Expression::Call {
-            function: name,
-            arguments,
+        Some((name, arguments, failures))
+    }
+
+    /// `let` from a call that can fail, with an `otherwise:` arm for each failure, each using
+    /// a value `instead` (8.6).
+    fn let_otherwise(&mut self, scope: &mut Scope, kind: Kind) -> Option<Statement> {
+        let (function, arguments, failures) = self.plain_call(scope, kind, LIMITS.depth)?;
+        if failures.is_empty() {
+            return None;
+        }
+        let arms = failures
+            .into_iter()
+            .map(|failure| (failure.name, self.literal(kind)))
+            .collect();
+        let name = self.name("v");
+        scope.variables.push((name.clone(), Type::Integer(kind)));
+        Some(Statement::LetOtherwise {
+            name,
+            value_type: Type::Integer(kind),
+            call: Expression::Call {
+                function,
+                arguments,
+                handling: Handling::Crash,
+            },
+            arms,
         })
     }
 

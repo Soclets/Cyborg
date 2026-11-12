@@ -5,7 +5,9 @@
 /// Generated today: `i32`, `i64`, `u8`, `u32` and `u64` values and variables; `+`, `-`, `x`, the
 /// `.wrap` and `.saturate` words, `div` and `mod` with `.trunc` and `.floor`, the `.bit`
 /// operators, and `shl` and `shr` on unsigned types; comparisons; `and`, `or` and `not`;
-/// arrays from `[ ]` and `all`, their items by `pos:` and `offset.items:`, read and changed;
+/// functions that list failures, some carrying data, and `fail` them; calls handled with `?`,
+/// `??`, `otherwise:` arms that use a value `instead`, or nothing, so a failure stops the
+/// program; arrays from `[ ]` and `all`, their items by `pos:` and `offset.items:`, read and changed;
 /// precedence with and without `( )`, as 3.9's table orders it; comparison chains; `let`,
 /// `change`, `if` and `else`, `while`, `for` over literal ranges, `break`; functions with
 /// integer parameters and results; printing a variable with `fmt_print` to an unbuffered writer.
@@ -30,7 +32,7 @@ pub const NOT_GENERATED: &[&str] = &[
     "5.x labels, defaults, `fn.pure`, contracts, generics, interfaces, methods, `bake`",
     "6.x ownership words, `Lend.mut` parameters, stored borrows, `must_Give`, `finish`, `defer`",
     "7.x structs, unions and `match` on them",
-    "8.x failures: `fails`, `fail`, `?`, `??`, `otherwise`, handlers",
+    "8.x named sets of failures, a `case` reading a failure's data, arms that `return`, `break` or `fail`, handler narrowings and `*`",
     "9.x `use`, limbs, shields, `inline.asm`, pointers, `@concur`, `pub`",
     "10.x build modes beyond comparing outputs",
     "recursion, since calls only reach functions declared earlier",
