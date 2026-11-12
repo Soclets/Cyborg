@@ -36,6 +36,24 @@ fn expression_digits(expression: &Expression) -> &str {
     }
 }
 
+/// The most bytes an integer type's text can need, as for `i32`'s `-2147483648`. (D328)
+fn integer_text_bytes(kind: IntegerKind) -> i128 {
+    let (low, high) = kind.range();
+    let length = low.to_string().len().max(high.to_string().len());
+    i128::try_from(length).unwrap_or(i128::MAX)
+}
+
+/// Text checked against a bounded string's `len.max` while running. (D326, D328)
+fn fit_text(text: Node, bytes: i128, span: Span) -> Node {
+    Node {
+        span,
+        kind: NodeKind::FitText {
+            value: Box::new(text),
+            bytes,
+        },
+    }
+}
+
 /// An integer type's written `min:` and `max:`.
 type Bound = (i128, i128);
 
@@ -361,6 +379,35 @@ impl Checker<'_> {
         }
     }
 
+    /// Text going into `str[len.max: 32 bytes]`, which holds that many bytes inside the value:
+    /// a literal that can't fit is a compile error, as a number past its bound is. (D326, D20)
+    /// trace: D326
+    /// Heap text needs heap memory, which takes an allocator. (D321, D326)
+    fn text_into(node: Node, target: &Type, expression: &Expression) -> Outcome<Node> {
+        let Type::BoundedStr(bytes) = *target else {
+            return Err(Report::refused(
+                expression.span,
+                format!("this text needs heap memory to go into `{target}`, which takes an allocator"),
+                "anything that takes heap memory takes an allocator, so heap text comes from a call like `str.from(…, alloc: Lend $heap)` (D321, D326, D328)",
+            ));
+        };
+        let NodeKind::Constant(Value::Str(text)) = &node.kind else {
+            return Err(Report::not_built(
+                expression.span,
+                "copying a view's text into a string with a `len.max`",
+            ));
+        };
+        let length = i128::try_from(text.len()).unwrap_or(i128::MAX);
+        if length > bytes {
+            return Err(Report::refused(
+                expression.span,
+                format!("this text is {length} bytes, and `{target}` holds {bytes}"),
+                "a string's `len.max` is in bytes, and a literal that can't fit is a compile error (D326, D20)",
+            ));
+        }
+        Ok(node)
+    }
+
     /// Fits a value into its target, adding the runtime check a bound needs. (D20)
     pub(super) fn coerce(
         &self,
@@ -371,6 +418,10 @@ impl Checker<'_> {
     ) -> Outcome<Node> {
         if found == target {
             return Ok(node);
+        }
+        // trace: D326
+        if *found == Type::Str && matches!(target, Type::BoundedStr(_) | Type::GrowableStr) {
+            return Self::text_into(node, target, expression);
         }
         self.refuse_unstorable_unit(found, target, expression)?;
         if let (
@@ -1000,7 +1051,9 @@ impl Checker<'_> {
             kind: NodeKind::Constant(value),
         };
         match expected {
-            Some(Type::Str) => Ok((node(Value::Str(String::new())), Type::Str)),
+            Some(target @ (Type::Str | Type::BoundedStr(_) | Type::GrowableStr)) => {
+                Ok((node(Value::Str(String::new())), target.clone()))
+            }
             Some(target @ Type::List { min, .. }) => {
                 if min.is_some_and(|min| min > 0) {
                     return Err(Report::refused(
@@ -1553,6 +1606,10 @@ impl Checker<'_> {
         if let Some(rest) = text.strip_prefix("os::") {
             self.require_os(path.span)?;
             return self.check_os_call(rest, arguments, span, path.span);
+        }
+        // trace: D331
+        if let Some(word @ ("from" | "done")) = text.strip_prefix("str.") {
+            return self.check_text_call(word, arguments, span, path.span);
         }
         let bare = Self::without_my(&text, path.span)?;
         let Some(signature) = self.signatures.get(&bare).cloned() else {
@@ -2203,7 +2260,7 @@ impl Checker<'_> {
         stored: bool,
     ) -> Outcome<()> {
         let shown = match found {
-            Type::Str => "str",
+            Type::Str | Type::BoundedStr(_) | Type::GrowableStr => "str",
             Type::Integer { .. } => "integer",
             Type::Float { .. } => "float",
             Type::Bool => {
@@ -2748,8 +2805,8 @@ impl Checker<'_> {
         let target_type = self.resolve_type(target)?;
         // A literal takes its type from where it lands, even here. (D141)
         // `as str` says nothing about which float a literal is, so that stays unsaid. (D161)
-        let float_to_text =
-            target_type == Type::Str && matches!(value.kind, ExpressionKind::Float { .. });
+        let float_to_text = matches!(target_type, Type::Str | Type::BoundedStr(_))
+            && matches!(value.kind, ExpressionKind::Float { .. });
         let (node, found) = if is_number_literal(value) && !float_to_text {
             self.check_expression(value, Some(&target_type))?
         } else if let ExpressionKind::Hand { word, value: inner } = &value.kind {
@@ -2757,6 +2814,7 @@ impl Checker<'_> {
         } else {
             self.check_expression(value, None)?
         };
+        self.refuse_allocating_as(value, target, &found, &target_type)?;
         // trace: D141
         if crosses(&found, &target_type) {
             // trace: D149
@@ -2781,6 +2839,52 @@ impl Checker<'_> {
             });
         }
         self.check_real_as(node, &found, target_type, narrowing, span)
+    }
+
+    /// `as` never allocates: a bare `str` is a view, which has to point at text that already
+    /// exists, and heap text comes from `str.from`, which takes an allocator. (D328)
+    /// trace: D328
+    fn refuse_allocating_as(
+        &self,
+        value: &Expression,
+        target: &crate::ast::TypeExpression,
+        found: &Type,
+        target_type: &Type,
+    ) -> Outcome<()> {
+        // `as` and its type, which the fix replaces: `as` sits one space after the value.
+        let as_span = Span::new(value.span.end + 1, target.span.end);
+        match target_type {
+            Type::Str => {
+                let refused = Report::refused(
+                    as_span,
+                    "a bare `str` is a view, so it has to point at text that already exists",
+                    "`as` never allocates, so text from `as` goes into a bounded `str`, held inside the value (D327, D328)",
+                );
+                Err(match found {
+                    Type::Integer { kind, .. } => refused.fix(format!(
+                        "as str[len.max: {} bytes]",
+                        integer_text_bytes(*kind)
+                    )),
+                    Type::Str | Type::BoundedStr(_) | Type::GrowableStr
+                        if root_variable(value).is_some()
+                            && !matches!(value.kind, ExpressionKind::Hand { .. }) =>
+                    {
+                        let mut fixed =
+                            refused.fix(format!("Lend {}", self.text_of(value.span)));
+                        fixed.span = value.span.to(target.span);
+                        fixed
+                    }
+                    _ => refused,
+                })
+            }
+            Type::GrowableStr => Err(Report::refused(
+                as_span,
+                "`as` never allocates, so it can't make heap text",
+                "heap text comes from a function that takes an allocator, like `str.from($n, alloc: Lend $heap)`, so every allocation is a visible call (D321, D328)",
+            )
+            .fix("str.from")),
+            _ => Ok(()),
+        }
     }
 
     /// `as` when it isn't only crossing, so it builds a new value and can fail.
@@ -2815,22 +2919,18 @@ impl Checker<'_> {
                 unnamed: Some(("what a failed `as` is called", "12.3")),
             });
         }
-        if self.is_pure() {
-            return Err(Report::not_designed(
-                span,
-                "whether a `fn.pure` may allocate, as `as` can",
-                "12.5",
-            ));
-        }
+        // `as` never allocates, so a pure function can use it. (D328)
+        // trace: D328
         // trace: D122
         // trace: D161
-        if let (Type::Str, Type::Float { kind, rules, .. }) = (&target_type, found) {
+        if let (Type::BoundedStr(bytes), Type::Float { kind, rules, .. }) = (&target_type, found) {
+            let text = Node {
+                span,
+                kind: NodeKind::FloatToStr(Number::Float(*kind, *rules), Box::new(node)),
+            };
             return Ok(RawCall {
-                node: Node {
-                    span,
-                    kind: NodeKind::FloatToStr(Number::Float(*kind, *rules), Box::new(node)),
-                },
-                value_type: Type::Str,
+                node: fit_text(text, *bytes, span),
+                value_type: target_type,
                 failures: Vec::new(),
                 unnamed: Some(("what a failed `as` is called", "12.3")),
             });
@@ -2853,20 +2953,30 @@ impl Checker<'_> {
                 "12.2",
             ));
         }
-        let converts = target_type == Type::Str && matches!(found, Type::Integer { .. });
-        if !converts {
+        let (Type::BoundedStr(bytes), Type::Integer { kind, .. }) = (&target_type, found) else {
             return Err(Report::not_designed(
                 span,
                 format!("converting `{found}` to `{target_type}` with `as`"),
                 "12.3",
             ));
+        };
+        let text = Node {
+            span,
+            kind: NodeKind::IntegerToStr(Box::new(node)),
+        };
+        // A bound big enough for every value of the type can't fail, so it has no check. (D328)
+        // trace: D328
+        if *bytes >= integer_text_bytes(*kind) {
+            return Ok(RawCall {
+                node: text,
+                value_type: target_type,
+                failures: Vec::new(),
+                unnamed: None,
+            });
         }
         Ok(RawCall {
-            node: Node {
-                span,
-                kind: NodeKind::IntegerToStr(Box::new(node)),
-            },
-            value_type: Type::Str,
+            node: fit_text(text, *bytes, span),
+            value_type: target_type,
             failures: Vec::new(),
             unnamed: Some(("what a failed `as` is called", "12.3")),
         })

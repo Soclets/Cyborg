@@ -1,5 +1,5 @@
-NotDesignedYet: d127_bool_as_str_isnt_decided.cy:5:19, line 5 column 19
- 5 |     let $s: str = true as str;
-   |                   ^^^^^^^^^^^
- what: converting `bool` to `str` with `as`
+NotDesignedYet: d127_bool_as_str_isnt_decided.cy:5:38, line 5 column 38
+ 5 |     let $s: str[len.max: 20 bytes] = true as str[len.max: 20 bytes];
+   |                                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ what: converting `bool` to `str[len.max: 20 bytes]` with `as`
  why:  not decided yet (standard 12.3)

@@ -1,5 +1,5 @@
-NotDesignedYet: d86_pure_may_allocate.cy:5:12, line 5 column 12
- 5 |     return $n as str;
-   |            ^^^^^^^^^
- what: whether a `fn.pure` may allocate, as `as` can
+NotDesignedYet: d86_pure_may_allocate.cy:8:5, line 8 column 5
+ 8 |     $xs.std::%%append(val: 1, alloc: Lend $heap);
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ what: whether a `fn.pure` may allocate
  why:  not decided yet (standard 12.5)

@@ -211,3 +211,106 @@ impl Checker<'_> {
         })
     }
 }
+
+impl Checker<'_> {
+    /// `str.from($n, alloc: Lend $heap)` makes heap text, and `str.done(Give $log, alloc: Lend
+    /// $heap)` ends it. They're led by the type's own name, since `str` is a base type. (D331)
+    /// trace: D326, D328, D331
+    pub(super) fn check_text_call(
+        &mut self,
+        word: &str,
+        arguments: &[Argument],
+        span: Span,
+        path_span: Span,
+    ) -> Outcome<RawCall> {
+        let why = "heap text comes from `str.from(…, alloc: Lend $heap)`, and `str.done(Give $log, alloc: Lend $heap)` ends it (D326, D331)";
+        let [value, allocator] = arguments else {
+            return Err(Report::refused(
+                path_span,
+                format!("`str.{word}` takes a value, then `alloc:`"),
+                why,
+            ));
+        };
+        if value.label.is_some()
+            || allocator
+                .label
+                .as_ref()
+                .is_none_or(|label| label.text != "alloc")
+        {
+            return Err(Report::refused(
+                path_span,
+                format!("`str.{word}` takes a value, then `alloc:`"),
+                why,
+            ));
+        }
+        let mut handed = Vec::new();
+        if word == "done" {
+            if self.variable_type_of(&value.value) != Some(Type::GrowableStr) {
+                return Err(Report::refused(
+                    value.value.span,
+                    "`str.done` ends a string that grows on the heap, with `len.max: inf bytes`",
+                    why,
+                ));
+            }
+            let parameter = ParameterInfo {
+                name: "text".to_string(),
+                label: None,
+                word: ParameterWord::Given,
+                parameter_type: Type::GrowableStr,
+                default: None,
+                label_has_unit: false,
+            };
+            let text = match self.check_argument(&value.value, &parameter, &mut handed)? {
+                ir::Argument::Value(node) => node,
+                ir::Argument::Alias(place) => Node {
+                    span: value.value.span,
+                    kind: NodeKind::Read(place),
+                },
+            };
+            let allocator = self.allocator_argument(&allocator.value, &mut handed)?;
+            return Ok(RawCall {
+                node: Node {
+                    span,
+                    kind: NodeKind::TextDone {
+                        text: Box::new(text),
+                        allocator: Box::new(allocator),
+                    },
+                },
+                value_type: Type::Void,
+                failures: Vec::new(),
+                unnamed: None,
+            });
+        }
+        let (node, found) = self.check_expression(&value.value, None)?;
+        let text = match &found {
+            Type::Integer { .. } => Node {
+                span,
+                kind: NodeKind::IntegerToStr(Box::new(node)),
+            },
+            Type::Float { kind, rules, .. } => Node {
+                span,
+                kind: NodeKind::FloatToStr(crate::ir::Number::Float(*kind, *rules), Box::new(node)),
+            },
+            Type::Str if matches!(value.value.kind, ExpressionKind::Text(_)) => node,
+            other => {
+                return Err(Report::not_built(
+                    value.value.span,
+                    format!("`str.from` on `{other}`"),
+                ));
+            }
+        };
+        let allocator = self.allocator_argument(&allocator.value, &mut handed)?;
+        Ok(RawCall {
+            node: Node {
+                span,
+                kind: NodeKind::TextFrom {
+                    text: Box::new(text),
+                    allocator: Box::new(allocator),
+                },
+            },
+            value_type: Type::GrowableStr,
+            failures: vec![out_of_memory()],
+            unnamed: None,
+        })
+    }
+}

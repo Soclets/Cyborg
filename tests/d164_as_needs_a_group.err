@@ -1,5 +1,5 @@
-refused: d164_as_needs_a_group.cy:6:26, line 6 column 26
- 6 |     let $s: str = $a div 3.0 as str;
-   |                          ^^^^^^^^^^
+refused: d164_as_needs_a_group.cy:6:45, line 6 column 45
+ 6 |     let $s: str[len.max: 20 bytes] = $a div 3.0 as str[len.max: 20 bytes];
+   |                                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
  what: this `as` is mixed with other operators, so it needs `( )`
  why:  `as` works on a single value, and where maths gives no order you group with `( )` (D116)

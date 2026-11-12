@@ -1,0 +1,5 @@
+refused: d326_a_literal_too_long.cy:4:40, line 4 column 40
+ 4 |     let $name: str[len.max: 4 bytes] = "Tankun";
+   |                                        ^^^^^^^^
+ what: this text is 6 bytes, and `str[len.max: 4 bytes]` holds 4
+ why:  a string's `len.max` is in bytes, and a literal that can't fit is a compile error (D326, D20)

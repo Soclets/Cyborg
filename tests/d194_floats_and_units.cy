@@ -1,4 +1,4 @@
-// A number with a unit prints its number, as `as str` does.
+// A number with a unit prints its number, as `as str[len.max: 20 bytes]` does.
 // trace: D194, D122
 import std;
 import os;

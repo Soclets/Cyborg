@@ -1986,7 +1986,7 @@ impl Checker<'_> {
         }
         // A list that can grow on the heap owns memory, so it's ended with `done`. (D323, D325)
         // trace: D323, D325
-        if memory::is_growable(value_type) {
+        if memory::is_growable(value_type) || *value_type == Type::GrowableStr {
             return true;
         }
         match value_type {
@@ -2469,6 +2469,10 @@ impl Checker<'_> {
             }
             "void" => return Ok(Type::Void),
             "bool" => return Ok(Type::Bool),
+            // trace: D326
+            "str" if narrowing.is_none() && !describe.is_empty() => {
+                return Self::resolve_string_bound(describe);
+            }
             "str" => {
                 return match narrowing {
                     None => Ok(Type::Str),
@@ -3095,13 +3099,39 @@ impl Checker<'_> {
     }
 
     /// `8 items` or `inf items`, where the unit is required. `None` is `inf`. (D101)
+    /// `str[len.max: 32 bytes]` holds its text inside the value, and `str[len.max: inf bytes]`
+    /// grows on the heap. The bound is in bytes, since UTF-8 characters vary in size. (D326)
+    /// trace: D326
+    fn resolve_string_bound(describe: &[Describe]) -> Outcome<Type> {
+        let mut bound = None;
+        for entry in describe {
+            if entry.label.text != "len.max" {
+                return Err(Report::not_designed(
+                    entry.label.span,
+                    format!("the label `{}` on `str`", entry.label.text),
+                    "",
+                ));
+            }
+            bound = Some(Self::read_count(&entry.value, "bytes")?);
+        }
+        Ok(match bound.flatten() {
+            Some(bytes) => Type::BoundedStr(bytes),
+            None => Type::GrowableStr,
+        })
+    }
+
     fn read_item_count(value: &crate::ast::Expression) -> Outcome<Option<i128>> {
+        Self::read_count(value, "items")
+    }
+
+    /// A length: a whole number of `items` or `bytes`, or `inf`.
+    fn read_count(value: &crate::ast::Expression, counted: &str) -> Outcome<Option<i128>> {
         use crate::ast::ExpressionKind;
         let ExpressionKind::WithUnit { number, unit } = &value.kind else {
             // trace: D101
             let shown = match &value.kind {
-                ExpressionKind::Inf => "inf items".to_string(),
-                ExpressionKind::Integer { digits, .. } => format!("{digits} items"),
+                ExpressionKind::Inf => format!("inf {counted}"),
+                ExpressionKind::Integer { digits, .. } => format!("{digits} {counted}"),
                 _ => {
                     return Err(Report::not_designed(
                         value.span,
@@ -3117,13 +3147,17 @@ impl Checker<'_> {
             )
             .fix(shown));
         };
-        if unit.text != "items" {
+        if unit.text != counted {
             return Err(Report::refused(
                 unit.span,
-                format!("a length is in `items`, not `{}`", unit.text),
-                "the language asks for units on things that have them, like lengths (D101)",
+                format!("a length is in `{counted}`, not `{}`", unit.text),
+                if counted == "items" {
+                    "the language asks for units on things that have them, like lengths (D101)"
+                } else {
+                    "a string's `len.max` is in bytes, since UTF-8 characters vary in size (D326)"
+                },
             )
-            .fix("items"));
+            .fix(counted));
         }
         match &number.kind {
             ExpressionKind::Inf => Ok(None),
@@ -3131,8 +3165,12 @@ impl Checker<'_> {
                 Some(count) if count >= 0 => Ok(Some(count)),
                 _ => Err(Report::refused(
                     number.span,
-                    "a length is a whole number of items",
-                    "`len`, `len.min` and `len.max` count items (D13)",
+                    format!("a length is a whole number of {counted}"),
+                    if counted == "items" {
+                        "`len`, `len.min` and `len.max` count items (D13)"
+                    } else {
+                        "a string's `len.max` counts bytes (D326)"
+                    },
                 )),
             },
         }

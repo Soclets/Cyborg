@@ -12,6 +12,6 @@ end fam.unit length
 
 fn.main [none] -> void:
     let $n: i32 = 7;
-    let $s: str = $n as.trunc str;
+    let $s: str[len.max: 20 bytes] = $n as.trunc str[len.max: 20 bytes];
     return void;
 end fn.main

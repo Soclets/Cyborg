@@ -207,6 +207,21 @@ pub enum NodeKind {
         stderr: bool,
         size: Option<usize>,
     },
+    /// Text that has to fit a `str[len.max: … bytes]`, a failure if it doesn't. (D326, D328)
+    FitText {
+        value: Box<Node>,
+        bytes: i128,
+    },
+    /// `str.from(…, alloc: Lend $heap)`: text on the heap, from that allocator. (D328, D331)
+    TextFrom {
+        text: Box<Node>,
+        allocator: Box<Node>,
+    },
+    /// `str.done(Give $log, alloc: Lend $heap)`, which ends heap text. (D331)
+    TextDone {
+        text: Box<Node>,
+        allocator: Box<Node>,
+    },
     /// `os::heap()`: a new allocator, numbered so a list can remember which it uses. (D322)
     Allocator,
     /// `std::list.done(Give $xs, alloc: Lend $heap)`, which checks the list's allocator. (D323)

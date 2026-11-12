@@ -964,6 +964,34 @@ impl<'c> Runner<'c> {
                 let number = i128::try_from(self.writers.len() - 1).unwrap_or(i128::MAX);
                 Ok(Value::Struct(vec![Value::Integer(number)]))
             }
+            // trace: D326, D328
+            NodeKind::FitText { value, bytes } => {
+                let value = self.evaluate(value, frame)?;
+                let Value::Str(text) = &value else {
+                    return Err(oracle_bug(span, "text that isn't text"));
+                };
+                let length = i128::try_from(text.len()).unwrap_or(i128::MAX);
+                if length > *bytes {
+                    return Err(Stop::Raised(Raised {
+                        name: String::new(),
+                        shown: format!("this text doesn't fit `str[len.max: {bytes} bytes]`"),
+                        when: Some(format!("it's {length} bytes")),
+                        data: Vec::new(),
+                        span,
+                    }));
+                }
+                Ok(value)
+            }
+            // trace: D328, D331
+            NodeKind::TextFrom { text, allocator } => {
+                self.allocator_number(allocator, frame)?;
+                self.evaluate(text, frame)
+            }
+            NodeKind::TextDone { text, allocator } => {
+                self.evaluate(text, frame)?;
+                self.allocator_number(allocator, frame)?;
+                Ok(Value::Void)
+            }
             // trace: D322, D332
             NodeKind::Allocator => {
                 self.allocators += 1;

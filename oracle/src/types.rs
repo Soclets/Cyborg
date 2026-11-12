@@ -154,7 +154,12 @@ pub enum Type {
     /// lists. (D234, D235)
     Parameter(String),
     Bool,
+    /// A bare `str`: a read-only view of text that owns nothing. (D327)
     Str,
+    /// `str[len.max: 32 bytes]`: text held inside the value, up to that many bytes. (D326)
+    BoundedStr(i128),
+    /// `str[len.max: inf bytes]`: text that grows on the heap, and is `must_Give`. (D326)
+    GrowableStr,
     Integer {
         kind: IntegerKind,
         bound: Option<(i128, i128)>,
@@ -277,6 +282,8 @@ impl fmt::Display for Type {
             Type::Parameter(name) => write!(formatter, "?{name}"),
             Type::Bool => write!(formatter, "bool"),
             Type::Str => write!(formatter, "str"),
+            Type::BoundedStr(bytes) => write!(formatter, "str[len.max: {bytes} bytes]"),
+            Type::GrowableStr => write!(formatter, "str[len.max: inf bytes]"),
             Type::Integer { kind, bound, unit } => {
                 write!(formatter, "{}", kind.word())?;
                 let bound = bound.map(|(low, high)| (low.to_string(), high.to_string()));

@@ -888,6 +888,11 @@ impl Checker<'_> {
         if target == found {
             return Ok(());
         }
+        // Lending any string gives a view of it, so a `str` parameter reads every kind. (D327)
+        // trace: D327
+        if *target == Type::Str && matches!(found, Type::BoundedStr(_) | Type::GrowableStr) {
+            return Ok(());
+        }
         // A parameter filled with the function's own sources takes any value of that type,
         // whose sources those then stand for. (D171)
         if let (

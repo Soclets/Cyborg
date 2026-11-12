@@ -1,0 +1,5 @@
+refused: d328_as_into_heap_text.cy:5:42, line 5 column 42
+ 5 |     let $s: str[len.max: inf bytes] = $n as str[len.max: inf bytes];
+   |                                          ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ fix:  `str.from`
+ why:  heap text comes from a function that takes an allocator, like `str.from($n, alloc: Lend $heap)`, so every allocation is a visible call (D321, D328)

@@ -1,0 +1,6 @@
+check failed: d328_text_that_doesnt_fit.cy:14:44, line 14 column 44
+14 |     let $too_much: str[len.max: 3 bytes] = $big as str[len.max: 3 bytes];
+   |                                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ what: this text doesn't fit `str[len.max: 3 bytes]`, and nothing handled it
+ why:  a failure nothing handles stops the program (D96)
+ when: it's 11 bytes

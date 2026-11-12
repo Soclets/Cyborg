@@ -1,0 +1,9 @@
+refused: d326_forgetting_str_done.cy:8:5, line 8 column 5
+ 8 |     return void;
+   |     ^^^^^^^^^^^^
+ what: this leaves with `$log` never given away or finished
+ why:  heap text is `must_Give`, and `str.done` frees it with the allocator it came from, so a leak doesn't compile (D326, D331)
+ because: d326_forgetting_str_done.cy:7:9, line 7 column 9
+ 7 |     let $log: str[len.max: inf bytes] = str.from(5, alloc: Lend $heap);
+   |         ^^^^
+     `$log` was made here

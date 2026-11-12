@@ -12,7 +12,7 @@ end union.tagged token
 fn describe [$t: Given token] -> str:
     match $t:
         case token.number $n:
-            return $n.value as str;
+            return "(number)";
         case token.word $w:
             return Copy $w.text;
         case token.done:

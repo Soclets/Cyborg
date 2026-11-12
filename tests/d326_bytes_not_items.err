@@ -1,0 +1,5 @@
+refused: d326_bytes_not_items.cy:4:31, line 4 column 31
+ 4 |     let $name: str[len.max: 6 items] = "Tankun";
+   |                               ^^^^^
+ fix:  `bytes`
+ why:  a string's `len.max` is in bytes, since UTF-8 characters vary in size (D326)

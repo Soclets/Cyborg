@@ -1,0 +1,5 @@
+refused: d328_bare_as_str.cy:5:22, line 5 column 22
+ 5 |     let $s: str = $n as str;
+   |                      ^^^^^^
+ fix:  `as str[len.max: 20 bytes]`
+ why:  `as` never allocates, so text from `as` goes into a bounded `str`, held inside the value (D327, D328)
