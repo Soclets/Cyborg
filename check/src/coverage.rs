@@ -6,7 +6,7 @@
 /// - values: `i32`, `i64`, `u8`, `u32` and `u64`; strings, as views from literals or other
 ///   views, and holding up to some bytes from literals that fit, counting a two-byte `é`, or from
 ///   a number with `as`, which fails when its text doesn't fit; bounded integers from literals that fit or
-///   checked values; `f32.stable` and `f64.stable` from exact literals and ones marked `~`;
+///   checked values, as variables, parameters and struct fields; `f32.stable` and `f64.stable` from exact literals and ones marked `~`;
 ///   `const` from literals and other constants; `type.alias` names used as their integer, and
 ///   `type.new` names, alone or in a `fam.type.new` family, crossing in and out with `as`; `decl` and `decl mut` with an `assign` straight after, in both arms of an `if`, or in every arm of a `match`;
 /// - maths: `+`, `-`, `x`, the `.wrap` and `.saturate` words, `div` and `mod` with `.trunc` and
@@ -70,7 +70,6 @@
 pub const NOT_GENERATED: &[&str] = &[
     "1.13 printing: `.stored`, named holes reading fields, widths in units other than `cols`, other escapes, buffered writers, stderr",
     "2.3 `const` calling `fn.pure.baked` functions, float constants, constants whose maths overflows",
-    "2.5 bounded parameters and fields",
     "2.6, 2.7 `.fast` and `.ieee` floats, bounded floats, `exponent` literals, `fmt_print.stored`, floats in structs, arrays and calls",
     "2.9 heap strings, escapes in string literals, comparing strings, strings as values in prints, fields and calls",
     "2.10 `.len`, views and splits, a full list's failure handled, growable lists in functions, `grow:`",

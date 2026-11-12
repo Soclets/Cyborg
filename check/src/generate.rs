@@ -312,7 +312,11 @@ impl Generator<'_> {
         let mut parameters = Vec::new();
         for _ in 0..count {
             let parameter = self.name("p");
-            let parameter_type = self.integer_type();
+            let mut parameter_type = self.integer_type();
+            // Now and then a bounded parameter, which a call's value is checked against (2.5).
+            if let (true, Type::Integer(kind)) = (self.random.chance(20), parameter_type) {
+                parameter_type = self.bounded_type_of(kind);
+            }
             scope.variables.push((parameter.clone(), parameter_type));
             parameters.push((parameter, parameter_type));
         }
@@ -2161,7 +2165,8 @@ impl Generator<'_> {
             scope
                 .variables
                 .push(("by".to_string(), Type::Integer(kind)));
-            let value = self.integer(&scope, kind, 2);
+            // A bounded field gets a value that fits, or one checked while running (2.5).
+            let value = self.field_value(&scope, &declared, &field, kind);
             let name = self.name("mt");
             self.methods.push(MethodDecl {
                 struct_name: declared.name,
@@ -2813,13 +2818,37 @@ impl Generator<'_> {
     fn struct_decl(&mut self) -> StructDecl {
         let name = self.name("rec");
         let layout = *self.random.pick(&Layout::ALL).unwrap_or(&Layout::Written);
-        let fields = (0..self.random.between(1, 4))
+        let fields: Vec<(String, Kind)> = (0..self.random.between(1, 4))
             .map(|_| (self.name("fd"), self.integer_kind()))
             .collect();
+        // Now and then a bounded field, which every value put in it is checked against (2.5).
+        let mut bounds = Vec::new();
+        for (field, kind) in &fields {
+            if let (true, Type::Bounded(_, low, high)) =
+                (self.random.chance(20), self.bounded_type_of(*kind))
+            {
+                bounds.push((field.clone(), low, high));
+            }
+        }
         StructDecl {
             name,
             layout,
             fields,
+            bounds,
+        }
+    }
+
+    /// A value for a struct's field: one that fits a bounded field, or any of its kind (2.5).
+    fn field_value(
+        &mut self,
+        scope: &Scope,
+        declared: &StructDecl,
+        field: &str,
+        kind: Kind,
+    ) -> Expression {
+        match declared.field_type(field, kind) {
+            Type::Bounded(kind, low, high) => self.bounded_value(scope, kind, low, high),
+            _ => self.expression(scope, Type::Integer(kind), LIMITS.depth),
         }
     }
 
@@ -2889,7 +2918,7 @@ impl Generator<'_> {
             if self.random.chance(50) {
                 if let Some(declared) = self.structs.get(index).cloned() {
                     if let Some((field, kind)) = self.random.pick(&declared.fields).cloned() {
-                        let mut value = self.expression(scope, Type::Integer(kind), LIMITS.depth);
+                        let mut value = self.field_value(scope, &declared, &field, kind);
                         // Whether a field can change to a value that calls a method on its own
                         // struct isn't decided, so that value is a literal instead.
                         let written = Style {
@@ -2922,7 +2951,7 @@ impl Generator<'_> {
             .map(|(field, kind)| {
                 (
                     field.clone(),
-                    self.expression(scope, Type::Integer(*kind), LIMITS.depth),
+                    self.field_value(scope, &declared, field, *kind),
                 )
             })
             .collect();
@@ -3429,6 +3458,10 @@ impl Generator<'_> {
                 // A label carrying a unit takes a plain number, which gets the label's unit.
                 (Type::Unit(kind, ..), Some(label)) if label.starts_with("at.") => {
                     self.literal(*kind)
+                }
+                // A literal for a bounded parameter fits it, and anything else is checked (2.5).
+                (Type::Bounded(kind, low, high), _) => {
+                    self.bounded_value(scope, *kind, *low, *high)
                 }
                 _ => self.expression(scope, *parameter_type, depth.saturating_sub(1)),
             };

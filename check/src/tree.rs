@@ -449,6 +449,20 @@ pub struct StructDecl {
     pub name: String,
     pub layout: Layout,
     pub fields: Vec<(String, Kind)>,
+    /// The fields that are bounded, with their least and greatest values (2.5).
+    pub bounds: Vec<(String, i128, i128)>,
+}
+
+impl StructDecl {
+    /// A field's type: its kind, bounded if it's one of the bounded fields.
+    pub fn field_type(&self, field: &str, kind: Kind) -> Type {
+        self.bounds
+            .iter()
+            .find(|(found, ..)| found == field)
+            .map_or(Type::Integer(kind), |(_, low, high)| {
+                Type::Bounded(kind, *low, *high)
+            })
+    }
 }
 
 /// A `must_Give` struct, `tok…`, with integer fields, ended by `tend`, which `finish`es it, made
@@ -1123,7 +1137,11 @@ pub fn print(program: &Program) -> String {
     for declared in &program.structs {
         let _ = writeln!(out, "{} {}:", declared.layout.word(), declared.name);
         for (field, kind) in &declared.fields {
-            let _ = writeln!(out, "    {field}: {};", kind.word());
+            let _ = writeln!(
+                out,
+                "    {field}: {};",
+                declared.field_type(field, *kind).word()
+            );
         }
         let _ = writeln!(out, "end {} {}\n", declared.layout.word(), declared.name);
     }
