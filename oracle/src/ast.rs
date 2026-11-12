@@ -340,7 +340,13 @@ pub struct ShieldItem {
 
 #[derive(Clone, Debug)]
 pub enum ShieldContent {
-    UntaggedUnion { path: Path },
+    /// `union.@csup::untagged number: … end union.@csup::untagged number`, C's union, whose
+    /// fields share the same bytes. (D33, D398, D399)
+    UntaggedUnion {
+        path: Path,
+        name: Name,
+        fields: Vec<(Name, TypeExpression)>,
+    },
     Item(Box<Item>),
 }
 
@@ -354,6 +360,8 @@ pub struct TypeExpression {
 pub enum TypeKind {
     /// `?item`, a type parameter. (D234)
     Parameter(Name),
+    /// `union.@csup::untagged number`, a C union declared in a shield. (D398, D399)
+    Untagged(Name),
     Named {
         path: Path,
         fill: Vec<Fill>,

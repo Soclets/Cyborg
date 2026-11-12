@@ -3055,17 +3055,22 @@ impl Parser {
                 };
                 let union_name = self.expect_name("the union's name")?;
                 self.expect_symbol(":")?;
-                // The fields are only read past: nothing can use them until C's layouts exist.
+                let mut fields = Vec::new();
                 while !self.at_word("end") {
                     self.mark_line_start();
-                    self.expect_name("a field")?;
+                    let field = self.expect_name("a field")?;
                     self.expect_symbol(":")?;
-                    self.parse_type()?;
+                    let field_type = self.parse_type()?;
                     // trace: D208
                     self.expect_semicolon()?;
+                    fields.push((field, field_type));
                 }
                 self.expect_limb_closer(&written.text, &union_name.text)?;
-                items.push(ShieldContent::UntaggedUnion { path });
+                items.push(ShieldContent::UntaggedUnion {
+                    path,
+                    name: union_name,
+                    fields,
+                });
             } else {
                 items.push(ShieldContent::Item(Box::new(self.parse_item()?)));
             }
@@ -3108,11 +3113,13 @@ impl Parser {
         if path.text == "@csup::union.untagged" {
             return Err(old_untagged(path.span));
         }
+        // trace: D398, D399
         if path.text == "union.@csup::untagged" {
-            return Err(Report::not_built(
-                path.span,
-                "building and reading a `union.@csup::untagged`",
-            ));
+            let name = self.expect_name("the union's name")?;
+            return Ok(TypeExpression {
+                span: start.to(name.span),
+                kind: TypeKind::Untagged(name),
+            });
         }
         // `f64.?u`: a unit parameter, where a unit goes. (D243)
         // trace: D243

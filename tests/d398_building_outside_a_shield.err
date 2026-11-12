@@ -1,0 +1,5 @@
+refused: d398_building_outside_a_shield.cy:19:44, line 19 column 44
+19 |     let $n: union.@csup::untagged number = number[i = 1];
+   |                                            ^^^^^^^^^^^^^
+ what: building a `union.@csup::untagged number` outside a shield
+ why:  C's union is declared, built and read only in shields, where the reason vouches for it (D38, D398)

@@ -199,6 +199,10 @@ pub enum NodeKind {
     Read(Place),
     Global(usize),
     Field(Box<Node>, usize),
+    /// A C union built from one field's value, as that field's bytes. (D398)
+    Encode(Box<Node>, crate::types::Type),
+    /// A C union's field read from its bytes. (D398)
+    Decode(Box<Node>, crate::types::Type),
     /// An item of something with no variable to walk from, such as a constant or a call's result.
     Item(Box<Node>, Box<Position>),
     Struct(Vec<(usize, Node)>),

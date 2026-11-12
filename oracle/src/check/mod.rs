@@ -12,6 +12,7 @@ mod pointers;
 mod secrets;
 mod simd;
 mod units;
+mod untagged;
 mod writers;
 
 use std::collections::{HashMap, HashSet};
@@ -363,6 +364,8 @@ pub struct Checker<'a> {
     /// Interfaces, type sets, and which types satisfy which interface. (D235)
     interfaces: HashMap<String, generics::InterfaceInfo>,
     type_sets: HashMap<String, Vec<Type>>,
+    /// C's unions, by name, with their fields. (D398)
+    untagged: HashMap<String, Vec<(String, Type)>>,
     satisfied: Vec<(Type, String)>,
     /// Each type's own operators: which, for which types, and the function that does it. (D236)
     operators: Vec<OperatorInfo>,
@@ -413,6 +416,7 @@ pub fn check(
         instances: std::cell::RefCell::new(HashMap::new()),
         interfaces: HashMap::new(),
         type_sets: HashMap::new(),
+        untagged: HashMap::new(),
         satisfied: Vec::new(),
         operators: Vec::new(),
         errors: Vec::new(),
@@ -1018,7 +1022,7 @@ impl Checker<'_> {
                     ));
                 }
                 for content in &shield.items {
-                    if let ShieldContent::UntaggedUnion { path, .. } = content {
+                    if let ShieldContent::UntaggedUnion { path, name, fields } = content {
                         if path.text != "union.@csup::untagged" {
                             return Err(Report::not_designed(
                                 path.span,
@@ -1027,10 +1031,55 @@ impl Checker<'_> {
                             ));
                         }
                         self.require_limb("csup", path.span)?;
+                        self.declare_untagged(name, fields)?;
                     }
                 }
             }
         }
+        Ok(())
+    }
+
+    /// A C union's fields share its bytes, so the oracle holds numbers and `bool`s in them,
+    /// whose bytes it knows. (D398)
+    /// trace: D398
+    fn declare_untagged(
+        &mut self,
+        name: &crate::ast::Name,
+        fields: &[(crate::ast::Name, TypeExpression)],
+    ) -> Outcome<()> {
+        let mut declared = Vec::new();
+        for (field, written) in fields {
+            let field_type = self.resolve_plain_type(written)?;
+            let plain = matches!(
+                field_type,
+                Type::Integer {
+                    unit: None,
+                    bound: None,
+                    ..
+                } | Type::Float {
+                    unit: None,
+                    bound: None,
+                    ..
+                } | Type::Bool
+            );
+            if !plain {
+                return Err(Report::not_built(
+                    written.span,
+                    format!(
+                        "a C union field of `{field_type}`, whose bytes the oracle doesn't lay out"
+                    ),
+                ));
+            }
+            if declared.iter().any(|(found, _)| found == &field.text) {
+                return Err(Report::refused(
+                    field.span,
+                    format!("`{}` is already a field here", field.text),
+                    "each field has its own name (D33)",
+                ));
+            }
+            declared.push((field.text.clone(), field_type));
+        }
+        self.untagged.insert(name.text.clone(), declared);
         Ok(())
     }
 
@@ -1626,7 +1675,9 @@ impl Checker<'_> {
                 if let Type::Borrow { mutable, .. } = &parameter_type {
                     let inner_text = match &parameter.written_type.kind {
                         TypeKind::StoredBorrow { inner, .. } => self.text_of(inner.span),
-                        TypeKind::Named { .. } | TypeKind::Parameter(_) => "",
+                        TypeKind::Named { .. } | TypeKind::Parameter(_) | TypeKind::Untagged(_) => {
+                            ""
+                        }
                     };
                     let fix = if *mutable {
                         format!("Lent.mut {inner_text}")
@@ -2382,7 +2433,7 @@ impl Checker<'_> {
                 }
             }
             TypeKind::StoredBorrow { inner, .. } => self.collect_type_names(inner, out),
-            TypeKind::Parameter(_) => {}
+            TypeKind::Parameter(_) | TypeKind::Untagged(_) => {}
         }
     }
 
@@ -2494,6 +2545,17 @@ impl Checker<'_> {
     #[allow(clippy::too_many_lines)] // One arm per way a type can be spelled.
     fn resolve_plain_type(&self, written: &TypeExpression) -> Outcome<Type> {
         let (path, fill, describe) = match &written.kind {
+            // trace: D398
+            TypeKind::Untagged(name) => {
+                if self.untagged.contains_key(&name.text) {
+                    return Ok(Type::Untagged(name.text.clone()));
+                }
+                return Err(Report::refused(
+                    name.span,
+                    format!("there's no `union.@csup::untagged {}`", name.text),
+                    "C's union is declared in a shield before it's used (D38, D398)",
+                ));
+            }
             // trace: D234
             TypeKind::Parameter(name) => {
                 if self.is_unit_parameter(&name.text) == Some(true) {

@@ -819,11 +819,17 @@ impl Checker<'_> {
             ExpressionKind::Field { base, name } if root_variable(base).is_none() => {
                 // A field of a fresh value, such as `make().n`, has no variable to walk from.
                 let (node, base_type) = self.check_expression(base, None)?;
+                if let Type::Untagged(union) = &base_type {
+                    return self.read_untagged(node, union, name, span);
+                }
                 let (index, value_type) = self.find_field(base, &base_type, name)?;
                 Ok((simple(NodeKind::Field(Box::new(node), index)), value_type))
             }
             ExpressionKind::Field { base, name } => {
                 let held = self.check_held(base)?;
+                if let Type::Untagged(union) = &held.value_type {
+                    return self.read_untagged(held.node, union, name, span);
+                }
                 if matches!(
                     held.value_type,
                     Type::List { .. } | Type::Array { .. } | Type::ListView { .. }
@@ -1522,6 +1528,10 @@ impl Checker<'_> {
         expected: Option<&Type>,
     ) -> Outcome<(Node, Type)> {
         let text = self.canonical(&path.text);
+        // trace: D398
+        if self.untagged.contains_key(&text) {
+            return self.build_untagged(&text, fields, span);
+        }
         // trace: D134
         if matches!(self.named.get(&text), Some(Type::New { .. })) {
             return Err(Report::not_designed(

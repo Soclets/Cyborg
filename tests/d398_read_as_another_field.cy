@@ -1,6 +1,5 @@
-// 9.6's example. Building and reading an untagged union is decided, and the oracle does not
-// do it yet.
-// trace: D398, D286
+// 9.6's example: an untagged union built with one field and read as another, as the same bytes.
+// trace: D398, D399
 import std;
 import os;
 import @csup;

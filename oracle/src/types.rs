@@ -187,6 +187,8 @@ pub enum Type {
     },
     Struct(String),
     Union(String),
+    /// `union.@csup::untagged number`, C's union, whose fields share the same bytes. (D398)
+    Untagged(String),
     /// `@concur::task<i64>`: a task that gives back an `i64` when it's done. (D344)
     Task(Box<Type>),
     /// `@concur::atomic<u64>`: an integer or `bool` changed by indivisible instructions. (D354)
@@ -375,6 +377,7 @@ impl fmt::Display for Type {
                 rules,
             } => write_float(formatter, *kind, *bound, unit.as_ref(), *rules),
 
+            Type::Untagged(name) => write!(formatter, "union.@csup::untagged {name}"),
             Type::Struct(name) | Type::Union(name) | Type::New { name, .. } => {
                 write!(formatter, "{name}")
             }
@@ -505,6 +508,9 @@ pub enum Value {
     /// its block once it first allocates: which allocator, by number, and its room. (D322, D385)
     List(Vec<Value>, Option<Heap>),
     Map,
+    /// A C union's bytes, as many as the field written holds, least significant first, as on
+    /// every target. (D398)
+    Bytes(Vec<u8>),
     /// Half of a split. (D382)
     Window(Window),
 }

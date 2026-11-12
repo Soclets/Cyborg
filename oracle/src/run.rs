@@ -1192,6 +1192,20 @@ impl<'c> Runner<'c> {
                     .cloned()
                     .ok_or_else(|| oracle_bug(span, "a field wasn't where the checker said"))
             }
+            // trace: D398
+            NodeKind::Encode(value, written) => {
+                let value = self.evaluate(value, frame)?;
+                encode(&value, written)
+                    .map(Value::Bytes)
+                    .ok_or_else(|| oracle_bug(span, "a C union field the checker let through"))
+            }
+            // trace: D398
+            NodeKind::Decode(union, read) => {
+                let Value::Bytes(bytes) = self.evaluate(union, frame)? else {
+                    return Err(oracle_bug(span, "a C union that wasn't bytes"));
+                };
+                decode(&bytes, read, span)
+            }
             NodeKind::Struct(fields) => Ok(Value::Struct(self.evaluate_all(fields, frame)?)),
             NodeKind::Case(case, fields) => {
                 Ok(Value::Case(*case, self.evaluate_all(fields, frame)?))
@@ -2871,4 +2885,102 @@ fn decibels(
         Number::Float(crate::types::FloatKind::F32, _) => Value::F32(result as f32),
         _ => Value::F64(result),
     })
+}
+
+/// How many bytes a C union field takes.
+fn field_bytes(field: &crate::types::Type) -> Option<usize> {
+    match field {
+        crate::types::Type::Integer { kind, .. } => usize::try_from(kind.bits() / 8).ok(),
+        crate::types::Type::Float { kind, .. } => Some(match kind {
+            crate::types::FloatKind::F32 => 4,
+            crate::types::FloatKind::F64 => 8,
+        }),
+        crate::types::Type::Bool => Some(1),
+        _ => None,
+    }
+}
+
+/// A C union field's bytes, least significant first, as on every target. (D398)
+fn encode(value: &Value, written: &crate::types::Type) -> Option<Vec<u8>> {
+    let size = field_bytes(written)?;
+    match value {
+        Value::Integer(number) => Some(number.to_le_bytes().get(..size)?.to_vec()),
+        Value::F32(number) => Some(number.to_le_bytes().to_vec()),
+        Value::F64(number) => Some(number.to_le_bytes().to_vec()),
+        Value::Bool(flag) => Some(vec![u8::from(*flag)]),
+        _ => None,
+    }
+}
+
+/// A C union field read from the bytes another field wrote. Reading more bytes than were
+/// written, a `bool` from a byte that's neither 0 nor 1, and a `.stable` float from bits that
+/// make NaN or infinity aren't said. (D398)
+fn decode(bytes: &[u8], read: &crate::types::Type, span: Span) -> Result<Value, Stop> {
+    let size = field_bytes(read)
+        .ok_or_else(|| oracle_bug(span, "a C union field the checker let through"))?;
+    let Some(used) = bytes.get(..size) else {
+        return Err(Stop::Report(Report::not_designed(
+            span,
+            format!(
+                "reading {size} bytes of a C union whose field written holds {}",
+                bytes.len()
+            ),
+            "",
+        )));
+    };
+    match read {
+        crate::types::Type::Integer { kind, .. } => {
+            let (low, _) = kind.range();
+            let mut wide = [0u8; 16];
+            wide.get_mut(..size)
+                .ok_or_else(|| oracle_bug(span, "a field wider than 16 bytes"))?
+                .copy_from_slice(used);
+            let unsigned = i128::from_le_bytes(wide);
+            // A signed field takes its top bit as the sign.
+            let bits = kind.bits();
+            let value = if low < 0 && unsigned >> (bits - 1) & 1 == 1 {
+                unsigned - (1i128 << bits)
+            } else {
+                unsigned
+            };
+            Ok(Value::Integer(value))
+        }
+        crate::types::Type::Float { kind, rules, .. } => {
+            let value = match kind {
+                crate::types::FloatKind::F32 => {
+                    let mut four = [0u8; 4];
+                    four.copy_from_slice(used);
+                    Value::F32(f32::from_le_bytes(four))
+                }
+                crate::types::FloatKind::F64 => {
+                    let mut eight = [0u8; 8];
+                    eight.copy_from_slice(used);
+                    Value::F64(f64::from_le_bytes(eight))
+                }
+            };
+            let finite = match value {
+                Value::F32(number) => number.is_finite(),
+                Value::F64(number) => number.is_finite(),
+                _ => true,
+            };
+            if !finite && *rules != crate::types::FloatRules::Ieee {
+                return Err(Stop::Report(Report::not_designed(
+                    span,
+                    format!("a `{read}` read from bits that make NaN or infinity"),
+                    "",
+                )));
+            }
+            Ok(value)
+        }
+        crate::types::Type::Bool => match used.first() {
+            Some(0) => Ok(Value::Bool(false)),
+            Some(1) => Ok(Value::Bool(true)),
+            _ => Err(Stop::Report(Report::not_designed(
+                span,
+                "a `bool` read from a byte that's neither 0 nor 1",
+                "",
+            ))),
+        },
+        _ => Err(oracle_bug(span, "a C union field the checker let through")),
+    }
 }
