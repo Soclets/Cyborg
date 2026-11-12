@@ -156,38 +156,14 @@ fn block_cuts(block: &[Statement]) -> Vec<Vec<Statement>> {
                     }]);
                 }
             }
-            Statement::ForEach {
-                item,
-                array,
-                changes,
-                body,
-            } => {
+            Statement::ForEach { body, .. } | Statement::For { body, .. } => {
                 for smaller in block_cuts(body) {
-                    replace(vec![Statement::ForEach {
-                        item: item.clone(),
-                        array: array.clone(),
-                        changes: *changes,
-                        body: smaller,
-                    }]);
-                }
-            }
-            Statement::For {
-                counter,
-                from,
-                end,
-                inclusive,
-                step,
-                body,
-            } => {
-                for smaller in block_cuts(body) {
-                    replace(vec![Statement::For {
-                        counter: counter.clone(),
-                        from: *from,
-                        end: *end,
-                        inclusive: *inclusive,
-                        step: *step,
-                        body: smaller,
-                    }]);
+                    let mut copy = statement.clone();
+                    if let Statement::ForEach { body, .. } | Statement::For { body, .. } = &mut copy
+                    {
+                        *body = smaller;
+                    }
+                    replace(vec![copy]);
                 }
             }
             _ => {}

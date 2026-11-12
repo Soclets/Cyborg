@@ -24,6 +24,9 @@
 ///   and changed, and methods on them that read their fields or change one, called with `.%` and
 ///   `.%%`; tagged unions whose cases carry integer data or none, and `match` covering every
 ///   case in any order, an arm naming its case to read its data;
+/// - loops: `for` over arrays and lists with `Lend` or `Lend.mut`, over an array of `must_Give`
+///   values with `Give`, and over ranges whose counter is read, whose end lies past the last
+///   step or is only known while running; named loops, stopped with `break name` from inside;
 /// - control: `let`, `change`, `if` and `else`, the test `if $v: T:` on a union's case or an
 ///   integer's bound, `while`, `for` over literal ranges and through
 ///   arrays, reading or changing each item, `forever`, `break`;
@@ -77,7 +80,7 @@ pub const NOT_GENERATED: &[&str] = &[
     "2.19 `decl` assigned in loops or `match` arms, or never changed",
     "2.21 `simd` with one value, chunks, shuffles, `pick`, lookups, `lanes: max`, floats in lanes, `as` from arrays",
     "2.22 `bool.secret` values with `and.both`, `or.both` and `not`, secrets in arrays and `simd`, shifts on secrets",
-    "4.3 to 4.8 `match`, `for … in Give`, `for` over lists, a range's counter in use, ranges that step past their end, named loops",
+    "4.4 `for` over a fresh collection, since generated functions don't return arrays or lists yet",
     "5.x contracts that call pure functions, methods with labels or on other types, `bake`; generics with more than one type parameter, and generic structs holding structs; undecided: specialization, value parameters, type slots and how laws are proven (12.5)",
     "6.x stored borrows and `.held`, `Lend from` results, `must_Give` values that leave a loop or a `match`, and `defer` on anything but ending a value",
     "7.x structs holding other structs, lists or borrows, beyond the `must_Give` holder, handing unions to functions",

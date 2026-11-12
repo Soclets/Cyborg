@@ -76,6 +76,8 @@ struct Generator<'random> {
     generics: Option<Generics>,
     /// A `must_Give` struct, when the program declares one (6.9).
     tokens: Option<Tokens>,
+    /// The names of the loops around what's being generated, innermost last (4.8).
+    loop_names: Vec<String>,
     /// A C union, when the program declares one (9.6, D398).
     untagged: Option<(String, Vec<(String, Kind)>)>,
     /// Float units, when the program has them.
@@ -115,6 +117,7 @@ pub fn program(seed: u64) -> Program {
         generics: None,
         tokens: None,
         untagged: None,
+        loop_names: Vec::new(),
         float_units: None,
         units: Vec::new(),
         constants: Vec::new(),
@@ -636,7 +639,14 @@ impl Generator<'_> {
                 let mut then = self.block(scope, 3, depth + 1, (prints, in_loop));
                 // A `break` ends a block, so nothing after it goes unreached (4.8).
                 if in_loop && self.random.chance(30) {
-                    then.push(Statement::Break);
+                    // Now and then a named loop around, stopped with every loop inside it.
+                    let named = self.random.pick(&self.loop_names.clone()).cloned();
+                    match named {
+                        Some(name) if self.random.chance(40) => {
+                            then.push(Statement::BreakNamed(name));
+                        }
+                        _ => then.push(Statement::Break),
+                    }
                 }
                 let otherwise = if self.random.chance(50) {
                     self.block(scope, 3, depth + 1, (prints, in_loop))
@@ -716,7 +726,9 @@ impl Generator<'_> {
     /// `for` through an array, reading or changing each item, or `forever` with a counter that
     /// stops it. The array is out of reach in the body, which a `for` holds it for (4.4, 4.7).
     fn loop_over(&mut self, scope: &mut Scope, depth: usize, prints: bool) -> Statement {
-        let Some((array, kind, _)) = self.random.pick(&scope.arrays).cloned() else {
+        let collections: Vec<(String, Kind, i128)> =
+            scope.arrays.iter().chain(&scope.lists).cloned().collect();
+        let Some((array, kind, _)) = self.random.pick(&collections).cloned() else {
             let counter = self.name("i");
             let rounds = self.random.between(0, 4);
             scope
@@ -733,10 +745,18 @@ impl Generator<'_> {
         // The item's name starts `x`, so it's never chosen for `change`; one lent to change is
         // changed once in the body instead.
         let item = self.name("x");
+        // What the loop goes through is locked while it runs, so the body doesn't touch any.
         let held_arrays = std::mem::take(&mut scope.arrays);
+        let held_lists = std::mem::take(&mut scope.lists);
         let held_variables = scope.variables.len();
         scope.variables.push((item.clone(), Type::Integer(kind)));
+        let name = self.random.chance(30).then(|| self.name("lp"));
+        self.loop_names.extend(name.clone());
         let mut body = self.block(scope, 3, depth + 1, (prints, true));
+        self.break_named(scope, &mut body);
+        if name.is_some() {
+            self.loop_names.pop();
+        }
         if changes {
             let value = self.expression(scope, Type::Integer(kind), LIMITS.depth);
             body.insert(
@@ -749,11 +769,29 @@ impl Generator<'_> {
         }
         scope.variables.truncate(held_variables);
         scope.arrays = held_arrays;
+        scope.lists = held_lists;
         Statement::ForEach {
+            name,
             item,
             array,
             changes,
             body,
+        }
+    }
+
+    /// Now and then a loop's body ends with `if …: break name;`, naming this loop or one
+    /// around it, which stops it and every loop inside (4.8).
+    fn break_named(&mut self, scope: &Scope, body: &mut Vec<Statement>) {
+        let Some(name) = self.random.pick(&self.loop_names.clone()).cloned() else {
+            return;
+        };
+        if self.random.chance(50) {
+            let test = self.boolean(scope, 2);
+            body.push(Statement::If {
+                test,
+                then: vec![Statement::BreakNamed(name)],
+                otherwise: Vec::new(),
+            });
         }
     }
 
@@ -1201,7 +1239,11 @@ impl Generator<'_> {
             .iter()
             .map(|(field, kind)| (field.clone(), self.integer(scope, *kind, LIMITS.depth)))
             .collect();
-        let ending = match self.random.between(0, 4) {
+        let ending = match self.random.between(0, 5) {
+            5 => Ending::Looped {
+                count: self.random.between(2, 4),
+                item: self.name("tk"),
+            },
             0 => Ending::Direct,
             1 => Ending::Deferred,
             2 => Ending::Branches(self.boolean(scope, depth.min(2))),
@@ -1214,6 +1256,7 @@ impl Generator<'_> {
             }
             _ => Ending::Held,
         };
+        // `Looped` reads inside its loop, through the item.
         // A field read into a variable of its kind that can change.
         let read_into = if matches!(ending, Ending::Held) {
             None
@@ -2966,9 +3009,38 @@ impl Generator<'_> {
         let inclusive = self.random.chance(50);
         let lowest = i128::from(!inclusive);
         let rounds = self.random.between(lowest, 4);
-        let end = from + step.unwrap_or(1) * rounds;
-        let body = self.block(scope, 3, depth + 1, (prints, true));
+        // Now and then the end lies past the last step, which the range stops short of (4.5).
+        let by: i128 = step.unwrap_or(1);
+        let past = self.random.between(0, by.abs() - 1) * by.signum();
+        let mut end = Expression::Integer(from + by * rounds + past);
+        // Or the end is only known while running, kept small, so the range may run zero rounds
+        // with no error (4.5).
+        if by == 1 && self.random.chance(25) {
+            if let Some(Expression::Variable(variable)) =
+                self.variable_of(scope, Type::Integer(Kind::I32))
+            {
+                end = Expression::Binary {
+                    operator: Operator::RemainderTrunc,
+                    left: Box::new(Expression::Variable(variable)),
+                    right: Box::new(Expression::Integer(6)),
+                };
+            }
+        }
+        // A range of literals counts in `i32`, and its counter can be read inside (4.5).
+        let held_variables = scope.variables.len();
+        scope
+            .variables
+            .push((counter.clone(), Type::Integer(Kind::I32)));
+        let name = self.random.chance(30).then(|| self.name("lp"));
+        self.loop_names.extend(name.clone());
+        let mut body = self.block(scope, 3, depth + 1, (prints, true));
+        self.break_named(scope, &mut body);
+        if name.is_some() {
+            self.loop_names.pop();
+        }
+        scope.variables.truncate(held_variables);
         Statement::For {
+            name,
             counter,
             from,
             end,

@@ -477,6 +477,8 @@ pub enum Ending {
     },
     /// Inside a holder, closed by `tclose`.
     Held,
+    /// Two to four of them in an array, each taken by `for … in Give` and ended (4.4).
+    Looped { count: i128, item: String },
 }
 
 /// What a program declares for generics: the interfaces `equatable`, `ordered` and `addable`, the
@@ -590,9 +592,12 @@ pub enum Statement {
     /// `for $counter in range[from: …, to: …, step_by: …]:` (4.4, 4.5), its counter unused,
     /// since what type a literal range's counter is isn't stated.
     For {
+        /// The loop's name, which a `break` can name to stop it and every loop inside (4.8).
+        name: Option<String>,
         counter: String,
         from: i128,
-        end: i128,
+        /// A literal, or a value only known while running (4.5).
+        end: Expression,
         /// `to:` when true, `before:` when false.
         inclusive: bool,
         step: Option<i128>,
@@ -600,8 +605,11 @@ pub enum Statement {
     },
     /// `break;`, which stops the innermost loop (4.8).
     Break,
+    /// `break name;`, which stops the named loop and every loop inside it (4.8).
+    BreakNamed(String),
     /// `for $x in $a:`, reading each item, or `for $x in Lend.mut $a:`, changing each (4.4).
     ForEach {
+        name: Option<String>,
         item: String,
         array: String,
         changes: bool,
@@ -812,6 +820,14 @@ pub struct Program {
     pub fewer_brackets: bool,
 }
 
+/// A named loop's name after `for`, and after `end for` (4.8).
+fn loop_name(name: Option<&String>) -> (String, String) {
+    name.map_or_else(
+        || (String::new(), String::new()),
+        |name| (format!("{name} "), format!(" {name}")),
+    )
+}
+
 /// A `must_Give` value made, perhaps read, and handed off on every path (6.9, 6.12).
 #[allow(clippy::type_complexity)] // The statement's parts, grouped as the printer reads them.
 fn print_token(
@@ -862,6 +878,20 @@ fn print_token(
             );
             read(out, passed);
             let _ = writeln!(out, "{indent}tend(Give ${passed});");
+        }
+        Ending::Looped { count, item } => {
+            let all = vec![built; usize::try_from(*count).unwrap_or(1)];
+            let _ = writeln!(
+                out,
+                "{indent}let ${name}: std::coll::array<{struct_name}>[len: {count} items] = [{}];",
+                all.join(", ")
+            );
+            let _ = writeln!(out, "{indent}for ${item} in Give ${name}:");
+            if let Some((target, field)) = read_into {
+                let _ = writeln!(out, "{indent}    change ${target} = ${item}.{field};");
+            }
+            let _ = writeln!(out, "{indent}    tend(Give ${item});");
+            let _ = writeln!(out, "{indent}end for");
         }
         Ending::Held => {
             let _ = writeln!(
@@ -1418,6 +1448,7 @@ fn print_block(out: &mut String, statements: &[Statement], depth: usize, style: 
                 let _ = writeln!(out, "{indent}end while");
             }
             Statement::For {
+                name,
                 counter,
                 from,
                 end,
@@ -1427,17 +1458,23 @@ fn print_block(out: &mut String, statements: &[Statement], depth: usize, style: 
             } => {
                 let label = if *inclusive { "to" } else { "before" };
                 let step = step.map_or_else(String::new, |step| format!(", step_by: {step}"));
+                let (opener, closer) = loop_name(name.as_ref());
                 let _ = writeln!(
                     out,
-                    "{indent}for ${counter} in range[from: {from}, {label}: {end}{step}]:"
+                    "{indent}for {opener}${counter} in range[from: {from}, {label}: {}{step}]:",
+                    style.expression(end)
                 );
                 print_block(out, body, depth + 1, style);
-                let _ = writeln!(out, "{indent}end for");
+                let _ = writeln!(out, "{indent}end for{closer}");
             }
             Statement::Break => {
                 let _ = writeln!(out, "{indent}break;");
             }
+            Statement::BreakNamed(name) => {
+                let _ = writeln!(out, "{indent}break {name};");
+            }
             Statement::ForEach {
+                name,
                 item,
                 array,
                 changes,
@@ -1445,9 +1482,10 @@ fn print_block(out: &mut String, statements: &[Statement], depth: usize, style: 
             } => {
                 // A loop says how it holds each item, even to read it (D393).
                 let word = if *changes { "Lend.mut " } else { "Lend " };
-                let _ = writeln!(out, "{indent}for ${item} in {word}${array}:");
+                let (opener, closer) = loop_name(name.as_ref());
+                let _ = writeln!(out, "{indent}for {opener}${item} in {word}${array}:");
                 print_block(out, body, depth + 1, style);
-                let _ = writeln!(out, "{indent}end for");
+                let _ = writeln!(out, "{indent}end for{closer}");
             }
             Statement::DeclAssign {
                 name,
