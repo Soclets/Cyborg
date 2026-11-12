@@ -483,6 +483,13 @@ pub enum Statement {
         kind: Kind,
         call: Expression,
     },
+    /// The test, `if $w: un1.cs2:` or `if $v: i32[min: 0, max: 9]:`, inside which the value is
+    /// taken as that case or bound (4.2).
+    Test {
+        variable: String,
+        written: String,
+        body: Vec<Statement>,
+    },
     /// A call to a void function, its arguments with their ownership words (6.1).
     CallProcedure {
         name: String,
@@ -935,6 +942,15 @@ fn print_block(out: &mut String, statements: &[Statement], depth: usize, style: 
                     out,
                     "{indent}let mut ${name}: {kind} = @concur::task.done(Give ${task});"
                 );
+            }
+            Statement::Test {
+                variable,
+                written,
+                body,
+            } => {
+                let _ = writeln!(out, "{indent}if ${variable}: {written}:");
+                print_block(out, body, depth + 1, style);
+                let _ = writeln!(out, "{indent}end if");
             }
             Statement::CallProcedure { name, arguments } => {
                 let _ = writeln!(out, "{indent}{name}({});", arguments.join(", "));

@@ -346,6 +346,7 @@ impl Generator<'_> {
             4 | 5 if prints && !self.procedures.is_empty() && self.random.chance(50) => self
                 .call_procedure(scope)
                 .unwrap_or_else(|| self.list_statement(scope)),
+            6 if depth < 2 && self.random.chance(25) => self.test_statement(scope, depth, prints),
             9 if depth < 2 && !scope.cased.is_empty() && self.random.chance(60) => {
                 self.union_statement(scope, depth, prints)
             }
@@ -778,6 +779,71 @@ impl Generator<'_> {
             left: Box::new(left),
             right: Box::new(right),
         }
+    }
+
+    /// The test: a union variable tested for one of its cases, whose fields the block reads, or
+    /// a plain integer tested for a bound, which the block puts into a bounded variable with no
+    /// check (4.2).
+    fn test_statement(&mut self, scope: &mut Scope, depth: usize, prints: bool) -> Statement {
+        let held = scope.case_fields.len();
+        let declared = scope.variables.len();
+        let mut body = Vec::new();
+        let tested = match self.random.pick(&scope.cased).cloned() {
+            Some((variable, index)) if self.random.chance(50) => {
+                let union = self.unions.get(index).cloned();
+                union.and_then(|union| {
+                    let (case, fields) = self.random.pick(&union.cases)?.clone();
+                    for (field, kind) in fields {
+                        scope.case_fields.push((variable.clone(), field, kind));
+                    }
+                    Some((variable, format!("{}.{case}", union.name)))
+                })
+            }
+            _ => None,
+        };
+        let (variable, written) = if let Some(found) = tested {
+            found
+        } else {
+            let integers: Vec<(String, Kind)> = scope
+                .variables
+                .iter()
+                .filter_map(|(name, found)| match found {
+                    Type::Integer(kind) => Some((name.clone(), *kind)),
+                    _ => None,
+                })
+                .collect();
+            let Some((variable, kind)) = self.random.pick(&integers).cloned() else {
+                return self.list_statement(scope);
+            };
+            let Type::Bounded(_, low, high) = self.bounded_type_of(kind) else {
+                return self.list_statement(scope);
+            };
+            let bounded = Type::Bounded(kind, low, high);
+            let name = self.name("v");
+            body.push(Statement::Let {
+                name: name.clone(),
+                value_type: bounded,
+                value: Expression::Variable(variable.clone()),
+            });
+            scope.variables.push((name, bounded));
+            (variable, bounded.word())
+        };
+        body.extend(self.block(scope, 2, depth + 1, (prints, false)));
+        scope.case_fields.truncate(held);
+        scope.variables.truncate(declared);
+        Statement::Test {
+            variable,
+            written,
+            body,
+        }
+    }
+
+    /// A bounded type over this kind.
+    fn bounded_type_of(&mut self, kind: Kind) -> Type {
+        let (low, high) = kind.range();
+        let low = self.random.between(low.max(-50), high.min(50));
+        let high = self.random.between(low, high.min(low + 100));
+        Type::Bounded(kind, low, high)
     }
 
     /// A call to an integer function started as a task in `main`, then ended with

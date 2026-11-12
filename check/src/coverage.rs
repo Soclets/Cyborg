@@ -16,7 +16,8 @@
 ///   `pos:` and `offset.items:`, read and changed, and `append` to a bounded list; structs with integer fields in every layout, built with `[ ]`, their fields read
 ///   and changed; tagged unions whose cases carry integer data or none, and `match` covering every
 ///   case in any order, an arm naming its case to read its data;
-/// - control: `let`, `change`, `if` and `else`, `while`, `for` over literal ranges and through
+/// - control: `let`, `change`, `if` and `else`, the test `if $v: T:` on a union's case or an
+///   integer's bound, `while`, `for` over literal ranges and through
 ///   arrays, reading or changing each item, `forever`, `break`;
 /// - functions: printed in a shuffled order, so calls reach ones declared later; calls started
 ///   as `@concur` tasks on `std::run::one_thread` and ended with `task.done`; void ones taking integers lent to change with `Lend.mut`, and structs lent or
@@ -32,7 +33,7 @@
 pub const NOT_GENERATED: &[&str] = &[
     "1.13 printing: `.stored`, named holes reading fields, widths in units other than `cols`, `unit`, other escapes, buffered writers, stderr",
     "2.3 `const` calling `fn.pure.baked` functions, float constants, constants whose maths overflows",
-    "2.5 bounded parameters and fields, the test `if $n: T:` that checks a bound",
+    "2.5 bounded parameters and fields",
     "2.6, 2.7 `.fast` and `.ieee` floats, bounded floats, `exponent` literals, `fmt_print.stored`, floats in structs, arrays and calls",
     "2.9 heap strings, escapes in string literals, comparing strings, strings as values in prints, fields and calls",
     "2.10 and 2.12 growable lists and maps, allocators, `done`, `.len`, views and splits, a full list's failure handled",
@@ -44,11 +45,10 @@ pub const NOT_GENERATED: &[&str] = &[
     "2.22 secrets",
     "3.9 chains that change direction, like `$a below $b above $c`",
     "3.10 a type's own operators",
-    "4.2 the test, `if $n: T:`",
     "4.3 to 4.8 `match`, `for … in Give`, `for` over lists, a range's counter in use, ranges that step past their end, named loops",
     "5.x contracts that call pure functions, generics, interfaces, methods, `bake`, `Lent.mut` parameters",
     "6.x stored borrows, `must_Give`, `finish`, `defer`, giving a value away on one path, ownership words on functions that return values",
-    "7.x structs holding other structs, lists or borrows, `must_Give` structs, generic structs, handing structs and unions to functions, the test `if $u: u.case:`",
+    "7.x structs holding other structs, lists or borrows, `must_Give` structs, generic structs, handing structs and unions to functions",
     "8.x named sets of failures, a `case` reading a failure's data, arms that `return`, `break` or `fail`, handler narrowings and `*`",
     "9.x `use`, limbs, shields, `inline.asm`, pointers, `pub`, tasks on `os::threads` and `os::events`, tasks that borrow, locks and atomics",
     "10.x build modes beyond comparing outputs",
