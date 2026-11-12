@@ -521,7 +521,8 @@ impl Generator<'_> {
                     | Type::Unit(..)
                     | Type::FloatUnit(_)
                     | Type::OtherFloat(..)
-                    | Type::BoundedFloat(..) => None,
+                    | Type::BoundedFloat(..)
+                    | Type::SecretBool => None,
                 });
                 let test = self.expression(&scope, Type::Bool, LIMITS.depth);
                 body.push(Statement::If {
@@ -676,7 +677,7 @@ impl Generator<'_> {
                 }
             }
             // The kinds of statement added later share 10 and 11 evenly.
-            10 | 11 => match self.random.between(0, 20) {
+            10 | 11 => match self.random.between(0, 22) {
                 0 if prints => self
                     .reveal(scope)
                     .unwrap_or_else(|| self.list_statement(scope)),
@@ -772,6 +773,19 @@ impl Generator<'_> {
                 20 => self
                     .nest_statement(scope)
                     .unwrap_or_else(|| self.list_statement(scope)),
+                21 => self
+                    .secret_collections(scope)
+                    .unwrap_or_else(|| self.list_statement(scope)),
+                22 => {
+                    let value = self.secret_bool(scope, 2);
+                    let name = self.name("sb");
+                    scope.variables.push((name.clone(), Type::SecretBool));
+                    Statement::Let {
+                        name,
+                        value_type: Type::SecretBool,
+                        value,
+                    }
+                }
                 _ => self.list_statement(scope),
             },
             0..=3 if self.random.chance(15) => self
@@ -1258,6 +1272,85 @@ impl Generator<'_> {
     /// A secret value: a literal or plain value, which becomes secret where it goes, a secret
     /// variable, a choice by `.%pick` on two secrets compared, or two joined by an operator that
     /// takes the same time for every value (2.22).
+    /// A `bool.secret`: two secrets compared, or ones joined with `and.both`, `or.both` or
+    /// `not`, which always work out both sides (2.22).
+    fn secret_bool(&mut self, scope: &Scope, depth: usize) -> Expression {
+        let secrets: Vec<(String, Type)> = scope
+            .variables
+            .iter()
+            .filter(|(_, found)| matches!(found, Type::Secret(_)))
+            .cloned()
+            .collect();
+        if depth > 0 && self.random.chance(40) {
+            if let Some(variable) = self.variable_of(scope, Type::SecretBool) {
+                return match self.random.between(0, 2) {
+                    0 => Expression::Not(Box::new(variable)),
+                    roll => {
+                        let other = self.secret_bool(scope, depth - 1);
+                        Expression::Logic {
+                            and: roll == 1,
+                            both: true,
+                            left: Box::new(variable),
+                            right: Box::new(other),
+                        }
+                    }
+                };
+            }
+        }
+        if let Some((name, value_type)) = self.random.pick(&secrets).cloned() {
+            let other = self
+                .variable_of(scope, value_type)
+                .unwrap_or_else(|| Expression::Variable(name.clone()));
+            let comparison = *self
+                .random
+                .pick(&Comparison::ALL)
+                .unwrap_or(&Comparison::Equal);
+            return Expression::Compare {
+                comparison,
+                left: Box::new(Expression::Variable(name)),
+                right: Box::new(other),
+            };
+        }
+        self.variable_of(scope, Type::SecretBool)
+            .unwrap_or(Expression::Bool(true))
+    }
+
+    /// Secrets in an array, from secrets here, one read back (2.22).
+    fn secret_collections(&mut self, scope: &mut Scope) -> Option<Statement> {
+        let secrets: Vec<(String, Kind)> = scope
+            .variables
+            .iter()
+            .filter_map(|(name, found)| match found {
+                Type::Secret(kind) => Some((name.clone(), *kind)),
+                _ => None,
+            })
+            .collect();
+        let (first, kind) = self.random.pick(&secrets)?.clone();
+        let second = self.secret(scope, kind, 1);
+        let items = vec![Expression::Variable(first), second];
+        // A `simd` of secrets is decided, and the oracle doesn't run one yet (D286).
+        let array = self.name("sa");
+        let read = self.name("sec");
+        let word = kind.word();
+        scope.variables.push((read.clone(), Type::Secret(kind)));
+        Some(Statement::Sequence(vec![
+            Statement::LetNamed {
+                name: array.clone(),
+                written: format!("std::coll::array<{word}.secret>[len: 2 items]"),
+                value: Expression::Lanes(items),
+                back: None,
+            },
+            Statement::Let {
+                name: read,
+                value_type: Type::Secret(kind),
+                value: Expression::Item {
+                    array,
+                    position: Position::Pos(2),
+                },
+            },
+        ]))
+    }
+
     fn secret(&mut self, scope: &Scope, kind: Kind, depth: usize) -> Expression {
         let value_type = Type::Secret(kind);
         let roll = self.random.between(0, 9);
@@ -1270,6 +1363,18 @@ impl Generator<'_> {
             return self.integer(scope, kind, depth.min(1));
         }
         if roll == 4 {
+            // A `bool.secret` here chooses, or a comparison of two secrets made in place.
+            if let (Some(test), Some(if_true), Some(if_false)) = (
+                self.variable_of(scope, Type::SecretBool),
+                self.variable_of(scope, value_type),
+                self.variable_of(scope, value_type),
+            ) {
+                return Expression::Pick {
+                    test: Box::new(test),
+                    if_true: Box::new(if_true),
+                    if_false: Box::new(if_false),
+                };
+            }
             if let (Some(left), Some(right)) = (
                 self.variable_of(scope, value_type),
                 self.variable_of(scope, value_type),
@@ -1293,6 +1398,16 @@ impl Generator<'_> {
                     }),
                     if_true: Box::new(if_true),
                     if_false: Box::new(if_false),
+                };
+            }
+        }
+        // A shift by a public amount takes the same time for every value (2.22).
+        if roll == 5 {
+            if let Some(variable) = self.variable_of(scope, value_type) {
+                return Expression::Binary {
+                    operator: Operator::ShiftRight,
+                    left: Box::new(variable),
+                    right: Box::new(Expression::Integer(self.random.between(0, kind.bits() - 1))),
                 };
             }
         }
@@ -4530,6 +4645,7 @@ impl Generator<'_> {
             Type::Text(bytes) => self.text(scope, bytes),
             Type::Simd(kind, lanes) => self.lanes(scope, kind, lanes, depth),
             Type::Secret(kind) => self.secret(scope, kind, depth),
+            Type::SecretBool => self.secret_bool(scope, depth),
             Type::Unit(kind, unit, _) => self.unit_value(scope, kind, unit, depth),
             Type::FloatUnit(unit) => self.float_unit_value(scope, unit, depth),
             Type::Float(wide) => self.float(scope, wide, depth),

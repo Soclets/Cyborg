@@ -75,6 +75,9 @@ pub enum Type {
     Simd(Kind, i128),
     /// `u32.secret` (2.22).
     Secret(Kind),
+    /// `bool.secret`, from comparing secrets, joined only by `and.both`, `or.both` and `not`
+    /// (2.22).
+    SecretBool,
     /// `f64.stable[unit: fv1.a2]`, or with `.point` or `.span` on a unit with an offset (2.16).
     FloatUnit(&'static str),
     /// `i32[unit: dist.cm]`, or with bounds in units: the bounds as written, and the range in
@@ -101,6 +104,7 @@ impl Type {
             Type::Text(Some(bytes)) => format!("str[len.max: {bytes} bytes]"),
             Type::Simd(kind, lanes) => format!("simd<{}>[lanes: {lanes}]", kind.word()),
             Type::Secret(kind) => format!("{}.secret", kind.word()),
+            Type::SecretBool => "bool.secret".to_string(),
             Type::FloatUnit(unit) => format!("f64.stable[unit: {unit}]"),
             Type::Unit(kind, unit, None) => format!("{}[unit: {unit}]", kind.word()),
             Type::Unit(kind, unit, Some((bounds, ..))) => {

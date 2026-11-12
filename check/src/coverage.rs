@@ -20,7 +20,9 @@
 ///   precedence with and without `( )`, as 3.9's table orders it;
 /// - secrets: integer `.secret` values from literals or plain values, joined by `.bit`, `.wrap`
 ///   and `.saturate` operators, chosen between with `.%pick` on secrets compared, and made public
-///   with `.%reveal()` in a shield;
+///   with `.%reveal()` in a shield; shifted right by a public amount; `bool.secret` from
+///   comparing secrets, joined with `and.both`, `or.both` and `not`, choosing with `.%pick`;
+///   secrets in an array, one read back;
 /// - data: `simd` values from `[ ]` and `all`, maths lane by lane on two of one type, their
 ///   `sum`, `product`, `min_val` and `max_val`, and lane comparisons read with `any_true` and
 ///   `all_true`; arrays from `[ ]` and `all`, and bounded lists from `[ ]` or `empty`, their items by
@@ -112,7 +114,7 @@ pub const NOT_GENERATED: &[&str] = &[
     "2.16 undecided: `std`'s units other than `time.seconds` and `angle`'s (12.2)",
     "2.18 undecided: maths and `==` between two of the same `type.new` (12)",
     "2.21 still to do: `.%lookup`, the named shuffles, `.%%simd_chunks.mut`, and floats in lanes; needs a target: `lanes: max`, whose count is the target's; undecided: maths between a `simd` and one value",
-    "2.22 `bool.secret` values with `and.both`, `or.both` and `not`, secrets in arrays and `simd`, shifts on secrets",
+    "2.22 NotBuiltYet: a `simd` of secrets; still to do: `not.bit`, rotates, and secrets in growable lists",
     "5.x undecided: specialization, value parameters, type slots and how laws are proven (12.5)",
     "7.x still to do: a union given to a function with `Given`, and structs holding a growable list",
     "9.x still to do: `pub` and `use` between packages, once programs have more than one; NotBuiltYet: channels, waiting on the run loop's rewrite, and `.at(address:)`, which points at hardware the oracle doesn't have; undecided: a shield's own `requires` and `ensures` (12.9), your own allocator (2.10)",
