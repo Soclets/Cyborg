@@ -51,7 +51,7 @@ What Cyborg does now, in one place. The oracle, the compiler and check claude fo
 | `@std` | [9.3](9-limbs-and-shields.md#93-stds-two-parts) | | `requires`, `ensures` | [5.4](5-functions.md#54-the-top-of-the-body), [5.5](5-functions.md#55-contracts) |
 | `as` | [2.14](2-values-and-types.md#214-conversion-as) | | `return` | [5.3](5-functions.md#53-return) |
 | `at_least`, `at_most` | [3.5](3-operators.md#35-comparison) | | `shield` | [9.7](9-limbs-and-shields.md#97-shields) |
-| `because:` | [11.6](11-errors.md#116-because) | | `shl`, `shr` | [3.7](3-operators.md#37-bits-and-shifts) |
+| `because:` | [11.6](11-errors.md#116-because) | | `shift.left`, `rotate.left` | [3.7](3-operators.md#37-bits-and-shifts) |
 | `and.bit`, `or.bit`, `xor.bit`, `not.bit` | [3.7](3-operators.md#37-bits-and-shifts) | | `std::coll::array` | [2.11](2-values-and-types.md#211-arrays) |
 | `bool` | [2.15](2-values-and-types.md#215-void-and-bool) | | `std::coll::list` | [2.10](2-values-and-types.md#210-lists) |
 | build modes | [10.1](10-build-modes.md#101-the-modes) | | `std::coll::map` | [2.12](2-values-and-types.md#212-maps) |

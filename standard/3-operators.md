@@ -8,7 +8,7 @@
 | [3.4](#34-remainder-mod) | `mod.trunc`, `mod.floor` | No bare `mod` |
 | [3.5](#35-comparison) | `==`, `!=`, `below`, `above`, `at_least`, `at_most` | |
 | [3.6](#36-logic) | `and`, `or`, `not` | |
-| [3.7](#37-bits-and-shifts) | `and.bit`, `or.bit`, `xor.bit`, `not.bit`, `shl`, `shr` | |
+| [3.7](#37-bits-and-shifts) | `and.bit`, `or.bit`, `xor.bit`, `not.bit`, `shift.left`, `shift.right`, `rotate.left`, `rotate.right` | |
 | [3.8](#38-wrapping-and-saturating-pluswrap-plussaturate) | `plus.wrap`, `plus.saturate` | Wraps or sticks, in every mode |
 | [3.9](#39-grouping-and-precedence) | `( )`, precedence | Follows maths |
 | [3.10](#310-operators-for-your-own-types-op) | `op below` | A struct defines an operator for itself |
@@ -22,7 +22,7 @@
 | Remainder | `mod.trunc`, `mod.floor` | [3.4](#34-remainder-mod) |
 | Comparison | `==`, `!=`, `below`, `above`, `at_least`, `at_most` | [3.5](#35-comparison) |
 | Logic | `and`, `or`, `not` | [3.6](#36-logic) |
-| Bits | `and.bit`, `or.bit`, `xor.bit`, `not.bit`, `shl`, `shr` | [3.7](#37-bits-and-shifts) |
+| Bits | `and.bit`, `or.bit`, `xor.bit`, `not.bit`, `shift.left`, `shift.right`, `rotate.left`, `rotate.right` | [3.7](#37-bits-and-shifts) |
 | Set a value | `=` | [2.1](2-values-and-types.md#21-let), [7.2](7-structs-and-unions.md#72-building-a-struct) |
 | Convert | `as` | [2.14](2-values-and-types.md#214-conversion-as) |
 | Inexact literal | `~` | [2.7](2-values-and-types.md#27-inexact-literals-) |
@@ -103,16 +103,18 @@ if $n != 0 and 10 div.trunc $n above 1:
 
 ## 3.7 Bits and shifts
 
-**Rule:** the logic operators narrowed with `.bit` work on an integer's bits: `and.bit`, `or.bit`, `xor.bit` and `not.bit`. Plain `and`, `or` and `not` stay `bool` logic. There's no plain `xor`, since `!=` does that for bools. `shl` and `shr` are words.
+**Rule:** the logic operators narrowed with `.bit` work on an integer's bits: `and.bit`, `or.bit`, `xor.bit` and `not.bit`. Plain `and`, `or` and `not` stay `bool` logic. There's no plain `xor`, since `!=` does that for bools. Shifting and rotating say their direction: `shift.left` and `shift.right` move the bits, dropping those that fall off, and `rotate.left` and `rotate.right` bring them back in at the other end.
 
 ```
 $flags and.bit bin 1111_1110
 not.bit $mask
+$x shift.left 3
+$h rotate.right 7
 ```
 
-**Refused:** `bit_and`, `bit_or`, `bit_xor` and `bit_not`, with `fix: and.bit` and so on, and a bare `xor`, with `fix: xor.bit`.
+**Refused:** `bit_and`, `bit_or`, `bit_xor` and `bit_not`, with `fix: and.bit` and so on, and a bare `xor`, with `fix: xor.bit`; and `shl` and `shr`, with `fix: shift.left` and `shift.right`.
 
-**From:** D49, D361.
+**From:** D49, D361, D404.
 
 ## 3.8 Wrapping and saturating: `plus.wrap`, `plus.saturate`
 
@@ -160,7 +162,7 @@ $a + $b x 2
 $a + read() ?? 0
 ```
 
-**Refused:** where maths gives no order, so bit operators and shifts mixed with anything, as in `$a shl 2 + 1`, and `as` on anything but a single value, as in `$a + $b as str[len.max: 20 bytes]`.
+**Refused:** where maths gives no order, so bit operators and shifts mixed with anything, as in `$a shift.left 2 + 1`, and `as` on anything but a single value, as in `$a + $b as str[len.max: 20 bytes]`.
 
 Unary `-` negates, so `-$x` and `-7` are both allowed. A comparison chain means all of it is true, and each value is evaluated once: `1 below $x below 5` means `1 below $x and $x below 5`. It stops at its first false. The linter can ask for parentheses.
 
