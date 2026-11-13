@@ -14,24 +14,13 @@ What's waiting on something else, mostly compiler claude finishing its resume pr
 
 ## compiler claude
 
-Starts on 2026-11-13, which is about getting the compiler back up, with no big design that day (owner). It uses
-`design/compiler-resume-prompt.md`: its own remaining work first, against the tests at
-`37a5f03b`, then a separate catch-up prompt for D288 onwards.
-
-Waited for Lyftar's embedded clang (Lyftar's D55, Cyborg's D308), which is ready since 2026-11-12: `lyftar::compile_c`
-(SystemTarget, the C file, the object, CCompileOptions with include folders and defines). Lyftar renamed `LinkTarget` to
-`SystemTarget` (its D56), so the compiler's `link` calls need the new name. CORE-MATH also needs `fma` and `round`.
-
-- `FinalPerf` and `FinalShit` still keep overflow checks, where 10.1 says none (`bench/okay-vs-rust`).
-- `FinalSmall` doesn't build: LLVM 23 has removed the `Oz` pipeline name (`bench/okay-vs-node`).
-- Compile speed from D168: incremental, parallel and cached builds, which shape the compiler, so they come before
-  programs get big (rule 10).
-- Decisions since it stopped, D288 to D409, picked up under rule 16. Then its own plan: generics, inline assembly, the
-  rest of baking and `use`, then SIMD.
+Finished `design/compiler-resume-prompt.md` on 2026-11-13, with about 1390 of the snapshot's 1536 tests passing. Next is
+`design/compiler-catch-up-prompt.md`: D288 to D411 against today's tests, the older D155, D198, D250, D251, D256 and
+D273, and ranges that know loop counters.
 
 ## Lyftar design
 
-Once compiler claude has finished its resume prompt (owner, 2026-11-13), wake Lyftar design and pass on a gap: D233's
+Compiler claude has finished its resume prompt, so it's time (owner, 2026-11-13) to wake Lyftar design and pass on a gap: D233's
 check that inline assembly writes no register missing from `writes:` or `clobbers:` can't be done yet, since Lyftar can't
 say which registers an instruction defines. Compiler claude asks for something like
 `lyftar::registers_written(triple, cpu, assembly_text) -> Result<Vec<String>>`, running MC's assembly parser and giving
