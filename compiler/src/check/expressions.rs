@@ -137,7 +137,7 @@ impl Checker<'_> {
             }
             ExpressionKind::Bracket { base, labels, .. } if matches!(base.kind, ExpressionKind::Path(_)) => {
                 let ExpressionKind::Path(path) = &base.kind else { return Err(Reported) };
-                if let Some(typed) = self.build(body, expression, path, labels)? {
+                if let Some(typed) = self.build(body, expression, path, labels, expected)? {
                     return Ok(typed);
                 }
                 if path.is_single("range") {
@@ -2673,7 +2673,11 @@ impl Checker<'_> {
         if !typed.value_type.is_copied() && !typed.handed && is_held(expression) && !typed.value_type.is_unknown() {
             let shown = self.slice(expression.span).to_string();
             if let Some(root) = root_variable(expression)
-                && body.lookup(&root).is_some_and(|variable| matches!(variable.value_type, Type::Failure { .. }))
+                && body.lookup(&root).is_some_and(|variable| {
+                    matches!(variable.value_type, Type::Failure { .. })
+                        // A lent type parameter can only be copied out (D244).
+                        || (matches!(variable.value_type, Type::Param { .. }) && body.lent.contains(&variable.local))
+                })
             {
                 return Err(self.error(Diagnostic::refused_fix(
                     expression.span,

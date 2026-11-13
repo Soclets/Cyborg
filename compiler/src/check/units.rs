@@ -535,7 +535,7 @@ impl Checker<'_> {
         let unit = match &first.value.kind {
             syntax::ExpressionKind::Path(path) => self.resolve_unit(path, false)?,
             syntax::ExpressionKind::Variable(name) if name.text.starts_with('?') => {
-                return Err(self.not_yet(first.value.span, "a unit parameter".to_string()));
+                self.parameter_unit(name.text.trim_start_matches('?'), name.span)?
             }
             _ => return Err(self.not_yet(first.value.span, "this unit".to_string())),
         };

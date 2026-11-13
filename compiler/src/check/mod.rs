@@ -1177,6 +1177,12 @@ impl Checker<'_> {
         if let syntax::TypeKind::Parameter(name) = &written.kind {
             return self.parameter_type(name);
         }
+        if let syntax::TypeKind::Named { path, fill, .. } = &written.kind
+            && self.generics.structs.contains_key(&self.resolve_path(path))
+        {
+            let name = self.resolve_path(path);
+            return self.generic_struct(written, &name, fill);
+        }
         let syntax::TypeKind::Named { path, fill, labels, .. } = &written.kind else {
             return Err(self.not_yet(written.span, "this kind of type".to_string()));
         };
@@ -1945,7 +1951,7 @@ fn reference_names(
             *slot = Some(name.clone());
         }
     }
-    for (number, info) in aggregates.structs.iter().enumerate() {
+    for (number, info) in aggregates.structs.iter().enumerate().filter(|(_, info)| !info.name.is_empty()) {
         if let Some(slot) = tables[1].get_mut(number) {
             *slot = Some(format!("struct {}", info.name));
         }

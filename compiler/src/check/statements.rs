@@ -154,7 +154,6 @@ impl Checker<'_> {
             StatementKind::Finish(value) => self.finish_statement(body, statement.span, value).map(|()| false),
             StatementKind::Shield(shield) => self.shield_statement(body, shield, block),
             StatementKind::Broken => Err(Reported),
-            _ => Err(self.not_yet(statement.span, "this statement".to_string())),
         }
     }
 

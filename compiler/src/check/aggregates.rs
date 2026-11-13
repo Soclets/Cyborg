@@ -57,6 +57,16 @@ impl Checker<'_> {
     pub fn declare_aggregates(&mut self, file: &syntax::File) {
         for item in &file.items {
             match &item.kind {
+                syntax::ItemKind::Struct(declared) if has_type_parameters(&declared.generics) => {
+                    // A generic struct is a pattern, with a struct made for each set of types that fills it (D234).
+                    let Ok(parameters) = self.type_parameters(Some(&declared.name), &declared.generics) else {
+                        continue;
+                    };
+                    self.generics.structs.insert(
+                        declared.name.text(),
+                        super::generics::GenericStruct { syntax: declared.clone(), parameters },
+                    );
+                }
                 syntax::ItemKind::Struct(declared) => {
                     let name = declared.name.text();
                     let id = self.aggregates.structs.len();
@@ -96,6 +106,11 @@ impl Checker<'_> {
         let mut union_id = 0;
         for item in &file.items {
             match &item.kind {
+                syntax::ItemKind::Struct(declared) if has_type_parameters(&declared.generics) => {
+                    let name = declared.name.text();
+                    let expected = format!("end {} {name}", declared.keyword.text());
+                    self.check_closer(&declared.end, &expected, super::CLOSER_WHY);
+                }
                 syntax::ItemKind::Struct(declared) => {
                     let name = declared.name.text();
                     let expected = format!("end {} {name}", declared.keyword.text());
@@ -267,8 +282,23 @@ impl Checker<'_> {
         expression: &syntax::Expression,
         path: &syntax::Path,
         labels: &[syntax::Label],
+        expected: Option<&Type>,
     ) -> Check<Option<Typed>> {
-        let name = self.resolve_path(path);
+        let mut name = self.resolve_path(path);
+        // A generic struct is built as the copy the type it goes into names, as in `let $p: pair<i32, str> = pair[…]`.
+        if self.generics.structs.contains_key(&name) {
+            match expected {
+                Some(Type::Struct { name: filled, .. }) if filled.starts_with(&format!("{name}<")) => {
+                    name.clone_from(filled);
+                }
+                _ => {
+                    return Err(self.not_yet(
+                        expression.span,
+                        format!("building a `{name}` where nothing says what fills its type parameters"),
+                    ));
+                }
+            }
+        }
         if self.type_names.declared.get(&name).is_some_and(|named| named.new) {
             return Err(self.error(Diagnostic::not_designed(
                 expression.span,
@@ -467,4 +497,79 @@ fn source_spans(generics: &[syntax::Generic]) -> Vec<(String, Span)> {
         }
     }
     sources
+}
+
+fn has_type_parameters(generics: &[syntax::Generic]) -> bool {
+    generics.iter().any(|generic| generic.kind == syntax::GenericKind::Type)
+}
+
+impl Checker<'_> {
+    /// `pair<i32, str>`: the struct made for a generic struct with these types filling its type parameters, made the
+    /// first time it's named (D234, D239).
+    pub fn generic_struct(&mut self, written: &syntax::Type, name: &str, fill: &[syntax::TypeArgument]) -> Check<Type> {
+        let Some(generic) = self.generics.structs.get(name).cloned() else { return Err(Reported) };
+        let mut filled = Vec::new();
+        for argument in fill {
+            match &argument.value {
+                syntax::TypeArgumentValue::Type(each) if argument.label.is_none() => {
+                    filled.push(self.resolve_type(each)?)
+                }
+                _ => return Err(self.not_yet(argument.span, "this in a generic struct's `< >`".to_string())),
+            }
+        }
+        if filled.len() != generic.parameters.len() {
+            let wanted: Vec<String> = generic.parameters.iter().map(|each| format!("`?{}`", each.name)).collect();
+            return Err(self.error(Diagnostic::refused(
+                written.span,
+                format!("`{name}` is filled with a type for each of {}", wanted.join(", ")),
+                "a generic struct says what fills each of its type parameters, in order (D234)",
+            )));
+        }
+        for (parameter, value_type) in generic.parameters.iter().zip(&filled) {
+            self.meets_struct(written.span, &parameter.needs, value_type)?;
+        }
+        let shown = format!("{name}<{}>", filled.iter().map(ToString::to_string).collect::<Vec<_>>().join(", "));
+        if let Some(found) = self.aggregates.names.get(&shown) {
+            return Ok(found.clone());
+        }
+        // Its number is the next struct's, after any result layouts the program's functions made.
+        let id = self.program.structs.len();
+        while self.aggregates.structs.len() < id {
+            self.aggregates.structs.push(StructInfo {
+                name: String::new(),
+                fields: Vec::new(),
+                must_give: false,
+                sources: Vec::new(),
+                facts: Vec::new(),
+            });
+        }
+        self.aggregates.structs.push(StructInfo {
+            name: shown.clone(),
+            fields: Vec::new(),
+            must_give: generic.syntax.keyword.text() == "struct.must_Give",
+            sources: Vec::new(),
+            facts: Vec::new(),
+        });
+        self.program.structs.push(Vec::new());
+        let made = Type::Struct { id, name: shown.clone() };
+        self.aggregates.names.insert(shown.clone(), made.clone());
+        let outer = self.type_scope.len();
+        self.type_scope.extend(generic.parameters.iter().zip(&filled).map(|(parameter, value_type)| {
+            (parameter.name.clone(), super::generics::Bound::Filled(value_type.clone()))
+        }));
+        let fields = self.fields(
+            &generic.syntax.fields,
+            &shown,
+            "fields",
+            "a field read is a plain `.`, so a field's name says which (D57)",
+        );
+        self.type_scope.truncate(outer);
+        if let Some(slot) = self.program.structs.get_mut(id) {
+            *slot = fields.iter().map(|field| field.value_type.machine()).collect();
+        }
+        if let Some(info) = self.aggregates.structs.get_mut(id) {
+            info.fields = fields;
+        }
+        Ok(made)
+    }
 }

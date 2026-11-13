@@ -626,7 +626,16 @@ impl<'source> Parser<'source> {
                     (Name { text: name.text, span: start.to(name.span) }, GenericKind::Type)
                 }
                 Some(TokenKind::Backtick) => (self.source_name()?, GenericKind::Source),
-                _ => return Err(self.error_expected("a type parameter")),
+                _ => {
+                    // trace: D171, D234
+                    let opener = self.previous_span();
+                    self.errors.push(Diagnostic::refused(
+                        opener,
+                        "`< >` after a name holds its sources in backticks, or type parameters straight after the name",
+                        "a function's sources are written like ``<`text`>`` after a space, and its type parameters like `total<?item>`, touching the name (D171, D234)",
+                    ));
+                    return Err(Reported);
+                }
             };
             let mut requirement = None;
             if self.is(TokenKind::Colon) {
@@ -2353,6 +2362,14 @@ impl<'source> Parser<'source> {
             return Err(self.error_expected("a value"));
         };
         match token.kind {
+            // `?u`, a unit parameter where a unit goes, as in `f64.stable[unit: ?u]` (D243).
+            TokenKind::Question if self.kind_at(1) == Some(TokenKind::Word) => {
+                self.roles[self.at] = Role::Prefix;
+                self.advance();
+                let name = self.name()?;
+                let span = start.to(name.span);
+                Ok(Expression { kind: ExpressionKind::Variable(Name { text: format!("?{}", name.text), span }), span })
+            }
             TokenKind::Integer | TokenKind::Float => {
                 self.advance();
                 let text = self.text_of(token).to_string();

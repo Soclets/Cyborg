@@ -60,6 +60,13 @@ pub struct GenericFunction {
     pub signature: super::Signature,
 }
 
+/// A generic struct: its text, made again for each set of types that fills it, and its type parameters.
+#[derive(Clone)]
+pub struct GenericStruct {
+    pub syntax: syntax::Struct,
+    pub parameters: Vec<TypeParameter>,
+}
+
 /// A copy of a generic function a call asked for, waiting to be checked with its types.
 #[derive(Clone)]
 pub struct Instance {
@@ -73,6 +80,7 @@ pub struct Instance {
 #[derive(Default)]
 pub struct Generics {
     pub functions: HashMap<String, GenericFunction>,
+    pub structs: HashMap<String, GenericStruct>,
     /// Each copy made, by its generic and what fills its type parameters, to its function.
     pub instances: HashMap<(String, Vec<String>), usize>,
     pub waiting: Vec<Instance>,
@@ -476,7 +484,7 @@ impl Checker<'_> {
             return Err(self.not_yet(call, "a generic function that can fail".to_string()));
         }
         let matched = self.match_arguments(call, &generic.signature, arguments)?;
-        let mut filled: Vec<(String, Type)> = Vec::new();
+        let mut filled: Vec<(String, Filling)> = Vec::new();
         for (each, (_, parameter_type, _)) in matched.iter().zip(&generic.signature.parameters) {
             let super::contracts::Matched::Argument(argument) = each else { continue };
             if !mentions_parameter(parameter_type) {
@@ -491,13 +499,20 @@ impl Checker<'_> {
             self.unify(parameter_type, &actual, argument.span, &mut filled)?;
         }
         // Bare literals take the type the result goes into (D241).
-        if let (Type::Param { name: returned, .. }, Some(expected)) = (&generic.signature.returns, expected)
-            && !filled.iter().any(|(each, _)| each == returned)
+        if let Some(expected) = expected
+            && mentions_parameter(&generic.signature.returns)
         {
-            filled.push((returned.clone(), expected));
+            let mut from_result = Vec::new();
+            if self.unify(&generic.signature.returns, &expected, call, &mut from_result).is_ok() {
+                for (name, filling) in from_result {
+                    if !filled.iter().any(|(each, _)| *each == name) {
+                        filled.push((name, filling));
+                    }
+                }
+            }
         }
         for parameter in &generic.parameters {
-            let Some((_, bound)) = filled.iter().find(|(each, _)| *each == parameter.name).cloned() else {
+            let Some((_, filling)) = filled.iter().find(|(each, _)| *each == parameter.name).cloned() else {
                 return Err(self.error(Diagnostic::refused(
                     call,
                     format!(
@@ -507,7 +522,10 @@ impl Checker<'_> {
                     "a call fills a type parameter from its arguments, and bare literals from the type the result goes into (D241, D50)",
                 )));
             };
-            self.meets(call, &parameter.needs, &bound)?;
+            match filling {
+                Filling::Type(value_type) => self.meets(call, &parameter.needs, &value_type)?,
+                Filling::Unit(unit) => self.meets_unit(call, &parameter.needs, &unit)?,
+            }
         }
         let substitute = |value_type: &Type| substituted(value_type, &filled);
         let mut signature = generic.signature.clone();
@@ -518,10 +536,10 @@ impl Checker<'_> {
             .collect();
         signature.returns = substitute(&signature.returns);
         // Inside a generic's own body, nothing is built, so the call stays on the generic.
-        if filled.iter().any(|(_, value_type)| mentions_parameter(value_type)) {
+        if filled.iter().any(|(_, filling)| filling.is_parameter()) {
             return Ok(signature);
         }
-        let shown: Vec<String> = filled.iter().map(|(_, value_type)| value_type.to_string()).collect();
+        let shown: Vec<String> = filled.iter().map(|(_, filling)| filling.to_string()).collect();
         let key = (name.to_string(), shown.clone());
         if let Some(id) = self.generics.instances.get(&key) {
             signature.id = *id;
@@ -539,7 +557,16 @@ impl Checker<'_> {
         });
         signature.id = id;
         self.generics.instances.insert(key, id);
-        let bounds = filled.into_iter().map(|(each, value_type)| (each, Bound::Filled(value_type))).collect();
+        let bounds = filled
+            .into_iter()
+            .map(|(each, filling)| {
+                let bound = match filling {
+                    Filling::Type(value_type) => Bound::Filled(value_type),
+                    Filling::Unit(unit) => Bound::Unit(unit),
+                };
+                (each, bound)
+            })
+            .collect();
         self.generics.waiting.push(Instance { generic: name.to_string(), bounds, signature: signature.clone(), call });
         Ok(signature)
     }
@@ -549,27 +576,70 @@ impl Checker<'_> {
         self.expression_type_quietly(body, value).map(|value_type| value_type.plain())
     }
 
-    /// Fills type parameters by matching a parameter's type against an argument's.
-    fn unify(&mut self, pattern: &Type, actual: &Type, span: Span, filled: &mut Vec<(String, Type)>) -> Check<()> {
-        match (pattern, actual) {
-            (Type::Param { name, .. }, _) => {
-                if let Some((_, earlier)) = filled.iter().find(|(each, _)| each == name) {
-                    if earlier != actual {
-                        return Err(self.error(Diagnostic::refused(
-                            span,
-                            format!("`?{name}` is `{earlier}` from an earlier argument, and this is `{actual}`"),
-                            "a call fills each type parameter with one type (D241)",
-                        )));
-                    }
-                    return Ok(());
+    /// Fills type and unit parameters by matching a parameter's type against an argument's.
+    fn unify(&mut self, pattern: &Type, actual: &Type, span: Span, filled: &mut Vec<(String, Filling)>) -> Check<()> {
+        let fill = |checker: &mut Self, name: &str, filling: Filling, filled: &mut Vec<(String, Filling)>| {
+            if let Some((_, earlier)) = filled.iter().find(|(each, _)| each == name) {
+                if *earlier != filling {
+                    return Err(checker.error(Diagnostic::refused(
+                        span,
+                        format!("`?{name}` is `{earlier}` from an earlier argument, and this is `{filling}`"),
+                        "a call fills each type parameter with one type (D241)",
+                    )));
                 }
-                filled.push((name.clone(), actual.clone()));
-                Ok(())
+                return Ok(());
             }
+            filled.push((name.to_string(), filling));
+            Ok(())
+        };
+        match (pattern, actual) {
+            (Type::Param { name, .. }, _) => fill(self, name, Filling::Type(actual.clone()), filled),
             (Type::List { item, .. }, Type::List { item: other, .. })
             | (Type::Array { item, .. }, Type::Array { item: other, .. }) => self.unify(item, other, span, filled),
+            (
+                Type::Integer { unit: Some(wanted), .. } | Type::Float { unit: Some(wanted), .. },
+                Type::Integer { unit: given, .. } | Type::Float { unit: given, .. },
+            ) => {
+                let Some(name) = wanted.single().and_then(|name| name.strip_prefix('?')) else { return Ok(()) };
+                let Some(given) = given else {
+                    return Err(self.error(Diagnostic::refused(
+                        span,
+                        format!("this has no unit, and `?{name}` is one"),
+                        "a unit parameter goes only where a unit goes, and a type parameter only where a type goes (D243)",
+                    )));
+                };
+                fill(self, name, Filling::Unit(given.clone()), filled)
+            }
             _ => Ok(()),
         }
+    }
+
+    /// Whether a unit fills a unit parameter: any unit, or one in the family it names (D243).
+    fn meets_unit(&mut self, call: Span, needs: &Needs, unit: &super::types::Unit) -> Check<()> {
+        let Needs::Unit { family } = needs else {
+            return Err(self.not_yet(call, "a unit filling a type parameter".to_string()));
+        };
+        let Some(family) = family else { return Ok(()) };
+        if unit.factors.iter().any(|(name, _)| name.starts_with('?')) {
+            return Ok(());
+        }
+        let Some(single) = unit.single() else {
+            return Err(self.not_yet(call, "a unit made by maths filling a family's unit parameter".to_string()));
+        };
+        if self.units.family(single) != Some(family.as_str()) {
+            let shown = self.shown(unit);
+            return Err(self.error(Diagnostic::refused(
+                call,
+                format!("`{shown}` isn't in the family `{family}`"),
+                "a unit parameter that names a family takes any unit in that family, and only those (D243)",
+            )));
+        }
+        Ok(())
+    }
+
+    /// Whether a type fills a generic struct's type parameter (D235).
+    pub fn meets_struct(&mut self, span: Span, needs: &Needs, value_type: &Type) -> Check<()> {
+        self.meets(span, needs, value_type)
     }
 
     /// Whether a type fills a type parameter: it's in the type set, and has said it satisfies each interface (D235).
@@ -647,22 +717,79 @@ impl Checker<'_> {
     }
 }
 
-/// Whether a type has a type parameter in it.
+/// What fills a type or unit parameter at a call.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum Filling {
+    Type(Type),
+    Unit(super::types::Unit),
+}
+
+impl Filling {
+    /// Whether it's another generic's own parameter, in that generic's body.
+    fn is_parameter(&self) -> bool {
+        match self {
+            Filling::Type(value_type) => mentions_parameter(value_type),
+            Filling::Unit(unit) => unit.factors.iter().any(|(name, _)| name.starts_with('?')),
+        }
+    }
+}
+
+impl std::fmt::Display for Filling {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Filling::Type(value_type) => write!(formatter, "{value_type}"),
+            Filling::Unit(unit) => write!(formatter, "{unit}"),
+        }
+    }
+}
+
+/// Whether a type has a type or unit parameter in it.
 #[must_use]
 pub fn mentions_parameter(value_type: &Type) -> bool {
     match value_type {
         Type::Param { .. } => true,
+        Type::Integer { unit: Some(unit), .. } | Type::Float { unit: Some(unit), .. } => {
+            unit.factors.iter().any(|(name, _)| name.starts_with('?'))
+        }
         Type::List { item, .. } | Type::Array { item, .. } => mentions_parameter(item),
         Type::Borrow { inner, .. } | Type::New { inner, .. } => mentions_parameter(inner),
         _ => false,
     }
 }
 
-/// A type with its type parameters filled in.
-fn substituted(value_type: &Type, filled: &[(String, Type)]) -> Type {
+/// A type with its type and unit parameters filled in.
+fn substituted(value_type: &Type, filled: &[(String, Filling)]) -> Type {
+    let unit_of = |unit: &Option<super::types::Unit>| {
+        unit.as_ref().map(|unit| {
+            let mut factors: Vec<(String, i32)> = Vec::new();
+            for (name, power) in &unit.factors {
+                let found = name.strip_prefix('?').and_then(|bare| {
+                    filled.iter().find_map(|(each, filling)| match filling {
+                        Filling::Unit(unit) if each == bare => Some(unit.clone()),
+                        _ => None,
+                    })
+                });
+                match found {
+                    Some(unit) => {
+                        factors.extend(unit.factors.iter().map(|(each, inner)| (each.clone(), inner * power)))
+                    }
+                    None => factors.push((name.clone(), *power)),
+                }
+            }
+            super::types::Unit { factors }
+        })
+    };
     match value_type {
-        Type::Param { name, .. } => {
-            filled.iter().find(|(each, _)| each == name).map_or_else(|| value_type.clone(), |(_, found)| found.clone())
+        Type::Param { name, .. } => filled
+            .iter()
+            .find_map(|(each, filling)| match filling {
+                Filling::Type(found) if each == name => Some(found.clone()),
+                _ => None,
+            })
+            .unwrap_or_else(|| value_type.clone()),
+        Type::Integer { kind, bounds, unit } => Type::Integer { kind: *kind, bounds: *bounds, unit: unit_of(unit) },
+        Type::Float { bits, kind, bounds, unit } => {
+            Type::Float { bits: *bits, kind: *kind, bounds: *bounds, unit: unit_of(unit) }
         }
         Type::List { item, min, max, len_type } => {
             Type::List { item: Box::new(substituted(item, filled)), min: *min, max: *max, len_type: *len_type }
@@ -685,7 +812,9 @@ fn is_literal(value: &syntax::Expression) -> bool {
     match &value.kind {
         syntax::ExpressionKind::Integer(_) | syntax::ExpressionKind::Float(_) => true,
         syntax::ExpressionKind::Unary { operand, .. } => is_literal(operand),
-        syntax::ExpressionKind::Group(inner) => is_literal(inner),
+        syntax::ExpressionKind::Group(inner) | syntax::ExpressionKind::WithUnit { value: inner, .. } => {
+            is_literal(inner)
+        }
         _ => false,
     }
 }
