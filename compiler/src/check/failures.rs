@@ -359,6 +359,17 @@ impl Checker<'_> {
                 super::NOT_DECIDED,
             )));
         }
+        // A task's failure comes back at its `done` (D357).
+        if let ExpressionKind::Call { callee, arguments, .. } = &inner.kind
+            && let ExpressionKind::Path(path) = &callee.kind
+            && self.resolve_path(path) == "@concur::task.done"
+        {
+            let (signature, value) = self.task_done(body, inner, arguments)?;
+            if signature.failures.is_empty() {
+                return Err(self.not_yet(expression.span, "handling a task that can't fail".to_string()));
+            }
+            return self.handle_call(body, expression, expected, signature, value);
+        }
         let ExpressionKind::Call { callee, arguments, .. } = &inner.kind else {
             return Err(self.error(Diagnostic::not_designed(
                 inner.span,
@@ -374,7 +385,7 @@ impl Checker<'_> {
     }
 
     /// Handles a failing call the way the expression around it says.
-    fn handle_call(
+    pub fn handle_call(
         &mut self,
         body: &mut Body,
         expression: &syntax::Expression,
@@ -674,7 +685,7 @@ impl Checker<'_> {
     }
 
     /// A call's checked form before its failure is handled, with its signature.
-    fn raw_call(
+    pub fn raw_call(
         &mut self,
         body: &mut Body,
         expression: &syntax::Expression,

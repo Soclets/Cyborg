@@ -177,6 +177,9 @@ impl Checker<'_> {
             ExpressionKind::MethodCall { receiver, method, arguments, .. } => {
                 self.method_call(body, expression, receiver, method, arguments)
             }
+            ExpressionKind::Spawn { options, options_span, call } => {
+                self.spawn(body, expression, options, *options_span, call)
+            }
             ExpressionKind::TypeCall { written_type, name, arguments, .. } => {
                 self.pointer_call(body, expression, written_type, name, arguments)
             }
@@ -2124,6 +2127,23 @@ impl Checker<'_> {
     ) -> Check<Typed> {
         let mut written = method.text();
         let receiver_type = self.expression_type_quietly(body, receiver);
+        if matches!(written.as_str(), "std::%%split.mut" | "std::%split")
+            || (matches!(written.as_str(), "%%split.mut" | "%split")
+                && matches!(receiver_type, Some(Type::List { .. })))
+        {
+            if !written.starts_with("std::") {
+                // trace: D115
+                return Err(self.error(Diagnostic::refused_fix(
+                    method.span,
+                    format!("std::{written}"),
+                    "a method from a kit says its path, because bare means base or your own (D115)",
+                )));
+            }
+            return self.split(body, expression, receiver, written.ends_with(".mut"), arguments);
+        }
+        if let Some(Type::Atomic(_)) = &receiver_type {
+            return self.atomic_method(body, expression, receiver, method, arguments);
+        }
         if written == "%reveal" && arguments.is_empty() {
             return self.reveal(body, expression, receiver);
         }
@@ -2490,6 +2510,9 @@ impl Checker<'_> {
         }
         self.old_prints(&name, callee.span)?;
         self.limb_call(&name, callee.span)?;
+        if let Some(made) = self.concur_call(body, expression, &name, arguments, expected.as_ref()) {
+            return made;
+        }
         if let Some(made) = self.memory_call(body, expression, &name, arguments, expected.as_ref()) {
             self.require_import(&name, path.span)?;
             return made;
@@ -2979,7 +3002,8 @@ impl Checker<'_> {
                 )));
             }
         }
-        if changes && !reached.root.mutable {
+        // A `.mut` view changes what it views, whoever holds it, like the halves of a split (D382).
+        if changes && !reached.root.mutable && theirs != ListView::Change {
             return Err(self.error(Diagnostic::refused(
                 argument.value.span,
                 format!("`{}` can't change, so it can't be lent with `Lend.mut`", root.text),

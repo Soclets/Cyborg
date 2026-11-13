@@ -360,6 +360,11 @@ impl Walker<'_> {
                 self.expression(value);
                 machine
             }
+            ExpressionKind::Split { list, at, .. } => {
+                self.place(list);
+                self.expression(at);
+                machine
+            }
             ExpressionKind::ArrayView(place) => {
                 self.place(place);
                 machine

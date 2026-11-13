@@ -1874,6 +1874,39 @@ impl<'context, 'module> Generator<'context, 'module> {
                 let byte = self.context.integer_type(8).to_dynamic();
                 frame.builder.get_element_pointer(byte, pointer, &[bytes], "").to_dynamic()
             }
+            ExpressionKind::Split { list, at, failure } => {
+                // trace: D382
+                let (pointer, machine_type) = self.place_pointer(frame, list)?;
+                let item_type = match &machine_type {
+                    MachineType::List(item) => self.machine_type(item),
+                    _ => return Err("a split of something that isn't a list".into()),
+                };
+                let list_type = self.list_type();
+                let record = frame.builder.load(list_type, pointer, "").to_dynamic();
+                let data = frame.builder.extract_value(record, 0, "").to_dynamic();
+                let count = frame.builder.extract_value(record, 1, "").to_dynamic();
+                let place = self.expression(frame, at)?;
+                let place = frame.builder.integer_cast(place, self.context.integer_type(64), true, "").to_dynamic();
+                let inside =
+                    frame.builder.integer_compare(IntegerPredicate::UnsignedLessOrEqual, place, count, "").to_dynamic();
+                self.check(frame, inside, failure, &[(place, MachineType::I64), (count, MachineType::I64)])?;
+                let rest = frame.builder.integer_subtract(count, place, "").to_dynamic();
+                let later = frame.builder.get_element_pointer(item_type, data, &[place], "").to_dynamic();
+                let none = integer_constant(self.context, 64, -1);
+                let view = |frame: &mut Frame<'context, 'module>, start, length| {
+                    let mut record = list_type.undefined().to_dynamic();
+                    record = frame.builder.insert_value(record, start, 0, "").to_dynamic();
+                    record = frame.builder.insert_value(record, length, 1, "").to_dynamic();
+                    record = frame.builder.insert_value(record, length, 2, "").to_dynamic();
+                    record = frame.builder.insert_value(record, none, 3, "").to_dynamic();
+                    frame.builder.insert_value(record, none, 4, "").to_dynamic()
+                };
+                let first = view(frame, data, place);
+                let second = view(frame, later, rest);
+                let mut halves = self.machine_type(&expression.machine_type).undefined().to_dynamic();
+                halves = frame.builder.insert_value(halves, first, 0, "").to_dynamic();
+                frame.builder.insert_value(halves, second, 1, "").to_dynamic()
+            }
             ExpressionKind::ArrayView(place) => {
                 // trace: D379
                 let (pointer, machine_type) = self.place_pointer(frame, place)?;

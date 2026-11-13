@@ -63,6 +63,13 @@ impl Checker<'_> {
             body.statement = None;
             let mark = block.len();
             let result = self.statement(body, statement, &mut block);
+            // What the statement needs run first, like a waiting task before its `done` (D376).
+            let before = std::mem::take(&mut body.before);
+            if result.is_ok() {
+                for (offset, each) in before.into_iter().enumerate() {
+                    block.insert((mark + offset).min(block.len()), each);
+                }
+            }
             if result.is_ok() && matches!(statement.kind, StatementKind::Return(_) | StatementKind::Fail(_)) {
                 body.events.push(crate::flow::Event::Leave { span: statement.span, locals: None });
             }
@@ -246,6 +253,9 @@ impl Checker<'_> {
             | StatementKind::Requires { .. }
             | StatementKind::Ensures { .. } => Ok(false),
             StatementKind::Finish(value) => self.finish_statement(body, statement.span, value).map(|()| false),
+            StatementKind::Locked { locks, names, body: inner, .. } => {
+                self.locked(body, statement.span, (locks, names, inner), block)
+            }
             StatementKind::Defer(deferred) => {
                 self.defer_statement(body, statement.span, deferred);
                 Ok(false)
@@ -285,6 +295,19 @@ impl Checker<'_> {
         self.pointer_borrow = None;
         let result = self.let_value(body, &declared, binding, local, block);
         body.expected_fills = None;
+        // A task holds what its call borrows until it's done (D343, D347).
+        if let (Ok(()), Some(spawned)) = (&result, self.spawned.take()) {
+            if !spawned.borrows.is_empty() {
+                body.events.push(crate::flow::Event::Borrow {
+                    borrower: local,
+                    sources: spawned.borrows,
+                    mutable: spawned.mutable,
+                    held: false,
+                });
+            }
+            body.tasks.retain(|(each, _)| *each != local);
+            body.tasks.push((local, spawned.task));
+        }
         // A pointer to a variable keeps it lent for as long as the pointer exists (D315).
         if let (Ok(()), Some((source, path, mutable))) = (&result, self.pointer_borrow.take()) {
             body.events.push(crate::flow::Event::Borrow {
@@ -1356,6 +1379,9 @@ impl Checker<'_> {
             return Ok(());
         }
         if let Some(done) = self.append_statement(body, expression, block) {
+            return done;
+        }
+        if let Some(done) = self.compare_swap_statement(body, expression, block) {
             return done;
         }
         if !body.handlers.is_empty()

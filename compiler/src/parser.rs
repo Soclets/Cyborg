@@ -1284,6 +1284,37 @@ impl<'source> Parser<'source> {
             self.recover();
             return Err(Reported);
         }
+        // trace: D348, D359
+        if self.is(TokenKind::At) && self.word_at(1) == Some("concur") && self.word_at(3) == Some("locked") {
+            self.path()?;
+            let mut locks = Vec::new();
+            loop {
+                let name = self.variable_name()?;
+                locks.push(Expression { span: name.span, kind: ExpressionKind::Variable(name) });
+                if self.is(TokenKind::Comma) {
+                    self.advance();
+                    continue;
+                }
+                break;
+            }
+            self.expect_word("as")?;
+            let mut names = Vec::new();
+            loop {
+                names.push(self.variable_name()?);
+                if self.is(TokenKind::Comma) {
+                    self.advance();
+                    continue;
+                }
+                break;
+            }
+            self.expect_block_colon()?;
+            let body = self.block(&["end"])?;
+            let end = self.closer()?;
+            return Ok(Statement {
+                kind: StatementKind::Locked { locks, names, body, end },
+                span: start.to(self.previous_span()),
+            });
+        }
         let kind = match self.word() {
             Some("let" | "const") => StatementKind::Let(self.let_statement()?),
             Some("decl") => {
@@ -2771,6 +2802,22 @@ impl<'source> Parser<'source> {
         let Some(token) = self.peek() else {
             return Err(self.error_expected("a value"));
         };
+        // `@concur::spawn(…)` is a prefix before a call (D356).
+        if token.kind == TokenKind::At
+            && self.word_at(1) == Some("concur")
+            && self.word_at(3) == Some("spawn")
+            && self.kind_at(4) == Some(TokenKind::LeftParen)
+        {
+            self.path()?;
+            let (options, _) = self.arguments()?;
+            let options_span = start.to(self.previous_span());
+            let call = self.postfix_expression()?;
+            let span = start.to(call.span);
+            return Ok(Expression {
+                kind: ExpressionKind::Spawn { options, options_span, call: Box::new(call) },
+                span,
+            });
+        }
         match token.kind {
             // `?u`, a unit parameter where a unit goes, as in `f64.stable[unit: ?u]` (D243).
             TokenKind::Question if self.kind_at(1) == Some(TokenKind::Word) => {

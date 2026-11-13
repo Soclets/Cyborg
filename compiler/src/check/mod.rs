@@ -6,6 +6,7 @@
 pub mod aggregates;
 pub mod bake;
 pub mod collections;
+pub mod concur;
 pub mod contracts;
 pub mod failures;
 pub mod floats;
@@ -166,6 +167,15 @@ pub struct Body {
     pub calls: Vec<Span>,
     /// Parameters that are only lent, bare or `Lent.mut`, so their duties are the caller's (D2).
     pub lent: Vec<checked::LocalId>,
+    /// Statements to run before the statement being checked, like a task's call before its `done` (D376).
+    pub before: Vec<checked::Statement>,
+    /// The tasks this function spawned, by the variable holding each (D343).
+    pub tasks: Vec<(checked::LocalId, concur::Task)>,
+    pub task_count: usize,
+    /// How many `@concur::locked` blocks this is inside (D348).
+    pub locked: usize,
+    /// How many errors there were as this function's body started.
+    pub errors_at_start: usize,
     /// Variables a pointer was taken to, whose changes the pointer has to see (D315).
     pub pointed_at: Vec<checked::LocalId>,
     /// Chunks a `simd_chunks` loop hands out as copies, which can't change (D303).
@@ -310,6 +320,8 @@ pub struct Checker<'a> {
     pub imports: Vec<String>,
     /// Single things imported from `std`, as in `import std::io::fmt_print;`, with where each was (D198).
     pub single_imports: Vec<(String, Span)>,
+    /// A task just spawned, for the `let` that holds it (D343).
+    pub spawned: Option<concur::Spawned>,
     /// The `simd` lane being checked, from 1, which its failures name (D293).
     pub lane: Option<u64>,
     /// Declarations inside a shield at the top of the file, by name (D38).
@@ -383,6 +395,7 @@ pub fn check(
         errors: Vec::new(),
         imports: Vec::new(),
         single_imports: Vec::new(),
+        spawned: None,
         lane: None,
         shielded: Vec::new(),
         pointer_borrow: None,
@@ -898,6 +911,7 @@ impl Checker<'_> {
         match value_type {
             Type::Integer { .. } | Type::Float { .. } | Type::Bool | Type::Str(StrSize::View) => Some(false),
             Type::List { view: types::ListView::Read | types::ListView::Change, .. } => Some(false),
+            Type::Task(_) | Type::Runner(_) | Type::Lock(_) | Type::Atomic(_) | Type::Allocator(_) => Some(true),
             Type::Str(_) => Some(true),
             Type::New { inner, .. } => self.has_holding_choice(inner),
             Type::Struct { .. } | Type::Union { .. } | Type::Array { .. } | Type::List { .. } | Type::Writer(_) => {
@@ -1128,6 +1142,7 @@ impl Checker<'_> {
     fn function_body(&mut self, function: &syntax::Function, signature: &Signature) {
         let mut body = Body {
             scopes: vec![Vec::new()],
+            errors_at_start: self.errors.len(),
             returns: signature.returns.clone(),
             function_name: signature.name.clone(),
             is_main: function.keyword.text() == "fn.main",
@@ -1236,6 +1251,9 @@ impl Checker<'_> {
             Type::List { item, .. } | Type::Array { item, .. } => self.must_give(item),
             // An arena owns its block, and a growable string its text (D325, D326, D330).
             Type::Allocator(types::AllocatorKind::Arena) | Type::Str(StrSize::Growing) => true,
+            // A task has to be joined, and a runner from the OS owns threads (D343, D392).
+            Type::Task(_) | Type::Runner(types::RunnerKind::Threads | types::RunnerKind::Events) => true,
+            Type::Lock(inner) => self.must_give(inner),
             _ => false,
         }
     }
@@ -1252,6 +1270,9 @@ impl Checker<'_> {
             ),
             Type::Str(StrSize::Growing) => Some(
                 "heap text is `must_Give`, and `str.done` frees it with the allocator it came from, so a leak doesn't compile (D326, D331)".to_string(),
+            ),
+            Type::Runner(types::RunnerKind::Threads | types::RunnerKind::Events) => Some(
+                "a runner from the OS owns its threads, so it's `must_Give`, and `os::done(Give $pool);` ends it once its tasks are done (D343, D392)".to_string(),
             ),
             Type::New { inner, .. } => self.duty_why(inner),
             _ => None,
@@ -1577,8 +1598,9 @@ impl Checker<'_> {
                 "`fn.main` ends without `return void;`",
                 "`main` says `return void;` (D11)",
             ));
-        } else if body.returns == Type::Void {
+        } else if body.returns == Type::Void && self.errors.len() == body.errors_at_start {
             // trace: D393
+            // After an error in the body, a missing `return void;` could be what that error left out.
             let insert = Span { file: closer.file, start: closer.start, end: closer.start };
             self.error(
                 Diagnostic::refused_fix(
@@ -1591,7 +1613,7 @@ impl Checker<'_> {
                     replacement: "    return void;\n".to_string(),
                 }]),
             );
-        } else if !body.returns.is_unknown() {
+        } else if !body.returns.is_unknown() && body.returns != Type::Void {
             self.error(Diagnostic::refused(
                 closer,
                 format!("`{}` can reach its end without a `return`", body.function_name),
@@ -1756,6 +1778,16 @@ impl Checker<'_> {
             }
             "ptr.raw" | "ptr.raw.mut" | "ptr.volatile" | "ptr.volatile.mut" => self.pointer_type(written, &text, fill),
             "simd" => self.simd_type(written, fill, labels),
+            "std::coll::halves" | "std::coll::halves.mut" => {
+                self.require_import(&text, path.span)?;
+                let [syntax::TypeArgument { label: None, value: syntax::TypeArgumentValue::Type(item), .. }] =
+                    fill.as_slice()
+                else {
+                    return Err(self.not_yet(written.span, format!("`{text}` filled in this way")));
+                };
+                let item = self.resolve_type(item)?;
+                Ok(self.halves_type(&item, text.ends_with(".mut")))
+            }
             "std::coll::list" | "std::coll::list.mut" | "std::coll::array" => {
                 self.collection_type(written, &text, path, fill, labels)
             }
@@ -1805,6 +1837,7 @@ impl Checker<'_> {
             }
             _ if let Some(reported) = self.bare_member(path, &text) => Err(reported),
             _ if let Some(allocator) = self.allocator_type(&text, path.span) => allocator,
+            _ if let Some(concur) = self.concur_type(written, &text, fill) => concur,
             _ if text.contains("::") || text.contains('.') => {
                 Err(self.not_yet(written.span, format!("the type `{text}`")))
             }

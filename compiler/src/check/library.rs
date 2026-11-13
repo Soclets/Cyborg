@@ -191,6 +191,24 @@ impl Checker<'_> {
                         "a variable is read only after it has one (D203)",
                     )));
                 }
+                // An OS runner ends once its tasks are done, which they all are by now (D343, D392).
+                if let ExpressionKind::Variable(name) = &argument.value.kind
+                    && let Some(variable) = body.lookup(&name.text).cloned()
+                    && let Type::Runner(kind) = variable.value_type
+                {
+                    if kind == super::types::RunnerKind::OneThread {
+                        return Err(self.error(Diagnostic::refused(
+                            argument.span,
+                            "`std::run::one_thread` runs on the thread already running, so there's nothing for `os::done` to end",
+                            "only a runner from the OS owns threads, and `os::done` is how it ends (D392)",
+                        )));
+                    }
+                    self.give_away(body, name, &argument.value)?;
+                    return Ok(Some(checked::Statement::Evaluate(checked::Expression {
+                        kind: checked::ExpressionKind::Integer(0),
+                        machine_type: checked::MachineType::I64,
+                    })));
+                }
                 let (writer, local) = self.writer_variable(body, &argument.value)?;
                 if !writer.buffered {
                     // trace: D273

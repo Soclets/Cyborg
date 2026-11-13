@@ -480,6 +480,13 @@ pub enum StatementKind {
         condition: Expression,
     },
     Shield(Shield),
+    /// `@concur::locked $a, $b as $x, $y: … end @concur::locked`: locks taken for a block (D348, D349, D359).
+    Locked {
+        locks: Vec<Expression>,
+        names: Vec<Name>,
+        body: Vec<Statement>,
+        end: Closer,
+    },
     /// `on.target aarch64: … else: … end on.target` (D233).
     OnTarget(OnTarget),
     /// `inline.asm: … end inline.asm` (D233).
@@ -720,6 +727,12 @@ pub enum ExpressionKind {
         callee: Box<Expression>,
         arguments: Vec<Argument>,
         arguments_span: Span,
+    },
+    /// `@concur::spawn(on: Lend $pool) sum(Lend $xs)`: a call started as a task (D343, D356).
+    Spawn {
+        options: Vec<Argument>,
+        options_span: Span,
+        call: Box<Expression>,
     },
     /// A call led by a type filled in with `< >`: `ptr.raw.mut<i32>.of(Lend.mut $count)` (D315).
     TypeCall {

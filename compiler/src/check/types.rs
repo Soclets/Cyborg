@@ -108,6 +108,14 @@ pub enum ListView {
     Change,
 }
 
+/// A runner: one thread switching between tasks, the OS's threads, or an event runner (D345, D359, D377).
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub enum RunnerKind {
+    OneThread,
+    Threads,
+    Events,
+}
+
 /// The allocators a program can name (D332, D333).
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum AllocatorKind {
@@ -301,6 +309,14 @@ pub enum Type {
     },
     /// An allocator: the OS heap, or an arena (D321, D330, D332, D333).
     Allocator(AllocatorKind),
+    /// A task from `@concur::spawn`, giving back its call's value at `@concur::task.done` (D343, D357).
+    Task(Box<Type>),
+    /// Where tasks run (D345, D350, D377).
+    Runner(RunnerKind),
+    /// `@concur::lock<T>`: data reached only by locking it (D348).
+    Lock(Box<Type>),
+    /// `@concur::atomic<T>`: an integer or `bool` changed by indivisible instructions (D354).
+    Atomic(Box<Type>),
     /// An integer or `bool` that mustn't affect how long the program takes (D339).
     Secret(Box<Type>),
     /// A portable vector: lanes of one type, worked on all at once (D291).
@@ -426,7 +442,8 @@ impl Type {
             Type::Str(_) => checked::MachineType::Text,
             Type::Allocator(_) | Type::Pointer { .. } => checked::MachineType::Address,
             Type::Simd { item, lanes } => checked::MachineType::Array { item: Box::new(item.machine()), len: *lanes },
-            Type::Secret(inner) => inner.machine(),
+            Type::Secret(inner) | Type::Lock(inner) | Type::Atomic(inner) => inner.machine(),
+            Type::Task(_) | Type::Runner(_) => checked::MachineType::I64,
             Type::Void | Type::Unknown => checked::MachineType::Void,
             // A generic's own body is only checked, never built: each call builds a copy with real types.
             Type::Param { .. } => checked::MachineType::Address,
@@ -503,6 +520,12 @@ impl fmt::Display for Type {
                 write!(formatter, "]")
             }
             Type::Simd { item, lanes } => write!(formatter, "simd<{item}>[lanes: {lanes}]"),
+            Type::Task(inner) => write!(formatter, "@concur::task<{inner}>"),
+            Type::Lock(inner) => write!(formatter, "@concur::lock<{inner}>"),
+            Type::Atomic(inner) => write!(formatter, "@concur::atomic<{inner}>"),
+            Type::Runner(RunnerKind::OneThread) => write!(formatter, "std::run::one_thread"),
+            Type::Runner(RunnerKind::Threads) => write!(formatter, "os::threads"),
+            Type::Runner(RunnerKind::Events) => write!(formatter, "os::events"),
             Type::Secret(inner) => {
                 let shown = inner.to_string();
                 match shown.split_once('[') {

@@ -398,9 +398,11 @@ impl Checker<'_> {
         }
         body.events.push(crate::flow::Event::Change {
             place: crate::flow::Place { local: root.local, path: Vec::new(), shown: root_name.text.clone() },
+            // A whole item changing uses its whole list, so the list is what's named, and a field of one is named as
+            // written (D172, D382).
             spot: crate::flow::Spot {
                 variable: root_name.span,
-                place: target.span,
+                place: if matches!(target.kind, ExpressionKind::Field { .. }) { target.span } else { root_name.span },
                 site: root_name.span,
                 marker: span,
             },

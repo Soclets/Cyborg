@@ -744,6 +744,12 @@ pub enum ExpressionKind {
         pointer: Box<Expression>,
         bytes: Box<Expression>,
     },
+    /// Two views of a list split at a place, checked to be inside it or at its end (D347, D382).
+    Split {
+        list: Place,
+        at: Box<Expression>,
+        failure: Box<CheckFailure>,
+    },
     /// A view of a whole array, as a list record over its items, for a list view parameter (D379).
     ArrayView(Place),
     /// `os::heap()`: the one OS heap (D332, D371).
