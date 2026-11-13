@@ -1328,6 +1328,8 @@ A `type_set` is a closed list of types that nothing can join later, as in `type_
 
 **D413. A file's things are its own unless it writes `pub.pkg` or `pub`.** With files as modules (D412), there are three levels, and the bare one is the most private: a bare declaration is seen only in its own file, `pub.pkg` shares it with the package's other files, and `pub` shows it to everyone, the package's files included. `pkg` is Cyborg's word for a whole package (D188), and the `.` narrows `pub` down to it (D400). This narrows D186's "private to the package": a file's helpers stay inside the file, as in Zig and Rust, and D318 allows a bare default only when it's the expected one and fits the pitch. Claude proposed it over Go's package-wide default, spelled `pub.package`; the owner chose: "opt 2, but isn't it `pkg` instead of `package`?". (Owner, 2026-11-13)
 
+**D414. Another file in the package is reached with `pkg::`, and `my::` stays for clashes.** `pkg` already names the whole package (D188), so `pkg::net::http` reads as "this package's `net::http`": `import pkg::net::http;`, then `pkg::net::http::fetch(…)`. This replaces D412's `my::` for other files, so `my::` keeps its one original job, a file's own clashing name (D75). `import pkg std;`, with a space, still imports both halves of a package, and `import pkg::…`, with `::`, imports one of this package's files. Claude first proposed `my::` for both, noting a clash never has a `::` after its name; the owner asked "So, `my::` then would be used for both clashes, and from another file in same pkg?"; Claude offered `pkg::`; the owner chose: "the alt". (Owner, 2026-11-13)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude
