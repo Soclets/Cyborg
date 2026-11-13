@@ -104,6 +104,26 @@ pub fn build(file: &Path, target: Target, mode: Mode, output: &Path) -> Outcome 
     }
 }
 
+/// Checks the program in `file` against its manifest, giving the checked program or every error, rendered.
+///
+/// # Errors
+/// Every error, ready to print, if the program or its manifest was refused.
+pub fn checked(file: &Path, target: Target, mode: Mode) -> Result<crate::checked::Program, String> {
+    let text = std::fs::read_to_string(file).map_err(|error| format!("can't read {}: {error}", file.display()))?;
+    let manifest_text = std::fs::read_to_string(file.with_file_name("CyJet.siml")).unwrap_or_default();
+    let mut sources = Sources::default();
+    let manifest_id = sources.add(SourceFile::new("CyJet.siml".to_string(), manifest_text));
+    let program_id = sources.add(SourceFile::new(file.display().to_string(), text.clone()));
+    let mut errors = Vec::new();
+    let manifest = manifest::read(manifest_id, sources.get(manifest_id), &mut errors);
+    let (program, program_errors) = check_program(&mut sources, program_id, &text, &manifest, target, mode);
+    errors.extend(program_errors);
+    match program {
+        Some(program) if errors.is_empty() => Ok(program),
+        _ => Err(render_all(&errors, &sources)),
+    }
+}
+
 /// Checks a program's text, giving the checked program if nothing was refused, and every error in order.
 fn check_program(
     sources: &mut Sources,

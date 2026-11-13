@@ -17,7 +17,7 @@ use crate::checked::{
     Argument, Arithmetic, Base, Block, CheckFailure, Comparison, Expression, ExpressionKind, MachineType, Passing,
     Piece, Program, Shape, Statement,
 };
-use crate::target::{Mode, Target};
+use crate::target::{Checks, Mode, Overflow, Target};
 
 const OS_RUNTIME: &str = include_str!("runtime/os.ll");
 const BARE_RUNTIME: &str = include_str!("runtime/bare.ll");
@@ -32,6 +32,18 @@ pub const BOARD_MEMORY: &str = include_str!("runtime/arduino_uno_r4_wifi/memory.
 /// # Errors
 /// What LLVM reported, which is a bug in this compiler, since a checked program is always valid.
 pub fn object_file(program: &Program, target: Target, mode: Mode) -> Result<Vec<u8>> {
+    generate(program, target, mode, false)
+}
+
+/// The optimized LLVM IR for a checked program, as text, so tests can see what each build mode leaves in.
+///
+/// # Errors
+/// What LLVM reported, which is a bug in this compiler.
+pub fn optimized_ir(program: &Program, target: Target, mode: Mode) -> Result<String> {
+    generate(program, target, mode, true).map(|bytes| String::from_utf8_lossy(&bytes).into_owned())
+}
+
+fn generate(program: &Program, target: Target, mode: Mode, ir: bool) -> Result<Vec<u8>> {
     with_context(|context| {
         let triple = target.triple();
         let level = match mode {
@@ -69,12 +81,27 @@ pub fn object_file(program: &Program, target: Target, mode: Mode) -> Result<Vec<
                 unions: Vec::new(),
             };
             generator.program(program)?;
+            for name in mode.size_attributes() {
+                let kind = lyftar::attributes::AttributeKind::for_name(name)
+                    .ok_or_else(|| format!("LLVM has no `{name}` attribute"))?;
+                let attribute = context.enum_attribute(kind, 0);
+                let mut function = view.last_function();
+                while let Some(each) = function {
+                    if !each.is_declaration() {
+                        each.add_attribute(lyftar::attributes::AttributeLocation::Function, attribute);
+                    }
+                    function = each.previous_function();
+                }
+            }
             view.verify().map_err(|error| format!("the generated code: {}", error.message()))?;
         }
         context
             .exclusive_module(&mut module)
             .run_passes(mode.pipeline(), Some(&machine), &PassOptions::default())
             .map_err(|error| error.message().to_string())?;
+        if ir {
+            return Ok(context.module(&module).print_to_string().into_bytes());
+        }
         let buffer = machine
             .emit_to_memory_buffer(context.exclusive_module(&mut module), CodeGenerationFileType::Object)
             .map_err(|error| error.message().to_string())?;
@@ -551,8 +578,18 @@ impl<'context, 'module> Generator<'context, 'module> {
         Ok(())
     }
 
-    /// Crashes with `failure`'s message unless `holds` is true. Checks stay in every mode for now, since the modes
-    /// that drop them need Precog's proofs first.
+    /// Whether this mode leaves out a check: only a decided one, since a stop for something not decided yet stays in
+    /// every mode (rule 4).
+    fn drops(&self, failure: &CheckFailure) -> bool {
+        self.mode.checks() != Checks::Kept && Self::decided(failure)
+    }
+
+    fn decided(failure: &CheckFailure) -> bool {
+        failure.source.as_ref().is_some_and(|source| source.kind == crate::diagnostic::Kind::CheckFailed)
+    }
+
+    /// Crashes with `failure`'s message unless `holds` is true. Where the mode drops decided checks (standard 10.3),
+    /// `FinalPerf` and `FinalShit` hand `holds` to the optimizer as a fact instead (10.6), and `FinalSmall` leaves it.
     fn check(
         &mut self,
         frame: &mut Frame<'context, 'module>,
@@ -560,6 +597,15 @@ impl<'context, 'module> Generator<'context, 'module> {
         failure: &CheckFailure,
         operands: &[Operand<'context, 'module>],
     ) -> Result<()> {
+        // trace: D14
+        if self.drops(failure) {
+            if self.mode.checks() == Checks::Assumed {
+                let intrinsic = Intrinsic::find("llvm.assume").ok_or("LLVM has no `llvm.assume`")?;
+                let declaration = self.module.intrinsic_declaration(intrinsic, &[]);
+                frame.builder.call(declaration, &[holds], "");
+            }
+            return Ok(());
+        }
         let fine = frame.function.append_basic_block("fine");
         let failed = frame.function.append_basic_block("failed");
         frame.builder.conditional_branch(holds, fine, failed);
@@ -1430,6 +1476,29 @@ impl<'context, 'module> Generator<'context, 'module> {
         };
         let operands = [(left, machine_type.clone()), (right, machine_type.clone())];
         let zero = integer_constant(self.context, bits, 0);
+        // A plain `+` that overflows wraps in `FinalPerf` and `FinalSmall`, and is undefined in `FinalShit` (D42).
+        if let (Some(failure), Arithmetic::Add | Arithmetic::Subtract | Arithmetic::Multiply) = (failure, operator)
+            && Self::decided(failure)
+            && self.mode.overflow() != Overflow::Checked
+        {
+            let promise = self.mode.overflow() == Overflow::Undefined;
+            let builder = &frame.builder;
+            return Ok(match (operator, signed, promise) {
+                (Arithmetic::Add, _, false) => builder.integer_add(left, right, "").to_dynamic(),
+                (Arithmetic::Add, true, true) => builder.integer_add_no_signed_wrap(left, right, "").to_dynamic(),
+                (Arithmetic::Add, false, true) => builder.integer_add_no_unsigned_wrap(left, right, "").to_dynamic(),
+                (Arithmetic::Subtract, _, false) => builder.integer_subtract(left, right, "").to_dynamic(),
+                (Arithmetic::Subtract, true, true) => {
+                    builder.integer_subtract_no_signed_wrap(left, right, "").to_dynamic()
+                }
+                (Arithmetic::Subtract, false, true) => {
+                    builder.integer_subtract_no_unsigned_wrap(left, right, "").to_dynamic()
+                }
+                (_, _, false) => builder.integer_multiply(left, right, "").to_dynamic(),
+                (_, true, true) => builder.integer_multiply_no_signed_wrap(left, right, "").to_dynamic(),
+                (_, false, true) => builder.integer_multiply_no_unsigned_wrap(left, right, "").to_dynamic(),
+            });
+        }
         if let (Some(failure), Arithmetic::Add | Arithmetic::Subtract | Arithmetic::Multiply) = (failure, operator) {
             let name = match (operator, signed) {
                 (Arithmetic::Add, true) => "llvm.sadd.with.overflow",
