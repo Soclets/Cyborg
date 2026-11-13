@@ -448,6 +448,8 @@ impl Type {
             Type::Simd { item, lanes } => checked::MachineType::Array { item: Box::new(item.machine()), len: *lanes },
             Type::Secret(inner) | Type::Atomic(inner) => inner.machine(),
             Type::Lock { id, .. } => checked::MachineType::Struct(*id),
+            // An OS pool is the address of its record (D345).
+            Type::Runner(RunnerKind::Threads) => checked::MachineType::Address,
             Type::Task(_) | Type::Runner(_) => checked::MachineType::I64,
             Type::Void | Type::Unknown => checked::MachineType::Void,
             // A generic's own body is only checked, never built: each call builds a copy with real types.

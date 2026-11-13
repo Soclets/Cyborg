@@ -29,6 +29,8 @@ pub struct Task {
     pub ran: LocalId,
     /// Spawned onto a runner that waits to run it, rather than at once.
     pub waits: bool,
+    /// The record of a task running on one of an OS pool's threads, which its join waits for (D345).
+    pub record: Option<LocalId>,
     pub order: usize,
 }
 
@@ -185,6 +187,7 @@ impl Checker<'_> {
             RunnerKind::Threads | RunnerKind::Events => {
                 let wants_alloc = kind == RunnerKind::Events;
                 let (count, alloc) = (labelled("count"), labelled("alloc"));
+                let mut threads = 0;
                 if count.is_none() || (wants_alloc && alloc.is_none()) {
                     let (name, what) =
                         if wants_alloc { ("os::events", "`count:` and `alloc:`") } else { ("os::threads", "`count:`") };
@@ -198,6 +201,7 @@ impl Checker<'_> {
                     && !matches!(&count.value.kind, ExpressionKind::Path(path) if path.is_single("max"))
                 {
                     let number = self.constant_integer(&count.value)?;
+                    threads = u64::try_from(number).unwrap_or(0);
                     if number < 1 {
                         return Err(self.error(Diagnostic::refused(
                             count.value.span,
@@ -208,6 +212,10 @@ impl Checker<'_> {
                 }
                 if let Some(alloc) = alloc {
                     self.allocator_argument(body, alloc)?;
+                }
+                // An OS pool is real threads, made here: `count` of them, or 0 for every core (D345, D392).
+                if kind == RunnerKind::Threads {
+                    return Ok(Typed::new(Type::Runner(kind), Kind::Pool { count: threads }));
                 }
             }
         }
@@ -318,14 +326,20 @@ impl Checker<'_> {
         let result = body.new_local(deferred.machine_type.clone());
         let ran = body.new_local(MachineType::Bool);
         let waits = kind != RunnerKind::Threads;
+        let record = (!waits).then(|| body.new_local(MachineType::Address));
         if waits {
             body.before.push(checked::Statement::Let {
                 local: ran,
                 value: checked::Expression { kind: Kind::Bool(false), machine_type: MachineType::Bool },
             });
         } else {
-            // A task on the OS's threads starts as it's spawned.
-            body.before.push(checked::Statement::Let { local: result, value: deferred.clone() });
+            // A task on the OS's threads starts on one of them as it's spawned, while this code goes on (D345).
+            let Some(record) = record else { return Err(Reported) };
+            body.before.push(checked::Statement::TaskStart {
+                task: record,
+                pool: runner.value.clone(),
+                call: deferred.clone(),
+            });
             body.before.push(checked::Statement::Let {
                 local: ran,
                 value: checked::Expression { kind: Kind::Bool(true), machine_type: MachineType::Bool },
@@ -333,7 +347,7 @@ impl Checker<'_> {
         }
         let order = body.task_count;
         body.task_count += 1;
-        let task = Task { signature: signature.clone(), call: deferred, result, ran, waits, order };
+        let task = Task { signature: signature.clone(), call: deferred, result, ran, waits, order, record };
         self.spawned = Some(Spawned { task, borrows, mutable });
         let _ = expression;
         Ok(Typed::new(Type::Task(Box::new(signature.returns.clone())), Kind::Integer(0)))
@@ -399,6 +413,10 @@ impl Checker<'_> {
                 ],
                 otherwise: Vec::new(),
             });
+        }
+        // A task on a thread is waited for, and its record gives back what it made (D343, D357).
+        if let Some(record) = task.record {
+            body.before.push(checked::Statement::TaskJoin { task: record, result: task.result });
         }
         let value =
             checked::Expression { kind: Kind::Local(task.result), machine_type: task.call.machine_type.clone() };

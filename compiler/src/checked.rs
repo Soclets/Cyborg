@@ -96,6 +96,19 @@ pub type Block = Vec<Statement>;
 
 #[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
 pub enum Statement {
+    /// Starts a call as a task on one of an OS pool's threads, keeping its record in `task` (D343, D345).
+    TaskStart {
+        task: LocalId,
+        pool: Expression,
+        call: Expression,
+    },
+    /// Waits for the task whose record is in `task`, puts what it gave back in `result`, and frees the record (D343).
+    TaskJoin {
+        task: LocalId,
+        result: LocalId,
+    },
+    /// Ends an OS pool, whose tasks are all joined (D392).
+    PoolDone(Expression),
     /// Takes every lock whose word's address is in an array local, in address order, waiting for each, so two blocks
     /// taking the same locks can't each hold one the other waits for (D348, D349).
     LockAll {
@@ -803,6 +816,10 @@ pub enum ExpressionKind {
     ArrayView(Place),
     /// `os::heap()`: the one OS heap (D332, D371).
     Heap,
+    /// `os::threads(count: …)`: a pool of the OS's threads, `count` of them, or one per core for 0 (D345, D392).
+    Pool {
+        count: u64,
+    },
     /// Text copied into heap memory of its own, for `str.from` (D326, D369).
     TextCopy(Box<Expression>),
     /// Text checked to fit a bounded string's `len.max` while running, failing otherwise (D326, D328).

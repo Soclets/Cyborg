@@ -37,8 +37,10 @@ impl Checker<'_> {
         let mut block = Vec::new();
         let mut leaves = false;
         let mut gives = false;
-        // What the statement around this block did so far stays with it, and goes before it.
+        // What the statement around this block did so far stays with it, and goes before it, as does what it needs
+        // run first, like a task's join in a `let` whose `otherwise:` arms are this block (D376).
         let outer = std::mem::take(&mut body.events);
+        let outer_before = std::mem::take(&mut body.before);
         for statement in statements {
             if matches!(statement.kind, StatementKind::Instead(_)) {
                 gives = true;
@@ -102,6 +104,7 @@ impl Checker<'_> {
             block.push(checked::Statement::Flow(vec![crate::flow::Event::ScopeEnd { locals }]));
         }
         body.events = outer;
+        body.before = outer_before;
         let declared = body
             .scopes
             .pop()

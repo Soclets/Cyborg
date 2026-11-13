@@ -9,6 +9,10 @@
 
 @__cyborg_writers = hidden global ptr null
 
+; The runtime's own lock, a lock word like a `@concur::lock`'s, held while the list of writers or an allocator's
+; record changes, since tasks on the OS's threads share them (D345).
+@__cyborg_runtime_lock = hidden global i32 0
+
 declare i64 @write(i32, ptr, i64)
 declare ptr @malloc(i64)
 declare ptr @realloc(ptr, i64)
@@ -53,6 +57,7 @@ entry:
 allocate:
   %buffer = call ptr @malloc(i64 %capacity)
   store ptr %buffer, ptr %buffer_at
+  call void @__cyborg_lock(ptr @__cyborg_runtime_lock)
   %head = load ptr, ptr @__cyborg_writers
   store ptr %head, ptr %next_at
   %has_head = icmp ne ptr %head, null
@@ -63,6 +68,7 @@ link_head:
   br label %linked
 linked:
   store ptr %writer, ptr @__cyborg_writers
+  call void @__cyborg_unlock(ptr @__cyborg_runtime_lock)
   ret void
 unbuffered:
   store ptr null, ptr %buffer_at
@@ -125,6 +131,7 @@ entry:
   %buffered = icmp ne ptr %buffer, null
   br i1 %buffered, label %unlink, label %exit
 unlink:
+  call void @__cyborg_lock(ptr @__cyborg_runtime_lock)
   %next_at = getelementptr %writer, ptr %writer, i32 0, i32 4
   %next = load ptr, ptr %next_at
   %previous_at = getelementptr %writer, ptr %writer, i32 0, i32 5
@@ -146,6 +153,7 @@ fix_head:
   store ptr %next, ptr @__cyborg_writers
   br label %freed
 freed:
+  call void @__cyborg_unlock(ptr @__cyborg_runtime_lock)
   call void @free(ptr %buffer)
   store ptr null, ptr %buffer_at
   br label %exit
@@ -157,6 +165,7 @@ exit:
 ; shows (D274).
 define void @__cyborg_flush_all() {
 entry:
+  call void @__cyborg_lock(ptr @__cyborg_runtime_lock)
   %head = load ptr, ptr @__cyborg_writers
   br label %loop
 loop:
@@ -169,6 +178,7 @@ flush:
   %next = load ptr, ptr %next_at
   br label %loop
 exit:
+  call void @__cyborg_unlock(ptr @__cyborg_runtime_lock)
   ret void
 }
 
@@ -413,9 +423,7 @@ out:
   call void @exit(i32 1)
   unreachable
 fine:
-  %id = load i64, ptr @__cyborg_next_allocator
-  %next = add i64 %id, 1
-  store i64 %next, ptr @__cyborg_next_allocator
+  %id = atomicrmw add ptr @__cyborg_next_allocator, i64 1 monotonic
   store %allocator { i64 0, i64 0, i64 0, i64 -1, i64 0 }, ptr %record
   %id_place = getelementptr %allocator, ptr %record, i32 0, i32 0
   store i64 %id, ptr %id_place
@@ -465,6 +473,15 @@ fine:
 ; byte in `%report`, and 2 for another allocator than the list's (D322). `%size` is an item's size in this
 ; machine's memory, and `%standard` and `%align` are its size and alignment as the standard counts them (D370).
 define i64 @__cyborg_list_reserve(ptr %list, ptr %allocator, i64 %want, i64 %size, i64 %standard, i64 %align, i64 %grow, i64 %step, ptr %report) {
+entry:
+  call void @__cyborg_lock(ptr @__cyborg_runtime_lock)
+  %result = call i64 @__cyborg_list_reserve_held(ptr %list, ptr %allocator, i64 %want, i64 %size, i64 %standard, i64 %align, i64 %grow, i64 %step, ptr %report)
+  call void @__cyborg_unlock(ptr @__cyborg_runtime_lock)
+  ret i64 %result
+}
+
+; `__cyborg_list_reserve` with the runtime's lock held, since the allocator's record changes.
+define i64 @__cyborg_list_reserve_held(ptr %list, ptr %allocator, i64 %want, i64 %size, i64 %standard, i64 %align, i64 %grow, i64 %step, ptr %report) {
 entry:
   %same = call i64 @__cyborg_list_same_allocator(ptr %list, ptr %allocator, ptr %report)
   %wrong = icmp ne i64 %same, 0
@@ -582,9 +599,7 @@ entry:
   br i1 %has_block, label %count, label %free
 count:
   %alive_place = getelementptr %allocator, ptr %allocator, i32 0, i32 4
-  %alive = load i64, ptr %alive_place
-  %fewer = sub i64 %alive, 1
-  store i64 %fewer, ptr %alive_place
+  %alive = atomicrmw sub ptr %alive_place, i64 1 monotonic
   br label %free
 free:
   %storage_place = getelementptr %list, ptr %list, i32 0, i32 0
@@ -741,5 +756,133 @@ step:
   %next = add i64 %i, 1
   br label %loop
 done:
+  ret void
+}
+
+; Runners from the OS (D345, D392). A pool holds how many of its tasks may run at once, how many run now, and the
+; lock and condition a spawn waits on while every thread is busy. 64 bytes is room for either system's
+; `pthread_mutex_t` and `pthread_cond_t`.
+%pool = type { i64, i64, [64 x i8], [64 x i8] }
+
+declare i32 @pthread_create(ptr, ptr, ptr, ptr)
+declare i32 @pthread_join(ptr, ptr)
+declare i32 @pthread_mutex_init(ptr, ptr)
+declare i32 @pthread_mutex_lock(ptr)
+declare i32 @pthread_mutex_unlock(ptr)
+declare i32 @pthread_mutex_destroy(ptr)
+declare i32 @pthread_cond_init(ptr, ptr)
+declare i32 @pthread_cond_wait(ptr, ptr)
+declare i32 @pthread_cond_signal(ptr)
+declare i32 @pthread_cond_destroy(ptr)
+declare i64 @sysconf(i32)
+
+; A pool of `%count` threads, or one for every core online when `%count` is 0, for `count: max`, asking the system
+; through `sysconf` with its own number for that question, `%cores_name`.
+define ptr @__cyborg_pool_new(i64 %count, i32 %cores_name) {
+entry:
+  %every = icmp eq i64 %count, 0
+  br i1 %every, label %cores, label %make
+cores:
+  %online = call i64 @sysconf(i32 %cores_name)
+  %some = icmp sgt i64 %online, 0
+  %known = select i1 %some, i64 %online, i64 1
+  br label %make
+make:
+  %threads = phi i64 [ %count, %entry ], [ %known, %cores ]
+  %pool = call ptr @__cyborg_allocate(i64 144)
+  %count_at = getelementptr %pool, ptr %pool, i32 0, i32 0
+  store i64 %threads, ptr %count_at
+  %running_at = getelementptr %pool, ptr %pool, i32 0, i32 1
+  store i64 0, ptr %running_at
+  %mutex = getelementptr %pool, ptr %pool, i32 0, i32 2
+  %mutex_made = call i32 @pthread_mutex_init(ptr %mutex, ptr null)
+  %condition = getelementptr %pool, ptr %pool, i32 0, i32 3
+  %condition_made = call i32 @pthread_cond_init(ptr %condition, ptr null)
+  ret ptr %pool
+}
+
+; Ends a pool, whose tasks are all joined by now (D343, D392).
+define void @__cyborg_pool_done(ptr %pool) {
+entry:
+  %mutex = getelementptr %pool, ptr %pool, i32 0, i32 2
+  %mutex_gone = call i32 @pthread_mutex_destroy(ptr %mutex)
+  %condition = getelementptr %pool, ptr %pool, i32 0, i32 3
+  %condition_gone = call i32 @pthread_cond_destroy(ptr %condition)
+  call void @free(ptr %pool)
+  ret void
+}
+
+; A task's record starts with its thread and its pool, then what its call gives back and its arguments, which the
+; compiler lays out per call. `%run` is the function the thread runs: it unpacks the arguments, makes the call,
+; stores what it gave back, and calls `__cyborg_task_end`.
+;
+; Starts a task on one of the pool's threads, waiting while they're all busy (D345). If the system can't start a
+; thread, the task runs here instead, so it still runs and its join finds it done.
+define void @__cyborg_task_start(ptr %task, ptr %run) {
+entry:
+  %pool_at = getelementptr { ptr, ptr }, ptr %task, i32 0, i32 1
+  %pool = load ptr, ptr %pool_at
+  %count_at = getelementptr %pool, ptr %pool, i32 0, i32 0
+  %running_at = getelementptr %pool, ptr %pool, i32 0, i32 1
+  %mutex = getelementptr %pool, ptr %pool, i32 0, i32 2
+  %condition = getelementptr %pool, ptr %pool, i32 0, i32 3
+  %locked = call i32 @pthread_mutex_lock(ptr %mutex)
+  br label %check
+check:
+  %running = load i64, ptr %running_at
+  %count = load i64, ptr %count_at
+  %full = icmp sge i64 %running, %count
+  br i1 %full, label %wait, label %claim
+wait:
+  %woken = call i32 @pthread_cond_wait(ptr %condition, ptr %mutex)
+  br label %check
+claim:
+  %more = add i64 %running, 1
+  store i64 %more, ptr %running_at
+  %unlocked = call i32 @pthread_mutex_unlock(ptr %mutex)
+  %made = call i32 @pthread_create(ptr %task, ptr null, ptr %run, ptr %task)
+  %failed = icmp ne i32 %made, 0
+  br i1 %failed, label %here, label %done
+here:
+  store ptr null, ptr %task
+  %ran = call ptr %run(ptr %task)
+  br label %done
+done:
+  ret void
+}
+
+; A task's call has finished: its thread is free for the next spawn waiting.
+define void @__cyborg_task_end(ptr %task) {
+entry:
+  %pool_at = getelementptr { ptr, ptr }, ptr %task, i32 0, i32 1
+  %pool = load ptr, ptr %pool_at
+  %running_at = getelementptr %pool, ptr %pool, i32 0, i32 1
+  %mutex = getelementptr %pool, ptr %pool, i32 0, i32 2
+  %condition = getelementptr %pool, ptr %pool, i32 0, i32 3
+  %locked = call i32 @pthread_mutex_lock(ptr %mutex)
+  %running = load i64, ptr %running_at
+  %fewer = sub i64 %running, 1
+  store i64 %fewer, ptr %running_at
+  %signalled = call i32 @pthread_cond_signal(ptr %condition)
+  %unlocked = call i32 @pthread_mutex_unlock(ptr %mutex)
+  ret void
+}
+
+; Waits for a task's thread to finish (D343), after which what it stored can be read.
+define void @__cyborg_task_join(ptr %task) {
+entry:
+  %thread = load ptr, ptr %task
+  %ran_here = icmp eq ptr %thread, null
+  br i1 %ran_here, label %done, label %join
+join:
+  %joined = call i32 @pthread_join(ptr %thread, ptr null)
+  br label %done
+done:
+  ret void
+}
+
+define void @__cyborg_task_free(ptr %task) {
+entry:
+  call void @free(ptr %task)
   ret void
 }

@@ -204,6 +204,13 @@ impl Checker<'_> {
                         )));
                     }
                     self.give_away(body, name, &argument.value)?;
+                    if kind == super::types::RunnerKind::Threads {
+                        let pool = checked::Expression {
+                            kind: checked::ExpressionKind::Local(variable.local),
+                            machine_type: checked::MachineType::Address,
+                        };
+                        return Ok(Some(checked::Statement::PoolDone(pool)));
+                    }
                     return Ok(Some(checked::Statement::Evaluate(checked::Expression {
                         kind: checked::ExpressionKind::Integer(0),
                         machine_type: checked::MachineType::I64,

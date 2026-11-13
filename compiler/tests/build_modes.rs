@@ -290,3 +290,40 @@ fn d348_every_way_out_of_a_locked_block_unlocks() {
     let (code, out) = run("lock_exits_run", LOCK_EXITS, &["--FinalSafe"]);
     assert_eq!((code, out.as_str()), (Some(0), "104 202\n"));
 }
+
+const MEETING: &str = "import std;
+import os;
+import @concur;
+
+fn meet [$arrived: Lent @concur::atomic<u64>] -> i64:
+    $arrived.%add(val: 1);
+    let mut $spins: i64 = 0;
+    while $arrived.%load() below 2 and $spins below 2000000000:
+        change $spins = $spins + 1;
+    end while
+    if $arrived.%load() below 2:
+        return 0;
+    end if
+    return 1;
+end fn meet
+
+fn.main [none] -> void:
+    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
+    let $pool: os::threads = os::threads(count: 2);
+    defer os::done(Give $pool);
+    let $arrived: @concur::atomic<u64> = @concur::atomic.new(0);
+    let $a: @concur::task<i64> = @concur::spawn(on: Lend $pool) meet(Lend $arrived);
+    let $b: @concur::task<i64> = @concur::spawn(on: Lend $pool) meet(Lend $arrived);
+    let $met: i64 = @concur::task.done(Give $a) + @concur::task.done(Give $b);
+    std::io::fmt_print(Lend.mut $out, \"{}{newln}\", $met);
+    return void;
+end fn.main
+";
+
+#[test]
+fn d345_tasks_on_os_threads_run_at_once() {
+    // Each task waits for the other to arrive, which only happens if they really run at the same time.
+    // trace: D345
+    let (code, out) = run("meeting_run", MEETING, &["--FinalSafe"]);
+    assert_eq!((code, out.as_str()), (Some(0), "2\n"));
+}

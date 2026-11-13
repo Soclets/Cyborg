@@ -251,13 +251,19 @@ impl Lowering {
             }
             Statement::ListDone { allocator: value, .. }
             | Statement::ArenaDone { arena: value, .. }
+            | Statement::PoolDone(value)
             | Statement::TextDone(value) => Some(self.expression(value, here)),
+            Statement::TaskStart { pool, call, .. } => {
+                let here = self.expression(pool, here);
+                Some(self.expression(call, here))
+            }
             Statement::OpenWriter { .. }
             | Statement::Alias { .. }
             | Statement::Print { .. }
             | Statement::Flush { .. }
             | Statement::LockAll { .. }
             | Statement::UnlockAll { .. }
+            | Statement::TaskJoin { .. }
             | Statement::Done { .. } => Some(here),
         }
     }

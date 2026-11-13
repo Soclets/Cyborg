@@ -122,7 +122,8 @@ fn inline_runtime_text(target: Target) -> String {
         let shared = OS_RUNTIME
             .replace(WRITERS_DEFINED, WRITERS_DECLARED)
             .replace(HEAP_DEFINED, HEAP_DECLARED)
-            .replace(NEXT_DEFINED, NEXT_DECLARED);
+            .replace(NEXT_DEFINED, NEXT_DECLARED)
+            .replace(RUNTIME_LOCK_DEFINED, RUNTIME_LOCK_DECLARED);
         let system = system_runtime(target);
         format!("{shared}\n{system}\ndeclare i64 @__cyborg_format_float(double, i32, i32, i32, i1, ptr)\n")
     } else {
@@ -138,6 +139,9 @@ const HEAP_DEFINED: &str = "@__cyborg_the_heap = hidden global %allocator { i64 
 const HEAP_DECLARED: &str = "@__cyborg_the_heap = external hidden global %allocator";
 const NEXT_DEFINED: &str = "@__cyborg_next_allocator = hidden global i64 1";
 const NEXT_DECLARED: &str = "@__cyborg_next_allocator = external hidden global i64";
+/// The runtime's own lock, which the runtime's unit defines too (D345).
+const RUNTIME_LOCK_DEFINED: &str = "@__cyborg_runtime_lock = hidden global i32 0";
+const RUNTIME_LOCK_DECLARED: &str = "@__cyborg_runtime_lock = external hidden global i32";
 
 /// The unoptimized IR for one unit, as text. It's all a unit's object depends on, besides the target and mode, so
 /// it's what the cache hashes.
@@ -169,6 +173,8 @@ pub fn unit_ir(program: &Program, target: Target, mode: Mode, unit: &Unit) -> Re
             module: view,
             mode,
             bare_metal: !target.has_os(),
+            // `sysconf`'s own number for asking how many cores are online, `_SC_NPROCESSORS_ONLN`.
+            cores_name: if target == Target::MacOsAarch64 { 58 } else { 84 },
             program,
             symbols: symbols(program),
             current: Messages::default(),
@@ -358,6 +364,7 @@ struct Generator<'context, 'module> {
     mode: Mode,
     /// With no operating system, a failed check traps, since there's nowhere decided to print to.
     bare_metal: bool,
+    cores_name: u64,
     program: &'module Program,
     symbols: Vec<String>,
     /// Whether this unit holds every function, so all but `main` can be internal to it.
@@ -923,6 +930,26 @@ impl<'context, 'module> Generator<'context, 'module> {
             Statement::Print { writer, pieces } => {
                 let writer = frame.slots[*writer];
                 self.pieces(frame, writer, pieces)?;
+            }
+            Statement::TaskStart { task, pool, call } => self.task_start(frame, *task, pool, call)?,
+            Statement::TaskJoin { task, result } => {
+                // trace: D343, D357
+                let pointer = self.context.pointer_type(0);
+                let record = frame.builder.load(pointer, frame.slots[*task], "").to_dynamic();
+                frame.builder.call(self.runtime("__cyborg_task_join")?, &[record], "");
+                let result_type = frame.local_types.get(*result).cloned().unwrap_or(MachineType::Void);
+                if result_type != MachineType::Void {
+                    let stored = self.machine_type(&result_type);
+                    let head = self.context.struct_type(&[pointer, pointer, stored], false);
+                    let place = frame.builder.struct_get_element_pointer(head, record, 2, "").to_dynamic();
+                    let value = frame.builder.load(stored, place, "").to_dynamic();
+                    frame.builder.store(value, frame.slots[*result]);
+                }
+                frame.builder.call(self.runtime("__cyborg_task_free")?, &[record], "");
+            }
+            Statement::PoolDone(pool) => {
+                let pool = self.expression(frame, pool)?;
+                frame.builder.call(self.runtime("__cyborg_pool_done")?, &[pool], "");
             }
             Statement::LockAll { addresses, count } | Statement::UnlockAll { addresses, count } => {
                 // trace: D348, D349
@@ -1975,6 +2002,11 @@ impl<'context, 'module> Generator<'context, 'module> {
                 self.crash_unless(frame, fits, failure, &[(length, MachineType::Integer { bits: 64, signed: false })])?;
                 text
             }
+            ExpressionKind::Pool { count } => {
+                // trace: D345, D392
+                let arguments = [self.integer(64, *count), self.integer(32, self.cores_name)];
+                frame.builder.call(self.runtime("__cyborg_pool_new")?, &arguments, "").to_dynamic()
+            }
             ExpressionKind::Heap => {
                 frame.builder.call(self.runtime("__cyborg_heap")?, &[] as &[Value<'context, 'module>], "").to_dynamic()
             }
@@ -2175,6 +2207,79 @@ impl<'context, 'module> Generator<'context, 'module> {
             }
         };
         Ok(value)
+    }
+
+    /// Starts a call on one of an OS pool's threads (D343, D345, D356). Its arguments are worked out here, where the
+    /// spawn is written, into a record on the heap: the thread, the pool, room for what the call gives back, then
+    /// each argument, with a temporary's value held in the record itself, so it lives as long as the task. A small
+    /// function made for this spawn is what the thread runs: it unpacks the record, makes the call, stores what it
+    /// gave back, and frees its thread for the next spawn.
+    fn task_start(
+        &mut self,
+        frame: &mut Frame<'context, 'module>,
+        task: usize,
+        pool: &Expression,
+        call: &Expression,
+    ) -> Result<()> {
+        // trace: D343, D345, D356
+        let ExpressionKind::Call { function, arguments, .. } = &call.kind else {
+            return Err("a task that isn't a call".into());
+        };
+        let callee = self.declare(*function)?;
+        let pointer = self.context.pointer_type(0);
+        let returns = call.machine_type != MachineType::Void;
+        let result_type =
+            if returns { self.machine_type(&call.machine_type) } else { self.context.integer_type(8).to_dynamic() };
+        let pool = self.expression(frame, pool)?;
+        // Each argument's value and type in the record, and whether the call takes the record's own place for it.
+        let mut fields = Vec::with_capacity(arguments.len());
+        for argument in arguments {
+            fields.push(match argument {
+                Argument::Value(value) => {
+                    (self.expression(frame, value)?, self.machine_type(&value.machine_type), false)
+                }
+                Argument::Temporary(value) => {
+                    (self.expression(frame, value)?, self.machine_type(&value.machine_type), true)
+                }
+                Argument::Address(local) => (frame.slots[*local], pointer, false),
+                Argument::FieldAddress { local, path } => (self.field_place(frame, *local, path)?, pointer, false),
+                Argument::Place(place) => (self.place_pointer(frame, place)?.0, pointer, false),
+            });
+        }
+        let mut layout = vec![pointer, pointer, result_type];
+        layout.extend(fields.iter().map(|(_, field_type, _)| *field_type));
+        let record_type = self.context.struct_type(&layout, false);
+        let size = self.context.size_of(record_type);
+        let record = frame.builder.call(self.runtime("__cyborg_allocate")?, &[size], "").to_dynamic();
+        let pool_place = frame.builder.struct_get_element_pointer(record_type, record, 1, "").to_dynamic();
+        frame.builder.store(pool, pool_place);
+        for (index, (value, _, _)) in fields.iter().enumerate() {
+            let at = u32::try_from(index + 3).unwrap_or(u32::MAX);
+            let place = frame.builder.struct_get_element_pointer(record_type, record, at, "").to_dynamic();
+            frame.builder.store(*value, place);
+        }
+        // What the thread runs.
+        let entry_type = self.context.function_type(pointer, &[pointer], false);
+        let entry = self.module.add_function("cyborg.task", entry_type);
+        entry.set_linkage(Linkage::Internal);
+        let builder = Builder::at_end_of(entry.append_basic_block("entry"));
+        let own = entry.parameter(0);
+        let mut values = Vec::with_capacity(fields.len());
+        for (index, (_, field_type, by_place)) in fields.iter().enumerate() {
+            let at = u32::try_from(index + 3).unwrap_or(u32::MAX);
+            let place = builder.struct_get_element_pointer(record_type, own, at, "").to_dynamic();
+            values.push(if *by_place { place } else { builder.load(*field_type, place, "").to_dynamic() });
+        }
+        let made = builder.call(callee, &values, "").to_dynamic();
+        if returns {
+            let place = builder.struct_get_element_pointer(record_type, own, 2, "").to_dynamic();
+            builder.store(made, place);
+        }
+        builder.call(self.runtime("__cyborg_task_end")?, &[own], "");
+        builder.return_value(pointer.constant_null());
+        frame.builder.call(self.runtime("__cyborg_task_start")?, &[record, entry.as_pointer()], "");
+        frame.builder.store(record, frame.slots[task]);
+        Ok(())
     }
 
     /// An atomic's operation, through the CPU's own indivisible instructions (D354, D360): `%load` is an atomic load,

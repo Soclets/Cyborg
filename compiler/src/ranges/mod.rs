@@ -353,9 +353,15 @@ impl Walker<'_> {
                 self.place(place);
                 self.expression(allocator);
             }
-            Statement::ArenaDone { arena: value, .. } | Statement::TextDone(value) => {
+            Statement::ArenaDone { arena: value, .. } | Statement::TextDone(value) | Statement::PoolDone(value) => {
                 self.expression(value);
             }
+            Statement::TaskStart { pool, call, .. } => {
+                self.expression(pool);
+                self.expression(call);
+            }
+            // What a task gave back is only known once it's joined.
+            Statement::TaskJoin { result, .. } => self.hold(*result, None),
             Statement::Assembly { reads, writes, .. } => {
                 for (_, value) in reads {
                     self.expression(value);
@@ -693,7 +699,7 @@ impl Walker<'_> {
                 self.place(place);
                 machine
             }
-            ExpressionKind::Heap | ExpressionKind::ArenaNew { .. } => machine,
+            ExpressionKind::Heap | ExpressionKind::ArenaNew { .. } | ExpressionKind::Pool { .. } => machine,
             ExpressionKind::Site(_)
             | ExpressionKind::Float(_)
             | ExpressionKind::Text(_)
