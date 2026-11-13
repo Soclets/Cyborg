@@ -100,7 +100,7 @@ Waiting on the owner, most needed first. Each is `NotDesignedYet` unless it says
 - Whether `-` and `x` follow [10.4](10-build-modes.md#104-what-happens-when-something-goes-wrong)'s overflow row, which D42 states for `+`.
 - The full list of `div` narrowings, and what `div.exact` does in each mode.
 - Shifting by too much.
-- What can convert to what with `as`.
+- What can convert to what with `as`, beyond integers (D424) and units (D255): floats to and from integers, and other types.
 - Operators for your own types (D237): bit operators, unary `-`, `mod`, and a generic operator.
 
 ## 12.4 Control flow

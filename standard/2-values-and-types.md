@@ -331,13 +331,22 @@ let $text: str[len.max: 20 bytes] = $t as str[len.max: 20 bytes];
 
 A failed `as` is a failure, so it crashes unless handled ([8.9](8-failures.md#89-crash-by-default)). What can convert to what isn't decided ([12.3](12-not-decided.md#123-operators-and-conversion)).
 
+Between integer types, a plain `as` to a type that holds every value of the source has no check, as in `$n as i64` from an `i32`. One that might not fit, as in `$n as u8`, is checked like a bounded integer ([2.5](#25-bounded-integers)): a value that doesn't fit follows [10.4](10-build-modes.md#104-what-happens-when-something-goes-wrong)'s out-of-bounds row, and the check goes where the compiler can see the value fits. Losing something on purpose is written: `as.wrap` keeps the low bits, and `as.saturate` stops at the target's ends. Neither can go wrong.
+
+```
+let $wide: i64 = $n as i64;
+let $row: u8 = $led div.trunc 12 as u8;
+let $low: u8 = 300 as.wrap u8;
+let $level: u8 = $reading as.saturate u8;
+```
+
 A number converts bare, with no unit, so `$xs.len as str[len.max: 20 bytes]` gives `3`. A narrowing asks for the unit: `as str.with_unit`, a placeholder.
 
 Text from `as` goes into a bounded `str`, held inside the value, so no allocator is needed. Too much text is a failure, but for numbers the compiler knows the most bytes a type can need, 20 for an `i64` and 11 for an `i32`, so with a big enough bound it can't fail. Heap text comes from a function that takes an allocator, like `str.from($n, alloc: Lend $alloc)`, so every allocation is a visible call.
 
 **Refused:** `as str`, since a view has to point at text that already exists, with `fix: as str[len.max: 20 bytes]` giving the size the type needs, or `fix: Lend $name` when the value is already a string; and `as str[len.max: inf bytes]`, with `fix: str.from`.
 
-**From:** D7, D96, D122, D328.
+**From:** D7, D96, D122, D328, D424.
 
 ## 2.15 `void` and `bool`
 
