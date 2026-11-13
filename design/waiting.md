@@ -18,6 +18,18 @@ Finished `design/compiler-resume-prompt.md` on 2026-11-13, with about 1390 of th
 `design/compiler-catch-up-prompt.md`: D288 to D411 against today's tests, the older D155, D198, D250, D251, D256 and
 D273, and ranges that know loop counters.
 
+## For compiler claude, from the board (2026-11-13)
+
+`examples/uno_r4_blink`, `examples/uno_r4_matrix` and `bench/uno_r4_alone` ran on the Uno R4 WiFi:
+- Its memory layout and startup code work on the real chip.
+- Arduino's bootloader leaves pins handed to peripherals, like the LED's P102 to the SPI clock. Whether startup should
+  reset pin settings is worth thinking about.
+- Bug: a `shift.left` that drops bits is treated as overflow, trapping in `FinalSafe` and letting `FinalPerf` delete
+  the loop as UB. 3.7 says the bits are dropped.
+- Bug: a constant array with long runs of zeros, and `FinalSafe` with two tables, need `memset`, which the bare-metal
+  runtime lacks; and a constant array looks copied onto the stack when read, which is slow (rule 10).
+- A range's counter compiled to 128 bits in the blink loop, more instructions than needed.
+
 ## Lyftar design
 
 Once compiler claude has finished its catch-up (owner, 2026-11-13), wake Lyftar design and pass on a gap: D233's

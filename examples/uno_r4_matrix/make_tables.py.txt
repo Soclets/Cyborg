@@ -1,0 +1,44 @@
+import re,sys
+lib=sys.argv[1]; out=sys.argv[2]
+t=open(lib).read()
+blk=t[t.index('pins[][2] = {'):]; blk=blk[:blk.index('};')]
+pairs=[(int(a),int(b)) for a,b in re.findall(r'\{\s*(\d+),\s*(\d+)\s*\}',blk)]
+assert len(pairs)==96
+chip=[(0,3),(0,4),(0,11),(0,12),(0,13),(0,15),(2,4),(2,5),(2,6),(2,12),(2,13)]
+pfs=lambda i: 0x40040800+chip[i][0]*0x40+chip[i][1]*4
+anode=[pfs(a) for a,b in pairs]; cathode=[pfs(b) for a,b in pairs]
+G={
+'M':["#...#","##.##","#.#.#","#.#.#","#...#","#...#","#...#","....."],
+'e':[".....",".....",".###.","#...#","#####","#....",".###.","....."],
+'r':[".....",".....","#.##.","##..#","#....","#....","#....","....."],
+'g':[".....",".....",".####","#...#","#...#",".####","....#",".###."],
+'i':["#",".","#","#","#","#","#","."],
+'n':[".....",".....","#.##.","##..#","#...#","#...#","#...#","....."],
+'w':[".....",".....","#...#","#...#","#.#.#","#.#.#",".#.#.","....."],
+'t':[".#..",".#..","####",".#..",".#..",".#..","..##","...."],
+'h':["#....","#....","#.##.","##..#","#...#","#...#","#...#","....."],
+'a':[".....",".....",".###.","....#",".####","#...#",".####","....."],
+'c':[".....",".....",".###.","#....","#....","#...#",".###.","....."],
+' ':["..","..","..","..","..","..","..",".."],
+}
+cols=[0]*12
+for ch in "Merging with the Machine":
+    g=G[ch]
+    for x in range(len(g[0])):
+        cols.append(sum(1<<r for r in range(8) if g[r][x]=='#'))
+    cols.append(0)
+cols+= [0]*12
+def arr(name,ty,vals,fmt):
+    lines=[]; row=[]
+    for v in vals:
+        row.append(fmt(v))
+        if len(row)==8: lines.append(", ".join(row)); row=[]
+    if row: lines.append(", ".join(row))
+    body=",\n    ".join(lines)
+    return f"const ${name}: std::coll::array<{ty}>[len: {len(vals)} items] = [\n    {body}\n];\n"
+hexaddr=lambda v: "hex "+f"{v:08x}"[:4]+"_"+f"{v:08x}"[4:]
+src=open(out+'.in').read()
+src=src.replace("@COUNT@",str(len(cols)))
+src=src.replace("@TABLES@",arr("columns","i32",[c|256 for c in cols],str)+"\n"+arr("anodes","u64",anode,hexaddr)+"\n"+arr("cathodes","u64",cathode,hexaddr))
+open(out,'w').write(src)
+print(len(cols),"columns")

@@ -1,0 +1,4 @@
+// Cyborg alone on the Uno R4 WiFi: a few integer workloads timed with the chip's cycle counter.
+name uno_r4_alone
+ver 2026y-11m-13d same
+dialect original 2026y-11m-10d
