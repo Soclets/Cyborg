@@ -10,7 +10,7 @@ before changing it (rule 11 in `IMPLEMENTATION.md`).
 You've been idle since the generator was finished. Since then, compiler
 claude has nearly caught up: about 1571 of tests/'s 1719 pass on OKAY\n,
 and it's building everything up to D416 from the standard. Tankun has also
-made D403 to D424, which you haven't built yet, and the compiler found a
+made D403 to D425, which you haven't built yet, and the compiler found a
 few things in tests/ that need fixing. This round brings the oracle and
 tests/ up to date, so the live comparison can start finding real compiler
 bugs once both sides agree on what Cyborg is.
@@ -24,7 +24,7 @@ agreed, so it doesn't need asking again.
 </context>
 
 <work>
-Read DECISIONS.md from D403 to D424 and the standard sections they point
+Read DECISIONS.md from D403 to D425 and the standard sections they point
 to first. Then, in this order, committing in small steps:
 
 1. The fixes compiler claude found, all agreed with design claude:
@@ -60,8 +60,9 @@ to first. Then, in this order, committing in small steps:
    And D421 and D422: methods are declared inside their type's
    `fam.fn <type>:` block, which can hold normal functions too, so the
    ~42 tests declaring `fn type.%name` one at a time get respelled.
-   D424 settles integer conversion with `as`: plain, checked like bounds,
-   or `as.wrap` and `as.saturate`.
+   D424 and D425 settle number conversion with `as`: integers plain,
+   checked like bounds, or `as.wrap` and `as.saturate`; floats plain, and
+   float to integer always naming how the fraction goes.
    D423 respells kit method calls to their full path, as in
    `$xs.std::coll::list.%%append(…)`, in about 52 tests.
 3. D416, `.%viewed_as(item.type:)`, with tests that read a

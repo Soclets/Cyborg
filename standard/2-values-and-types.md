@@ -340,13 +340,21 @@ let $low: u8 = 300 as.wrap u8;
 let $level: u8 = $reading as.saturate u8;
 ```
 
+Floats convert with a plain `as` to another float or from an integer, rounding to the nearest float like every float operation, so `f64 as f32` and a big `i64 as f64` can round, and a value too big for `f32` becomes infinity, which follows [10.4](10-build-modes.md#104-what-happens-when-something-goes-wrong)'s row for that. A float to an integer always says how the fraction goes: `as.trunc` toward zero, `as.floor` down, `as.ceil` up, `as.round.even` or `as.round.away` to the nearest, which differ only on an exact half, and `as.exact`, which fails if there's any fraction. A result that doesn't fit, or a NaN or infinity, is checked like a narrowing integer `as`.
+
+```
+let $x: f64.stable = $n as f64.stable;
+let $whole: i32 = $x as.trunc i32;
+let $nearest: i32 = 2.5 as.round.even i32;
+```
+
 A number converts bare, with no unit, so `$xs.len as str[len.max: 20 bytes]` gives `3`. A narrowing asks for the unit: `as str.with_unit`, a placeholder.
 
 Text from `as` goes into a bounded `str`, held inside the value, so no allocator is needed. Too much text is a failure, but for numbers the compiler knows the most bytes a type can need, 20 for an `i64` and 11 for an `i32`, so with a big enough bound it can't fail. Heap text comes from a function that takes an allocator, like `str.from($n, alloc: Lend $alloc)`, so every allocation is a visible call.
 
 **Refused:** `as str`, since a view has to point at text that already exists, with `fix: as str[len.max: 20 bytes]` giving the size the type needs, or `fix: Lend $name` when the value is already a string; and `as str[len.max: inf bytes]`, with `fix: str.from`.
 
-**From:** D7, D96, D122, D328, D424.
+**From:** D7, D96, D122, D328, D424, D425.
 
 ## 2.15 `void` and `bool`
 
