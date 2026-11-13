@@ -226,7 +226,15 @@ let $next: ptr.raw.mut<u32> = $reg.%moved(offset.items: 1);
 let $odd: ptr.raw.mut<u32> = $reg.%moved(offset.bytes: 2);
 ```
 
-A volatile pointer, `ptr.volatile<T>` or `ptr.volatile.mut<T>`, is for hardware registers: every read and write through it happens, exactly once and in order, and the compiler never skips, merges or reorders them. It works like `ptr.raw`, with `.at`, `.of`, `.%read()`, `.%%write(val:)` and `.%moved`.
+`.%viewed_as(item.type:)` gives a pointer to the same address that reads its items as another type, as for a struct's raw bytes. Nothing about the memory changes, the pointer keeps its kind, so `ptr.raw` can't gain `.mut`, and one from `.of` stays tied to its variable. Nothing is checked, and a value that's invalid for the new type follows [10.4](10-build-modes.md#104-what-happens-when-something-goes-wrong).
+
+```
+let $h_at: ptr.raw<header> = ptr.raw<header>.of(Lend $h);
+let $bytes: ptr.raw<u8> = $h_at.%viewed_as(item.type: u8);
+let $third: u8 = $bytes.%moved(offset.bytes: 2).%read();
+```
+
+A volatile pointer, `ptr.volatile<T>` or `ptr.volatile.mut<T>`, is for hardware registers: every read and write through it happens, exactly once and in order, and the compiler never skips, merges or reorders them. It works like `ptr.raw`, with `.at`, `.of`, `.%read()`, `.%%write(val:)`, `.%moved` and `.%viewed_as`.
 
 ```
 let $led: ptr.volatile.mut<u32> = ptr.volatile.mut<u32>.at(address: hex 4004_0000);
@@ -240,7 +248,7 @@ Using a limb doesn't need a shield by itself: `@` says it's a compiler extension
 
 **Refused:** any of these outside a shield, except in `FinalShit`; writing through a `ptr.raw` or a `ptr.volatile`; and `.%moved` with a bare `offset:`, with `fix: offset.items:`.
 
-**From:** D38, D40, D226, D314, D315, D316, D317, D342.
+**From:** D38, D40, D226, D314, D315, D316, D317, D342, D416.
 
 ## 9.9 A shield's walls
 
