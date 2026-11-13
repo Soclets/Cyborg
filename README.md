@@ -11,6 +11,11 @@
 
 `OKAY\n` performance, reproducible. Made for long-lived codebases, not quick scripts.
 
+Cyborg isn't made to be adopted into big codebases written mainly in another, less safe language. It's made for new
+codebases that want low-level access, with safety and reproducibility, at the cost of some performance, maybe more
+than you'd expect, and with a very clear syntax, even if it's verbose. According to Google AI Mode, its performance
+against LuaJIT is very likely inferior.
+
 ## Licences
 
 - [`LICENSE`](LICENSE): Apache-2.0 WITH LLVM-exception, for the code. Programs you compile owe nothing.
