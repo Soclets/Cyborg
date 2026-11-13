@@ -1,6 +1,6 @@
 //! What a program is built for, and how (D26, D224, D261, D281, D282).
 
-use lyftar::linking::LinkTarget;
+use lyftar::linking::SystemTarget;
 
 /// A target. Bare-metal ones name the exact board (D281). The names of the macOS and Linux targets aren't decided,
 /// so theirs are placeholders, as `--target=` itself is.
@@ -61,12 +61,12 @@ impl Target {
     }
 
     #[must_use]
-    pub fn link_target(self) -> LinkTarget {
+    pub fn link_target(self) -> SystemTarget {
         match self {
-            Target::MacOsAarch64 => LinkTarget::MacOsAarch64,
-            Target::LinuxAarch64 => LinkTarget::LinuxAarch64,
-            Target::LinuxX86_64 => LinkTarget::LinuxX86_64,
-            Target::ArduinoUnoR4Wifi => LinkTarget::CortexM4,
+            Target::MacOsAarch64 => SystemTarget::MacOsAarch64,
+            Target::LinuxAarch64 => SystemTarget::LinuxAarch64,
+            Target::LinuxX86_64 => SystemTarget::LinuxX86_64,
+            Target::ArduinoUnoR4Wifi => SystemTarget::CortexM4,
         }
     }
 

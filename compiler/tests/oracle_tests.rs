@@ -18,8 +18,13 @@ struct Test {
     program: String,
 }
 
+/// The oracle's tests, or another copy of them named by `OKAY_TESTS`, such as an older commit's checked out apart
+/// while the compiler catches up with newer decisions.
 fn tests_folder() -> PathBuf {
-    Path::new(env!("CARGO_MANIFEST_DIR")).join("..").join("tests")
+    match std::env::var_os("OKAY_TESTS") {
+        Some(folder) => PathBuf::from(folder),
+        None => Path::new(env!("CARGO_MANIFEST_DIR")).join("..").join("tests"),
+    }
 }
 
 fn all_tests() -> Vec<Test> {
