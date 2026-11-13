@@ -41,7 +41,33 @@ fn second [none] -> i32:
     return $xs[pos: 2];
 end fn second
 
+fn count_up [$n: i32] -> i32:
+    let mut $i: i32 = 0;
+    while $i below $n:
+        change $i = $i + 1;
+    end while
+    return $i;
+end fn count_up
+
+fn count_on [$n: i32] -> i32:
+    let mut $i: i32 = $n;
+    while $i above 0:
+        change $i = $i + 1;
+    end while
+    return $i;
+end fn count_on
+
+fn walk [none] -> i32:
+    let $xs: std::coll::array<i32>[len: 10 items] = all 1;
+    let mut $last: i32 = 0;
+    for $k in range[from: 1, to: 10]:
+        change $last = $xs[pos: $k];
+    end for
+    return $last;
+end fn walk
+
 fn.main [none] -> void:
+    let $b: i32 = count_up(3) + walk();
     let $a: i32 = bounded_sum(1, 2) + open_sum(3, 4) + widened(5) + narrowed(3) + halved(8) + divided(9, 3) + second();
     return void;
 end fn.main
@@ -85,6 +111,14 @@ fn d312_a_divisor_that_isnt_0_and_a_position_inside_lose_their_checks() {
     assert!(!body(&safe, "halved").contains("failure: Some"), "{}", body(&safe, "halved"));
     assert!(body(&safe, "divided").contains("failure: Some"), "an unprovable division check was dropped");
     assert!(!body(&safe, "second").contains("check: Some"), "{}", body(&safe, "second"));
+}
+
+#[test]
+fn d312_a_loop_counter_below_its_end_loses_its_overflow_check() {
+    let safe = program(Mode::FinalSafe);
+    assert!(!body(&safe, "count_up").contains("failure: Some"), "{}", body(&safe, "count_up"));
+    assert!(body(&safe, "count_on").contains("failure: Some"), "an unprovable loop's check was dropped");
+    assert!(!body(&safe, "walk").contains("check: Some"), "{}", body(&safe, "walk"));
 }
 
 #[test]

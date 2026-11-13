@@ -118,3 +118,51 @@ pub(crate) fn product_inside(a: Interval, b: Interval, low: i128, high: i128) ->
 pub(crate) fn excludes(range: Interval, value: i128) -> bool {
     value < range.low || range.high < value
 }
+
+// trace: D312
+/// The values in `a` that can be below some value in `b`, as when a loop runs while `a below b`. Empty when none can.
+#[cfg_attr(verus_keep_ghost, verus_spec(result =>
+    ensures forall|x: int, y: int| contains(a, x) && contains(b, y) && x < y ==> contains(result, x)))]
+pub(crate) fn below(a: Interval, b: Interval) -> Interval {
+    match b.high.checked_sub(1) {
+        Some(most) if most < a.high => Interval { low: a.low, high: most },
+        _ => a,
+    }
+}
+
+// trace: D312
+/// The values in `a` that can be at most some value in `b`.
+#[cfg_attr(verus_keep_ghost, verus_spec(result =>
+    ensures forall|x: int, y: int| contains(a, x) && contains(b, y) && x <= y ==> contains(result, x)))]
+pub(crate) fn at_most(a: Interval, b: Interval) -> Interval {
+    if b.high < a.high { Interval { low: a.low, high: b.high } } else { a }
+}
+
+// trace: D312
+/// The values in `a` that can be above some value in `b`.
+#[cfg_attr(verus_keep_ghost, verus_spec(result =>
+    ensures forall|x: int, y: int| contains(a, x) && contains(b, y) && x > y ==> contains(result, x)))]
+pub(crate) fn above(a: Interval, b: Interval) -> Interval {
+    match b.low.checked_add(1) {
+        Some(least) if least > a.low => Interval { low: least, high: a.high },
+        _ => a,
+    }
+}
+
+// trace: D312
+/// The values in `a` that can be at least some value in `b`.
+#[cfg_attr(verus_keep_ghost, verus_spec(result =>
+    ensures forall|x: int, y: int| contains(a, x) && contains(b, y) && x >= y ==> contains(result, x)))]
+pub(crate) fn at_least(a: Interval, b: Interval) -> Interval {
+    if b.low > a.low { Interval { low: b.low, high: a.high } } else { a }
+}
+
+// trace: D312
+/// Every value in either range, for where two paths meet.
+#[cfg_attr(verus_keep_ghost, verus_spec(result =>
+    ensures forall|x: int| contains(a, x) || contains(b, x) ==> contains(result, x)))]
+pub(crate) fn join(a: Interval, b: Interval) -> Interval {
+    let low = if a.low < b.low { a.low } else { b.low };
+    let high = if a.high > b.high { a.high } else { b.high };
+    Interval { low, high }
+}

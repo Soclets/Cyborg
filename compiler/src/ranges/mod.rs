@@ -3,17 +3,20 @@
 //! check when the proven decisions in `checks` say it can never fire. It runs in every mode but `Working`, which keeps
 //! every check, proven or not, so a wrong proof shows up as a crash while developing (D280).
 //!
-//! It knows only what types and literals say, not what a loop has done so far, so a check it can't prove stays.
+//! It follows each local's range through `let`, `change`, `if` and loops: a test narrows its branches, as `$i below
+//! $n` caps `$i` below `$n`'s largest value, paths join where they meet, and a loop's head is widened until it holds
+//! every round, so a `$i + 1` inside a loop that runs while `$i below $n` loses its check (rule 10). A local whose
+//! address is taken, by a borrow or a pointer, is never followed, since something else may change it.
 
 pub mod checks;
 
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 use checks::Interval;
 
 use crate::checked::{
-    Argument, Arithmetic, Block, Expression, ExpressionKind, LocalId, MachineType, OnFailure, Piece, Place, Program,
-    Statement, Step,
+    Argument, Arithmetic, Block, Comparison, Expression, ExpressionKind, LocalId, MachineType, OnFailure, Piece, Place,
+    Program, Statement, Step,
 };
 
 /// Drops every check in the program that its ranges prove can't fail.
@@ -23,27 +26,93 @@ pub fn drop_proven(program: &mut Program) {
         if function.template {
             continue;
         }
+        // A first pass, changing nothing, finds the locals whose addresses are taken.
+        let mut finder = Walker {
+            locals: &function.locals,
+            bounds: &function.local_bounds,
+            structs: &structs,
+            held: HashMap::new(),
+            taken: HashSet::new(),
+            dry: true,
+        };
+        finder.block(&mut function.body);
+        let taken = finder.taken;
         let mut walker = Walker {
             locals: &function.locals,
             bounds: &function.local_bounds,
             structs: &structs,
             held: HashMap::new(),
+            taken,
+            dry: false,
         };
         walker.block(&mut function.body);
     }
+}
+
+/// The locals a block gives a value to, anywhere inside it.
+fn assigned(block: &Block, found: &mut HashSet<LocalId>) {
+    for statement in block {
+        match statement {
+            Statement::Let { local, .. } | Statement::Set { local, .. } | Statement::Instead { local, .. } => {
+                found.insert(*local);
+            }
+            Statement::Store { place, .. } => {
+                found.insert(place.local);
+            }
+            Statement::If { then, otherwise, .. } => {
+                assigned(then, found);
+                assigned(otherwise, found);
+            }
+            Statement::Loop { body, .. } => assigned(body, found),
+            _ => {}
+        }
+    }
+}
+
+/// The comparison that holds when this one doesn't.
+fn negated(operator: Comparison) -> Comparison {
+    match operator {
+        Comparison::Equal => Comparison::NotEqual,
+        Comparison::NotEqual => Comparison::Equal,
+        Comparison::Below => Comparison::AtLeast,
+        Comparison::AtLeast => Comparison::Below,
+        Comparison::Above => Comparison::AtMost,
+        Comparison::AtMost => Comparison::Above,
+    }
+}
+
+/// The same comparison with its sides swapped: `a below b` is `b above a`.
+fn flipped(operator: Comparison) -> Comparison {
+    match operator {
+        Comparison::Below => Comparison::Above,
+        Comparison::Above => Comparison::Below,
+        Comparison::AtLeast => Comparison::AtMost,
+        Comparison::AtMost => Comparison::AtLeast,
+        other => other,
+    }
+}
+
+/// Where two paths meet, each local has a range from either.
+fn join(a: &HashMap<LocalId, Interval>, b: &HashMap<LocalId, Interval>) -> HashMap<LocalId, Interval> {
+    a.iter().filter_map(|(local, range)| b.get(local).map(|other| (*local, checks::join(*range, *other)))).collect()
 }
 
 struct Walker<'a> {
     locals: &'a [MachineType],
     bounds: &'a [Option<(i128, i128)>],
     structs: &'a [Vec<MachineType>],
-    /// Temporaries that hold one value, with its range.
+    /// What each local followed holds here, as a range.
     held: HashMap<LocalId, Interval>,
+    /// Locals whose address is taken, which something else may change, so they're never followed.
+    taken: HashSet<LocalId>,
+    /// A pass that only works out ranges, as around a loop, dropping nothing.
+    dry: bool,
 }
 
 /// Every value a machine integer can hold.
 fn machine_range(machine_type: &MachineType) -> Option<Interval> {
     match *machine_type {
+        MachineType::Integer { bits: 128, signed: true } => Some(Interval { low: i128::MIN, high: i128::MAX }),
         MachineType::Integer { bits, signed } if bits <= 64 => Some(if signed {
             let half = 1i128 << (bits - 1);
             Interval { low: -half, high: half - 1 }
@@ -57,7 +126,9 @@ fn machine_range(machine_type: &MachineType) -> Option<Interval> {
 
 impl Walker<'_> {
     fn local(&self, local: LocalId) -> Option<Interval> {
-        if let Some(held) = self.held.get(&local) {
+        if let Some(held) = self.held.get(&local)
+            && !self.taken.contains(&local)
+        {
             return Some(*held);
         }
         if let Some(Some((low, high))) = self.bounds.get(local) {
@@ -67,19 +138,147 @@ impl Walker<'_> {
     }
 
     fn block(&mut self, block: &mut Block) {
+        self.flow(block);
+    }
+
+    /// Walks a block, giving whether its end can be reached.
+    fn flow(&mut self, block: &mut Block) -> bool {
         for statement in block {
-            self.statement(statement);
+            if !self.statement(statement) {
+                return false;
+            }
+        }
+        true
+    }
+
+    /// What a local holds now: `None` for anything but an integer with a known range.
+    fn hold(&mut self, local: LocalId, range: Option<Interval>) {
+        match range {
+            Some(range) if !self.taken.contains(&local) => {
+                self.held.insert(local, range);
+            }
+            _ => {
+                self.held.remove(&local);
+            }
         }
     }
 
-    fn statement(&mut self, statement: &mut Statement) {
+    /// The range an expression has here, changing nothing.
+    fn peek(&self, expression: &Expression) -> Option<Interval> {
+        match &expression.kind {
+            ExpressionKind::Integer(value) => Some(Interval { low: *value, high: *value }),
+            ExpressionKind::Local(local) => self.local(*local),
+            _ => machine_range(&expression.machine_type),
+        }
+    }
+
+    /// Whether a condition is known true or false here.
+    fn decide(&self, condition: &Expression) -> Option<bool> {
+        match &condition.kind {
+            ExpressionKind::Bool(value) => Some(*value),
+            ExpressionKind::Not(inner) => self.decide(inner).map(|value| !value),
+            ExpressionKind::And(a, b) => match (self.decide(a), self.decide(b)) {
+                (Some(false), _) | (_, Some(false)) => Some(false),
+                (Some(true), Some(true)) => Some(true),
+                _ => None,
+            },
+            ExpressionKind::Or(a, b) => match (self.decide(a), self.decide(b)) {
+                (Some(true), _) | (_, Some(true)) => Some(true),
+                (Some(false), Some(false)) => Some(false),
+                _ => None,
+            },
+            ExpressionKind::Compare { operator, left, right } => {
+                let (a, b) = (self.peek(left)?, self.peek(right)?);
+                match operator {
+                    Comparison::Below if a.high < b.low => Some(true),
+                    Comparison::Below if a.low >= b.high => Some(false),
+                    Comparison::Above if a.low > b.high => Some(true),
+                    Comparison::Above if a.high <= b.low => Some(false),
+                    Comparison::AtMost if a.high <= b.low => Some(true),
+                    Comparison::AtMost if a.low > b.high => Some(false),
+                    Comparison::AtLeast if a.low >= b.high => Some(true),
+                    Comparison::AtLeast if a.high < b.low => Some(false),
+                    _ => None,
+                }
+            }
+            _ => None,
+        }
+    }
+
+    /// Narrows what's held by a condition being `truth`, giving whether that can happen at all.
+    fn refine(&mut self, condition: &Expression, truth: bool) -> bool {
+        match &condition.kind {
+            ExpressionKind::Bool(value) => *value == truth,
+            ExpressionKind::Not(inner) => self.refine(inner, !truth),
+            ExpressionKind::And(a, b) if truth => self.refine(a, true) && self.refine(b, true),
+            ExpressionKind::Or(a, b) if !truth => self.refine(a, false) && self.refine(b, false),
+            ExpressionKind::And(a, b) => match (self.decide(a), self.decide(b)) {
+                (Some(true), _) => self.refine(b, false),
+                (_, Some(true)) => self.refine(a, false),
+                _ => true,
+            },
+            ExpressionKind::Or(a, b) => match (self.decide(a), self.decide(b)) {
+                (Some(false), _) => self.refine(b, true),
+                (_, Some(false)) => self.refine(a, true),
+                _ => true,
+            },
+            ExpressionKind::Compare { operator, left, right } => {
+                let operator = if truth { *operator } else { negated(*operator) };
+                let (Some(a), Some(b)) = (self.peek(left), self.peek(right)) else { return true };
+                if let ExpressionKind::Local(local) = left.kind
+                    && !self.narrow(local, a, operator, b)
+                {
+                    return false;
+                }
+                if let ExpressionKind::Local(local) = right.kind
+                    && !self.narrow(local, b, flipped(operator), a)
+                {
+                    return false;
+                }
+                true
+            }
+            _ => true,
+        }
+    }
+
+    /// Narrows one local known to be `operator` some value in `other`, giving whether any of its values can be.
+    fn narrow(&mut self, local: LocalId, range: Interval, operator: Comparison, other: Interval) -> bool {
+        // trace: D312
+        let narrowed = match operator {
+            Comparison::Below => checks::below(range, other),
+            Comparison::AtMost => checks::at_most(range, other),
+            Comparison::Above => checks::above(range, other),
+            Comparison::AtLeast => checks::at_least(range, other),
+            Comparison::Equal => checks::at_least(checks::at_most(range, other), other),
+            Comparison::NotEqual => range,
+        };
+        if narrowed.low > narrowed.high {
+            return false;
+        }
+        self.hold(local, Some(narrowed));
+        true
+    }
+
+    /// Walks one statement, giving whether what follows it can be reached.
+    #[allow(clippy::too_many_lines)]
+    fn statement(&mut self, statement: &mut Statement) -> bool {
         match statement {
-            Statement::Let { value, .. }
-            | Statement::Set { value, .. }
-            | Statement::Instead { value, .. }
-            | Statement::SetField { value, .. }
-            | Statement::Evaluate(value)
-            | Statement::AliasValue { value, .. } => {
+            Statement::Let { local, value } | Statement::Set { local, value } | Statement::Instead { local, value } => {
+                let range = self.expression(value);
+                self.hold(*local, range);
+                if matches!(statement, Statement::Instead { .. }) {
+                    return false;
+                }
+            }
+            Statement::Alias { local, target, .. } => {
+                self.taken.insert(*local);
+                self.taken.insert(*target);
+            }
+            Statement::AliasValue { local, value } => {
+                self.taken.insert(*local);
+                self.expression(value);
+            }
+            Statement::SetField { value, .. } | Statement::Evaluate(value) => {
                 self.expression(value);
             }
             Statement::Check { condition, operands, .. } => {
@@ -97,14 +296,33 @@ impl Walker<'_> {
             }
             Statement::If { condition, then, otherwise } => {
                 self.expression(condition);
-                self.block(then);
-                self.block(otherwise);
+                let before = self.held.clone();
+                let then_reachable = self.refine(condition, true);
+                if !then_reachable {
+                    self.held.clone_from(&before);
+                }
+                let then_ends = self.flow(then) && then_reachable;
+                let after_then = std::mem::replace(&mut self.held, before.clone());
+                let otherwise_reachable = self.refine(condition, false);
+                if !otherwise_reachable {
+                    self.held.clone_from(&before);
+                }
+                let otherwise_ends = self.flow(otherwise) && otherwise_reachable;
+                let after_otherwise = std::mem::take(&mut self.held);
+                self.held = match (then_ends, otherwise_ends) {
+                    (true, true) => join(&after_then, &after_otherwise),
+                    (true, false) => after_then,
+                    (false, true) => after_otherwise,
+                    (false, false) => return false,
+                };
             }
-            Statement::Loop { body, .. } => self.block(body),
+            Statement::Loop { body, .. } => self.walk_loop(body),
+            Statement::Break(_) => return false,
             Statement::Return(value) => {
                 if let Some(value) = value {
                     self.expression(value);
                 }
+                return false;
             }
             Statement::OpenWriter { capacity, .. } => {
                 if let Some(capacity) = capacity {
@@ -121,6 +339,7 @@ impl Walker<'_> {
             Statement::Store { place, value } => {
                 self.place(place);
                 self.expression(value);
+                self.hold(place.local, None);
             }
             Statement::Push { place, value, growth, .. } => {
                 self.place(place);
@@ -130,22 +349,74 @@ impl Walker<'_> {
                 }
             }
             Statement::ListDone { place, allocator, .. } => {
+                self.taken.insert(place.local);
                 self.place(place);
                 self.expression(allocator);
             }
             Statement::ArenaDone { arena: value, .. } | Statement::TextDone(value) => {
                 self.expression(value);
             }
-            Statement::Assembly { reads, .. } => {
+            Statement::Assembly { reads, writes, .. } => {
                 for (_, value) in reads {
                     self.expression(value);
                 }
+                for (_, local, _) in writes.iter() {
+                    self.taken.insert(*local);
+                }
             }
-            Statement::Break(_)
-            | Statement::Flush { .. }
-            | Statement::Done { .. }
-            | Statement::Alias { .. }
-            | Statement::Flow(_) => {}
+            Statement::Flush { .. } | Statement::Done { .. } | Statement::Flow(_) => {}
+        }
+        true
+    }
+
+    /// A loop: its head widened until it holds every round, then its body walked from there (D312).
+    fn walk_loop(&mut self, body: &mut Block) {
+        let mut changed = HashSet::new();
+        assigned(body, &mut changed);
+        let mut head = self.held.clone();
+        let dry = self.dry;
+        let mut settled = false;
+        for _ in 0..4 {
+            self.dry = true;
+            self.held.clone_from(&head);
+            let reaches_end = self.flow(body);
+            let end = std::mem::take(&mut self.held);
+            let mut next = head.clone();
+            for local in &changed {
+                let widened = match (head.get(local), end.get(local)) {
+                    _ if !reaches_end => head.get(local).copied(),
+                    (Some(start), Some(round)) => {
+                        let whole = self.locals.get(*local).and_then(machine_range);
+                        whole.map(|whole| Interval {
+                            low: if round.low < start.low { whole.low } else { start.low },
+                            high: if round.high > start.high { whole.high } else { start.high },
+                        })
+                    }
+                    _ => None,
+                };
+                match widened {
+                    Some(range) => next.insert(*local, range),
+                    None => next.remove(local),
+                };
+            }
+            if next == head {
+                settled = true;
+                break;
+            }
+            head = next;
+        }
+        self.dry = dry;
+        if !settled {
+            for local in &changed {
+                head.remove(local);
+            }
+        }
+        self.held.clone_from(&head);
+        self.flow(body);
+        // After the loop, what it changed is whatever a `break` left, which isn't followed.
+        self.held = head;
+        for local in &changed {
+            self.held.remove(local);
         }
     }
 
@@ -161,7 +432,7 @@ impl Walker<'_> {
                     let range = self.expression(position);
                     let (first, last) = if *from_one { (1, i128::from(len)) } else { (0, i128::from(len) - 1) };
                     // trace: D312
-                    if range.is_some_and(|range| checks::inside(range, first, last)) {
+                    if !self.dry && range.is_some_and(|range| checks::inside(range, first, last)) {
                         *check = None;
                     }
                     Some(*item)
@@ -181,8 +452,13 @@ impl Walker<'_> {
                 Argument::Value(value) | Argument::Temporary(value) => {
                     self.expression(value);
                 }
-                Argument::Place(place) => self.place(place),
-                Argument::Address(_) | Argument::FieldAddress { .. } => {}
+                Argument::Place(place) => {
+                    self.taken.insert(place.local);
+                    self.place(place);
+                }
+                Argument::Address(local) | Argument::FieldAddress { local, .. } => {
+                    self.taken.insert(*local);
+                }
             }
         }
     }
@@ -203,14 +479,21 @@ impl Walker<'_> {
                 let b = self.expression(right);
                 let (Some(a), Some(b), Some(limits)) = (a, b, machine) else { return machine };
                 // trace: D312
+                // A wrapping or saturating sum that can't reach the type's ends is plain maths.
                 let exact = match operator {
-                    Arithmetic::Add if checks::sum_inside(a, b, limits.low, limits.high) => {
+                    Arithmetic::Add | Arithmetic::WrappingAdd | Arithmetic::SaturatingAdd
+                        if checks::sum_inside(a, b, limits.low, limits.high) =>
+                    {
                         Some(Interval { low: a.low + b.low, high: a.high + b.high })
                     }
-                    Arithmetic::Subtract if checks::difference_inside(a, b, limits.low, limits.high) => {
+                    Arithmetic::Subtract | Arithmetic::WrappingSubtract | Arithmetic::SaturatingSubtract
+                        if checks::difference_inside(a, b, limits.low, limits.high) =>
+                    {
                         Some(Interval { low: a.low - b.high, high: a.high - b.low })
                     }
-                    Arithmetic::Multiply if checks::product_inside(a, b, limits.low, limits.high) => {
+                    Arithmetic::Multiply | Arithmetic::WrappingMultiply | Arithmetic::SaturatingMultiply
+                        if checks::product_inside(a, b, limits.low, limits.high) =>
+                    {
                         Some(Interval { low: a.low * b.low, high: a.high * b.high })
                     }
                     _ => None,
@@ -223,7 +506,7 @@ impl Walker<'_> {
                         | Arithmetic::RemainderTruncate
                         | Arithmetic::RemainderFloor
                 );
-                if exact.is_some() || (divides && checks::excludes(b, 0)) {
+                if !self.dry && (exact.is_some() || (divides && checks::excludes(b, 0))) {
                     *failure = None;
                 }
                 exact.or(machine)
@@ -234,7 +517,9 @@ impl Walker<'_> {
                     && limits.low < 0
                     && checks::excludes(range, limits.low)
                 {
-                    *failure = None;
+                    if !self.dry {
+                        *failure = None;
+                    }
                     return Some(Interval { low: -range.high, high: -range.low });
                 }
                 machine
@@ -244,6 +529,9 @@ impl Walker<'_> {
                 let (low, high) = (*min, *max);
                 // trace: D312
                 if range.is_some_and(|range| checks::inside(range, low, high)) {
+                    if self.dry {
+                        return range;
+                    }
                     let ExpressionKind::Fit { value, .. } =
                         std::mem::replace(&mut expression.kind, ExpressionKind::Zero)
                     else {
@@ -272,7 +560,12 @@ impl Walker<'_> {
                 }
                 self.expression(body)
             }
-            ExpressionKind::Load(place) | ExpressionKind::PlaceAddress(place) => {
+            ExpressionKind::Load(place) => {
+                self.place(place);
+                machine
+            }
+            ExpressionKind::PlaceAddress(place) => {
+                self.taken.insert(place.local);
                 self.place(place);
                 machine
             }
@@ -284,9 +577,16 @@ impl Walker<'_> {
                 self.expression(right);
                 machine
             }
+            // A conversion keeps a range that fits where it goes.
+            ExpressionKind::Convert(inner) => {
+                let range = self.expression(inner);
+                match (range, machine) {
+                    (Some(range), Some(limits)) if checks::inside(range, limits.low, limits.high) => Some(range),
+                    _ => machine,
+                }
+            }
             ExpressionKind::Not(inner)
             | ExpressionKind::BitNot(inner)
-            | ExpressionKind::Convert(inner)
             | ExpressionKind::TextOf(inner)
             | ExpressionKind::ListLen(inner)
             | ExpressionKind::Tag(inner) => {
@@ -374,7 +674,12 @@ impl Walker<'_> {
             | ExpressionKind::Float(_)
             | ExpressionKind::Text(_)
             | ExpressionKind::Zero
-            | ExpressionKind::AddressOf { .. } => machine,
+            | ExpressionKind::AddressOf { .. } => {
+                if let ExpressionKind::AddressOf { local, .. } = &expression.kind {
+                    self.taken.insert(*local);
+                }
+                machine
+            }
         }
     }
 }
