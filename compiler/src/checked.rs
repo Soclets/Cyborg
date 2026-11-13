@@ -67,6 +67,9 @@ pub struct Function {
     /// Where this function raises a failure or calls one with `requires`, as the `because:` part a crash message
     /// ends with (D29, D96). A site travels as a pointer to its text, so each function keeps its own.
     pub sites: Vec<Site>,
+    /// A generic's own body, which is only checked: each call builds a copy with real types (D235).
+    #[serde(default)]
+    pub template: bool,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]

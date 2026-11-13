@@ -175,6 +175,12 @@ impl Units {
         self.infos.get(mark_of(name).0).map_or(0.0, |info| info.offset)
     }
 
+    /// Whether a name is a unit family, like `length`.
+    #[must_use]
+    pub fn is_family(&self, name: &str) -> bool {
+        self.infos.values().any(|info| info.family == name)
+    }
+
     /// The unit's family, `time` for `time.seconds`.
     #[must_use]
     pub fn family(&self, name: &str) -> Option<&str> {

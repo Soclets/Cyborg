@@ -10,6 +10,7 @@ pub mod contracts;
 pub mod failures;
 pub mod floats;
 pub mod format;
+pub mod generics;
 pub mod incremental;
 pub mod types;
 
@@ -307,6 +308,14 @@ pub struct Checker<'a> {
     pub program: checked::Program,
     /// Checked functions kept from earlier builds (D168).
     pub store: Option<incremental::Store>,
+    /// Interfaces, type sets, `satisfies` lines and generics (D235).
+    pub generics: generics::Generics,
+    /// The type parameters in scope, innermost last, and what each stands for.
+    pub type_scope: Vec<(String, generics::Bound)>,
+    /// Whether a copy of a generic is being checked, where an ownership word on a plain number does nothing (D244).
+    pub instance: bool,
+    /// The type a call's result goes into, which fills a generic's type parameter from bare literals (D241).
+    pub call_expected: Option<Type>,
 }
 
 /// Checks a parsed file, giving the program if nothing was refused.
@@ -344,6 +353,10 @@ pub fn check(
         operators: HashMap::new(),
         program: checked::Program::default(),
         store,
+        generics: generics::Generics::default(),
+        type_scope: Vec::new(),
+        instance: false,
+        call_expected: None,
     };
     checker.check_file(parsed);
     let failed = !checker.errors.is_empty();
@@ -373,6 +386,7 @@ impl Checker<'_> {
         self.declare_type_names(file);
         self.declare_units(file);
         self.declare_aggregates(file);
+        self.declare_requirements(file);
         self.resolve_type_names();
         self.declare_failure_sets(file);
         self.declare_handlers(file);
@@ -385,10 +399,34 @@ impl Checker<'_> {
         });
         for (index, item) in file.items.iter().enumerate() {
             if let ItemKind::Function(function) = &item.kind {
-                let Ok(signature) = self.signature(function) else {
+                // A generic's type parameters are in scope through its header and body (D234).
+                let Ok(parameters) = self.type_parameters(function.name.as_ref(), &function.generics) else {
                     header_failed = true;
                     continue;
                 };
+                let outer = self.type_scope.len();
+                self.type_scope.extend(
+                    parameters.iter().map(|each| (each.name.clone(), generics::Bound::Itself(each.needs.clone()))),
+                );
+                let signature = self.signature(function);
+                self.type_scope.truncate(outer);
+                let Ok(signature) = signature else {
+                    header_failed = true;
+                    continue;
+                };
+                if !parameters.is_empty() {
+                    if let Some(slot) = self.program.functions.get_mut(signature.id) {
+                        slot.template = true;
+                    }
+                    self.generics.functions.insert(
+                        signature.name.clone(),
+                        generics::GenericFunction {
+                            syntax: function.clone(),
+                            parameters,
+                            signature: signature.clone(),
+                        },
+                    );
+                }
                 if function.keyword.text() == "fn.main" {
                     main = Some(signature.id);
                 }
@@ -407,6 +445,7 @@ impl Checker<'_> {
                 bodies.push((function, signature, key, item.span));
             }
         }
+        self.check_satisfies(file);
         // How checking carries on past an error in a function's header isn't decided, so it stops there (D215).
         if header_failed {
             return;
@@ -423,8 +462,22 @@ impl Checker<'_> {
             }
         }
         for (function, signature, key, place) in others {
+            if let Some(generic) = self.generics.functions.get(&signature.name) {
+                // A generic's own body is checked once, against what its type parameters need (D235).
+                let scope: Vec<_> = generic
+                    .parameters
+                    .iter()
+                    .map(|each| (each.name.clone(), generics::Bound::Itself(each.needs.clone())))
+                    .collect();
+                let outer = self.type_scope.len();
+                self.type_scope.extend(scope);
+                self.function_body(function, &signature);
+                self.type_scope.truncate(outer);
+                continue;
+            }
             self.body_or_kept(function, &signature, key.as_deref(), place);
         }
+        self.build_instances();
         if let Some(id) = main {
             self.program.entry = id
         } else {
@@ -619,6 +672,7 @@ impl Checker<'_> {
             locals: Vec::new(),
             body: Vec::new(),
             sites: Vec::new(),
+            template: false,
         });
         let mut top = self.top_of_body(function);
         // A label can carry its parameter's unit, as in `labels [$x as at.screen.pixels];` (D144).
@@ -717,9 +771,13 @@ impl Checker<'_> {
             return;
         }
         let before = self.errors.len();
+        let calls_generics = std::mem::replace(&mut self.generics.called, false);
         self.function_body(function, signature);
         store.stats.checked += 1;
+        // A body that calls a generic asks for its copies while it's checked, so it's checked every time for now.
+        let called = std::mem::replace(&mut self.generics.called, calls_generics);
         if self.errors.len() == before
+            && !called
             && let Some(checked) = self.program.functions.get(signature.id)
         {
             store.keep(key, self.sources, place, checked);
@@ -1099,6 +1157,9 @@ impl Checker<'_> {
     pub fn resolve_type(&mut self, written: &syntax::Type) -> Check<Type> {
         if let syntax::TypeKind::Borrow { keyword, sources, target, .. } = &written.kind {
             return self.borrow_type(written.span, keyword, sources, target);
+        }
+        if let syntax::TypeKind::Parameter(name) = &written.kind {
+            return self.parameter_type(name);
         }
         let syntax::TypeKind::Named { path, fill, labels, .. } = &written.kind else {
             return Err(self.not_yet(written.span, "this kind of type".to_string()));

@@ -45,20 +45,29 @@ const MOST_UNITS: usize = 64;
 /// inline across all of them.
 #[must_use]
 pub fn plan(program: &Program, mode: Mode) -> Vec<Unit> {
-    let count = program.functions.len();
+    // A generic's own body is never built, only its copies (D235).
+    let built: Vec<usize> = program
+        .functions
+        .iter()
+        .enumerate()
+        .filter(|(_, function)| !function.template)
+        .map(|(index, _)| index)
+        .collect();
+    let count = built.len();
     let mut units = vec![Unit::Runtime];
     if !matches!(mode, Mode::Working(_) | Mode::Literal) || count <= 1 {
-        units.push(Unit::Functions((0..count).collect()));
+        units.push(Unit::Functions(built));
         return units;
     }
     if count <= MOST_UNITS {
-        units.extend((0..count).map(|index| Unit::Functions(vec![index])));
+        units.extend(built.into_iter().map(|index| Unit::Functions(vec![index])));
         return units;
     }
     // A function's unit comes from its name, not its position, so adding one elsewhere doesn't move it.
     let names = symbols(program);
     let mut buckets = vec![Vec::new(); MOST_UNITS];
-    for (index, name) in names.iter().enumerate() {
+    for index in built {
+        let Some(name) = names.get(index) else { continue };
         let hashed = name.bytes().fold(0usize, |sum, byte| sum.wrapping_mul(31).wrapping_add(usize::from(byte)));
         buckets[hashed % MOST_UNITS].push(index);
     }
@@ -136,7 +145,7 @@ pub fn unit_ir(program: &Program, target: Target, mode: Mode, unit: &Unit) -> Re
             bare_metal: !target.has_os(),
             program,
             symbols: symbols(program),
-            whole: chosen.len() == program.functions.len(),
+            whole: chosen.len() == program.functions.iter().filter(|function| !function.template).count(),
             functions: vec![None; program.functions.len()],
             structs: Vec::new(),
             struct_fields: Vec::new(),
@@ -204,7 +213,15 @@ pub fn compile_ir(ir: &str, target: Target, mode: Mode) -> Result<Vec<u8>> {
 /// # Errors
 /// What LLVM reported, which is a bug in this compiler.
 pub fn optimized_ir(program: &Program, target: Target, mode: Mode) -> Result<String> {
-    let unit = Unit::Functions((0..program.functions.len()).collect());
+    let unit = Unit::Functions(
+        program
+            .functions
+            .iter()
+            .enumerate()
+            .filter(|(_, function)| !function.template)
+            .map(|(index, _)| index)
+            .collect(),
+    );
     let ir = unit_ir(program, target, mode, &unit)?;
     optimize(&ir, target, mode, true).map(|bytes| String::from_utf8_lossy(&bytes).into_owned())
 }

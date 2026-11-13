@@ -196,7 +196,12 @@ impl Checker<'_> {
             ExpressionKind::As { value, keyword, written_type } => {
                 self.conversion(body, expression, value, keyword, written_type)
             }
-            ExpressionKind::Call { callee, arguments, .. } => self.call(body, expression, callee, arguments),
+            ExpressionKind::Call { callee, arguments, .. } => {
+                let outer = std::mem::replace(&mut self.call_expected, expected.cloned());
+                let result = self.call(body, expression, callee, arguments);
+                self.call_expected = outer;
+                result
+            }
             ExpressionKind::Pass { .. } | ExpressionKind::Instead { .. } | ExpressionKind::Otherwise { .. } => {
                 self.handle(body, expression, expected)
             }
@@ -748,6 +753,16 @@ impl Checker<'_> {
             }
             operator if operator.is_comparison() => {
                 let (left_typed, right_typed) = self.operands(body, left, right, None)?;
+                if let Some(parameter) = [&left_typed.value_type, &right_typed.value_type]
+                    .into_iter()
+                    .find(|value_type| matches!(value_type, Type::Param { .. }))
+                    .cloned()
+                {
+                    let written = self.slice(operator_span).to_string();
+                    self.parameter_operator(expression.span, &written, &parameter)?;
+                    // A generic's own body is only checked, so the comparison needs no code.
+                    return Ok(Typed::new(Type::Bool, Kind::Zero));
+                }
                 if is_own_type(&left_typed.value_type) || is_own_type(&right_typed.value_type) {
                     let written = self.slice(operator_span).to_string();
                     return self.own_operator(expression, &written, (left, right), (left_typed, right_typed));
@@ -860,6 +875,15 @@ impl Checker<'_> {
         expected: Option<&Type>,
     ) -> Check<Typed> {
         let (mut left_typed, mut right_typed) = self.operands(body, left, right, expected)?;
+        if let Some(parameter) = [&left_typed.value_type, &right_typed.value_type]
+            .into_iter()
+            .find(|value_type| matches!(value_type, Type::Param { .. }))
+            .cloned()
+        {
+            let written = self.slice(operator_span).to_string();
+            self.parameter_operator(expression.span, &written, &parameter)?;
+            return Ok(Typed::new(parameter, Kind::Zero));
+        }
         if is_own_type(&left_typed.value_type) || is_own_type(&right_typed.value_type) {
             let written = self.slice(operator_span).to_string();
             return self.own_operator(expression, &written, (left, right), (left_typed, right_typed));
@@ -1800,6 +1824,7 @@ impl Checker<'_> {
         callee: &syntax::Expression,
         arguments: &[syntax::Argument],
     ) -> Check<Typed> {
+        let expected = self.call_expected.take();
         if let ExpressionKind::Field { base, field } = &callee.kind
             && let Ok(typed) = self.expression(body, base, None)
             && let Type::Struct { name, .. } | Type::Union { name, .. } = &typed.value_type
@@ -1869,13 +1894,16 @@ impl Checker<'_> {
                 "a name of yours that clashes is written with `my::` (D75)",
             )));
         }
-        let Some(signature) = self.functions.get(&name).cloned() else {
+        let Some(mut signature) = self.functions.get(&name).cloned() else {
             return Err(self.error(Diagnostic::refused(
                 callee.span,
                 format!("the function `{name}` isn't declared"),
                 "a function is declared with `fn` and `[ ]` (D23)",
             )));
         };
+        if self.generics.functions.contains_key(&name) {
+            signature = self.generic_signature(body, expression.span, &name, arguments, expected)?;
+        }
         if let Type::Borrow { .. } = signature.returns
             && !std::mem::replace(&mut body.borrow_call, false)
         {
@@ -2057,7 +2085,8 @@ impl Checker<'_> {
                 }
             }
             _ if parameter_type.is_copied() => {
-                if let Some((_, span)) = argument.ownership {
+                // In a copy of a generic, the word was for a type parameter, and does nothing for a number (D244).
+                if let Some((_, span)) = argument.ownership.filter(|_| !self.instance) {
                     return Err(self.error(Diagnostic::refused_fix(
                         span.to(argument.value.span),
                         shown,
@@ -2534,7 +2563,7 @@ impl Checker<'_> {
     }
 
     /// The type of a variable or field, without checking it again or recording anything.
-    fn expression_type_quietly(&self, body: &Body, expression: &syntax::Expression) -> Option<Type> {
+    pub fn expression_type_quietly(&self, body: &Body, expression: &syntax::Expression) -> Option<Type> {
         match &expression.kind {
             ExpressionKind::Variable(name) => {
                 body.lookup(&name.text).map(|variable| variable.value_type.read_as().clone())
@@ -2574,6 +2603,9 @@ impl Checker<'_> {
             )));
         }
         let typed = self.expression(body, value, expected)?;
+        if typed.value_type.is_copied() && self.instance {
+            return Ok(typed);
+        }
         if typed.value_type.is_copied() {
             let written = self.slice(value.span).to_string();
             return Err(self.error(Diagnostic::refused_fix(

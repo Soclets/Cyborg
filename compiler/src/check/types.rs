@@ -253,6 +253,12 @@ pub enum Type {
         max: Option<u64>,
         len_type: IntegerKind,
     },
+    /// A type parameter inside its generic's own body, which can only be used as its requirement lists (D235).
+    Param {
+        name: String,
+        /// The requirement, as written, for errors.
+        needs: String,
+    },
     /// After an error, so nothing more is said about it.
     Unknown,
 }
@@ -337,6 +343,8 @@ impl Type {
             Type::List { item, .. } => checked::MachineType::List(Box::new(item.machine())),
             Type::Str => checked::MachineType::Text,
             Type::Void | Type::Unknown => checked::MachineType::Void,
+            // A generic's own body is only checked, never built: each call builds a copy with real types.
+            Type::Param { .. } => checked::MachineType::Address,
         }
     }
 }
@@ -421,6 +429,7 @@ impl fmt::Display for Type {
                 }
                 write!(formatter, "]")
             }
+            Type::Param { name, .. } => write!(formatter, "?{name}"),
             Type::Unknown => write!(formatter, "?"),
         }
     }
