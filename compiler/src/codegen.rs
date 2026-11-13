@@ -118,8 +118,8 @@ const WRITERS_DECLARED: &str = "@__cyborg_writers = external hidden global ptr";
 ///
 /// # Errors
 /// What LLVM reported, which is a bug in this compiler, since a checked program is always valid.
-pub fn unit_ir(program: &Program, target: Target, mode: Mode, unit: &Unit) -> Result<String> {
-    let Unit::Functions(chosen) = unit else { return Ok(runtime_text(target)) };
+pub fn unit_ir(program: &Program, target: Target, mode: Mode, unit: &Unit) -> Result<(String, Vec<Messages>)> {
+    let Unit::Functions(chosen) = unit else { return Ok((runtime_text(target), Vec::new())) };
     with_context(|context| {
         let module = context
             .parse_ir_text(&inline_runtime_text(target))
@@ -145,6 +145,8 @@ pub fn unit_ir(program: &Program, target: Target, mode: Mode, unit: &Unit) -> Re
             bare_metal: !target.has_os(),
             program,
             symbols: symbols(program),
+            current: Messages::default(),
+            messages: Vec::new(),
             whole: chosen.len() == program.functions.iter().filter(|function| !function.template).count(),
             functions: vec![None; program.functions.len()],
             structs: Vec::new(),
@@ -173,7 +175,76 @@ pub fn unit_ir(program: &Program, target: Target, mode: Mode, unit: &Unit) -> Re
             }
         }
         view.verify().map_err(|error| format!("the generated code: {}", error.message()))?;
-        Ok(view.print_to_string())
+        let mut messages = std::mem::take(&mut generator.messages);
+        messages.push(std::mem::take(&mut generator.current));
+        messages.retain(|each| !each.texts.is_empty() || !each.sites.is_empty());
+        Ok((view.print_to_string(), messages))
+    })
+}
+
+/// One function's crash message texts and sites, in the order its code reads them.
+#[derive(Clone, Debug, Default)]
+pub struct Messages {
+    pub symbol: String,
+    pub texts: Vec<String>,
+    pub sites: Vec<String>,
+}
+
+/// The messages unit's object: each function's tables of crash message texts and sites, which show lines and
+/// columns, so it's the one unit that changes when lines move (D168). It's only data, so it's made straight through
+/// Lyftar, with no IR text to read and nothing to optimize.
+///
+/// # Errors
+/// What LLVM reported, which is a bug in this compiler.
+pub fn messages_object(messages: &[Messages], target: Target, mode: Mode) -> Result<Vec<u8>> {
+    let machine = machine(target, mode)?;
+    with_context(|context| {
+        let mut module = context.create_module("messages");
+        {
+            let view = context.module(&module);
+            view.set_target_machine(&machine);
+            let pointer = context.pointer_type(0);
+            let word = context.integer_type(64);
+            let text_type = context.struct_type(&[pointer, word.to_dynamic()], false);
+            let table = |name: String, texts: &[String]| {
+                if texts.is_empty() {
+                    return;
+                }
+                let joined: String = texts.concat();
+                let bytes = context.constant_string(joined.as_bytes(), false);
+                let blob = view.add_global("", bytes.get_type());
+                blob.set_initializer(bytes);
+                blob.set_global_constant(true);
+                blob.set_linkage(Linkage::Private);
+                let mut entries = Vec::new();
+                let mut offset = 0u64;
+                for text in texts {
+                    let place = context.constant_get_element_pointer(
+                        blob.to_dynamic(),
+                        bytes.get_type(),
+                        &[word.constant_integer(0, false), word.constant_integer(offset, false)],
+                        lyftar::instructions::GetElementPointerFlags::IN_BOUNDS,
+                    );
+                    let length = word.constant_integer(text.len() as u64, false);
+                    entries.push(context.constant_struct(&[place.to_dynamic(), length.to_dynamic()], false));
+                    offset += text.len() as u64;
+                }
+                let array = context.constant_array(text_type, &entries);
+                let global = view.add_global(&name, array.get_type());
+                global.set_initializer(array);
+                global.set_global_constant(true);
+                global.set_visibility(lyftar::enums::Visibility::Hidden);
+            };
+            for each in messages {
+                table(format!("cyborg.messages.{}", each.symbol), &each.texts);
+                table(format!("cyborg.sites.{}", each.symbol), &each.sites);
+            }
+            view.verify().map_err(|error| format!("the messages: {}", error.message()))?;
+        }
+        let buffer = machine
+            .emit_to_memory_buffer(context.exclusive_module(&mut module), CodeGenerationFileType::Object)
+            .map_err(|error| error.message().to_string())?;
+        Ok(buffer.as_bytes().to_vec())
     })
 }
 
@@ -222,7 +293,7 @@ pub fn optimized_ir(program: &Program, target: Target, mode: Mode) -> Result<Str
             .map(|(index, _)| index)
             .collect(),
     );
-    let ir = unit_ir(program, target, mode, &unit)?;
+    let (ir, _) = unit_ir(program, target, mode, &unit)?;
     optimize(&ir, target, mode, true).map(|bytes| String::from_utf8_lossy(&bytes).into_owned())
 }
 
@@ -262,6 +333,10 @@ struct Generator<'context, 'module> {
     symbols: Vec<String>,
     /// Whether this unit holds every function, so all but `main` can be internal to it.
     whole: bool,
+    /// The function being made's messages and sites, for the messages unit.
+    current: Messages,
+    /// Every finished function's messages and sites.
+    messages: Vec<Messages>,
     /// Each function, once this unit defines or calls it.
     functions: Vec<Option<Function<'context, 'module>>>,
     /// Each struct's LLVM type, and each union's, with each union's cases as LLVM structs.
@@ -444,17 +519,22 @@ impl<'context, 'module> Generator<'context, 'module> {
         }
     }
 
-    /// A site of the function being made: a constant holding its text, whose address is what travels (D29, D96).
+    /// A site of the function being made: its place in the function's table of sites in the messages unit, which is
+    /// what travels (D29, D96).
     fn site(&mut self, frame: &Frame<'context, 'module>, index: usize) -> Result<Value<'context, 'module>> {
-        let text = frame.sites.get(index).ok_or("a site the function doesn't have")?.text.clone();
-        let bytes = self.constant_bytes(&text);
-        let length = self.integer(64, text.len() as u64);
-        let entry = self.context.constant_struct(&[bytes, length], false);
-        let global = self.module.add_global("", entry.get_type());
-        global.set_initializer(entry);
-        global.set_global_constant(true);
-        global.set_linkage(Linkage::Private);
-        Ok(global.to_dynamic())
+        if frame.sites.get(index).is_none() {
+            return Err("a site the function doesn't have".to_string());
+        }
+        self.current.sites = frame.sites.iter().map(|site| site.text.clone()).collect();
+        let table = self.table(&format!("cyborg.sites.{}", self.current.symbol));
+        let text_type = self.machine_type(&MachineType::Text);
+        let index = self.integer(64, index as u64);
+        Ok(self.context.constant_get_element_pointer(
+            table,
+            text_type,
+            &[index],
+            lyftar::instructions::GetElementPointerFlags::IN_BOUNDS,
+        ))
     }
 
     /// A function of the program, declared the first time this unit needs it, so a unit's IR only mentions what it
@@ -494,6 +574,11 @@ impl<'context, 'module> Generator<'context, 'module> {
 
     fn function(&mut self, index: usize, function: &crate::checked::Function, is_main: bool) -> Result<()> {
         let declared = self.declare(index)?;
+        let symbol = self.symbols.get(index).cloned().unwrap_or_default();
+        let finished = std::mem::replace(&mut self.current, Messages { symbol, ..Messages::default() });
+        if !finished.symbol.is_empty() {
+            self.messages.push(finished);
+        }
         let entry = declared.append_basic_block("entry");
         let builder = Builder::at_end_of(entry);
         let mut slots = Vec::with_capacity(function.locals.len());
@@ -757,14 +842,14 @@ impl<'context, 'module> Generator<'context, 'module> {
             let writer_type = self.machine_type(&MachineType::Writer);
             let writer = Self::temporary(frame, writer_type);
             frame.builder.call(self.runtime("__cyborg_crash_begin")?, &[writer], "");
-            self.text(frame, writer, &failure.before)?;
+            self.message(frame, writer, &failure.before)?;
             for (text, operand) in &failure.when {
-                self.text(frame, writer, text)?;
+                self.message(frame, writer, text)?;
                 let (value, machine_type) =
                     operands.get(*operand).cloned().ok_or("a failure names a missing operand")?;
                 self.print_number(frame, writer, value, &machine_type, &Shape::default())?;
             }
-            self.text(frame, writer, &failure.after)?;
+            self.message(frame, writer, &failure.after)?;
             frame.builder.call(self.runtime("__cyborg_exit")?, &[self.integer(32, 1)], "");
         }
         frame.builder.unreachable();
@@ -854,6 +939,43 @@ impl<'context, 'module> Generator<'context, 'module> {
         let length = self.integer(64, text.len() as u64);
         frame.builder.call(self.runtime("__cyborg_writer_write")?, &[writer, bytes, length], "");
         Ok(())
+    }
+
+    /// Writes part of a crash message. Its text shows lines and columns, which move whenever lines above change, so it
+    /// lives in the messages unit, in its function's table, read by its place there; the function's own code, and so
+    /// its cached object, doesn't change (D168).
+    fn message(
+        &mut self,
+        frame: &mut Frame<'context, 'module>,
+        writer: Value<'context, 'module>,
+        text: &str,
+    ) -> Result<()> {
+        if text.is_empty() {
+            return Ok(());
+        }
+        let index = self.current.texts.len();
+        self.current.texts.push(text.to_string());
+        let table = self.table(&format!("cyborg.messages.{}", self.current.symbol));
+        let text_type = self.machine_type(&MachineType::Text);
+        let place =
+            frame.builder.get_element_pointer(text_type, table, &[self.integer(64, index as u64)], "").to_dynamic();
+        let held = frame.builder.load(text_type, place, "").to_dynamic();
+        let data = frame.builder.extract_value(held, 0, "").to_dynamic();
+        let length = frame.builder.extract_value(held, 1, "").to_dynamic();
+        frame.builder.call(self.runtime("__cyborg_writer_write")?, &[writer, data, length], "");
+        Ok(())
+    }
+
+    /// A function's table of texts in the messages unit, declared here.
+    fn table(&mut self, name: &str) -> Value<'context, 'module> {
+        if let Some(found) = self.module.get_global(name) {
+            return found.to_dynamic();
+        }
+        let text_type = self.machine_type(&MachineType::Text);
+        let global = self.module.add_global(name, text_type);
+        global.set_visibility(lyftar::enums::Visibility::Hidden);
+        global.set_global_constant(true);
+        global.to_dynamic()
     }
 
     /// Prints a number or a `bool` with its shape.
@@ -1020,13 +1142,13 @@ impl<'context, 'module> Generator<'context, 'module> {
         let writer_type = self.machine_type(&MachineType::Writer);
         let writer = Self::temporary(frame, writer_type);
         frame.builder.call(self.runtime("__cyborg_crash_begin")?, &[writer], "");
-        self.text(frame, writer, &failure.before)?;
+        self.message(frame, writer, &failure.before)?;
         for (text, operand) in &failure.when {
-            self.text(frame, writer, text)?;
+            self.message(frame, writer, text)?;
             let (value, machine_type) = operands.get(*operand).cloned().ok_or("a failure names a missing operand")?;
             self.print_number(frame, writer, value, &machine_type, &Shape::default())?;
         }
-        self.text(frame, writer, &failure.after)?;
+        self.message(frame, writer, &failure.after)?;
         let entry_type = self.machine_type(&MachineType::Text);
         let text = frame.builder.load(entry_type, site, "").to_dynamic();
         let data = frame.builder.extract_value(text, 0, "").to_dynamic();

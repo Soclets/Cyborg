@@ -71,15 +71,15 @@ fn d168_only_what_changed_is_built_again() {
     let flags = ["--Working", "--opt=O1", "--max_cores=1"];
     std::fs::write(folder.join("main.cy"), program(1)).expect("written");
     assert_eq!(build(&folder, &cache, &flags), "4 5\n");
-    // The runtime and each of the three functions.
+    // The runtime, each of the three functions, and the crash messages.
     let first = cached(&cache);
-    assert_eq!(first, 4);
+    assert_eq!(first, 5);
     assert_eq!(build(&folder, &cache, &flags), "4 5\n");
     assert_eq!(cached(&cache), first, "a build with nothing changed made new objects");
-    // Changing one function's text builds only that function again.
+    // Changing one function's text builds only that function again, and the messages, whose text quotes its line.
     std::fs::write(folder.join("main.cy"), program(5)).expect("written");
     assert_eq!(build(&folder, &cache, &flags), "4 9\n");
-    assert_eq!(cached(&cache), first + 1, "changing one function rebuilt more than it");
+    assert_eq!(cached(&cache), first + 2, "changing one function rebuilt more than it");
 }
 
 #[test]
@@ -87,10 +87,10 @@ fn d168_a_final_build_is_cached_whole() {
     let (folder, cache) = project("final");
     std::fs::write(folder.join("main.cy"), program(1)).expect("written");
     assert_eq!(build(&folder, &cache, &["--FinalPerf", "--max_cores=1"]), "4 5\n");
-    // The runtime, and the program's functions together, so LLVM can inline across them.
-    assert_eq!(cached(&cache), 2);
+    // The runtime, the program's functions together, so LLVM can inline across them, and the crash messages.
+    assert_eq!(cached(&cache), 3);
     assert_eq!(build(&folder, &cache, &["--FinalPerf", "--max_cores=1"]), "4 5\n");
-    assert_eq!(cached(&cache), 2);
+    assert_eq!(cached(&cache), 3);
 }
 
 #[test]
@@ -224,4 +224,41 @@ fn d168_adding_or_moving_a_function_checks_only_what_names_it() {
     assert_eq!((stats.checked, stats.reused), (0, 4), "moving a function checked something again");
     // The program still runs right, with every call going to the function it named.
     assert_eq!(build(&folder, &cache, &["--Working", "--opt=O0", "--max_cores=1"]), "4 5\n");
+}
+
+#[test]
+fn d168_adding_a_struct_checks_only_what_reaches_it() {
+    let (folder, cache) = project("struct");
+    std::fs::write(folder.join("main.cy"), program(1)).expect("written");
+    assert!(checked(&folder, &cache).0.is_ok());
+    let added =
+        program(1).replacen("fn double", "struct reading:\n    celsius: i32;\nend struct reading\n\nfn double", 1);
+    std::fs::write(folder.join("main.cy"), &added).expect("written");
+    let (result, stats) = checked(&folder, &cache);
+    assert!(result.is_ok(), "{result:?}");
+    assert_eq!((stats.checked, stats.reused), (0, 3), "a struct nothing uses checked something again");
+    // `bump` now uses one, so it's checked again, and nothing else, since its interface is the same.
+    let used = added.replace(
+        "fn bump [$n: i32] -> i32:\n    return $n + 1;",
+        "fn bump [$n: i32] -> i32:\n    let $r: reading = reading[celsius = $n];\n    return $r.celsius + 1;",
+    );
+    std::fs::write(folder.join("main.cy"), &used).expect("written");
+    let (result, stats) = checked(&folder, &cache);
+    assert!(result.is_ok(), "{result:?}");
+    assert_eq!((stats.checked, stats.reused), (1, 2));
+}
+
+#[test]
+fn d168_lines_moving_rebuilds_only_the_messages() {
+    let (folder, cache) = project("lines");
+    std::fs::write(folder.join("main.cy"), FAILING).expect("written");
+    let before = crash(&folder, &cache);
+    let first = cached(&cache);
+    // Two lines above everything move every message's line, and nothing else.
+    std::fs::write(folder.join("main.cy"), FAILING.replace("import os;\n", "import os;\n\n// moved down\n"))
+        .expect("written");
+    let moved = crash(&folder, &cache);
+    assert_ne!(before, moved);
+    assert!(moved.contains("line 7"), "{moved}");
+    assert_eq!(cached(&cache), first + 1, "moving lines rebuilt more than the messages");
 }

@@ -106,8 +106,9 @@ pub fn build(file: &Path, target: Target, mode: Mode, cores: usize, output: &Pat
     }
 }
 
-/// Every unit's object file, in order (D168). Units are built on up to `cores` threads, each with its own LLVM context,
-/// and one whose IR is already in the cache isn't optimized or compiled again.
+/// Every unit's object file, in order (D168). Each unit's IR is made first, on up to `cores` threads, which says what
+/// crash messages it reads; then the messages unit; then every unit whose IR isn't in the cache is optimized and
+/// compiled, each on a thread with its own LLVM context.
 fn objects(
     program: &crate::checked::Program,
     target: Target,
@@ -115,23 +116,63 @@ fn objects(
     cores: usize,
 ) -> Result<Vec<Vec<u8>>, String> {
     let units = codegen::plan(program, mode);
+    let made = on_threads(cores, &units, |unit| codegen::unit_ir(program, target, mode, unit))?;
+    let mut messages = Vec::new();
+    let mut irs = Vec::new();
+    for (ir, read) in made {
+        irs.push(ir);
+        messages.extend(read);
+    }
     let folder = cache::folder();
-    let next = Mutex::new(0usize);
-    let results: Mutex<Vec<Option<Built>>> = Mutex::new(vec![None; units.len()]);
-    let one = |unit: &codegen::Unit| -> Result<Vec<u8>, String> {
-        let ir = codegen::unit_ir(program, target, mode, unit)?;
-        let key = cache::key(target, mode, &ir);
+    let mut objects = on_threads(cores, &irs, |ir| {
+        let key = cache::key(target, mode, ir);
         if let Some(object) = folder.as_deref().and_then(|folder| cache::get(folder, &key)) {
             return Ok(object);
         }
-        let object = codegen::compile_ir(&ir, target, mode)?;
+        let object = codegen::compile_ir(ir, target, mode)?;
         if let Some(folder) = folder.as_deref() {
             cache::put(folder, &key, &object);
         }
         Ok(object)
+    })?;
+    // The messages unit, by a hash of every text in it.
+    let mut hasher = cache::Hasher::new();
+    for each in &messages {
+        hasher.text(&each.symbol);
+        for text in each.texts.iter().chain(&each.sites) {
+            hasher.text(text);
+        }
+        hasher.text("");
+    }
+    let key = cache::key(target, mode, &format!("messages {}", hasher.finish()));
+    let object = match folder.as_deref().and_then(|folder| cache::get(folder, &key)) {
+        Some(object) => object,
+        None => {
+            let made = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+                codegen::messages_object(&messages, target, mode)
+            }))
+            .unwrap_or_else(|panic| Err(panic_message(panic.as_ref())))?;
+            if let Some(folder) = folder.as_deref() {
+                cache::put(folder, &key, &made);
+            }
+            made
+        }
     };
+    objects.push(object);
+    Ok(objects)
+}
+
+/// Runs `work` on every item, on up to `cores` threads, giving the results in order. Lyftar panics on a build call
+/// that's wrong, which is a bug in this compiler, so it's reported as one (rule 6).
+fn on_threads<Item: Sync, Made: Send + Clone>(
+    cores: usize,
+    items: &[Item],
+    work: impl Fn(&Item) -> Result<Made, String> + Sync,
+) -> Result<Vec<Made>, String> {
+    let next = Mutex::new(0usize);
+    let results: Mutex<Vec<Option<Result<Made, String>>>> = Mutex::new(vec![None; items.len()]);
     std::thread::scope(|scope| {
-        for _ in 0..cores.clamp(1, units.len().max(1)) {
+        for _ in 0..cores.clamp(1, items.len().max(1)) {
             scope.spawn(|| {
                 loop {
                     let index = {
@@ -140,10 +181,8 @@ fn objects(
                         *next += 1;
                         index
                     };
-                    let Some(unit) = units.get(index) else { return };
-                    // Lyftar panics on a build call that's wrong, which is a bug in this compiler, so it's reported
-                    // as one (rule 6).
-                    let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| one(unit)))
+                    let Some(item) = items.get(index) else { return };
+                    let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| work(item)))
                         .unwrap_or_else(|panic| Err(panic_message(panic.as_ref())));
                     if let Ok(mut results) = results.lock()
                         && let Some(slot) = results.get_mut(index)
@@ -157,9 +196,6 @@ fn objects(
     let results = results.into_inner().map_err(|_| "a thread building a unit stopped".to_string())?;
     results.into_iter().map(|result| result.unwrap_or_else(|| Err("a unit wasn't built".to_string()))).collect()
 }
-
-/// One unit's object, or why it couldn't be made.
-type Built = Result<Vec<u8>, String>;
 
 fn panic_message(panic: &(dyn std::any::Any + Send)) -> String {
     panic

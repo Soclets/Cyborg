@@ -2,9 +2,9 @@
 //! checking it can depend on, so an edit only checks again the functions it changed, and the callers of a function
 //! whose interface changed.
 //!
-//! A function's key hashes its own text; everything every function can see, like types, units, operators and baked
-//! functions; and the interface of each function it names: its header and the `labels`, `defaults`, `requires` and
-//! `ensures` that start its body. Functions, structs and unions are numbered by the order they're declared in, so a
+//! A function's key hashes its own text, and every declaration it can reach through the words in it: the interface of
+//! each function it names, which is its header and the `labels`, `defaults`, `requires` and `ensures` that start its
+//! body; the types, units and failures those name; and each operator on the types it reaches. Functions, structs and unions are numbered by the order they're declared in, so a
 //! kept body refers to them by name, and gets their numbers again when it's read back, so adding or moving a function
 //! only checks again what names it. Its spans are kept relative to where it starts, and its messages are rendered again where it
 //! is now, so lines added above it don't matter. A function whose check said anything, or that points outside itself,
@@ -133,58 +133,130 @@ fn words(text: &str) -> HashSet<&str> {
         .collect()
 }
 
-/// Works out every plain function's key. A function whose name a body uses is a dependency, through `use` short
-/// names too; anything that can't be told apart that way, like an operator or a baked function, counts for every
+/// One declaration a body can depend on: the words that name it, the text its users depend on, and the words in that
+/// text, which name what it depends on in turn.
+struct Declaration {
+    provides: Vec<String>,
+    text: String,
+    mentions: Vec<String>,
+}
+
+/// Works out every plain function's key. Every declaration a body can reach through the words in its text counts:
+/// the functions it names, through `use` short names too, the types, units and failures they name, and so on, with
+/// an operator reached through the types in its header. Only what has no name, like an `import`, counts for every
 /// function.
 #[must_use]
 pub fn keys(file: &syntax::File, text: &str, other_files: &[&str]) -> Keys {
     let slice = |span: Span| text.get(span.range()).unwrap_or("");
+    let owned_words = |text: &str| words(text).into_iter().map(str::to_string).collect::<Vec<_>>();
     let mut everyone = crate::cache::Hasher::new();
     for other in other_files {
         everyone.text(other);
     }
-    // Each plain function's interface, by the word calls use for it.
-    let mut interfaces: HashMap<String, Vec<String>> = HashMap::new();
+    let mut declarations: Vec<Declaration> = Vec::new();
     let mut plain: Vec<usize> = Vec::new();
-    let mut aliases: Vec<(String, String)> = Vec::new();
     for (index, item) in file.items.iter().enumerate() {
-        match &item.kind {
+        let full = slice(item.span).to_string();
+        let declaration = match &item.kind {
             ItemKind::Function(function) if is_plain(function) => {
+                plain.push(index);
                 let name = function.name.as_ref().map(syntax::Path::text).unwrap_or_default();
                 let interface = interface(function, &slice);
-                interfaces.entry(word_of(&name).to_string()).or_default().push(interface);
-                plain.push(index);
+                Declaration {
+                    provides: vec![word_of(&name).to_string()],
+                    mentions: owned_words(&interface),
+                    text: interface,
+                }
             }
-            ItemKind::Use(short) => {
-                aliases.push((short.short.text.clone(), word_of(&short.path.text()).to_string()));
-                everyone.text(slice(item.span));
+            ItemKind::Function(function) if function.operator.is_some() => {
+                // An operator applies wherever its types meet, so the types in its header lead to it.
+                let header = slice(function.header_span).to_string();
+                let parameters: Vec<&str> =
+                    function.parameters.list.iter().map(|parameter| parameter.name.text.as_str()).collect();
+                let provides =
+                    owned_words(&header).into_iter().filter(|word| !parameters.contains(&word.as_str())).collect();
+                Declaration { provides, mentions: owned_words(&header), text: interface(function, &slice) }
             }
-            _ => everyone.text(slice(item.span)),
-        }
+            ItemKind::Function(function) => {
+                let name = function.name.as_ref().map(syntax::Path::text).unwrap_or_default();
+                Declaration { provides: vec![word_of(&name).to_string()], mentions: owned_words(&full), text: full }
+            }
+            ItemKind::Use(short) => Declaration {
+                provides: vec![short.short.text.clone()],
+                mentions: owned_words(&short.path.text()),
+                text: full,
+            },
+            ItemKind::Struct(declared) => {
+                Declaration { provides: owned_words(&declared.name.text()), mentions: owned_words(&full), text: full }
+            }
+            ItemKind::Union(declared) => {
+                Declaration { provides: owned_words(&declared.name.text()), mentions: owned_words(&full), text: full }
+            }
+            ItemKind::Family(family) => {
+                let mut provides = owned_words(&family.name.text());
+                for entry in &family.entries {
+                    provides.extend(owned_words(&entry.name.text()));
+                }
+                Declaration { provides, mentions: owned_words(&full), text: full }
+            }
+            ItemKind::TypeName { name, .. } => {
+                Declaration { provides: owned_words(&name.text()), mentions: owned_words(&full), text: full }
+            }
+            ItemKind::Const(constant) => {
+                Declaration { provides: vec![constant.name.text.clone()], mentions: owned_words(&full), text: full }
+            }
+            ItemKind::Interface(declared) | ItemKind::TypeSet(declared) => {
+                Declaration { provides: owned_words(&declared.name.text()), mentions: owned_words(&full), text: full }
+            }
+            ItemKind::Satisfies { subject, interface } => {
+                let mut provides = owned_words(&subject.text());
+                provides.extend(owned_words(&interface.text()));
+                Declaration { provides, mentions: owned_words(&full), text: full }
+            }
+            ItemKind::Import(_) | ItemKind::Stray(_) => {
+                everyone.text(&full);
+                continue;
+            }
+        };
+        declarations.push(declaration);
     }
     let everyone = everyone.finish();
+    let mut by_word: HashMap<&str, Vec<usize>> = HashMap::new();
+    for (number, declaration) in declarations.iter().enumerate() {
+        for word in &declaration.provides {
+            by_word.entry(word.as_str()).or_default().push(number);
+        }
+    }
     let mut keys = HashMap::new();
     for index in plain {
         let Some(item) = file.items.get(index) else { continue };
         let own = slice(item.span);
-        let mut used: Vec<&str> = words(own).into_iter().collect();
-        for (short, target) in &aliases {
-            if used.contains(&short.as_str()) {
-                used.push(target);
+        let mut reached: Vec<usize> = Vec::new();
+        let mut seen_words: HashSet<&str> = HashSet::new();
+        let mut seen: HashSet<usize> = HashSet::new();
+        let mut waiting: Vec<&str> = words(own).into_iter().collect();
+        while let Some(word) = waiting.pop() {
+            if !seen_words.insert(word) {
+                continue;
+            }
+            for number in by_word.get(word).into_iter().flatten() {
+                if seen.insert(*number) {
+                    reached.push(*number);
+                    if let Some(declaration) = declarations.get(*number) {
+                        waiting.extend(declaration.mentions.iter().map(String::as_str));
+                    }
+                }
             }
         }
-        used.sort_unstable();
-        used.dedup();
+        // By their text, not where they are, so moving a declaration changes nothing.
+        let mut texts: Vec<&str> =
+            reached.iter().filter_map(|number| declarations.get(*number)).map(|each| each.text.as_str()).collect();
+        texts.sort_unstable();
         let mut hasher = crate::cache::Hasher::new();
         hasher.text(&everyone);
         hasher.text(own);
-        for word in used {
-            if let Some(found) = interfaces.get(word) {
-                hasher.text(word);
-                for each in found {
-                    hasher.text(each);
-                }
-            }
+        for text in texts {
+            hasher.text(text);
         }
         keys.insert(index, hasher.finish());
     }

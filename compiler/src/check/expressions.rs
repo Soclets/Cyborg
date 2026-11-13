@@ -150,6 +150,14 @@ impl Checker<'_> {
                 Err(self.not_yet(expression.span, format!("building `{}`", path.text())))
             }
             ExpressionKind::Field { base, field } => self.field(body, base, field),
+            // A range is only decided straight after `in`, so it's caught before an item's brackets (D128).
+            ExpressionKind::Bracket { base, .. } if matches!(&base.kind, ExpressionKind::Path(path) if path.is_single("range")) => {
+                Err(self.error(Diagnostic::not_designed(
+                    base.span,
+                    "a range anywhere but straight after `in`",
+                    NOT_DECIDED,
+                )))
+            }
             ExpressionKind::Bracket { base, labels, .. } => self.item_value(body, expression, base, labels),
             ExpressionKind::Bake(inner) => {
                 self.known_at_compile_time(
@@ -185,13 +193,6 @@ impl Checker<'_> {
             }
             ExpressionKind::Owned { ownership, ownership_span, value } => {
                 self.owned(body, *ownership, *ownership_span, value, expected)
-            }
-            ExpressionKind::Bracket { base, .. } if matches!(&base.kind, ExpressionKind::Path(path) if path.is_single("range")) => {
-                Err(self.error(Diagnostic::not_designed(
-                    base.span,
-                    "a range anywhere but straight after `in`",
-                    NOT_DECIDED,
-                )))
             }
             ExpressionKind::As { value, keyword, written_type } => {
                 self.conversion(body, expression, value, keyword, written_type)
