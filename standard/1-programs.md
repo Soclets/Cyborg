@@ -75,7 +75,7 @@ std::io::fmt_print(Lend.mut $out, "{}{newln}", $r.celsius);
 
 ## 1.5 Paths: `::`
 
-**Rule:** `::` reaches into a kit or limb by its path. `std` is grouped with `::`, as in `std::math::sin`, and `use` shortens a long path. `::` is for paths, which never run anything. A family is one level deep. A file imports what it uses, and a manifest lists which packages are installed and which version ([9.1](9-limbs-and-shields.md#91-base-kits-and-limbs)). Everything gets imported, including `std` and limbs, but not builtins or `my::`. Every program has a manifest, `CyJet.siml`, even one using only `std`. Imports go at the top of the file. There is no `@import`.
+**Rule:** `::` reaches into a kit or limb by its path. `std` is grouped with `::`, as in `std::math::sin`, and `use` shortens a long path. `::` is for paths, which never run anything. A family is one level deep. A file imports what it uses, and a manifest lists which packages are installed and which version ([9.1](9-limbs-and-shields.md#91-base-kits-and-limbs)). Everything gets imported, including `std`, limbs and the package's other files, but not builtins or a file's own `my::` names. Every program has a manifest, `CyJet.siml`, even one using only `std`. Imports go at the top of the file. There is no `@import`.
 
 ```
 import std;
@@ -86,9 +86,17 @@ std::io::fmt_print(Lend.mut $out, "hi{newln}");
 
 A file imports the half of a package it uses: `import std;` for `std::`, and `import @std;` for `@std::`. `import pkg std;` brings in both.
 
+A package's own files are reached the same way, under `my::`. Each file is a module named by its path, with a `::` per folder, so `parser.cy` is `my::parser` and `net/http.cy` is `my::net::http`, with no module declarations. Another file is imported and written with its path, and a file's own things stay bare:
+
+```
+import my::parser;
+
+let $tree: my::parser::tree = my::parser::parse(Lend $text);
+```
+
 `import std::io::fmt_print;` imports only that one thing, with its narrowings, like `.stored`, and the file can reach nothing else from `std`. It still writes the full path, unless a `use` shortens it. `import std::units::time;` imports a whole unit family.
 
-**From:** D22, D56, D80, D81, D82, D92, D161, D183, D186, D187, D188, D191, D196, D198, D199, D229.
+**From:** D22, D56, D80, D81, D82, D92, D161, D183, D186, D187, D188, D191, D196, D198, D199, D229, D412.
 
 ## 1.6 Narrowings: `.`
 
