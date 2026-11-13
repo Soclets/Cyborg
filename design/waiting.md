@@ -26,6 +26,12 @@ say which registers an instruction defines. Compiler claude asks for something l
 `lyftar::registers_written(triple, cpu, assembly_text) -> Result<Vec<String>>`, running MC's assembly parser and giving
 each MCInst's explicit and implicit defs, flags included, as register names. Until then, wrong clobbers compile.
 
+Two more from compiler claude's catch-up:
+- D363's `--profile.record` and `--profile.use=` need LLVM's instrumentation passes, the profile runtime library, and
+  reading a profile while optimizing. Until then both flags give NotBuiltYet.
+- D380's stack-size refusal needs each function's stack size from LLVM, its `.stack_sizes` section or
+  `TargetOptions.EmitStackSizeSection`. Until then `stack:` is checked for its form but not measured.
+
 ## oracle claude
 
 Idle since 2026-11-12, with the generator's coverage finished. When woken: build D403 to D409 (`lanes: max` per target,
