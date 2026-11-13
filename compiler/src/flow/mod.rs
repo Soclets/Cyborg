@@ -312,6 +312,15 @@ impl Lowering {
             self.instead.pop();
             here = after;
         }
+        // What `?` runs as it leaves branches off and never comes back (D325).
+        if let ExpressionKind::Handle { on_failure, .. } = &expression.kind
+            && let OnFailure::PassUp { cleanup, .. } = on_failure.as_ref()
+            && !cleanup.is_empty()
+        {
+            let start = self.node();
+            self.edge(here, start);
+            self.block(cleanup, Some(start));
+        }
         here
     }
 }

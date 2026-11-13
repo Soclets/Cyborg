@@ -618,7 +618,13 @@ impl Walker<'_> {
                             self.block(block);
                         }
                     }
-                    OnFailure::Crash(_) | OnFailure::Ignore | OnFailure::PassUp { .. } => {}
+                    // What runs as `?` leaves doesn't come back, so what it holds is forgotten after.
+                    OnFailure::PassUp { cleanup, .. } => {
+                        let held = self.held.clone();
+                        self.block(cleanup);
+                        self.held = held;
+                    }
+                    OnFailure::Crash(_) | OnFailure::Ignore => {}
                 }
                 machine
             }

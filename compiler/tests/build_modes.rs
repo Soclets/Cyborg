@@ -164,3 +164,42 @@ fn d319_d388_layouts_are_what_the_struct_says() {
     let (code, out) = run("layouts_run", LAYOUTS, &["--Working", "--opt=O0"]);
     assert_eq!((code, out.as_str()), (Some(0), "1 512 3 2\n"));
 }
+
+const DEFER_PASS_UP: &str = "import std;
+import os;
+
+fn half [$n: i64] -> i64 fails [odd]:
+    if $n mod.trunc 2 == 1:
+        fail odd;
+    end if
+    return $n div.trunc 2;
+end fn half
+
+fn both [$n: i64] -> i64 fails [odd]:
+    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
+    defer std::io::fmt_print(Lend.mut $out, \"left both{newln}\");
+    let $h: i64 = half($n)?;
+    return $h;
+end fn both
+
+fn.main [none] -> void:
+    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
+    let $a: i64 = both(4) otherwise:
+        case odd:
+            instead -1;
+    end otherwise
+    let $b: i64 = both(3) otherwise:
+        case odd:
+            instead -1;
+    end otherwise
+    std::io::fmt_print(Lend.mut $out, \"{} {}{newln}\", $a, $b);
+    return void;
+end fn.main
+";
+
+#[test]
+fn d325_leaving_through_a_question_mark_runs_what_was_deferred() {
+    // trace: D325
+    let (code, out) = run("defer_pass_up", DEFER_PASS_UP, &["--FinalSafe"]);
+    assert_eq!((code, out.as_str()), (Some(0), "left both\nleft both\n2 -1\n"));
+}

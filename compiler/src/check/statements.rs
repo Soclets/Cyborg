@@ -135,7 +135,7 @@ impl Checker<'_> {
 
     /// Runs the deferred statements of every open block from `from` in, innermost first and each block's in reverse
     /// (D325). A statement deferred once and run at several exits says each error once.
-    fn run_defers(&mut self, body: &mut Body, from: usize, block: &mut checked::Block) {
+    pub fn run_defers(&mut self, body: &mut Body, from: usize, block: &mut checked::Block) {
         let frames: Vec<Vec<syntax::Statement>> = body.defers.get(from..).map(<[_]>::to_vec).unwrap_or_default();
         if frames.iter().all(Vec::is_empty) {
             return;

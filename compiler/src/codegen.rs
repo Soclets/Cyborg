@@ -1263,7 +1263,7 @@ impl<'context, 'module> Generator<'context, 'module> {
                 }
                 frame.builder.branch(after);
             }
-            OnFailure::PassUp { mapping, structure, union: caller_union, value_type: caller_value } => {
+            OnFailure::PassUp { mapping, structure, union: caller_union, value_type: caller_value, cleanup } => {
                 let (caller_union_type, caller_cases) =
                     self.unions.get(*caller_union).cloned().ok_or("a union that wasn't made")?;
                 let caller_struct = *self.structs.get(*structure).ok_or("a struct that wasn't made")?;
@@ -1297,6 +1297,8 @@ impl<'context, 'module> Generator<'context, 'module> {
                     passed = frame.builder.insert_value(passed, zero_value, 0, "").to_dynamic();
                     passed = frame.builder.insert_value(passed, passed_failure, 1, "").to_dynamic();
                     passed = frame.builder.insert_value(passed, site, 2, "").to_dynamic();
+                    // trace: D325
+                    self.block(frame, cleanup)?;
                     frame.builder.return_value(passed);
                     frame.builder.position_at_end(next);
                 }

@@ -331,6 +331,8 @@ pub enum OnFailure {
         #[serde(with = "union_number")]
         union: usize,
         value_type: MachineType,
+        /// The deferred statements of every block it leaves, run before it returns (D325).
+        cleanup: Block,
     },
     /// `otherwise:` arms, by failure case, giving their value with `instead` into a local.
     Arms { arms: Vec<(usize, Block)>, result: LocalId, union_local: LocalId },

@@ -446,7 +446,7 @@ impl Checker<'_> {
     /// `?`: hands the failure to this function's caller (D44, D47).
     fn pass_up(
         &mut self,
-        body: &Body,
+        body: &mut Body,
         span: Span,
         signature: &super::Signature,
         call: checked::Expression,
@@ -478,6 +478,11 @@ impl Checker<'_> {
             MachineType::Void => MachineType::Integer { bits: 8, signed: false },
             other => other,
         };
+        // `?` leaves the function, so it runs every deferred statement first, like `return` (D325).
+        let mut cleanup = Vec::new();
+        if !body.running_defers {
+            self.run_defers(body, 0, &mut cleanup);
+        }
         Ok(self.handled(
             signature,
             call,
@@ -486,6 +491,7 @@ impl Checker<'_> {
                 structure: layout.structure,
                 union: layout.union,
                 value_type: returns,
+                cleanup,
             },
         ))
     }
