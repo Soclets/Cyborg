@@ -1,6 +1,7 @@
-# After the pause
+# Waiting
 
-What's waiting for when the owner unpauses Cyborg, written down on 2026-11-11 so it isn't lost.
+What's waiting on something else, mostly compiler claude finishing its resume prompt, so it isn't lost. Started on
+2026-11-11.
 
 ## Design
 

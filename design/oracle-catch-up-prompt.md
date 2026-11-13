@@ -24,7 +24,7 @@ means for it.
 - DECISIONS.md, D288 to D365, in full, before you change any code.
 - standard/, which says what Cyborg is today. 12-not-decided.md lists what
   isn't decided.
-- design/after-the-pause.md, which lists what's waiting for you.
+- design/waiting.md, which lists what's waiting for you.
 </sources>
 
 <work>
