@@ -365,9 +365,10 @@ An atomic is an integer or `bool` that many tasks change without a lock, through
 let $hits: @concur::atomic<u64> = @concur::atomic.new(0);
 $hits.%add(val: 1);
 let $now: u64 = $hits.%load();
+$hits.%store(val: 0);
 ```
 
-`.%swap(val:)` sets a new value and gives back the old one. `.%compare_swap(expect:, val:)` sets it only if the current value is still `expect`, and otherwise fails with `not_expected[val: …]`, carrying what's there now, so a lost race can't be ignored. `.%sub`, `.%and.bit`, `.%or.bit` and `.%xor.bit` work like `.%add`. Each operation takes only the orderings that fit it: `acquire` is for reading, `release` for writing, and `acq_rel` for both, so `.%load` takes `.relaxed`, `.acquire` or none, while the operations that read and write at once take every ordering. `.%load.release` and `.%load.acq_rel` are refused, with `fix: .%load.acquire`.
+`.%swap(val:)` sets a new value and gives back the old one. `.%compare_swap(expect:, val:)` sets it only if the current value is still `expect`, and otherwise fails with `not_expected[val: …]`, carrying what's there now, so a lost race can't be ignored. `.%sub`, `.%and.bit`, `.%or.bit` and `.%xor.bit` work like `.%add`. Each operation takes only the orderings that fit it: `acquire` is for reading, `release` for writing, and `acq_rel` for both, so `.%load` takes `.relaxed`, `.acquire` or none, `.%store(val:)`, which sets the value and gives back nothing, takes `.relaxed`, `.release` or none, and the operations that read and write at once take every ordering. `.%load.release` and `.%load.acq_rel` are refused, with `fix: .%load.acquire`, and `.%store.acquire` and `.%store.acq_rel` with `fix: .%store.release`.
 
 ```
 $owner.%compare_swap(expect: 0, val: $me) otherwise:
@@ -384,4 +385,4 @@ There's no `async` or `await`. A function that waits takes the runner, and the r
 
 **Refused:** a task that isn't joined; a spawn onto an event runner or `std::run::one_thread` without `stack:`, or with less than the task is known to need; two tasks both given `Lend.mut` of one thing; locking inside a locked block; and the same lock twice in one block.
 
-**From:** D343, D344, D345, D346, D347, D348, D349, D350, D351, D352, D353, D354, D355, D356, D357, D358, D359, D360, D361, D375, D376, D377, D378, D380, D383, D384, D392, D417.
+**From:** D343, D344, D345, D346, D347, D348, D349, D350, D351, D352, D353, D354, D355, D356, D357, D358, D359, D360, D361, D375, D376, D377, D378, D380, D383, D384, D392, D417, D419.
