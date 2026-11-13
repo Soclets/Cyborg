@@ -141,7 +141,7 @@ These are inherited from Radium with D2:
 
 ## 12.9 Limbs and projects
 
-- Modules, beyond each file being one under `pkg::` (D412, D414): which folder paths start from, and importing one thing from another file.
+- Modules, beyond D412 to D415: importing one thing from another file (D198).
 - The manifest (D228): what features are, the lockfile, and per-target settings. The word `same` in versions (D231).
 - How the manifest says which compiler a package's limb half works with.
 - Whether the mark goes only at the path's start.

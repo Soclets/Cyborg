@@ -28,6 +28,8 @@
 **Rule:** a program starts at `fn.main`, and `main` says `return void;`. A function with no parameters says `[none]`, and an empty `[]` is refused.
 
 ```
+module hello;
+
 import std;
 import os;
 use std::io::fmt_print as fmt_print;
@@ -40,11 +42,11 @@ fn.main [none] -> void:
 end fn.main
 ```
 
-This is the owner's hello world. The `use` line is on purpose.
+This is the owner's hello world, with the `module` line every file starts with ([1.5](#15-paths-)). The `use` line is on purpose.
 
 Its manifest says `need std` and `need os`. Examples elsewhere in the standard assume a writer `$out` like this one.
 
-**From:** D11, D23, D93, D197, D265, D267, D271, D272, D273, the sketch.
+**From:** D11, D23, D93, D197, D265, D267, D271, D272, D273, D415, the sketch.
 
 ## 1.3 Blocks and statements
 
@@ -86,17 +88,24 @@ std::io::fmt_print(Lend.mut $out, "hi{newln}");
 
 A file imports the half of a package it uses: `import std;` for `std::`, and `import @std;` for `@std::`. `import pkg std;` brings in both.
 
-A package's own files are reached the same way, under `pkg::`. Each file is a module named by its path, with a `::` per folder, so `parser.cy` is `pkg::parser` and `net/http.cy` is `pkg::net::http`, with no module declarations. Another file is imported and written with its path, and a file's own things stay bare. A file shows only what it marks `pub.pkg` or `pub` ([9.12](9-limbs-and-shields.md#912-pub)):
+A package's own files are reached the same way, under `pkg::`. Each file is one module, and says its own name on its first line, with only comments above it. The name is Cyborg names joined by `::`, and the file's name on disk doesn't matter, so `whatever/http-client.cy` can be `net::http`. Another file is imported and written with its path, and a file's own things stay bare. A file shows only what it marks `pub.pkg` or `pub` ([9.12](9-limbs-and-shields.md#912-pub)):
 
 ```
-import pkg::parser;
+module app;
 
-let $tree: pkg::parser::tree = pkg::parser::parse(Lend $text);
+import std;
+import pkg::text::parser;
+
+let $tree: pkg::text::parser::tree = pkg::text::parser::parse(Lend $text);
 ```
+
+The compiler reads every `.cy` file in the package, and every one has a `module` line, the file with `fn.main` included.
+
+**Refused:** a file with no `module` line, with a fix suggesting a name from the file's name, as in `fix: module http_client;`; a `module` line that isn't first; two files with the same name, naming both; `module pkg::net::http;`, with `fix: module net::http;`; and a name that means two things, like a module `net` with a function `http` beside a module `net::http`.
 
 `import std::io::fmt_print;` imports only that one thing, with its narrowings, like `.stored`, and the file can reach nothing else from `std`. It still writes the full path, unless a `use` shortens it. `import std::units::time;` imports a whole unit family.
 
-**From:** D22, D56, D80, D81, D82, D92, D161, D183, D186, D187, D188, D191, D196, D198, D199, D229, D412, D413, D414.
+**From:** D22, D56, D80, D81, D82, D92, D161, D183, D186, D187, D188, D191, D196, D198, D199, D229, D412, D413, D414, D415.
 
 ## 1.6 Narrowings: `.`
 
