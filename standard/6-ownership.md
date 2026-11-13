@@ -127,7 +127,7 @@ A bare `str` is a read-only view, so copying one needs no word, like a plain num
 
 ```
 $p.%area();
-$xs.std::%%append(val: 4);
+$xs.std::coll::list.%%append(val: 4);
 ```
 
 **Refused:** `total(%$xs)`, because `%` goes only on a method call, a `.%` on a method that changes its receiver, with `fix: .%%`, and a `.%%` on one that doesn't, with `fix: .%`. Methods can't give their receiver away: write `close(Give $f)`.

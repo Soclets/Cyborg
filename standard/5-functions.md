@@ -99,20 +99,22 @@ Contracts can only call pure functions ([5.9](#59-pure-functions)), so turning c
 
 ## 5.6 Methods: `.%`
 
-**Rule:** a method is a function attached to a type, called on a receiver with `.%` when it lends the receiver read-only, or `.%%` when it lends it to change. A `.` never runs code, and a `.%` always does. A method from a kit says its path, because bare means base or your own, and a limb's has `@`.
+**Rule:** a method is a function attached to a type, called on a receiver with `.%` when it lends the receiver read-only, or `.%%` when it lends it to change. A `.` never runs code, and a `.%` always does. A method from a kit says its full path, its family's path plus its name, because bare means base or your own, and a `use` shortens it ([1.11](1-programs.md#111-short-names-use)). A limb's has `@`.
 
 ```
-$xs.std::%%append(val: 4);
+$xs.std::coll::list.%%append(val: 4);
+
+use std::coll::list.%%append as %%append;
+$xs.%%append(val: 4);
 ```
 
 Methods only borrow, because `%` and `%%` stand only for `Lend` and `Lend.mut` ([6.8](6-ownership.md#68--and--lending-a-receiver)). Anything that consumes its value is a plain function: `close(Give $f)`.
 
 ```
 $p.%area();
-$x.@csup::%name();
 ```
 
-**Refused:** `$xs.%%append(val: 4);`, with `fix: $xs.std::%%append(val: 4);`, and `$xs.std::%append(val: 4);`, with `fix: .%%`, since `append` changes its receiver.
+**Refused:** `$xs.%%append(val: 4);` with no `use`, with `fix: $xs.std::coll::list.%%append(val: 4);`; `$xs.std::%%append(val: 4);`, with the same fix; and `$xs.std::coll::list.%append(val: 4);`, with `fix: .%%`, since `append` changes its receiver.
 
 A `fam.fn` groups related functions, called with the family's name, as `geometry.area(…)`. A family named after a type also holds that type's methods, marked by their `%` or `%%`, and every method sits in its receiver's type's family. Each method is a normal function inside it, and is the family member `reading.%%warm_up`. The first parameter is the receiver, and says how it's held, which has to match the `%` or `%%` in the name.
 
@@ -135,7 +137,7 @@ $r.%%warm_up(by: 2);
 
 A receiver that's `Given` is refused, because methods only borrow, and so is a method in a family not named after its receiver's type.
 
-**From:** D4, D5, D8, D115, D130, D135, D211, D421, D422.
+**From:** D4, D5, D8, D115, D130, D135, D211, D421, D422, D423.
 
 ## 5.7 Builtins: `@`
 
