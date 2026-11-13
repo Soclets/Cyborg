@@ -1340,6 +1340,15 @@ A `type_set` is a closed list of types that nothing can join later, as in `type_
 
 **D419. An atomic's plain write is `.%store(val:)`.** `$ready.%store(val: true)` sets the value and gives back nothing, the partner of `.%load`, as load and store are paired in C++, Rust, LLVM and CPU manuals; `.%swap` stays for when the old value is wanted. It takes `.relaxed`, `.release` or the bare strictest ordering, and `.%store.acquire` and `.%store.acq_rel` are refused with `fix: .%store.release`, as D417 set out. It's `.%`, like the other atomic operations, since an atomic is shared with plain `Lend` (D354) and 5.6's `%` lends the receiver read-only. Claude noticed the store was missing while recording D417 and proposed it; the owner asked "Is `%` correct?", which led to D418, and chose: "yea". (Owner, 2026-11-13)
 
+**D420. A tuned program missing its instructions stops with a `check failed:`.** D365's startup check uses the usual layout (11.1), as a `check failed:` since it happens while running, with no file and line, since no line of code caused it:
+
+    check failed: this processor is missing instructions the program was built for
+     what: built with --machine.cpu=apple_m5, and this processor has no `ssbs` instructions
+     why:  a program tuned for one processor needs its instructions (D365)
+     fix:  rebuild for this machine with --machine.cpu=native, or without --machine.cpu=
+
+The CPU is written with Cyborg's spelling, `apple_m5`, not LLVM's `apple-m5`, and the instruction family without LLVM's `+`. Compiler claude built the check with a placeholder, `stopped: …`; Claude proposed this; the owner chose: "yea". (Owner, 2026-11-13)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude

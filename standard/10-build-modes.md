@@ -206,6 +206,15 @@ okay comp --FinalPerf --machine.cpu=native --machine.gpu=native render.cy
 
 The base handles `.cpu`. `.gpu` goes to whichever limb gives the program its GPU code, since a limb owns its own code, and other parts, like an AI accelerator, can join as narrowings.
 
+A tuned program checks the processor when it starts, and stops before running anything if an instruction family it was built for is missing:
+
+```
+check failed: this processor is missing instructions the program was built for
+ what: built with --machine.cpu=apple_m5, and this processor has no `ssbs` instructions
+ why:  a program tuned for one processor needs its instructions (D365)
+ fix:  rebuild for this machine with --machine.cpu=native, or without --machine.cpu=
+```
+
 **Refused:** `--machine.gpu=` when no limb gives the program GPU code, and `--machine.` with `Literal`.
 
-**From:** D365.
+**From:** D365, D420.
