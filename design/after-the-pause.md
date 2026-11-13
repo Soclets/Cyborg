@@ -28,6 +28,14 @@ Waited for Lyftar's embedded clang (Lyftar's D55, Cyborg's D308), which is ready
 - Decisions since it stopped, D288 to D409, picked up under rule 16. Then its own plan: generics, inline assembly, the
   rest of baking and `use`, then SIMD.
 
+## Lyftar design
+
+Once compiler claude has finished its resume prompt (owner, 2026-11-13), wake Lyftar design and pass on a gap: D233's
+check that inline assembly writes no register missing from `writes:` or `clobbers:` can't be done yet, since Lyftar can't
+say which registers an instruction defines. Compiler claude asks for something like
+`lyftar::registers_written(triple, cpu, assembly_text) -> Result<Vec<String>>`, running MC's assembly parser and giving
+each MCInst's explicit and implicit defs, flags included, as register names. Until then, wrong clobbers compile.
+
 ## oracle claude
 
 Idle since 2026-11-12, with the generator's coverage finished. When woken: build D403 to D409 (`lanes: max` per target,
