@@ -9,7 +9,7 @@ rule changes, `DECISIONS.md` gets a new entry and this file is updated to match.
 - **design claude**: the decisions, `DECISIONS.md`, `IMPLEMENTATION.md` and the standard.
 - **oracle claude**: the oracle, in `oracle/`, the tests, in `tests/`, and for now the random program generator and the
   live comparison of the oracle and the compiler, in `check/`. (D313)
-- **compiler claude**: the compiler, in `compiler/`, once Lyftar is ready.
+- **compiler claude**: the compiler, in `compiler/`, built on Lyftar.
 - **check claude**: optional, later: a second, independent generator in `check/`, from a fresh author.
 
 Each works in its own clone, on `main` with no branch, and runs `git pull --rebase` before pushing.
