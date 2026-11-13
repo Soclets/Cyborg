@@ -4,7 +4,7 @@
 //! values and the runtime checks the build mode decides about (standard 10.3).
 
 /// A machine type.
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
 pub enum MachineType {
     Integer {
         bits: u32,
@@ -55,7 +55,7 @@ pub struct Program {
     pub entry: FunctionId,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
 pub struct Function {
     /// The symbol, unique in the program.
     pub symbol: String,
@@ -66,10 +66,10 @@ pub struct Function {
     pub body: Block,
     /// Where this function raises a failure or calls one with `requires`, as the `because:` part a crash message
     /// ends with (D29, D96). A site travels as a pointer to its text, so each function keeps its own.
-    pub sites: Vec<String>,
+    pub sites: Vec<Site>,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum Passing {
     /// By value: a plain number or `bool` (D184).
     Value,
@@ -77,7 +77,7 @@ pub enum Passing {
     Address,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
 pub struct Parameter {
     pub local: LocalId,
     pub passing: Passing,
@@ -85,7 +85,7 @@ pub struct Parameter {
 
 pub type Block = Vec<Statement>;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
 pub enum Statement {
     /// Gives a local its first value.
     Let {
@@ -183,7 +183,7 @@ pub enum Statement {
     },
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
 pub enum Stream {
     Out,
     Error,
@@ -200,7 +200,7 @@ impl Stream {
 }
 
 /// A piece of a format print.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
 pub enum Piece {
     Text(String),
     /// A value with its shape. A float's print can fail in ways that aren't decided: a value exactly halfway for
@@ -213,7 +213,7 @@ pub enum Piece {
 }
 
 /// What a float's print says when it reaches something undecided.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
 pub struct FloatPrintFailures {
     pub halfway: CheckFailure,
     pub science: CheckFailure,
@@ -221,7 +221,7 @@ pub struct FloatPrintFailures {
 }
 
 /// How a hole prints its value (D194).
-#[derive(Clone, Debug, Default, PartialEq, Eq)]
+#[derive(Clone, Debug, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct Shape {
     pub width: Option<u64>,
     /// What a width counts (D194).
@@ -236,7 +236,7 @@ pub struct Shape {
 }
 
 /// What a width in a print counts (D194).
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum WidthUnit {
     /// Terminal columns, where East Asian wide characters take two.
     #[default]
@@ -263,14 +263,14 @@ impl Shape {
     }
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum Align {
     Left,
     Right,
     Center,
 }
 
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum Base {
     #[default]
     Decimal,
@@ -281,7 +281,7 @@ pub enum Base {
 }
 
 /// What happens when a call fails (standard 8).
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
 pub enum OnFailure {
     /// Nothing handles it, so the program stops (D96).
     Crash(Vec<Unhandled>),
@@ -296,7 +296,7 @@ pub enum OnFailure {
 }
 
 /// The crash message for one failure nothing handles.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
 pub struct Unhandled {
     pub case: usize,
     pub failure: CheckFailure,
@@ -306,7 +306,8 @@ pub struct Unhandled {
 
 /// What a failed check prints. The message is rendered while building, in the one error layout (standard 11.1),
 /// with the values that broke it, if any, printed into its `when:` line while running.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
+#[serde(into = "StoredFailure", from = "StoredFailure")]
 pub struct CheckFailure {
     /// The text before the `when:` values, or the whole message.
     pub before: String,
@@ -314,19 +315,134 @@ pub struct CheckFailure {
     pub when: Vec<(String, usize)>,
     pub after: String,
     /// The error itself, and its `when:` line's parts, so a check that fails while baking can be refused instead
-    /// (D91).
+    /// (D91), and the message can be rendered again where the lines moved (D168).
     pub source: Option<Box<crate::diagnostic::Diagnostic>>,
     pub when_template: Vec<WhenPart>,
+    /// `because:` parts added after it, like where an `ensures` was led to by a `return`.
+    pub also: Vec<(crate::source::Span, String)>,
+}
+
+impl CheckFailure {
+    /// Renders a failed check's message from its error, keeping a mark for each value printed while running.
+    #[must_use]
+    pub fn rendered(
+        sources: &crate::source::Sources,
+        diagnostic: crate::diagnostic::Diagnostic,
+        when_template: Vec<WhenPart>,
+        also: Vec<(crate::source::Span, String)>,
+    ) -> CheckFailure {
+        const MARKS: [char; 8] = ['\u{1}', '\u{2}', '\u{3}', '\u{4}', '\u{5}', '\u{6}', '\u{7}', '\u{8}'];
+        let mut template = String::new();
+        for part in &when_template {
+            match part {
+                WhenPart::Text(text) => template.push_str(text),
+                WhenPart::Operand(index) => template.push(MARKS[(*index).min(MARKS.len() - 1)]),
+            }
+        }
+        let source = Some(Box::new(diagnostic.clone()));
+        let diagnostic = if when_template.is_empty() { diagnostic } else { diagnostic.with_when(template) };
+        let rendered = diagnostic.render(sources);
+        let mut before = String::new();
+        let mut when: Vec<(String, usize)> = Vec::new();
+        let mut current = String::new();
+        let mut first = true;
+        for character in rendered.chars() {
+            if let Some(index) = MARKS.iter().position(|mark| *mark == character) {
+                if first {
+                    before = std::mem::take(&mut current);
+                    when.push((String::new(), index));
+                    first = false;
+                } else {
+                    when.push((std::mem::take(&mut current), index));
+                }
+            } else {
+                current.push(character);
+            }
+        }
+        if first {
+            before = std::mem::take(&mut current);
+        }
+        for (span, label) in &also {
+            current.push_str(&crate::diagnostic::render_because(sources, *span, label));
+        }
+        CheckFailure { before, when, after: current, source, when_template, also }
+    }
+}
+
+/// A failed check as it's stored for later builds.
+#[derive(Clone, serde::Serialize, serde::Deserialize)]
+pub struct StoredFailure {
+    before: String,
+    when: Vec<(String, usize)>,
+    after: String,
+    source: Option<Box<crate::diagnostic::Diagnostic>>,
+    when_template: Vec<WhenPart>,
+    also: Vec<(crate::source::Span, String)>,
+}
+
+impl From<CheckFailure> for StoredFailure {
+    fn from(failure: CheckFailure) -> StoredFailure {
+        let CheckFailure { before, when, after, source, when_template, also } = failure;
+        StoredFailure { before, when, after, source, when_template, also }
+    }
+}
+
+impl From<StoredFailure> for CheckFailure {
+    fn from(stored: StoredFailure) -> CheckFailure {
+        let StoredFailure { before, when, after, source, when_template, also } = stored;
+        // Read back with its spans moved to where the function is now, so it's rendered again from there.
+        if let Some(diagnostic) = &source
+            && let Some(again) = crate::source::relocation::render(|sources| {
+                CheckFailure::rendered(sources, (**diagnostic).clone(), when_template.clone(), also.clone())
+            })
+        {
+            return again;
+        }
+        CheckFailure { before, when, after, source, when_template, also }
+    }
+}
+
+/// Where a function raises a failure or calls one with `requires`, rendered as the `because:` part of a crash.
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
+#[serde(into = "StoredSite", from = "StoredSite")]
+pub struct Site {
+    pub span: crate::source::Span,
+    pub label: String,
+    pub text: String,
+}
+
+/// A site as it's stored for later builds.
+#[derive(Clone, serde::Serialize, serde::Deserialize)]
+pub struct StoredSite {
+    span: crate::source::Span,
+    label: String,
+    text: String,
+}
+
+impl From<Site> for StoredSite {
+    fn from(site: Site) -> StoredSite {
+        StoredSite { span: site.span, label: site.label, text: site.text }
+    }
+}
+
+impl From<StoredSite> for Site {
+    fn from(stored: StoredSite) -> Site {
+        let text = crate::source::relocation::render(|sources| {
+            crate::diagnostic::render_because(sources, stored.span, &stored.label)
+        })
+        .unwrap_or(stored.text);
+        Site { span: stored.span, label: stored.label, text }
+    }
 }
 
 /// A part of a `when:` line: text, or an operand's value.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
 pub enum WhenPart {
     Text(String),
     Operand(usize),
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum Arithmetic {
     Add,
     Subtract,
@@ -347,7 +463,7 @@ pub enum Arithmetic {
     ShiftRight,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum FloatArithmetic {
     Add,
     Subtract,
@@ -355,7 +471,7 @@ pub enum FloatArithmetic {
     Divide,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum Comparison {
     Equal,
     NotEqual,
@@ -365,13 +481,13 @@ pub enum Comparison {
     AtMost,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
 pub struct Expression {
     pub kind: ExpressionKind,
     pub machine_type: MachineType,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
 pub enum ExpressionKind {
     /// The address of this function's site, by its position in `sites`.
     Site(usize),
@@ -496,13 +612,13 @@ pub enum ExpressionKind {
 }
 
 /// A place in memory: a local, then fields and items inside it (D125, D133).
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
 pub struct Place {
     pub local: LocalId,
     pub steps: Vec<Step>,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
 pub enum Step {
     Field(usize),
     /// An item at a position as written, counting from 1 for `pos:` or 0 for `offset.items:`, with its bounds check,
@@ -514,7 +630,7 @@ pub enum Step {
     },
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
 pub enum Argument {
     Value(Expression),
     /// The address of a local, for a lent or changed parameter.

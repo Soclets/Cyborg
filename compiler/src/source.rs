@@ -7,7 +7,7 @@
 use unicode_segmentation::UnicodeSegmentation;
 
 /// Which file a span is in, as an index into [`Sources`].
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash, PartialOrd, Ord)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash, PartialOrd, Ord, serde::Serialize, serde::Deserialize)]
 pub struct FileId(pub u32);
 
 /// A run of bytes in one file, `start` included and `end` not.
@@ -47,8 +47,85 @@ fn offset(at: usize) -> u32 {
     u32::try_from(at).unwrap_or(u32::MAX)
 }
 
+// A span is stored relative to the function being kept, so the function can be used again after the lines above it
+// change (see `relocation`).
+impl serde::Serialize for Span {
+    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        let (start, end) = relocation::store(*self);
+        serde::Serialize::serialize(&(self.file, start, end), serializer)
+    }
+}
+
+impl<'de> serde::Deserialize<'de> for Span {
+    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Span, D::Error> {
+        let (file, start, end): (FileId, u32, u32) = serde::Deserialize::deserialize(deserializer)?;
+        Ok(relocation::load(file, start, end))
+    }
+}
+
+/// While a checked function is stored for later builds, or read back, its spans are written relative to where it
+/// starts, and messages that show places are rendered again from the file as it is now (D168).
+pub mod relocation {
+    use std::cell::RefCell;
+    use std::rc::Rc;
+
+    use super::{FileId, Sources, Span};
+
+    /// Where the function being stored or read starts and ends, and the files as they are now.
+    pub struct Relocation {
+        pub start: u32,
+        pub end: u32,
+        /// Whether a span reached outside the function, which a stored function can't have, since nothing says where
+        /// the place it points at went.
+        pub outside: bool,
+        /// The files as they are now, when messages have to be rendered again because the lines above moved.
+        pub sources: Option<Rc<Sources>>,
+    }
+
+    thread_local! {
+        static CURRENT: RefCell<Option<Relocation>> = const { RefCell::new(None) };
+    }
+
+    /// Runs `body` with spans relative to `relocation`, giving back what it found.
+    pub fn with<R>(relocation: Relocation, body: impl FnOnce() -> R) -> (R, Relocation) {
+        let outer = CURRENT.with(|current| current.borrow_mut().replace(relocation));
+        let result = body();
+        let finished = CURRENT.with(|current| std::mem::replace(&mut *current.borrow_mut(), outer));
+        match finished {
+            Some(relocation) => (result, relocation),
+            None => (result, Relocation { start: 0, end: 0, outside: true, sources: None }),
+        }
+    }
+
+    pub(super) fn store(span: Span) -> (u32, u32) {
+        CURRENT.with(|current| match current.borrow_mut().as_mut() {
+            Some(relocation) => {
+                if span.start < relocation.start || span.end > relocation.end {
+                    relocation.outside = true;
+                }
+                (span.start.wrapping_sub(relocation.start), span.end.wrapping_sub(relocation.start))
+            }
+            None => (span.start, span.end),
+        })
+    }
+
+    pub(super) fn load(file: FileId, start: u32, end: u32) -> Span {
+        CURRENT.with(|current| match current.borrow().as_ref() {
+            Some(relocation) => {
+                Span { file, start: start.wrapping_add(relocation.start), end: end.wrapping_add(relocation.start) }
+            }
+            None => Span { file, start, end },
+        })
+    }
+
+    /// Renders with the files as they are now, while reading a function back.
+    pub fn render<R>(body: impl FnOnce(&Sources) -> R) -> Option<R> {
+        CURRENT.with(|current| current.borrow().as_ref().and_then(|relocation| relocation.sources.as_deref()).map(body))
+    }
+}
+
 /// One source file: the name errors show, and its text.
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct SourceFile {
     pub name: String,
     pub text: String,
@@ -124,7 +201,7 @@ impl SourceFile {
 }
 
 /// Every file a build reads, so a span can name any of them.
-#[derive(Debug, Default)]
+#[derive(Clone, Debug, Default)]
 pub struct Sources {
     files: Vec<SourceFile>,
 }
@@ -144,6 +221,15 @@ impl Sources {
         self.files
             .get(id.0 as usize)
             .unwrap_or_else(|| EMPTY.get_or_init(|| SourceFile::new(String::new(), String::new())))
+    }
+
+    /// The text of every file but one.
+    pub fn others(&self, but: FileId) -> impl Iterator<Item = &str> {
+        self.files
+            .iter()
+            .enumerate()
+            .filter(move |(index, _)| *index != but.0 as usize)
+            .map(|(_, file)| file.text.as_str())
     }
 
     pub fn get_mut(&mut self, id: FileId) -> Option<&mut SourceFile> {

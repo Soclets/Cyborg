@@ -46,7 +46,12 @@ pub fn build(file: &Path, target: Target, mode: Mode, cores: usize, output: &Pat
         ));
         manifest::Manifest::default()
     };
-    let (program, mut program_errors) = check_program(&mut sources, program_id, &text, &manifest, target, mode);
+    let store = check::incremental::Store::open(cache::folder().as_deref(), file, target, mode);
+    let (program, mut program_errors, store) =
+        check_program(&mut sources, program_id, &text, &manifest, target, mode, Some(store));
+    if let Some(store) = store {
+        store.save();
+    }
     cascades(&mut program_errors, &mut sources, program_id, &text, &manifest, target, mode);
     errors.extend(program_errors);
     if !errors.is_empty() {
@@ -169,19 +174,42 @@ fn panic_message(panic: &(dyn std::any::Any + Send)) -> String {
 /// # Errors
 /// Every error, ready to print, if the program or its manifest was refused.
 pub fn checked(file: &Path, target: Target, mode: Mode) -> Result<crate::checked::Program, String> {
-    let text = std::fs::read_to_string(file).map_err(|error| format!("can't read {}: {error}", file.display()))?;
+    checked_incrementally(file, target, mode, None).0
+}
+
+/// Checks the program in `file`, using and keeping checked functions in the cache folder, if one is given (D168),
+/// and saying how many were checked and how many kept from before.
+pub fn checked_incrementally(
+    file: &Path,
+    target: Target,
+    mode: Mode,
+    folder: Option<&Path>,
+) -> (Result<crate::checked::Program, String>, check::incremental::Stats) {
+    let store = folder.map(|folder| check::incremental::Store::open(Some(folder), file, target, mode));
+    let text = match std::fs::read_to_string(file) {
+        Ok(text) => text,
+        Err(error) => {
+            return (Err(format!("can't read {}: {error}", file.display())), check::incremental::Stats::default());
+        }
+    };
     let manifest_text = std::fs::read_to_string(file.with_file_name("CyJet.siml")).unwrap_or_default();
     let mut sources = Sources::default();
     let manifest_id = sources.add(SourceFile::new("CyJet.siml".to_string(), manifest_text));
     let program_id = sources.add(SourceFile::new(file.display().to_string(), text.clone()));
     let mut errors = Vec::new();
     let manifest = manifest::read(manifest_id, sources.get(manifest_id), &mut errors);
-    let (program, program_errors) = check_program(&mut sources, program_id, &text, &manifest, target, mode);
+    let (program, program_errors, store) =
+        check_program(&mut sources, program_id, &text, &manifest, target, mode, store);
+    let stats = store.as_ref().map(|store| store.stats).unwrap_or_default();
+    if let Some(store) = store {
+        store.save();
+    }
     errors.extend(program_errors);
-    match program {
+    let result = match program {
         Some(program) if errors.is_empty() => Ok(program),
         _ => Err(render_all(&errors, &sources)),
-    }
+    };
+    (result, stats)
 }
 
 /// Checks a program's text, giving the checked program if nothing was refused, and every error in order.
@@ -192,7 +220,8 @@ fn check_program(
     manifest: &manifest::Manifest,
     target: Target,
     mode: Mode,
-) -> (Option<crate::checked::Program>, Vec<Diagnostic>) {
+    store: Option<check::incremental::Store>,
+) -> (Option<crate::checked::Program>, Vec<Diagnostic>, Option<check::incremental::Store>) {
     if let Some(file) = sources.get_mut(program_id) {
         let name = file.name.clone();
         *file = SourceFile::new(name, text.to_string());
@@ -204,10 +233,10 @@ fn check_program(
     let parsed_cleanly = parse_errors.is_empty();
     errors.extend(parse_errors);
     errors.extend(spacing::check(program_id, text, &lexed.tokens, &parsed.roles, parsed_cleanly));
-    let (program, check_errors) = check::check(program_id, sources, manifest, &parsed.file, target, mode);
+    let (program, check_errors, store) = check::check(program_id, sources, manifest, &parsed.file, target, mode, store);
     errors.extend(check_errors);
     errors.sort_by_key(|error| error.span.start);
-    (program, errors)
+    (program, errors, store)
 }
 
 /// Finds which errors an earlier one caused (D207, standard 11.7): each error with a fix has it applied in memory,
@@ -227,7 +256,7 @@ fn cascades(
             continue;
         }
         let Some((fixed_text, shift)) = apply(text, &fix.edits) else { continue };
-        let (_, after) = check_program(sources, program_id, &fixed_text, manifest, target, mode);
+        let (_, after, _) = check_program(sources, program_id, &fixed_text, manifest, target, mode, None);
         for later in index + 1..errors.len() {
             let moved = shift(errors[later].span);
             let still_there = after.iter().any(|other| same_error(other, &errors[later], moved));

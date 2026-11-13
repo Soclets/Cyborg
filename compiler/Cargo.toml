@@ -15,6 +15,8 @@ lyftar = { git = "https://github.com/Soclets/Lyftar" }
 unicode-segmentation = "1"
 unicode-width = "0.2"
 num-bigint = "0.4"
+serde = { version = "1.0.229", features = ["derive"] }
+postcard = { version = "1.1.3", default-features = false, features = ["use-std"] }
 
 [profile.dev]
 opt-level = 1

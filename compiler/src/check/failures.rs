@@ -259,7 +259,7 @@ impl Checker<'_> {
             )));
         }
         let site = body.sites.len();
-        body.sites.push(crate::diagnostic::render_because(self.sources, span, "it was raised here"));
+        body.sites.push(self.site(span, "it was raised here"));
         let value_type = match body.returns.machine() {
             MachineType::Void => MachineType::Integer { bits: 8, signed: false },
             other => other,

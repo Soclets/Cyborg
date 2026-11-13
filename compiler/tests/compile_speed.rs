@@ -120,3 +120,82 @@ fn d224_max_cores_takes_a_number_max_or_min() {
         assert_eq!(refused.status.code(), Some(2), "{wrong} wasn't refused");
     }
 }
+
+fn checked(folder: &Path, cache: &Path) -> (Result<okay::checked::Program, String>, okay::check::incremental::Stats) {
+    okay::build::checked_incrementally(
+        &folder.join("main.cy"),
+        okay::target::Target::host(),
+        okay::target::Mode::Working(okay::target::Optimization::O0),
+        Some(cache),
+    )
+}
+
+#[test]
+fn d168_checking_again_checks_only_what_changed() {
+    let (folder, cache) = project("checking");
+    std::fs::write(folder.join("main.cy"), program(1)).expect("written");
+    let (first, stats) = checked(&folder, &cache);
+    assert!(first.is_ok());
+    assert_eq!((stats.checked, stats.reused), (3, 0));
+    let (_, stats) = checked(&folder, &cache);
+    assert_eq!((stats.checked, stats.reused), (0, 3), "nothing changed, and something was checked again");
+    // A body changed, and its interface didn't, so only it is checked again.
+    std::fs::write(folder.join("main.cy"), program(5)).expect("written");
+    let (_, stats) = checked(&folder, &cache);
+    assert_eq!((stats.checked, stats.reused), (1, 2));
+}
+
+#[test]
+fn d168_a_changed_interface_checks_its_callers_again() {
+    let (folder, cache) = project("interface");
+    std::fs::write(folder.join("main.cy"), program(1)).expect("written");
+    assert!(checked(&folder, &cache).0.is_ok());
+    // `double` now gives back an `i64`, which `main` stores in an `i32`, so `main` has to be checked again.
+    let changed = program(1)
+        .replace("fn double [$n: i32] -> i32:\n    return $n x 2;", "fn double [$n: i64] -> i64:\n    return $n x 2;");
+    std::fs::write(folder.join("main.cy"), changed).expect("written");
+    let (result, stats) = checked(&folder, &cache);
+    assert!(result.is_err(), "main kept its old check, though what it calls changed");
+    assert_eq!((stats.checked, stats.reused), (2, 1));
+}
+
+/// A program whose check fails while running, in a function below `main`'s callers.
+const FAILING: &str = "import std;
+import os;
+
+fn small [$n: i32] -> i32:
+    let $x: i32[min: 0, max: 10] = $n;
+    return $x;
+end fn small
+
+fn.main [none] -> void:
+    let $y: i32 = small(50);
+    return void;
+end fn.main
+";
+
+fn crash(folder: &Path, cache: &Path) -> String {
+    let built = Command::new(env!("CARGO_BIN_EXE_okay"))
+        .args(["comp", "--Working", "--opt=O0", "--max_cores=1", "main.cy"])
+        .env("OKAY_CACHE", cache)
+        .current_dir(folder)
+        .output()
+        .expect("okay runs");
+    assert!(built.status.success(), "{}", String::from_utf8_lossy(&built.stderr));
+    let ran = Command::new(folder.join("main")).output().expect("the program runs");
+    String::from_utf8_lossy(&ran.stderr).into_owned()
+}
+
+#[test]
+fn d168_a_kept_function_that_moved_shows_its_new_lines() {
+    let (folder, cache) = project("moved");
+    std::fs::write(folder.join("main.cy"), FAILING).expect("written");
+    let before = crash(&folder, &cache);
+    assert!(before.contains("line 5"), "{before}");
+    std::fs::write(folder.join("main.cy"), FAILING.replace("import os;\n", "import os;\n\n// moved down\n"))
+        .expect("written");
+    let moved = crash(&folder, &cache);
+    let fresh = crash(&folder, &folder.join("fresh cache"));
+    assert!(moved.contains("line 7"), "{moved}");
+    assert_eq!(moved, fresh, "a kept function's message differs from a fresh build's");
+}

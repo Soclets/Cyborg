@@ -58,15 +58,6 @@ pub enum When {
 /// Builds what a failed check prints: the error rendered now, with operand values filled in while running.
 #[must_use]
 pub fn failure(checker: &Checker<'_>, diagnostic: Diagnostic, when: &[When]) -> checked::CheckFailure {
-    const MARKS: [char; 8] = ['\u{1}', '\u{2}', '\u{3}', '\u{4}', '\u{5}', '\u{6}', '\u{7}', '\u{8}'];
-    let mut template = String::new();
-    for part in when {
-        match part {
-            When::Text(text) => template.push_str(text),
-            When::Operand(index) => template.push(MARKS[(*index).min(MARKS.len() - 1)]),
-        }
-    }
-    let source = Some(Box::new(diagnostic.clone()));
     let when_template = when
         .iter()
         .map(|part| match part {
@@ -74,29 +65,7 @@ pub fn failure(checker: &Checker<'_>, diagnostic: Diagnostic, when: &[When]) -> 
             When::Operand(index) => checked::WhenPart::Operand(*index),
         })
         .collect();
-    let diagnostic = if when.is_empty() { diagnostic } else { diagnostic.with_when(template) };
-    let rendered = diagnostic.render(checker.sources);
-    let mut before = String::new();
-    let mut when_parts: Vec<(String, usize)> = Vec::new();
-    let mut current = String::new();
-    let mut first = true;
-    for character in rendered.chars() {
-        if let Some(index) = MARKS.iter().position(|mark| *mark == character) {
-            if first {
-                before = std::mem::take(&mut current);
-                when_parts.push((String::new(), index));
-                first = false;
-            } else {
-                when_parts.push((std::mem::take(&mut current), index));
-            }
-        } else {
-            current.push(character);
-        }
-    }
-    if first {
-        before = std::mem::take(&mut current);
-    }
-    checked::CheckFailure { before, when: when_parts, after: current, source, when_template }
+    checked::CheckFailure::rendered(checker.sources, diagnostic, when_template, Vec::new())
 }
 
 impl Checker<'_> {
@@ -1770,7 +1739,7 @@ impl Checker<'_> {
         }
         if super::contracts::needs_site(&signature.top) {
             let site = body.sites.len();
-            body.sites.push(crate::diagnostic::render_because(self.sources, expression.span, "called here"));
+            body.sites.push(self.site(expression.span, "called here"));
             values.push(checked::Argument::Value(checked::Expression {
                 kind: Kind::Site(site),
                 machine_type: MachineType::Address,
@@ -1944,7 +1913,7 @@ impl Checker<'_> {
         }
         if super::contracts::needs_site(&signature.top) {
             let site = body.sites.len();
-            body.sites.push(crate::diagnostic::render_because(self.sources, expression.span, "called here"));
+            body.sites.push(self.site(expression.span, "called here"));
             values.push(checked::Argument::Value(checked::Expression {
                 kind: Kind::Site(site),
                 machine_type: MachineType::Address,

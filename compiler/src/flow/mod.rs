@@ -23,7 +23,7 @@ const HELD_WHY: &str = "`.held` means nobody touches what it borrows for the who
 const PARTIAL_WHY: &str = "after a field is moved out, the value is incomplete (D185)";
 
 /// A variable, or a field inside one.
-#[derive(Clone, Debug, PartialEq, Eq, Default)]
+#[derive(Clone, Debug, PartialEq, Eq, Default, serde::Serialize, serde::Deserialize)]
 pub struct Place {
     pub local: LocalId,
     pub path: Vec<usize>,
@@ -32,7 +32,7 @@ pub struct Place {
 }
 
 /// How a variable came to hold its value, which decides whether it carries a duty and how errors name it.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum Origin {
     Local,
     Given,
@@ -41,7 +41,7 @@ pub enum Origin {
 }
 
 /// Where an event happened: the variable as written, the whole place, and the call or hand-off around it.
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, serde::Serialize, serde::Deserialize)]
 pub struct Spot {
     /// `$b`.
     pub variable: Span,
@@ -53,7 +53,7 @@ pub struct Spot {
     pub marker: Span,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
 pub enum Event {
     /// A variable gets a value.
     Bind {
@@ -124,14 +124,14 @@ pub enum Event {
 }
 
 /// A block of the graph: its events, and the blocks it can go to next.
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug, Default, serde::Serialize, serde::Deserialize)]
 pub struct Node {
     pub events: Vec<Event>,
     pub next: Vec<usize>,
 }
 
 /// One function as a control-flow graph. Block 0 is the start.
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug, Default, serde::Serialize, serde::Deserialize)]
 pub struct Graph {
     pub nodes: Vec<Node>,
 }
@@ -339,7 +339,7 @@ fn children(expression: &checked::Expression) -> Vec<&checked::Expression> {
 }
 
 /// What a variable holds on the paths reaching a point.
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 enum Holding {
     Alive,
     /// Given away or finished, on every path, or on some when `maybe`.
@@ -354,7 +354,7 @@ enum Holding {
     },
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 struct Loan {
     sources: Vec<(LocalId, Vec<usize>)>,
     mutable: bool,
@@ -363,7 +363,7 @@ struct Loan {
     spoiled: Option<Span>,
 }
 
-#[derive(Clone, Debug, Default, PartialEq, Eq)]
+#[derive(Clone, Debug, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 struct State {
     holding: BTreeMap<LocalId, Holding>,
     loans: BTreeMap<LocalId, Loan>,
@@ -372,7 +372,7 @@ struct State {
 }
 
 /// What's known about each variable that doesn't change along a path.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
 struct Variable {
     name: String,
     declared: Span,

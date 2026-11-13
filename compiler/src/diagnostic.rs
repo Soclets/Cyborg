@@ -7,7 +7,7 @@ use unicode_segmentation::UnicodeSegmentation;
 use crate::source::{Sources, Span};
 
 /// The first word of an error (standard 11.2), plus `NotDesignedYet` for what isn't decided (rule 4).
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum Kind {
     Refused,
     Unproven,
@@ -34,27 +34,27 @@ impl Kind {
 
 /// One edit to a file's text: what replaces a span. A fix carries one, so cascades can be found by applying it in
 /// memory and checking again (standard 11.7).
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct Edit {
     pub span: Span,
     pub replacement: String,
 }
 
 /// The single certain fix (standard 11.5): the code shown, and the edit that makes it.
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct Fix {
     pub shown: String,
     pub edits: Vec<Edit>,
 }
 
 /// An earlier step that led here (standard 11.6).
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct Because {
     pub span: Span,
     pub note: String,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct Diagnostic {
     pub kind: Kind,
     pub span: Span,

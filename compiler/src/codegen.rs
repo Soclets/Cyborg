@@ -267,8 +267,8 @@ struct Frame<'context, 'module> {
     local_types: Vec<MachineType>,
     /// Where `instead` goes, for each `otherwise:` around the code being made, innermost last.
     handlers: Vec<BasicBlock<'context, 'module>>,
-    /// The function's sites' texts.
-    sites: Vec<String>,
+    /// The function's sites.
+    sites: Vec<crate::checked::Site>,
 }
 
 /// A value with its machine type, which a failure's `when:` line prints.
@@ -429,7 +429,7 @@ impl<'context, 'module> Generator<'context, 'module> {
 
     /// A site of the function being made: a constant holding its text, whose address is what travels (D29, D96).
     fn site(&mut self, frame: &Frame<'context, 'module>, index: usize) -> Result<Value<'context, 'module>> {
-        let text = frame.sites.get(index).ok_or("a site the function doesn't have")?.clone();
+        let text = frame.sites.get(index).ok_or("a site the function doesn't have")?.text.clone();
         let bytes = self.constant_bytes(&text);
         let length = self.integer(64, text.len() as u64);
         let entry = self.context.constant_struct(&[bytes, length], false);

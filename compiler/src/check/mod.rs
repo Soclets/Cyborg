@@ -10,6 +10,7 @@ pub mod contracts;
 pub mod failures;
 pub mod floats;
 pub mod format;
+pub mod incremental;
 pub mod types;
 
 mod expressions;
@@ -171,7 +172,7 @@ pub struct Body {
     /// The receiver a method call is lending with `Lend.mut`, while its arguments are checked.
     pub lent_receiver: Option<String>,
     /// Where this function raises a failure or calls one with `requires`, rendered for crash messages.
-    pub sites: Vec<String>,
+    pub sites: Vec<checked::Site>,
     /// What fills each source of the struct or union being built, from the type it goes into (D171).
     pub expected_fills: Option<Vec<(String, String)>>,
     /// What fills each source of the function's result, for its `return` (D171).
@@ -304,6 +305,8 @@ pub struct Checker<'a> {
     /// (D236).
     pub operators: HashMap<(String, String, String), String>,
     pub program: checked::Program,
+    /// Checked functions kept from earlier builds (D168).
+    pub store: Option<incremental::Store>,
 }
 
 /// Checks a parsed file, giving the program if nothing was refused.
@@ -315,7 +318,8 @@ pub fn check(
     parsed: &syntax::File,
     target: Target,
     mode: Mode,
-) -> (Option<checked::Program>, Vec<Diagnostic>) {
+    store: Option<incremental::Store>,
+) -> (Option<checked::Program>, Vec<Diagnostic>, Option<incremental::Store>) {
     let text = &sources.get(file).text;
     let mut checker = Checker {
         file,
@@ -339,10 +343,11 @@ pub fn check(
         narrowing: None,
         operators: HashMap::new(),
         program: checked::Program::default(),
+        store,
     };
     checker.check_file(parsed);
     let failed = !checker.errors.is_empty();
-    (if failed { None } else { Some(checker.program) }, checker.errors)
+    (if failed { None } else { Some(checker.program) }, checker.errors, checker.store)
 }
 
 impl Checker<'_> {
@@ -374,7 +379,11 @@ impl Checker<'_> {
         let mut bodies = Vec::new();
         let mut main = None;
         let mut header_failed = false;
-        for item in &file.items {
+        let keys = self.store.as_ref().map(|_| {
+            let others: Vec<&str> = self.sources.others(self.file).collect();
+            incremental::keys(file, self.text, &others)
+        });
+        for (index, item) in file.items.iter().enumerate() {
             if let ItemKind::Function(function) = &item.kind {
                 let Ok(signature) = self.signature(function) else {
                     header_failed = true;
@@ -394,7 +403,8 @@ impl Checker<'_> {
                     continue;
                 }
                 self.functions.insert(signature.name.clone(), signature.clone());
-                bodies.push((function, signature));
+                let key = keys.as_ref().and_then(|keys| keys.keys.get(&index).cloned());
+                bodies.push((function, signature, key, item.span));
             }
         }
         // How checking carries on past an error in a function's header isn't decided, so it stops there (D215).
@@ -403,8 +413,8 @@ impl Checker<'_> {
         }
         // Baked functions first, so `const`s and `bake` can run them, then every other body (D91).
         let (baked, others): (Vec<_>, Vec<_>) =
-            bodies.into_iter().partition(|(_, signature)| signature.purity == Purity::Baked);
-        for (function, signature) in baked {
+            bodies.into_iter().partition(|(_, signature, _, _)| signature.purity == Purity::Baked);
+        for (function, signature, _, _) in baked {
             self.function_body(function, &signature);
         }
         for item in &file.items {
@@ -412,8 +422,8 @@ impl Checker<'_> {
                 self.global_constant(constant);
             }
         }
-        for (function, signature) in others {
-            self.function_body(function, &signature);
+        for (function, signature, key, place) in others {
+            self.body_or_kept(function, &signature, key.as_deref(), place);
         }
         if let Some(id) = main {
             self.program.entry = id
@@ -688,6 +698,33 @@ impl Checker<'_> {
             }
         }
         Ok(Signature { name, id, parameters, returns, span: function.header_span, failures, result, top, purity })
+    }
+
+    /// A function's body, kept from an earlier build if nothing it depends on changed, or checked and kept (D168).
+    fn body_or_kept(&mut self, function: &syntax::Function, signature: &Signature, key: Option<&str>, place: Span) {
+        let (Some(key), Some(mut store)) = (key, self.store.take()) else {
+            self.function_body(function, signature);
+            return;
+        };
+        if let Some(kept) = store.reuse(key, self.sources, place)
+            && let Some(target) = self.program.functions.get_mut(signature.id)
+        {
+            target.parameters = kept.parameters;
+            target.locals = kept.locals;
+            target.body = kept.body;
+            target.sites = kept.sites;
+            self.store = Some(store);
+            return;
+        }
+        let before = self.errors.len();
+        self.function_body(function, signature);
+        store.stats.checked += 1;
+        if self.errors.len() == before
+            && let Some(checked) = self.program.functions.get(signature.id)
+        {
+            store.keep(key, self.sources, place, checked);
+        }
+        self.store = Some(store);
     }
 
     fn function_body(&mut self, function: &syntax::Function, signature: &Signature) {
@@ -1716,6 +1753,16 @@ impl Checker<'_> {
 
     /// Something decided that this compiler doesn't handle yet, which is `NotBuiltYet`, never `NotDesignedYet`
     /// (D286).
+    /// A site, rendered as the `because:` part of a crash message (D29, D96).
+    #[must_use]
+    pub fn site(&self, span: Span, label: &str) -> checked::Site {
+        checked::Site {
+            span,
+            label: label.to_string(),
+            text: crate::diagnostic::render_because(self.sources, span, label),
+        }
+    }
+
     pub fn not_yet(&mut self, span: Span, what: String) -> Reported {
         self.error(Diagnostic::new(
             crate::diagnostic::Kind::NotBuiltYet,

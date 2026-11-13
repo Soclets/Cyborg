@@ -255,6 +255,7 @@ impl Checker<'_> {
                 continue;
             };
             failure.after.push_str(&crate::diagnostic::render_because(self.sources, at, "this `return` led here"));
+            failure.also.push((at, "this `return` led here".to_string()));
             block.push(checked::Statement::Check { condition, failure, operands });
         }
         block

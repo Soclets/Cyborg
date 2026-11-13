@@ -41,6 +41,36 @@ fn compiler() -> String {
     }
 }
 
+/// A hash of several texts, each kept apart from the next by its length, as hex.
+pub struct Hasher(lyftar::blake3::Blake3Hasher);
+
+impl Hasher {
+    #[must_use]
+    pub fn new() -> Hasher {
+        Hasher(lyftar::blake3::Blake3Hasher::new())
+    }
+
+    pub fn text(&mut self, text: &str) {
+        self.0.update(&(text.len() as u64).to_le_bytes());
+        self.0.update(text.as_bytes());
+    }
+
+    #[must_use]
+    pub fn finish(&self) -> String {
+        self.0.finalize().iter().fold(String::new(), |mut text, byte| {
+            use std::fmt::Write;
+            let _ = write!(text, "{byte:02x}");
+            text
+        })
+    }
+}
+
+impl Default for Hasher {
+    fn default() -> Hasher {
+        Hasher::new()
+    }
+}
+
 /// The name a unit's object is kept under: a hash of the compiler, the target, the mode and the unit's IR.
 #[must_use]
 pub fn key(target: Target, mode: Mode, ir: &str) -> String {
