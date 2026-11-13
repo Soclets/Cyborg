@@ -38,6 +38,12 @@ to first. Then, in this order, committing in small steps:
    - d38_untagged_union_at_the_top underlines only `union.@`. 11.1 puts
      the ^ run under exactly the part in question, which is the whole
      `union.@csup::untagged`.
+   - d234_space_before, d234_uppercase, the d235_* tests and d238 write
+     a bare `?self` in an interface signature and expect no D395 error,
+     because they predate D395. Make them write `Lent ?self`.
+   - d183_import_without_a_need lacks both `need std` and `need os` but
+     expects only the std error. 11.7 says building shows every error, so
+     it should expect both.
    - D418 respells pointer writes from `.%%write(val:)` to `.%write(val:)`,
      in the 7 or so tests that write through a pointer.
    - No test leaves a function through `?` with a `defer` pending, though
