@@ -33,7 +33,8 @@ Idle since 2026-11-12, with the generator's coverage finished. When woken: build
 that say "traps" saying "crashes"), respell the 9 tests that still write `shl`/`shr` (compiler claude lists them:
 d49_bits_grouped, the three d49_shift_*, the two d116_bit_*, d340_constant_time_maths, d340_a_shift_by_a_secret and
 d379_a_view_cant_grow), and make d38_limb_inside_a_shield's message describe the program rather than the oracle ("from
-the oracle, which has no C or assembly in it"), then channels when Tankun picks the run-loop rewrite.
+the oracle, which has no C or assembly in it"). Then modules, D412 to D415: every test file gets a `module` line, the
+tests grow files that import each other with `pkg::`, and `pub.pkg` is tested. Then channels when Tankun picks the run-loop rewrite.
 
 ## bench
 
