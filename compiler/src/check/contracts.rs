@@ -183,7 +183,12 @@ impl Checker<'_> {
                         positional += 1;
                     }
                     if positional >= count {
-                        return Err(self.not_yet(argument.span, "more arguments than parameters".to_string()));
+                        // trace: D113, D114
+                        return Err(self.error(Diagnostic::refused(
+                            argument.span,
+                            format!("this is one argument too many for `{}`", signature.name),
+                            LABELS_WHY,
+                        )));
                     }
                     if let Some(label) = &signature.top.labels[positional] {
                         let shown = self.slice(argument.span).to_string();
@@ -212,7 +217,12 @@ impl Checker<'_> {
                         )));
                     }
                     (None, None) => {
-                        return Err(self.not_yet(call_span, "a call with fewer arguments than parameters".to_string()));
+                        let left_off = signature.parameters.get(index).map_or("", |(name, ..)| name.as_str());
+                        return Err(self.error(Diagnostic::refused(
+                            call_span,
+                            format!("this call to `{}` leaves off `{left_off}`", signature.name),
+                            LABELS_WHY,
+                        )));
                     }
                 },
             }

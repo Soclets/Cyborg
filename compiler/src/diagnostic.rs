@@ -64,12 +64,23 @@ pub struct Diagnostic {
     pub why: String,
     pub when: Option<String>,
     pub because: Vec<Because>,
+    /// Said only when nothing else is wrong, as the oracle does for an interface's signatures (D395).
+    pub only_alone: bool,
 }
 
 impl Diagnostic {
     #[must_use]
     pub fn new(kind: Kind, span: Span, what: impl Into<String>, why: impl Into<String>) -> Diagnostic {
-        Diagnostic { kind, span, what: Some(what.into()), fix: None, why: why.into(), when: None, because: Vec::new() }
+        Diagnostic {
+            kind,
+            span,
+            what: Some(what.into()),
+            fix: None,
+            why: why.into(),
+            when: None,
+            because: Vec::new(),
+            only_alone: false,
+        }
     }
 
     #[must_use]
@@ -89,6 +100,7 @@ impl Diagnostic {
             why: why.into(),
             when: None,
             because: Vec::new(),
+            only_alone: false,
         }
     }
 
@@ -110,6 +122,13 @@ impl Diagnostic {
     #[must_use]
     pub fn with_when(mut self, when: impl Into<String>) -> Diagnostic {
         self.when = Some(when.into());
+        self
+    }
+
+    /// Said only when nothing else is wrong.
+    #[must_use]
+    pub fn only_alone(mut self) -> Diagnostic {
+        self.only_alone = true;
         self
     }
 

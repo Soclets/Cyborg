@@ -79,6 +79,10 @@ impl Checker<'_> {
                 let values = self.items_into(body, items, item)?;
                 Ok(checked::Expression { kind: Kind::ListOf(values), machine_type })
             })()),
+            // trace: D25
+            (ExpressionKind::Empty, Type::Map { .. }) => {
+                Some(Ok(checked::Expression { kind: Kind::Integer(0), machine_type: checked::MachineType::I64 }))
+            }
             (ExpressionKind::Empty, Type::List { view, .. }) if *view != super::types::ListView::Owned => {
                 // trace: D379
                 Some(Err(self.error(Diagnostic::refused(
@@ -164,6 +168,20 @@ impl Checker<'_> {
         let item = match collection {
             Type::Array { item, .. } | Type::List { item, .. } => (**item).clone(),
             Type::Unknown => return Err(Reported),
+            Type::Map { .. } => {
+                return Err(self.error(Diagnostic::not_designed(
+                    expression.span,
+                    "getting an item from a map",
+                    "not decided yet, and the standard doesn't say",
+                )));
+            }
+            Type::New { inner, .. } if matches!(**inner, Type::Array { .. } | Type::List { .. }) => {
+                return Err(self.error(Diagnostic::not_designed(
+                    expression.span,
+                    "getting an item from a `type.new`, rather than crossing with `as` first",
+                    "not decided yet (standard 12.1)",
+                )));
+            }
             other => {
                 return Err(self.error(Diagnostic::refused(
                     expression.span,
@@ -406,6 +424,7 @@ impl Checker<'_> {
                 site: root_name.span,
                 marker: span,
             },
+            written: target.span,
         });
         block.push(checked::Statement::Store {
             place: checked::Place { local: root.local, steps: reached.steps },
@@ -416,7 +435,7 @@ impl Checker<'_> {
 
     /// A list or array a `for` reads in place can't change meanwhile (D2, D128).
     pub fn not_while_reading(&mut self, body: &Body, name: &str, span: Span) -> Check<()> {
-        if body.reading_parts.iter().any(|each| each == name) {
+        if body.reading_parts.iter().any(|each| super::statements::part_root(each) == name) {
             return Err(self.error(Diagnostic::not_designed(
                 span,
                 format!("changing one part of `{name}` while a `for` reads another"),
@@ -479,6 +498,15 @@ impl Checker<'_> {
             [argument, allocator] => (argument, Some(allocator)),
             _ => return Err(self.not_yet(expression.span, "`append` with these arguments".to_string())),
         };
+        if argument.label.is_none() {
+            // trace: D113
+            let shown = self.slice(argument.span).to_string();
+            return Err(self.error(Diagnostic::refused_fix(
+                argument.span,
+                format!("val: {shown}"),
+                "a declared label must be written, and a parameter with no label is called without one (D113, D114)",
+            )));
+        }
         if argument.label.as_ref().map(|label| label.text.as_str()) != Some("val") {
             return Err(self.not_yet(argument.span, "`append` without `val:`".to_string()));
         }

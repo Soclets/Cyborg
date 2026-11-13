@@ -195,6 +195,16 @@ impl Checker<'_> {
                     },
                     State::Unassigned,
                 );
+                // A `decl` of something with a duty isn't decided, though its variable stays, with its type (D203).
+                if let Some(variable) = body.lookup(&name.text).cloned()
+                    && self.must_give(&variable.value_type)
+                {
+                    return Err(self.error(Diagnostic::not_designed(
+                        written_type.span,
+                        format!("`decl` of `{}`, which has a duty or a borrow", variable.value_type),
+                        NOT_DECIDED,
+                    )));
+                }
                 Ok(false)
             }
             StatementKind::Assign { target, value } => {
@@ -258,10 +268,27 @@ impl Checker<'_> {
                 self.break_statement(body, statement.span, label.as_ref(), block).map(|()| true)
             }
             // The top of a body is read with the function's header (D114).
-            StatementKind::Labels(_)
-            | StatementKind::Defaults(_)
-            | StatementKind::Requires { .. }
-            | StatementKind::Ensures { .. } => Ok(false),
+            // A default is checked against its parameter's type here, where it's written, whether or not a call uses
+            // it (D114).
+            StatementKind::Defaults(defaults) => {
+                let events = std::mem::take(&mut body.events);
+                for default in defaults {
+                    let Some(target) = default.name.segments.first() else { continue };
+                    let Some(variable) = body.lookup(&target.name.text).cloned() else { continue };
+                    // A unit can come from the label, so a default with one is checked where it's used (D144).
+                    if matches!(
+                        variable.value_type,
+                        Type::Integer { unit: Some(_), .. } | Type::Float { unit: Some(_), .. }
+                    ) {
+                        continue;
+                    }
+                    let _ = self.value_into(body, &default.value, &variable.value_type);
+                }
+                body.events = events;
+                body.before.clear();
+                Ok(false)
+            }
+            StatementKind::Labels(_) | StatementKind::Requires { .. } | StatementKind::Ensures { .. } => Ok(false),
             StatementKind::Finish(value) => self.finish_statement(body, statement.span, value).map(|()| false),
             StatementKind::Locked { locks, names, body: inner, .. } => {
                 self.locked(body, statement.span, (locks, names, inner), block)
@@ -766,6 +793,15 @@ impl Checker<'_> {
         shield: &syntax::Shield,
         block: &mut checked::Block,
     ) -> Check<bool> {
+        if body.purity == super::Purity::Pure {
+            // trace: D86
+            // What's inside is still read, so a `return` there still counts.
+            self.error(Diagnostic::refused(
+                shield.name.span,
+                "a pure function can't hold a shield",
+                "a pure function refuses shields and C calls (D86)",
+            ));
+        }
         self.check_closer(&shield.end, &format!("end shield {}", shield.name.text), super::CLOSER_WHY);
         if shield.reason.is_none() {
             self.error(Diagnostic::refused(
@@ -1048,6 +1084,7 @@ impl Checker<'_> {
                 "`let` declares a variable that can't change, and `let mut` one that can (D3)",
             )));
         }
+        self.not_while_reading(body, &name.text, name.span)?;
         let value = self.value_into(body, value, variable.value_type.read_as())?;
         block.push(checked::Statement::Set { local: variable.local, value });
         body.states[index] = State::Assigned;
@@ -1058,6 +1095,7 @@ impl Checker<'_> {
             body.events.push(crate::flow::Event::Change {
                 place: crate::flow::Place { local: variable.local, path: Vec::new(), shown: String::new() },
                 spot,
+                written: name.span,
             });
         }
         Ok(())
@@ -1071,6 +1109,24 @@ impl Checker<'_> {
         value: &syntax::Expression,
         block: &mut checked::Block,
     ) -> Check<()> {
+        // A `for` reading this field in place, or reading the whole variable, stops it changing (D2, D125).
+        if let Some(root) = super::expressions::root_name(target) {
+            let written = self.slice(target.span).to_string();
+            if body.reading_parts.iter().any(|each| *each == written) || body.reading.contains(&root.text) {
+                return Err(self.error(Diagnostic::refused(
+                    target.span,
+                    format!("a `for` is reading `{}` in place here", root.text),
+                    "`Lend.mut` means nothing else uses it meanwhile, and `for` is using it (D2)",
+                )));
+            }
+            if body.reading_parts.iter().any(|each| part_root(each) == root.text) {
+                return Err(self.error(Diagnostic::not_designed(
+                    target.span,
+                    format!("changing one part of `{}` while a `for` reads another", root.text),
+                    NOT_DECIDED,
+                )));
+            }
+        }
         // Walk down to the variable, then back up through the fields.
         let mut names = Vec::new();
         let mut at = target;
@@ -1158,6 +1214,7 @@ impl Checker<'_> {
         body.events.push(crate::flow::Event::Change {
             place: crate::flow::Place { local: variable.local, path: path.clone(), shown: String::new() },
             spot,
+            written: target.span,
         });
         block.push(checked::Statement::SetField { local: variable.local, path, value });
         Ok(())
@@ -1284,6 +1341,15 @@ impl Checker<'_> {
                 && matches!(self.expression_type_quietly(body, receiver), Some(Type::List { .. })));
         if !is_append {
             return None;
+        }
+        let allocates =
+            arguments.iter().any(|argument| argument.label.as_ref().is_some_and(|label| label.text == "alloc"));
+        if body.purity == super::Purity::Pure && allocates {
+            return Some(Err(self.error(Diagnostic::not_designed(
+                call.span,
+                "whether a `fn.pure` may allocate",
+                "not decided yet (standard 12.5)",
+            ))));
         }
         Some((|| {
             let (push, flag) = self.append(body, expression, receiver, arguments, &handling, block)?;
@@ -1733,6 +1799,19 @@ impl Checker<'_> {
                     let Some(original) = body.lookup(&name.text).cloned() else { return Err(Reported) };
                     let narrowed = Variable { known_case: Some(case), ..original };
                     return Ok((compare(checked::Comparison::Equal, tag, number), Some(narrowed)));
+                }
+                // A union's case tested on something that isn't that union (D9).
+                if let syntax::TypeKind::Named { path, .. } = &written_type.kind
+                    && let Some((owner, _)) = path.text().rsplit_once('.')
+                    && matches!(self.aggregates.names.get(owner), Some(Type::Union { .. }))
+                    && !typed.value_type.is_unknown()
+                {
+                    // trace: D9
+                    return Err(self.error(Diagnostic::refused(
+                        written_type.span,
+                        format!("`{}` is `{}`, so it has no such case", name.text, typed.value_type),
+                        "`if $s: status.failed:` tests one case of a union (D9)",
+                    )));
                 }
                 let tested = self.resolve_type(written_type)?;
                 match (&typed.value_type, &tested) {
@@ -2532,6 +2611,13 @@ impl Checker<'_> {
         let item_type = match &collection {
             Type::Array { item, .. } | Type::List { item, .. } => (**item).clone(),
             Type::Unknown => return Err(Reported),
+            Type::New { inner, .. } if matches!(**inner, Type::Array { .. } | Type::List { .. }) => {
+                return Err(self.error(Diagnostic::not_designed(
+                    each.source.span,
+                    "going through a `type.new`, rather than crossing with `as` first",
+                    "not decided yet (standard 12.1)",
+                )));
+            }
             other => {
                 if matches!(other, Type::Integer { .. } | Type::Float { .. } | Type::Bool | Type::Str(_)) {
                     return Err(self.error(Diagnostic::refused(
@@ -2643,7 +2729,9 @@ impl Checker<'_> {
         if changing {
             body.changing.extend(reading.clone());
         } else if part {
-            body.reading_parts.extend(reading.clone());
+            // The part as written, `$b.items`, so changing that part and changing another can be told apart (D125).
+            let written = self.slice(each.source.span).to_string();
+            body.reading_parts.extend(reading.as_ref().map(|_| written));
         } else {
             body.reading.extend(reading.clone());
         }
@@ -2822,6 +2910,9 @@ impl Checker<'_> {
     /// Refuses a range value that isn't a whole number (D128).
     fn range_number(&mut self, typed: &Typed, value: &syntax::Expression) -> Check<()> {
         match &typed.value_type {
+            Type::Integer { unit: Some(unit), .. } if *unit != super::types::Unit::named("items") => Err(self.error(
+                Diagnostic::not_designed(value.span, "a range of numbers with a unit other than `items`", NOT_DECIDED),
+            )),
             Type::Integer { .. } => Ok(()),
             Type::Float { .. } => {
                 Err(self.error(Diagnostic::not_designed(value.span, "a range of floats", NOT_DECIDED)))
@@ -2958,4 +3049,9 @@ fn register_bits(chip: &str, register: &str) -> Option<u32> {
         },
         _ => None,
     }
+}
+
+/// The variable a part is of: `$b` for `$b.items` or `$xs[pos: 1]`.
+pub fn part_root(part: &str) -> &str {
+    part.split(['.', '[']).next().unwrap_or(part)
 }

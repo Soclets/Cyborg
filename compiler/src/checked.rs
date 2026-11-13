@@ -829,6 +829,8 @@ pub enum ExpressionKind {
         value: Box<Expression>,
         most: u64,
         failure: Box<CheckFailure>,
+        /// What `?? value` gives when it doesn't fit, rather than stopping (D132).
+        fallback: Option<Box<Expression>>,
     },
     /// `std::mem::arena.new(room: 1 mib, alloc: Lend $heap)` (D330, D333, D386).
     ArenaNew {

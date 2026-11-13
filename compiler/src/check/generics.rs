@@ -162,8 +162,27 @@ impl Checker<'_> {
                     for entry in &declared.entries {
                         match entry {
                             RequirementEntry::Includes(path) => interface.includes.push(path.text()),
-                            RequirementEntry::Op { operator, values, .. } => {
+                            RequirementEntry::Op { operator, values, parameters, .. } => {
                                 interface.operators.push((operator.text.clone(), *values));
+                                // A `?self` a struct could fill says how it's held, like any signature (D395).
+                                for parameter in &parameters.list {
+                                    if parameter.ownership == syntax::ParameterOwnership::Bare
+                                        && self.slice(parameter.written_type.span).starts_with('?')
+                                    {
+                                        // trace: D395
+                                        self.error(Diagnostic::refused(
+                                            parameter.written_type.span,
+                                            format!(
+                                                "`{}` doesn't say how it holds its `{}`: `Lent`, `Lent.mut` or `Given`",
+                                                parameter.name.text,
+                                                self.slice(parameter.written_type.span)
+                                            ),
+                                            "where there's a choice, the choice is written, and a parameter holding a struct or list chooses how it's held (D393, D394)",
+                                        ).only_alone());
+                                        // The line is one statement, so its first error is the one said (standard 11.7).
+                                        break;
+                                    }
+                                }
                             }
                             RequirementEntry::Law(_) => {}
                             RequirementEntry::Type(written) => {

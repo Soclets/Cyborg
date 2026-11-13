@@ -150,6 +150,15 @@ impl Checker<'_> {
                         NOT_DECIDED,
                     )));
                 }
+                if super::clashes(&path.text()) && self.aggregates.names.contains_key(&format!("my::{}", path.text())) {
+                    // trace: D75
+                    let shown = self.slice(expression.span).to_string();
+                    return Err(self.error(Diagnostic::refused_fix(
+                        expression.span,
+                        format!("my::{shown}"),
+                        "a name of yours that clashes is written with `my::` (D75)",
+                    )));
+                }
                 Err(self.not_yet(expression.span, format!("building `{}`", path.text())))
             }
             ExpressionKind::Field { base, field } => self.field(body, base, field),
@@ -215,6 +224,15 @@ impl Checker<'_> {
             ExpressionKind::Pass { .. } | ExpressionKind::Instead { .. } | ExpressionKind::Otherwise { .. } => {
                 self.handle(body, expression, expected)
             }
+            ExpressionKind::Empty if expected.is_some_and(|expected| !expected.is_unknown()) => {
+                // trace: D103
+                let shown = expected.map(ToString::to_string).unwrap_or_default();
+                Err(self.error(Diagnostic::refused(
+                    expression.span,
+                    format!("`{shown}` can't be `empty`"),
+                    "`empty` is refused where it can't be true (D103)",
+                )))
+            }
             _ => Err(self.not_yet(expression.span, "this kind of value".to_string())),
         }
     }
@@ -254,7 +272,7 @@ impl Checker<'_> {
         if value < min || value > max {
             return Err(self.error(Diagnostic::refused(
                 expression.span,
-                format!("`{written}` doesn't fit `{}`", kind.name()),
+                format!("`{value}` doesn't fit `{}`", kind.name()),
                 "a literal that can't fit is a compile error (D20)",
             )));
         }
@@ -398,6 +416,14 @@ impl Checker<'_> {
         keyword: &syntax::Path,
         written_type: &syntax::Type,
     ) -> Check<Typed> {
+        // `as` works on a single value, so one after `read() ?? 1` needs `( )` to say which it means (D116, D132).
+        if matches!(value.kind, ExpressionKind::Instead { .. } | ExpressionKind::Otherwise { .. }) {
+            return Err(self.error(Diagnostic::refused(
+                value.span,
+                "this `as` is on more than a single value, so it needs `( )`",
+                "`as` works on a single value, and where maths gives no order you group with `( )` (D116)",
+            )));
+        }
         // `as.trunc`, `as.floor` and `as.exact` say how an integer rounds going to a bigger unit (D255).
         let narrowing = match keyword.segments.as_slice() {
             [_] => None,
@@ -425,7 +451,7 @@ impl Checker<'_> {
             && path.text() == "str.with_unit"
         {
             return Err(self.error(Diagnostic::not_designed(
-                keyword.span.to(written_type.span),
+                written_type.span,
                 "how a unit prints with `as str.with_unit`",
                 "not decided yet (standard 12.3)",
             )));
@@ -948,10 +974,10 @@ impl Checker<'_> {
                 if matches!(comparison, Comparison::Equal | Comparison::NotEqual) {
                     Ok(comparison)
                 } else {
-                    Err(self.error(Diagnostic::refused(
+                    Err(self.error(Diagnostic::not_designed(
                         span,
                         format!("`{}` on `bool`", operator_word(operator)),
-                        "a `bool` is `true` or `false`, which have no order (D127)",
+                        NOT_DECIDED,
                     )))
                 }
             }
@@ -1182,6 +1208,23 @@ impl Checker<'_> {
                     key = found;
                     break;
                 }
+            }
+        }
+        // A bounded value goes where its plain type is asked for, as `i64[min: 1, max: 10]` to an `i64` side (D236).
+        if !self.operators.contains_key(&key) {
+            let plain = (
+                named.to_string(),
+                sides[0].1.value_type.plain().to_string(),
+                sides[1].1.value_type.plain().to_string(),
+            );
+            if self.operators.contains_key(&plain) {
+                for side in &mut sides {
+                    let plain_type = side.1.value_type.plain();
+                    if side.1.value_type != plain_type {
+                        side.1 = Typed::new(plain_type, side.1.value.kind.clone());
+                    }
+                }
+                key = plain;
             }
         }
         let Some(signature) = self.operators.get(&key).and_then(|name| self.functions.get(name)).cloned() else {
@@ -2286,6 +2329,40 @@ impl Checker<'_> {
             return Err(self.not_yet(method.span, format!("a method on `{}`", typed.value_type)));
         }
         let on_list = matches!(receiver_type, Some(Type::List { .. }));
+        // `append` changes its receiver, so it's always `.%%` (D211), and a `.` alone never runs code (D3, D8).
+        const MARK_WHY: &str =
+            "`.%` lends a receiver read-only and `.%%` lends it to change, so the call shows which (D211)";
+        if on_list {
+            let name_span = method.last().map_or(method.span, |segment| segment.name.span);
+            let short_for_change = self.method_uses.contains_key("%%append");
+            if written == "std::%append" || (written == "%append" && short_for_change) {
+                // trace: D211
+                // The name's span starts after its mark, which the fix replaces too.
+                let marked = Span::new(self.file, (name_span.start as usize).saturating_sub(1), name_span.end as usize);
+                let span = if written == "%append" { method.span } else { marked };
+                return Err(self.error(Diagnostic::refused_fix(span, "%%append", MARK_WHY)));
+            }
+            if written == "std::append" {
+                // trace: D8
+                let receiver_text = self.slice(receiver.span).to_string();
+                let rest = self
+                    .slice(Span::new(self.file, method.span.end as usize, expression.span.end as usize))
+                    .to_string();
+                return Err(self.error(Diagnostic::refused_fix(
+                    expression.span,
+                    format!("{receiver_text}.std::%%append{rest}"),
+                    "a `.` never runs code, and a `.%` always does (D8)",
+                )));
+            }
+            if written == "append" {
+                // trace: D3, D8
+                return Err(self.error(Diagnostic::refused(
+                    expression.span,
+                    "`change` doesn't stand in for an ownership word, and a `.` never runs code",
+                    "every hand-off shows on the page, including one to a method's receiver (D3, D8)",
+                )));
+            }
+        }
         // A kit method's short name stands for its path on the type that path names (D178).
         if on_list
             && let Some(full) = self.method_uses.get(&written)
@@ -2334,10 +2411,12 @@ impl Checker<'_> {
             .into_iter()
             .find_map(|name| self.functions.get(&name).cloned().map(|signature| (name, signature)))
         else {
+            // The method's name, after its mark.
+            let start = method.span.start as usize + (written.len() - bare.len());
             return Err(self.error(Diagnostic::refused(
-                method.span,
-                format!("`{owner}` has no method `{written}`"),
-                "a method is declared with its type in the name, as in `reading.%warm_up` (D130)",
+                Span::new(self.file, start, method.span.end as usize),
+                format!("`{owner}` has no method `{bare}`"),
+                "a method is declared with its type in the name (D130)",
             )));
         };
         let changes = full.contains(".%%");
@@ -2389,7 +2468,9 @@ impl Checker<'_> {
             };
             let Some(variable) = body.lookup(&name.text).cloned() else { return Err(Reported) };
             // Lending all of it to change changes whatever part a `for` is reading (D2, D128).
-            if body.reading.iter().chain(&body.reading_parts).any(|each| *each == name.text) {
+            if body.reading.iter().any(|each| *each == name.text)
+                || body.reading_parts.iter().any(|each| super::statements::part_root(each) == name.text)
+            {
                 return Err(self.error(Diagnostic::refused(
                     receiver.span,
                     format!("a `for` is reading `{}` in place here", name.text),
@@ -2551,6 +2632,15 @@ impl Checker<'_> {
         callee: &syntax::Expression,
         arguments: &[syntax::Argument],
     ) -> Check<Typed> {
+        // A variable whose type was refused says nothing more, so a call handed it doesn't either (D207).
+        for argument in arguments {
+            if let ExpressionKind::Variable(name) = &argument.value.kind
+                && let Some(index) = body.find(&name.text)
+                && body.variables[index].value_type.is_unknown()
+            {
+                return Err(Reported);
+            }
+        }
         body.calls.push(expression.span);
         let result = self.call_inside(body, expression, callee, arguments);
         body.calls.pop();
@@ -2575,6 +2665,15 @@ impl Checker<'_> {
                         .is_some_and(|full| full.starts_with("std::coll::list."))
                 }))
         {
+            let short = ["%", "%%"].iter().any(|mark| self.method_uses.contains_key(&format!("{mark}{}", field.text)));
+            if !short {
+                // trace: D3, D8
+                return Err(self.error(Diagnostic::refused(
+                    expression.span,
+                    "`change` doesn't stand in for an ownership word, and a `.` never runs code",
+                    "every hand-off shows on the page, including one to a method's receiver (D3, D8)",
+                )));
+            }
             let base_text = self.slice(base.span).to_string();
             let rest =
                 self.slice(Span::new(self.file, callee.span.end as usize, expression.span.end as usize)).to_string();
@@ -2601,9 +2700,19 @@ impl Checker<'_> {
             )));
         }
         let ExpressionKind::Path(path) = &callee.kind else {
+            // A call to a function of yours named like a value, `true()`, is written `my::true()` (D75).
+            let written = self.slice(callee.span).to_string();
+            if super::clashes(&written) && self.functions.contains_key(&format!("my::{written}")) {
+                let shown = self.slice(expression.span).to_string();
+                return Err(self.error(Diagnostic::refused_fix(
+                    expression.span,
+                    format!("my::{shown}"),
+                    "a name of yours that clashes is written with `my::` (D75)",
+                )));
+            }
             return Err(self.not_yet(callee.span, "calling this".to_string()));
         };
-        let name = self.resolve_path(path);
+        let mut name = self.resolve_path(path);
         if name.contains(".%") && self.functions.contains_key(&name) {
             return Err(self.error(Diagnostic::not_designed(
                 expression.span,
@@ -2627,6 +2736,13 @@ impl Checker<'_> {
         if let Some(function) = checked::MathsFunction::from_path(&name) {
             self.require_import(&name, path.span)?;
             return self.maths_call(body, expression, function, arguments);
+        }
+        // A narrowing on a function of `std`'s that it doesn't have (D98).
+        if let Some((function, _)) = name.split_once('.')
+            && super::library::STD_THINGS.contains(&function)
+            && !self.functions.contains_key(&name)
+        {
+            return Err(self.error(Diagnostic::not_designed(callee.span, format!("`{name}`"), NOT_DECIDED)));
         }
         if name.starts_with("std::") && name.contains('.') && !self.functions.contains_key(&name) {
             // `std` is grouped with `::`, and a `.` after a function is a narrowing (D196).
@@ -2668,6 +2784,24 @@ impl Checker<'_> {
                 format!("my::{shown}"),
                 "a name of yours that clashes is written with `my::` (D75)",
             )));
+        }
+        if let Some(rest) = name.strip_prefix("my::")
+            && !super::clashes(rest)
+            && self.functions.contains_key(rest)
+        {
+            // Written straight at the call, `my::` on a name that doesn't clash isn't decided (D75); reached through a
+            // `use` short name, it names this file's own function (D248).
+            if path.text().starts_with("my::") {
+                return Err(self.error(Diagnostic::not_designed(
+                    callee.span,
+                    format!("`my::` on `{rest}`, which doesn't clash"),
+                    NOT_DECIDED,
+                )));
+            }
+            name = rest.to_string();
+        }
+        if !self.functions.contains_key(&name) {
+            self.unknown_std_or_os(&name, callee.span)?;
         }
         let Some(mut signature) = self.functions.get(&name).cloned() else {
             return Err(self.error(Diagnostic::refused(
@@ -3594,7 +3728,11 @@ impl Checker<'_> {
         // A literal lands in a `type.new` as what it's made from (D141).
         if let Type::New { inner, .. } = into
             && (Self::is_literal_number(expression)
-                || matches!(expression.kind, ExpressionKind::Text(_) | ExpressionKind::Bool(_)))
+                || matches!(&expression.kind, ExpressionKind::WithUnit { value, .. } if Self::is_literal_number(value))
+                || matches!(
+                    expression.kind,
+                    ExpressionKind::Text(_) | ExpressionKind::Bool(_) | ExpressionKind::List(_)
+                ))
         {
             return self.value_into(body, expression, inner);
         }
@@ -3891,7 +4029,7 @@ impl Checker<'_> {
             checked::Expression { kind: Kind::Zero, machine_type: machine_type.clone() },
         );
         text.value = checked::Expression {
-            kind: Kind::FitText { value: Box::new(value), most, failure: Box::new(failure) },
+            kind: Kind::FitText { value: Box::new(value), most, failure: Box::new(failure), fallback: None },
             machine_type,
         };
         text
@@ -4047,4 +4185,49 @@ pub fn is_item(expression: &syntax::Expression) -> bool {
 /// Whether a value is of a struct or union, which gets operators only by defining them (D236).
 fn is_own_type(value_type: &Type) -> bool {
     matches!(value_type, Type::Struct { .. } | Type::Union { .. })
+}
+
+impl Checker<'_> {
+    /// A call into `std` or `os` that isn't there: written flat, as `std::sin` (D196, D197), with its narrowing after
+    /// `::` (D196), or something they don't have yet, since their full contents aren't chosen (D93, D271).
+    fn unknown_std_or_os(&mut self, name: &str, span: Span) -> Check<()> {
+        if let Some(rest) = name.strip_prefix("std::") {
+            if !rest.contains("::")
+                && let Some(found) =
+                    super::library::STD_THINGS.iter().find(|thing| thing.ends_with(&format!("::{rest}")))
+            {
+                // trace: D196, D197
+                return Err(self.error(Diagnostic::refused_fix(
+                    span,
+                    *found,
+                    "`std` is grouped with `::` (D196, D197)",
+                )));
+            }
+            if let Some((function, narrowing)) = name.rsplit_once("::")
+                && super::library::STD_THINGS.contains(&function)
+            {
+                // trace: D196
+                return Err(self.error(Diagnostic::refused_fix(
+                    span,
+                    format!("{function}.{narrowing}"),
+                    "`::` reaches into a path, which never runs anything, and a `.` after a function narrows it (D196)",
+                )));
+            }
+            // trace: D93
+            return Err(self.error(Diagnostic::not_designed(
+                span,
+                format!("`{name}`, since `std`'s full contents aren't chosen"),
+                NOT_DECIDED,
+            )));
+        }
+        if name.starts_with("os::") {
+            // trace: D271
+            return Err(self.error(Diagnostic::not_designed(
+                span,
+                format!("`{name}`, since only `os`'s terminal writers are designed"),
+                NOT_DECIDED,
+            )));
+        }
+        Ok(())
+    }
 }

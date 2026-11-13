@@ -30,6 +30,8 @@ pub enum Role {
     BlockColon,
     /// The last token of a line that ends with no `;` or `:`, like a closer, `end if`.
     LineEnd,
+    /// A `<` or `>` around what fills in a type, which touches what's inside like any bracket (D23).
+    TypeBracket,
 }
 
 pub struct Parsed {
@@ -82,6 +84,8 @@ pub struct Parser<'source> {
     at: usize,
     pub roles: Vec<Role>,
     pub errors: Vec<Diagnostic>,
+    /// The header of the function whose body is being read, for a `fails` written in the body (D209).
+    header: Option<Span>,
 }
 
 /// A parse failure that's already been reported.
@@ -93,7 +97,7 @@ type Parse<T> = Result<T, Reported>;
 impl<'source> Parser<'source> {
     #[must_use]
     pub fn new(file: FileId, text: &'source str, tokens: &'source [Token]) -> Parser<'source> {
-        Parser { file, text, tokens, at: 0, roles: vec![Role::Plain; tokens.len()], errors: Vec::new() }
+        Parser { file, text, tokens, at: 0, roles: vec![Role::Plain; tokens.len()], errors: Vec::new(), header: None }
     }
 
     // ----- Looking at tokens -----
@@ -112,6 +116,18 @@ impl<'source> Parser<'source> {
 
     fn kind_at(&self, ahead: usize) -> Option<TokenKind> {
         self.peek_at(ahead).map(|token| token.kind)
+    }
+
+    /// Whether the statement starting here holds a fullwidth `＠`.
+    fn has_fullwidth_at_before_end(&self) -> bool {
+        self.tokens[self.at.min(self.tokens.len())..]
+            .iter()
+            .take_while(|token| !matches!(token.kind, TokenKind::Semicolon | TokenKind::Colon))
+            .any(|token| token.kind == TokenKind::FullwidthAt)
+    }
+
+    fn text_of_span(&self, span: Span) -> &'source str {
+        self.text.get(span.range()).unwrap_or("")
     }
 
     fn text_of(&self, token: Token) -> &'source str {
@@ -187,7 +203,23 @@ impl<'source> Parser<'source> {
 
     // ----- Errors -----
 
+    /// The file ended where more was needed, so the last thing read is where it went wrong (D33).
+    fn ended_inside(&mut self) -> Option<Reported> {
+        if self.peek().is_some() {
+            return None;
+        }
+        // After another error, the parser's lost its place, and the file running out is that error's doing.
+        if self.errors.is_empty() {
+            let span = self.previous_span();
+            self.errors.push(Diagnostic::refused(span, "the file ended inside a block", STATEMENT_WHY));
+        }
+        Some(Reported)
+    }
+
     fn error_expected_after(&mut self, expected: &str) -> Reported {
+        if let Some(reported) = self.ended_inside() {
+            return reported;
+        }
         let span = self.previous_span();
         let found = self.found();
         self.errors.push(Diagnostic::refused(
@@ -199,6 +231,9 @@ impl<'source> Parser<'source> {
     }
 
     fn error_expected(&mut self, expected: &str) -> Reported {
+        if let Some(reported) = self.ended_inside() {
+            return reported;
+        }
         let span = self.current_span();
         let found = self.found();
         self.errors.push(Diagnostic::refused(span, format!("expected {expected}, but found {found}"), STATEMENT_WHY));
@@ -360,7 +395,7 @@ impl<'source> Parser<'source> {
                 self.recover_item();
             }
         }
-        File { items }
+        File { items, incomplete: false }
     }
 
     /// After a broken item, skips to the next line that starts at the left edge.
@@ -389,6 +424,18 @@ impl<'source> Parser<'source> {
         if self.is_word("pub") {
             public = Some(self.current_span());
             self.advance();
+        }
+        if self.is(TokenKind::At) && matches!(self.word_at(1), Some("config" | "tighten_config")) {
+            // trace: D265
+            let span = self.current_span().to(self.span_at(1));
+            let word = self.word_at(1).unwrap_or_default();
+            self.errors.push(Diagnostic::refused(
+                span,
+                format!("`@{word}` is gone, and a project's rules are `rule` lines in `CyJet.siml`"),
+                "rules live in the manifest, so code gets straight to the point, and a project with no `rule` lines gets the compiler's defaults (D265)",
+            ));
+            self.recover();
+            return Err(Reported);
         }
         if self.is(TokenKind::At) && self.word_at(1) == Some("import") {
             // trace: D56
@@ -444,6 +491,49 @@ impl<'source> Parser<'source> {
                 return Err(Reported);
             }
             "interface" | "type_set" => self.requirements(word)?,
+            "together" => {
+                // trace: D242
+                let first = self.current_span();
+                self.recover();
+                self.errors.push(Diagnostic::refused(
+                    first.to(self.previous_span()),
+                    "`together` lines are gone",
+                    "a unit made of others is declared once, inside a family, with `per` and `x`, as in `motion.speed = length.meters per time.seconds;` (D242)",
+                ));
+                return Err(Reported);
+            }
+            "narrowings" if self.kind_at(1) == Some(TokenKind::Dot) && self.word_at(2).is_some() => {
+                // trace: D135
+                let kind = self.word_at(2).unwrap_or_default();
+                self.errors.push(Diagnostic::refused_fix(
+                    self.current_span().to(self.span_at(2)),
+                    format!("fam.{kind}"),
+                    "`fam.` replaces `narrowings.`, and narrowing now only means the dot (D135)",
+                ));
+                self.skip_body();
+                let _ = self.closer();
+                return Err(Reported);
+            }
+            "package" => {
+                // trace: D189
+                self.errors.push(Diagnostic::refused(
+                    self.current_span(),
+                    "a file doesn't say which package it's in",
+                    "the manifest names your package, and `fn.main` already marks where a program starts (D189)",
+                ));
+                self.recover();
+                return Err(Reported);
+            }
+            _ if self.word_at(1) == Some("is") && self.kind_at(2) == Some(TokenKind::Word) => {
+                // trace: D87
+                self.errors.push(Diagnostic::refused_fix(
+                    self.span_at(1),
+                    "satisfies",
+                    "a type fits an interface only through a `satisfies` line (D235, D87)",
+                ));
+                self.recover();
+                return Err(Reported);
+            }
             _ if self.is_satisfies() => self.satisfies()?,
             _ => {
                 let statement = self.statement()?;
@@ -491,6 +581,16 @@ impl<'source> Parser<'source> {
     fn import(&mut self) -> Parse<ItemKind> {
         self.advance();
         let mut whole_package = None;
+        if self.is_word("pkg") && self.kind_at(1) == Some(TokenKind::At) {
+            // trace: D188
+            self.errors.push(Diagnostic::refused(
+                self.span_at(1),
+                "`pkg` names the whole package, so it takes no `@`",
+                "`import pkg std;` brings in both halves, and `@` picks only the limb half (D188, D187)",
+            ));
+            self.recover();
+            return Err(Reported);
+        }
         if self.is_word("pkg") && self.kind_at(1) == Some(TokenKind::Word) {
             whole_package = Some(self.current_span());
             self.advance();
@@ -503,6 +603,16 @@ impl<'source> Parser<'source> {
     fn use_item(&mut self) -> Parse<ItemKind> {
         self.advance();
         let path = self.path()?;
+        if self.is(TokenKind::Semicolon) {
+            // trace: D93
+            self.errors.push(Diagnostic::refused(
+                path.span,
+                "`use` always writes `as`",
+                "`use` gives a path a shorter name, and `as` is always written (D93)",
+            ));
+            self.advance();
+            return Err(Reported);
+        }
         self.expect_word("as")?;
         let start = self.current_span();
         let mut limb = false;
@@ -609,7 +719,8 @@ impl<'source> Parser<'source> {
                     }
                     self.expect(TokenKind::Semicolon, ";")?;
                     let values = parameters.list.len();
-                    return Ok(RequirementEntry::Op { operator, values, span: entry_start.to(self.previous_span()) });
+                    let span = entry_start.to(self.previous_span());
+                    return Ok(RequirementEntry::Op { operator, values, span, parameters });
                 }
                 if self.is_word("law") {
                     while self.peek().is_some() && !self.is(TokenKind::Semicolon) {
@@ -815,7 +926,10 @@ impl<'source> Parser<'source> {
         }
         let header_span = start.to(self.previous_span());
         self.expect_block_colon()?;
-        let body = self.block(&["end"])?;
+        let outer = self.header.replace(header_span);
+        let body = self.block(&["end"]);
+        self.header = outer;
+        let body = body?;
         let end = self.closer()?;
         Ok(Function {
             keyword,
@@ -836,6 +950,15 @@ impl<'source> Parser<'source> {
         let start = self.current_span();
         self.expect(TokenKind::LeftSquare, "[")?;
         let mut parameters = Parameters { none: None, list: Vec::new(), span: start };
+        if self.is(TokenKind::RightSquare) {
+            // trace: D267
+            self.errors.push(Diagnostic::refused_fix(
+                start.to(self.current_span()),
+                "[none]",
+                "`[none]` means there's nothing at all, while `empty` is a real value with nothing in it yet (D267, D269)",
+            ));
+            parameters.none = Some(self.current_span());
+        }
         if self.is_word("none") && self.kind_at(1) == Some(TokenKind::RightSquare) {
             parameters.none = Some(self.current_span());
             self.advance();
@@ -1121,8 +1244,10 @@ impl<'source> Parser<'source> {
             if self.is(TokenKind::Semicolon) {
                 UnitDefinition::Multiple { amount, unit }
             } else {
+                // Up to the operator that makes it more than a multiple.
+                let span = value_start.to(self.current_span());
                 self.skip_to_semicolon();
-                UnitDefinition::Other(value_start.to(self.previous_span()))
+                UnitDefinition::Other(span)
             }
         } else {
             let first = self.path()?;
@@ -1261,6 +1386,32 @@ impl<'source> Parser<'source> {
 
     pub fn statement(&mut self) -> Parse<Statement> {
         let start = self.current_span();
+        // The lexer refused a fullwidth `＠` already, and the statement it's in is skipped (D36, standard 11.7).
+        if self.has_fullwidth_at_before_end() {
+            self.recover();
+            return Err(Reported);
+        }
+        if self.is_word("fails")
+            && self.kind_at(1) == Some(TokenKind::LeftSquare)
+            && let Some(header) = self.header
+        {
+            // trace: D209
+            self.advance();
+            let list_start = self.current_span();
+            self.recover();
+            let mut list_end = self.previous_span();
+            if self.text_of_span(list_end) == ";" {
+                list_end = self.tokens.get(self.at.saturating_sub(2)).map_or(list_end, |token| token.span);
+            }
+            let list = self.text_of_span(list_start.to(list_end)).to_string();
+            let header_text = self.text_of_span(header).to_string();
+            self.errors.push(Diagnostic::refused_fix(
+                start,
+                format!("{header_text} fails {list}:"),
+                "the header says a function can fail, so its failures are listed there (D209)",
+            ));
+            return Err(Reported);
+        }
         if self.is_word("type") && self.kind_at(1) == Some(TokenKind::Dot) {
             self.errors.push(Diagnostic::not_designed(
                 start,
@@ -1331,6 +1482,17 @@ impl<'source> Parser<'source> {
                 }
                 self.expect(TokenKind::Colon, ":")?;
                 let written_type = self.parse_type()?;
+                if self.is(TokenKind::Equal) {
+                    let equal = self.current_span();
+                    self.advance();
+                    self.expression()?;
+                    // trace: D203
+                    self.errors.push(Diagnostic::refused(
+                        equal,
+                        "`decl` gives no value, and `let` does",
+                        "`decl` declares a variable with no value yet, and `assign` gives it one (D203)",
+                    ));
+                }
                 self.expect(TokenKind::Semicolon, ";")?;
                 StatementKind::Decl { mutable, name, written_type }
             }
@@ -2071,6 +2233,7 @@ impl<'source> Parser<'source> {
         let mut fill_span = None;
         if self.is(TokenKind::LeftAngle) {
             let fill_start = self.current_span();
+            self.roles[self.at] = Role::TypeBracket;
             self.advance();
             while !self.is(TokenKind::RightAngle) && self.peek().is_some() {
                 fill.push(self.type_argument()?);
@@ -2079,6 +2242,9 @@ impl<'source> Parser<'source> {
                 } else {
                     break;
                 }
+            }
+            if self.is(TokenKind::RightAngle) {
+                self.roles[self.at] = Role::TypeBracket;
             }
             let end = self.expect(TokenKind::RightAngle, ">")?;
             fill_span = Some(fill_start.to(end));
@@ -2886,6 +3052,14 @@ impl<'source> Parser<'source> {
             }
             TokenKind::Text => {
                 self.advance();
+                if self.text_of(token) == "\"\"" {
+                    // trace: D103
+                    self.errors.push(Diagnostic::refused_fix(
+                        token.span,
+                        "empty",
+                        "`\"\"` could look like unfinished work, so `empty` says it (D103)",
+                    ));
+                }
                 Ok(Expression { kind: ExpressionKind::Text(self.text_of(token).to_string()), span: token.span })
             }
             TokenKind::Dollar => {
@@ -2910,6 +3084,14 @@ impl<'source> Parser<'source> {
                     }
                 }
                 let end = self.expect(TokenKind::RightSquare, "]")?;
+                if items.is_empty() {
+                    // trace: D103
+                    self.errors.push(Diagnostic::refused_fix(
+                        start.to(end),
+                        "empty",
+                        "`[]` is refused, because `empty` says it (D103)",
+                    ));
+                }
                 Ok(Expression { kind: ExpressionKind::List(items), span: start.to(end) })
             }
             TokenKind::At

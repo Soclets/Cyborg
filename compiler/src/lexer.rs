@@ -200,6 +200,14 @@ pub fn lex(file: FileId, text: &str, errors: &mut Vec<Diagnostic>) -> Lexed {
         line_has_code = true;
         let start = at;
         let (kind, end) = token_at(text, at);
+        if kind == TokenKind::FullwidthAt {
+            // trace: D36
+            errors.push(Diagnostic::refused_fix(
+                span(start, end),
+                "@",
+                "the limb mark is a plain `@`, not the fullwidth one Radium uses (D36)",
+            ));
+        }
         lexed.tokens.push(Token { kind, span: span(start, end) });
         at = end;
     }

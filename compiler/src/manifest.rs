@@ -142,6 +142,8 @@ pub fn read(file_id: FileId, file: &SourceFile, errors: &mut Vec<Diagnostic>) ->
                         format!("`need {}` says no version", package.text),
                         "each package a program uses has a `need` line with its version (D228, D231)",
                     ));
+                    // It still says the program needs the package, so its imports aren't refused too.
+                    manifest.needs.push((package.text.to_string(), package_span));
                     continue;
                 };
                 if !matches!(package.text, "std" | "os" | "csup" | "concur") {

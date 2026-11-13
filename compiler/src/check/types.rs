@@ -313,6 +313,13 @@ pub enum Type {
     Task(Box<Type>),
     /// Where tasks run (D345, D350, D377).
     Runner(RunnerKind),
+    /// `std::coll::map.hash` or `std::coll::map.ordered`, with its key and value types (D25, D138, D366). Only made
+    /// `empty` and ended so far, since a map's operations aren't decided.
+    Map {
+        ordered: bool,
+        key: Box<Type>,
+        value: Box<Type>,
+    },
     /// `@concur::lock<T>`: data reached only by locking it (D348). It's a struct of its own, `id`, holding the lock's
     /// word, which the OS waits on, and then the data.
     Lock {
@@ -448,6 +455,7 @@ impl Type {
             Type::Simd { item, lanes } => checked::MachineType::Array { item: Box::new(item.machine()), len: *lanes },
             Type::Secret(inner) | Type::Atomic(inner) => inner.machine(),
             Type::Lock { id, .. } => checked::MachineType::Struct(*id),
+            Type::Map { .. } => checked::MachineType::I64,
             // An OS pool is the address of its record (D345).
             Type::Runner(RunnerKind::Threads) => checked::MachineType::Address,
             Type::Task(_) | Type::Runner(_) => checked::MachineType::I64,
@@ -529,6 +537,11 @@ impl fmt::Display for Type {
             Type::Simd { item, lanes } => write!(formatter, "simd<{item}>[lanes: {lanes}]"),
             Type::Task(inner) => write!(formatter, "@concur::task<{inner}>"),
             Type::Lock { inner, .. } => write!(formatter, "@concur::lock<{inner}>"),
+            Type::Map { ordered, key, value } => write!(
+                formatter,
+                "std::coll::map.{}<key.type: {key}, val.type: {value}>",
+                if *ordered { "ordered" } else { "hash" }
+            ),
             Type::Atomic(inner) => write!(formatter, "@concur::atomic<{inner}>"),
             Type::Runner(RunnerKind::OneThread) => write!(formatter, "std::run::one_thread"),
             Type::Runner(RunnerKind::Threads) => write!(formatter, "os::threads"),

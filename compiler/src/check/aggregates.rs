@@ -146,9 +146,11 @@ impl Checker<'_> {
                 }
                 syntax::ItemKind::Struct(declared) => {
                     let name = declared.name.text();
-                    let expected = format!("end {} {name}", declared.keyword.text());
+                    // A limb's keyword is repeated as written, `union.@csup::untagged` (D399).
+                    let keyword = self.slice(declared.keyword.span).to_string();
+                    let expected = format!("end {keyword} {name}");
                     // A struct with two narrowings was already said to be undecided, closer and all.
-                    if declared.keyword.segments.len() <= 2 {
+                    if declared.keyword.segments.len() <= 2 || keyword.starts_with("union.") {
                         self.check_closer(&declared.end, &expected, super::CLOSER_WHY);
                     }
                     let declared_sources = source_spans(&declared.generics);

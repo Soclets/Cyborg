@@ -283,7 +283,8 @@ fn check_program(
     }
     let mut errors = Vec::new();
     let lexed = lexer::lex(program_id, text, &mut errors);
-    let (parsed, parse_errors) = parser::parse(program_id, text, &lexed.tokens);
+    let (mut parsed, parse_errors) = parser::parse(program_id, text, &lexed.tokens);
+    parsed.file.incomplete = !errors.is_empty() || !parse_errors.is_empty();
     // After a parse error, the parser's view of what each token does can't be trusted, so line breaks aren't judged.
     let parsed_cleanly = parse_errors.is_empty();
     errors.extend(parse_errors);
@@ -307,6 +308,10 @@ fn check_program(
         return (None, vec![failed], None);
     };
     errors.extend(check_errors);
+    // Some errors are said only when they're the only kind there is (D395).
+    if errors.iter().any(|error| !error.only_alone) {
+        errors.retain(|error| !error.only_alone);
+    }
     errors.sort_by_key(|error| error.span.start);
     (program, errors, store)
 }

@@ -94,6 +94,8 @@ impl Path {
 #[derive(Clone, Debug, Default)]
 pub struct File {
     pub items: Vec<Item>,
+    /// Whether reading the file stopped somewhere, so what's missing, like `fn.main`, may only be unread.
+    pub incomplete: bool,
 }
 
 #[derive(Clone, Debug)]
@@ -190,7 +192,7 @@ pub enum RequirementEntry {
     /// `includes equatable;`.
     Includes(Path),
     /// `op below [$a: ?self, $b: ?self] -> bool;`, with how many values it takes.
-    Op { operator: Name, values: usize, span: Span },
+    Op { operator: Name, values: usize, span: Span, parameters: Parameters },
     /// `law …;`, which says what the operations obey.
     Law(Span),
     /// A type on its own line, as a type set lists them.

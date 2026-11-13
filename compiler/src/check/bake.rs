@@ -317,11 +317,14 @@ impl<'a> Interpreter<'a> {
                 Ok(checked)
             }
             ExpressionKind::Maths { .. } => Err(Stop::NotBuilt("`std::math` while baking".to_string())),
-            ExpressionKind::FitText { value, most, failure } => {
+            ExpressionKind::FitText { value, most, failure, fallback } => {
                 let text = self.expression(value, locals)?;
                 if let Constant::Text(written) = &text
                     && written.len() as u64 > *most
                 {
+                    if let Some(fallback) = fallback {
+                        return self.expression(fallback, locals);
+                    }
                     return Err(refuse(failure, &[Constant::Integer(written.len() as i128)], &[MachineType::I64]));
                 }
                 Ok(text)

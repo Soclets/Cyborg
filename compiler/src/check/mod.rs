@@ -475,7 +475,139 @@ impl Checker<'_> {
         self.text.get(span.range()).unwrap_or("")
     }
 
+    /// What's wrong with how things are declared, before anything's checked inside them: an import after anything
+    /// else (D92), a name that clashes without `my::` or `my::` on one that doesn't (D75, D214), `fn main` for
+    /// `fn.main` (D214), `pub` as a narrowing or on `fn.main` (D200), and a parameter named twice (D2, D57).
+    fn declarations(&mut self, file: &syntax::File) {
+        // A short name that's also declared here isn't decided (D93).
+        let declared: Vec<String> = file
+            .items
+            .iter()
+            .filter_map(|item| match &item.kind {
+                ItemKind::Function(function) => function.name.as_ref().map(syntax::Path::text),
+                ItemKind::Struct(declared) => Some(declared.name.text()),
+                ItemKind::Union(declared) => Some(declared.name.text()),
+                _ => None,
+            })
+            .collect();
+        for item in &file.items {
+            if let ItemKind::Use(short) = &item.kind
+                && declared.contains(&short.short.text)
+            {
+                self.error(Diagnostic::not_designed(
+                    short.short.name_span,
+                    format!(
+                        "`use … as {}` when `{}` is also declared in this file",
+                        short.short.text, short.short.text
+                    ),
+                    NOT_DECIDED,
+                ));
+            }
+        }
+        let mut seen_other = false;
+        for item in &file.items {
+            match &item.kind {
+                ItemKind::Import(_) if seen_other => {
+                    // trace: D92
+                    let start = item.span.start as usize;
+                    self.error(Diagnostic::refused(
+                        Span::new(item.span.file, start, start + "import".len()),
+                        "imports go at the top of the file",
+                        "imports go at the top, so a file's dependencies can be read without running anything (D92)",
+                    ));
+                }
+                ItemKind::Import(_) | ItemKind::Use(_) => {}
+                _ => seen_other = true,
+            }
+            match &item.kind {
+                ItemKind::Function(function) => {
+                    let keyword = function.keyword.text();
+                    if keyword == "fn.pub" {
+                        // trace: D200
+                        self.error(Diagnostic::refused_fix(
+                            function.keyword.span,
+                            "pub fn",
+                            "`pub` says who can see a thing, not what kind of thing it is, so it isn't a narrowing (D200)",
+                        ));
+                    }
+                    if keyword == "fn.main"
+                        && let Some(public) = item.public
+                    {
+                        self.error(Diagnostic::not_designed(
+                            public,
+                            "`pub` on `fn.main`, which needs none",
+                            NOT_DECIDED,
+                        ));
+                    }
+                    if let Some(name) = &function.name {
+                        if keyword == "fn" && name.text() == "main" {
+                            // trace: D214
+                            self.error(Diagnostic::refused_fix(
+                                function.keyword.span.to(name.span),
+                                "fn.main",
+                                "`main` clashes, so a plain `fn main` is refused (D214, D11)",
+                            ));
+                        } else {
+                            self.declared_name(name);
+                        }
+                    }
+                    let mut names: Vec<&str> = Vec::new();
+                    for parameter in &function.parameters.list {
+                        if names.contains(&parameter.name.text.as_str()) {
+                            // trace: D57
+                            self.error(Diagnostic::refused(
+                                parameter.name.span,
+                                format!("`{}` is already a parameter here", parameter.name.text),
+                                "a parameter's name is how the body reaches it (D2)",
+                            ));
+                        }
+                        names.push(&parameter.name.text);
+                    }
+                }
+                ItemKind::Family(family)
+                    if !matches!(
+                        family.keyword.text().as_str(),
+                        "fam.unit" | "fam.prefix" | "fam.failure" | "fam.handler" | "fam.type.alias" | "fam.type.new"
+                    ) =>
+                {
+                    // trace: D135
+                    self.error(Diagnostic::not_designed(
+                        family.keyword.span,
+                        format!("`{}`", family.keyword.text()),
+                        NOT_DECIDED,
+                    ));
+                }
+                ItemKind::Struct(declared) => self.declared_name(&declared.name),
+                ItemKind::Union(declared) => self.declared_name(&declared.name),
+                _ => {}
+            }
+        }
+    }
+
+    /// A declared name that clashes with a keyword, a word operator or a base type is written `my::x`, and `my::` is
+    /// only for those (D75, D214).
+    fn declared_name(&mut self, name: &syntax::Path) {
+        let text = name.text();
+        if let Some(rest) = text.strip_prefix("my::") {
+            if !clashes(rest) {
+                self.error(Diagnostic::not_designed(
+                    name.span,
+                    format!("`my::` on `{rest}`, which doesn't clash"),
+                    NOT_DECIDED,
+                ));
+            }
+        } else if !text.contains(['.', ':', '%']) && clashes(&text) {
+            // trace: D214
+            self.error(Diagnostic::refused_fix(
+                name.span,
+                format!("my::{text}"),
+                "a clashing name is written `my::x` everywhere, its declaration and closer included (D214, D75)",
+            ));
+        }
+    }
+
     fn check_file(&mut self, file: &syntax::File) {
+        self.declarations(file);
         // Imports and short names first, then every signature, since declarations work in any order (D120).
         for item in &file.items {
             match &item.kind {
@@ -599,7 +731,13 @@ impl Checker<'_> {
         self.build_instances();
         if let Some(id) = main {
             self.program.entry = id
-        } else {
+        } else if !file.incomplete
+            // A `fn main` was refused already, as meaning `fn.main` (D214).
+            && !file.items.iter().any(|item| {
+                matches!(&item.kind, ItemKind::Function(function)
+                    if function.keyword.text() == "fn" && function.name.as_ref().is_some_and(|name| name.text() == "main"))
+            })
+        {
             let start = Span::new(self.file, 0, 1);
             self.error(Diagnostic::refused(
                 start,
@@ -619,12 +757,30 @@ impl Checker<'_> {
             return;
         }
         let key = if first.limb { format!("@{package}") } else { package.clone() };
-        if matches!(package.as_str(), "std" | "os" | "csup") && !self.manifest.needs(&package) {
+        // Only the first import with no `need` line is reported, since one missing line usually means the others are
+        // missing too.
+        let reported = self
+            .errors
+            .iter()
+            .any(|error| error.what.as_deref().is_some_and(|what| what.contains("has no `need` line")));
+        if matches!(package.as_str(), "std" | "os" | "csup" | "concur") && !self.manifest.needs(&package) && !reported {
+            // A limb's import is named without its `@`.
+            let span = if first.limb { first.name.span } else { first.name.span.to(import.path.span) };
             self.error(Diagnostic::refused(
-                first.name.span.to(import.path.span),
+                span,
                 format!("`{package}` has no `need` line in `CyJet.siml`"),
                 "each package a program uses has a `need` line in its manifest, with its version (D183, D228)",
             ));
+        }
+        if !first.limb && !matches!(package.as_str(), "std" | "os" | "csup" | "concur") {
+            // trace: D81, D188
+            let what = if import.whole_package.is_some() { "package" } else { "kit" };
+            self.error(Diagnostic::not_designed(
+                first.name.span,
+                format!("how the {what} `{package}` is found"),
+                "not decided yet (standard 12.9)",
+            ));
+            return;
         }
         if package == "os" && !self.target.has_os() {
             // trace: D271
@@ -692,6 +848,34 @@ impl Checker<'_> {
         if self.short_name(short).is_err() {
             return;
         }
+        // A function's narrowing means something only next to its function, so it isn't shortened to a bare name
+        // of its own, though a quoted name is the writer's own choice (D220).
+        if let Some((function, narrowing)) = short.path.text().split_once('.')
+            && library::STD_THINGS.contains(&function)
+            && (function.starts_with("std::io::") || function.starts_with("std::math::"))
+            && !short.short.quoted
+            && short.short.text == narrowing
+        {
+            let bare = function.rsplit("::").next().unwrap_or(function);
+            // trace: D220
+            self.error(Diagnostic::refused_fix(
+                whole,
+                format!("use {function} as {bare};"),
+                "a function's narrowing means something only next to its function, so it isn't shortened to its bare name, though a quoted name is your own choice (D220, D150)",
+            ));
+            self.uses.insert(short.short.text.clone(), String::new());
+            return;
+        }
+        if short.path.text() == "std::coll::list.%append" {
+            // trace: D211
+            self.error(Diagnostic::refused_fix(
+                short.path.span,
+                "std::coll::list.%%append",
+                "`.%` lends a receiver read-only and `.%%` lends it to change (D211)",
+            ));
+            self.uses.insert(short.short.text.clone(), String::new());
+            return;
+        }
         let name = &short.short;
         if name.mark == syntax::Mark::None {
             self.uses.insert(name.text.clone(), short.path.text());
@@ -706,6 +890,14 @@ impl Checker<'_> {
     /// and needs the limb's import (D155, D225, D232, D399).
     fn use_limb(&mut self, short: &syntax::Use, whole: Span) -> Check<()> {
         let text = short.path.text();
+        if let Some(rest) = text.strip_prefix("@std::").filter(|rest| rest.starts_with("inline.")) {
+            // trace: D227
+            return Err(self.error(Diagnostic::refused_fix(
+                short.path.span,
+                rest,
+                "inline code is `inline.asm`, in the base language, or a limb's own language as `inline.@limb::lang` (D227)",
+            )));
+        }
         if text.starts_with("inline.") || text.starts_with("union.") {
             // trace: D232
             return Err(self.error(
@@ -919,7 +1111,12 @@ impl Checker<'_> {
         match value_type {
             Type::Integer { .. } | Type::Float { .. } | Type::Bool | Type::Str(StrSize::View) => Some(false),
             Type::List { view: types::ListView::Read | types::ListView::Change, .. } => Some(false),
-            Type::Task(_) | Type::Runner(_) | Type::Lock { .. } | Type::Atomic(_) | Type::Allocator(_) => Some(true),
+            Type::Task(_)
+            | Type::Runner(_)
+            | Type::Lock { .. }
+            | Type::Atomic(_)
+            | Type::Allocator(_)
+            | Type::Map { .. } => Some(true),
             Type::Str(_) => Some(true),
             Type::New { inner, .. } => self.has_holding_choice(inner),
             Type::Struct { .. } | Type::Union { .. } | Type::Array { .. } | Type::List { .. } | Type::Writer(_) => {
@@ -942,6 +1139,7 @@ impl Checker<'_> {
 
     fn signature_inner(&mut self, function: &syntax::Function, keyword: String, name: String) -> Check<Signature> {
         let mut parameters = Vec::new();
+        let mut words = Vec::new();
         for parameter in &function.parameters.list {
             if let syntax::TypeKind::Borrow { keyword, target, .. } = &parameter.written_type.kind {
                 // trace: D175
@@ -958,7 +1156,7 @@ impl Checker<'_> {
                 )));
             }
             let value_type = self.resolve_type(&parameter.written_type)?;
-            self.parameter_word(parameter, &value_type)?;
+            words.push((parameter, value_type.clone()));
             if value_type.is_copied()
                 && matches!(parameter.ownership, syntax::ParameterOwnership::Given)
                 && let Some(span) = parameter.ownership_span
@@ -992,6 +1190,17 @@ impl Checker<'_> {
             )));
         }
         self.method_declaration(function, &name, &parameters)?;
+        // A declaration that's wrong as a whole, with a closer that doesn't match or a name declared already, is the
+        // statement that failed, so the rest of its header isn't judged (standard 11.7).
+        let (closer, _) = closer_expected(function);
+        let closer_written: Vec<&str> = self.slice(function.end.span).split_whitespace().collect();
+        let declaration_wrong = closer_written != closer.split_whitespace().collect::<Vec<_>>()
+            || (name != "main" && self.functions.contains_key(&name));
+        if !declaration_wrong {
+            for (parameter, value_type) in words {
+                self.parameter_word(parameter, &value_type)?;
+            }
+        }
         let failures = match &function.fails {
             Some(list) => self.fail_list(list)?,
             None => Vec::new(),
@@ -1207,17 +1416,7 @@ impl Checker<'_> {
                 State::Assigned,
             );
         }
-        let keyword = function.keyword.text();
-        let expected = match (&function.name, &function.operator) {
-            (Some(name), _) => format!("end {keyword} {}", name.text()),
-            (None, Some(operator)) => format!("end {keyword} {}", operator.text),
-            (None, None) => format!("end {keyword}"),
-        };
-        let why = if function.operator.is_some() {
-            "the closer repeats all of what it closes (D33, D121)"
-        } else {
-            CLOSER_WHY
-        };
+        let (expected, why) = closer_expected(function);
         self.check_closer(&function.end, &expected, why);
         // A function with `requires` is told where it was called from, for its crash message (D29).
         let mut prelude = Vec::new();
@@ -1262,6 +1461,8 @@ impl Checker<'_> {
             // A task has to be joined, and a runner from the OS owns threads (D343, D392).
             Type::Task(_) | Type::Runner(types::RunnerKind::Threads | types::RunnerKind::Events) => true,
             Type::Lock { inner, .. } => self.must_give(inner),
+            // A map owns heap memory (D325).
+            Type::Map { .. } => true,
             _ => false,
         }
     }
@@ -1281,6 +1482,9 @@ impl Checker<'_> {
             ),
             Type::Runner(types::RunnerKind::Threads | types::RunnerKind::Events) => Some(
                 "a runner from the OS owns its threads, so it's `must_Give`, and `os::done(Give $pool);` ends it once its tasks are done (D343, D392)".to_string(),
+            ),
+            Type::Map { .. } => Some(
+                "a map owns heap memory, so it's `must_Give`, and `std::coll::map.done` frees it with the allocator it came from, so a leak doesn't compile (D325, D331)".to_string(),
             ),
             Type::New { inner, .. } => self.duty_why(inner),
             _ => None,
@@ -1309,8 +1513,10 @@ impl Checker<'_> {
         let expected_words: Vec<&str> = expected.split_whitespace().collect();
         if written != expected_words {
             if written.get(1) == Some(&"pub") {
+                let text = self.slice(closer.span);
+                let start = closer.span.start as usize + text.find("pub").unwrap_or(0);
                 self.error(Diagnostic::not_designed(
-                    closer.span,
+                    Span::new(closer.span.file, start, start + "pub".len()),
                     "whether a closer repeats `pub`",
                     "not decided yet (standard 12.2)",
                 ));
@@ -1731,6 +1937,15 @@ impl Checker<'_> {
                 ".stable" => types::FloatKind::Stable,
                 ".fast" => types::FloatKind::Fast,
                 ".ieee" => types::FloatKind::Ieee,
+                _ if [".stable.", ".fast.", ".ieee."].iter().any(|kind| rest.starts_with(kind)) => {
+                    // trace: D258
+                    let (kind, unit) = rest[1..].split_once('.').unwrap_or_default();
+                    return Err(self.error(Diagnostic::refused_fix(
+                        path.span,
+                        format!("f{bits}.{kind}[unit: {unit}]"),
+                        "a type's unit is a `unit:` label in its brackets, next to any bounds (D258)",
+                    )));
+                }
                 _ => {
                     return Err(self.error(Diagnostic::refused(
                         path.span,
@@ -1776,6 +1991,14 @@ impl Checker<'_> {
                     format!("`{text}` says which kind it is"),
                     library::WRITER_KINDS_WHY,
                 )))
+            }
+            // `my::reading` through a `use` short name is this file's own `reading` (D248).
+            _ if text
+                .strip_prefix("my::")
+                .is_some_and(|rest| !clashes(rest) && self.aggregates.names.contains_key(rest)) =>
+            {
+                let found = self.aggregates.names[&text["my::".len()..]].clone();
+                Ok(found)
             }
             _ if self.aggregates.names.contains_key(&text) => {
                 let found = self.aggregates.names[&text].clone();
@@ -1892,7 +2115,8 @@ impl Checker<'_> {
                     "ordering is written in words, and a type defines `==` and `below`, which the others follow from (D278, D237)",
                 )));
             }
-            "bit_and" | "bit_or" | "bit_xor" | "bit_not" | "shl" | "shr" => {
+            "and.bit" | "or.bit" | "xor.bit" | "not.bit" | "bit_and" | "bit_or" | "bit_xor" | "bit_not" | "shl"
+            | "shr" => {
                 return Err(self.error(Diagnostic::not_designed(
                     operator.span,
                     format!("a type's own `{text}`"),
@@ -2060,7 +2284,14 @@ impl Checker<'_> {
             [syntax::TypeArgument { label: None, value: syntax::TypeArgumentValue::Type(item), .. }] => {
                 self.resolve_type(item)?
             }
-            _ => return Err(self.not_yet(written.span, format!("`{text}` filled in this way"))),
+            _ => {
+                // trace: D24
+                return Err(self.error(Diagnostic::refused(
+                    written.span,
+                    format!("`{text}` fills in one type, bare, in `< >`"),
+                    "a collection's types go in `< >`, and one type can go bare (D24, D25)",
+                )));
+            }
         };
         let mut len = None;
         let mut min = None;
@@ -2089,6 +2320,14 @@ impl Checker<'_> {
                 "len.min" if !array => min = Some((self.item_count(&label.value)?, label.value.span)),
                 "len.max" if !array => max = Some((self.item_count(&label.value)?, label.value.span)),
                 "len.type" => len_type = self.length_type(&label.value)?,
+                "len.min" | "len.max" => {
+                    // trace: D13
+                    return Err(self.error(Diagnostic::refused(
+                        label.name.span,
+                        "an array has exactly `len` items",
+                        "bare `len` is exact, and `len.min` and `len.max` are a list's (D13)",
+                    )));
+                }
                 _ => {
                     return Err(self.not_yet(label.name.span, format!("`{name}` on `{text}`")));
                 }
@@ -2218,7 +2457,25 @@ impl Checker<'_> {
                 )));
             }
         }
-        Err(self.not_yet(written.span, format!("the type `{text}`")))
+        let mut key = None;
+        let mut value = None;
+        for argument in fill {
+            let (Some(label), syntax::TypeArgumentValue::Type(written_type)) = (&argument.label, &argument.value)
+            else {
+                return Err(self.not_yet(argument.span, format!("`{text}` filled in this way")));
+            };
+            let resolved = self.resolve_type(written_type)?;
+            match label.text.as_str() {
+                "key.type" => key = Some(resolved),
+                "val.type" => value = Some(resolved),
+                _ => return Err(self.not_yet(label.span, format!("`{}` on `{text}`", label.text))),
+            }
+        }
+        let (Some(key), Some(value)) = (key, value) else {
+            return Err(self.not_yet(written.span, format!("`{text}` without `key.type` and `val.type`")));
+        };
+        // trace: D25, D138
+        Ok(Type::Map { ordered: text.ends_with(".ordered"), key: Box::new(key), value: Box::new(value) })
     }
 
     /// `str`, a view, or `str[len.max: 32 bytes]` and `str[len.max: inf bytes]`, which own their text (D326, D327).
@@ -2556,7 +2813,15 @@ fn contains_broken(statements: &[syntax::Statement]) -> bool {
 pub fn clashes(name: &str) -> bool {
     matches!(
         name,
-        "x" | "div"
+        "x" | "type"
+            | "fam"
+            | "op"
+            | "pub"
+            | "use"
+            | "import"
+            | "defer"
+            | "shield"
+            | "div"
             | "mod"
             | "below"
             | "above"
@@ -2704,4 +2969,17 @@ fn usable_name(name: &str) -> bool {
     let rest = name.chars().all(|character| character.is_alphanumeric() || character == '_');
     let type_word = types::IntegerKind::from_name(name).is_some() || matches!(name, "f32" | "f64");
     starts && rest && !TAKEN.contains(&name) && !type_word
+}
+
+/// What a function's closer says, and why: `end`, its keyword and its name or operator (D33, D121).
+fn closer_expected(function: &syntax::Function) -> (String, &'static str) {
+    let keyword = function.keyword.text();
+    let expected = match (&function.name, &function.operator) {
+        (Some(name), _) => format!("end {keyword} {}", name.text()),
+        (None, Some(operator)) => format!("end {keyword} {}", operator.text),
+        (None, None) => format!("end {keyword}"),
+    };
+    let why =
+        if function.operator.is_some() { "the closer repeats all of what it closes (D33, D121)" } else { CLOSER_WHY };
+    (expected, why)
 }

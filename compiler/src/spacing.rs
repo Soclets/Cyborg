@@ -135,6 +135,20 @@ impl Spacing<'_> {
                     let fix = self.joined(index, last);
                     self.refuse_fix(index, last, fix, MARK_WHY);
                 }
+                TokenKind::LeftAngle if self.role(index) == Role::TypeBracket && is_space(&after) => {
+                    self.judged[index] = true;
+                    let last = self.atom_end(index + 1);
+                    let fix = self.joined(index, last);
+                    self.refuse_fix(index, last, fix, MARK_WHY);
+                }
+                TokenKind::RightAngle
+                    if self.role(index) == Role::TypeBracket && index > 0 && is_space(self.gap_after(index - 1)) =>
+                {
+                    self.judged[index - 1] = true;
+                    let first = self.atom_start(index - 1);
+                    let fix = self.joined(first, index);
+                    self.refuse_fix(first, index, fix, MARK_WHY);
+                }
                 TokenKind::RightParen | TokenKind::RightSquare if index > 0 && is_space(self.gap_after(index - 1)) => {
                     self.judged[index - 1] = true;
                     let first = self.atom_start(index - 1);

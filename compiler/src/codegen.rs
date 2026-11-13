@@ -1999,7 +1999,7 @@ impl<'context, 'module> Generator<'context, 'module> {
                 let length = frame.builder.extract_value(text, 1, "").to_dynamic();
                 frame.builder.call(self.runtime("__cyborg_text_copy")?, &[data, length], "").to_dynamic()
             }
-            ExpressionKind::FitText { value, most, failure } => {
+            ExpressionKind::FitText { value, most, failure, fallback } => {
                 // trace: D328
                 let text = self.expression(frame, value)?;
                 let length = frame.builder.extract_value(text, 1, "").to_dynamic();
@@ -2007,8 +2007,27 @@ impl<'context, 'module> Generator<'context, 'module> {
                     .builder
                     .integer_compare(IntegerPredicate::UnsignedLessOrEqual, length, self.integer(64, *most), "")
                     .to_dynamic();
-                self.crash_unless(frame, fits, failure, &[(length, MachineType::Integer { bits: 64, signed: false })])?;
-                text
+                let Some(fallback) = fallback else {
+                    self.crash_unless(
+                        frame,
+                        fits,
+                        failure,
+                        &[(length, MachineType::Integer { bits: 64, signed: false })],
+                    )?;
+                    return Ok(text);
+                };
+                // trace: D132
+                let held = Self::temporary(frame, self.machine_type(&expression.machine_type));
+                frame.builder.store(text, held);
+                let instead = frame.function.append_basic_block("text_instead");
+                let after = frame.function.append_basic_block("text_after");
+                frame.builder.conditional_branch(fits, after, instead);
+                frame.builder.position_at_end(instead);
+                let other = self.expression(frame, fallback)?;
+                frame.builder.store(other, held);
+                frame.builder.branch(after);
+                frame.builder.position_at_end(after);
+                frame.builder.load(self.machine_type(&expression.machine_type), held, "").to_dynamic()
             }
             ExpressionKind::Pool { count } => {
                 // trace: D345, D392

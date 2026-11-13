@@ -653,8 +653,15 @@ impl Walker<'_> {
                 self.expression(&mut growth.allocator);
                 machine
             }
-            ExpressionKind::TextCopy(value) | ExpressionKind::FitText { value, .. } => {
+            ExpressionKind::TextCopy(value) => {
                 self.expression(value);
+                machine
+            }
+            ExpressionKind::FitText { value, fallback, .. } => {
+                self.expression(value);
+                if let Some(fallback) = fallback {
+                    self.expression(fallback);
+                }
                 machine
             }
             ExpressionKind::Select { condition, then, otherwise } => {

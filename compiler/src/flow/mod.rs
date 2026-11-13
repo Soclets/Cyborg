@@ -82,6 +82,8 @@ pub enum Event {
     Change {
         place: Place,
         spot: Spot,
+        /// What's changed as written, as `$xs[pos: 1]`, which is where it spoils a borrow of it (D2).
+        written: Span,
     },
     /// `finish`, with the `must_Give` fields inside that have to be moved out first (D177, D185).
     Finish {
@@ -360,8 +362,8 @@ fn children(expression: &checked::Expression) -> Vec<&checked::Expression> {
         | Kind::AddressAt(inner)
         | Kind::UnionBits(inner)
         | Kind::Bits(inner)
-        | Kind::PointerRead { pointer: inner, .. }
-        | Kind::FitText { value: inner, .. } => vec![inner],
+        | Kind::PointerRead { pointer: inner, .. } => vec![inner],
+        Kind::FitText { value, fallback, .. } => std::iter::once(value.as_ref()).chain(fallback.as_deref()).collect(),
         Kind::Handle { call, .. } => vec![call],
         Kind::Call { arguments, .. } => arguments
             .iter()
@@ -603,9 +605,13 @@ impl Checker<'_> {
                     self.spoil(state, place, spot, true);
                 }
             }
-            Event::LendMut { place, spot } | Event::Change { place, spot } => {
-                if self.usable(state, place, spot, false) {
-                    self.spoil(state, place, spot, false);
+            Event::LendMut { place, spot } | Event::Change { place, spot, .. } => {
+                let written = match event {
+                    Event::Change { written, .. } => Spot { place: *written, ..*spot },
+                    _ => *spot,
+                };
+                if self.usable(state, place, &written, false) {
+                    self.spoil(state, place, &written, false);
                 }
                 // A change ends a test's trust, said at the whole statement, or at the call that lends it (D104).
                 let at = if matches!(event, Event::Change { .. }) { spot.marker } else { spot.site };
@@ -715,13 +721,12 @@ impl Checker<'_> {
         if let Some(loan) = state.loans.get(&place.local)
             && let Some(at) = loan.spoiled
         {
+            // Spoiled within this same statement, the whole place is what can't be used; spoiled before it, the
+            // variable is.
+            let span = if at.start >= spot.place.start { spot.place } else { spot.variable };
             self.say(
-                Diagnostic::refused(
-                    spot.variable,
-                    format!("`{name}` can't be used after what it borrows was used"),
-                    BORROW_WHY,
-                )
-                .with_because(at, "what it borrows was used here"),
+                Diagnostic::refused(span, format!("`{name}` can't be used after what it borrows was used"), BORROW_WHY)
+                    .with_because(at, "what it borrows was used here"),
             );
             return false;
         }
@@ -836,7 +841,9 @@ impl Checker<'_> {
                     .with_because(declared, format!("`{holder}` holds it from here")),
                 );
             } else {
-                loan.spoiled = Some(spot.place);
+                // Any use spoils a loan to change, so the variable is where; only a change spoils one to read, so
+                // what changed is.
+                loan.spoiled = Some(if loan.mutable { spot.variable } else { spot.place });
             }
         }
     }

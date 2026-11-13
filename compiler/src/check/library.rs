@@ -304,6 +304,20 @@ impl Checker<'_> {
         let Some(writer_argument) = arguments.first() else {
             return Err(self.not_yet(callee.to(arguments_span), "a print with no writer".to_string()));
         };
+        // A value whose `let` was refused never got one, and the print that reads it is where that's said (D203).
+        for argument in arguments.iter().skip(1) {
+            if let ExpressionKind::Variable(name) = &argument.value.kind
+                && let Some(index) = body.find(&name.text)
+                && body.states[index] != super::State::Assigned
+                && body.variables[index].origin == super::Origin::RefusedLet
+            {
+                return Err(self.error(Diagnostic::refused(
+                    callee.to(arguments_span),
+                    format!("`{}` never got a value", name.text),
+                    "a variable is read only after it has one (D203)",
+                )));
+            }
+        }
         if matches!(writer_argument.value.kind, ExpressionKind::Text(_)) || writer_argument.label.is_some() {
             return Err(self.error(Diagnostic::refused(
                 writer_argument.span,
@@ -393,6 +407,18 @@ impl Checker<'_> {
                     Part::Text(text) => pieces.push(checked::Piece::Text(text.clone())),
                     Part::Hole(hole) => {
                         let Takes::Named { name, fields, .. } = &hole.takes else { continue };
+                        let is_word = |text: &str| {
+                            !text.is_empty() && text.chars().all(|letter| letter.is_alphanumeric() || letter == '_')
+                        };
+                        if !is_word(name) || !fields.iter().all(|field| is_word(field)) {
+                            // trace: D247
+                            let written = std::iter::once(format!("${name}")).chain(fields.iter().cloned());
+                            return Err(self.error(Diagnostic::refused(
+                                hole.span,
+                                format!("`{}` isn't a variable or a field of one", written.collect::<Vec<_>>().join(".")),
+                                "a named hole reads a variable or its field, never a call or maths, so it never runs anything (D247)",
+                            )));
+                        }
                         let mut value = syntax::Expression {
                             kind: ExpressionKind::Variable(syntax::Name { text: format!("${name}"), span: hole.span }),
                             span: hole.span,

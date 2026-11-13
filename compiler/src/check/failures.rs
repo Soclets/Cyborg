@@ -173,6 +173,8 @@ impl Checker<'_> {
 
     /// Finds a failure by its full name, or its short one when only one has it.
     fn find_failure(failures: &[FailureInfo], name: &str) -> Option<usize> {
+        // A failure whose name clashes is written `my::empty` where it's used, and bare in the list (D75).
+        let name = name.strip_prefix("my::").filter(|rest| super::clashes(rest)).unwrap_or(name);
         failures.iter().position(|failure| failure.full == name).or_else(|| {
             let matching: Vec<usize> = failures
                 .iter()
@@ -221,6 +223,14 @@ impl Checker<'_> {
                 ExpressionKind::Path(path) => (path, labels.as_slice()),
                 _ => return Err(self.not_yet(value.span, "failing with this".to_string())),
             },
+            ExpressionKind::Empty => {
+                // trace: D75
+                return Err(self.error(Diagnostic::refused_fix(
+                    value.span,
+                    "my::empty",
+                    "a name of yours that clashes is written with `my::` (D75)",
+                )));
+            }
             _ => return Err(self.not_yet(value.span, "failing with this".to_string())),
         };
         let name = path.text();
@@ -358,6 +368,23 @@ impl Checker<'_> {
                 format!("`{word}` on a call that can't fail"),
                 super::NOT_DECIDED,
             )));
+        }
+        // A conversion into bounded text can fail: `??` gives its fallback instead (D132), and what a failed `as` is
+        // called, for `?` and `otherwise:`, isn't decided (standard 12.3).
+        if let ExpressionKind::As { .. } = &inner.kind {
+            let ExpressionKind::Instead { fallback, .. } = &expression.kind else {
+                return Err(self.error(Diagnostic::not_designed(
+                    expression.span,
+                    "what a failed `as` is called",
+                    "not decided yet (standard 12.3)",
+                )));
+            };
+            let converted = self.expression(body, inner, expected)?;
+            if let Kind::FitText { value, most, failure, .. } = converted.value.kind {
+                let fallback = self.value_into(body, fallback, &converted.value_type)?;
+                let kind = Kind::FitText { value, most, failure, fallback: Some(Box::new(fallback)) };
+                return Ok(Typed::new(converted.value_type, kind));
+            }
         }
         // A task's failure comes back at its `done` (D357).
         if let ExpressionKind::Call { callee, arguments, .. } = &inner.kind

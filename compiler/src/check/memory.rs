@@ -361,6 +361,7 @@ impl Checker<'_> {
             "std::coll::list.done" => false,
             "std::mem::arena.done" => true,
             "str.done" => return Some(self.text_done(body, expression, &name, arguments)),
+            "std::coll::map.done" => return Some(self.map_done(body, expression, path.span, arguments)),
             _ => return None,
         };
         Some((|| {
@@ -374,7 +375,13 @@ impl Checker<'_> {
             let Some(root) = root_name(&owner.value).cloned() else {
                 return Err(self.not_yet(owner.span, format!("`{name}` on a fresh value")));
             };
-            // One whose `let` was refused never got a value to end (D203).
+            // One whose `let` was refused never got a value to end (D203), and one whose type was refused says
+            // nothing more.
+            if let Some(index) = body.find(&root.text)
+                && body.variables[index].value_type.is_unknown()
+            {
+                return Err(Reported);
+            }
             if let Some(index) = body.find(&root.text)
                 && body.states[index] != super::State::Assigned
                 && body.variables[index].origin == super::Origin::RefusedLet
@@ -573,4 +580,43 @@ fn struct_footprint(fields: &[Footprint], layout: super::aggregates::Layout) -> 
         per_target |= field.per_target;
     }
     Some(Footprint { size: round_up(size, align)?, align, per_target })
+}
+
+impl Checker<'_> {
+    /// `std::coll::map.done(Give $m, alloc: Lend $heap)`: ends a map, which owns its memory (D325, D331). A map is
+    /// only ever `empty` so far, since its operations aren't decided, so there's nothing yet to free.
+    fn map_done(
+        &mut self,
+        body: &mut Body,
+        expression: &syntax::Expression,
+        path_span: crate::source::Span,
+        arguments: &[syntax::Argument],
+    ) -> Check<checked::Statement> {
+        self.require_import("std::coll::map.done", path_span)?;
+        let [owner, allocator] = arguments else {
+            return Err(self.not_yet(expression.span, "`std::coll::map.done` with these arguments".to_string()));
+        };
+        let Some(root) = root_name(&owner.value).cloned() else {
+            return Err(self.not_yet(owner.span, "`std::coll::map.done` on a fresh value".to_string()));
+        };
+        let Some(reached) = self.reach(body, &owner.value)? else { return Err(Reported) };
+        match &reached.value_type {
+            Type::Map { .. } => {}
+            Type::Unknown => return Err(Reported),
+            other => {
+                return Err(self.error(Diagnostic::refused(
+                    owner.value.span,
+                    format!("this is `{other}`, and `std::coll::map.done` ends a map"),
+                    "every `must_Give` owner ends with its own `done` (D331)",
+                )));
+            }
+        }
+        self.allocator_argument(body, allocator)?;
+        // trace: D325, D331
+        self.give_away(body, &root, &owner.value)?;
+        Ok(checked::Statement::Evaluate(checked::Expression {
+            kind: Kind::Integer(0),
+            machine_type: checked::MachineType::I64,
+        }))
+    }
 }
