@@ -29,9 +29,9 @@ pub enum MachineType {
     /// Items on the heap: their address, how many there are, and how many fit before it grows (D11).
     List(Box<MachineType>),
     /// A struct, by its number in the program.
-    Struct(usize),
+    Struct(#[serde(with = "struct_number")] usize),
     /// A tagged union: a tag saying which case, then room for the largest case.
-    Union(usize),
+    Union(#[serde(with = "union_number")] usize),
 }
 
 impl MachineType {
@@ -293,7 +293,14 @@ pub enum OnFailure {
     /// `?? value`.
     Fallback(Expression),
     /// `?`: the caller's result, with the callee's failure cases moved to the caller's (D47).
-    PassUp { mapping: Vec<(usize, usize)>, structure: usize, union: usize, value_type: MachineType },
+    PassUp {
+        mapping: Vec<(usize, usize)>,
+        #[serde(with = "struct_number")]
+        structure: usize,
+        #[serde(with = "union_number")]
+        union: usize,
+        value_type: MachineType,
+    },
     /// `otherwise:` arms, by failure case, giving their value with `instead` into a local.
     Arms { arms: Vec<(usize, Block)>, result: LocalId, union_local: LocalId },
 }
@@ -526,6 +533,7 @@ pub enum ExpressionKind {
     /// Widens or narrows a number between integer types.
     Convert(Box<Expression>),
     Call {
+        #[serde(with = "function_number")]
         function: FunctionId,
         arguments: Vec<Argument>,
     },
@@ -558,6 +566,7 @@ pub enum ExpressionKind {
     Handle {
         call: Box<Expression>,
         /// The union of the callee's failures, inside its result.
+        #[serde(with = "union_number")]
         union: usize,
         on_failure: Box<OnFailure>,
     },
@@ -648,3 +657,27 @@ pub enum Argument {
     /// The address of a place through items, lent: `Lend.mut $a[pos: 1]` (D133).
     Place(Place),
 }
+
+/// A function, struct or union a kept body refers to is kept by its name, and gets the number that name has in the
+/// build reading it back, since numbers come from the order of declarations (D168).
+macro_rules! kept_by_name {
+    ($module:ident, $kind:ident) => {
+        mod $module {
+            use crate::source::relocation::{Named, name_of, number_of};
+
+            #[allow(clippy::trivially_copy_pass_by_ref)]
+            pub fn serialize<S: serde::Serializer>(number: &usize, serializer: S) -> Result<S::Ok, S::Error> {
+                serializer.serialize_str(&name_of(Named::$kind, *number).unwrap_or_default())
+            }
+
+            pub fn deserialize<'de, D: serde::Deserializer<'de>>(deserializer: D) -> Result<usize, D::Error> {
+                let name: String = serde::Deserialize::deserialize(deserializer)?;
+                number_of(Named::$kind, &name).ok_or_else(|| serde::de::Error::custom("a name that's gone"))
+            }
+        }
+    };
+}
+
+kept_by_name!(function_number, Function);
+kept_by_name!(struct_number, Struct);
+kept_by_name!(union_number, Union);

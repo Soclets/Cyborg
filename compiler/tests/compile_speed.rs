@@ -199,3 +199,29 @@ fn d168_a_kept_function_that_moved_shows_its_new_lines() {
     assert!(moved.contains("line 7"), "{moved}");
     assert_eq!(moved, fresh, "a kept function's message differs from a fresh build's");
 }
+
+#[test]
+fn d168_adding_or_moving_a_function_checks_only_what_names_it() {
+    let (folder, cache) = project("adding");
+    std::fs::write(folder.join("main.cy"), program(1)).expect("written");
+    assert!(checked(&folder, &cache).0.is_ok());
+    // A new function above the others moves every function's number, and nothing else names it.
+    let added = program(1).replacen(
+        "fn double",
+        "fn triple [$n: i32] -> i32:\n    return $n x 3;\nend fn triple\n\nfn double",
+        1,
+    );
+    std::fs::write(folder.join("main.cy"), &added).expect("written");
+    let (result, stats) = checked(&folder, &cache);
+    assert!(result.is_ok());
+    assert_eq!((stats.checked, stats.reused), (1, 3), "adding a function checked more than it");
+    // Moving `bump` above `triple` changes numbers again, and checks nothing.
+    let bump = "fn bump [$n: i32] -> i32:\n    return $n + 1;\nend fn bump\n\n";
+    let moved = added.replace(bump, "").replacen("fn triple", &format!("{bump}fn triple"), 1);
+    std::fs::write(folder.join("main.cy"), &moved).expect("written");
+    let (result, stats) = checked(&folder, &cache);
+    assert!(result.is_ok(), "{result:?}");
+    assert_eq!((stats.checked, stats.reused), (0, 4), "moving a function checked something again");
+    // The program still runs right, with every call going to the function it named.
+    assert_eq!(build(&folder, &cache, &["--Working", "--opt=O0", "--max_cores=1"]), "4 5\n");
+}

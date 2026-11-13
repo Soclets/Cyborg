@@ -80,6 +80,56 @@ pub mod relocation {
         pub outside: bool,
         /// The files as they are now, when messages have to be rendered again because the lines above moved.
         pub sources: Option<Rc<Sources>>,
+        /// The names of the functions, structs and unions a body refers to, which it's kept by instead of their
+        /// numbers, since those come from the order of declarations.
+        pub names: Option<Rc<Names>>,
+    }
+
+    /// What a function, struct or union is called, by its number, and the number for each name.
+    #[derive(Default)]
+    pub struct Names {
+        pub tables: [Vec<Option<String>>; 3],
+        numbers: [std::collections::HashMap<String, usize>; 3],
+    }
+
+    /// Which kind of thing a reference names.
+    #[derive(Clone, Copy)]
+    pub enum Named {
+        Function = 0,
+        Struct = 1,
+        Union = 2,
+    }
+
+    impl Names {
+        #[must_use]
+        pub fn new(tables: [Vec<Option<String>>; 3]) -> Names {
+            let numbers = tables.clone().map(|table| {
+                table.into_iter().enumerate().filter_map(|(number, name)| Some((name?, number))).collect()
+            });
+            Names { tables, numbers }
+        }
+    }
+
+    /// The name kept for a number. A number with no name can't be kept, which counts as pointing outside.
+    pub fn name_of(kind: Named, number: usize) -> Option<String> {
+        CURRENT.with(|current| {
+            let mut current = current.borrow_mut();
+            let relocation = current.as_mut()?;
+            let found =
+                relocation.names.as_ref().and_then(|names| names.tables[kind as usize].get(number).cloned().flatten());
+            if found.is_none() {
+                relocation.outside = true;
+            }
+            found
+        })
+    }
+
+    /// The number a kept name has now.
+    pub fn number_of(kind: Named, name: &str) -> Option<usize> {
+        CURRENT.with(|current| {
+            let current = current.borrow();
+            current.as_ref()?.names.as_ref()?.numbers[kind as usize].get(name).copied()
+        })
     }
 
     thread_local! {
@@ -93,7 +143,7 @@ pub mod relocation {
         let finished = CURRENT.with(|current| std::mem::replace(&mut *current.borrow_mut(), outer));
         match finished {
             Some(relocation) => (result, relocation),
-            None => (result, Relocation { start: 0, end: 0, outside: true, sources: None }),
+            None => (result, Relocation { start: 0, end: 0, outside: true, sources: None, names: None }),
         }
     }
 

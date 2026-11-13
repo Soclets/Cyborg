@@ -3,9 +3,10 @@
 //! whose interface changed.
 //!
 //! A function's key hashes its own text; everything every function can see, like types, units, operators and baked
-//! functions, along with which functions there are, in order, and which can fail, since that's what numbers them;
-//! and the interface of each function it names: its header and the `labels`, `defaults`, `requires` and `ensures`
-//! that start its body. Its spans are kept relative to where it starts, and its messages are rendered again where it
+//! functions; and the interface of each function it names: its header and the `labels`, `defaults`, `requires` and
+//! `ensures` that start its body. Functions, structs and unions are numbered by the order they're declared in, so a
+//! kept body refers to them by name, and gets their numbers again when it's read back, so adding or moving a function
+//! only checks again what names it. Its spans are kept relative to where it starts, and its messages are rendered again where it
 //! is now, so lines added above it don't matter. A function whose check said anything, or that points outside itself,
 //! isn't kept.
 
@@ -32,6 +33,8 @@ pub struct Store {
     found: HashMap<String, (usize, Vec<u8>)>,
     kept: Vec<(String, (usize, Vec<u8>))>,
     sources: Option<Rc<Sources>>,
+    /// The names of this build's functions, structs and unions, which kept bodies refer to.
+    pub names: Option<Rc<relocation::Names>>,
     pub stats: Stats,
 }
 
@@ -50,7 +53,7 @@ impl Store {
             .and_then(|bytes| postcard::from_bytes::<Vec<(String, (usize, Vec<u8>))>>(&bytes).ok())
             .map(|entries| entries.into_iter().collect())
             .unwrap_or_default();
-        Store { path, found, kept: Vec::new(), sources: None, stats: Stats::default() }
+        Store { path, found, kept: Vec::new(), sources: None, names: None, stats: Stats::default() }
     }
 
     /// Writes what this build kept, replacing the last build's, so the store only ever holds the program as it is.
@@ -78,7 +81,13 @@ impl Store {
         let (stored_line, bytes) = self.found.get(key)?;
         // Messages only show lines, so a function still starting on the same line keeps its messages as they were.
         let shared = (*stored_line != line).then_some(shared);
-        let relocation = relocation::Relocation { start: place.start, end: place.end, outside: false, sources: shared };
+        let relocation = relocation::Relocation {
+            start: place.start,
+            end: place.end,
+            outside: false,
+            sources: shared,
+            names: self.names.clone(),
+        };
         let (function, _) = relocation::with(relocation, || postcard::from_bytes::<checked::Function>(bytes).ok());
         let function = function?;
         self.kept.push((key.to_string(), (line, bytes.clone())));
@@ -89,7 +98,13 @@ impl Store {
     /// Keeps a function just checked, unless it points outside itself.
     pub fn keep(&mut self, key: &str, sources: &Sources, place: Span, function: &checked::Function) {
         let line = sources.get(place.file).place(place.start as usize).line;
-        let relocation = relocation::Relocation { start: place.start, end: place.end, outside: false, sources: None };
+        let relocation = relocation::Relocation {
+            start: place.start,
+            end: place.end,
+            outside: false,
+            sources: None,
+            names: self.names.clone(),
+        };
         let (bytes, finished) = relocation::with(relocation, || postcard::to_stdvec(function).ok());
         if let Some(bytes) = bytes
             && !finished.outside
@@ -137,7 +152,6 @@ pub fn keys(file: &syntax::File, text: &str, other_files: &[&str]) -> Keys {
             ItemKind::Function(function) if is_plain(function) => {
                 let name = function.name.as_ref().map(syntax::Path::text).unwrap_or_default();
                 let interface = interface(function, &slice);
-                everyone.text(&format!("fn {name} {}", function.fails.is_some()));
                 interfaces.entry(word_of(&name).to_string()).or_default().push(interface);
                 plain.push(index);
             }

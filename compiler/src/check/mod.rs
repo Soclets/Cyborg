@@ -312,6 +312,8 @@ pub struct Checker<'a> {
     pub generics: generics::Generics,
     /// The type parameters in scope, innermost last, and what each stands for.
     pub type_scope: Vec<(String, generics::Bound)>,
+    /// Each failing function's result struct and union, with the function's name, so kept bodies can name them.
+    pub result_names: Vec<(usize, usize, String)>,
     /// Whether a copy of a generic is being checked, where an ownership word on a plain number does nothing (D244).
     pub instance: bool,
     /// The type a call's result goes into, which fills a generic's type parameter from bare literals (D241).
@@ -357,6 +359,7 @@ pub fn check(
         type_scope: Vec::new(),
         instance: false,
         call_expected: None,
+        result_names: Vec::new(),
     };
     checker.check_file(parsed);
     let failed = !checker.errors.is_empty();
@@ -446,6 +449,15 @@ impl Checker<'_> {
             }
         }
         self.check_satisfies(file);
+        if let Some(store) = self.store.as_mut() {
+            store.names = Some(std::rc::Rc::new(reference_names(
+                &self.functions,
+                &self.aggregates,
+                &self.result_names,
+                self.program.functions.len(),
+                (self.program.structs.len(), self.program.unions.len()),
+            )));
+        }
         // How checking carries on past an error in a function's header isn't decided, so it stops there (D215).
         if header_failed {
             return;
@@ -648,11 +660,15 @@ impl Checker<'_> {
             None => Vec::new(),
         };
         let result = if failures.is_empty() { None } else { Some(self.result_layout(&returns, &failures)) };
+        if let Some(layout) = result {
+            self.result_names.push((layout.structure, layout.union, name.clone()));
+        }
         let id = self.program.functions.len();
         let symbol = if name == "main" {
             "main".to_string()
         } else if name.starts_with("op ") {
-            format!("cyborg.op{id}")
+            // Named by what it's for, not its number, so adding a function doesn't rename it.
+            format!("cyborg.{}", name.replace(' ', "."))
         } else {
             format!("cyborg.{name}")
         };
@@ -1912,4 +1928,40 @@ pub fn clashes(name: &str) -> bool {
             | "range"
             | "all"
     )
+}
+
+/// The names kept bodies refer to functions, structs and unions by (D168).
+fn reference_names(
+    functions: &HashMap<String, Signature>,
+    aggregates: &aggregates::Aggregates,
+    results: &[(usize, usize, String)],
+    function_count: usize,
+    (struct_count, union_count): (usize, usize),
+) -> crate::source::relocation::Names {
+    let mut tables: [Vec<Option<String>>; 3] =
+        [vec![None; function_count], vec![None; struct_count], vec![None; union_count]];
+    for (name, signature) in functions {
+        if let Some(slot) = tables[0].get_mut(signature.id) {
+            *slot = Some(name.clone());
+        }
+    }
+    for (number, info) in aggregates.structs.iter().enumerate() {
+        if let Some(slot) = tables[1].get_mut(number) {
+            *slot = Some(format!("struct {}", info.name));
+        }
+    }
+    for (number, info) in aggregates.unions.iter().enumerate() {
+        if let Some(slot) = tables[2].get_mut(number) {
+            *slot = Some(format!("union {}", info.name));
+        }
+    }
+    for (structure, union, name) in results {
+        if let Some(slot) = tables[1].get_mut(*structure) {
+            *slot = Some(format!("result of {name}"));
+        }
+        if let Some(slot) = tables[2].get_mut(*union) {
+            *slot = Some(format!("failures of {name}"));
+        }
+    }
+    crate::source::relocation::Names::new(tables)
 }
