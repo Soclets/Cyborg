@@ -31,6 +31,11 @@ Two more from compiler claude's catch-up:
   reading a profile while optimizing. Until then both flags give NotBuiltYet.
 - D380's stack-size refusal needs each function's stack size from LLVM, its `.stack_sizes` section or
   `TargetOptions.EmitStackSizeSection`. Until then `stack:` is checked for its form but not measured.
+- D365's startup check is built, but has nothing to check: `host_cpu_features()` returns "" on macOS, and there's no way
+  to ask LLVM which features a named CPU like `apple_m5` implies (MCSubtargetInfo). Compiler claude asks for something
+  like `target_machine.cpu_features(cpu)`.
+- A malformed feature string, such as one starting with a comma, crashes inside LLVM when the target machine is made,
+  where Lyftar's D3 says it should be refused.
 
 ## oracle claude
 
