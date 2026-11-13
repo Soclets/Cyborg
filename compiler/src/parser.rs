@@ -7,11 +7,11 @@ use crate::diagnostic::Diagnostic;
 use crate::lexer::{Token, TokenKind};
 use crate::source::{FileId, Span};
 use crate::syntax::{
-    Argument, Arm, BinaryOperator, Branch, Case, Closer, Condition, Expression, ExpressionKind, FailEntry, FailList,
-    Family, FamilyEntry, FamilyEntryKind, Field, File, For, Function, Generic, GenericKind, Handling, If, Import, Item,
-    ItemKind, Joint, Label, Let, Mark, Match, Name, Ownership, Parameter, ParameterOwnership, Parameters, Path,
-    Requirement, RequirementEntry, Requirements, Segment, Shield, ShortName, Statement, StatementKind, Struct, Type,
-    TypeArgument, TypeArgumentValue, TypeKind, UnaryOperator, Union, UnitDefinition, Use,
+    Argument, Arm, Assembly, BinaryOperator, Branch, Case, Closer, Condition, Expression, ExpressionKind, FailEntry,
+    FailList, Family, FamilyEntry, FamilyEntryKind, Field, File, For, Function, Generic, GenericKind, Handling, If,
+    Import, Item, ItemKind, Joint, Label, Let, Mark, Match, Name, OnTarget, Ownership, Parameter, ParameterOwnership,
+    Parameters, Path, Requirement, RequirementEntry, Requirements, Segment, Shield, ShortName, Statement,
+    StatementKind, Struct, Type, TypeArgument, TypeArgumentValue, TypeKind, UnaryOperator, Union, UnitDefinition, Use,
 };
 
 /// What a token does, for the spacing checks.
@@ -1282,6 +1282,12 @@ impl<'source> Parser<'source> {
                 }
             }
             Some("shield") if self.kind_at(1) == Some(TokenKind::Word) => StatementKind::Shield(self.shield()?),
+            Some("on") if self.kind_at(1) == Some(TokenKind::Dot) && self.word_at(2) == Some("target") => {
+                StatementKind::OnTarget(self.on_target()?)
+            }
+            Some("inline") if self.kind_at(1) == Some(TokenKind::Dot) && self.word_at(2) == Some("asm") => {
+                StatementKind::Assembly(self.assembly()?)
+            }
             Some("loop") if self.kind_at(1) == Some(TokenKind::Colon) => {
                 // There's no `loop`: an endless loop is `forever` (D128). Read on as one.
                 let span = self.current_span();
@@ -1624,6 +1630,136 @@ impl<'source> Parser<'source> {
         let body = self.block(&["end"])?;
         let end = self.closer()?;
         Ok(For { label, name, ownership, source, body, end })
+    }
+
+    /// `on.target aarch64: … else: … end on.target` (D233).
+    fn on_target(&mut self) -> Parse<OnTarget> {
+        let keyword = self.path()?;
+        let narrowed = keyword.text() != "on.target";
+        if narrowed {
+            // trace: D233
+            self.errors.push(Diagnostic::not_designed(
+                keyword.span,
+                format!("`{}`, a narrowing of `on.target`", keyword.text()),
+                "not decided yet (standard 12.5)",
+            ));
+        }
+        let chip = self.name()?;
+        self.expect_block_colon()?;
+        let then = self.block(&["end", "else"])?;
+        let mut otherwise = None;
+        if self.is_word("else") {
+            self.advance();
+            self.expect_block_colon()?;
+            otherwise = Some(self.block(&["end"])?);
+        }
+        let end = self.closer()?;
+        if narrowed {
+            return Err(self.reported_after(end));
+        }
+        Ok(OnTarget { keyword, chip, then, otherwise, end })
+    }
+
+    /// `inline.asm:`, its `reads:`, `writes:` and `clobbers:` lines, its raw lines, and `end inline.asm` (D233).
+    fn assembly(&mut self) -> Parse<Assembly> {
+        const BLOCK_WHY: &str =
+            "an assembly block is a statement that says what goes in and out, then holds raw assembly (D233)";
+        let start = self.current_span();
+        let keyword = self.path()?;
+        if !self.is(TokenKind::Colon) {
+            self.errors.push(Diagnostic::refused(
+                keyword.span,
+                "assembly is a block, `inline.asm:`, with its `reads:`, `writes:` and `clobbers:` lines",
+                BLOCK_WHY,
+            ));
+            while self.peek().is_some() && !self.is(TokenKind::Semicolon) {
+                self.advance();
+            }
+            self.advance();
+            return Err(Reported);
+        }
+        let opener = start.to(self.current_span());
+        self.expect_block_colon()?;
+        let mut reads = Vec::new();
+        let mut writes = Vec::new();
+        let mut clobbers = Vec::new();
+        for (word, index) in [("reads", 0), ("writes", 1), ("clobbers", 2)] {
+            if !self.is_word(word) {
+                let (found, span) = if self.is(TokenKind::AssemblyLine) {
+                    ("a line of assembly".to_string(), self.current_span())
+                } else {
+                    (self.found(), self.current_span())
+                };
+                self.errors.push(Diagnostic::refused(
+                    span,
+                    format!("expected `{word}:`, but found {found}"),
+                    STATEMENT_WHY,
+                ));
+                // Read on to the block's own closer, so what's after it isn't misread.
+                while self.peek().is_some() && !(self.is_word("end") && self.word_at(1) == Some("inline")) {
+                    if let Some(role) = self.roles.get_mut(self.at) {
+                        *role = Role::LineEnd;
+                    }
+                    self.advance();
+                }
+                if self.peek().is_some() {
+                    let _ = self.closer();
+                }
+                return Err(Reported);
+            }
+            self.advance();
+            self.expect(TokenKind::Colon, ":")?;
+            self.expect(TokenKind::LeftSquare, "[")?;
+            if self.is_word("none") {
+                self.advance();
+            } else {
+                while !self.is(TokenKind::RightSquare) && self.peek().is_some() {
+                    let register = self.name()?;
+                    match index {
+                        0 => {
+                            self.expect(TokenKind::Equal, "=")?;
+                            reads.push((register, self.expression()?));
+                        }
+                        1 => {
+                            self.expect(TokenKind::FatArrow, "=>")?;
+                            let dollar = self.expect(TokenKind::Dollar, "$")?;
+                            let name = self.name()?;
+                            writes
+                                .push((register, Name { text: format!("${}", name.text), span: dollar.to(name.span) }));
+                        }
+                        _ => clobbers.push(register),
+                    }
+                    if self.is(TokenKind::Comma) {
+                        self.advance();
+                    } else {
+                        break;
+                    }
+                }
+            }
+            self.expect(TokenKind::RightSquare, "]")?;
+            self.expect(TokenKind::Semicolon, ";")?;
+        }
+        let mut lines = Vec::new();
+        while self.is(TokenKind::AssemblyLine) {
+            lines.push(self.current_span());
+            // A raw line is a line of its own, which the spacing rules leave alone.
+            if let Some(role) = self.roles.get_mut(self.at) {
+                *role = Role::LineEnd;
+            }
+            self.advance();
+        }
+        // A closer that isn't the block's own means the block never closed.
+        if !(self.is_word("end") && self.word_at(1) == Some("inline")) {
+            self.errors.push(Diagnostic::refused(
+                opener,
+                "this assembly block never closes",
+                "an assembly block holds raw assembly, one instruction per line, and closes with `end inline.asm` (D233)",
+            ));
+            return Err(Reported);
+        }
+        let end = self.closer()?;
+        let _ = end;
+        Ok(Assembly { opener, reads, writes, clobbers, lines })
     }
 
     fn shield(&mut self) -> Parse<Shield> {

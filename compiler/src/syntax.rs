@@ -467,6 +467,10 @@ pub enum StatementKind {
         condition: Expression,
     },
     Shield(Shield),
+    /// `on.target aarch64: … else: … end on.target` (D233).
+    OnTarget(OnTarget),
+    /// `inline.asm: … end inline.asm` (D233).
+    Assembly(Assembly),
     /// A statement the parser couldn't read, already reported.
     Broken,
 }
@@ -533,6 +537,27 @@ pub struct For {
     pub source: Expression,
     pub body: Vec<Statement>,
     pub end: Closer,
+}
+
+/// `on.target aarch64:`, compiled only when building for that chip (D233).
+#[derive(Clone, Debug)]
+pub struct OnTarget {
+    pub keyword: Path,
+    pub chip: Name,
+    pub then: Vec<Statement>,
+    pub otherwise: Option<Vec<Statement>>,
+    pub end: Closer,
+}
+
+/// An assembly block: what goes in, what comes out, what else it changes, and its raw lines (D233).
+#[derive(Clone, Debug)]
+pub struct Assembly {
+    /// `inline.asm:`, colon included.
+    pub opener: Span,
+    pub reads: Vec<(Name, Expression)>,
+    pub writes: Vec<(Name, Name)>,
+    pub clobbers: Vec<Name>,
+    pub lines: Vec<Span>,
 }
 
 #[derive(Clone, Debug)]

@@ -792,6 +792,9 @@ impl<'context, 'module> Generator<'context, 'module> {
                 frame.builder.unreachable();
                 frame.builder.position_at_end(fine);
             }
+            Statement::Assembly { lines, reads, writes, clobbers, intel } => {
+                self.assembly(frame, lines, reads, writes, clobbers, *intel)?;
+            }
             Statement::Check { condition, failure, operands } => {
                 let mut values = Vec::new();
                 for operand in operands {
@@ -799,6 +802,53 @@ impl<'context, 'module> Generator<'context, 'module> {
                 }
                 let condition = self.expression(frame, condition)?;
                 self.check(frame, condition, failure, &values)?;
+            }
+        }
+        Ok(())
+    }
+
+    /// An assembly block, as LLVM inline assembly: each `writes:` register is an output, each `reads:` one an input,
+    /// and each `clobbers:` one is changed (D233). `$` in the text is LLVM's operand mark, so it's doubled.
+    fn assembly(
+        &mut self,
+        frame: &mut Frame<'context, 'module>,
+        lines: &[String],
+        reads: &[(String, crate::checked::Expression)],
+        writes: &[(String, usize, MachineType)],
+        clobbers: &[String],
+        intel: bool,
+    ) -> Result<()> {
+        let mut constraints: Vec<String> = writes.iter().map(|(register, _, _)| format!("={{{register}}}")).collect();
+        constraints.extend(reads.iter().map(|(register, _)| format!("{{{register}}}")));
+        constraints.extend(clobbers.iter().map(|register| format!("~{{{register}}}")));
+        let mut inputs = Vec::new();
+        let mut input_types = Vec::new();
+        for (_, value) in reads {
+            input_types.push(self.machine_type(&value.machine_type));
+            inputs.push(self.expression(frame, value)?);
+        }
+        let output_types: Vec<_> = writes.iter().map(|(_, _, machine_type)| self.machine_type(machine_type)).collect();
+        let returns = match output_types.as_slice() {
+            [] => self.context.void_type().to_dynamic(),
+            [one] => *one,
+            many => self.context.struct_type(many, false).to_dynamic(),
+        };
+        let function_type = self.context.function_type(returns, &input_types, false);
+        let text = lines.iter().map(|line| line.replace('$', "$$")).collect::<Vec<_>>().join("\n");
+        let dialect =
+            if intel { lyftar::enums::InlineAssemblyDialect::Intel } else { lyftar::enums::InlineAssemblyDialect::Att };
+        let assembly = function_type.inline_assembly(&text, &constraints.join(","), true, false, dialect, false);
+        let result = frame.builder.call(assembly, inputs.as_slice(), "").to_dynamic();
+        match writes {
+            [] => {}
+            [(_, local, _)] => {
+                frame.builder.store(result, frame.slots[*local]);
+            }
+            many => {
+                for (index, (_, local, _)) in many.iter().enumerate() {
+                    let value = frame.builder.extract_value(result, u32::try_from(index).unwrap_or(0), "").to_dynamic();
+                    frame.builder.store(value, frame.slots[*local]);
+                }
             }
         }
         Ok(())

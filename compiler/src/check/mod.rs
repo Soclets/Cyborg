@@ -314,6 +314,12 @@ pub struct Checker<'a> {
     pub type_scope: Vec<(String, generics::Bound)>,
     /// Each failing function's result struct and union, with the function's name, so kept bodies can name them.
     pub result_names: Vec<(usize, usize, String)>,
+    /// How many shields the code being checked is inside (D34).
+    pub shields: usize,
+    /// For each `on.target` around the code being checked, the chip its branch names, or none in `else:` (D233).
+    pub chips: Vec<Option<String>>,
+    /// Variables an assembly block's `writes:` declared, which also outlive the `on.target` around them (D233).
+    pub assembly_writes: Vec<Variable>,
     /// Whether a copy of a generic is being checked, where an ownership word on a plain number does nothing (D244).
     pub instance: bool,
     /// The type a call's result goes into, which fills a generic's type parameter from bare literals (D241).
@@ -358,6 +364,9 @@ pub fn check(
         generics: generics::Generics::default(),
         type_scope: Vec::new(),
         instance: false,
+        shields: 0,
+        chips: Vec::new(),
+        assembly_writes: Vec::new(),
         call_expected: None,
         result_names: Vec::new(),
     };

@@ -179,6 +179,15 @@ pub enum Statement {
     Flow(Vec<crate::flow::Event>),
     /// Stops the program with its failure's message unless the condition holds. The operands are the values its
     /// `when:` line prints.
+    /// An assembly block (D233): values into registers, the raw lines, then registers into locals.
+    Assembly {
+        lines: Vec<String>,
+        reads: Vec<(String, Expression)>,
+        writes: Vec<(String, LocalId, MachineType)>,
+        clobbers: Vec<String>,
+        /// x86's assembly is written in Intel's order, as `mov rcx, rax`.
+        intel: bool,
+    },
     Check {
         condition: Expression,
         failure: CheckFailure,

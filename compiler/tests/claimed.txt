@@ -1317,3 +1317,16 @@ d243_a_type_where_a_unit_goes
 d243_a_unit_parameter
 d243_a_unit_with_something_else
 d243_outside_its_family
+d233_a_narrowing_of_on_target
+d233_in_the_else_branch
+d233_lending_an_address
+d233_needs_its_clobbers
+d233_never_closes
+d233_no_else
+d233_not_a_call
+d233_outside_a_shield
+d233_outside_on_target
+d233_raw_lines_are_raw
+d233_the_chip_branch_is_checked
+d233_the_standard_example
+d233_writes_a_name_in_use

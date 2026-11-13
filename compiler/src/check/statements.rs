@@ -18,6 +18,8 @@ pub struct Checked {
     pub leaves: bool,
     /// Whether it leaves by `instead`, which carries on after the call it handles.
     pub gives: bool,
+    /// The variables declared straight in it, which an `on.target` branch passes on (D233).
+    pub declared: Vec<Variable>,
 }
 
 impl Checker<'_> {
@@ -70,9 +72,15 @@ impl Checker<'_> {
             block.push(checked::Statement::Flow(vec![crate::flow::Event::ScopeEnd { locals }]));
         }
         body.events = outer;
-        body.scopes.pop();
+        let declared = body
+            .scopes
+            .pop()
+            .unwrap_or_default()
+            .iter()
+            .filter_map(|(_, index)| body.variables.get(*index).cloned())
+            .collect();
         body.forget_after(count);
-        Checked { block, leaves, gives }
+        Checked { block, leaves, gives, declared }
     }
 
     /// Checks one statement, adding what it runs to `block`, and gives whether it always leaves.
@@ -153,6 +161,8 @@ impl Checker<'_> {
             | StatementKind::Ensures { .. } => Ok(false),
             StatementKind::Finish(value) => self.finish_statement(body, statement.span, value).map(|()| false),
             StatementKind::Shield(shield) => self.shield_statement(body, shield, block),
+            StatementKind::OnTarget(choice) => self.on_target(body, choice, block),
+            StatementKind::Assembly(assembly) => self.assembly(body, assembly, block).map(|()| false),
             StatementKind::Broken => Err(Reported),
         }
     }
@@ -620,9 +630,140 @@ impl Checker<'_> {
                 "not decided yet (standard 12.9)",
             )));
         }
+        self.shields += 1;
         let checked = self.block(body, &shield.body);
+        self.shields -= 1;
         block.extend(checked.block);
         Ok(checked.leaves)
+    }
+
+    /// `on.target aarch64: … else: … end on.target`: both branches are checked, and only the one for the chip being
+    /// built is built. What both branches declare outlives the choice, since only one of them is ever there (D233).
+    fn on_target(&mut self, body: &mut Body, choice: &syntax::OnTarget, block: &mut checked::Block) -> Check<bool> {
+        self.check_closer(&choice.end, "end on.target", super::CLOSER_WHY);
+        let chip = choice.chip.text.clone();
+        if !matches!(chip.as_str(), "aarch64" | "x86_64") {
+            return Err(self.error(Diagnostic::not_designed(
+                choice.chip.span,
+                format!("the chip `{chip}`"),
+                "not decided yet (standard 12.5)",
+            )));
+        }
+        let active = self.target.chip() == chip;
+        self.chips.push(Some(chip));
+        let (then, then_declared) = self.branch(body, &choice.then);
+        self.chips.pop();
+        let otherwise = choice.otherwise.as_ref().map(|statements| {
+            self.chips.push(None);
+            let branch = self.branch(body, statements);
+            self.chips.pop();
+            branch
+        });
+        let other_declared = otherwise.as_ref().map(|(_, declared)| declared.clone()).unwrap_or_default();
+        let (chosen, declared, other) = match (active, otherwise) {
+            (true, _) => (Some(then), then_declared, other_declared),
+            (false, Some((checked, declared))) => (Some(checked), declared, then_declared),
+            (false, None) => (None, Vec::new(), Vec::new()),
+        };
+        for variable in declared {
+            let Some(theirs) = other.iter().find(|each| each.name == variable.name) else { continue };
+            if theirs.value_type != variable.value_type {
+                return Err(self.not_yet(
+                    theirs.declared,
+                    format!("`{}` declared with different types in an `on.target`'s branches", variable.name),
+                ));
+            }
+            body.declare(variable, super::State::Assigned);
+        }
+        let Some(chosen) = chosen else { return Ok(false) };
+        block.extend(chosen.block);
+        Ok(chosen.leaves)
+    }
+
+    /// One branch of an `on.target`, with what it declared, including through assembly blocks' `writes:`.
+    fn branch(&mut self, body: &mut Body, statements: &[syntax::Statement]) -> (Checked, Vec<Variable>) {
+        let outer = std::mem::take(&mut self.assembly_writes);
+        let checked = self.block(body, statements);
+        let mut declared = std::mem::replace(&mut self.assembly_writes, outer);
+        declared.extend(checked.declared.iter().cloned());
+        (checked, declared)
+    }
+
+    /// An assembly block: inside a shield, in an `on.target` branch naming its chip; values go into registers, the
+    /// raw lines run, and registers come out into new variables (D233).
+    fn assembly(&mut self, body: &mut Body, assembly: &syntax::Assembly, block: &mut checked::Block) -> Check<()> {
+        const CHIP_WHY: &str = "assembly is for one chip, so it sits in an `on.target` branch that names it, and has no `target:` line (D233)";
+        let keyword =
+            Span::new(self.file, assembly.opener.start as usize, (assembly.opener.end as usize).saturating_sub(1));
+        if self.shields == 0 {
+            return Err(self.error(Diagnostic::refused(
+                keyword,
+                "an assembly block must be inside a shield",
+                "a shield is the only place dangerous code may live (D34, D38, D233)",
+            )));
+        }
+        let Some(Some(chip)) = self.chips.last().cloned() else {
+            return Err(self.error(Diagnostic::refused(
+                keyword,
+                "an assembly block goes inside an `on.target` choice naming its chip",
+                CHIP_WHY,
+            )));
+        };
+        let mut reads = Vec::new();
+        for (register, value) in &assembly.reads {
+            if let ExpressionKind::Owned { .. } = &value.kind {
+                return Err(self.error(Diagnostic::not_designed(
+                    value.span,
+                    "lending an address into a register",
+                    "not decided yet (standard 12.5)",
+                )));
+            }
+            let typed = self.expression(body, value, None)?;
+            let bits = register_bits(&chip, &register.text);
+            let fits = matches!(typed.value_type, Type::Integer { kind, .. } if Some(kind.bits) == bits);
+            if !fits {
+                return Err(self.error(Diagnostic::refused(
+                    value.span,
+                    format!("this is `{}`, and `{}` holds {} bits", typed.value_type, register.text, bits.unwrap_or(0)),
+                    "a value goes into a register of its own width, with `as` first if it's narrower, so nothing widens silently (D233)",
+                )));
+            }
+            reads.push((register.text.clone(), typed.value));
+        }
+        let mut writes = Vec::new();
+        for (register, name) in &assembly.writes {
+            let bare = name.text.as_str();
+            if body.lookup(bare).is_some() {
+                return Err(self.error(Diagnostic::not_designed(
+                    name.span,
+                    format!("declaring `{bare}` again while the first is in scope"),
+                    super::NOT_DECIDED,
+                )));
+            }
+            let Some(bits) = register_bits(&chip, &register.text) else {
+                return Err(self.not_yet(register.span, format!("the register `{}`", register.text)));
+            };
+            let value_type =
+                Type::Integer { kind: super::types::IntegerKind { bits, signed: true }, bounds: None, unit: None };
+            let local = body.new_local(value_type.machine());
+            let variable = Variable {
+                name: bare.to_string(),
+                value_type: value_type.clone(),
+                mutable: false,
+                origin: super::Origin::Let,
+                local,
+                declared: name.span,
+                given: None,
+                known_case: None,
+            };
+            body.declare(variable.clone(), super::State::Assigned);
+            self.assembly_writes.push(variable);
+            writes.push((register.text.clone(), local, value_type.machine()));
+        }
+        let lines = assembly.lines.iter().map(|span| self.slice(*span).to_string()).collect();
+        let clobbers = assembly.clobbers.iter().map(|register| register.text.clone()).collect();
+        block.push(checked::Statement::Assembly { lines, reads, writes, clobbers, intel: chip == "x86_64" });
+        Ok(())
     }
 
     /// `finish $f;` ends a `must_Give` duty (D129).
@@ -2166,5 +2307,23 @@ fn has_item(expression: &syntax::Expression) -> bool {
         ExpressionKind::Bracket { base, .. } => !matches!(base.kind, ExpressionKind::Path(_)),
         ExpressionKind::Field { base, .. } | ExpressionKind::Group(base) => has_item(base),
         _ => false,
+    }
+}
+
+/// How many bits a register holds, by its chip's names: `x0` and `w0` on aarch64, `rax` and `eax` on x86-64.
+fn register_bits(chip: &str, register: &str) -> Option<u32> {
+    match chip {
+        "aarch64" => match register.chars().next() {
+            Some('x') if register[1..].parse::<u32>().is_ok_and(|number| number <= 30) => Some(64),
+            Some('w') if register[1..].parse::<u32>().is_ok_and(|number| number <= 30) => Some(32),
+            _ => None,
+        },
+        "x86_64" => match register {
+            "rax" | "rbx" | "rcx" | "rdx" | "rsi" | "rdi" | "rbp" | "r8" | "r9" | "r10" | "r11" | "r12" | "r13"
+            | "r14" | "r15" => Some(64),
+            "eax" | "ebx" | "ecx" | "edx" | "esi" | "edi" | "ebp" => Some(32),
+            _ => None,
+        },
+        _ => None,
     }
 }

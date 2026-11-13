@@ -240,6 +240,13 @@ impl Lowering {
             Statement::Check { condition, .. } | Statement::CheckAtSite { condition, .. } => {
                 Some(self.expression(condition, here))
             }
+            Statement::Assembly { reads, .. } => {
+                let mut here = here;
+                for (_, value) in reads {
+                    here = self.expression(value, here);
+                }
+                Some(here)
+            }
             Statement::OpenWriter { .. }
             | Statement::Alias { .. }
             | Statement::Print { .. }

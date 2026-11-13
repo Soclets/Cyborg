@@ -17,6 +17,16 @@ pub enum Target {
 }
 
 impl Target {
+    /// The chip family `on.target` names (D233), if it's one that has a name yet.
+    #[must_use]
+    pub fn chip(self) -> &'static str {
+        match self {
+            Target::MacOsAarch64 | Target::LinuxAarch64 => "aarch64",
+            Target::LinuxX86_64 => "x86_64",
+            Target::ArduinoUnoR4Wifi => "cortex_m4",
+        }
+    }
+
     #[must_use]
     pub fn from_name(name: &str) -> Option<Target> {
         match name {

@@ -59,6 +59,8 @@ pub enum TokenKind {
     Slash,
     Backslash,
     Quote,
+    /// A line of raw assembly in an `inline.asm:` block, which only LLVM's assembler reads (D233).
+    AssemblyLine,
     /// Any other character.
     Unknown,
 }
@@ -96,6 +98,9 @@ pub fn lex(file: FileId, text: &str, errors: &mut Vec<Diagnostic>) -> Lexed {
     let mut blocks: Vec<(String, Span)> = Vec::new();
     let mut at = 0;
     let mut line_has_code = false;
+    // Inside an `inline.asm:` block, past its opener: lines are raw, except its `reads:`, `writes:` and `clobbers:`,
+    // until a line starting with `end` (D233).
+    let mut assembly = false;
     while at < bytes.len() {
         // At the start of a line, a comment block's opener or closer counts only when it's alone on the line.
         let line_start = at == 0 || bytes.get(at - 1) == Some(&b'\n');
@@ -139,6 +144,22 @@ pub fn lex(file: FileId, text: &str, errors: &mut Vec<Diagnostic>) -> Lexed {
             if !blocks.is_empty() {
                 at = (line_end + 1).min(bytes.len());
                 continue;
+            }
+            let first_word = trimmed.split(|character: char| !character.is_alphanumeric() && character != '_').next();
+            if assembly {
+                if first_word == Some("end") {
+                    assembly = false;
+                } else if !trimmed.is_empty() && !matches!(first_word, Some("reads" | "writes" | "clobbers")) {
+                    lexed.tokens.push(Token { kind: TokenKind::AssemblyLine, span: line_span });
+                    at = (line_end + 1).min(bytes.len());
+                    continue;
+                }
+            }
+            if trimmed
+                .strip_prefix("inline.asm:")
+                .is_some_and(|rest| rest.trim().is_empty() || rest.trim().starts_with("//"))
+            {
+                assembly = true;
             }
         }
         let byte = bytes[at];
