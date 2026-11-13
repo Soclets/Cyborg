@@ -44,7 +44,7 @@ impl Store {
     pub fn open(folder: Option<&Path>, file: &Path, target: Target, mode: Mode) -> Store {
         let path = folder.map(|folder| {
             let named = std::fs::canonicalize(file).unwrap_or_else(|_| file.to_path_buf());
-            let key = crate::cache::key(target, mode, &format!("check {}", named.display()));
+            let key = crate::cache::key(target, mode, &format!("check {} {}", crate::target::named(), named.display()));
             folder.join("checks").join(format!("{key}.bin"))
         });
         let found = path

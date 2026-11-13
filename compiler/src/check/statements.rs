@@ -32,6 +32,7 @@ impl Checker<'_> {
     /// Checks a block in a new scope. A statement with an error is skipped, and checking goes on (standard 11.7).
     pub fn block(&mut self, body: &mut Body, statements: &[syntax::Statement]) -> Checked {
         body.scopes.push(Vec::new());
+        body.defers.push(Vec::new());
         let count = body.variables.len();
         let mut block = Vec::new();
         let mut leaves = false;
@@ -41,6 +42,23 @@ impl Checker<'_> {
         for statement in statements {
             if matches!(statement.kind, StatementKind::Instead(_)) {
                 gives = true;
+            }
+            // Leaving runs every deferred statement it leaves behind, innermost first (D325).
+            let leaving_from = match &statement.kind {
+                StatementKind::Return(_) | StatementKind::Fail(_) => Some(0),
+                StatementKind::Break(label) => Some(
+                    body.loops
+                        .iter()
+                        .rev()
+                        .find(|each| {
+                            label.as_ref().is_none_or(|label| each.label.as_deref() == Some(label.text.as_str()))
+                        })
+                        .map_or(0, |each| each.defers),
+                ),
+                _ => None,
+            };
+            if let Some(from) = leaving_from {
+                self.run_defers(body, from, &mut block);
             }
             body.statement = None;
             let mark = block.len();
@@ -66,6 +84,11 @@ impl Checker<'_> {
                 leaves = true;
             }
         }
+        if !leaves {
+            let depth = body.defers.len().saturating_sub(1);
+            self.run_defers(body, depth, &mut block);
+        }
+        body.defers.pop();
         let locals: Vec<checked::LocalId> =
             body.variables[count.min(body.variables.len())..].iter().map(|variable| variable.local).collect();
         if !leaves && !locals.is_empty() {
@@ -81,6 +104,58 @@ impl Checker<'_> {
             .collect();
         body.forget_after(count);
         Checked { block, leaves, gives, declared }
+    }
+
+    /// `defer …;`: the statement is kept for where its block ends, and whatever it gives away is promised to it, so
+    /// nothing else gives it away first (D325).
+    fn defer_statement(&mut self, body: &mut Body, span: Span, deferred: &syntax::Statement) {
+        if let StatementKind::Expression(expression) = &deferred.kind
+            && let ExpressionKind::Call { arguments, .. } = &expression.kind
+        {
+            for argument in arguments {
+                if argument.ownership.map(|(word, _)| word) == Some(syntax::Ownership::Give)
+                    && let ExpressionKind::Variable(name) = &argument.value.kind
+                    && let Some(variable) = body.lookup(&name.text)
+                {
+                    body.promised.push((variable.local, span));
+                }
+            }
+        }
+        if let Some(frame) = body.defers.last_mut() {
+            frame.push(deferred.clone());
+        }
+    }
+
+    /// Runs the deferred statements of every open block from `from` in, innermost first and each block's in reverse
+    /// (D325). A statement deferred once and run at several exits says each error once.
+    fn run_defers(&mut self, body: &mut Body, from: usize, block: &mut checked::Block) {
+        let frames: Vec<Vec<syntax::Statement>> = body.defers.get(from..).map(<[_]>::to_vec).unwrap_or_default();
+        if frames.iter().all(Vec::is_empty) {
+            return;
+        }
+        let running = std::mem::replace(&mut body.running_defers, true);
+        for frame in frames.iter().rev() {
+            for deferred in frame.iter().rev() {
+                let before = self.errors.len();
+                let mark = block.len();
+                let outer = std::mem::take(&mut body.events);
+                let result = self.statement(body, deferred, block);
+                let mut events = std::mem::replace(&mut body.events, outer);
+                // Its reads and borrows were the code's as written, where `defer` is, and only giving away happens
+                // here, where it runs (D325).
+                events.retain(|event| matches!(event, crate::flow::Event::Give { .. }));
+                if result.is_ok() && !events.is_empty() {
+                    block.insert(mark.min(block.len()), checked::Statement::Flow(events));
+                }
+                let added = self.errors.split_off(before);
+                for error in added {
+                    if !self.errors.contains(&error) {
+                        self.errors.push(error);
+                    }
+                }
+            }
+        }
+        body.running_defers = running;
     }
 
     /// Checks one statement, adding what it runs to `block`, and gives whether it always leaves.
@@ -160,6 +235,10 @@ impl Checker<'_> {
             | StatementKind::Requires { .. }
             | StatementKind::Ensures { .. } => Ok(false),
             StatementKind::Finish(value) => self.finish_statement(body, statement.span, value).map(|()| false),
+            StatementKind::Defer(deferred) => {
+                self.defer_statement(body, statement.span, deferred);
+                Ok(false)
+            }
             StatementKind::Shield(shield) => self.shield_statement(body, shield, block),
             StatementKind::OnTarget(choice) => self.on_target(body, choice, block),
             StatementKind::Assembly(assembly) => self.assembly(body, assembly, block).map(|()| false),
@@ -1098,6 +1177,63 @@ impl Checker<'_> {
         result
     }
 
+    /// `$xs.std::%%append(…)` as a statement, alone, with `?? void`, or with `otherwise:` arms for running out of
+    /// memory (D24, D96, D321, D324). `None` for anything else.
+    fn append_statement(
+        &mut self,
+        body: &mut Body,
+        expression: &syntax::Expression,
+        block: &mut checked::Block,
+    ) -> Option<Check<()>> {
+        use super::memory::Handling;
+        let (call, handling) = match &expression.kind {
+            ExpressionKind::Instead { value, fallback, .. } if matches!(&fallback.kind, ExpressionKind::Path(path) if path.is_single("void")) => {
+                (value.as_ref(), Handling::Ignore)
+            }
+            ExpressionKind::Otherwise { value, handling: syntax::Handling::Arms { arms, .. }, .. } => {
+                (value.as_ref(), Handling::Arms(arms))
+            }
+            _ => (expression, Handling::None),
+        };
+        let ExpressionKind::MethodCall { receiver, method, arguments, .. } = &call.kind else { return None };
+        let is_append = method.text() == "std::%%append"
+            || (self.method_uses.get(&method.text()).is_some_and(|full| full == "std::coll::list.%%append")
+                && matches!(self.expression_type_quietly(body, receiver), Some(Type::List { .. })));
+        if !is_append {
+            return None;
+        }
+        Some((|| {
+            let (push, flag) = self.append(body, expression, receiver, arguments, &handling, block)?;
+            block.push(push);
+            if let (Handling::Arms(arms), Some(flag)) = (&handling, flag) {
+                let mut then = Vec::new();
+                let before = body.states.clone();
+                for arm in *arms {
+                    let name = arm.pattern.text();
+                    if name != "out_of_memory" {
+                        return Err(self.error(Diagnostic::refused(
+                            arm.pattern.span,
+                            format!("`append` fails only with `out_of_memory`, not `{name}`"),
+                            "a list that grows fails with `out_of_memory` when its allocator has no room (D321, D324)",
+                        )));
+                    }
+                    let checked = self.block(body, &arm.body);
+                    then.extend(checked.block);
+                }
+                body.states = Body::join_states(&before, &body.states);
+                block.push(checked::Statement::If {
+                    condition: checked::Expression {
+                        kind: checked::ExpressionKind::Local(flag),
+                        machine_type: MachineType::Bool,
+                    },
+                    then,
+                    otherwise: Vec::new(),
+                });
+            }
+            Ok(())
+        })())
+    }
+
     fn expression_statement(
         &mut self,
         body: &mut Body,
@@ -1161,18 +1297,16 @@ impl Checker<'_> {
                 return Ok(());
             }
         }
+        if let Some(statement) = self.memory_statement(body, expression) {
+            block.push(statement?);
+            return Ok(());
+        }
         if let Some(statement) = self.library_statement(body, expression)? {
             block.push(statement);
             return Ok(());
         }
-        if let ExpressionKind::MethodCall { receiver, method, arguments, .. } = &expression.kind
-            && (method.text() == "std::%%append"
-                || (self.method_uses.get(&method.text()).is_some_and(|full| full == "std::coll::list.%%append")
-                    && matches!(self.expression_type_quietly(body, receiver), Some(Type::List { .. }))))
-        {
-            let statement = self.append(body, expression, receiver, arguments)?;
-            block.push(statement);
-            return Ok(());
+        if let Some(done) = self.append_statement(body, expression, block) {
+            return done;
         }
         if !body.handlers.is_empty()
             && matches!(
@@ -1395,6 +1529,7 @@ impl Checker<'_> {
                             declared: binding.span,
                             must_give: false,
                             origin: crate::flow::Origin::Lent,
+                            why: None,
                         },
                         crate::flow::Event::Borrow {
                             borrower: local,
@@ -1624,7 +1759,14 @@ impl Checker<'_> {
         let id = body.next_loop;
         body.next_loop += 1;
         let variables = body.variables.len();
-        body.loops.push(Loop { id, label: label.map(|name| name.text.clone()), breaks: Some(Vec::new()), variables });
+        let defers = body.defers.len();
+        body.loops.push(Loop {
+            id,
+            label: label.map(|name| name.text.clone()),
+            breaks: Some(Vec::new()),
+            variables,
+            defers,
+        });
         // A body runs again with what it changed, so it's checked from the states it could start a round with:
         // before the loop, joined with how a round ends. The first pass finds those, quietly.
         let before = body.states.clone();
@@ -2031,6 +2173,7 @@ impl Checker<'_> {
                 declared: each.name.span,
                 must_give: self.must_give(&item_type),
                 origin: crate::flow::Origin::Local,
+                why: self.duty_why(&item_type),
             });
         }
         let reading = root.as_ref().map(|(root, _)| root.name.clone());

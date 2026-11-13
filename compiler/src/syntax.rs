@@ -460,6 +460,8 @@ pub enum StatementKind {
     Fail(Expression),
     Instead(Expression),
     Finish(Expression),
+    /// `defer std::coll::list.done(Give $xs, alloc: Lend $heap);`: runs when its block ends, however it ends (D325).
+    Defer(Box<Statement>),
     Labels(Vec<Label>),
     Defaults(Vec<Label>),
     Requires {

@@ -43,7 +43,7 @@ impl Checker<'_> {
                 let values = self.items_into(body, items, item)?;
                 Ok(checked::Expression { kind: Kind::Build(values), machine_type })
             })()),
-            (ExpressionKind::List(items), Type::List { item, min, max, len_type }) => Some((|| {
+            (ExpressionKind::List(items), Type::List { item, min, max, len_type, .. }) => Some((|| {
                 let count = items.len() as u64;
                 let (_, most) = len_type.range();
                 if max.is_none() && i128::from(count) > most {
@@ -399,14 +399,20 @@ impl Checker<'_> {
         Ok(())
     }
 
-    /// `$xs.std::%%append(val: 4)`: one more item at the end, if the list has room (D24).
+    /// `$xs.std::%%append(val: 4)`: one more item at the end, if the list has room (D24), or with
+    /// `alloc: Lend $heap` for a list that grows (D321, D322). `?? void` ignores a full list or one out of memory,
+    /// and `otherwise:` handles running out of memory (D96, D324).
+    #[allow(clippy::too_many_lines)]
     pub fn append(
         &mut self,
         body: &mut Body,
         expression: &syntax::Expression,
         receiver: &syntax::Expression,
         arguments: &[syntax::Argument],
-    ) -> Check<checked::Statement> {
+        handling: &super::memory::Handling<'_>,
+        block: &mut checked::Block,
+    ) -> Check<(checked::Statement, Option<checked::LocalId>)> {
+        use super::memory::{Handling, OutOfMemoryHandling};
         let Some(root_name) = super::expressions::root_name(receiver) else {
             return Err(self.not_yet(receiver.span, "adding to a fresh list".to_string()));
         };
@@ -422,31 +428,78 @@ impl Checker<'_> {
         let Some(reached) = self.reach(body, receiver)? else {
             return Err(self.not_yet(receiver.span, "adding to this".to_string()));
         };
-        let Type::List { item, max, len_type, .. } = &reached.value_type else {
+        let list_type = reached.value_type.clone();
+        let Type::List { item, max, len_type, .. } = &list_type else {
             return Err(self.not_yet(receiver.span, format!("`append` on `{}`", reached.value_type)));
         };
-        let [argument] = arguments else {
-            return Err(self.not_yet(expression.span, "`append` with these arguments".to_string()));
+        let (argument, allocator) = match arguments {
+            [argument] => (argument, None),
+            [argument, allocator] => (argument, Some(allocator)),
+            _ => return Err(self.not_yet(expression.span, "`append` with these arguments".to_string())),
         };
         if argument.label.as_ref().map(|label| label.text.as_str()) != Some("val") {
             return Err(self.not_yet(argument.span, "`append` without `val:`".to_string()));
         }
+        // A full bounded list fails, and what that failure is called isn't decided (standard 12.7).
+        if max.is_some()
+            && let Handling::Arms(_) = handling
+        {
+            return Err(self.error(Diagnostic::not_designed(
+                expression.span,
+                "what the failure is called when a list is full",
+                "not decided yet (standard 12.7)",
+            )));
+        }
+        if max.is_some() && body.purity != super::Purity::Plain {
+            return Err(self.error(Diagnostic::not_designed(
+                expression.span,
+                "whether a `fn.pure` may fail, as appending to a full list does",
+                "not decided yet (standard 12.5)",
+            )));
+        }
+        let flag = match handling {
+            Handling::Arms(_) => {
+                let local = body.new_local(checked::MachineType::Bool);
+                block.push(checked::Statement::Let {
+                    local,
+                    value: checked::Expression {
+                        kind: checked::ExpressionKind::Bool(false),
+                        machine_type: checked::MachineType::Bool,
+                    },
+                });
+                Some(local)
+            }
+            _ => None,
+        };
+        let out_of_memory = match (handling, flag) {
+            (Handling::Ignore, _) => OutOfMemoryHandling::Ignore,
+            (_, Some(local)) => OutOfMemoryHandling::Flag(local),
+            _ => OutOfMemoryHandling::Crash,
+        };
+        let call = match &expression.kind {
+            syntax::ExpressionKind::Instead { value, .. } | syntax::ExpressionKind::Otherwise { value, .. } => {
+                value.as_ref()
+            }
+            _ => expression,
+        };
+        let growth = self.append_growth(body, &list_type, call, allocator, out_of_memory)?;
         let value = self.value_into(body, &argument.value, item)?;
         // A list with room for at most `len.max`, or as many as its `len.type` counts, fails past it.
         let shown = self.slice(receiver.span).to_string();
         let room = match max {
+            Some(_) if matches!(handling, Handling::Ignore) => max.map(|max| (max, None)),
             Some(max) => {
                 let check = failure(
                     self,
                     Diagnostic::new(
                         DiagnosticKind::CheckFailed,
-                        expression.span,
-                        format!("`{shown}` is full"),
-                        "a list holds at most its `len.max` (D24)",
+                        call.span,
+                        format!("`{shown}` is full, and nothing handled it"),
+                        "a failure nothing handles stops the program (D96)",
                     ),
                     &[When::Text("it holds ".into()), When::Operand(0), When::Text(" items".into())],
                 );
-                Some((*max, Box::new(check)))
+                Some((*max, Some(Box::new(check))))
             }
             None if *len_type != IntegerKind::U64 => {
                 let (_, most) = len_type.range();
@@ -460,7 +513,7 @@ impl Checker<'_> {
                     ),
                     &[],
                 );
-                Some((u64::try_from(most).unwrap_or(u64::MAX), Box::new(check)))
+                Some((u64::try_from(most).unwrap_or(u64::MAX), Some(Box::new(check))))
             }
             None => None,
         };
@@ -469,6 +522,12 @@ impl Checker<'_> {
             place: crate::flow::Place { local: root.local, path: Vec::new(), shown: root_name.text.clone() },
             spot: crate::flow::Spot { variable: root_name.span, place: receiver.span, site, marker: site },
         });
-        Ok(checked::Statement::Push { place: checked::Place { local: root.local, steps: reached.steps }, value, room })
+        let push = checked::Statement::Push {
+            place: checked::Place { local: root.local, steps: reached.steps },
+            value,
+            room,
+            growth,
+        };
+        Ok((push, flag))
     }
 }

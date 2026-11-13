@@ -16,7 +16,31 @@ pub enum Target {
     ArduinoUnoR4Wifi,
 }
 
+/// Whether this run names its target with `--target=`, which a program whose answer depends on the target's sizes
+/// has to do (D387, D389). Set once, from the command line.
+static NAMED: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
+
+/// Records that `--target=` was given.
+pub fn set_named() {
+    NAMED.store(true, std::sync::atomic::Ordering::Relaxed);
+}
+
+/// Whether `--target=` was given.
+#[must_use]
+pub fn named() -> bool {
+    NAMED.load(std::sync::atomic::Ordering::Relaxed)
+}
+
 impl Target {
+    /// The bytes in a pointer, and so in a view's length too (D370, D390).
+    #[must_use]
+    pub fn pointer_bytes(self) -> u64 {
+        match self {
+            Target::ArduinoUnoR4Wifi => 4,
+            _ => 8,
+        }
+    }
+
     /// The chip family `on.target` names (D233), if it's one that has a name yet.
     #[must_use]
     pub fn chip(self) -> &'static str {

@@ -64,6 +64,7 @@ fn main() -> ExitCode {
         } else if let Some(name) = argument.strip_prefix("--target=") {
             if let Some(chosen) = Target::from_name(name) {
                 target = chosen;
+                okay::target::set_named();
             } else {
                 eprintln!("okay: `{name}` isn't a target this compiler builds for");
                 return ExitCode::from(2);

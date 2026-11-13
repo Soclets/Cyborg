@@ -102,7 +102,10 @@ fn runtime_text(target: Target) -> String {
 /// defined elsewhere, in the runtime's own unit, with float printing only declared, since it's too big to inline.
 fn inline_runtime_text(target: Target) -> String {
     if target.has_os() {
-        let shared = OS_RUNTIME.replace(WRITERS_DEFINED, WRITERS_DECLARED);
+        let shared = OS_RUNTIME
+            .replace(WRITERS_DEFINED, WRITERS_DECLARED)
+            .replace(HEAP_DEFINED, HEAP_DECLARED)
+            .replace(NEXT_DEFINED, NEXT_DECLARED);
         format!("{shared}\ndeclare i64 @__cyborg_format_float(double, i32, i32, i32, i1, ptr)\n")
     } else {
         BARE_RUNTIME.to_string()
@@ -112,6 +115,11 @@ fn inline_runtime_text(target: Target) -> String {
 /// The list of buffered writers, which the runtime's unit defines and every other unit shares.
 const WRITERS_DEFINED: &str = "@__cyborg_writers = hidden global ptr null";
 const WRITERS_DECLARED: &str = "@__cyborg_writers = external hidden global ptr";
+/// The OS heap's record, and the next arena's number, which the runtime's unit defines too (D322, D371).
+const HEAP_DEFINED: &str = "@__cyborg_the_heap = hidden global %allocator { i64 0, i64 -1, i64 0, i64 -1, i64 0 }";
+const HEAP_DECLARED: &str = "@__cyborg_the_heap = external hidden global %allocator";
+const NEXT_DEFINED: &str = "@__cyborg_next_allocator = hidden global i64 1";
+const NEXT_DECLARED: &str = "@__cyborg_next_allocator = external hidden global i64";
 
 /// The unoptimized IR for one unit, as text. It's all a unit's object depends on, besides the target and mode, so
 /// it's what the cache hashes.
@@ -448,9 +456,17 @@ impl<'context, 'module> Generator<'context, 'module> {
     }
 
     /// A list's record: where its items are, how many there are, and how many fit before it grows (D11).
+    /// A list with nothing in it, no allocator yet and no block (D322).
+    fn empty_list(&self) -> Value<'context, 'module> {
+        let none = integer_constant(self.context, 64, -1);
+        let zero = self.integer(64, 0);
+        let null = self.context.pointer_type(0).constant_null().to_dynamic();
+        self.context.constant_struct(&[null, zero, zero, none, none], false)
+    }
+
     fn list_type(&self) -> lyftar::types::Type<'context> {
         let word = self.context.integer_type(64).to_dynamic();
-        self.context.struct_type(&[self.context.pointer_type(0), word, word], false)
+        self.context.struct_type(&[self.context.pointer_type(0), word, word, word, word], false)
     }
 
     fn machine_type(&self, machine_type: &MachineType) -> lyftar::types::Type<'context> {
@@ -622,6 +638,75 @@ impl<'context, 'module> Generator<'context, 'module> {
         Ok(())
     }
 
+    /// Makes room in a list for `want` items through its allocator (D321, D322, D385): a wrong allocator is a failed
+    /// check, and running out of memory crashes, is ignored by going to `after`, or sets a flag and goes there.
+    fn grow_list(
+        &mut self,
+        frame: &mut Frame<'context, 'module>,
+        record: Value<'context, 'module>,
+        growth: &crate::checked::Growth,
+        want: Value<'context, 'module>,
+        size: Value<'context, 'module>,
+        after: lyftar::basic_block::BasicBlock<'context, 'module>,
+    ) -> Result<()> {
+        use crate::checked::OutOfMemory;
+        let allocator = self.expression(frame, &growth.allocator)?;
+        let report = Self::temporary(frame, self.context.integer_type(64).array_type(4));
+        let arguments = [
+            record,
+            allocator,
+            want,
+            size,
+            self.integer(64, growth.standard),
+            self.integer(64, growth.align.max(1)),
+            self.integer(64, u64::from(growth.grow)),
+            self.integer(64, growth.step.max(1)),
+            report,
+        ];
+        let status = frame.builder.call(self.runtime("__cyborg_list_reserve")?, &arguments, "").to_dynamic();
+        let not_wrong =
+            frame.builder.integer_compare(IntegerPredicate::NotEqual, status, self.integer(64, 2), "").to_dynamic();
+        let wrong_operands = self.report(frame, report, 2);
+        self.check(frame, not_wrong, &growth.wrong, &wrong_operands)?;
+        let room = frame.builder.integer_compare(IntegerPredicate::Equal, status, self.integer(64, 0), "").to_dynamic();
+        match &growth.out_of_memory {
+            OutOfMemory::Crash(failure) => {
+                let operands = self.report(frame, report, 4);
+                self.crash_unless(frame, room, failure, &operands)?;
+            }
+            OutOfMemory::Ignore => {
+                let push = frame.function.append_basic_block("grown");
+                frame.builder.conditional_branch(room, push, after);
+                frame.builder.position_at_end(push);
+            }
+            OutOfMemory::Flag(local) => {
+                let out = frame.builder.not(room, "").to_dynamic();
+                frame.builder.store(out, frame.slots[*local]);
+                let push = frame.function.append_basic_block("grown");
+                frame.builder.conditional_branch(room, push, after);
+                frame.builder.position_at_end(push);
+            }
+        }
+        Ok(())
+    }
+
+    /// The first `count` numbers a runtime call wrote in its report, as a failure's operands.
+    fn report(
+        &mut self,
+        frame: &mut Frame<'context, 'module>,
+        report: Value<'context, 'module>,
+        count: u64,
+    ) -> Vec<Operand<'context, 'module>> {
+        let word = self.context.integer_type(64).to_dynamic();
+        (0..count)
+            .map(|index| {
+                let place =
+                    frame.builder.get_element_pointer(word, report, &[self.integer(64, index)], "").to_dynamic();
+                (frame.builder.load(word, place, "").to_dynamic(), MachineType::Integer { bits: 64, signed: false })
+            })
+            .collect()
+    }
+
     /// A stack slot for a temporary, made in the entry block, so a loop doesn't make a new one each round.
     fn temporary(
         frame: &Frame<'context, 'module>,
@@ -665,26 +750,69 @@ impl<'context, 'module> Generator<'context, 'module> {
                 let value = self.expression(frame, value)?;
                 frame.builder.store(value, pointer);
             }
-            Statement::Push { place, value, room } => {
+            Statement::Push { place, value, room, growth } => {
                 let (record, machine_type) = self.place_pointer(frame, place)?;
                 let MachineType::List(item) = machine_type else {
                     return Err("adding to something that isn't a list".into());
                 };
                 let list_type = self.list_type();
+                let word = MachineType::Integer { bits: 64, signed: false };
+                let after = frame.function.append_basic_block("after_push");
+                let count_place = frame.builder.struct_get_element_pointer(list_type, record, 1, "").to_dynamic();
+                let count = frame.builder.load(self.context.integer_type(64), count_place, "").to_dynamic();
                 if let Some((max, failure)) = room {
-                    let count_place = frame.builder.struct_get_element_pointer(list_type, record, 1, "").to_dynamic();
-                    let count = frame.builder.load(self.context.integer_type(64), count_place, "").to_dynamic();
                     let fits = frame
                         .builder
                         .integer_compare(IntegerPredicate::UnsignedLessThan, count, self.integer(64, *max), "")
                         .to_dynamic();
-                    self.check(frame, fits, failure, &[(count, MachineType::Integer { bits: 64, signed: false })])?;
+                    match failure {
+                        Some(failure) => self.crash_unless(frame, fits, failure, &[(count, word.clone())])?,
+                        // `?? void`: a full list is left as it is.
+                        None => {
+                            let push = frame.function.append_basic_block("push");
+                            frame.builder.conditional_branch(fits, push, after);
+                            frame.builder.position_at_end(push);
+                        }
+                    }
                 }
                 let item_type = self.machine_type(&item);
                 let size = self.context.size_of(item_type);
+                if let Some(growth) = growth {
+                    let one = self.integer(64, 1);
+                    let want = frame.builder.integer_add(count, one, "").to_dynamic();
+                    self.grow_list(frame, record, growth, want, size, after)?;
+                }
                 let slot = frame.builder.call(self.runtime("__cyborg_list_push")?, &[record, size], "").to_dynamic();
                 let value = self.expression(frame, value)?;
                 frame.builder.store(value, slot);
+                frame.builder.branch(after);
+                frame.builder.position_at_end(after);
+            }
+            Statement::ListDone { place, allocator, wrong } => {
+                // trace: D322, D323
+                let (record, _) = self.place_pointer(frame, place)?;
+                let allocator = self.expression(frame, allocator)?;
+                let report = Self::temporary(frame, self.context.integer_type(64).array_type(4));
+                let status = frame
+                    .builder
+                    .call(self.runtime("__cyborg_list_same_allocator")?, &[record, allocator, report], "")
+                    .to_dynamic();
+                let fine = frame
+                    .builder
+                    .integer_compare(IntegerPredicate::Equal, status, self.integer(64, 0), "")
+                    .to_dynamic();
+                let operands = self.report(frame, report, 2);
+                self.check(frame, fine, wrong, &operands)?;
+                frame.builder.call(self.runtime("__cyborg_list_done")?, &[record, allocator], "");
+            }
+            Statement::ArenaDone { arena, alive } => {
+                // trace: D330
+                let arena = self.expression(frame, arena)?;
+                let count = frame.builder.call(self.runtime("__cyborg_alive")?, &[arena], "").to_dynamic();
+                let none =
+                    frame.builder.integer_compare(IntegerPredicate::Equal, count, self.integer(64, 0), "").to_dynamic();
+                self.check(frame, none, alive, &[(count, MachineType::Integer { bits: 64, signed: false })])?;
+                frame.builder.call(self.runtime("__cyborg_arena_free")?, &[arena], "");
             }
             Statement::AliasValue { local, value } => {
                 let address = self.expression(frame, value)?;
@@ -882,6 +1010,18 @@ impl<'context, 'module> Generator<'context, 'module> {
             }
             return Ok(());
         }
+        self.crash_unless(frame, holds, failure, operands)
+    }
+
+    /// Crashes with `failure`'s message unless `holds` is true, in every mode: a failure nothing handles, like
+    /// running out of memory, isn't a check a mode can drop (D96).
+    fn crash_unless(
+        &mut self,
+        frame: &mut Frame<'context, 'module>,
+        holds: Value<'context, 'module>,
+        failure: &CheckFailure,
+        operands: &[Operand<'context, 'module>],
+    ) -> Result<()> {
         let fine = frame.function.append_basic_block("fine");
         let failed = frame.function.append_basic_block("failed");
         frame.builder.conditional_branch(holds, fine, failed);
@@ -1660,6 +1800,40 @@ impl<'context, 'module> Generator<'context, 'module> {
                 self.check(frame, fits, failure, &[(generated, value.machine_type.clone())])?;
                 generated
             }
+            ExpressionKind::Heap => {
+                frame.builder.call(self.runtime("__cyborg_heap")?, &[] as &[Value<'context, 'module>], "").to_dynamic()
+            }
+            ExpressionKind::ArenaNew { room } => {
+                // trace: D330, D386
+                let room = self.integer(64, *room);
+                frame.builder.call(self.runtime("__cyborg_arena_new")?, &[room], "").to_dynamic()
+            }
+            ExpressionKind::ListFrom { items, growth } => {
+                // trace: D369
+                let MachineType::List(item) = &expression.machine_type else {
+                    return Err("a list from something that isn't a list".into());
+                };
+                let list_type = self.list_type();
+                let record = Self::temporary(frame, list_type);
+                let empty = self.empty_list();
+                frame.builder.store(empty, record);
+                let item_type = self.machine_type(item);
+                let size = self.context.size_of(item_type);
+                let after = frame.function.append_basic_block("after_from");
+                let want = self.integer(64, items.len() as u64);
+                if !items.is_empty() {
+                    self.grow_list(frame, record, growth, want, size, after)?;
+                }
+                for each in items {
+                    let slot =
+                        frame.builder.call(self.runtime("__cyborg_list_push")?, &[record, size], "").to_dynamic();
+                    let value = self.expression(frame, each)?;
+                    frame.builder.store(value, slot);
+                }
+                frame.builder.branch(after);
+                frame.builder.position_at_end(after);
+                frame.builder.load(list_type, record, "").to_dynamic()
+            }
             ExpressionKind::Maths { function, value } => {
                 // trace: D256
                 let argument = self.expression(frame, value)?;
@@ -1744,7 +1918,11 @@ impl<'context, 'module> Generator<'context, 'module> {
                 let mut record = self.list_type().undefined().to_dynamic();
                 record = frame.builder.insert_value(record, storage, 0, "").to_dynamic();
                 record = frame.builder.insert_value(record, count, 1, "").to_dynamic();
-                frame.builder.insert_value(record, count, 2, "").to_dynamic()
+                record = frame.builder.insert_value(record, count, 2, "").to_dynamic();
+                // No allocator yet, and no block in one (D322).
+                let none = integer_constant(self.context, 64, -1);
+                record = frame.builder.insert_value(record, none, 3, "").to_dynamic();
+                frame.builder.insert_value(record, none, 4, "").to_dynamic()
             }
             ExpressionKind::Fill { value, len } => {
                 let value = self.expression(frame, value)?;
@@ -2069,7 +2247,7 @@ fn size_in_words(machine_type: &MachineType, program: &Program) -> u64 {
         MachineType::Writer => 6,
         MachineType::Address => 1,
         MachineType::Array { item, len } => size_in_words(item, program).saturating_mul(*len).max(1),
-        MachineType::List(_) => 3,
+        MachineType::List(_) => 5,
         MachineType::Struct(id) => program
             .structs
             .get(*id)

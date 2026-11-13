@@ -90,6 +90,22 @@ impl WriterKind {
 }
 
 /// Integer bounds (D20), as numbers.
+/// How a growable list grows when it's full (D385): doubling, from room for at least 4, unless its type says.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub enum Grow {
+    Double,
+    Exact,
+    ByItems(u64),
+    ByBytes(u64),
+}
+
+/// The allocators a program can name (D332, D333).
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub enum AllocatorKind {
+    Heap,
+    Arena,
+}
+
 /// How a `str` holds its text: a view of someone else's, up to a number of bytes inside the value, or growing on the
 /// heap (D326, D327).
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
@@ -269,7 +285,11 @@ pub enum Type {
         min: u64,
         max: Option<u64>,
         len_type: IntegerKind,
+        /// How a growable list grows when it's full (D385).
+        grow: Grow,
     },
+    /// An allocator: the OS heap, or an arena (D321, D330, D332, D333).
+    Allocator(AllocatorKind),
     /// A type parameter inside its generic's own body, which can only be used as its requirement lists (D235).
     Param {
         name: String,
@@ -299,6 +319,17 @@ impl Type {
         match self {
             Type::New { inner, .. } => inner.is_copied(),
             _ => matches!(self, Type::Integer { .. } | Type::Float { .. } | Type::Bool),
+        }
+    }
+
+    /// The same list type, growing another way.
+    #[must_use]
+    pub fn with_grow(&self, grow: Grow) -> Type {
+        match self {
+            Type::List { item, min, max, len_type, .. } => {
+                Type::List { item: item.clone(), min: *min, max: *max, len_type: *len_type, grow }
+            }
+            other => other.clone(),
         }
     }
 
@@ -359,6 +390,7 @@ impl Type {
             Type::Array { item, len, .. } => checked::MachineType::Array { item: Box::new(item.machine()), len: *len },
             Type::List { item, .. } => checked::MachineType::List(Box::new(item.machine())),
             Type::Str(_) => checked::MachineType::Text,
+            Type::Allocator(_) => checked::MachineType::Address,
             Type::Void | Type::Unknown => checked::MachineType::Void,
             // A generic's own body is only checked, never built: each call builds a copy with real types.
             Type::Param { .. } => checked::MachineType::Address,
@@ -434,7 +466,9 @@ impl fmt::Display for Type {
                 }
                 write!(formatter, "]")
             }
-            Type::List { item, min, max, len_type } => {
+            Type::Allocator(AllocatorKind::Heap) => write!(formatter, "os::heap"),
+            Type::Allocator(AllocatorKind::Arena) => write!(formatter, "std::mem::arena"),
+            Type::List { item, min, max, len_type, grow } => {
                 write!(formatter, "std::coll::list<{item}>[")?;
                 if *min > 0 {
                     write!(formatter, "len.min: {min} items, ")?;
@@ -445,6 +479,12 @@ impl fmt::Display for Type {
                 }
                 if *len_type != IntegerKind::U64 {
                     write!(formatter, ", len.type: {}", len_type.name())?;
+                }
+                match grow {
+                    Grow::Double => {}
+                    Grow::Exact => write!(formatter, ", grow: exact")?,
+                    Grow::ByItems(step) => write!(formatter, ", grow: by {step} items")?,
+                    Grow::ByBytes(step) => write!(formatter, ", grow: by {step} bytes")?,
                 }
                 write!(formatter, "]")
             }

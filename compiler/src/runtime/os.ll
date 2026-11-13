@@ -359,8 +359,214 @@ entry:
   ret { ptr, i64 } %result
 }
 
-; Lists (D11, D24): a record of where the items are, how many there are, and how many fit before it grows.
-%list = type { ptr, i64, i64 }
+; Lists (D11, D24): a record of where the items are, how many there are, how many fit before it grows, which
+; allocator its items came from, or -1 before it has any (D322), and where its block starts in an arena, or -1.
+%list = type { ptr, i64, i64, i64, i64 }
+
+; An allocator (D321, D324, D330): its number, the room it has, or -1 for the OS heap, which has no limit of its own,
+; how much is taken, where its last block starts, and how many lists still hold a block from it. Every `os::heap()` is
+; the one heap, number 0 (D371), and each arena gets the next number. An arena counts its room in the standard's
+; sizes, so it runs out at the same byte on every machine for a target (D370, D389); the items themselves live in
+; memory from the OS heap.
+%allocator = type { i64, i64, i64, i64, i64 }
+
+@__cyborg_the_heap = hidden global %allocator { i64 0, i64 -1, i64 0, i64 -1, i64 0 }
+@__cyborg_next_allocator = hidden global i64 1
+
+define ptr @__cyborg_heap() {
+entry:
+  ret ptr @__cyborg_the_heap
+}
+
+; A new arena, with its room in bytes.
+define ptr @__cyborg_arena_new(i64 %room) {
+entry:
+  %record = call ptr @malloc(i64 40)
+  %none = icmp eq ptr %record, null
+  br i1 %none, label %out, label %fine
+out:
+  call void @exit(i32 1)
+  unreachable
+fine:
+  %id = load i64, ptr @__cyborg_next_allocator
+  %next = add i64 %id, 1
+  store i64 %next, ptr @__cyborg_next_allocator
+  store %allocator { i64 0, i64 0, i64 0, i64 -1, i64 0 }, ptr %record
+  %id_place = getelementptr %allocator, ptr %record, i32 0, i32 0
+  store i64 %id, ptr %id_place
+  %room_place = getelementptr %allocator, ptr %record, i32 0, i32 1
+  store i64 %room, ptr %room_place
+  ret ptr %record
+}
+
+; How many lists still hold a block from an allocator.
+define i64 @__cyborg_alive(ptr %allocator) {
+entry:
+  %alive_place = getelementptr %allocator, ptr %allocator, i32 0, i32 4
+  %alive = load i64, ptr %alive_place
+  ret i64 %alive
+}
+
+define void @__cyborg_arena_free(ptr %arena) {
+entry:
+  call void @free(ptr %arena)
+  ret void
+}
+
+; Whether a list is handed the allocator it uses: 0 if so, or 2 with its allocator's number and this one's in
+; `%report` (D322).
+define i64 @__cyborg_list_same_allocator(ptr %list, ptr %allocator, ptr %report) {
+entry:
+  %id_place = getelementptr %list, ptr %list, i32 0, i32 3
+  %id = load i64, ptr %id_place
+  %given_place = getelementptr %allocator, ptr %allocator, i32 0, i32 0
+  %given = load i64, ptr %given_place
+  %has = icmp sge i64 %id, 0
+  %other = icmp ne i64 %id, %given
+  %wrong = and i1 %has, %other
+  br i1 %wrong, label %refuse, label %fine
+refuse:
+  store i64 %id, ptr %report
+  %second = getelementptr i64, ptr %report, i64 1
+  store i64 %given, ptr %second
+  ret i64 2
+fine:
+  ret i64 0
+}
+
+; Makes room in a list for `%want` items, growing as its type says (D385): `%grow` is 0 to double, from room for at
+; least 4, 1 for exactly what's needed, 2 for steps of `%step` items, and 3 for steps of `%step` bytes. Gives 0 when
+; there's room, 1 when the allocator is out of memory, with its room, what's taken, what's needed and from which
+; byte in `%report`, and 2 for another allocator than the list's (D322). `%size` is an item's size in this
+; machine's memory, and `%standard` and `%align` are its size and alignment as the standard counts them (D370).
+define i64 @__cyborg_list_reserve(ptr %list, ptr %allocator, i64 %want, i64 %size, i64 %standard, i64 %align, i64 %grow, i64 %step, ptr %report) {
+entry:
+  %same = call i64 @__cyborg_list_same_allocator(ptr %list, ptr %allocator, ptr %report)
+  %wrong = icmp ne i64 %same, 0
+  br i1 %wrong, label %refuse, label %checked
+refuse:
+  ret i64 2
+checked:
+  %cap_place = getelementptr %list, ptr %list, i32 0, i32 2
+  %cap = load i64, ptr %cap_place
+  %enough = icmp uge i64 %cap, %want
+  br i1 %enough, label %done, label %grow_it
+done:
+  ret i64 0
+grow_it:
+  ; Doubling, from at least 4.
+  %empty = icmp eq i64 %cap, 0
+  %doubled = shl i64 %cap, 1
+  %at_least_four = select i1 %empty, i64 4, i64 %doubled
+  %double_small = icmp ult i64 %at_least_four, %want
+  %double_cap = select i1 %double_small, i64 %want, i64 %at_least_four
+  ; Steps of items.
+  %step_less = sub i64 %step, 1
+  %items_up = add i64 %want, %step_less
+  %items_steps = udiv i64 %items_up, %step
+  %items_cap = mul i64 %items_steps, %step
+  ; Steps of bytes.
+  %want_bytes = mul i64 %want, %standard
+  %bytes_up = add i64 %want_bytes, %step_less
+  %bytes_steps = udiv i64 %bytes_up, %step
+  %step_bytes = mul i64 %bytes_steps, %step
+  %bytes_cap = udiv i64 %step_bytes, %standard
+  %is_exact = icmp eq i64 %grow, 1
+  %is_items = icmp eq i64 %grow, 2
+  %is_bytes = icmp eq i64 %grow, 3
+  %cap_a = select i1 %is_exact, i64 %want, i64 %double_cap
+  %cap_b = select i1 %is_items, i64 %items_cap, i64 %cap_a
+  %new_cap = select i1 %is_bytes, i64 %bytes_cap, i64 %cap_b
+  %counted = mul i64 %new_cap, %standard
+  %standard_bytes = select i1 %is_bytes, i64 %step_bytes, i64 %counted
+  %room_place = getelementptr %allocator, ptr %allocator, i32 0, i32 1
+  %room = load i64, ptr %room_place
+  %unlimited = icmp slt i64 %room, 0
+  br i1 %unlimited, label %memory, label %count
+count:
+  %block_place = getelementptr %list, ptr %list, i32 0, i32 4
+  %block = load i64, ptr %block_place
+  %taken_place = getelementptr %allocator, ptr %allocator, i32 0, i32 2
+  %taken = load i64, ptr %taken_place
+  %last_place = getelementptr %allocator, ptr %allocator, i32 0, i32 3
+  %last = load i64, ptr %last_place
+  %has_block = icmp sge i64 %block, 0
+  %is_last = icmp eq i64 %block, %last
+  %in_place = and i1 %has_block, %is_last
+  ; A block grows where it is while it's the allocator's last one, and otherwise a new one is taken (D389).
+  %align_less = sub i64 %align, 1
+  %taken_up = add i64 %taken, %align_less
+  %aligned_steps = udiv i64 %taken_up, %align
+  %aligned = mul i64 %aligned_steps, %align
+  %start = select i1 %in_place, i64 %block, i64 %aligned
+  %end = add i64 %start, %standard_bytes
+  %too_much = icmp sgt i64 %end, %room
+  br i1 %too_much, label %out, label %take
+out:
+  store i64 %room, ptr %report
+  %report_taken = getelementptr i64, ptr %report, i64 1
+  store i64 %taken, ptr %report_taken
+  %report_needs = getelementptr i64, ptr %report, i64 2
+  store i64 %standard_bytes, ptr %report_needs
+  %report_from = getelementptr i64, ptr %report, i64 3
+  store i64 %start, ptr %report_from
+  ret i64 1
+take:
+  store i64 %end, ptr %taken_place
+  store i64 %start, ptr %last_place
+  store i64 %start, ptr %block_place
+  br i1 %has_block, label %memory, label %first
+first:
+  %alive_place = getelementptr %allocator, ptr %allocator, i32 0, i32 4
+  %alive = load i64, ptr %alive_place
+  %more_alive = add i64 %alive, 1
+  store i64 %more_alive, ptr %alive_place
+  br label %memory
+memory:
+  %bytes = mul i64 %new_cap, %size
+  %storage_place = getelementptr %list, ptr %list, i32 0, i32 0
+  %old = load ptr, ptr %storage_place
+  %new = call ptr @realloc(ptr %old, i64 %bytes)
+  %none = icmp eq ptr %new, null
+  br i1 %none, label %no_memory, label %grown
+no_memory:
+  store i64 0, ptr %report
+  %none_taken = getelementptr i64, ptr %report, i64 1
+  store i64 0, ptr %none_taken
+  %none_needs = getelementptr i64, ptr %report, i64 2
+  store i64 %bytes, ptr %none_needs
+  %none_from = getelementptr i64, ptr %report, i64 3
+  store i64 0, ptr %none_from
+  ret i64 1
+grown:
+  store ptr %new, ptr %storage_place
+  store i64 %new_cap, ptr %cap_place
+  %given_place = getelementptr %allocator, ptr %allocator, i32 0, i32 0
+  %given = load i64, ptr %given_place
+  %id_place = getelementptr %list, ptr %list, i32 0, i32 3
+  store i64 %given, ptr %id_place
+  ret i64 0
+}
+
+; Ends a list (D323, D331): its memory goes back, and an arena counts one fewer alive. The allocator was checked first.
+define void @__cyborg_list_done(ptr %list, ptr %allocator) {
+entry:
+  %block_place = getelementptr %list, ptr %list, i32 0, i32 4
+  %block = load i64, ptr %block_place
+  %has_block = icmp sge i64 %block, 0
+  br i1 %has_block, label %count, label %free
+count:
+  %alive_place = getelementptr %allocator, ptr %allocator, i32 0, i32 4
+  %alive = load i64, ptr %alive_place
+  %fewer = sub i64 %alive, 1
+  store i64 %fewer, ptr %alive_place
+  br label %free
+free:
+  %storage_place = getelementptr %list, ptr %list, i32 0, i32 0
+  %storage = load ptr, ptr %storage_place
+  call void @free(ptr %storage)
+  ret void
+}
 
 ; Memory for a list's first items. Running out of memory stops the program, since nothing can carry on without it.
 define ptr @__cyborg_allocate(i64 %bytes) {

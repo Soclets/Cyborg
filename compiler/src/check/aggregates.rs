@@ -24,10 +24,37 @@ pub struct StructInfo {
     pub name: String,
     pub fields: Vec<FieldInfo>,
     pub must_give: bool,
+    /// How its fields are laid out in memory (D319, D388).
+    pub layout: Layout,
     /// The sources its borrows name, in order (D171).
     pub sources: Vec<String>,
     /// Each `lasts_at_least` fact between them: the longer one, then the other.
     pub facts: Vec<(String, String)>,
+}
+
+/// A struct's layout (D319, D388): the written order with natural padding, sorted by alignment with `.compact`, the
+/// compiler's own choice with `.any_order`, or the written order with no padding with `.packed`.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Layout {
+    Written,
+    Compact,
+    AnyOrder,
+    Packed,
+}
+
+impl Layout {
+    #[must_use]
+    pub fn of_keyword(keyword: &str) -> Layout {
+        if keyword.contains(".compact") {
+            Layout::Compact
+        } else if keyword.contains(".any_order") {
+            Layout::AnyOrder
+        } else if keyword.contains(".packed") {
+            Layout::Packed
+        } else {
+            Layout::Written
+        }
+    }
 }
 
 #[derive(Clone, Debug)]
@@ -77,6 +104,7 @@ impl Checker<'_> {
                         name: name.clone(),
                         fields: Vec::new(),
                         must_give,
+                        layout: Layout::of_keyword(&declared.keyword.text()),
                         sources,
                         facts,
                     });
@@ -539,6 +567,7 @@ impl Checker<'_> {
                 name: String::new(),
                 fields: Vec::new(),
                 must_give: false,
+                layout: Layout::Written,
                 sources: Vec::new(),
                 facts: Vec::new(),
             });
@@ -547,6 +576,7 @@ impl Checker<'_> {
             name: shown.clone(),
             fields: Vec::new(),
             must_give: generic.syntax.keyword.text() == "struct.must_Give",
+            layout: Layout::of_keyword(&generic.syntax.keyword.text()),
             sources: Vec::new(),
             facts: Vec::new(),
         });

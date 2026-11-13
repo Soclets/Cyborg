@@ -159,11 +159,25 @@ pub enum Statement {
         place: Place,
         value: Expression,
     },
-    /// Adds an item at the end of a list, checking it has room for one more (D24).
+    /// Adds an item at the end of a list (D24). A bounded list checks it has room for one more, and crashes when
+    /// it's full unless the failure is ignored, with `None`. A growable list grows with its allocator (D321, D322).
     Push {
         place: Place,
         value: Expression,
-        room: Option<(u64, Box<CheckFailure>)>,
+        room: Option<(u64, Option<Box<CheckFailure>>)>,
+        growth: Option<Growth>,
+    },
+    /// `std::coll::list.done(Give $xs, alloc: Lend $heap)`: checks the allocator is the list's, and frees it (D322,
+    /// D323, D331).
+    ListDone {
+        place: Place,
+        allocator: Expression,
+        wrong: Box<CheckFailure>,
+    },
+    /// `std::mem::arena.done(Give $arena, alloc: Lend $heap)`: checks nothing from it is still alive (D330).
+    ArenaDone {
+        arena: Expression,
+        alive: Box<CheckFailure>,
     },
     /// A stored borrow made from a call that hands one back: from here on, `local` is the place at that address
     /// (D170).
@@ -328,6 +342,29 @@ pub struct Unhandled {
 
 /// What a failed check prints. The message is rendered while building, in the one error layout (standard 11.1),
 /// with the values that broke it, if any, printed into its `when:` line while running.
+/// How a growable list grows (D321, D322, D370, D385): with which allocator, an item's size and alignment as the
+/// standard counts them, how it grows, and what happens when the allocator is the wrong one or out of memory.
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
+pub struct Growth {
+    pub allocator: Box<Expression>,
+    pub standard: u64,
+    pub align: u64,
+    /// 0 doubles, 1 is exact, 2 steps by `step` items and 3 by `step` bytes.
+    pub grow: u8,
+    pub step: u64,
+    pub wrong: Box<CheckFailure>,
+    pub out_of_memory: OutOfMemory,
+}
+
+/// What running out of memory does (D321, D324): crash with its message, be ignored with `?? void`, or set a flag
+/// for an `otherwise` arm to read.
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
+pub enum OutOfMemory {
+    Crash(Box<CheckFailure>),
+    Ignore,
+    Flag(LocalId),
+}
+
 #[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
 #[serde(into = "StoredFailure", from = "StoredFailure")]
 pub struct CheckFailure {
@@ -669,6 +706,17 @@ pub enum ExpressionKind {
         min: i128,
         max: i128,
         failure: Box<CheckFailure>,
+    },
+    /// `os::heap()`: the one OS heap (D332, D371).
+    Heap,
+    /// `std::mem::arena.new(room: 1 mib, alloc: Lend $heap)` (D330, D333, D386).
+    ArenaNew {
+        room: u64,
+    },
+    /// `std::coll::list.from([1, 2, 3], alloc: Lend $heap)`: a growable list filled with items (D369).
+    ListFrom {
+        items: Vec<Expression>,
+        growth: Growth,
     },
     /// One of `std::math`'s correctly rounded functions, from CORE-MATH (D161, D256).
     Maths {

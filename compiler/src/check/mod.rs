@@ -16,6 +16,7 @@ pub mod types;
 
 mod expressions;
 pub mod library;
+pub mod memory;
 pub mod names;
 pub mod sources;
 mod statements;
@@ -112,6 +113,8 @@ pub struct Loop {
     pub breaks: Option<Vec<Vec<State>>>,
     /// How many variables were in scope as it started, so a `break` knows which ones it leaves behind.
     pub variables: usize,
+    /// How many blocks with deferred statements were open as it started, so a `break` runs those inside it (D325).
+    pub defers: usize,
 }
 
 /// Why a bound in another unit is converted, or refused (D260).
@@ -161,6 +164,12 @@ pub struct Body {
     pub calls: Vec<Span>,
     /// Parameters that are only lent, bare or `Lent.mut`, so their duties are the caller's (D2).
     pub lent: Vec<checked::LocalId>,
+    /// Values a `defer` will give away, with where, so nothing else gives them away first (D325).
+    pub promised: Vec<(checked::LocalId, Span)>,
+    /// Whether deferred statements are being checked where their block ends, which is where they give values away.
+    pub running_defers: bool,
+    /// The deferred statements of each block open, innermost last, run in reverse when the block ends (D325).
+    pub defers: Vec<Vec<syntax::Statement>>,
     /// The lists and arrays a `for` around this is reading in place (D128).
     pub reading: Vec<String>,
     /// The ones a `for` reads only a part of, like `$g[pos: 1]`.
@@ -1113,6 +1122,7 @@ impl Checker<'_> {
                     declared: parameter.name.span,
                     must_give: self.must_give(value_type),
                     origin,
+                    why: self.duty_why(value_type),
                 });
             }
             body.declare(
@@ -1174,9 +1184,31 @@ impl Checker<'_> {
         match value_type {
             Type::Struct { id, .. } => self.aggregates.structs.get(*id).is_some_and(|info| info.must_give),
             Type::New { inner, .. } => self.must_give(inner),
-            // A list of values with a duty has every one of them to hand off (D180).
+            // A list that can grow owns its memory (D323), and a list of values with a duty has every one of them
+            // to hand off (D180).
+            Type::List { max: None, .. } => true,
             Type::List { item, .. } | Type::Array { item, .. } => self.must_give(item),
+            // An arena owns its block, and a growable string its text (D325, D326, D330).
+            Type::Allocator(types::AllocatorKind::Arena) | Type::Str(StrSize::Growing) => true,
             _ => false,
+        }
+    }
+
+    /// Why a value of this type has to be ended, for one whose kind has its own reason (D323, D326, D330).
+    #[must_use]
+    pub fn duty_why(&self, value_type: &Type) -> Option<String> {
+        match value_type {
+            Type::List { max: None, .. } => Some(
+                "a list that can grow on the heap is `must_Give`, and `std::coll::list.done` frees it with the allocator it came from, so a leak doesn't compile (D323, D325, D331)".to_string(),
+            ),
+            Type::Allocator(types::AllocatorKind::Arena) => Some(
+                "an arena owns its block, so it's `must_Give`, and `std::mem::arena.done` hands it back to the allocator it came from (D330, D331)".to_string(),
+            ),
+            Type::Str(StrSize::Growing) => Some(
+                "a string that can grow on the heap is `must_Give`, and `str.done` frees it with the allocator it came from, so a leak doesn't compile (D326, D331)".to_string(),
+            ),
+            Type::New { inner, .. } => self.duty_why(inner),
+            _ => None,
         }
     }
 
@@ -1191,6 +1223,7 @@ impl Checker<'_> {
             declared,
             must_give: self.must_give(value_type),
             origin: crate::flow::Origin::Local,
+            why: self.duty_why(value_type),
         });
     }
 
@@ -1695,6 +1728,7 @@ impl Checker<'_> {
                 )))
             }
             _ if let Some(reported) = self.bare_member(path, &text) => Err(reported),
+            _ if let Some(allocator) = self.allocator_type(&text, path.span) => allocator,
             _ if text.contains("::") || text.contains('.') => {
                 Err(self.not_yet(written.span, format!("the type `{text}`")))
             }
@@ -1915,9 +1949,11 @@ impl Checker<'_> {
         let mut min = None;
         let mut max = None;
         let mut len_type = IntegerKind::U64;
+        let mut grow = None;
         for label in labels {
             let name = label.name.text();
             match name.as_str() {
+                "grow" if !array => grow = Some((self.grow(&label.value)?, label.name.span)),
                 "len.always" => {
                     return Err(self.error(Diagnostic::refused_fix(
                         label.name.span,
@@ -1972,7 +2008,37 @@ impl Checker<'_> {
             Some((None, span)) => return Err(self.not_yet(span, "`len.min: inf`".to_string())),
             None => 0,
         };
-        Ok(Type::List { item: Box::new(item), min, max, len_type })
+        if let (Some(_), Some((_, span))) = (max, grow) {
+            // trace: D385
+            return Err(self.error(Diagnostic::not_designed(
+                span,
+                "`grow:` on a list with a finite `len.max`, which never grows",
+                "not decided yet, and the standard doesn't say",
+            )));
+        }
+        let grow = grow.map_or(types::Grow::Double, |(grow, _)| grow);
+        Ok(Type::List { item: Box::new(item), min, max, len_type, grow })
+    }
+
+    /// `grow: exact`, `grow: by 64 items` or `grow: by 4 kib` (D385).
+    fn grow(&mut self, value: &syntax::Expression) -> Check<types::Grow> {
+        const WHY: &str = "a growable list doubles when it's full, unless it says `grow: exact` or `grow: by 4 kib` or `grow: by 64 items` (D385)";
+        let refused = |this: &mut Self| {
+            Err(this.error(Diagnostic::refused(value.span, "`grow:` is `exact`, or `by` a size", WHY)))
+        };
+        let text = self.slice(value.span).to_string();
+        if text == "exact" {
+            return Ok(types::Grow::Exact);
+        }
+        let Some(size) = text.strip_prefix("by ") else { return refused(self) };
+        let words: Vec<&str> = size.split_whitespace().collect();
+        let [number, unit] = words.as_slice() else { return refused(self) };
+        let Ok(number) = number.replace('_', "").parse::<u64>() else { return refused(self) };
+        match bytes_in(unit) {
+            Some(bytes) if number > 0 => Ok(types::Grow::ByBytes(number.saturating_mul(bytes))),
+            None if *unit == "items" && number > 0 => Ok(types::Grow::ByItems(number)),
+            _ => refused(self),
+        }
     }
 
     /// A count of items, `3 items`, or `inf items` as `None` (D11, D101).
@@ -2447,6 +2513,17 @@ fn mark_text(mark: syntax::Mark) -> &'static str {
         syntax::Mark::DoublePercent => "%%",
         syntax::Mark::Star => "*",
         syntax::Mark::None => "",
+    }
+}
+
+/// How many bytes one of a byte unit is: `bytes`, `kib` and `mib`, the binary prefixes (D250, D370).
+#[must_use]
+pub fn bytes_in(unit: &str) -> Option<u64> {
+    match unit {
+        "bytes" => Some(1),
+        "kib" => Some(1024),
+        "mib" => Some(1024 * 1024),
+        _ => None,
     }
 }
 

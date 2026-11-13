@@ -62,6 +62,8 @@ pub enum Event {
         declared: Span,
         must_give: bool,
         origin: Origin,
+        /// Why its duty matters, said when it's left open, for a value whose kind has its own reason.
+        why: Option<String>,
     },
     /// Reading it, or a `Copy` or `Lend` of it.
     Read {
@@ -247,6 +249,9 @@ impl Lowering {
                 }
                 Some(here)
             }
+            Statement::ListDone { allocator: value, .. } | Statement::ArenaDone { arena: value, .. } => {
+                Some(self.expression(value, here))
+            }
             Statement::OpenWriter { .. }
             | Statement::Alias { .. }
             | Statement::Print { .. }
@@ -388,6 +393,7 @@ struct Variable {
     declared: Span,
     must_give: bool,
     origin: Origin,
+    why: Option<String>,
 }
 
 impl Holding {
@@ -483,10 +489,16 @@ pub fn check(graph: &Graph) -> Vec<Diagnostic> {
     let mut variables = BTreeMap::new();
     for node in &graph.nodes {
         for event in &node.events {
-            if let Event::Bind { local, name, declared, must_give, origin } = event {
+            if let Event::Bind { local, name, declared, must_give, origin, why } = event {
                 variables.insert(
                     *local,
-                    Variable { name: name.clone(), declared: *declared, must_give: *must_give, origin: *origin },
+                    Variable {
+                        name: name.clone(),
+                        declared: *declared,
+                        must_give: *must_give,
+                        origin: *origin,
+                        why: why.clone(),
+                    },
                 );
             }
         }
@@ -632,14 +644,14 @@ impl Checker<'_> {
                             Diagnostic::refused(
                                 variable.declared,
                                 format!("`{name}` isn't given away or finished on every path"),
-                                DUTY_WHY,
+                                variable.why.clone().unwrap_or_else(|| DUTY_WHY.to_string()),
                             )
                             .with_because(at, format!("`{name}` went here, on only one path")),
                         ),
                         _ => self.say(Diagnostic::refused(
                             variable.declared,
                             format!("`{name}` is never given away or finished"),
-                            DUTY_WHY,
+                            variable.why.clone().unwrap_or_else(|| DUTY_WHY.to_string()),
                         )),
                     }
                 }
@@ -823,7 +835,7 @@ impl Checker<'_> {
                         Diagnostic::refused(
                             span,
                             format!("this leaves with `{name}` never given away or finished"),
-                            DUTY_WHY,
+                            variable.why.clone().unwrap_or_else(|| DUTY_WHY.to_string()),
                         )
                         .with_because(variable.declared, note),
                     );

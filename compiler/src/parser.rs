@@ -1242,6 +1242,10 @@ impl<'source> Parser<'source> {
                     StatementKind::Return(Some(value))
                 }
             }
+            Some("defer") if self.kind_at(1) == Some(TokenKind::Word) && !self.followed_by_path_joint() => {
+                self.advance();
+                StatementKind::Defer(Box::new(self.statement()?))
+            }
             Some("if") => StatementKind::If(self.if_statement()?),
             Some("match") => StatementKind::Match(self.match_statement()?),
             Some("for") => StatementKind::For(self.for_statement()?),
@@ -2069,6 +2073,14 @@ impl<'source> Parser<'source> {
         } else {
             return Err(self.error_expected_after(":"));
         };
+        // `grow: by 4 kib` grows a list in steps (D385): the step is the value, spanning `by`.
+        if name.text() == "grow" && self.is_word("by") && matches!(self.kind_at(1), Some(TokenKind::Integer)) {
+            let by = self.current_span();
+            self.advance();
+            let step = self.expression()?;
+            let value = Expression { span: by.to(step.span), kind: step.kind };
+            return Ok(Label { name, sets, value, span: start.to(self.previous_span()) });
+        }
         let value = self.expression()?;
         Ok(Label { name, sets, value, span: start.to(self.previous_span()) })
     }

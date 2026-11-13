@@ -792,9 +792,14 @@ fn substituted(value_type: &Type, filled: &[(String, Filling)]) -> Type {
         Type::Float { bits, kind, bounds, unit } => {
             Type::Float { bits: *bits, kind: *kind, bounds: *bounds, unit: unit_of(unit) }
         }
-        Type::List { item, min, max, len_type } => {
-            Type::List { item: Box::new(substituted(item, filled)), min: *min, max: *max, len_type: *len_type }
-        }
+        Type::List { item, min, max, len_type, grow } => Type::List {
+            item: Box::new(substituted(item, filled)),
+            min: *min,
+            max: *max,
+            len_type: *len_type,
+            grow: *grow,
+        },
+        Type::Allocator(_) => value_type.clone(),
         Type::Array { item, len, len_type } => {
             Type::Array { item: Box::new(substituted(item, filled)), len: *len, len_type: *len_type }
         }

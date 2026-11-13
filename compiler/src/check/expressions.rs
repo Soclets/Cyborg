@@ -2122,6 +2122,10 @@ impl Checker<'_> {
         }
         self.old_prints(&name, callee.span)?;
         self.limb_call(&name, callee.span)?;
+        if let Some(made) = self.memory_call(body, expression, &name, arguments, expected.as_ref()) {
+            self.require_import(&name, path.span)?;
+            return made;
+        }
         if let Some(function) = checked::MathsFunction::from_path(&name) {
             self.require_import(&name, path.span)?;
             return self.maths_call(body, expression, function, arguments);
@@ -2351,6 +2355,17 @@ impl Checker<'_> {
                         "`let` declares a variable that can't change, and `let mut` one that can (D3)",
                     )));
                 }
+                if let (Type::List { grow: a, .. }, Type::List { grow: b, .. }) = (&typed.value_type, parameter_type)
+                    && a != b
+                    && typed.value_type.with_grow(*b) == *parameter_type
+                {
+                    // trace: D385
+                    return Err(self.error(Diagnostic::not_designed(
+                        argument.span,
+                        format!("whether `{}` is accepted where `{parameter_type}` is asked for", typed.value_type),
+                        NOT_DECIDED,
+                    )));
+                }
                 if typed.value_type != *parameter_type && !typed.value_type.is_unknown() {
                     return Err(self.error(Diagnostic::refused(
                         argument.span,
@@ -2433,6 +2448,7 @@ impl Checker<'_> {
                     && let Some((local, path)) = self.any_place(body, &argument.value)
                     && let Some(root) = root_name(&argument.value)
                 {
+                    self.not_promised(body, local, root)?;
                     self.only_lent(body, local, root, &path, argument.value.span)?;
                     body.take_read(local);
                     let site = body.site(root.span);
@@ -2476,13 +2492,13 @@ impl Checker<'_> {
                 let typed = self.expression(body, &argument.value, Some(parameter_type))?;
                 let typed_type = typed.value_type.clone();
                 if let (
-                    Type::List { item: a, min: x, max: y, len_type: p },
-                    Type::List { item: b, min: z, max: w, len_type: q },
+                    Type::List { item: a, min: x, max: y, len_type: p, grow: g },
+                    Type::List { item: b, min: z, max: w, len_type: q, grow: h },
                 ) = (&typed_type, parameter_type)
                     && a == b
                     && x == z
                     && y == w
-                    && p != q
+                    && (p != q || g != h)
                 {
                     return Err(self.error(Diagnostic::not_designed(
                         argument.span,
@@ -2760,7 +2776,7 @@ impl Checker<'_> {
     }
 
     /// Refuses giving away what's only lent: a bare or `Lent.mut` parameter, or a stored borrow (D2).
-    fn only_lent(
+    pub fn only_lent(
         &mut self,
         body: &Body,
         local: checked::LocalId,

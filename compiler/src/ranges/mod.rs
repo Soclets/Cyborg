@@ -118,9 +118,23 @@ impl Walker<'_> {
                     }
                 }
             }
-            Statement::Store { place, value } | Statement::Push { place, value, .. } => {
+            Statement::Store { place, value } => {
                 self.place(place);
                 self.expression(value);
+            }
+            Statement::Push { place, value, growth, .. } => {
+                self.place(place);
+                self.expression(value);
+                if let Some(growth) = growth {
+                    self.expression(&mut growth.allocator);
+                }
+            }
+            Statement::ListDone { place, allocator, .. } => {
+                self.place(place);
+                self.expression(allocator);
+            }
+            Statement::ArenaDone { arena, .. } => {
+                self.expression(arena);
             }
             Statement::Assembly { reads, .. } => {
                 for (_, value) in reads {
@@ -316,6 +330,14 @@ impl Walker<'_> {
                 }
                 machine
             }
+            ExpressionKind::ListFrom { items, growth } => {
+                for item in items {
+                    self.expression(item);
+                }
+                self.expression(&mut growth.allocator);
+                machine
+            }
+            ExpressionKind::Heap | ExpressionKind::ArenaNew { .. } => machine,
             ExpressionKind::Site(_)
             | ExpressionKind::Float(_)
             | ExpressionKind::Text(_)
