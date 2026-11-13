@@ -493,6 +493,39 @@ pub enum Arithmetic {
     ShiftRight,
 }
 
+/// A `std::math` function CORE-MATH gives, on `f64` (D256).
+#[derive(Clone, Copy, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub enum MathsFunction {
+    Sin,
+    Cos,
+    Tan,
+}
+
+impl MathsFunction {
+    pub const ALL: [MathsFunction; 3] = [MathsFunction::Sin, MathsFunction::Cos, MathsFunction::Tan];
+
+    /// CORE-MATH's name for it.
+    #[must_use]
+    pub fn symbol(self) -> &'static str {
+        match self {
+            MathsFunction::Sin => "cr_sin",
+            MathsFunction::Cos => "cr_cos",
+            MathsFunction::Tan => "cr_tan",
+        }
+    }
+
+    /// The function `std::math` names this, as in `std::math::sin`.
+    #[must_use]
+    pub fn from_path(path: &str) -> Option<MathsFunction> {
+        match path {
+            "std::math::sin" => Some(MathsFunction::Sin),
+            "std::math::cos" => Some(MathsFunction::Cos),
+            "std::math::tan" => Some(MathsFunction::Tan),
+            _ => None,
+        }
+    }
+}
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum FloatArithmetic {
     Add,
@@ -636,6 +669,11 @@ pub enum ExpressionKind {
         min: i128,
         max: i128,
         failure: Box<CheckFailure>,
+    },
+    /// One of `std::math`'s correctly rounded functions, from CORE-MATH (D161, D256).
+    Maths {
+        function: MathsFunction,
+        value: Box<Expression>,
     },
     /// A value stuck inside bounds, for saturating maths whose result goes into a bounded type (D294, D372).
     Clamp {

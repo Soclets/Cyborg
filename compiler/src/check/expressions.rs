@@ -1662,6 +1662,109 @@ impl Checker<'_> {
         Ok(self.crash_on_failure(expression.span, &signature, typed.value))
     }
 
+    /// `std::math::sin($x)`, `cos` and `tan`: an angle in radians in, correctly rounded from CORE-MATH (D161, D245,
+    /// D256).
+    fn maths_call(
+        &mut self,
+        body: &mut Body,
+        expression: &syntax::Expression,
+        function: checked::MathsFunction,
+        arguments: &[syntax::Argument],
+    ) -> Check<Typed> {
+        const RADIANS: &str = "std::units::angle.radians";
+        let [argument] = arguments else {
+            return Err(self.not_yet(expression.span, "`std::math` with other than one argument".to_string()));
+        };
+        if argument.label.is_some() || argument.ownership.is_some() {
+            return Err(self.not_yet(argument.span, "a label or a word on `std::math`'s argument".to_string()));
+        }
+        // A bare literal is typed as a plain float, which is then refused for having no unit.
+        let plain = Type::Float { bits: 64, kind: super::types::FloatKind::Stable, bounds: None, unit: None };
+        let typed = self.expression(body, &argument.value, Some(&plain))?;
+        let radians = typed.value_type.unit().and_then(super::units::unmarked) == Some(RADIANS);
+        match &typed.value_type {
+            Type::Float { bits: 64, kind: super::types::FloatKind::Stable, .. } if radians => {}
+            Type::Float { .. } | Type::Integer { .. } => {
+                // trace: D245
+                let plain =
+                    typed.value_type.unit().is_none() && (typed.literal.is_some() || typed.float_literal.is_some());
+                let shown = if plain { "a plain number".to_string() } else { format!("`{}`", typed.value_type) };
+                return Err(self.error(Diagnostic::refused(
+                    argument.value.span,
+                    format!("this is {shown}, where an angle, `f64.stable[unit: {RADIANS}]`, is needed"),
+                    "trigonometry asks for an angle in radians, so a plain number is refused, and degrees are converted with `as` (D245)",
+                )));
+            }
+            Type::Unknown => return Err(Reported),
+            other => {
+                return Err(self.error(Diagnostic::refused(
+                    argument.value.span,
+                    format!("this is `{other}`, where an angle, `f64.stable[unit: {RADIANS}]`, is needed"),
+                    "trigonometry asks for an angle in radians, so a plain number is refused, and degrees are converted with `as` (D245)",
+                )));
+            }
+        }
+        let result = Type::Float { bits: 64, kind: super::types::FloatKind::Stable, bounds: None, unit: None };
+        Ok(Typed::new(result, Kind::Maths { function, value: Box::new(typed.value) }))
+    }
+
+    /// A call into a limb or an inline language (D22, D225, D227, D38).
+    fn limb_call(&mut self, name: &str, span: Span) -> Check<()> {
+        const INLINE_WHY: &str = "inline code is `inline.asm`, in the base language, or a limb's own language as `inline.@limb::lang` (D227)";
+        if let Some(rest) = name.strip_prefix("@std::") {
+            // trace: D22, D227
+            let (fixed, why) = if rest == "inline.asm" {
+                ("inline.asm", INLINE_WHY)
+            } else {
+                (name.trim_start_matches('@'), "`@` goes only on things a limb provides (D22)")
+            };
+            return Err(self.error(Diagnostic::refused_fix(span, fixed, why)));
+        }
+        if let Some(language) = name.strip_prefix("inline.")
+            && language != "asm"
+        {
+            if let Some(limb) = language.strip_prefix('@').and_then(|rest| rest.split("::").next()) {
+                return Err(self.error(Diagnostic::not_designed(
+                    span,
+                    format!("how the limb `@{limb}` is found"),
+                    "not decided yet (standard 12.9)",
+                )));
+            }
+            if language.contains("::") {
+                return Err(self.error(Diagnostic::refused_fix(span, format!("inline.@{language}"), INLINE_WHY)));
+            }
+            return Err(self.error(Diagnostic::refused(
+                span,
+                format!("`{name}` isn't an inline language"),
+                INLINE_WHY,
+            )));
+        }
+        if name.starts_with("@csup::") {
+            self.require_import(name, span)?;
+            if name == "@csup::extern.c" {
+                return Err(self.error(Diagnostic::not_designed(
+                    span,
+                    "how a C function is declared and called through `@csup`",
+                    "not decided yet (standard 12.5)",
+                )));
+            }
+            // trace: D38
+            if self.shields == 0 {
+                return Err(self.error(Diagnostic::refused(
+                    span,
+                    format!("`{name}` must be inside a shield"),
+                    "a shield is the only place dangerous code may live (D34, D38)",
+                )));
+            }
+            return Err(self.error(Diagnostic::not_designed(
+                span,
+                format!("using `{name}`, since what `@csup` gives besides its untagged union isn't decided"),
+                "not decided yet (standard 12.9)",
+            )));
+        }
+        Ok(())
+    }
+
     /// A method call, `$r.%%warm_up(by: 2)`: the receiver is lent with `%`, or to change with `%%` (D130, D211).
     pub fn method_call(
         &mut self,
@@ -2013,7 +2116,16 @@ impl Checker<'_> {
                 NOT_DECIDED,
             )));
         }
+        if name.is_empty() {
+            // A short name from a refused `use` line, already reported there.
+            return Err(Reported);
+        }
         self.old_prints(&name, callee.span)?;
+        self.limb_call(&name, callee.span)?;
+        if let Some(function) = checked::MathsFunction::from_path(&name) {
+            self.require_import(&name, path.span)?;
+            return self.maths_call(body, expression, function, arguments);
+        }
         if name.starts_with("std::") && name.contains('.') && !self.functions.contains_key(&name) {
             // `std` is grouped with `::`, and a `.` after a function is a narrowing (D196).
             let fixed = name.replacen('.', "::", 1);

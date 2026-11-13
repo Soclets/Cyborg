@@ -13,6 +13,7 @@ pub mod diagnostic;
 pub mod flow;
 pub mod lexer;
 pub mod manifest;
+pub mod maths;
 pub mod parser;
 pub mod ranges;
 pub mod source;

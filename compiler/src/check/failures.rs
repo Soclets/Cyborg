@@ -79,7 +79,7 @@ impl Checker<'_> {
                     self.error(Diagnostic::refused(
                         entry.name.span,
                         format!("`{written}` goes more than one level into `{set}`"),
-                        "a family is one level deep (D196)",
+                        "a family is one level deep, so a family can't hold a family (D161)",
                     ));
                     continue;
                 }

@@ -1660,6 +1660,17 @@ impl<'context, 'module> Generator<'context, 'module> {
                 self.check(frame, fits, failure, &[(generated, value.machine_type.clone())])?;
                 generated
             }
+            ExpressionKind::Maths { function, value } => {
+                // trace: D256
+                let argument = self.expression(frame, value)?;
+                let double = self.context.get_type::<F64>().to_dynamic();
+                let symbol = function.symbol();
+                let callee = match self.module.get_function(symbol) {
+                    Some(callee) => callee,
+                    None => self.module.add_function(symbol, self.context.function_type(double, &[double], false)),
+                };
+                frame.builder.call(callee, &[argument], "").to_dynamic()
+            }
             ExpressionKind::Clamp { value, min, max } => {
                 let MachineType::Integer { bits, signed } = value.machine_type else {
                     return Err("a clamp on something that isn't an integer".to_string());

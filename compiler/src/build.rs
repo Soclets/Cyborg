@@ -164,6 +164,10 @@ fn objects(
         }
     };
     objects.push(object);
+    // `std::math`'s functions, compiled from CORE-MATH's C for this target when a unit calls one (D256, D308).
+    for function in crate::maths::called(&irs) {
+        objects.push(crate::maths::object(function, target, folder.as_deref())?);
+    }
     Ok(objects)
 }
 

@@ -122,6 +122,15 @@ impl Checker<'_> {
                             ));
                             continue;
                         };
+                        if short.contains('.') {
+                            // trace: D161
+                            self.error(Diagnostic::refused(
+                                entry.name.span,
+                                format!("`{written}` goes more than one level into `{set}`"),
+                                "a family is one level deep, so a family can't hold a family (D161)",
+                            ));
+                            continue;
+                        }
                         self.type_names.members.entry(short.to_string()).or_default().push(written.clone());
                         self.add_type_name(&written, entry.name.span, new, target, true, &aggregate_names);
                     }

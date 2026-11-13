@@ -347,6 +347,8 @@ pub enum FamilyEntryKind {
     TypeSetTo(Type),
     /// `money.dollars = 100 money.cents;` or `motion.speed = length.meters per time.seconds;` in `fam.unit`.
     UnitSetTo(UnitDefinition),
+    /// `metric.milli = 1 per 1000;` in `fam.prefix`: a prefix's exact scale (D250).
+    Prefix { top: Expression, bottom: Option<Expression> },
     /// Nothing after the name.
     Bare,
 }

@@ -1,5 +1,24 @@
 //! `std` and `os`, the parts the checker knows by name until `std`'s kit part is written in Cyborg (D22, D271).
 
+/// The things in `std` a file can import alone (D198, D378).
+pub const STD_THINGS: &[&str] = &[
+    "std::io::fmt_print",
+    "std::math::sin",
+    "std::math::cos",
+    "std::math::tan",
+    "std::math::sqrt",
+    "std::coll::list",
+    "std::coll::array",
+    "std::coll::map",
+    "std::coll::halves",
+    "std::mem::allocator",
+    "std::mem::arena",
+    "std::run::runner",
+    "std::run::one_thread",
+    "std::units::time",
+    "std::units::angle",
+];
+
 use crate::checked;
 use crate::diagnostic::Diagnostic;
 use crate::source::Span;
@@ -11,10 +30,10 @@ use super::types::{Type, WriterKind};
 use super::{Body, Check, Checker};
 
 const NOT_DECIDED: &str = "not decided yet, and the standard doesn't say";
-pub const WRITER_KINDS_WHY: &str = "`os::stdout` and `os::stderr` say which kind they are: `.buffered(size: 1024 bytes)` writes in chunks and is finished with `os::done`, and `.unbuffered()` writes each print straight away (D273)";
+pub const WRITER_KINDS_WHY: &str = "`os::stdout` and `os::stderr` say which kind they are: `.buffered(room: 1024 bytes)` writes in chunks and is finished with `os::done`, and `.unbuffered()` writes each print straight away (D273)";
 
 impl Checker<'_> {
-    /// `os::stdout.buffered(size: 1024 bytes)` or `os::stderr.unbuffered()`, going into a writer (D273).
+    /// `os::stdout.buffered(room: 1024 bytes)` or `os::stderr.unbuffered()`, going into a writer (D273).
     pub fn open_writer(
         &mut self,
         body: &mut Body,
@@ -32,7 +51,7 @@ impl Checker<'_> {
         self.require_import(&made, path.span)?;
         if made == "os::stdout" || made == "os::stderr" {
             return Err(self.error(Diagnostic::refused(
-                callee.span.to(value.span),
+                callee.span,
                 format!("`{made}()` says which kind it is"),
                 WRITER_KINDS_WHY,
             )));
@@ -42,10 +61,20 @@ impl Checker<'_> {
         }
         let capacity = if writer.buffered {
             let [argument] = arguments.as_slice() else {
-                return Err(self.not_yet(value.span, "a buffered writer without one `size:`".to_string()));
+                return Err(self.not_yet(value.span, "a buffered writer without one `room:`".to_string()));
             };
-            if argument.label.as_ref().map(|label| label.text.as_str()) != Some("size") {
-                return Err(self.not_yet(argument.span, "a buffered writer's size without `size:`".to_string()));
+            if let Some(label) = &argument.label
+                && label.text == "size"
+            {
+                // trace: D386
+                return Err(self.error(Diagnostic::refused_fix(
+                    label.span,
+                    "room",
+                    "`room:` means the space for what's put in, for buffered writers and arenas alike (D386)",
+                )));
+            }
+            if argument.label.as_ref().map(|label| label.text.as_str()) != Some("room") {
+                return Err(self.not_yet(argument.span, "a buffered writer's room without `room:`".to_string()));
             }
             Some(self.byte_count(body, &argument.value)?)
         } else {
@@ -69,6 +98,10 @@ impl Checker<'_> {
                 machine_type: checked::MachineType::I64,
             });
         }
+        if let ExpressionKind::Integer(text) = &value.kind {
+            // trace: D273
+            return Err(self.error(Diagnostic::refused_fix(value.span, format!("{text} bytes"), WRITER_KINDS_WHY)));
+        }
         Err(self.not_yet(value.span, "this size".to_string()))
     }
 
@@ -89,6 +122,18 @@ impl Checker<'_> {
         body: &mut Body,
         expression: &syntax::Expression,
     ) -> Check<Option<checked::Statement>> {
+        if let ExpressionKind::MethodCall { receiver, method, arguments, .. } = &expression.kind
+            && method.text() == "%flush"
+            && arguments.is_empty()
+            && self.writer_variable(body, receiver).is_ok()
+        {
+            // trace: D211, D273
+            return Err(self.error(Diagnostic::refused_fix(
+                method.span,
+                "%%flush",
+                "`.%` lends a receiver read-only and `.%%` lends it to change, so the call shows which (D211)",
+            )));
+        }
         if let ExpressionKind::MethodCall { receiver, method, arguments, .. } = &expression.kind
             && method.text() == "%%flush"
             && arguments.is_empty()
@@ -134,9 +179,29 @@ impl Checker<'_> {
                 if argument.ownership.map(|(ownership, _)| ownership) != Some(Ownership::Give) {
                     return Err(self.not_yet(argument.span, "`os::done` without `Give`".to_string()));
                 }
+                // A writer whose `let` was refused never got a value to finish (D203).
+                if let ExpressionKind::Variable(name) = &argument.value.kind
+                    && let Some(index) = body.find(&name.text)
+                    && body.states[index] != super::State::Assigned
+                    && body.variables[index].origin == super::Origin::RefusedLet
+                {
+                    return Err(self.error(Diagnostic::refused(
+                        expression.span,
+                        format!("`{}` never got a value", name.text),
+                        "a variable is read only after it has one (D203)",
+                    )));
+                }
                 let (writer, local) = self.writer_variable(body, &argument.value)?;
                 if !writer.buffered {
-                    return Err(self.not_yet(expression.span, "`os::done` on an unbuffered writer".to_string()));
+                    // trace: D273
+                    return Err(self.error(Diagnostic::refused(
+                        argument.span,
+                        format!(
+                            "`{}` writes each print straight away, so there's nothing for `os::done` to finish",
+                            writer.name()
+                        ),
+                        "only a buffered writer is `must_Give`, and `os::done` is how it ends (D273)",
+                    )));
                 }
                 if let ExpressionKind::Variable(name) = &argument.value.kind
                     && let Some(variable) = body.lookup_mut(&name.text)
@@ -172,7 +237,7 @@ impl Checker<'_> {
                     span,
                     format!("`.{stream}` is gone, since the writer says where output goes"),
                     format!(
-                        "`std::io::fmt_print` always takes a writer first, like `Lend.mut $out` for `os::{stream}.buffered(size: 1024 bytes)` or `os::{stream}.unbuffered()` (D272, D273)"
+                        "`std::io::fmt_print` always takes a writer first, like `Lend.mut $out` for `os::{stream}.buffered(room: 1024 bytes)` or `os::{stream}.unbuffered()` (D272, D273)"
                     ),
                 )));
             }

@@ -293,6 +293,8 @@ pub struct Checker<'a> {
     pub errors: Vec<Diagnostic>,
     /// Packages and parts imported: `std`, `os`, `@std`, `csup`.
     pub imports: Vec<String>,
+    /// Single things imported from `std`, as in `import std::io::fmt_print;`, with where each was (D198).
+    pub single_imports: Vec<(String, Span)>,
     /// Short names from `use`, to the path they stand for.
     pub uses: HashMap<String, String>,
     pub functions: HashMap<String, Signature>,
@@ -359,6 +361,7 @@ pub fn check(
         target,
         errors: Vec::new(),
         imports: Vec::new(),
+        single_imports: Vec::new(),
         uses: HashMap::new(),
         functions: HashMap::new(),
         aggregates: aggregates::Aggregates::default(),
@@ -404,9 +407,22 @@ impl Checker<'_> {
         for item in &file.items {
             match &item.kind {
                 ItemKind::Import(import) => self.import(import),
-                ItemKind::Use(short) => self.use_item(short),
+                ItemKind::Use(short) => self.use_item(short, item.span),
                 _ => {}
             }
+        }
+        if !self.single_imports.is_empty()
+            && let Some(item) = file.items.iter().find(|item| {
+                matches!(&item.kind, ItemKind::Import(import) if import.path.segments.len() == 1
+                    && import.path.first().is_some_and(|first| first.name.text == "std" && !first.limb))
+            })
+            && let ItemKind::Import(import) = &item.kind
+        {
+            self.error(Diagnostic::not_designed(
+                import.path.span,
+                "importing one thing alongside `import std;`",
+                "not decided yet (standard 12.2)",
+            ));
         }
         self.declare_type_names(file);
         self.declare_units(file);
@@ -525,6 +541,10 @@ impl Checker<'_> {
             return;
         };
         let package = first.name.text.clone();
+        if import.path.segments.len() > 1 {
+            self.import_one_thing(import, first);
+            return;
+        }
         let key = if first.limb { format!("@{package}") } else { package.clone() };
         if matches!(package.as_str(), "std" | "os" | "csup") && !self.manifest.needs(&package) {
             self.error(Diagnostic::refused(
@@ -544,7 +564,58 @@ impl Checker<'_> {
         self.imports.push(key);
     }
 
-    fn use_item(&mut self, short: &syntax::Use) {
+    /// `import std::io::fmt_print;` imports only that thing, with its narrowings (D198, D199).
+    fn import_one_thing(&mut self, import: &syntax::Import, first: &syntax::Segment) {
+        let span = first.name.span.to(import.path.span);
+        if first.limb || import.whole_package.is_some() || first.name.text != "std" {
+            // The `@` isn't part of the name.
+            let span = if first.limb && self.slice(span).starts_with('@') {
+                Span { start: span.start + 1, ..span }
+            } else {
+                span
+            };
+            self.error(Diagnostic::not_designed(
+                span,
+                "importing one thing with `@`, with `pkg`, or from a kit other than `std`",
+                "not decided yet (standard 12.2)",
+            ));
+            return;
+        }
+        if let Some(narrowing) = import.path.segments.iter().position(|segment| segment.joint == Joint::Narrowing) {
+            let start = import.path.segments.get(narrowing.saturating_sub(1)).map_or(span, |segment| segment.name.span);
+            let dot = Span { file: start.file, start: start.end, end: start.end + 1 };
+            self.error(Diagnostic::not_designed(
+                dot,
+                "importing one narrowing, since importing a thing brings all of them",
+                "not decided yet (standard 12.2)",
+            ));
+            return;
+        }
+        let text = import.path.text();
+        if !library::STD_THINGS.contains(&text.as_str()) {
+            self.error(Diagnostic::not_designed(
+                span,
+                format!("`{text}`, since `std`'s full contents aren't chosen"),
+                "not decided yet, and the standard doesn't say",
+            ));
+            return;
+        }
+        if !self.manifest.needs("std") {
+            self.error(Diagnostic::refused(
+                first.name.span,
+                "`std` has no `need` line in `CyJet.siml`",
+                "each package a program uses has a `need` line in its manifest, with its version (D183, D228)",
+            ));
+        }
+        self.single_imports.push((text, span));
+    }
+
+    fn use_item(&mut self, short: &syntax::Use, whole: Span) {
+        if self.use_limb(short, whole).is_err() {
+            // The short name stands for nothing, so its uses say nothing more (D207).
+            self.uses.insert(short.short.text.clone(), String::new());
+            return;
+        }
         if self.short_name(short).is_err() {
             return;
         }
@@ -556,6 +627,52 @@ impl Checker<'_> {
             let marked = format!("{}{}", mark_text(name.mark), name.text);
             self.method_uses.insert(marked, short.path.text());
         }
+    }
+
+    /// A `use` line on a limb or a base family: a family stays written in full, and a limb's short name has no `@`,
+    /// and needs the limb's import (D155, D225, D232, D399).
+    fn use_limb(&mut self, short: &syntax::Use, whole: Span) -> Check<()> {
+        let text = short.path.text();
+        if text.starts_with("inline.") || text.starts_with("union.") {
+            // trace: D232
+            return Err(self.error(
+                Diagnostic::refused_fix(
+                    whole,
+                    "",
+                    "`use` only shortens a path with `::` into a kit or limb, so a base family like `inline.…` or `union.…` stays written in full, a limb's members included (D232, D399)",
+                )
+                .with_edits(vec![crate::diagnostic::Edit { span: whole, replacement: String::new() }]),
+            ));
+        }
+        let Some(limb) = text.strip_prefix('@').and_then(|rest| rest.split("::").next()) else { return Ok(()) };
+        let limb = limb.to_string();
+        if short.short.limb {
+            // trace: D155
+            return Err(self.error(Diagnostic::refused_fix(
+                short.short.span,
+                short.short.text.clone(),
+                format!(
+                    "`@` with no `::` is a compiler builtin, so `@{}` looks like one (D155, D56)",
+                    short.short.text
+                ),
+            )));
+        }
+        if !known_limb(&limb) && !self.imports.iter().any(|import| *import == format!("@{limb}")) {
+            return Err(self.error(Diagnostic::not_designed(
+                short.path.span,
+                format!("how the limb `@{limb}` is found"),
+                "not decided yet (standard 12.9)",
+            )));
+        }
+        self.require_import(&text, short.path.span)?;
+        if text == "@csup::extern.c" {
+            return Err(self.error(Diagnostic::not_designed(
+                short.path.span,
+                "how a C function is declared and called through `@csup`",
+                "not decided yet (standard 12.5)",
+            )));
+        }
+        Ok(())
     }
 
     /// A `use` line's short name: an unquoted one matches the path's last word, a quoted one is any usable name,
@@ -626,6 +743,21 @@ impl Checker<'_> {
         if self.imports.iter().any(|import| import == package || *import == format!("pkg {package}")) {
             return Ok(());
         }
+        if package == "std" && !self.single_imports.is_empty() {
+            // trace: D198
+            let reaches = |(thing, _): &(String, Span)| {
+                path == thing || path.strip_prefix(thing.as_str()).is_some_and(|rest| rest.starts_with('.'))
+            };
+            if self.single_imports.iter().any(reaches) {
+                return Ok(());
+            }
+            let things: Vec<String> = self.single_imports.iter().map(|(thing, _)| format!("`{thing}`")).collect();
+            return Err(self.error(Diagnostic::refused(
+                span,
+                format!("this file imports only {} from `std`", things.join(" and ")),
+                "importing one thing imports only that, with its narrowings, unlike `import std;` (D198, D199)",
+            )));
+        }
         let shown = format!("import {package};");
         let edit = crate::diagnostic::Edit { span: Span::new(self.file, 0, 0), replacement: format!("{shown}\n") };
         Err(self.error(Diagnostic::refused_fix(span, shown, why).with_edits(vec![edit])))
@@ -683,7 +815,7 @@ impl Checker<'_> {
                 Err(self.error(Diagnostic::refused(
                     parameter.written_type.span,
                     format!(
-                        "`${}` doesn't say how it holds its `{value_type}`: `Lent`, `Lent.mut` or `Given`",
+                        "`{}` doesn't say how it holds its `{value_type}`: `Lent`, `Lent.mut` or `Given`",
                         parameter.name.text
                     ),
                     CHOICE_WHY,
@@ -1518,6 +1650,50 @@ impl Checker<'_> {
                 Ok(found)
             }
             "std::coll::list" | "std::coll::array" => self.collection_type(written, &text, path, fill, labels),
+            // trace: D378
+            "std::list" | "std::array" | "std::map" | "std::arena" | "std::allocator" | "std::one_thread"
+            | "std::runner" | "std::halves" => {
+                let group = match text.as_str() {
+                    "std::arena" | "std::allocator" => "mem",
+                    "std::one_thread" | "std::runner" => "run",
+                    _ => "coll",
+                };
+                let fixed = text.replacen("std::", &format!("std::{group}::"), 1);
+                Err(self.error(Diagnostic::refused_fix(
+                    path.span,
+                    fixed,
+                    "every `std` name lives in a group: `io`, `math`, `units`, `mem`, `run` and `coll` (D378)",
+                )))
+            }
+            "std::coll::map" => {
+                self.require_import(&text, path.span)?;
+                Err(self.error(Diagnostic::refused(
+                    path.span,
+                    "there's no bare `std::coll::map`, so pick `std::coll::map.hash` or `std::coll::map.ordered`",
+                    "no default is obvious, so you pick (D48, D138)",
+                )))
+            }
+            "std::coll::map.hash" | "std::coll::map.ordered" => {
+                self.require_import(&text, path.span)?;
+                self.map_type(written, &text, fill)
+            }
+            _ if text.starts_with("std::coll::map.") => {
+                self.require_import(&text, path.span)?;
+                Err(self.error(Diagnostic::not_designed(
+                    path.span,
+                    format!("the type `{text}`"),
+                    "not decided yet (standard 12.2)",
+                )))
+            }
+            _ if (text.starts_with("std::coll::list.") && text != "std::coll::list.mut")
+                || text.starts_with("std::coll::array.") =>
+            {
+                Err(self.error(Diagnostic::refused(
+                    path.span,
+                    format!("`{text}` is the older spelling"),
+                    "a collection's types go in `< >` (D24)",
+                )))
+            }
             _ if let Some(reported) = self.bare_member(path, &text) => Err(reported),
             _ if text.contains("::") || text.contains('.') => {
                 Err(self.not_yet(written.span, format!("the type `{text}`")))
@@ -1800,6 +1976,31 @@ impl Checker<'_> {
     }
 
     /// A count of items, `3 items`, or `inf items` as `None` (D11, D101).
+    /// `std::coll::map.hash<key.type: str, val.type: i32>`: its types say `key.type:` and `val.type:` (D24, D25, D366).
+    fn map_type(&mut self, written: &syntax::Type, text: &str, fill: &[syntax::TypeArgument]) -> Check<Type> {
+        if fill.len() > 1 && fill.iter().all(|argument| argument.label.is_none()) {
+            let span = fill.first().map_or(written.span, |first| first.span);
+            return Err(self.error(Diagnostic::refused(
+                span,
+                "a map's types get the labels `key.type` and `val.type`",
+                "one type can go bare, and more than one must have labels (D25, D366)",
+            )));
+        }
+        for argument in fill {
+            if let Some(label) = &argument.label
+                && matches!(label.text.as_str(), "key" | "val")
+            {
+                // trace: D366
+                return Err(self.error(Diagnostic::refused_fix(
+                    label.span,
+                    format!("{}.type", label.text),
+                    "a bare `val:` is always a value, so a type's label says `.type`, as a list's `len.type:` does (D366)",
+                )));
+            }
+        }
+        Err(self.not_yet(written.span, format!("the type `{text}`")))
+    }
+
     /// `str`, a view, or `str[len.max: 32 bytes]` and `str[len.max: inf bytes]`, which own their text (D326, D327).
     fn str_type(&mut self, labels: &[syntax::Label]) -> Check<Type> {
         let mut size = StrSize::View;
@@ -2247,6 +2448,11 @@ fn mark_text(mark: syntax::Mark) -> &'static str {
         syntax::Mark::Star => "*",
         syntax::Mark::None => "",
     }
+}
+
+/// The limbs this compiler knows: `std`'s limb half, `@csup` and `@concur` (D28, D33, D344, D375).
+fn known_limb(limb: &str) -> bool {
+    matches!(limb, "std" | "csup" | "concur")
 }
 
 /// Whether a quoted short name could be written where a name goes: a word that isn't a keyword or a type's name

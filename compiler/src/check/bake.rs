@@ -316,6 +316,7 @@ impl<'a> Interpreter<'a> {
                 }
                 Ok(checked)
             }
+            ExpressionKind::Maths { .. } => Err(Stop::NotBuilt("`std::math` while baking".to_string())),
             ExpressionKind::Clamp { value, min, max } => match self.expression(value, locals)? {
                 Constant::Integer(number) => Ok(Constant::Integer(number.clamp(*min, *max))),
                 other => Ok(other),

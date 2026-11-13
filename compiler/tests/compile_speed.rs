@@ -23,7 +23,7 @@ fn bump [$n: i32] -> i32:
 end fn bump
 
 fn.main [none] -> void:
-    let mut $out: os::stdout.buffered = os::stdout.buffered(size: 1024 bytes);
+    let mut $out: os::stdout.buffered = os::stdout.buffered(room: 1024 bytes);
     let $four: i32 = double(2);
     let $more: i32 = bump($four);
     fmt_print(Lend.mut $out, \"{{$four}} {{$more}}{{newln}}\");

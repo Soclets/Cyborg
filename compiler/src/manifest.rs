@@ -101,6 +101,8 @@ pub fn read(file_id: FileId, file: &SourceFile, errors: &mut Vec<Diagnostic>) ->
             }
             // trace: D310
             "okay" => {
+                // It's said once, as the old spelling of the `dialect` line.
+                has_dialect = true;
                 let version = found.get(1).map_or(String::new(), |version| format!(" {}", version.text));
                 errors.push(Diagnostic::refused_fix(
                     whole,

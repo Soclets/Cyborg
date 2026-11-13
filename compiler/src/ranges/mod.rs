@@ -248,7 +248,7 @@ impl Walker<'_> {
                     high: range.high.clamp(low, high),
                 }))
             }
-            ExpressionKind::ClampFloat { value, .. } => {
+            ExpressionKind::ClampFloat { value, .. } | ExpressionKind::Maths { value, .. } => {
                 self.expression(value);
                 machine
             }

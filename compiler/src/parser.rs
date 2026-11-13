@@ -971,7 +971,15 @@ impl<'source> Parser<'source> {
         // family of units, a unit's definition (D109).
         let types = keyword.text().starts_with("fam.type");
         let units = keyword.text() == "fam.unit";
+        let prefixes = keyword.text() == "fam.prefix";
         while self.peek().is_some() && !self.is_word("end") {
+            if prefixes {
+                match self.prefix_entry() {
+                    Ok(entry) => entries.push(entry),
+                    Err(Reported) => self.recover(),
+                }
+                continue;
+            }
             if units && self.unit_entry_ahead() {
                 match self.unit_entry() {
                     Ok(entry) => entries.push(entry),
@@ -986,6 +994,22 @@ impl<'source> Parser<'source> {
         }
         let end = self.closer()?;
         Ok(Family { keyword, name, entries, span: start.to(self.previous_span()), end })
+    }
+
+    /// `metric.kilo = 1000;` or `metric.milli = 1 per 1000;`, where `per` keeps the scale exact (D250).
+    fn prefix_entry(&mut self) -> Parse<FamilyEntry> {
+        let start = self.current_span();
+        let name = self.path()?;
+        self.take_setter();
+        let top = self.primary_number()?;
+        let bottom = if self.is_word("per") {
+            self.advance();
+            Some(self.primary_number()?)
+        } else {
+            None
+        };
+        self.expect(TokenKind::Semicolon, ";")?;
+        Ok(FamilyEntry { name, kind: FamilyEntryKind::Prefix { top, bottom }, span: start.to(self.previous_span()) })
     }
 
     /// Whether a `fam.unit` line ahead is `name = …;`.
@@ -1979,6 +2003,18 @@ impl<'source> Parser<'source> {
             label = Some(self.name()?);
             self.roles[self.at] = Role::LabelColon;
             self.advance();
+        } else if self.is(TokenKind::Word)
+            && self.kind_at(1) == Some(TokenKind::Dot)
+            && self.kind_at(2) == Some(TokenKind::Word)
+            && self.kind_at(3) == Some(TokenKind::Colon)
+        {
+            // A type's label says `.type`, as in `key.type: str` (D366).
+            let first = self.name()?;
+            self.advance();
+            let second = self.name()?;
+            label = Some(Name { text: format!("{}.{}", first.text, second.text), span: first.span.to(second.span) });
+            self.roles[self.at] = Role::LabelColon;
+            self.advance();
         }
         let written_type = self.parse_type()?;
         Ok(TypeArgument { label, value: TypeArgumentValue::Type(written_type), span: start.to(self.previous_span()) })
@@ -2871,11 +2907,20 @@ impl<'source> Parser<'source> {
                     self.primary()?
                 };
                 let span = start.to(literal.span);
-                let kind = match literal.kind {
+                let with_exponent = |literal: Expression| match literal.kind {
                     ExpressionKind::Inexact { literal, .. } => {
                         ExpressionKind::Inexact { literal, exponent: Some(exponent) }
                     }
                     other => ExpressionKind::Exponent(Box::new(Expression { kind: other, span: literal.span })),
+                };
+                // A unit after it stays outside, as in `exponent ~1.0e300 length.meters`.
+                let kind = match literal.kind {
+                    ExpressionKind::WithUnit { value, unit } => {
+                        let inner_span = start.to(value.span);
+                        let inner = Expression { kind: with_exponent(*value), span: inner_span };
+                        ExpressionKind::WithUnit { value: Box::new(inner), unit }
+                    }
+                    other => with_exponent(Expression { kind: other, span: literal.span }),
                 };
                 return Ok(Expression { kind, span });
             }

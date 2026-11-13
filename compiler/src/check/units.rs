@@ -107,6 +107,8 @@ pub fn mark_of(name: &str) -> (&str, Option<&str>) {
 
 /// Every declared unit, with `items`, which is base language (D101).
 pub struct Units {
+    /// Prefix families, as in `fam.prefix metric:`, each with its prefixes' words and scales (D250).
+    prefixes: HashMap<String, Vec<(String, Ratio)>>,
     infos: HashMap<String, UnitInfo>,
     order: Vec<String>,
     expansions: HashMap<String, Option<Expansion>>,
@@ -114,7 +116,8 @@ pub struct Units {
 
 impl Default for Units {
     fn default() -> Units {
-        let mut units = Units { infos: HashMap::new(), order: Vec::new(), expansions: HashMap::new() };
+        let mut units =
+            Units { prefixes: HashMap::new(), infos: HashMap::new(), order: Vec::new(), expansions: HashMap::new() };
         // `items` is base language (D101), and `std` has `time`, whose values are points or spans (D249), and
         // `angle`, with radians as its base (standard 2.16).
         let builtin: [(&str, &str, bool, Ratio, i32, &str); 5] = [
@@ -213,6 +216,7 @@ impl Units {
 impl Checker<'_> {
     /// Reads every `fam.unit`, then works out what each unit is, so units can point at each other in any order.
     pub fn declare_units(&mut self, file: &syntax::File) {
+        self.declare_prefixes(file);
         for item in &file.items {
             let syntax::ItemKind::Family(family) = &item.kind else { continue };
             if family.keyword.text() != "fam.unit" {
@@ -254,6 +258,27 @@ impl Checker<'_> {
                     Definition::Offset { offset, .. } => *offset,
                     _ => 0.0,
                 };
+                // A unit that opts into a prefix family gets a unit for each prefix, its word joined to the
+                // prefix's (D250).
+                if let syntax::FamilyEntryKind::Base { with: Some(with) } = &entry.kind
+                    && let Some(prefixes) = self.units.prefixes.get(&with.text()).cloned()
+                    && let Some((family, word)) = name.rsplit_once('.')
+                {
+                    for (prefix, ratio) in prefixes {
+                        let made = format!("{family}.{prefix}{word}");
+                        self.units.order.push(made.clone());
+                        self.units.infos.insert(
+                            made,
+                            UnitInfo {
+                                family: set.clone(),
+                                span: entry.name.span,
+                                definition: Definition::Multiple { ratio, of: name.clone(), of_span: entry.name.span },
+                                split,
+                                offset: 0.0,
+                            },
+                        );
+                    }
+                }
                 self.units.order.push(name.clone());
                 self.units
                     .infos
@@ -266,11 +291,65 @@ impl Checker<'_> {
         }
     }
 
+    /// Reads every `fam.prefix`: each prefix's word and exact scale (D250).
+    fn declare_prefixes(&mut self, file: &syntax::File) {
+        for item in &file.items {
+            let syntax::ItemKind::Family(family) = &item.kind else { continue };
+            if family.keyword.text() != "fam.prefix" {
+                continue;
+            }
+            let set = family.name.text();
+            self.check_closer(&family.end, &format!("end fam.prefix {set}"), super::CLOSER_WHY);
+            let mut prefixes = Vec::new();
+            for entry in &family.entries {
+                let syntax::FamilyEntryKind::Prefix { top, bottom } = &entry.kind else { continue };
+                let name = entry.name.text();
+                let Some(word) = name.strip_prefix(&format!("{set}.")) else {
+                    self.error(Diagnostic::refused(
+                        entry.name.span,
+                        format!("`{name}` isn't in `{set}`"),
+                        "a prefix family lists its own prefixes (D250)",
+                    ));
+                    continue;
+                };
+                let number = |expression: &syntax::Expression| match &expression.kind {
+                    syntax::ExpressionKind::Integer(text) => text.replace('_', "").parse::<i128>().ok(),
+                    _ => None,
+                };
+                let bottom_number = bottom.as_ref().map_or(Some(1), number);
+                let Some(ratio) = number(top).zip(bottom_number).and_then(|(top, bottom)| Ratio::new(top, bottom))
+                else {
+                    self.not_yet(entry.span, "this prefix's scale".to_string());
+                    continue;
+                };
+                prefixes.push((word.to_string(), ratio));
+            }
+            self.units.prefixes.insert(set, prefixes);
+        }
+    }
+
     fn unit_definition(&mut self, entry: &syntax::FamilyEntry) -> Definition {
         match &entry.kind {
             syntax::FamilyEntryKind::Base { with: None } => Definition::Base,
             syntax::FamilyEntryKind::Base { with: Some(with) } => {
-                self.not_yet(with.span, "a prefix with `with`".to_string());
+                let family = with.text();
+                if self.units.prefixes.contains_key(&family) {
+                    return Definition::Base;
+                }
+                // trace: D250
+                if matches!(family.as_str(), "metric" | "binary") {
+                    self.error(Diagnostic::not_designed(
+                        with.span,
+                        format!("which prefixes `std`'s `{family}` lists"),
+                        "not decided yet (standard 12.2)",
+                    ));
+                } else {
+                    self.error(Diagnostic::refused(
+                        with.span,
+                        format!("the prefix family `{family}` isn't declared"),
+                        "a prefix family is declared once with `fam.prefix`, and a unit opts in with `with` (D250)",
+                    ));
+                }
                 Definition::Broken
             }
             syntax::FamilyEntryKind::Bare => {
@@ -303,10 +382,9 @@ impl Checker<'_> {
                 };
                 Definition::Offset { of: self.resolve_path(unit), of_span: unit.span, offset }
             }
-            syntax::FamilyEntryKind::UnitSetTo(syntax::UnitDefinition::Decibels(span)) => {
-                self.not_yet(*span, "a log unit, with `decibels of`".to_string());
-                Definition::Broken
-            }
+            // A log unit's numbers add as levels and gains, so it's measured in itself; converting to the unit it's
+            // a log of isn't built yet (D251).
+            syntax::FamilyEntryKind::UnitSetTo(syntax::UnitDefinition::Decibels(_)) => Definition::Base,
             syntax::FamilyEntryKind::UnitSetTo(syntax::UnitDefinition::Other(span)) => {
                 self.error(Diagnostic::not_designed(
                     *span,

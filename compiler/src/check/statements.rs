@@ -1070,7 +1070,12 @@ impl Checker<'_> {
         for scope in &body.scopes {
             for (_, index) in scope {
                 let variable = &body.variables[*index];
-                if matches!(variable.value_type, Type::Writer(writer) if writer.buffered) && variable.given.is_none() {
+                // A writer lent in is the caller's to finish (D273).
+                if matches!(variable.value_type, Type::Writer(writer) if writer.buffered)
+                    && variable.given.is_none()
+                    && !body.lent.contains(&variable.local)
+                    && variable.origin != Origin::RefusedLet
+                {
                     held.push(variable.clone());
                 }
             }

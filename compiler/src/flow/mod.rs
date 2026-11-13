@@ -332,7 +332,8 @@ fn children(expression: &checked::Expression) -> Vec<&checked::Expression> {
         | Kind::FitFloat { value: inner, .. }
         | Kind::Fit { value: inner, .. }
         | Kind::Clamp { value: inner, .. }
-        | Kind::ClampFloat { value: inner, .. } => vec![inner],
+        | Kind::ClampFloat { value: inner, .. }
+        | Kind::Maths { value: inner, .. } => vec![inner],
         Kind::Handle { call, .. } => vec![call],
         Kind::Call { arguments, .. } => arguments
             .iter()
