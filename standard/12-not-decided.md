@@ -83,7 +83,7 @@ Waiting on the owner, most needed first. Each is `NotDesignedYet` unless it says
 - Function types: `-> i32` no longer shows failures, so a function's type needs some way to include them.
 - How a type's writer defines label narrowings like `len.max`.
 - An uninitialized array, like Zig's `= undefined`. Claude suggested only inside a shield, if at all.
-- Whether a bad position can be handled, rather than trapping.
+- Whether a bad position can be handled, rather than crashing.
 - `str` narrowings other than `str.utf16`, and how string literals work.
 - The test on a value already known to be that type, like `if $n: bool:` on a `bool`. Claude suggested refusing it.
 

@@ -62,7 +62,7 @@ okay run --Working --opt=O0
 
 | Check | `Working` | `FinalSafe` | `FinalPerf` | `FinalShit` | `FinalSmall` | `Literal` |
 |---|---|---|---|---|---|---|
-| Overflow, bounds, division by zero | Kept | Kept, as traps | Gone | Gone | If smaller | Kept, as traps |
+| Overflow, bounds, division by zero | Kept | Kept | Gone | Gone | If smaller | Kept |
 | A shield's exit (`ensures`) | Kept | Kept, even if expensive | Gone | Gone | Gone if smaller | Kept, even if expensive |
 | A shield's entry (`requires`) | Kept | Follows the mode | Gone | Gone | If smaller | Follows the mode |
 | Other contracts | Kept | Kept, unless marked | Gone | Gone | If smaller | Kept, unless marked |
@@ -74,7 +74,7 @@ A check in `Working` is kept no matter the cost. `.only_in_working` on `requires
 requires.only_in_working is_sorted(Lend $xs);
 ```
 
-**From:** D14, D20, D26, D37, D39, D105, D106, D280.
+**From:** D14, D20, D26, D37, D39, D105, D106, D280, D409.
 
 ## 10.4 What happens when something goes wrong
 
@@ -82,17 +82,17 @@ requires.only_in_working is_sorted(Lend $xs);
 
 | What goes wrong | `Working` | `FinalSafe` | `FinalPerf` | `FinalShit` | `FinalSmall` | `Literal` |
 |---|---|---|---|---|---|---|
-| A plain `+` overflows | Trap | Trap | Wraps | UB | Whatever's smaller | Trap |
-| A value is out of bounds | Crash | Trap | UB | UB | UB allowed | Trap |
-| Division by zero | Trap | Trap | UB | UB | UB allowed | Trap |
+| A plain `+` overflows | Crash | Crash | Wraps | UB | Whatever's smaller | Crash |
+| A value is out of bounds | Crash | Crash | UB | UB | UB allowed | Crash |
+| Division by zero | Crash | Crash | UB | UB | UB allowed | Crash |
 | A contract is false | Crash | See [10.3](#103-what-gets-checked) | UB | UB | UB allowed | See [10.3](#103-what-gets-checked) |
-| A float becomes NaN or infinity | Crash | Trap | UB | UB | UB allowed | Trap |
+| A float becomes NaN or infinity | Crash | Crash | UB | UB | UB allowed | Crash |
 | A failure nothing handles | Crash | Crash | Crash | UB | Crash | Crash |
 | A compile-time safety rule is broken | Refused | Refused | Refused | UB | Refused | Refused |
 
 The `FinalPerf` entries follow from D14 having no checks there; the owner's answer was "you test your shit throughly first".
 
-**From:** D14, D20, D26, D40, D41, D42, D96, D107, D158.
+**From:** D14, D20, D26, D40, D41, D42, D96, D107, D158, D409.
 
 ## 10.5 Overflow
 

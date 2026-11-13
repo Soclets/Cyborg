@@ -57,7 +57,7 @@ When a plain `+` overflows, what happens depends on the build mode ([10.5](10-bu
 8 div.exact 2
 ```
 
-Those three are examples; the full list isn't decided. What `div.exact` does in each mode isn't decided either. Division by zero traps in `FinalSafe`.
+Those three are examples; the full list isn't decided. What `div.exact` does in each mode isn't decided either. Division by zero crashes in `FinalSafe`.
 
 **Refused:** a bare `div` on integers.
 
