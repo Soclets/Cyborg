@@ -114,10 +114,14 @@ $x.@csup::%name();
 
 **Refused:** `$xs.%%append(val: 4);`, with `fix: $xs.std::%%append(val: 4);`, and `$xs.std::%append(val: 4);`, with `fix: .%%`, since `append` changes its receiver.
 
-A type's methods are declared together, as a family, `fam.fn`, with the type's name. Each is a normal function inside it, and is the family member `reading.%%warm_up`. The first parameter is the receiver, and says how it's held, which has to match the `%` or `%%` in the name.
+A `fam.fn` groups related functions, called with the family's name, as `geometry.area(…)`. A family named after a type also holds that type's methods, marked by their `%` or `%%`, and every method sits in its receiver's type's family. Each method is a normal function inside it, and is the family member `reading.%%warm_up`. The first parameter is the receiver, and says how it's held, which has to match the `%` or `%%` in the name.
 
 ```
 fam.fn reading:
+    fn new [$celsius: i32] -> reading:
+        return reading[celsius = $celsius];
+    end fn new
+
     fn %%warm_up [$r: Lent.mut reading, $by: i32] -> void:
         labels [$by as by];
         change $r.celsius = $r.celsius + $by;
@@ -125,12 +129,13 @@ fam.fn reading:
     end fn %%warm_up
 end fam.fn reading
 
+let mut $r: reading = reading.new(20);
 $r.%%warm_up(by: 2);
 ```
 
-A receiver that's `Given` is refused, because methods only borrow.
+A receiver that's `Given` is refused, because methods only borrow, and so is a method in a family not named after its receiver's type.
 
-**From:** D4, D5, D8, D115, D130, D135, D211, D421.
+**From:** D4, D5, D8, D115, D130, D135, D211, D421, D422.
 
 ## 5.7 Builtins: `@`
 
