@@ -25,13 +25,14 @@ Waited for Lyftar's embedded clang (Lyftar's D55, Cyborg's D308), which is ready
 - `FinalSmall` doesn't build: LLVM 23 has removed the `Oz` pipeline name (`bench/okay-vs-node`).
 - Compile speed from D168: incremental, parallel and cached builds, which shape the compiler, so they come before
   programs get big (rule 10).
-- Decisions since it stopped, D288 to D407, picked up under rule 16. Then its own plan: generics, inline assembly, the
+- Decisions since it stopped, D288 to D409, picked up under rule 16. Then its own plan: generics, inline assembly, the
   rest of baking and `use`, then SIMD.
 
 ## oracle claude
 
-Idle since 2026-11-12, with the generator's coverage finished. When woken: build D403 to D407 (`lanes: max` per target,
-`shift.left` and `rotate.left`, and `std::math::sqrt`), then channels when Tankun picks the run-loop rewrite.
+Idle since 2026-11-12, with the generator's coverage finished. When woken: build D403 to D409 (`lanes: max` per target,
+`shift.left` and `rotate.left`, `std::math::sqrt`, crashes flushing only free writers, and the 10 error messages
+that say "traps" saying "crashes"), then channels when Tankun picks the run-loop rewrite.
 
 ## bench
 
