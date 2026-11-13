@@ -1377,4 +1377,4 @@ The CPU is written with Cyborg's spelling, `apple_m5`, not LLVM's `apple-m5`, an
 - **`d32`'s limb.** D55 left it open. The owner: "Could just be a money limb, we don't need to design now". Deferred.
 - **Everything in `standard/12-not-decided.md`.** Written with the standard, so that's the full list, including the problems found
   writing it. This section may be behind it.
-- **Placeholders.** The repository's name and the license are not chosen.
+- **Placeholders.** The repository's final name isn't chosen. The licences are D262.
