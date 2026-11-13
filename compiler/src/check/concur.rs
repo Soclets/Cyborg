@@ -514,22 +514,30 @@ impl Checker<'_> {
                 "bit operators say `.bit`, so they can't be taken for logic (D361)",
             )));
         }
-        let place = checked::Place { local: reached.root.local, steps: reached.steps.clone() };
-        let path: Vec<usize> = reached
-            .steps
-            .iter()
-            .filter_map(|step| match step {
-                checked::Step::Field(index) => Some(*index),
-                checked::Step::Item { .. } => None,
-            })
-            .collect();
-        let address = checked::Expression {
-            kind: Kind::AddressOf { local: reached.root.local, path },
-            machine_type: MachineType::Address,
+        // The bare form is the strictest ordering, and a narrowing picks a weaker one (D354).
+        let ordering = match parts[1..].iter().copied().find(|part| ORDERINGS.contains(part)) {
+            Some("relaxed") => checked::AtomicOrder::Relaxed,
+            Some("acquire") => checked::AtomicOrder::Acquire,
+            Some("release") => checked::AtomicOrder::Release,
+            Some("acq_rel") => checked::AtomicOrder::AcquireRelease,
+            _ => checked::AtomicOrder::SequentiallyConsistent,
         };
-        let current = checked::Expression { kind: Kind::Load(place), machine_type: inner.machine() };
+        let address = atomic_address(&reached);
         if operation == "load" {
-            return Ok(Typed::new(inner, current.kind));
+            if matches!(ordering, checked::AtomicOrder::Release | checked::AtomicOrder::AcquireRelease) {
+                return Err(self.error(Diagnostic::not_designed(
+                    method.span,
+                    format!("what `{written}` means, since a load only reads, and releasing is for writes"),
+                    "not decided yet: D354 gives loads their orderings without saying which fit a load",
+                )));
+            }
+            let kind = Kind::Atomic {
+                address: Box::new(address),
+                operation: checked::AtomicOperation::Load,
+                ordering,
+                failure: None,
+            };
+            return Ok(Typed::new(inner, kind));
         }
         let labelled =
             |label: &str| arguments.iter().find(|each| each.label.as_ref().is_some_and(|name| name.text == label));
@@ -550,64 +558,34 @@ impl Checker<'_> {
             ("xor", Some("bit")) => Some(checked::Arithmetic::BitXor),
             _ => return Err(self.not_yet(method.span, format!("the atomic operation `{written}`"))),
         };
-        let held = body.new_local(inner.machine());
-        let read_held = checked::Expression { kind: Kind::Local(held), machine_type: inner.machine() };
-        let new_value = match operator {
-            None => value,
-            Some(operator) => {
-                let checks = matches!(operator, checked::Arithmetic::Add | checked::Arithmetic::Subtract);
-                let failure = checks.then(|| {
-                    let name = format!(".%{operation}");
-                    let type_name = inner.plain().to_string();
-                    Box::new(failure(
-                        self,
-                        Diagnostic::new(
-                            DiagnosticKind::CheckFailed,
-                            expression.span,
-                            format!("this `{name}` overflows `{type_name}`"),
-                            "an atomic's `.%add` is checked for overflow like `+`, with `.wrap` and `.saturate` when meant (D42, D354, D360)",
-                        ),
-                        &[
-                            When::Text("`".into()),
-                            When::Operand(0),
-                            When::Text("` and `".into()),
-                            When::Operand(1),
-                            When::Text("`".into()),
-                        ],
-                    ))
-                });
-                checked::Expression {
-                    kind: Kind::Arithmetic {
-                        operator,
-                        left: Box::new(read_held.clone()),
-                        right: Box::new(value),
-                        failure,
-                        more: Vec::new(),
-                    },
-                    machine_type: inner.machine(),
-                }
-            }
+        let checks = matches!(operator, Some(checked::Arithmetic::Add | checked::Arithmetic::Subtract));
+        let failure = checks.then(|| {
+            let name = format!(".%{operation}");
+            let type_name = inner.plain().to_string();
+            Box::new(failure(
+                self,
+                Diagnostic::new(
+                    DiagnosticKind::CheckFailed,
+                    expression.span,
+                    format!("this `{name}` overflows `{type_name}`"),
+                    "an atomic's `.%add` is checked for overflow like `+`, with `.wrap` and `.saturate` when meant (D42, D354, D360)",
+                ),
+                &[
+                    When::Text("`".into()),
+                    When::Operand(0),
+                    When::Text("` and `".into()),
+                    When::Operand(1),
+                    When::Text("`".into()),
+                ],
+            ))
+        });
+        let operation = match operator {
+            None => checked::AtomicOperation::Swap(Box::new(value)),
+            Some(operator) => checked::AtomicOperation::Update { operator, value: Box::new(value) },
         };
-        let write = checked::Expression {
-            kind: Kind::PointerWrite { pointer: Box::new(address), value: Box::new(new_value), volatile: false },
-            machine_type: MachineType::Address,
-        };
-        let ignored = body.new_local(MachineType::Address);
         // The old value comes back from `swap`, and nothing from the others.
-        let (value_type, after) = if operation == "swap" {
-            (inner.clone(), read_held)
-        } else {
-            (Type::Void, checked::Expression { kind: Kind::Local(ignored), machine_type: MachineType::Address })
-        };
-        let inner_bind = checked::Expression {
-            kind: Kind::Bind { local: ignored, value: Box::new(write), body: Box::new(after) },
-            machine_type: value_type.machine(),
-        };
-        let whole = checked::Expression {
-            kind: Kind::Bind { local: held, value: Box::new(current), body: Box::new(inner_bind) },
-            machine_type: value_type.machine(),
-        };
-        Ok(Typed::new(value_type, whole.kind))
+        let value_type = if matches!(operation, checked::AtomicOperation::Swap(_)) { inner } else { Type::Void };
+        Ok(Typed::new(value_type, Kind::Atomic { address: Box::new(address), operation, ordering, failure }))
     }
 
     /// `$owner.%compare_swap(expect: 0, val: $me)` as a statement: sets the value only if it's still `expect`, and
@@ -640,37 +618,44 @@ impl Checker<'_> {
             };
             let expect = self.value_into(body, &expect.value, &inner.plain())?;
             let given = self.value_into(body, &given.value, &inner.plain())?;
-            let path: Vec<usize> = reached
-                .steps
-                .iter()
-                .filter_map(|step| match step {
-                    checked::Step::Field(index) => Some(*index),
-                    checked::Step::Item { .. } => None,
-                })
-                .collect();
-            let address = checked::Expression {
-                kind: Kind::AddressOf { local: reached.root.local, path },
-                machine_type: MachineType::Address,
+            // `expect` is read twice, by the swap and by the comparison after it, so it's worked out once.
+            let expected = body.new_local(inner.machine());
+            let read_expected = checked::Expression { kind: Kind::Local(expected), machine_type: inner.machine() };
+            block.push(checked::Statement::Let { local: expected, value: expect });
+            let method_ordering = method.text();
+            let ordering = match method_ordering.split('.').nth(1) {
+                Some("relaxed") => checked::AtomicOrder::Relaxed,
+                Some("acquire") => checked::AtomicOrder::Acquire,
+                Some("release") => checked::AtomicOrder::Release,
+                Some("acq_rel") => checked::AtomicOrder::AcquireRelease,
+                _ => checked::AtomicOrder::SequentiallyConsistent,
             };
-            let place = checked::Place { local: reached.root.local, steps: reached.steps.clone() };
             let now = body.new_local(inner.machine());
             let read_now = checked::Expression { kind: Kind::Local(now), machine_type: inner.machine() };
+            // trace: D360
             block.push(checked::Statement::Let {
                 local: now,
-                value: checked::Expression { kind: Kind::Load(place), machine_type: inner.machine() },
+                value: checked::Expression {
+                    kind: Kind::Atomic {
+                        address: Box::new(atomic_address(&reached)),
+                        operation: checked::AtomicOperation::CompareSwap {
+                            expect: Box::new(read_expected.clone()),
+                            value: Box::new(given),
+                        },
+                        ordering,
+                        failure: None,
+                    },
+                    machine_type: inner.machine(),
+                },
             });
             let same = checked::Expression {
                 kind: Kind::Compare {
                     operator: checked::Comparison::Equal,
                     left: Box::new(read_now.clone()),
-                    right: Box::new(expect),
+                    right: Box::new(read_expected),
                 },
                 machine_type: MachineType::Bool,
             };
-            let write = checked::Statement::Evaluate(checked::Expression {
-                kind: Kind::PointerWrite { pointer: Box::new(address), value: Box::new(given), volatile: false },
-                machine_type: MachineType::Address,
-            });
             let mut otherwise = Vec::new();
             match arms {
                 Some(arms) => {
@@ -736,7 +721,7 @@ impl Checker<'_> {
                     });
                 }
             }
-            block.push(checked::Statement::If { condition: same, then: vec![write], otherwise });
+            block.push(checked::Statement::If { condition: same, then: Vec::new(), otherwise });
             Ok(())
         })())
     }
@@ -883,3 +868,12 @@ impl Checker<'_> {
         ))
     }
 }
+
+/// Where an atomic is, through its fields and items alike (D354).
+fn atomic_address(reached: &super::collections::Reached) -> checked::Expression {
+    checked::Expression {
+        kind: Kind::PlaceAddress(checked::Place { local: reached.root.local, steps: reached.steps.clone() }),
+        machine_type: MachineType::Address,
+    }
+}
+

@@ -508,6 +508,33 @@ pub enum WhenPart {
     Operand(usize),
 }
 
+/// What an atomic does (D354, D360).
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
+pub enum AtomicOperation {
+    Load,
+    Swap(Box<Expression>),
+    /// `%add`, `%sub` and the bit operations, with `.wrap` or `.saturate` where they apply.
+    Update {
+        operator: Arithmetic,
+        value: Box<Expression>,
+    },
+    /// Sets `value` only if what's there is still `expect`.
+    CompareSwap {
+        expect: Box<Expression>,
+        value: Box<Expression>,
+    },
+}
+
+/// How an atomic's change is seen by other tasks, strictest last (D354).
+#[derive(Clone, Copy, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub enum AtomicOrder {
+    Relaxed,
+    Acquire,
+    Release,
+    AcquireRelease,
+    SequentiallyConsistent,
+}
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum Arithmetic {
     Add,
@@ -740,6 +767,15 @@ pub enum ExpressionKind {
         pointer: Box<Expression>,
         value: Box<Expression>,
         volatile: bool,
+    },
+    /// An atomic's operation on what's at an address, in one indivisible step: its value for `%load`, and what was
+    /// there before for the others (D354, D360).
+    Atomic {
+        address: Box<Expression>,
+        operation: AtomicOperation,
+        ordering: AtomicOrder,
+        /// An overflow check, for a plain `%add` or `%sub` (D354).
+        failure: Option<Box<CheckFailure>>,
     },
     /// A pointer moved by a number of bytes, which can be negative (D316).
     PointerMoved {

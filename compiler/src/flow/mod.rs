@@ -365,6 +365,13 @@ fn children(expression: &checked::Expression) -> Vec<&checked::Expression> {
         Kind::Build(fields) | Kind::BuildCase { fields, .. } => fields.iter().collect(),
         Kind::Bind { value, body, .. } => vec![value, body],
         Kind::Select { condition, then, otherwise } => vec![condition, then, otherwise],
+        Kind::Atomic { address, operation, .. } => match operation {
+            checked::AtomicOperation::Load => vec![address],
+            checked::AtomicOperation::Swap(value) | checked::AtomicOperation::Update { value, .. } => {
+                vec![address, value]
+            }
+            checked::AtomicOperation::CompareSwap { expect, value } => vec![address, expect, value],
+        },
         _ => Vec::new(),
     }
 }

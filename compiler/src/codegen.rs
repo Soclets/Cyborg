@@ -15,7 +15,7 @@ use lyftar::target::{
 use lyftar::{Builder, with_context};
 
 use crate::checked::{
-    Argument, Arithmetic, Base, Block, CheckFailure, Comparison, Expression, ExpressionKind, MachineType, Passing,
+    Argument, Arithmetic, AtomicOperation, AtomicOrder, Base, Block, CheckFailure, Comparison, Expression, ExpressionKind, MachineType, Passing,
     Piece, Program, Shape, Statement,
 };
 use crate::target::{Checks, Mode, Overflow, Target};
@@ -1873,6 +1873,9 @@ impl<'context, 'module> Generator<'context, 'module> {
                 }
                 self.context.pointer_type(0).constant_null().to_dynamic()
             }
+            ExpressionKind::Atomic { address, operation, ordering, failure } => {
+                self.atomic(frame, address, operation, *ordering, failure.as_deref(), &expression.machine_type)?
+            }
             ExpressionKind::PointerMoved { pointer, bytes } => {
                 let pointer = self.expression(frame, pointer)?;
                 let bytes = self.expression(frame, bytes)?;
@@ -2144,6 +2147,116 @@ impl<'context, 'module> Generator<'context, 'module> {
             }
         };
         Ok(value)
+    }
+
+    /// An atomic's operation, through the CPU's own indivisible instructions (D354, D360): `%load` is an atomic load,
+    /// `%swap`, the `.wrap` and bit forms are one `atomicrmw`, `%compare_swap` is one `cmpxchg`, and a checked or
+    /// saturating `%add` or `%sub` works out the new value and retries its `cmpxchg` until nothing changed it first.
+    /// A `bool` is worked on as its byte, since atomics need whole bytes.
+    #[allow(clippy::too_many_lines)]
+    fn atomic(
+        &mut self,
+        frame: &mut Frame<'context, 'module>,
+        address: &Expression,
+        operation: &AtomicOperation,
+        ordering: AtomicOrder,
+        failure: Option<&CheckFailure>,
+        result_type: &MachineType,
+    ) -> Result<Value<'context, 'module>> {
+        use lyftar::enums::{AtomicOrdering as Order, AtomicReadModifyWriteOperation as Rmw};
+        // trace: D354, D360
+        let order = match ordering {
+            AtomicOrder::Relaxed => Order::Monotonic,
+            AtomicOrder::Acquire => Order::Acquire,
+            AtomicOrder::Release => Order::Release,
+            AtomicOrder::AcquireRelease => Order::AcquireRelease,
+            AtomicOrder::SequentiallyConsistent => Order::SequentiallyConsistent,
+        };
+        // A failed `cmpxchg` only reads, so it keeps the reading half of the ordering.
+        let failed_order = match ordering {
+            AtomicOrder::Relaxed | AtomicOrder::Release => Order::Monotonic,
+            AtomicOrder::Acquire | AtomicOrder::AcquireRelease => Order::Acquire,
+            AtomicOrder::SequentiallyConsistent => Order::SequentiallyConsistent,
+        };
+        let pointer = self.expression(frame, address)?;
+        let item = match operation {
+            AtomicOperation::Load => result_type.clone(),
+            AtomicOperation::Swap(value)
+            | AtomicOperation::Update { value, .. }
+            | AtomicOperation::CompareSwap { value, .. } => value.machine_type.clone(),
+        };
+        let is_bool = item == MachineType::Bool;
+        let stored = if is_bool { self.context.integer_type(8).to_dynamic() } else { self.machine_type(&item) };
+        let natural = self.machine_type(&item);
+        let widen = |frame: &Frame<'context, 'module>, value: Value<'context, 'module>| {
+            if is_bool { frame.builder.zero_extend_or_bit_cast(value, stored, "").to_dynamic() } else { value }
+        };
+        let narrow = |frame: &Frame<'context, 'module>, value: Value<'context, 'module>| {
+            if is_bool { frame.builder.truncate_or_bit_cast(value, natural, "").to_dynamic() } else { value }
+        };
+        let load = |frame: &Frame<'context, 'module>, order: Order| {
+            let loaded = frame.builder.load(stored, pointer, "");
+            if let Some(instruction) = loaded.as_kind::<lyftar::values::LoadInstruction>() {
+                instruction.set_ordering(order);
+            }
+            loaded.to_dynamic()
+        };
+        let old = match operation {
+            AtomicOperation::Load => load(frame, order),
+            AtomicOperation::Swap(value) => {
+                let value = self.expression(frame, value)?;
+                let value = widen(frame, value);
+                frame.builder.atomic_read_modify_write(Rmw::Exchange, pointer, value, order, false).to_dynamic()
+            }
+            AtomicOperation::CompareSwap { expect, value } => {
+                let expect = self.expression(frame, expect)?;
+                let expect = widen(frame, expect);
+                let value = self.expression(frame, value)?;
+                let value = widen(frame, value);
+                let pair = frame
+                    .builder
+                    .atomic_compare_exchange(pointer, expect, value, order, failed_order, false)
+                    .to_dynamic();
+                frame.builder.extract_value(pair, 0, "").to_dynamic()
+            }
+            AtomicOperation::Update { operator, value } => {
+                let value = self.expression(frame, value)?;
+                let direct = match operator {
+                    Arithmetic::WrappingAdd => Some(Rmw::Add),
+                    Arithmetic::WrappingSubtract => Some(Rmw::Subtract),
+                    Arithmetic::BitAnd => Some(Rmw::And),
+                    Arithmetic::BitOr => Some(Rmw::Or),
+                    Arithmetic::BitXor => Some(Rmw::ExclusiveOr),
+                    _ => None,
+                };
+                if let Some(rmw) = direct {
+                    let value = widen(frame, value);
+                    frame.builder.atomic_read_modify_write(rmw, pointer, value, order, false).to_dynamic()
+                } else {
+                    let retry = frame.function.append_basic_block("atomic_retry");
+                    let done = frame.function.append_basic_block("atomic_done");
+                    frame.builder.branch(retry);
+                    frame.builder.position_at_end(retry);
+                    let seen = load(frame, Order::Monotonic);
+                    let current = narrow(frame, seen);
+                    let more: &[CheckFailure] = &[];
+                    let changed = self.arithmetic(frame, *operator, current, value, &item, failure, more)?;
+                    let changed = widen(frame, changed);
+                    let pair = frame
+                        .builder
+                        .atomic_compare_exchange(pointer, seen, changed, order, failed_order, false)
+                        .to_dynamic();
+                    let swapped = frame.builder.extract_value(pair, 1, "").to_dynamic();
+                    frame.builder.conditional_branch(swapped, done, retry);
+                    frame.builder.position_at_end(done);
+                    seen
+                }
+            }
+        };
+        if *result_type == MachineType::Void {
+            return Ok(self.context.pointer_type(0).constant_null().to_dynamic());
+        }
+        Ok(narrow(frame, old))
     }
 
     /// Integer arithmetic, with its checks (standard 10.4).

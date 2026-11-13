@@ -14,7 +14,7 @@ use std::collections::{HashMap, HashSet};
 
 use checks::Interval;
 
-use crate::checked::{
+use crate::checked::{AtomicOperation, 
     Argument, Arithmetic, Block, Comparison, Expression, ExpressionKind, LocalId, MachineType, OnFailure, Piece, Place,
     Program, Statement, Step,
 };
@@ -664,6 +664,20 @@ impl Walker<'_> {
             | ExpressionKind::PointerMoved { pointer, bytes: value } => {
                 self.expression(pointer);
                 self.expression(value);
+                machine
+            }
+            ExpressionKind::Atomic { address, operation, .. } => {
+                self.expression(address);
+                match operation {
+                    AtomicOperation::Load => {}
+                    AtomicOperation::Swap(value) | AtomicOperation::Update { value, .. } => {
+                        self.expression(value);
+                    }
+                    AtomicOperation::CompareSwap { expect, value } => {
+                        self.expression(expect);
+                        self.expression(value);
+                    }
+                }
                 machine
             }
             ExpressionKind::Split { list, at, .. } => {

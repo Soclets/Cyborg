@@ -9,7 +9,7 @@ use std::process::Command;
 
 use okay::target::{Mode, Optimization, Target};
 
-const MANIFEST: &str = "name modes\nver 2026y-11m-10d same\ndialect original 2026y-11m-10d\n\nneed std 2026y-11m-10d\nneed os 2026y-11m-10d\n";
+const MANIFEST: &str = "name modes\nver 2026y-11m-10d same\ndialect original 2026y-11m-10d\n\nneed std 2026y-11m-10d\nneed os 2026y-11m-10d\nneed concur 2026y-11m-10d\n";
 
 /// Sums 1 to 100 million in an `i64`, which never overflows, so a mode with no checks can fold the loop to its answer.
 const SUM: &str = "import std;
@@ -202,4 +202,36 @@ fn d325_leaving_through_a_question_mark_runs_what_was_deferred() {
     // trace: D325
     let (code, out) = run("defer_pass_up", DEFER_PASS_UP, &["--FinalSafe"]);
     assert_eq!((code, out.as_str()), (Some(0), "left both\nleft both\n2 -1\n"));
+}
+
+const ATOMICS: &str = "import std;
+import os;
+import @concur;
+
+fn.main [none] -> void:
+    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
+    let $hits: @concur::atomic<u64> = @concur::atomic.new(0);
+    $hits.%add(val: 1);
+    $hits.%add.wrap.relaxed(val: 2);
+    let $old: u64 = $hits.%swap(val: 7);
+    let $owner: @concur::atomic<i32> = @concur::atomic.new(0);
+    $owner.%compare_swap(expect: 0, val: 5) otherwise:
+        case not_expected $f:
+            std::io::fmt_print(Lend.mut $out, \"lost to {}{newln}\", $f.val);
+    end otherwise
+    std::io::fmt_print(Lend.mut $out, \"{} {} {}{newln}\", $old, $hits.%load.acquire(), $owner.%load());
+    return void;
+end fn.main
+";
+
+#[test]
+fn d354_d360_atomics_are_the_cpus_own_instructions() {
+    // trace: D354, D360
+    let text = ir("atomics_ir", ATOMICS, Mode::Working(Optimization::O0));
+    assert!(text.contains("atomicrmw add ptr") && text.contains("monotonic"), "a `.wrap.relaxed` add:\n{text}");
+    assert!(text.contains("atomicrmw xchg ptr"), "a swap:\n{text}");
+    assert!(text.contains("cmpxchg ptr"), "a checked add or a compare_swap:\n{text}");
+    assert!(text.contains("load atomic i64") && text.contains("acquire"), "an acquiring load:\n{text}");
+    let (code, out) = run("atomics_run", ATOMICS, &["--Working", "--opt=O0"]);
+    assert_eq!((code, out.as_str()), (Some(0), "3 7 5\n"));
 }
