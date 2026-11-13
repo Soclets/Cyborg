@@ -35,7 +35,8 @@ d49_bits_grouped, the three d49_shift_*, the two d116_bit_*, d340_constant_time_
 d379_a_view_cant_grow), and make d38_limb_inside_a_shield's message describe the program rather than the oracle ("from
 the oracle, which has no C or assembly in it"), underline the whole `union.@csup::untagged` in
 d38_untagged_union_at_the_top rather than only `union.@` (11.1: the run sits under exactly the part in question). Then modules, D412 to D415: every test file gets a `module` line, the
-tests grow files that import each other with `pkg::`, and `pub.pkg` is tested. Then channels when Tankun picks the run-loop rewrite.
+tests grow files that import each other with `pkg::`, and `pub.pkg` is tested. Also D416's `.%viewed_as`, with a test that reads a `struct.packed` and a
+`struct.compact` value's raw bytes, which pins the real layouts. Then channels when Tankun picks the run-loop rewrite.
 
 ## bench
 
