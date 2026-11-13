@@ -37,6 +37,7 @@ pub enum MachineType {
 impl MachineType {
     pub const I32: MachineType = MachineType::Integer { bits: 32, signed: true };
     pub const I64: MachineType = MachineType::Integer { bits: 64, signed: true };
+    pub const U8: MachineType = MachineType::Integer { bits: 8, signed: false };
     pub const U64: MachineType = MachineType::Integer { bits: 64, signed: false };
 }
 
@@ -174,6 +175,8 @@ pub enum Statement {
         allocator: Expression,
         wrong: Box<CheckFailure>,
     },
+    /// `str.done(Give $log, alloc: Lend $heap)`: frees heap text (D326, D331).
+    TextDone(Expression),
     /// `std::mem::arena.done(Give $arena, alloc: Lend $heap)`: checks nothing from it is still alive (D330).
     ArenaDone {
         arena: Expression,
@@ -707,8 +710,40 @@ pub enum ExpressionKind {
         max: i128,
         failure: Box<CheckFailure>,
     },
+    /// A value's bits, widened into the number that holds a C union's bytes (D398).
+    UnionBits(Box<Expression>),
+    /// A C union's bytes, the first of them read as another type: an integer, a float or a `bool` (D398).
+    Bits(Box<Expression>),
+    /// A pointer from a number, for hardware registers and memory maps (D315).
+    AddressAt(Box<Expression>),
+    /// Reading through a pointer, every time and in order when it's volatile (D315, D317).
+    PointerRead {
+        pointer: Box<Expression>,
+        volatile: bool,
+    },
+    /// Writing through a pointer (D315, D317). Its value is nothing.
+    PointerWrite {
+        pointer: Box<Expression>,
+        value: Box<Expression>,
+        volatile: bool,
+    },
+    /// A pointer moved by a number of bytes, which can be negative (D316).
+    PointerMoved {
+        pointer: Box<Expression>,
+        bytes: Box<Expression>,
+    },
+    /// A view of a whole array, as a list record over its items, for a list view parameter (D379).
+    ArrayView(Place),
     /// `os::heap()`: the one OS heap (D332, D371).
     Heap,
+    /// Text copied into heap memory of its own, for `str.from` (D326, D369).
+    TextCopy(Box<Expression>),
+    /// Text checked to fit a bounded string's `len.max` while running, failing otherwise (D326, D328).
+    FitText {
+        value: Box<Expression>,
+        most: u64,
+        failure: Box<CheckFailure>,
+    },
     /// `std::mem::arena.new(room: 1 mib, alloc: Lend $heap)` (D330, D333, D386).
     ArenaNew {
         room: u64,

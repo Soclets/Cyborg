@@ -99,6 +99,15 @@ pub enum Grow {
     ByBytes(u64),
 }
 
+/// A list of its own, or a view of some or all of another list or array, which only reads, or changes its items with
+/// `.mut` (D379, D381).
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub enum ListView {
+    Owned,
+    Read,
+    Change,
+}
+
 /// The allocators a program can name (D332, D333).
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum AllocatorKind {
@@ -287,9 +296,17 @@ pub enum Type {
         len_type: IntegerKind,
         /// How a growable list grows when it's full (D385).
         grow: Grow,
+        /// Whether it's a list of its own or a view of someone else's (D379).
+        view: ListView,
     },
     /// An allocator: the OS heap, or an arena (D321, D330, D332, D333).
     Allocator(AllocatorKind),
+    /// A raw or volatile pointer, which lives only in a shield (D314, D317).
+    Pointer {
+        target: Box<Type>,
+        mutable: bool,
+        volatile: bool,
+    },
     /// A type parameter inside its generic's own body, which can only be used as its requirement lists (D235).
     Param {
         name: String,
@@ -318,7 +335,8 @@ impl Type {
     pub fn is_copied(&self) -> bool {
         match self {
             Type::New { inner, .. } => inner.is_copied(),
-            _ => matches!(self, Type::Integer { .. } | Type::Float { .. } | Type::Bool),
+            // A pointer is an address, copied like a number, though it still borrows what it points at (D315).
+            _ => matches!(self, Type::Integer { .. } | Type::Float { .. } | Type::Bool | Type::Pointer { .. }),
         }
     }
 
@@ -326,8 +344,8 @@ impl Type {
     #[must_use]
     pub fn with_grow(&self, grow: Grow) -> Type {
         match self {
-            Type::List { item, min, max, len_type, .. } => {
-                Type::List { item: item.clone(), min: *min, max: *max, len_type: *len_type, grow }
+            Type::List { item, min, max, len_type, view, .. } => {
+                Type::List { item: item.clone(), min: *min, max: *max, len_type: *len_type, grow, view: *view }
             }
             other => other.clone(),
         }
@@ -390,7 +408,7 @@ impl Type {
             Type::Array { item, len, .. } => checked::MachineType::Array { item: Box::new(item.machine()), len: *len },
             Type::List { item, .. } => checked::MachineType::List(Box::new(item.machine())),
             Type::Str(_) => checked::MachineType::Text,
-            Type::Allocator(_) => checked::MachineType::Address,
+            Type::Allocator(_) | Type::Pointer { .. } => checked::MachineType::Address,
             Type::Void | Type::Unknown => checked::MachineType::Void,
             // A generic's own body is only checked, never built: each call builds a copy with real types.
             Type::Param { .. } => checked::MachineType::Address,
@@ -466,9 +484,16 @@ impl fmt::Display for Type {
                 }
                 write!(formatter, "]")
             }
+            Type::Pointer { target, mutable, volatile } => {
+                let kind = if *volatile { "volatile" } else { "raw" };
+                let changes = if *mutable { ".mut" } else { "" };
+                write!(formatter, "ptr.{kind}{changes}<{target}>")
+            }
             Type::Allocator(AllocatorKind::Heap) => write!(formatter, "os::heap"),
             Type::Allocator(AllocatorKind::Arena) => write!(formatter, "std::mem::arena"),
-            Type::List { item, min, max, len_type, grow } => {
+            Type::List { item, view: ListView::Read, .. } => write!(formatter, "std::coll::list<{item}>"),
+            Type::List { item, view: ListView::Change, .. } => write!(formatter, "std::coll::list.mut<{item}>"),
+            Type::List { item, min, max, len_type, grow, .. } => {
                 write!(formatter, "std::coll::list<{item}>[")?;
                 if *min > 0 {
                     write!(formatter, "len.min: {min} items, ")?;

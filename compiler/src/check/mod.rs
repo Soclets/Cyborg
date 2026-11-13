@@ -164,6 +164,8 @@ pub struct Body {
     pub calls: Vec<Span>,
     /// Parameters that are only lent, bare or `Lent.mut`, so their duties are the caller's (D2).
     pub lent: Vec<checked::LocalId>,
+    /// Variables a pointer was taken to, whose changes the pointer has to see (D315).
+    pub pointed_at: Vec<checked::LocalId>,
     /// Values a `defer` will give away, with where, so nothing else gives them away first (D325).
     pub promised: Vec<(checked::LocalId, Span)>,
     /// Whether deferred statements are being checked where their block ends, which is where they give values away.
@@ -304,6 +306,10 @@ pub struct Checker<'a> {
     pub imports: Vec<String>,
     /// Single things imported from `std`, as in `import std::io::fmt_print;`, with where each was (D198).
     pub single_imports: Vec<(String, Span)>,
+    /// Declarations inside a shield at the top of the file, by name (D38).
+    pub shielded: Vec<String>,
+    /// The variable a `ptr.….of(…)` just took the address of, which the `let` holding the pointer borrows (D315).
+    pub pointer_borrow: Option<(checked::LocalId, Vec<usize>, bool)>,
     /// Short names from `use`, to the path they stand for.
     pub uses: HashMap<String, String>,
     pub functions: HashMap<String, Signature>,
@@ -371,6 +377,8 @@ pub fn check(
         errors: Vec::new(),
         imports: Vec::new(),
         single_imports: Vec::new(),
+        shielded: Vec::new(),
+        pointer_borrow: None,
         uses: HashMap::new(),
         functions: HashMap::new(),
         aggregates: aggregates::Aggregates::default(),
@@ -395,12 +403,40 @@ pub fn check(
         call_expected: None,
         result_names: Vec::new(),
     };
-    checker.check_file(parsed);
+    let flattened = checker.flatten_shields(parsed);
+    checker.check_file(&flattened);
     let failed = !checker.errors.is_empty();
     (if failed { None } else { Some(checker.program) }, checker.errors, checker.store)
 }
 
 impl Checker<'_> {
+    /// The file with each top-level shield's declarations in its place, remembering which they were (D34, D38).
+    fn flatten_shields(&mut self, file: &syntax::File) -> syntax::File {
+        let mut flattened = file.clone();
+        flattened.items = Vec::new();
+        for item in &file.items {
+            if let ItemKind::Shield { name, reason, items, end } = &item.kind {
+                self.check_closer(end, &format!("end shield {}", name.text), CLOSER_WHY);
+                if reason.is_none() {
+                    self.error(Diagnostic::refused(
+                        name.span,
+                        "a shield gives its reason",
+                        "a shield is a named block with a written reason, saying why its code is safe (D34)",
+                    ));
+                }
+                for inner in items {
+                    if let ItemKind::Struct(declared) = &inner.kind {
+                        self.shielded.push(declared.name.text());
+                    }
+                    flattened.items.push(inner.clone());
+                }
+            } else {
+                flattened.items.push(item.clone());
+            }
+        }
+        flattened
+    }
+
     pub fn error(&mut self, diagnostic: Diagnostic) -> Reported {
         self.errors.push(diagnostic);
         Reported
@@ -854,6 +890,7 @@ impl Checker<'_> {
     fn has_holding_choice(&self, value_type: &Type) -> Option<bool> {
         match value_type {
             Type::Integer { .. } | Type::Float { .. } | Type::Bool | Type::Str(StrSize::View) => Some(false),
+            Type::List { view: types::ListView::Read | types::ListView::Change, .. } => Some(false),
             Type::Str(_) => Some(true),
             Type::New { inner, .. } => self.has_holding_choice(inner),
             Type::Struct { .. } | Type::Union { .. } | Type::Array { .. } | Type::List { .. } | Type::Writer(_) => {
@@ -1129,7 +1166,8 @@ impl Checker<'_> {
                 Variable {
                     name: name.clone(),
                     value_type: value_type.clone(),
-                    mutable: *ownership == syntax::ParameterOwnership::LentMut,
+                    mutable: *ownership == syntax::ParameterOwnership::LentMut
+                        || matches!(value_type, Type::List { view: types::ListView::Change, .. }),
                     origin: Origin::Parameter,
                     local,
                     declared: parameter.name.span,
@@ -1186,7 +1224,8 @@ impl Checker<'_> {
             Type::New { inner, .. } => self.must_give(inner),
             // A list that can grow owns its memory (D323), and a list of values with a duty has every one of them
             // to hand off (D180).
-            Type::List { max: None, .. } => true,
+            Type::List { max: None, view: types::ListView::Owned, .. } => true,
+            Type::List { view: types::ListView::Read | types::ListView::Change, .. } => false,
             Type::List { item, .. } | Type::Array { item, .. } => self.must_give(item),
             // An arena owns its block, and a growable string its text (D325, D326, D330).
             Type::Allocator(types::AllocatorKind::Arena) | Type::Str(StrSize::Growing) => true,
@@ -1198,14 +1237,14 @@ impl Checker<'_> {
     #[must_use]
     pub fn duty_why(&self, value_type: &Type) -> Option<String> {
         match value_type {
-            Type::List { max: None, .. } => Some(
+            Type::List { max: None, view: types::ListView::Owned, .. } => Some(
                 "a list that can grow on the heap is `must_Give`, and `std::coll::list.done` frees it with the allocator it came from, so a leak doesn't compile (D323, D325, D331)".to_string(),
             ),
             Type::Allocator(types::AllocatorKind::Arena) => Some(
                 "an arena owns its block, so it's `must_Give`, and `std::mem::arena.done` hands it back to the allocator it came from (D330, D331)".to_string(),
             ),
             Type::Str(StrSize::Growing) => Some(
-                "a string that can grow on the heap is `must_Give`, and `str.done` frees it with the allocator it came from, so a leak doesn't compile (D326, D331)".to_string(),
+                "heap text is `must_Give`, and `str.done` frees it with the allocator it came from, so a leak doesn't compile (D326, D331)".to_string(),
             ),
             Type::New { inner, .. } => self.duty_why(inner),
             _ => None,
@@ -1214,7 +1253,8 @@ impl Checker<'_> {
 
     /// Records that a variable got a value, if it's one whose ownership is followed: anything but a plain number.
     pub fn bind_event(&self, body: &mut Body, local: checked::LocalId, name: &str, declared: Span, value_type: &Type) {
-        if value_type.is_copied() || value_type.is_unknown() {
+        let borrows = matches!(value_type, Type::Pointer { .. });
+        if (value_type.is_copied() && !borrows) || value_type.is_unknown() {
             return;
         }
         body.events.push(crate::flow::Event::Bind {
@@ -1661,6 +1701,16 @@ impl Checker<'_> {
         match text.as_str() {
             "bool" => Ok(Type::Bool),
             "str" => self.str_type(labels),
+            "str.utf8" => Err(self.error(Diagnostic::refused_fix(
+                path.span,
+                "str",
+                "a default the language fixes can't be written out (D51)",
+            ))),
+            "str.utf16" => Err(self.error(Diagnostic::not_designed(
+                path.span,
+                "`str.utf16`, and how its string literals work",
+                "not decided yet (standard 12.2)",
+            ))),
             "void" => Ok(Type::Void),
             "os::stdout.buffered" | "os::stdout.unbuffered" | "os::stderr.buffered" | "os::stderr.unbuffered" => {
                 self.require_import(&text, path.span)?;
@@ -1682,7 +1732,10 @@ impl Checker<'_> {
                 self.check_fills(written, &name, &sources)?;
                 Ok(found)
             }
-            "std::coll::list" | "std::coll::array" => self.collection_type(written, &text, path, fill, labels),
+            "ptr.raw" | "ptr.raw.mut" | "ptr.volatile" | "ptr.volatile.mut" => self.pointer_type(written, &text, fill),
+            "std::coll::list" | "std::coll::list.mut" | "std::coll::array" => {
+                self.collection_type(written, &text, path, fill, labels)
+            }
             // trace: D378
             "std::list" | "std::array" | "std::map" | "std::arena" | "std::allocator" | "std::one_thread"
             | "std::runner" | "std::halves" => {
@@ -1996,6 +2049,21 @@ impl Checker<'_> {
             };
             return Ok(Type::Array { item: Box::new(item), len, len_type });
         }
+        // A list with no `len.max` at all is a view of someone else's (D379).
+        if labels.is_empty() || text == "std::coll::list.mut" {
+            if let Some(label) = labels.first() {
+                return Err(self.not_yet(label.span, "a label on a list view".to_string()));
+            }
+            let view = if text == "std::coll::list.mut" { types::ListView::Change } else { types::ListView::Read };
+            return Ok(Type::List {
+                item: Box::new(item),
+                min: 0,
+                max: None,
+                len_type,
+                grow: types::Grow::Double,
+                view,
+            });
+        }
         let Some((max, _)) = max else {
             return Err(self.error(Diagnostic::refused(
                 path.span,
@@ -2017,7 +2085,7 @@ impl Checker<'_> {
             )));
         }
         let grow = grow.map_or(types::Grow::Double, |(grow, _)| grow);
-        Ok(Type::List { item: Box::new(item), min, max, len_type, grow })
+        Ok(Type::List { item: Box::new(item), min, max, len_type, grow, view: types::ListView::Owned })
     }
 
     /// `grow: exact`, `grow: by 64 items` or `grow: by 4 kib` (D385).
@@ -2042,6 +2110,28 @@ impl Checker<'_> {
     }
 
     /// A count of items, `3 items`, or `inf items` as `None` (D11, D101).
+    /// `ptr.raw<u32>`, `ptr.raw.mut<u32>`, `ptr.volatile<u32>` or `ptr.volatile.mut<u32>`, only in a shield (D226,
+    /// D314, D317).
+    fn pointer_type(&mut self, written: &syntax::Type, text: &str, fill: &[syntax::TypeArgument]) -> Check<Type> {
+        if self.shields == 0 {
+            // trace: D314
+            return Err(self.error(Diagnostic::refused(
+                written.span,
+                "a pointer lives only in a shield",
+                "raw and volatile pointers live only in a shield, where the programmer takes over what the compiler can't check (D38, D226, D314)",
+            )));
+        }
+        let [syntax::TypeArgument { label: None, value: syntax::TypeArgumentValue::Type(target), .. }] = fill else {
+            return Err(self.not_yet(written.span, format!("`{text}` filled in this way")));
+        };
+        let target = self.resolve_type(target)?;
+        Ok(Type::Pointer {
+            target: Box::new(target),
+            mutable: text.ends_with(".mut"),
+            volatile: text.starts_with("ptr.volatile"),
+        })
+    }
+
     /// `std::coll::map.hash<key.type: str, val.type: i32>`: its types say `key.type:` and `val.type:` (D24, D25, D366).
     fn map_type(&mut self, written: &syntax::Type, text: &str, fill: &[syntax::TypeArgument]) -> Check<Type> {
         if fill.len() > 1 && fill.iter().all(|argument| argument.label.is_none()) {
@@ -2084,7 +2174,12 @@ impl Checker<'_> {
                 )));
             };
             if self.resolve_path(unit) != "bytes" {
-                return Err(self.not_yet(unit.span, "a string's length in another unit".to_string()));
+                // trace: D326
+                return Err(self.error(Diagnostic::refused_fix(
+                    unit.span,
+                    "bytes",
+                    "a string's `len.max` is in bytes, since UTF-8 characters vary in size (D326)",
+                )));
             }
             size = match &number.kind {
                 syntax::ExpressionKind::Path(path) if path.is_single("inf") => StrSize::Growing,

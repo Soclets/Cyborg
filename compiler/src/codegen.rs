@@ -805,6 +805,10 @@ impl<'context, 'module> Generator<'context, 'module> {
                 self.check(frame, fine, wrong, &operands)?;
                 frame.builder.call(self.runtime("__cyborg_list_done")?, &[record, allocator], "");
             }
+            Statement::TextDone(value) => {
+                let text = self.expression(frame, value)?;
+                frame.builder.call(self.runtime("__cyborg_text_free")?, &[text], "");
+            }
             Statement::ArenaDone { arena, alive } => {
                 // trace: D330
                 let arena = self.expression(frame, arena)?;
@@ -1799,6 +1803,100 @@ impl<'context, 'module> Generator<'context, 'module> {
                 let fits = frame.builder.and(above_min, below_max, "").to_dynamic();
                 self.check(frame, fits, failure, &[(generated, value.machine_type.clone())])?;
                 generated
+            }
+            ExpressionKind::UnionBits(value) => {
+                // trace: D398
+                let generated = self.expression(frame, value)?;
+                let target = self.machine_type(&expression.machine_type);
+                let as_integer = match value.machine_type {
+                    MachineType::Float { bits } => frame
+                        .builder
+                        .cast(lyftar::enums::Opcode::BitCast, generated, self.context.integer_type(bits), "")
+                        .to_dynamic(),
+                    _ => generated,
+                };
+                frame.builder.zero_extend_or_bit_cast(as_integer, target, "").to_dynamic()
+            }
+            ExpressionKind::Bits(value) => {
+                // trace: D398
+                let generated = self.expression(frame, value)?;
+                match expression.machine_type {
+                    MachineType::Float { bits } => {
+                        let narrow = frame
+                            .builder
+                            .truncate_or_bit_cast(generated, self.context.integer_type(bits), "")
+                            .to_dynamic();
+                        let float = self.machine_type(&expression.machine_type);
+                        frame.builder.cast(lyftar::enums::Opcode::BitCast, narrow, float, "").to_dynamic()
+                    }
+                    MachineType::Bool => {
+                        frame.builder.truncate_or_bit_cast(generated, self.context.integer_type(1), "").to_dynamic()
+                    }
+                    _ => {
+                        let target = self.machine_type(&expression.machine_type);
+                        frame.builder.truncate_or_bit_cast(generated, target, "").to_dynamic()
+                    }
+                }
+            }
+            ExpressionKind::AddressAt(address) => {
+                let number = self.expression(frame, address)?;
+                frame.builder.integer_to_pointer(number, self.context.pointer_type(0), "").to_dynamic()
+            }
+            ExpressionKind::PointerRead { pointer, volatile } => {
+                let pointer = self.expression(frame, pointer)?;
+                let loaded_type = self.machine_type(&expression.machine_type);
+                let loaded = frame.builder.load(loaded_type, pointer, "");
+                if *volatile && let Some(load) = loaded.as_kind::<lyftar::values::LoadInstruction>() {
+                    load.set_volatile(true);
+                }
+                loaded.to_dynamic()
+            }
+            ExpressionKind::PointerWrite { pointer, value, volatile } => {
+                let pointer = self.expression(frame, pointer)?;
+                let value = self.expression(frame, value)?;
+                let stored = frame.builder.store(value, pointer);
+                if *volatile {
+                    stored.set_volatile(true);
+                }
+                self.context.pointer_type(0).constant_null().to_dynamic()
+            }
+            ExpressionKind::PointerMoved { pointer, bytes } => {
+                let pointer = self.expression(frame, pointer)?;
+                let bytes = self.expression(frame, bytes)?;
+                let byte = self.context.integer_type(8).to_dynamic();
+                frame.builder.get_element_pointer(byte, pointer, &[bytes], "").to_dynamic()
+            }
+            ExpressionKind::ArrayView(place) => {
+                // trace: D379
+                let (pointer, machine_type) = self.place_pointer(frame, place)?;
+                let MachineType::Array { len, .. } = machine_type else {
+                    return Err("a view of something that isn't an array".into());
+                };
+                let count = self.integer(64, len);
+                let none = integer_constant(self.context, 64, -1);
+                let mut record = self.list_type().undefined().to_dynamic();
+                record = frame.builder.insert_value(record, pointer, 0, "").to_dynamic();
+                record = frame.builder.insert_value(record, count, 1, "").to_dynamic();
+                record = frame.builder.insert_value(record, count, 2, "").to_dynamic();
+                record = frame.builder.insert_value(record, none, 3, "").to_dynamic();
+                frame.builder.insert_value(record, none, 4, "").to_dynamic()
+            }
+            ExpressionKind::TextCopy(value) => {
+                let text = self.expression(frame, value)?;
+                let data = frame.builder.extract_value(text, 0, "").to_dynamic();
+                let length = frame.builder.extract_value(text, 1, "").to_dynamic();
+                frame.builder.call(self.runtime("__cyborg_text_copy")?, &[data, length], "").to_dynamic()
+            }
+            ExpressionKind::FitText { value, most, failure } => {
+                // trace: D328
+                let text = self.expression(frame, value)?;
+                let length = frame.builder.extract_value(text, 1, "").to_dynamic();
+                let fits = frame
+                    .builder
+                    .integer_compare(IntegerPredicate::UnsignedLessOrEqual, length, self.integer(64, *most), "")
+                    .to_dynamic();
+                self.crash_unless(frame, fits, failure, &[(length, MachineType::Integer { bits: 64, signed: false })])?;
+                text
             }
             ExpressionKind::Heap => {
                 frame.builder.call(self.runtime("__cyborg_heap")?, &[] as &[Value<'context, 'module>], "").to_dynamic()

@@ -45,6 +45,15 @@ impl Checker<'_> {
             })()),
             (ExpressionKind::List(items), Type::List { item, min, max, len_type, .. }) => Some((|| {
                 let count = items.len() as u64;
+                if max.is_none() {
+                    // trace: D369
+                    let shown = self.slice(expression.span).to_string();
+                    return Err(self.error(Diagnostic::refused_fix(
+                        expression.span,
+                        format!("std::coll::list.from({shown}, alloc: Lend $heap)"),
+                        "a list that grows on the heap is filled with `std::coll::list.from([…], alloc: Lend $heap)`, since every allocation names its allocator (D321, D369)",
+                    )));
+                }
                 let (_, most) = len_type.range();
                 if max.is_none() && i128::from(count) > most {
                     return Err(self.error(Diagnostic::not_designed(
@@ -63,6 +72,14 @@ impl Checker<'_> {
                 let values = self.items_into(body, items, item)?;
                 Ok(checked::Expression { kind: Kind::ListOf(values), machine_type })
             })()),
+            (ExpressionKind::Empty, Type::List { view, .. }) if *view != super::types::ListView::Owned => {
+                // trace: D379
+                Some(Err(self.error(Diagnostic::refused(
+                    expression.span,
+                    format!("`{into}` can't be `empty`"),
+                    "`empty` is refused where it can't be true (D103)",
+                ))))
+            }
             (ExpressionKind::Empty, Type::List { min, .. }) => Some(if *min > 0 {
                 Err(self.error(Diagnostic::refused(
                     expression.span,
@@ -429,9 +446,17 @@ impl Checker<'_> {
             return Err(self.not_yet(receiver.span, "adding to this".to_string()));
         };
         let list_type = reached.value_type.clone();
-        let Type::List { item, max, len_type, .. } = &list_type else {
+        let Type::List { item, max, len_type, view, .. } = &list_type else {
             return Err(self.not_yet(receiver.span, format!("`append` on `{}`", reached.value_type)));
         };
+        if *view != super::types::ListView::Owned {
+            // trace: D379
+            return Err(self.error(Diagnostic::refused(
+                expression.span,
+                format!("`{list_type}` is a view, so it can't grow or shrink"),
+                "a list with no `len.max` is a view onto someone else's list: `.mut` changes its items, and only the list itself grows (D379)",
+            )));
+        }
         let (argument, allocator) = match arguments {
             [argument] => (argument, None),
             [argument, allocator] => (argument, Some(allocator)),

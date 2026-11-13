@@ -317,6 +317,15 @@ impl<'a> Interpreter<'a> {
                 Ok(checked)
             }
             ExpressionKind::Maths { .. } => Err(Stop::NotBuilt("`std::math` while baking".to_string())),
+            ExpressionKind::FitText { value, most, failure } => {
+                let text = self.expression(value, locals)?;
+                if let Constant::Text(written) = &text
+                    && written.len() as u64 > *most
+                {
+                    return Err(refuse(failure, &[Constant::Integer(written.len() as i128)], &[MachineType::I64]));
+                }
+                Ok(text)
+            }
             ExpressionKind::Clamp { value, min, max } => match self.expression(value, locals)? {
                 Constant::Integer(number) => Ok(Constant::Integer(number.clamp(*min, *max))),
                 other => Ok(other),

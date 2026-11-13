@@ -271,8 +271,18 @@ impl Checker<'_> {
             None => Vec::new(),
         };
         body.expected_fills = if fills.is_empty() { None } else { Some(fills.clone()) };
+        self.pointer_borrow = None;
         let result = self.let_value(body, &declared, binding, local, block);
         body.expected_fills = None;
+        // A pointer to a variable keeps it lent for as long as the pointer exists (D315).
+        if let (Ok(()), Some((source, path, mutable))) = (&result, self.pointer_borrow.take()) {
+            body.events.push(crate::flow::Event::Borrow {
+                borrower: local,
+                sources: vec![(source, path)],
+                mutable,
+                held: false,
+            });
+        }
         if result.is_ok() && !fills.is_empty() {
             let sources: Vec<(checked::LocalId, Vec<usize>)> = fills
                 .iter()
@@ -357,6 +367,24 @@ impl Checker<'_> {
         }
         if let Type::Borrow { .. } = declared {
             return self.let_borrow(body, binding, local, declared, block);
+        }
+        if let Type::List { view, .. } = declared
+            && *view != super::types::ListView::Owned
+        {
+            // trace: D367, D379
+            if let ExpressionKind::Variable(name) = &binding.value.kind {
+                return Err(self.error(Diagnostic::refused(
+                    binding.value.span,
+                    format!(
+                        "`{}` is a view of a list, so storing or returning it writes where it's from, as `Lend from {} {declared}`",
+                        name.text, name.text
+                    ),
+                    "a list view follows a `str` view's borrow rules: passing one needs nothing, and storing or returning one writes its source (D367, D379)",
+                )));
+            }
+            if !matches!(binding.value.kind, ExpressionKind::Empty) {
+                return Err(self.not_yet(binding.value.span, "a list view held in a variable".to_string()));
+            }
         }
         let value = self.value_into(body, &binding.value, declared)?;
         block.push(checked::Statement::Let { local, value });
@@ -499,7 +527,9 @@ impl Checker<'_> {
             )));
         }
         let typed = self.expression(body, lent, Some(inner))?;
-        if typed.value_type != **inner && !typed.value_type.is_unknown() {
+        // A view borrows any string, owned or not (D327).
+        let viewed = **inner == Type::Str(super::types::StrSize::View) && matches!(typed.value_type, Type::Str(_));
+        if typed.value_type != **inner && !typed.value_type.is_unknown() && !viewed {
             return Err(self.error(Diagnostic::refused(
                 lent.span,
                 format!("this is `{}`, where `{inner}` is needed", typed.value_type),
@@ -969,7 +999,8 @@ impl Checker<'_> {
         let value = self.value_into(body, value, variable.value_type.read_as())?;
         block.push(checked::Statement::Set { local: variable.local, value });
         body.states[index] = State::Assigned;
-        if !variable.value_type.is_copied() {
+        // A number changing matters to a pointer that borrows it (D315).
+        if !variable.value_type.is_copied() || body.pointed_at.contains(&variable.local) {
             // The whole statement is where a test's trust ended (D104).
             let spot = crate::flow::Spot { variable: name.span, place: name.span, site: name.span, marker: span };
             body.events.push(crate::flow::Event::Change {
@@ -2062,7 +2093,26 @@ impl Checker<'_> {
             }
             None => {
                 // A fresh list or array goes in a temporary for the loop.
+                if let ExpressionKind::Call { callee, .. } = &each.source.kind
+                    && let ExpressionKind::Path(path) = &callee.kind
+                    && self.resolve_path(path) == "std::coll::list.from"
+                {
+                    // trace: D396
+                    return Err(self.error(Diagnostic::refused(
+                        each.source.span,
+                        "this fresh list grows on the heap, so it has to end with `done`, which a loop over it can't do",
+                        "a loop over a fresh collection takes no word, and one that owns memory is stored first, read with `Lend` and ended with `defer` (D396, D325)",
+                    )));
+                }
                 let typed = self.expression(body, &each.source, None)?;
+                if self.must_give(&typed.value_type) {
+                    // trace: D396
+                    return Err(self.error(Diagnostic::refused(
+                        each.source.span,
+                        "this fresh list grows on the heap, so it has to end with `done`, which a loop over it can't do",
+                        "a loop over a fresh collection takes no word, and one that owns memory is stored first, read with `Lend` and ended with `defer` (D396, D325)",
+                    )));
+                }
                 let local = body.new_local(typed.value.machine_type.clone());
                 block.push(checked::Statement::Let { local, value: typed.value });
                 (local, Vec::new(), typed.value_type, None)

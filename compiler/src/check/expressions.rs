@@ -174,6 +174,9 @@ impl Checker<'_> {
             ExpressionKind::MethodCall { receiver, method, arguments, .. } => {
                 self.method_call(body, expression, receiver, method, arguments)
             }
+            ExpressionKind::TypeCall { written_type, name, arguments, .. } => {
+                self.pointer_call(body, expression, written_type, name, arguments)
+            }
             ExpressionKind::WithUnit { value, unit } => self.with_unit(body, expression, value, unit, expected),
             // A builtin looks like a call and can't be written as a Cyborg function, and none are chosen yet (D56).
             ExpressionKind::Builtin { name, .. } => {
@@ -407,6 +410,15 @@ impl Checker<'_> {
             std::mem::replace(&mut body.handing, false)
         };
         let typed = self.expression(body, value, None)?;
+        if let syntax::TypeKind::Named { path, .. } = &written_type.kind
+            && path.text() == "str.with_unit"
+        {
+            return Err(self.error(Diagnostic::not_designed(
+                keyword.span.to(written_type.span),
+                "how a unit prints with `as str.with_unit`",
+                "not decided yet (standard 12.3)",
+            )));
+        }
         let into = self.resolve_type(written_type)?;
         // A crossing of a whole value in a variable says its ownership (D149).
         let crossing = match (&typed.value_type, &into) {
@@ -468,7 +480,7 @@ impl Checker<'_> {
                 Ok(Typed::new(into.clone(), typed.value.kind))
             }
             // trace: D328
-            (Type::Integer { kind, .. }, Type::Str(StrSize::View | StrSize::Growing)) => {
+            (Type::Integer { kind, .. }, Type::Str(StrSize::View)) => {
                 let most = kind.most_text_bytes();
                 Err(self.error(Diagnostic::refused_fix(
                     keyword.span.to(written_type.span),
@@ -476,16 +488,23 @@ impl Checker<'_> {
                     "`as` never allocates, so text from `as` goes into a bounded `str`, held inside the value (D327, D328)",
                 )))
             }
-            (Type::Integer { .. } | Type::Float { .. }, Type::Str(_)) if body.purity != super::Purity::Plain => {
-                Err(self.error(Diagnostic::not_designed(
-                    expression.span,
-                    "whether a `fn.pure` may allocate, as `as` can",
-                    "not decided yet (standard 12.5)",
+            (Type::Integer { .. } | Type::Float { .. }, Type::Str(StrSize::Growing)) => {
+                Err(self.error(Diagnostic::refused_fix(
+                    keyword.span.to(written_type.span),
+                    "str.from",
+                    "heap text comes from a function that takes an allocator, like `str.from($n, alloc: Lend $heap)`, so every allocation is a visible call (D321, D328)",
                 )))
             }
-            (Type::Integer { .. }, Type::Str(_)) => Ok(Typed::new(into.clone(), Kind::TextOf(Box::new(typed.value)))),
-            (Type::Float { kind, .. }, Type::Str(_)) if *kind != super::types::FloatKind::Fast => {
-                Ok(Typed::new(into.clone(), Kind::TextOf(Box::new(typed.value))))
+            (Type::Integer { kind, .. }, Type::Str(StrSize::Bytes(most))) => {
+                let text = Typed::new(into.clone(), Kind::TextOf(Box::new(typed.value)));
+                if kind.most_text_bytes() <= *most {
+                    return Ok(text);
+                }
+                Ok(self.fit_text(expression.span, text, *most))
+            }
+            (Type::Float { kind, .. }, Type::Str(StrSize::Bytes(most))) if *kind != super::types::FloatKind::Fast => {
+                let text = Typed::new(into.clone(), Kind::TextOf(Box::new(typed.value)));
+                Ok(self.fit_text(expression.span, text, *most))
             }
             (
                 Type::Float { bits: from_bits, kind: super::types::FloatKind::Ieee, .. },
@@ -581,7 +600,8 @@ impl Checker<'_> {
         }
         let mut typed = Typed::new(variable.value_type.read_as().clone(), Kind::Local(variable.local));
         typed.variable = Some(name.text.clone());
-        if !variable.value_type.is_copied() && variable.origin != Origin::Constant {
+        let borrows = matches!(variable.value_type, Type::Pointer { .. });
+        if (!variable.value_type.is_copied() || borrows) && variable.origin != Origin::Constant {
             let site = body.site(name.span);
             body.events.push(crate::flow::Event::Read {
                 place: crate::flow::Place { local: variable.local, path: Vec::new(), shown: String::new() },
@@ -1708,6 +1728,160 @@ impl Checker<'_> {
         Ok(Typed::new(result, Kind::Maths { function, value: Box::new(typed.value) }))
     }
 
+    /// `ptr.raw.mut<i32>.of(Lend.mut $count)` takes a variable's address, and `ptr.volatile.mut<u32>.at(address: …)`
+    /// makes a pointer from a number (D315, D317).
+    fn pointer_call(
+        &mut self,
+        body: &mut Body,
+        expression: &syntax::Expression,
+        written_type: &syntax::Type,
+        name: &syntax::Name,
+        arguments: &[syntax::Argument],
+    ) -> Check<Typed> {
+        let pointer_type = self.resolve_type(written_type)?;
+        let Type::Pointer { target, mutable, .. } = &pointer_type else {
+            return Err(self.not_yet(expression.span, format!("calling `{}` on `{pointer_type}`", name.text)));
+        };
+        let [argument] = arguments else {
+            return Err(self.not_yet(expression.span, format!("`.{}` with these arguments", name.text)));
+        };
+        match name.text.as_str() {
+            "of" => {
+                let wants = if *mutable { syntax::Ownership::LendMut } else { syntax::Ownership::Lend };
+                if argument.ownership.map(|(word, _)| word) != Some(wants) {
+                    let shown = self.slice(argument.value.span).to_string();
+                    return Err(self.error(Diagnostic::refused_fix(
+                        argument.span,
+                        format!("{} {shown}", wants.word()),
+                        "the ownership word says the access: `Lend` for `ptr.raw` and `Lend.mut` for `ptr.raw.mut` (D315)",
+                    )));
+                }
+                let Some(root) = root_name(&argument.value).cloned() else {
+                    return Err(self.not_yet(argument.span, "a pointer to a fresh value".to_string()));
+                };
+                let Some(reached) = self.reach(body, &argument.value)? else { return Err(Reported) };
+                if reached.value_type != **target && !reached.value_type.is_unknown() {
+                    return Err(self.error(Diagnostic::refused(
+                        argument.value.span,
+                        format!("this is `{}`, where `{target}` is needed", reached.value_type),
+                        CONVERT_WHY,
+                    )));
+                }
+                if *mutable && !reached.root.mutable {
+                    return Err(self.error(Diagnostic::refused(
+                        argument.value.span,
+                        format!("`{}` can't change, so it can't be lent with `Lend.mut`", root.text),
+                        "`let` declares a variable that can't change, and `let mut` one that can (D3)",
+                    )));
+                }
+                let path = self.any_place(body, &argument.value).map(|(_, path)| path).unwrap_or_default();
+                let site = body.site(root.span);
+                let shown = self.slice(argument.value.span).to_string();
+                let place = crate::flow::Place { local: reached.root.local, path: path.clone(), shown };
+                let spot = crate::flow::Spot { variable: root.span, place: argument.value.span, site, marker: site };
+                body.events.push(if *mutable {
+                    crate::flow::Event::LendMut { place, spot }
+                } else {
+                    crate::flow::Event::Read { place, spot }
+                });
+                self.pointer_borrow = Some((reached.root.local, path.clone(), *mutable));
+                body.pointed_at.push(reached.root.local);
+                Ok(Typed::new(pointer_type.clone(), Kind::AddressOf { local: reached.root.local, path }))
+            }
+            "at" => {
+                if argument.label.as_ref().map(|label| label.text.as_str()) != Some("address") {
+                    return Err(self.not_yet(argument.span, "`.at` without `address:`".to_string()));
+                }
+                let address = Type::Integer { kind: IntegerKind::U64, bounds: None, unit: None };
+                let value = self.value_into(body, &argument.value, &address)?;
+                Ok(Typed::new(pointer_type.clone(), Kind::AddressAt(Box::new(value))))
+            }
+            other => Err(self.not_yet(name.span, format!("`.{other}` on a pointer type"))),
+        }
+    }
+
+    /// `$p.%read()`, `$p.%%write(val: 6)` and `$p.%moved(offset.items: 1)` (D315, D316, D317).
+    fn pointer_method(
+        &mut self,
+        body: &mut Body,
+        expression: &syntax::Expression,
+        receiver: &syntax::Expression,
+        (target, mutable, volatile): (&Type, bool, bool),
+        written: &str,
+        arguments: &[syntax::Argument],
+    ) -> Check<Typed> {
+        let pointer_type = Type::Pointer { target: Box::new(target.clone()), mutable, volatile };
+        let pointer = self.expression(body, receiver, None)?;
+        match (written, arguments) {
+            ("%read", []) => {
+                Ok(Typed::new(target.clone(), Kind::PointerRead { pointer: Box::new(pointer.value), volatile }))
+            }
+            ("%%write", [argument]) => {
+                if !mutable {
+                    // trace: D314
+                    return Err(self.error(Diagnostic::refused(
+                        expression.span,
+                        format!("`{pointer_type}` can only read"),
+                        "writing through a pointer needs `ptr.raw.mut` or `ptr.volatile.mut`, since even in a shield that mistake is cheap to catch (D314, D317)",
+                    )));
+                }
+                if argument.label.as_ref().map(|label| label.text.as_str()) != Some("val") {
+                    return Err(self.not_yet(argument.span, "`%%write` without `val:`".to_string()));
+                }
+                let value = self.value_into(body, &argument.value, target)?;
+                Ok(Typed::new(
+                    Type::Void,
+                    Kind::PointerWrite { pointer: Box::new(pointer.value), value: Box::new(value), volatile },
+                ))
+            }
+            ("%moved", [argument]) => {
+                // trace: D316
+                let label = argument.label.as_ref().map(|label| label.text.clone()).unwrap_or_default();
+                let scale = match label.as_str() {
+                    "offset.items" => self.footprint(target).map(|footprint| footprint.size),
+                    "offset.bytes" => Some(1),
+                    "offset" => {
+                        let span = argument.label.as_ref().map_or(argument.span, |label| label.span);
+                        return Err(self.error(Diagnostic::refused_fix(
+                            span,
+                            "offset.items",
+                            "C's trap is `p + 1` moving a whole item silently, so the unit is always written (D316)",
+                        )));
+                    }
+                    _ => {
+                        return Err(self.not_yet(
+                            argument.span,
+                            "`%moved` without `offset.items:` or `offset.bytes:`".to_string(),
+                        ));
+                    }
+                };
+                let Some(scale) = scale else {
+                    return Err(self.not_yet(argument.span, format!("moving by items of `{target}`")));
+                };
+                let wide = Type::Integer { kind: IntegerKind::I64, bounds: None, unit: None };
+                let count = self.value_into(body, &argument.value, &wide)?;
+                let bytes = checked::Expression {
+                    kind: Kind::Arithmetic {
+                        operator: Arithmetic::WrappingMultiply,
+                        left: Box::new(count),
+                        right: Box::new(checked::Expression {
+                            kind: Kind::Integer(i128::from(scale)),
+                            machine_type: checked::MachineType::I64,
+                        }),
+                        failure: None,
+                        more: Vec::new(),
+                    },
+                    machine_type: checked::MachineType::I64,
+                };
+                Ok(Typed::new(
+                    pointer_type,
+                    Kind::PointerMoved { pointer: Box::new(pointer.value), bytes: Box::new(bytes) },
+                ))
+            }
+            _ => Err(self.not_yet(expression.span, format!("the method `{written}` on a pointer"))),
+        }
+    }
+
     /// A call into a limb or an inline language (D22, D225, D227, D38).
     fn limb_call(&mut self, name: &str, span: Span) -> Check<()> {
         const INLINE_WHY: &str = "inline code is `inline.asm`, in the base language, or a limb's own language as `inline.@limb::lang` (D227)";
@@ -1790,6 +1964,9 @@ impl Checker<'_> {
     ) -> Check<Typed> {
         let mut written = method.text();
         let receiver_type = self.expression_type_quietly(body, receiver);
+        if let Some(Type::Pointer { target, mutable, volatile }) = &receiver_type {
+            return self.pointer_method(body, expression, receiver, (target, *mutable, *volatile), &written, arguments);
+        }
         let on_list = matches!(receiver_type, Some(Type::List { .. }));
         // A kit method's short name stands for its path on the type that path names (D178).
         if on_list
@@ -2296,6 +2473,11 @@ impl Checker<'_> {
         let word = argument.ownership.map(|(word, _)| word);
         let shown = self.slice(argument.value.span).to_string();
         let held = is_held(&argument.value);
+        if let Type::List { view, .. } = parameter_type
+            && *view != super::types::ListView::Owned
+        {
+            return self.view_argument(body, argument, parameter_type, *view, handed);
+        }
         match ownership {
             ParameterOwnership::LentMut => {
                 let number_why =
@@ -2321,6 +2503,23 @@ impl Checker<'_> {
                             why,
                         )));
                     }
+                }
+                // trace: D320
+                if let ExpressionKind::Field { base, field } = &argument.value.kind
+                    && let Some(Type::Struct { id, .. }) = self.expression_type_quietly(body, base)
+                    && self.aggregates.structs[id].layout == super::aggregates::Layout::Packed
+                {
+                    let field_type = self.aggregates.structs[id]
+                        .fields
+                        .iter()
+                        .find(|each| each.name == field.text)
+                        .map(|each| each.value_type.to_string())
+                        .unwrap_or_default();
+                    return Err(self.error(Diagnostic::refused_fix(
+                        argument.value.span,
+                        format!("let ${}: {field_type} = {shown};", field.text),
+                        "a packed field can sit at an odd address, so a borrow of it could be misaligned, and it's copied into a variable first (D320)",
+                    )));
                 }
                 if is_item(&argument.value) {
                     return self.lend_item(body, argument, parameter_type, handed);
@@ -2492,8 +2691,8 @@ impl Checker<'_> {
                 let typed = self.expression(body, &argument.value, Some(parameter_type))?;
                 let typed_type = typed.value_type.clone();
                 if let (
-                    Type::List { item: a, min: x, max: y, len_type: p, grow: g },
-                    Type::List { item: b, min: z, max: w, len_type: q, grow: h },
+                    Type::List { item: a, min: x, max: y, len_type: p, grow: g, .. },
+                    Type::List { item: b, min: z, max: w, len_type: q, grow: h, .. },
                 ) = (&typed_type, parameter_type)
                     && a == b
                     && x == z
@@ -2522,6 +2721,99 @@ impl Checker<'_> {
                 }
             }
         }
+    }
+
+    /// A list or array lent to a view parameter (D379, D381): `Lend $xs` reads it, `Lend.mut $xs` changes its items, and
+    /// a read-only view already held is passed on bare, since it's only ever copied.
+    fn view_argument(
+        &mut self,
+        body: &mut Body,
+        argument: &syntax::Argument,
+        parameter_type: &Type,
+        view: super::types::ListView,
+        handed: &mut Vec<Handed>,
+    ) -> Check<checked::Argument> {
+        use super::types::ListView;
+        use syntax::Ownership;
+        let word = argument.ownership.map(|(word, _)| word);
+        let shown = self.slice(argument.value.span).to_string();
+        let Some(root) = root_name(&argument.value).cloned() else {
+            return Err(self.not_yet(argument.span, "a view of a fresh list".to_string()));
+        };
+        let Some(reached) = self.reach(body, &argument.value)? else { return Err(Reported) };
+        let Type::List { item: wanted, .. } = parameter_type else { return Err(Reported) };
+        let (item, theirs) = match &reached.value_type {
+            Type::List { item, view, .. } => (item.clone(), *view),
+            Type::Array { item, .. } => (item.clone(), ListView::Owned),
+            Type::Unknown => return Err(Reported),
+            other => {
+                return Err(self.error(Diagnostic::refused(
+                    argument.value.span,
+                    format!("this is `{other}`, where `{parameter_type}` is needed"),
+                    CONVERT_WHY,
+                )));
+            }
+        };
+        if item != *wanted {
+            return Err(self.error(Diagnostic::refused(
+                argument.value.span,
+                format!("this is `{}`, where `{parameter_type}` is needed", reached.value_type),
+                CONVERT_WHY,
+            )));
+        }
+        let changes = view == ListView::Change;
+        match (word, theirs, changes) {
+            // trace: D381
+            (Some(Ownership::Lend), ListView::Read, false) => {
+                return Err(self.error(Diagnostic::refused_fix(
+                    argument.span,
+                    shown,
+                    "a read-only list view is copied like a `str` view, since copying read-only data can't change or free anything, and it takes no word (D368, D381)",
+                )));
+            }
+            (None, ListView::Read, false) | (Some(Ownership::Lend), _, false) | (Some(Ownership::LendMut), _, true) => {
+            }
+            (_, _, true) => {
+                return Err(self.error(Diagnostic::refused_fix(
+                    argument.span,
+                    format!("Lend.mut {shown}"),
+                    "the call and the parameter both say it, and they must match (D2)",
+                )));
+            }
+            _ => {
+                return Err(self.error(Diagnostic::refused_fix(
+                    argument.span,
+                    format!("Lend {shown}"),
+                    "every hand-off shows on the page (D3)",
+                )));
+            }
+        }
+        if changes && !reached.root.mutable {
+            return Err(self.error(Diagnostic::refused(
+                argument.value.span,
+                format!("`{}` can't change, so it can't be lent with `Lend.mut`", root.text),
+                "`let` declares a variable that can't change, and `let mut` one that can (D3)",
+            )));
+        }
+        let path = self.any_place(body, &argument.value).map(|(_, path)| path).unwrap_or_default();
+        self.hand_in_call(handed, &root.text, &path, argument.span, changes)?;
+        let site = body.site(root.span);
+        let place = crate::flow::Place { local: reached.root.local, path, shown };
+        let spot = crate::flow::Spot { variable: root.span, place: argument.value.span, site, marker: site };
+        body.events.push(if changes {
+            crate::flow::Event::LendMut { place, spot }
+        } else {
+            crate::flow::Event::Read { place, spot }
+        });
+        let place = checked::Place { local: reached.root.local, steps: reached.steps };
+        if matches!(reached.value_type, Type::Array { .. }) {
+            let machine_type = parameter_type.machine();
+            return Ok(checked::Argument::Temporary(checked::Expression {
+                kind: Kind::ArrayView(place),
+                machine_type,
+            }));
+        }
+        Ok(checked::Argument::Place(place))
     }
 
     /// `Lend.mut $a[offset.items: 0]`: an item lent to change, which counts as all of its list (D133, D172).
@@ -2913,6 +3205,15 @@ impl Checker<'_> {
         if typed.value_type.is_copied() && self.instance {
             return Ok(typed);
         }
+        if typed.value_type == Type::Str(StrSize::View) && ownership == syntax::Ownership::Copy {
+            // trace: D368
+            let written = self.slice(value.span).to_string();
+            return Err(self.error(Diagnostic::refused_fix(
+                ownership_span.to(value.span),
+                written,
+                "a bare `str` is a view, a pointer and a length to read-only text, so copying one can't change or free anything, and it takes no word (D368)",
+            )));
+        }
         if typed.value_type.is_copied() {
             let written = self.slice(value.span).to_string();
             return Err(self.error(Diagnostic::refused_fix(
@@ -2976,6 +3277,21 @@ impl Checker<'_> {
             return self.value_into(body, expression, inner);
         }
         let typed = self.expression(body, expression, Some(into))?;
+        // A view copies with no word, and a view of another string, here a parameter's, writes its source when it's
+        // stored or returned (D367, D368).
+        if typed.value_type == Type::Str(StrSize::View) && !typed.handed && is_held(expression) {
+            if let Some(root) = root_variable(expression)
+                && body.lookup(&root).is_some_and(|variable| variable.origin == super::Origin::Parameter)
+            {
+                // trace: D367
+                return Err(self.error(Diagnostic::refused(
+                    expression.span,
+                    format!("`{root}` is a view of another string, so storing or returning it writes where it's from, as `Lend from {root} str`"),
+                    "a view of a literal is stored and returned freely, and a view of another string is a borrow, so storing or returning one writes its source, as in `-> Lend from $text str`, and a field holds owned text instead, as `str[len.max: 64 bytes]` (D170, D367)",
+                )));
+            }
+            return self.convert_into(expression.span, typed, into);
+        }
         if !typed.value_type.is_copied() && !typed.handed && is_held(expression) && !typed.value_type.is_unknown() {
             let shown = self.slice(expression.span).to_string();
             if let Some(root) = root_variable(expression)
@@ -3149,6 +3465,31 @@ impl Checker<'_> {
                 Err(self.error(Diagnostic::refused(span, format!("this is `{from}`, where `{to}` is needed"), why)))
             }
         }
+    }
+
+    /// Checks while running that text fits a bounded string, failing otherwise (D326, D328).
+    fn fit_text(&mut self, span: Span, mut text: Typed, most: u64) -> Typed {
+        let into = text.value_type.clone();
+        let failure = failure(
+            self,
+            Diagnostic::new(
+                DiagnosticKind::CheckFailed,
+                span,
+                format!("this text doesn't fit `{into}`, and nothing handled it"),
+                "a failure nothing handles stops the program (D96)",
+            ),
+            &[When::Text("it's ".into()), When::Operand(0), When::Text(" bytes".into())],
+        );
+        let machine_type = text.value.machine_type.clone();
+        let value = std::mem::replace(
+            &mut text.value,
+            checked::Expression { kind: Kind::Zero, machine_type: machine_type.clone() },
+        );
+        text.value = checked::Expression {
+            kind: Kind::FitText { value: Box::new(value), most, failure: Box::new(failure) },
+            machine_type,
+        };
+        text
     }
 
     /// Checks while running that a float fits a bound (D20, D158).

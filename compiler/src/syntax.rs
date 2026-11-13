@@ -129,6 +129,13 @@ pub enum ItemKind {
         subject: Path,
         interface: Path,
     },
+    /// A shield at the top of a file, holding declarations that live only in a shield, like C's union (D34, D38).
+    Shield {
+        name: Name,
+        reason: Option<Expression>,
+        items: Vec<Item>,
+        end: Closer,
+    },
     /// A statement where only items go, kept so it can be refused with its span.
     Stray(Statement),
 }
@@ -709,6 +716,13 @@ pub enum ExpressionKind {
     /// A call: `total(Lend $xs)`.
     Call {
         callee: Box<Expression>,
+        arguments: Vec<Argument>,
+        arguments_span: Span,
+    },
+    /// A call led by a type filled in with `< >`: `ptr.raw.mut<i32>.of(Lend.mut $count)` (D315).
+    TypeCall {
+        written_type: Type,
+        name: Name,
         arguments: Vec<Argument>,
         arguments_span: Span,
     },

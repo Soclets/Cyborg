@@ -396,11 +396,35 @@ impl<'source> Parser<'source> {
             self.errors.push(Diagnostic::refused_fix(span, "import", "importing is a plain keyword (D56, D92)"));
             self.advance();
         }
+        // `@csup::union.untagged`, C's union's old spelling, read so it can be refused (D399).
+        if self.is(TokenKind::At) && self.word_at(1) == Some("csup") && self.word_at(3) == Some("union") {
+            let kind = ItemKind::Struct(self.struct_item()?);
+            return Ok(Item { kind, span: start.to(self.previous_span()), public });
+        }
         let Some(word) = self.word() else {
             let statement = self.statement()?;
             return Ok(Item { span: statement.span, kind: ItemKind::Stray(statement), public });
         };
         let kind = match word {
+            // C's union has fields, like a struct, rather than cases (D35, D398).
+            "union"
+                if self.kind_at(1) == Some(TokenKind::Dot)
+                    && (self.word_at(2) == Some("untagged")
+                        || (self.kind_at(2) == Some(TokenKind::At) && self.word_at(5) == Some("untagged"))) =>
+            {
+                if self.word_at(2) == Some("untagged") {
+                    // `union.untagged` is refused for missing its limb, so what's inside isn't read (D35, D399).
+                    let keyword = self.path()?;
+                    let name = self.path()?;
+                    self.expect_block_colon()?;
+                    self.skip_body();
+                    let end = self.closer()?;
+                    ItemKind::Struct(Struct { keyword, name, generics: Vec::new(), fields: Vec::new(), end })
+                } else {
+                    ItemKind::Struct(self.struct_item()?)
+                }
+            }
+            "shield" if self.kind_at(1) == Some(TokenKind::Word) => self.shield_item()?,
             "import" => self.import()?,
             "use" => self.use_item()?,
             "fn" | "op" => ItemKind::Function(self.function()?),
@@ -427,6 +451,41 @@ impl<'source> Parser<'source> {
             }
         };
         Ok(Item { kind, span: start.to(self.previous_span()), public })
+    }
+
+    /// Skips a block's lines up to its closer, for a block whose opening line is refused.
+    fn skip_body(&mut self) {
+        while self.peek().is_some() && !(self.is_word("end") && self.starts_line()) {
+            // What isn't read isn't judged for its line breaks either.
+            if let Some(role) = self.roles.get_mut(self.at) {
+                *role = Role::LineEnd;
+            }
+            self.advance();
+        }
+    }
+
+    /// A shield at the top of a file, around declarations (D34, D38).
+    fn shield_item(&mut self) -> Parse<ItemKind> {
+        self.advance();
+        let name = self.name()?;
+        self.expect_block_colon()?;
+        let mut reason = None;
+        if self.is_word("reason") {
+            self.advance();
+            reason = Some(self.primary()?);
+            if let Some(role) = self.at.checked_sub(1).and_then(|last| self.roles.get_mut(last)) {
+                *role = Role::LineEnd;
+            }
+        }
+        let mut items = Vec::new();
+        while self.peek().is_some() && !(self.is_word("end") && self.word_at(1) == Some("shield")) {
+            match self.item() {
+                Ok(item) => items.push(item),
+                Err(Reported) => self.recover(),
+            }
+        }
+        let end = self.closer()?;
+        Ok(ItemKind::Shield { name, reason, items, end })
     }
 
     fn import(&mut self) -> Parse<ItemKind> {
@@ -893,6 +952,20 @@ impl<'source> Parser<'source> {
         let name = self.path()?;
         let generics = self.generics()?;
         self.expect_block_colon()?;
+        // Two narrowings on one struct, and their order, aren't decided (standard 12.2).
+        if keyword.first().is_some_and(|first| first.name.text == "struct")
+            && let Some(second) = keyword.segments.get(2)
+        {
+            let at = second.name.span.start as usize;
+            self.errors.push(Diagnostic::not_designed(
+                Span::new(self.file, at.saturating_sub(1), at),
+                "a second narrowing on `struct`, and which order they go in",
+                "not decided yet (standard 12.2)",
+            ));
+            self.skip_body();
+            let end = self.closer()?;
+            return Ok(Struct { keyword, name, generics, fields: Vec::new(), end });
+        }
         let mut fields = Vec::new();
         while self.peek().is_some() && !self.is_word("end") {
             let start = self.current_span();
@@ -928,6 +1001,8 @@ impl<'source> Parser<'source> {
             })();
             match result {
                 Ok(field) => fields.push(field),
+                // A missing `;` before the closer leaves the closer for the block.
+                Err(Reported) if self.is_word("end") && self.starts_line() => {}
                 Err(Reported) => self.recover(),
             }
         }
@@ -940,6 +1015,12 @@ impl<'source> Parser<'source> {
         let name = self.path()?;
         let generics = self.generics()?;
         self.expect_block_colon()?;
+        // A bare `union` is refused for not saying which kind, so what's inside isn't read (D33).
+        if keyword.text() == "union" {
+            self.skip_body();
+            let end = self.closer()?;
+            return Ok(Union { keyword, name, generics, cases: Vec::new(), end });
+        }
         let mut cases = Vec::new();
         while self.peek().is_some() && !self.is_word("end") {
             let start = self.current_span();
@@ -1942,7 +2023,12 @@ impl<'source> Parser<'source> {
         if !matches!(self.kind(), Some(TokenKind::Word | TokenKind::At)) {
             return Err(self.error_expected("a type"));
         }
-        let path = self.path()?;
+        let mut path = self.path()?;
+        // C's union is named after its family, as in `union.@csup::untagged number` (D398).
+        if path.text() == "union.@csup::untagged" && self.is(TokenKind::Word) {
+            let name = self.path()?;
+            path = Path { span: path.span.to(name.span), segments: name.segments };
+        }
         let mut fill = Vec::new();
         let mut fill_span = None;
         if self.is(TokenKind::LeftAngle) {
@@ -2886,6 +2972,18 @@ impl<'source> Parser<'source> {
                 let span = start.to(value.span);
                 return Ok(Expression { kind: ExpressionKind::Bake(Box::new(value)), span });
             }
+            Some("ptr") if self.pointer_type_ahead() => {
+                // trace: D315
+                let written_type = self.parse_type()?;
+                self.expect(TokenKind::Dot, ".")?;
+                let name = self.name()?;
+                let (arguments, arguments_span) = self.arguments()?;
+                let span = start.to(self.previous_span());
+                return Ok(Expression {
+                    kind: ExpressionKind::TypeCall { written_type, name, arguments, arguments_span },
+                    span,
+                });
+            }
             Some(base @ ("hex" | "bin" | "oct"))
                 if !self.followed_by_path_joint()
                     && matches!(self.kind_at(1), Some(TokenKind::Integer | TokenKind::Word))
@@ -2993,6 +3091,17 @@ impl<'source> Parser<'source> {
             return Err(Reported);
         };
         Ok(Expression { kind: ExpressionKind::Integer(value.to_string()), span })
+    }
+
+    /// Whether a pointer type filled in with `< >` starts here, as in `ptr.raw.mut<i32>`, rather than a path.
+    fn pointer_type_ahead(&self) -> bool {
+        let mut ahead = 1;
+        while matches!(self.kind_at(ahead), Some(TokenKind::Dot))
+            && matches!(self.kind_at(ahead + 1), Some(TokenKind::Word))
+        {
+            ahead += 2;
+        }
+        ahead > 1 && self.kind_at(ahead) == Some(TokenKind::LeftAngle)
     }
 
     fn followed_by_path_joint(&self) -> bool {

@@ -40,12 +40,16 @@ pub enum Layout {
     Compact,
     AnyOrder,
     Packed,
+    /// C's union, whose fields share the same bytes (D35, D398).
+    Untagged,
 }
 
 impl Layout {
     #[must_use]
     pub fn of_keyword(keyword: &str) -> Layout {
-        if keyword.contains(".compact") {
+        if keyword.contains("untagged") {
+            Layout::Untagged
+        } else if keyword.contains(".compact") {
             Layout::Compact
         } else if keyword.contains(".any_order") {
             Layout::AnyOrder
@@ -96,6 +100,7 @@ impl Checker<'_> {
                 }
                 syntax::ItemKind::Struct(declared) => {
                     let name = declared.name.text();
+                    self.untagged_keyword(declared);
                     let id = self.aggregates.structs.len();
                     let must_give = declared.keyword.text() == "struct.must_Give";
                     let (sources, facts) = self.declare_sources(&declared.generics);
@@ -142,7 +147,10 @@ impl Checker<'_> {
                 syntax::ItemKind::Struct(declared) => {
                     let name = declared.name.text();
                     let expected = format!("end {} {name}", declared.keyword.text());
-                    self.check_closer(&declared.end, &expected, super::CLOSER_WHY);
+                    // A struct with two narrowings was already said to be undecided, closer and all.
+                    if declared.keyword.segments.len() <= 2 {
+                        self.check_closer(&declared.end, &expected, super::CLOSER_WHY);
+                    }
                     let declared_sources = source_spans(&declared.generics);
                     self.source_scope = Some(super::sources::SourceScope {
                         names: declared_sources.iter().map(|(source, _)| source.clone()).collect(),
@@ -226,12 +234,18 @@ impl Checker<'_> {
                 _ => {}
             }
         }
-        self.program.structs = self
-            .aggregates
-            .structs
-            .iter()
-            .map(|info| info.fields.iter().map(|field| field.value_type.machine()).collect())
-            .collect();
+        let mut machine_structs = Vec::new();
+        for info in &self.aggregates.structs {
+            // C's union holds all its bytes as one number, read back as each field's type (D398).
+            if info.layout == Layout::Untagged {
+                let bytes = self.footprint(&Type::Struct { id: machine_structs.len(), name: info.name.clone() });
+                let bits = bytes.map_or(64, |footprint| u32::try_from(footprint.size * 8).unwrap_or(64));
+                machine_structs.push(vec![checked::MachineType::Integer { bits, signed: false }]);
+                continue;
+            }
+            machine_structs.push(info.fields.iter().map(|field| field.value_type.machine()).collect());
+        }
+        self.program.structs = machine_structs;
         self.program.unions = self
             .aggregates
             .unions
@@ -334,6 +348,11 @@ impl Checker<'_> {
                 "not decided yet (standard 12.1)",
             )));
         }
+        if let Some(Type::Struct { id, name }) = self.aggregates.names.get(&name).cloned()
+            && self.aggregates.structs[id].layout == Layout::Untagged
+        {
+            return self.untagged_build(body, expression, id, &name, labels).map(Some);
+        }
         let (fields, value_type, owner, case) = match self.aggregates.names.get(&name).cloned() {
             Some(Type::Struct { id, name }) => {
                 (self.aggregates.structs[id].fields.clone(), Type::Struct { id, name: name.clone() }, name, None)
@@ -405,6 +424,175 @@ impl Checker<'_> {
     }
 
     /// A field read, `$r.celsius` (D57). A union's field is read only where its case is known (D9).
+    /// C's union's keyword: `union.@csup::untagged`, only inside a shield, and its older spellings refused (D35, D38,
+    /// D399).
+    fn untagged_keyword(&mut self, declared: &syntax::Struct) {
+        let keyword = declared.keyword.text();
+        match keyword.as_str() {
+            "union.untagged" => {
+                self.error(Diagnostic::refused_fix(
+                    declared.keyword.span,
+                    "union.@csup::untagged",
+                    "C support is the limb `@csup`, and that union must be inside a shield (D35, D38, D399)",
+                ));
+            }
+            "@csup::union.untagged" => {
+                self.error(Diagnostic::refused_fix(
+                    declared.keyword.span,
+                    "union.@csup::untagged",
+                    "the limb's untagged union joins the base `union` family, as `inline.@llvm::ir` joins `inline.` (D399, D227)",
+                ));
+            }
+            "union.@csup::untagged" if !self.shielded.contains(&declared.name.text()) => {
+                self.error(Diagnostic::refused(
+                    declared.keyword.span,
+                    "`union.@csup::untagged` must be inside a shield",
+                    "a shield is the only place dangerous code may live (D34, D38)",
+                ));
+            }
+            _ => {}
+        }
+    }
+
+    /// `number[f = 1.5, rest = all 0]`: C's union built by naming the one field written, with the rest of its bytes
+    /// zeroed, in a shield (D398, D401, D402).
+    fn untagged_build(
+        &mut self,
+        body: &mut Body,
+        expression: &syntax::Expression,
+        id: usize,
+        name: &str,
+        labels: &[syntax::Label],
+    ) -> Check<Typed> {
+        if self.shields == 0 {
+            return Err(self.error(Diagnostic::refused(
+                expression.span,
+                format!("building a `union.@csup::untagged {name}` outside a shield"),
+                "C's union is declared, built and read only in shields, where the reason vouches for it (D38, D398)",
+            )));
+        }
+        let written: Vec<&syntax::Label> = labels.iter().filter(|label| label.name.text() != "rest").collect();
+        if written.len() != 1 {
+            return Err(self.error(Diagnostic::refused(
+                expression.span,
+                format!(
+                    "this builds `{name}` with {} fields, and C's union is built by naming exactly the one written",
+                    written.len()
+                ),
+                "a C union's fields share the same bytes, so building one names the field it writes (D398)",
+            )));
+        }
+        match labels.iter().find(|label| label.name.text() == "rest") {
+            None => {
+                let end =
+                    Span { file: expression.span.file, start: expression.span.end - 1, end: expression.span.end - 1 };
+                return Err(self.error(
+                    Diagnostic::refused_fix(
+                        expression.span,
+                        "rest = all 0",
+                        "the bytes a union's written field doesn't cover are a choice, so the build says it, and `rest = all 0` sets them to 0 (D401, D402)",
+                    )
+                    .with_edits(vec![crate::diagnostic::Edit { span: end, replacement: ", rest = all 0".to_string() }]),
+                ));
+            }
+            Some(rest) if matches!(rest.value.kind, ExpressionKind::Empty) => {
+                return Err(self.error(Diagnostic::refused_fix(
+                    rest.value.span,
+                    "all 0",
+                    "a union fills the rest of its bytes with `rest = all 0`, as `all 0` fills an array (D402, D103)",
+                )));
+            }
+            Some(_) => {}
+        }
+        let label = written[0];
+        let field_name = label.name.text();
+        let info = self.aggregates.structs[id].clone();
+        let Some(field) = info.fields.iter().find(|each| each.name == field_name) else {
+            return Err(self.error(Diagnostic::refused(
+                label.name.span,
+                format!("`{name}` has no field `{field_name}`"),
+                "a field read is a plain `.` (D57)",
+            )));
+        };
+        let value = self.value_into(body, &label.value, &field.value_type)?;
+        let bytes = self.program.structs.get(id).and_then(|fields| fields.first()).cloned();
+        let Some(bytes @ checked::MachineType::Integer { .. }) = bytes else {
+            return Err(self.not_yet(expression.span, format!("building `{name}`")));
+        };
+        let held = checked::Expression { kind: Kind::UnionBits(Box::new(value)), machine_type: bytes };
+        Ok(Typed::new(Type::Struct { id, name: name.to_string() }, Kind::Build(vec![held])))
+    }
+
+    /// `$n.i`: C's union read as one of its fields, the same bytes taken as that type, and checked like any value of
+    /// it (D398, D401).
+    fn untagged_read(&mut self, id: usize, typed: Typed, field: &syntax::Name, span: Span) -> Check<Typed> {
+        use super::expressions::failure;
+        use crate::diagnostic::Kind as DiagnosticKind;
+        let info = self.aggregates.structs[id].clone();
+        let Some(found) = info.fields.iter().find(|each| each.name == field.text) else {
+            return Err(self.error(Diagnostic::refused(
+                field.span,
+                format!("`{}` has no field `{}`", info.name, field.text),
+                "a field read is a plain `.` (D57)",
+            )));
+        };
+        let field_type = found.value_type.clone();
+        let bytes = self
+            .program
+            .structs
+            .get(id)
+            .and_then(|fields| fields.first())
+            .cloned()
+            .unwrap_or(checked::MachineType::I64);
+        let held =
+            checked::Expression { kind: Kind::Field { base: Box::new(typed.value), index: 0 }, machine_type: bytes };
+        // trace: D401
+        let read = match &field_type {
+            Type::Bool => {
+                let byte =
+                    checked::Expression { kind: Kind::Bits(Box::new(held)), machine_type: checked::MachineType::U8 };
+                let check = failure(
+                    self,
+                    Diagnostic::new(
+                        DiagnosticKind::CheckFailed,
+                        span,
+                        "this reads a `bool` from the byte \u{1}, which is neither 0 nor 1",
+                        "a union's field is checked like any value of its type, and a `bool` is 0 or 1 (D401)",
+                    ),
+                    &[],
+                );
+                let fitted = checked::Expression {
+                    kind: Kind::Fit { value: Box::new(byte), min: 0, max: 1, failure: Box::new(check) },
+                    machine_type: checked::MachineType::U8,
+                };
+                checked::Expression { kind: Kind::Bits(Box::new(fitted)), machine_type: checked::MachineType::Bool }
+            }
+            Type::Float { bits, kind, .. } if *kind != super::types::FloatKind::Ieee => {
+                let raw = checked::Expression { kind: Kind::Bits(Box::new(held)), machine_type: field_type.machine() };
+                let check = failure(
+                    self,
+                    Diagnostic::new(
+                        DiagnosticKind::CheckFailed,
+                        span,
+                        format!("this reads a `{field_type}` from bits that make NaN or infinity"),
+                        "a union's field is checked like any value of its type, and a float can't be NaN or infinity (D401, D158)",
+                    ),
+                    &[],
+                );
+                let most = if *bits == 32 { f64::from(f32::MAX) } else { f64::MAX };
+                checked::Expression {
+                    kind: Kind::FitFloat { value: Box::new(raw), min: -most, max: most, failure: Box::new(check) },
+                    machine_type: field_type.machine(),
+                }
+            }
+            Type::Integer { .. } | Type::Float { .. } => {
+                checked::Expression { kind: Kind::Bits(Box::new(held)), machine_type: field_type.machine() }
+            }
+            _ => return Err(self.not_yet(span, format!("reading a `{field_type}` from C's union"))),
+        };
+        Ok(Typed::new(field_type, read.kind))
+    }
+
     pub fn field(&mut self, body: &mut Body, base: &syntax::Expression, field: &syntax::Name) -> Check<Typed> {
         // A failure named in an arm is read through its fields (D139).
         if let ExpressionKind::Variable(name) = &base.kind
@@ -437,6 +625,9 @@ impl Checker<'_> {
                 "a field of a `type.new`, rather than crossing with `as` first",
                 "not decided yet (standard 12.1)",
             ))),
+            Type::Struct { id, .. } if self.aggregates.structs[*id].layout == Layout::Untagged => {
+                self.untagged_read(*id, typed, field, base.span.to(field.span))
+            }
             Type::Struct { id, name } => {
                 let info = self.aggregates.structs[*id].clone();
                 let Some(index) = info.fields.iter().position(|each| each.name == field.text) else {

@@ -133,8 +133,8 @@ impl Walker<'_> {
                 self.place(place);
                 self.expression(allocator);
             }
-            Statement::ArenaDone { arena, .. } => {
-                self.expression(arena);
+            Statement::ArenaDone { arena: value, .. } | Statement::TextDone(value) => {
+                self.expression(value);
             }
             Statement::Assembly { reads, .. } => {
                 for (_, value) in reads {
@@ -335,6 +335,27 @@ impl Walker<'_> {
                     self.expression(item);
                 }
                 self.expression(&mut growth.allocator);
+                machine
+            }
+            ExpressionKind::TextCopy(value) | ExpressionKind::FitText { value, .. } => {
+                self.expression(value);
+                machine
+            }
+            ExpressionKind::AddressAt(value)
+            | ExpressionKind::PointerRead { pointer: value, .. }
+            | ExpressionKind::UnionBits(value)
+            | ExpressionKind::Bits(value) => {
+                self.expression(value);
+                machine
+            }
+            ExpressionKind::PointerWrite { pointer, value, .. }
+            | ExpressionKind::PointerMoved { pointer, bytes: value } => {
+                self.expression(pointer);
+                self.expression(value);
+                machine
+            }
+            ExpressionKind::ArrayView(place) => {
+                self.place(place);
                 machine
             }
             ExpressionKind::Heap | ExpressionKind::ArenaNew { .. } => machine,

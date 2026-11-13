@@ -315,6 +315,31 @@ digits:
   ret void
 }
 
+; Heap text from other text (D326, D331, D369): its bytes copied into memory of its own, which `str.done` frees.
+define { ptr, i64 } @__cyborg_text_copy(ptr %data, i64 %length) {
+entry:
+  %room = icmp eq i64 %length, 0
+  %bytes = select i1 %room, i64 1, i64 %length
+  %text = call ptr @malloc(i64 %bytes)
+  %none = icmp eq ptr %text, null
+  br i1 %none, label %out, label %fine
+out:
+  call void @exit(i32 1)
+  unreachable
+fine:
+  call void @llvm.memcpy.p0.p0.i64(ptr %text, ptr %data, i64 %length, i1 false)
+  %with_data = insertvalue { ptr, i64 } undef, ptr %text, 0
+  %result = insertvalue { ptr, i64 } %with_data, i64 %length, 1
+  ret { ptr, i64 } %result
+}
+
+define void @__cyborg_text_free({ ptr, i64 } %text) {
+entry:
+  %data = extractvalue { ptr, i64 } %text, 0
+  call void @free(ptr %data)
+  ret void
+}
+
 ; `as str` on a number builds new text, which can allocate (D7, D122). It's never freed yet.
 define { ptr, i64 } @__cyborg_text_of_integer(i64 %magnitude, i1 %negative) {
 entry:

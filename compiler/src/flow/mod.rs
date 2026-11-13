@@ -249,9 +249,9 @@ impl Lowering {
                 }
                 Some(here)
             }
-            Statement::ListDone { allocator: value, .. } | Statement::ArenaDone { arena: value, .. } => {
-                Some(self.expression(value, here))
-            }
+            Statement::ListDone { allocator: value, .. }
+            | Statement::ArenaDone { arena: value, .. }
+            | Statement::TextDone(value) => Some(self.expression(value, here)),
             Statement::OpenWriter { .. }
             | Statement::Alias { .. }
             | Statement::Print { .. }
@@ -338,7 +338,13 @@ fn children(expression: &checked::Expression) -> Vec<&checked::Expression> {
         | Kind::Fit { value: inner, .. }
         | Kind::Clamp { value: inner, .. }
         | Kind::ClampFloat { value: inner, .. }
-        | Kind::Maths { value: inner, .. } => vec![inner],
+        | Kind::Maths { value: inner, .. }
+        | Kind::TextCopy(inner)
+        | Kind::AddressAt(inner)
+        | Kind::UnionBits(inner)
+        | Kind::Bits(inner)
+        | Kind::PointerRead { pointer: inner, .. }
+        | Kind::FitText { value: inner, .. } => vec![inner],
         Kind::Handle { call, .. } => vec![call],
         Kind::Call { arguments, .. } => arguments
             .iter()

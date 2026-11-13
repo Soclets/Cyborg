@@ -213,7 +213,7 @@ pub fn keys(file: &syntax::File, text: &str, other_files: &[&str]) -> Keys {
                 provides.extend(owned_words(&interface.text()));
                 Declaration { provides, mentions: owned_words(&full), text: full }
             }
-            ItemKind::Import(_) | ItemKind::Stray(_) => {
+            ItemKind::Import(_) | ItemKind::Stray(_) | ItemKind::Shield { .. } => {
                 everyone.text(&full);
                 continue;
             }

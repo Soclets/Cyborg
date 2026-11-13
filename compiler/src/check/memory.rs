@@ -53,6 +53,7 @@ impl Checker<'_> {
             Type::Integer { kind, .. } => plain(u64::from(kind.bits.div_ceil(8))),
             Type::Float { bits, .. } => plain(u64::from(*bits / 8)),
             Type::Bool => plain(1),
+            Type::Pointer { .. } => Some(Footprint { size: pointer, align: pointer, per_target: true }),
             Type::Str(StrSize::View) => Some(Footprint { size: 2 * pointer, align: pointer, per_target: true }),
             Type::New { inner, .. } => self.footprint(inner),
             Type::Array { item, len, .. } => {
@@ -72,6 +73,16 @@ impl Checker<'_> {
                 let mut fields = Vec::new();
                 for field in &info.fields {
                     fields.push(self.footprint(&field.value_type)?);
+                }
+                if info.layout == super::aggregates::Layout::Untagged {
+                    // Its fields share the same bytes, so it's as big as its biggest (D398).
+                    let size = fields.iter().map(|field| field.size).max().unwrap_or(0);
+                    let align = fields.iter().map(|field| field.align).max().unwrap_or(1);
+                    return Some(Footprint {
+                        size: round_up(size, align)?,
+                        align,
+                        per_target: fields.iter().any(|field| field.per_target),
+                    });
                 }
                 struct_footprint(&fields, info.layout)
             }
@@ -125,11 +136,12 @@ impl Checker<'_> {
         };
         if kind == AllocatorKind::Arena && footprint.per_target && !crate::target::named() {
             // trace: D387, D389
-            return Err(self.error(Diagnostic::refused(
+            // It's about running, not checking, so the rest of the code is checked as if it ran.
+            self.error(Diagnostic::refused(
                 span,
                 "how much these items take depends on the target, which this run doesn't name",
                 "a pointer's size is the target's, so a program whose answer depends on it names its target with `--target=` (D387, D389)",
-            )));
+            ));
         }
         let (grow, step) = match grow {
             Grow::Double => (0, 1),
@@ -206,9 +218,39 @@ impl Checker<'_> {
                 Ok(Typed::new(Type::Allocator(AllocatorKind::Heap), Kind::Heap))
             })()),
             "std::mem::arena.new" => Some(self.arena_new(body, expression, arguments)),
+            "str.from" => Some(self.text_from(body, expression, arguments)),
             "std::coll::list.from" => Some(self.list_from(body, expression, arguments, expected)),
             _ => None,
         }
+    }
+
+    /// `str.from($n, alloc: Lend $heap)`: heap text from a number or other text (D326, D328, D331, D369).
+    fn text_from(
+        &mut self,
+        body: &mut Body,
+        expression: &syntax::Expression,
+        arguments: &[syntax::Argument],
+    ) -> Check<super::expressions::Typed> {
+        let [value, allocator] = arguments else {
+            return Err(self.not_yet(expression.span, "`str.from` with these arguments".to_string()));
+        };
+        let typed = self.expression(body, &value.value, None)?;
+        let (_, kind) = self.allocator_argument(body, allocator)?;
+        if kind != AllocatorKind::Heap {
+            return Err(self.not_yet(allocator.span, "heap text from an arena, whose sizes aren't decided".to_string()));
+        }
+        let text = match &typed.value_type {
+            Type::Str(_) => Kind::TextCopy(Box::new(typed.value)),
+            Type::Integer { .. }
+            | Type::Float { kind: super::types::FloatKind::Stable | super::types::FloatKind::Ieee, .. } => {
+                Kind::TextOf(Box::new(typed.value))
+            }
+            Type::Unknown => return Err(Reported),
+            other => {
+                return Err(self.not_yet(value.span, format!("`str.from` on `{other}`")));
+            }
+        };
+        Ok(super::expressions::Typed::new(Type::Str(StrSize::Growing), text))
     }
 
     fn arena_new(
@@ -278,11 +320,15 @@ impl Checker<'_> {
             _ => None,
         });
         let Some((item, grow, list_type)) = found else {
-            let shown = expected.map_or_else(|| "nothing".to_string(), |expected| format!("`{expected}`"));
+            // trace: D369
+            let callee = match &expression.kind {
+                ExpressionKind::Call { callee, .. } => callee.span,
+                _ => expression.span,
+            };
             return Err(self.error(Diagnostic::refused(
-                expression.span,
-                format!("`std::coll::list.from` makes a growable list, and this goes into {shown}"),
-                "a growable list is filled from a literal with `std::coll::list.from`, and a bounded one takes the literal straight (D369)",
+                callee,
+                "`std::coll::list.from` makes a list that grows on the heap, so it goes where one is written, with `len.max: inf items`",
+                "a list that grows on the heap is filled with `std::coll::list.from([1, 2, 3], alloc: Lend $heap)`, since every allocation names its allocator (D321, D369)",
             )));
         };
         let ExpressionKind::List(written) = &items.value.kind else {
@@ -310,6 +356,7 @@ impl Checker<'_> {
         let arena = match name.as_str() {
             "std::coll::list.done" => false,
             "std::mem::arena.done" => true,
+            "str.done" => return Some(self.text_done(body, expression, &name, arguments)),
             _ => return None,
         };
         Some((|| {
@@ -393,6 +440,36 @@ impl Checker<'_> {
                 wrong: Box::new(wrong),
             })
         })())
+    }
+
+    /// `str.done(Give $log, alloc: Lend $heap)`: ends heap text (D326, D331).
+    fn text_done(
+        &mut self,
+        body: &mut Body,
+        expression: &syntax::Expression,
+        name: &str,
+        arguments: &[syntax::Argument],
+    ) -> Check<checked::Statement> {
+        let [owner, allocator] = arguments else {
+            return Err(self.not_yet(expression.span, format!("`{name}` with these arguments")));
+        };
+        if owner.ownership.map(|(word, _)| word) != Some(Ownership::Give) {
+            return Err(self.not_yet(owner.span, format!("`{name}` without `Give`")));
+        }
+        let Some(root) = root_name(&owner.value).cloned() else {
+            return Err(self.not_yet(owner.span, format!("`{name}` on a fresh value")));
+        };
+        let typed = self.expression(body, &owner.value, None)?;
+        self.allocator_argument(body, allocator)?;
+        if typed.value_type != Type::Str(StrSize::Growing) {
+            return Err(self.error(Diagnostic::refused(
+                owner.value.span,
+                format!("this is `{}`, and `str.done` ends heap text", typed.value_type),
+                "every `must_Give` owner ends with its own `done`, and only heap text owns memory to free (D326, D331)",
+            )));
+        }
+        self.give_away(body, &root, &owner.value)?;
+        Ok(checked::Statement::TextDone(typed.value))
     }
 
     /// Refuses giving away a value a `defer` will give away (D325).
