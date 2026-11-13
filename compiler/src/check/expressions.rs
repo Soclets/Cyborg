@@ -1584,7 +1584,26 @@ impl Checker<'_> {
         method: &syntax::Path,
         arguments: &[syntax::Argument],
     ) -> Check<Typed> {
-        let written = method.text();
+        let mut written = method.text();
+        let receiver_type = self.expression_type_quietly(body, receiver);
+        let on_list = matches!(receiver_type, Some(Type::List { .. }));
+        // A kit method's short name stands for its path on the type that path names (D178).
+        if on_list
+            && let Some(full) = self.method_uses.get(&written)
+            && let Some(method_name) = full.strip_prefix("std::list.")
+        {
+            written = format!("std::{method_name}");
+        } else if on_list && !written.contains("::") && written.trim_start_matches('%') == "append" {
+            // A method from a kit says its path, because bare means base or your own (D115).
+            let receiver_text = self.slice(receiver.span).to_string();
+            let rest =
+                self.slice(Span::new(self.file, method.span.end as usize, expression.span.end as usize)).to_string();
+            return Err(self.error(Diagnostic::refused_fix(
+                expression.span,
+                format!("{receiver_text}.std::%%append{rest}"),
+                "a method from a kit says its path, because bare means base or your own (D115)",
+            )));
+        }
         if written.starts_with("std::") {
             let name_span = method.last().map_or(method.span, |segment| segment.name.span);
             if !matches!(written.as_str(), "std::%%append") {
@@ -1602,6 +1621,13 @@ impl Checker<'_> {
         let owner = match &receiver_typed.value_type {
             Type::Struct { name, .. } | Type::Union { name, .. } | Type::New { name, .. } => name.clone(),
             Type::Unknown => return Err(Reported),
+            other @ (Type::List { .. } | Type::Array { .. }) => {
+                return Err(self.error(Diagnostic::not_designed(
+                    expression.span,
+                    format!("a method of your own on `{other}`"),
+                    NOT_DECIDED,
+                )));
+            }
             other => return Err(self.not_yet(method.span, format!("a method on `{other}`"))),
         };
         let bare = written.trim_start_matches('%');
@@ -1663,6 +1689,14 @@ impl Checker<'_> {
                 )));
             };
             let Some(variable) = body.lookup(&name.text).cloned() else { return Err(Reported) };
+            // Lending all of it to change changes whatever part a `for` is reading (D2, D128).
+            if body.reading.iter().chain(&body.reading_parts).any(|each| *each == name.text) {
+                return Err(self.error(Diagnostic::refused(
+                    receiver.span,
+                    format!("a `for` is reading `{}` in place here", name.text),
+                    "`Lend.mut` means nothing else uses it meanwhile, and `for` is using it (D2)",
+                )));
+            }
             if !variable.mutable {
                 return Err(self.error(Diagnostic::refused(
                     receiver.span,
@@ -1832,6 +1866,25 @@ impl Checker<'_> {
         arguments: &[syntax::Argument],
     ) -> Check<Typed> {
         let expected = self.call_expected.take();
+        // A list's kit method called with a plain `.`, which never runs code (D8).
+        if let ExpressionKind::Field { base, field } = &callee.kind
+            && matches!(self.expression_type_quietly(body, base), Some(Type::List { .. }))
+            && (field.text == "append"
+                || ["%", "%%"].iter().any(|mark| {
+                    self.method_uses
+                        .get(&format!("{mark}{}", field.text))
+                        .is_some_and(|full| full.starts_with("std::list."))
+                }))
+        {
+            let base_text = self.slice(base.span).to_string();
+            let rest =
+                self.slice(Span::new(self.file, callee.span.end as usize, expression.span.end as usize)).to_string();
+            return Err(self.error(Diagnostic::refused_fix(
+                expression.span,
+                format!("{base_text}.std::%%append{rest}"),
+                "a `.` never runs code, and a `.%` always does (D8)",
+            )));
+        }
         if let ExpressionKind::Field { base, field } = &callee.kind
             && let Ok(typed) = self.expression(body, base, None)
             && let Type::Struct { name, .. } | Type::Union { name, .. } = &typed.value_type

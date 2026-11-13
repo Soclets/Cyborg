@@ -155,6 +155,8 @@ pub struct ShortName {
     pub text: String,
     pub quoted: bool,
     pub span: Span,
+    /// The name alone, quotes included, without its `@` or `%` marks.
+    pub name_span: Span,
 }
 
 /// A block-shaped item kept as raw lines, for things whose insides aren't designed yet.

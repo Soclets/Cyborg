@@ -1161,7 +1161,9 @@ impl Checker<'_> {
             return Ok(());
         }
         if let ExpressionKind::MethodCall { receiver, method, arguments, .. } = &expression.kind
-            && method.text() == "std::%%append"
+            && (method.text() == "std::%%append"
+                || (self.method_uses.get(&method.text()).is_some_and(|full| full == "std::list.%%append")
+                    && matches!(self.expression_type_quietly(body, receiver), Some(Type::List { .. }))))
         {
             let statement = self.append(body, expression, receiver, arguments)?;
             block.push(statement);

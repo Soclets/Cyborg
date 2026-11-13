@@ -308,6 +308,8 @@ pub struct Checker<'a> {
     pub program: checked::Program,
     /// Checked functions kept from earlier builds (D168).
     pub store: Option<incremental::Store>,
+    /// Kit methods' short names, with their `%` or `%%`, to their paths (D178).
+    pub method_uses: HashMap<String, String>,
     /// Interfaces, type sets, `satisfies` lines and generics (D235).
     pub generics: generics::Generics,
     /// The type parameters in scope, innermost last, and what each stands for.
@@ -362,6 +364,7 @@ pub fn check(
         program: checked::Program::default(),
         store,
         generics: generics::Generics::default(),
+        method_uses: HashMap::new(),
         type_scope: Vec::new(),
         instance: false,
         shields: 0,
@@ -532,7 +535,62 @@ impl Checker<'_> {
     }
 
     fn use_item(&mut self, short: &syntax::Use) {
-        self.uses.insert(short.short.text.clone(), short.path.text());
+        if self.short_name(short).is_err() {
+            return;
+        }
+        let name = &short.short;
+        if name.mark == syntax::Mark::None {
+            self.uses.insert(name.text.clone(), short.path.text());
+        } else {
+            // A kit method's short name keeps its `%` or `%%` (D178).
+            let marked = format!("{}{}", mark_text(name.mark), name.text);
+            self.method_uses.insert(marked, short.path.text());
+        }
+    }
+
+    /// A `use` line's short name: an unquoted one matches the path's last word, a quoted one is any usable name,
+    /// and a method's keeps its `%` or `%%` outside any quotes (D150, D151, D178, D179).
+    fn short_name(&mut self, short: &syntax::Use) -> Check<()> {
+        const KEEPS_WHY: &str = "`%` lends a receiver read-only and `%%` lends it to change, so a short name keeps which (D178, D179, D211)";
+        let name = &short.short;
+        let last = short.path.last();
+        let method_mark = last.map_or(syntax::Mark::None, |segment| segment.mark);
+        let last_word = last.map(|segment| segment.name.text.clone()).unwrap_or_default();
+        let is_method = method_mark != syntax::Mark::None;
+        if !is_method && name.mark != syntax::Mark::None {
+            return Err(self.error(Diagnostic::refused(
+                name.span,
+                "only a method's short name has `%`",
+                "`%` marks a method call, where ownership isn't written (D178, D4)",
+            )));
+        }
+        if is_method {
+            let wanted = mark_text(method_mark);
+            let inner = name.text.trim_start_matches('%');
+            let marked_inside = name.quoted && name.text.starts_with('%');
+            if name.mark != method_mark || marked_inside {
+                let fixed = if name.quoted { format!("{wanted}\"{inner}\"") } else { format!("{wanted}{inner}") };
+                let span = if name.quoted { name.span } else { name.name_span };
+                return Err(self.error(Diagnostic::refused_fix(span, fixed, KEEPS_WHY)));
+            }
+        }
+        if name.quoted {
+            if !usable_name(&name.text) {
+                return Err(self.error(Diagnostic::refused(
+                    name.name_span,
+                    format!("nothing could use `\"{}\"` as a name", name.text),
+                    "the quotes only skip the check against the path, so a quoted name still has to be usable (D151)",
+                )));
+            }
+        } else if name.text != last_word {
+            let mark = mark_text(name.mark);
+            return Err(self.error(Diagnostic::refused(
+                name.name_span,
+                format!("`{mark}{}` doesn't match `{mark}{last_word}`, the end of this path", name.text),
+                "an unquoted name has to match the last word of its path, and a quoted one is your own choice (D150)",
+            )));
+        }
+        Ok(())
     }
 
     /// A path into `std`, `os` or a limb needs its import (D82, D271). The fix adds the import at the top.
@@ -2069,4 +2127,28 @@ fn dollar_names(text: &str) -> Vec<String> {
         rest = &after[length..];
     }
     names
+}
+
+fn mark_text(mark: syntax::Mark) -> &'static str {
+    match mark {
+        syntax::Mark::Percent => "%",
+        syntax::Mark::DoublePercent => "%%",
+        syntax::Mark::Star => "*",
+        syntax::Mark::None => "",
+    }
+}
+
+/// Whether a quoted short name could be written where a name goes: a word that isn't a keyword or a type's name
+/// (D151).
+fn usable_name(name: &str) -> bool {
+    const TAKEN: [&str; 32] = [
+        "fn", "let", "mut", "const", "change", "if", "else", "end", "while", "for", "in", "return", "break", "match",
+        "struct", "union", "use", "import", "and", "or", "not", "as", "void", "none", "true", "false", "bool", "str",
+        "shield", "fail", "fails", "forever",
+    ];
+    let mut characters = name.chars();
+    let starts = characters.next().is_some_and(|first| first.is_alphabetic() || first == '_');
+    let rest = name.chars().all(|character| character.is_alphanumeric() || character == '_');
+    let type_word = types::IntegerKind::from_name(name).is_some() || matches!(name, "f32" | "f64");
+    starts && rest && !TAKEN.contains(&name) && !type_word
 }

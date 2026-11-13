@@ -458,6 +458,7 @@ impl<'source> Parser<'source> {
             }
             _ => {}
         }
+        let name_span = self.current_span();
         let (text, quoted) = match self.peek() {
             Some(token) if token.kind == TokenKind::Text => {
                 self.advance();
@@ -472,7 +473,7 @@ impl<'source> Parser<'source> {
         };
         let span = start.to(self.previous_span());
         self.expect(TokenKind::Semicolon, ";")?;
-        Ok(ItemKind::Use(Use { path, short: ShortName { mark, limb, text, quoted, span } }))
+        Ok(ItemKind::Use(Use { path, short: ShortName { mark, limb, text, quoted, span, name_span } }))
     }
 
     fn is_satisfies(&self) -> bool {
@@ -2316,7 +2317,10 @@ impl<'source> Parser<'source> {
                     }
                     _ => break,
                 },
-                Some(TokenKind::LeftParen) if !self.gap_before_current() => {
+                // Text is never called: a quoted name is only for a `use` line (D150).
+                Some(TokenKind::LeftParen)
+                    if !self.gap_before_current() && !matches!(value.kind, ExpressionKind::Text(_)) =>
+                {
                     let (arguments, arguments_span) = self.arguments()?;
                     let span = value.span.to(arguments_span);
                     value = Expression {
