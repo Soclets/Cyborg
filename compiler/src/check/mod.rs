@@ -18,6 +18,8 @@ mod expressions;
 pub mod library;
 pub mod memory;
 pub mod names;
+pub mod secret;
+pub mod simd;
 pub mod sources;
 mod statements;
 pub mod units;
@@ -166,6 +168,8 @@ pub struct Body {
     pub lent: Vec<checked::LocalId>,
     /// Variables a pointer was taken to, whose changes the pointer has to see (D315).
     pub pointed_at: Vec<checked::LocalId>,
+    /// Chunks a `simd_chunks` loop hands out as copies, which can't change (D303).
+    pub chunk_copies: Vec<String>,
     /// Values a `defer` will give away, with where, so nothing else gives them away first (D325).
     pub promised: Vec<(checked::LocalId, Span)>,
     /// Whether deferred statements are being checked where their block ends, which is where they give values away.
@@ -306,6 +310,8 @@ pub struct Checker<'a> {
     pub imports: Vec<String>,
     /// Single things imported from `std`, as in `import std::io::fmt_print;`, with where each was (D198).
     pub single_imports: Vec<(String, Span)>,
+    /// The `simd` lane being checked, from 1, which its failures name (D293).
+    pub lane: Option<u64>,
     /// Declarations inside a shield at the top of the file, by name (D38).
     pub shielded: Vec<String>,
     /// The variable a `ptr.….of(…)` just took the address of, which the `let` holding the pointer borrows (D315).
@@ -377,6 +383,7 @@ pub fn check(
         errors: Vec::new(),
         imports: Vec::new(),
         single_imports: Vec::new(),
+        lane: None,
         shielded: Vec::new(),
         pointer_borrow: None,
         uses: HashMap::new(),
@@ -1611,6 +1618,21 @@ impl Checker<'_> {
             return Err(self.not_yet(written.span, "this kind of type".to_string()));
         };
         let text = self.resolve_path(path);
+        // trace: D339
+        if let Some(base) = text.strip_suffix(".secret") {
+            if base != "bool" && IntegerKind::from_name(base).is_none() {
+                return Err(self.error(Diagnostic::refused(
+                    path.span,
+                    "`.secret` is for integers and `bool`",
+                    "secrecy is a `.secret` narrowing on integers and `bool`, whose operations can take the same time for every value (D339)",
+                )));
+            }
+            let mut public = written.clone();
+            if let syntax::TypeKind::Named { path, .. } = &mut public.kind {
+                path.segments.pop();
+            }
+            return Ok(Type::Secret(Box::new(self.resolve_type(&public)?)));
+        }
         if let Some(named) = self.named_type(written, &text) {
             return named;
         }
@@ -1733,6 +1755,7 @@ impl Checker<'_> {
                 Ok(found)
             }
             "ptr.raw" | "ptr.raw.mut" | "ptr.volatile" | "ptr.volatile.mut" => self.pointer_type(written, &text, fill),
+            "simd" => self.simd_type(written, fill, labels),
             "std::coll::list" | "std::coll::list.mut" | "std::coll::array" => {
                 self.collection_type(written, &text, path, fill, labels)
             }

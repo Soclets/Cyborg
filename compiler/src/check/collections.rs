@@ -30,6 +30,13 @@ impl Checker<'_> {
         expression: &syntax::Expression,
         into: &Type,
     ) -> Option<Check<checked::Expression>> {
+        // A `simd`'s lanes are written as an array's items are (D291).
+        if let Type::Simd { item, lanes } = into
+            && matches!(expression.kind, ExpressionKind::List(_) | ExpressionKind::All(_))
+        {
+            let array = Type::Array { item: item.clone(), len: *lanes, len_type: IntegerKind::U64 };
+            return self.collection_value(body, expression, &array);
+        }
         let machine_type = into.machine();
         match (&expression.kind, into) {
             (ExpressionKind::List(items), Type::Array { item, len, .. }) => Some((|| {
@@ -235,6 +242,14 @@ impl Checker<'_> {
                 )));
             }
             Type::Unknown => return Err(Reported),
+            // trace: D340
+            Type::Secret(_) => {
+                return Err(self.error(Diagnostic::refused(
+                    label.value.span,
+                    format!("this position is `{}`", position.value_type),
+                    "which memory is touched leaks a secret through the cache, so a position stays public (D340)",
+                )));
+            }
             other => {
                 return Err(self.error(Diagnostic::refused(
                     label.value.span,

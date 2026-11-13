@@ -341,6 +341,12 @@ impl Walker<'_> {
                 self.expression(value);
                 machine
             }
+            ExpressionKind::Select { condition, then, otherwise } => {
+                self.expression(condition);
+                self.expression(then);
+                self.expression(otherwise);
+                machine
+            }
             ExpressionKind::AddressAt(value)
             | ExpressionKind::PointerRead { pointer: value, .. }
             | ExpressionKind::UnionBits(value)

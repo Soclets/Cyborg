@@ -355,6 +355,7 @@ fn children(expression: &checked::Expression) -> Vec<&checked::Expression> {
             .collect(),
         Kind::Build(fields) | Kind::BuildCase { fields, .. } => fields.iter().collect(),
         Kind::Bind { value, body, .. } => vec![value, body],
+        Kind::Select { condition, then, otherwise } => vec![condition, then, otherwise],
         _ => Vec::new(),
     }
 }

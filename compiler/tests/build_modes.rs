@@ -121,3 +121,46 @@ fn d288_final_small_and_size_levels_build() {
     let text = ir("oz_ir", SUM, Mode::Working(Optimization::Oz));
     assert!(text.contains("minsize"), "`--opt=Oz` functions aren't marked minsize:\n{text}");
 }
+
+/// Structs whose layout is chosen by name: `.packed` has no padding, and `.compact` sorts its fields by alignment.
+const LAYOUTS: &str = "\
+import std;
+import os;
+
+struct.packed header:
+    kind: u8;
+    length: u32;
+end struct.packed header
+
+struct.compact sorted:
+    flag: u8;
+    when: u64;
+    level: u32;
+end struct.compact sorted
+
+fn kind_of [$h: Lent header] -> u8:
+    return $h.kind;
+end fn kind_of
+
+fn level_of [$s: Lent sorted] -> u32:
+    return $s.level;
+end fn level_of
+
+fn.main [none] -> void:
+    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
+    let $h: header = header[kind = 1, length = 512];
+    let $s: sorted = sorted[flag = 1, when = 2, level = 3];
+    std::io::fmt_print(Lend.mut $out, \"{} {} {} {}{newln}\", kind_of(Lend $h), $h.length, level_of(Lend $s), $s.when);
+    return void;
+end fn.main
+";
+
+#[test]
+fn d319_d388_layouts_are_what_the_struct_says() {
+    // trace: D319, D388
+    let text = ir("layouts_ir", LAYOUTS, Mode::Working(Optimization::O0));
+    assert!(text.contains("<{ i8, i32 }>"), "a `.packed` struct has padding:\n{text}");
+    assert!(text.contains("{ i64, i32, i8 }"), "a `.compact` struct isn't sorted by alignment:\n{text}");
+    let (code, out) = run("layouts_run", LAYOUTS, &["--Working", "--opt=O0"]);
+    assert_eq!((code, out.as_str()), (Some(0), "1 512 3 2\n"));
+}

@@ -1742,9 +1742,16 @@ impl<'source> Parser<'source> {
         let ownership = self.ownership_word()?;
         let source = self.expression()?;
         self.expect_block_colon()?;
-        let body = self.block(&["end"])?;
+        let body = self.block(&["end", "leftovers"])?;
+        let mut leftovers = None;
+        if self.is_word("leftovers") && self.starts_line() {
+            self.advance();
+            let item = self.variable_name()?;
+            self.expect_block_colon()?;
+            leftovers = Some((item, self.block(&["end"])?));
+        }
         let end = self.closer()?;
-        Ok(For { label, name, ownership, source, body, end })
+        Ok(For { label, name, ownership, source, body, leftovers, end })
     }
 
     /// `on.target aarch64: … else: … end on.target` (D233).

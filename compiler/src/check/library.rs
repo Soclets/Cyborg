@@ -475,6 +475,14 @@ impl Checker<'_> {
             )));
         }
         let typed = self.expression(body, &argument.value, None)?;
+        if let Type::Secret(_) = typed.value_type {
+            // trace: D340
+            return Err(self.error(Diagnostic::refused(
+                argument.value.span,
+                format!("this is `{}`, and printing it would make it public", typed.value_type),
+                "a secret goes where a plain value is expected only through `.%reveal()`, inside a shield (D340, D342)",
+            )));
+        }
         let (value_type, value) = (typed.value_type, typed.value);
         let mut shape = checked::Shape { stored, ..checked::Shape::default() };
         for word in &hole.shapes {

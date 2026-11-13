@@ -224,6 +224,17 @@ impl Checker<'_> {
                         "the closer repeats what it closes, including the name (D33, D128)",
                     ),
                 }
+                if let Some(done) = self.chunk_loop(body, statement.span, each, block) {
+                    return done.map(|()| false);
+                }
+                if let Some((name, _)) = &each.leftovers {
+                    // trace: D300
+                    return Err(self.error(Diagnostic::refused(
+                        name.span,
+                        "a `leftovers` section belongs to a `for` over `simd_chunks.leftovers`",
+                        "`.leftovers` hands the leftover items to a `leftovers` section, and no other loop has one (D300)",
+                    )));
+                }
                 self.for_statement(body, each, block).map(|()| false)
             }
             StatementKind::Break(label) => {
@@ -983,6 +994,14 @@ impl Checker<'_> {
             )));
         }
         if !variable.mutable {
+            if body.chunk_copies.contains(&name.text) {
+                // trace: D303
+                return Err(self.error(Diagnostic::refused(
+                    name.span,
+                    format!("`{}` is a copy from `simd_chunks`, so changing it is refused", name.text),
+                    "`simd_chunks` only reads, and `.%%simd_chunks.mut` writes each chunk back into the list or array (D303, D358)",
+                )));
+            }
             if variable.origin == Origin::Parameter && variable.value_type.is_copied() {
                 return Err(self.error(Diagnostic::refused(
                     name.span,
@@ -1903,6 +1922,362 @@ impl Checker<'_> {
         }
         block.push(checked::Statement::Break(id));
         Ok(())
+    }
+
+    /// `for $chunk in $xs.std::%simd_chunks.pad(lanes: 4, pad: 0):`, `.exact` or `.leftovers`, and
+    /// `.%%simd_chunks.mut.…`, which writes each chunk back (D299, D300, D303, D358). `None` for any other loop.
+    #[allow(clippy::too_many_lines)]
+    fn chunk_loop(
+        &mut self,
+        body: &mut Body,
+        span: Span,
+        each: &syntax::For,
+        block: &mut checked::Block,
+    ) -> Option<Check<()>> {
+        const MARK_WHY: &str =
+            "`.%` lends a receiver read-only and `.%%` lends it to change, so the call shows which (D211)";
+        let ExpressionKind::MethodCall { receiver, method, arguments, .. } = &each.source.kind else { return None };
+        let text = method.text();
+        if !text.contains("simd_chunks") {
+            return None;
+        }
+        Some((|| {
+            let at = |offset: usize, length: usize| {
+                let start = method.span.start as usize + offset;
+                Span::new(method.span.file, start, start + length)
+            };
+            let Some(rest) = text.strip_prefix("std::") else {
+                // trace: D115
+                return Err(self.error(Diagnostic::refused_fix(
+                    method.span,
+                    format!("std::{text}"),
+                    "a method from a kit says its path, because bare means base or your own (D115)",
+                )));
+            };
+            let marks = rest.len() - rest.trim_start_matches('%').len();
+            let named = &rest[marks..];
+            let name_offset = 5 + marks;
+            if let Some(after) = named.strip_prefix("simd_chunks_mut") {
+                // trace: D358
+                return Err(self.error(Diagnostic::refused_fix(
+                    at(name_offset, named.len()),
+                    format!("simd_chunks.mut{after}"),
+                    "Cyborg narrows with a dot everywhere, as in `ptr.raw.mut` and `Lend.mut`, so it's `simd_chunks.mut` (D358)",
+                )));
+            }
+            let changes = named.starts_with("simd_chunks.mut");
+            let base = if changes { "simd_chunks.mut" } else { "simd_chunks" };
+            if changes != (marks == 2) {
+                let fixed = format!("{}{named}", if changes { "%%" } else { "%" });
+                return Err(self.error(Diagnostic::refused_fix(at(5, marks + named.len()), fixed, MARK_WHY)));
+            }
+            let narrowing = named.strip_prefix(base).and_then(|after| after.strip_prefix('.')).unwrap_or("");
+            if !matches!(narrowing, "pad" | "exact" | "leftovers") {
+                // trace: D299
+                return Err(self.error(Diagnostic::refused(
+                    at(name_offset, base.len()),
+                    "`simd_chunks` says what happens to the leftovers: `.pad`, `.exact` or `.leftovers`",
+                    "walking in `simd` chunks says how the leftovers are handled: `.pad` fills the last chunk, `.exact` requires a multiple, and `.leftovers` hands them to a `leftovers` section, since dropping them quietly is a classic SIMD bug (D299, D300)",
+                )));
+            }
+            if narrowing == "leftovers" && each.leftovers.is_none() {
+                // trace: D300
+                return Err(self.error(Diagnostic::refused(
+                    each.source.span,
+                    "`.leftovers` hands the leftover items to a `leftovers` section, which this loop doesn't have",
+                    "the `leftovers` section is required, so the leftovers can't be forgotten (D300)",
+                )));
+            }
+            if narrowing != "leftovers"
+                && let Some((name, _)) = &each.leftovers
+            {
+                return Err(self.error(Diagnostic::refused(
+                    name.span,
+                    "a `leftovers` section belongs to a `for` over `simd_chunks.leftovers`",
+                    "`.leftovers` hands the leftover items to a `leftovers` section, and no other loop has one (D300)",
+                )));
+            }
+            let lanes_argument = arguments
+                .iter()
+                .find(|argument| argument.label.as_ref().is_some_and(|label| label.text == "lanes"))
+                .ok_or_else(|| self.not_yet(each.source.span, "`simd_chunks` without `lanes:`".to_string()))?;
+            let lanes = u64::try_from(self.constant_integer(&lanes_argument.value)?).unwrap_or(0).max(1);
+            let Some(root) = super::expressions::root_name(receiver).cloned() else {
+                return Err(self.not_yet(receiver.span, "chunks of a fresh list".to_string()));
+            };
+            let Some(reached) = self.reach(body, receiver)? else { return Err(Reported) };
+            let (item, known_len) = match &reached.value_type {
+                Type::Array { item, len, .. } => ((**item).clone(), Some(*len)),
+                Type::List { item, .. } => ((**item).clone(), None),
+                Type::Unknown => return Err(Reported),
+                other => return Err(self.not_yet(receiver.span, format!("chunks of `{other}`"))),
+            };
+            let pad = if narrowing == "pad" {
+                let argument = arguments
+                    .iter()
+                    .find(|argument| argument.label.as_ref().is_some_and(|label| label.text == "pad"))
+                    .ok_or_else(|| self.not_yet(each.source.span, "`.pad` without `pad:`".to_string()))?;
+                Some(self.value_into(body, &argument.value, &item)?)
+            } else {
+                None
+            };
+            if changes && !reached.root.mutable {
+                return Err(self.error(Diagnostic::refused(
+                    receiver.span,
+                    format!("`{}` can't change, so it can't be lent with `Lend.mut`", root.text),
+                    "`let` declares a variable that can't change, and `let mut` one that can (D3)",
+                )));
+            }
+            if narrowing == "exact"
+                && let Some(len) = known_len
+                && len % lanes != 0
+            {
+                return Err(self.error(Diagnostic::refused(
+                    each.source.span,
+                    format!("this array has {len} items, which isn't a multiple of {lanes} lanes"),
+                    "`.exact` requires a multiple, checked when compiling for an array, whose `len` is known (D299)",
+                )));
+            }
+            let word = MachineType::I64;
+            let number = |value: u64| checked::Expression {
+                kind: Kind::Integer(i128::from(value)),
+                machine_type: MachineType::I64,
+            };
+            let read = |local: checked::LocalId| checked::Expression {
+                kind: Kind::Local(local),
+                machine_type: MachineType::I64,
+            };
+            let sum = |left: checked::Expression, right: checked::Expression| checked::Expression {
+                kind: Kind::Arithmetic {
+                    operator: checked::Arithmetic::WrappingAdd,
+                    left: Box::new(left),
+                    right: Box::new(right),
+                    failure: None,
+                    more: Vec::new(),
+                },
+                machine_type: MachineType::I64,
+            };
+            let place_at = |position: checked::Expression| {
+                let mut steps = reached.steps.clone();
+                steps.push(checked::Step::Item { position: Box::new(position), from_one: false, check: None });
+                checked::Place { local: reached.root.local, steps }
+            };
+            let item_at = |position: checked::Expression| checked::Expression {
+                kind: Kind::Load(place_at(position)),
+                machine_type: item.machine(),
+            };
+            // The list or array is locked for the whole loop (D303).
+            let site = body.site(root.span);
+            let flow_place =
+                crate::flow::Place { local: reached.root.local, path: Vec::new(), shown: root.text.clone() };
+            let spot = crate::flow::Spot { variable: root.span, place: receiver.span, site, marker: site };
+            body.events.push(if changes {
+                crate::flow::Event::LendMut { place: flow_place, spot }
+            } else {
+                crate::flow::Event::Read { place: flow_place, spot }
+            });
+            let count = body.new_local(word.clone());
+            let at_item = body.new_local(word.clone());
+            let length = match known_len {
+                Some(len) => number(len),
+                None => checked::Expression {
+                    kind: Kind::Convert(Box::new(checked::Expression {
+                        kind: Kind::ListLen(Box::new(checked::Expression {
+                            kind: Kind::Load(checked::Place {
+                                local: reached.root.local,
+                                steps: reached.steps.clone(),
+                            }),
+                            machine_type: reached.value_type.machine(),
+                        })),
+                        machine_type: MachineType::Integer { bits: 64, signed: false },
+                    })),
+                    machine_type: word.clone(),
+                },
+            };
+            block.push(checked::Statement::Let { local: count, value: length });
+            block.push(checked::Statement::Let { local: at_item, value: number(0) });
+            if narrowing == "exact" && known_len.is_none() {
+                let check = super::expressions::failure(
+                    self,
+                    Diagnostic::new(
+                        crate::diagnostic::Kind::CheckFailed,
+                        span,
+                        format!("`{}` isn't a multiple of {lanes} items long", self.slice(receiver.span)),
+                        "`.exact` requires a multiple, checked while running for a list (D299)",
+                    ),
+                    &[
+                        super::expressions::When::Text("it holds ".into()),
+                        super::expressions::When::Operand(0),
+                        super::expressions::When::Text(" items".into()),
+                    ],
+                );
+                let remainder = checked::Expression {
+                    kind: Kind::Arithmetic {
+                        operator: checked::Arithmetic::RemainderTruncate,
+                        left: Box::new(read(count)),
+                        right: Box::new(number(lanes)),
+                        failure: None,
+                        more: Vec::new(),
+                    },
+                    machine_type: word.clone(),
+                };
+                block.push(checked::Statement::Check {
+                    condition: compare(checked::Comparison::Equal, remainder, number(0)),
+                    failure: check,
+                    operands: vec![read(count)],
+                });
+            }
+            // The chunks: each round takes `lanes` items, or with `.pad` the last part filled with the pad value.
+            let simd = Type::Simd { item: Box::new(item.clone()), lanes };
+            let chunk = body.new_local(simd.machine());
+            let mut chunk_lanes = Vec::new();
+            for index in 0..lanes {
+                let position = sum(read(at_item), number(index));
+                chunk_lanes.push(match &pad {
+                    Some(pad) => {
+                        let inside = compare(checked::Comparison::Below, position.clone(), read(count));
+                        let clamped = checked::Expression {
+                            kind: Kind::Select {
+                                condition: Box::new(inside.clone()),
+                                then: Box::new(position),
+                                otherwise: Box::new(number(0)),
+                            },
+                            machine_type: word.clone(),
+                        };
+                        checked::Expression {
+                            kind: Kind::Select {
+                                condition: Box::new(inside),
+                                then: Box::new(item_at(clamped)),
+                                otherwise: Box::new(pad.clone()),
+                            },
+                            machine_type: item.machine(),
+                        }
+                    }
+                    None => item_at(position),
+                });
+            }
+            let keeps_going = if pad.is_some() {
+                compare(checked::Comparison::Below, read(at_item), read(count))
+            } else {
+                compare(checked::Comparison::AtMost, sum(read(at_item), number(lanes)), read(count))
+            };
+            body.scopes.push(Vec::new());
+            let before = body.states.len();
+            body.declare(
+                Variable {
+                    name: each.name.text.clone(),
+                    value_type: simd.clone(),
+                    mutable: changes,
+                    origin: Origin::LoopItem,
+                    local: chunk,
+                    declared: each.name.span,
+                    given: None,
+                    known_case: None,
+                },
+                State::Assigned,
+            );
+            if !changes {
+                body.chunk_copies.push(each.name.text.clone());
+            }
+            let locked = if changes { &mut body.changing } else { &mut body.reading };
+            locked.push(root.text.clone());
+            let (id, loop_body, _) = self.loop_body(body, each.label.as_ref(), &each.body);
+            if changes {
+                body.changing.pop();
+            } else {
+                body.reading.pop();
+                body.chunk_copies.pop();
+            }
+            body.scopes.pop();
+            body.forget_after(before);
+            let mut statements = vec![
+                checked::Statement::If {
+                    condition: not(keeps_going.clone()),
+                    then: vec![checked::Statement::Break(id)],
+                    otherwise: Vec::new(),
+                },
+                checked::Statement::Let {
+                    local: chunk,
+                    value: checked::Expression { kind: Kind::Build(chunk_lanes), machine_type: simd.machine() },
+                },
+            ];
+            statements.extend(loop_body);
+            if changes {
+                for index in 0..lanes {
+                    let position = sum(read(at_item), number(index));
+                    let lane = checked::Expression {
+                        kind: Kind::Load(checked::Place {
+                            local: chunk,
+                            steps: vec![checked::Step::Item {
+                                position: Box::new(number(index)),
+                                from_one: false,
+                                check: None,
+                            }],
+                        }),
+                        machine_type: item.machine(),
+                    };
+                    // Padding lanes are dropped when writing back (D303).
+                    statements.push(checked::Statement::If {
+                        condition: compare(checked::Comparison::Below, position.clone(), read(count)),
+                        then: vec![checked::Statement::Store { place: place_at(position), value: lane }],
+                        otherwise: Vec::new(),
+                    });
+                }
+            }
+            statements.push(checked::Statement::Set { local: at_item, value: sum(read(at_item), number(lanes)) });
+            block.push(checked::Statement::Loop { id, body: statements, opener: body.loop_opener });
+            // The leftovers, one at a time, after the chunks, unless a `break` stopped the loop inside them (D300).
+            if let Some((name, leftover_body)) = &each.leftovers {
+                let leftover = body.new_local(item.machine());
+                body.scopes.push(Vec::new());
+                let before = body.states.len();
+                body.declare(
+                    Variable {
+                        name: name.text.clone(),
+                        value_type: item.clone(),
+                        mutable: changes,
+                        origin: Origin::LoopItem,
+                        local: leftover,
+                        declared: name.span,
+                        given: None,
+                        known_case: None,
+                    },
+                    State::Assigned,
+                );
+                let locked = if changes { &mut body.changing } else { &mut body.reading };
+                locked.push(root.text.clone());
+                let (inner_id, inner_body, _) = self.loop_body(body, None, leftover_body);
+                if changes {
+                    body.changing.pop();
+                } else {
+                    body.reading.pop();
+                }
+                body.scopes.pop();
+                body.forget_after(before);
+                let mut statements = vec![
+                    checked::Statement::If {
+                        condition: compare(checked::Comparison::AtLeast, read(at_item), read(count)),
+                        then: vec![checked::Statement::Break(inner_id)],
+                        otherwise: Vec::new(),
+                    },
+                    checked::Statement::Let { local: leftover, value: item_at(read(at_item)) },
+                ];
+                statements.extend(inner_body);
+                if changes {
+                    statements.push(checked::Statement::Store {
+                        place: place_at(read(at_item)),
+                        value: checked::Expression { kind: Kind::Local(leftover), machine_type: item.machine() },
+                    });
+                }
+                statements.push(checked::Statement::Set { local: at_item, value: sum(read(at_item), number(1)) });
+                block.push(checked::Statement::If {
+                    condition: not(keeps_going),
+                    then: vec![checked::Statement::Loop { id: inner_id, body: statements, opener: body.loop_opener }],
+                    otherwise: Vec::new(),
+                });
+            }
+            Ok(())
+        })())
     }
 
     /// `for $i in range[…]:` (D128, D145, D146). Collections come later.

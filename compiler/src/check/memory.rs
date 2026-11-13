@@ -56,6 +56,10 @@ impl Checker<'_> {
             Type::Pointer { .. } => Some(Footprint { size: pointer, align: pointer, per_target: true }),
             Type::Str(StrSize::View) => Some(Footprint { size: 2 * pointer, align: pointer, per_target: true }),
             Type::New { inner, .. } => self.footprint(inner),
+            Type::Simd { item, lanes } => {
+                let item = self.footprint(item)?;
+                Some(Footprint { size: item.size.checked_mul(*lanes)?, ..item })
+            }
             Type::Array { item, len, .. } => {
                 let item = self.footprint(item)?;
                 Some(Footprint { size: item.size.checked_mul(*len)?, ..item })

@@ -301,6 +301,13 @@ pub enum Type {
     },
     /// An allocator: the OS heap, or an arena (D321, D330, D332, D333).
     Allocator(AllocatorKind),
+    /// An integer or `bool` that mustn't affect how long the program takes (D339).
+    Secret(Box<Type>),
+    /// A portable vector: lanes of one type, worked on all at once (D291).
+    Simd {
+        item: Box<Type>,
+        lanes: u64,
+    },
     /// A raw or volatile pointer, which lives only in a shield (D314, D317).
     Pointer {
         target: Box<Type>,
@@ -334,9 +341,18 @@ impl Type {
     #[must_use]
     pub fn is_copied(&self) -> bool {
         match self {
-            Type::New { inner, .. } => inner.is_copied(),
+            Type::New { inner, .. } | Type::Secret(inner) => inner.is_copied(),
             // A pointer is an address, copied like a number, though it still borrows what it points at (D315).
             _ => matches!(self, Type::Integer { .. } | Type::Float { .. } | Type::Bool | Type::Pointer { .. }),
+        }
+    }
+
+    /// The type with any secrecy taken off, and whether it had it (D339).
+    #[must_use]
+    pub fn public(&self) -> (&Type, bool) {
+        match self {
+            Type::Secret(inner) => (inner, true),
+            other => (other, false),
         }
     }
 
@@ -409,6 +425,8 @@ impl Type {
             Type::List { item, .. } => checked::MachineType::List(Box::new(item.machine())),
             Type::Str(_) => checked::MachineType::Text,
             Type::Allocator(_) | Type::Pointer { .. } => checked::MachineType::Address,
+            Type::Simd { item, lanes } => checked::MachineType::Array { item: Box::new(item.machine()), len: *lanes },
+            Type::Secret(inner) => inner.machine(),
             Type::Void | Type::Unknown => checked::MachineType::Void,
             // A generic's own body is only checked, never built: each call builds a copy with real types.
             Type::Param { .. } => checked::MachineType::Address,
@@ -483,6 +501,14 @@ impl fmt::Display for Type {
                     write!(formatter, ", len.type: {}", len_type.name())?;
                 }
                 write!(formatter, "]")
+            }
+            Type::Simd { item, lanes } => write!(formatter, "simd<{item}>[lanes: {lanes}]"),
+            Type::Secret(inner) => {
+                let shown = inner.to_string();
+                match shown.split_once('[') {
+                    Some((base, rest)) => write!(formatter, "{base}.secret[{rest}"),
+                    None => write!(formatter, "{shown}.secret"),
+                }
             }
             Type::Pointer { target, mutable, volatile } => {
                 let kind = if *volatile { "volatile" } else { "raw" };

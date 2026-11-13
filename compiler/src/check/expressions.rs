@@ -58,8 +58,11 @@ pub enum When {
 /// Builds what a failed check prints: the error rendered now, with operand values filled in while running.
 #[must_use]
 pub fn failure(checker: &Checker<'_>, diagnostic: Diagnostic, when: &[When]) -> checked::CheckFailure {
-    let when_template = when
+    // A `simd` lane's failure says which lane (D293).
+    let lane = checker.lane.map(|lane| When::Text(format!("in lane {lane}, ")));
+    let when_template = lane
         .iter()
+        .chain(when)
         .map(|part| match part {
             When::Text(text) => checked::WhenPart::Text(text.clone()),
             When::Operand(index) => checked::WhenPart::Operand(*index),
@@ -215,6 +218,11 @@ impl Checker<'_> {
 
     /// An integer literal, maybe written with `-` in front.
     fn integer_literal(&mut self, expression: &syntax::Expression, expected: Option<&Type>) -> Check<Typed> {
+        // A literal is public, and goes into a secret as its plain type (D340).
+        let expected = match expected {
+            Some(Type::Secret(inner)) => Some(&**inner),
+            other => other,
+        };
         let (digits, negative) = match &expression.kind {
             ExpressionKind::Integer(text) => (text.clone(), false),
             ExpressionKind::Unary { operand, .. } => match &operand.kind {
@@ -479,6 +487,24 @@ impl Checker<'_> {
             {
                 Ok(Typed::new(into.clone(), typed.value.kind))
             }
+            // trace: D298
+            (Type::Array { item, len, .. }, Type::Simd { item: lane, lanes })
+            | (Type::Simd { item: lane, lanes }, Type::Array { item, len, .. }) => {
+                if item != lane || len != lanes {
+                    let (from, to) = (typed.value_type.clone(), into.clone());
+                    let what = if item == lane {
+                        format!("`{from}` and `{to}` have different counts")
+                    } else {
+                        format!("`{from}` and `{to}` hold different types")
+                    };
+                    return Err(self.error(Diagnostic::refused(
+                        expression.span,
+                        what,
+                        "`as` converts between an array and a `simd` of the same count, so it can't fail (D298)",
+                    )));
+                }
+                Ok(Typed::new(into.clone(), typed.value.kind))
+            }
             // trace: D328
             (Type::Integer { kind, .. }, Type::Str(StrSize::View)) => {
                 let most = kind.most_text_bytes();
@@ -623,11 +649,20 @@ impl Checker<'_> {
         self.needs_group(operand)?;
         match operator {
             UnaryOperator::Not => {
-                let typed = self.condition_value(body, operand)?;
-                Ok(Typed::new(Type::Bool, Kind::Not(Box::new(typed.value))))
+                let (typed, is_secret) = self.logic_value(body, operand)?;
+                Ok(super::secret::secret(Typed::new(Type::Bool, Kind::Not(Box::new(typed.value))), is_secret))
             }
             UnaryOperator::BitNot => {
-                let typed = self.expression(body, operand, expected)?;
+                let mut typed = self.expression(body, operand, expected)?;
+                let is_secret = matches!(typed.value_type, Type::Secret(_));
+                if let Type::Secret(inner) = &typed.value_type {
+                    typed.value_type = (**inner).clone();
+                }
+                if is_secret {
+                    let plain = typed.value_type.plain();
+                    let value = Typed::new(plain, Kind::BitNot(Box::new(typed.value)));
+                    return Ok(super::secret::secret(value, true));
+                }
                 if !typed.value_type.is_integer() {
                     return Err(self.not_yet(expression.span, "`bit_not` on this".to_string()));
                 }
@@ -706,7 +741,7 @@ impl Checker<'_> {
     }
 
     /// Checks two operands, letting a literal take the type of the other side.
-    fn operands(
+    pub fn operands(
         &mut self,
         body: &mut Body,
         left: &syntax::Expression,
@@ -755,13 +790,27 @@ impl Checker<'_> {
                         )));
                     }
                 };
-                let left_typed = self.condition_value(body, left);
+                let left_typed = self.logic_value(body, left);
                 let mark = body.events.len();
-                let right_typed = self.condition_value(body, right);
+                let right_typed = self.logic_value(body, right);
                 if !both {
                     body.maybe_since(mark);
                 }
-                let (left_value, right_value) = (Box::new(left_typed?.value), Box::new(right_typed?.value));
+                let ((left_typed, left_secret), (right_typed, right_secret)) = (left_typed?, right_typed?);
+                let is_secret = left_secret || right_secret;
+                if is_secret && !both {
+                    // trace: D362
+                    let fixed = if is_and { "and.both" } else { "or.both" };
+                    return Err(self.error(
+                        Diagnostic::refused_fix(
+                            left.span,
+                            fixed,
+                            "on a `bool.secret`, `and.both` and `or.both` always run both sides, so nothing branches (D362)",
+                        )
+                        .with_edits(vec![crate::diagnostic::Edit { span: operator_span, replacement: fixed.to_string() }]),
+                    ));
+                }
+                let (left_value, right_value) = (Box::new(left_typed.value), Box::new(right_typed.value));
                 let kind = match (is_and, both) {
                     (true, false) => Kind::And(left_value, right_value),
                     (false, false) => Kind::Or(left_value, right_value),
@@ -780,10 +829,19 @@ impl Checker<'_> {
                         more: Vec::new(),
                     },
                 };
-                Ok(Typed::new(Type::Bool, kind))
+                Ok(super::secret::secret(Typed::new(Type::Bool, kind), is_secret))
             }
             operator if operator.is_comparison() => {
                 let (left_typed, right_typed) = self.operands(body, left, right, None)?;
+                if matches!(left_typed.value_type, Type::Simd { .. })
+                    || matches!(right_typed.value_type, Type::Simd { .. })
+                {
+                    return self.simd_comparison(body, expression, operator, (left_typed, right_typed));
+                }
+                if matches!(left_typed.value_type, Type::Secret(_)) || matches!(right_typed.value_type, Type::Secret(_))
+                {
+                    return self.secret_comparison(expression, operator, (left_typed, right_typed));
+                }
                 if let Some(parameter) = [&left_typed.value_type, &right_typed.value_type]
                     .into_iter()
                     .find(|value_type| matches!(value_type, Type::Param { .. }))
@@ -829,7 +887,13 @@ impl Checker<'_> {
     }
 
     /// What a comparison means for these two values, or why it's refused.
-    fn comparison(&mut self, span: Span, operator: &BinaryOperator, left: &Typed, right: &Typed) -> Check<Comparison> {
+    pub fn comparison(
+        &mut self,
+        span: Span,
+        operator: &BinaryOperator,
+        left: &Typed,
+        right: &Typed,
+    ) -> Check<Comparison> {
         let comparison = match operator {
             BinaryOperator::Equal => Comparison::Equal,
             BinaryOperator::NotEqual => Comparison::NotEqual,
@@ -906,6 +970,12 @@ impl Checker<'_> {
         expected: Option<&Type>,
     ) -> Check<Typed> {
         let (mut left_typed, mut right_typed) = self.operands(body, left, right, expected)?;
+        if matches!(left_typed.value_type, Type::Simd { .. }) || matches!(right_typed.value_type, Type::Simd { .. }) {
+            return self.simd_arithmetic(body, expression, operator, operator_span, (left_typed, right_typed));
+        }
+        if matches!(left_typed.value_type, Type::Secret(_)) || matches!(right_typed.value_type, Type::Secret(_)) {
+            return self.secret_arithmetic(expression, operator, operator_span, (left_typed, right_typed));
+        }
         if let Some(parameter) = [&left_typed.value_type, &right_typed.value_type]
             .into_iter()
             .find(|value_type| matches!(value_type, Type::Param { .. }))
@@ -1209,7 +1279,7 @@ impl Checker<'_> {
     }
 
     #[allow(clippy::too_many_lines)]
-    fn arithmetic_on(
+    pub fn arithmetic_on(
         &mut self,
         expression: &syntax::Expression,
         operator: &BinaryOperator,
@@ -1584,6 +1654,15 @@ impl Checker<'_> {
             return Err(Reported);
         }
         let typed: Vec<Typed> = typed.into_iter().flatten().collect();
+        if typed.iter().any(|each| matches!(each.value_type, Type::Simd { .. }))
+            && let (Some(first), Some(last)) = (operands.first(), operands.last())
+        {
+            return Err(self.error(Diagnostic::not_designed(
+                first.span.to(last.span),
+                "a chain of comparisons on `simd` values",
+                "not decided yet (standard 12.2)",
+            )));
+        }
         // A chain over structs calls their `op below` and `op ==`, one pair at a time (D236).
         if typed.iter().any(|each| is_own_type(&each.value_type)) {
             let mut joined: Option<checked::Expression> = None;
@@ -1652,9 +1731,29 @@ impl Checker<'_> {
     /// A value that has to be a `bool`, as in an `if` or around `and` (D7).
     pub fn condition_value(&mut self, body: &mut Body, expression: &syntax::Expression) -> Check<Typed> {
         let typed = self.expression(body, expression, Some(&Type::Bool))?;
+        self.condition_value_of(expression, typed)
+    }
+
+    /// A checked value where one `bool` decides a path, as for `if` and `while` (D9, D301, D340).
+    pub fn condition_value_of(&mut self, expression: &syntax::Expression, typed: Typed) -> Check<Typed> {
         match &typed.value_type {
             Type::Bool => Ok(typed),
             Type::Unknown => Err(Reported),
+            // trace: D301
+            Type::Simd { .. } => Err(self.error(Diagnostic::refused(
+                expression.span,
+                format!("this is `{}`, one answer per lane, where `if` needs one `bool`", typed.value_type),
+                "`if` takes one `bool`, so the code says `.%all_true()` for every lane or `.%any_true()` for any lane, rather than one being picked quietly (D301)",
+            ))),
+            // trace: D340
+            Type::Secret(_) => {
+                let shown = self.slice(expression.span).to_string();
+                Err(self.error(Diagnostic::refused(
+                    expression.span,
+                    format!("`{shown}` is a `{}`, and branching on it leaks it", typed.value_type),
+                    "a secret mustn't affect how long the program takes, and the path an `if`, `while` or `match` takes leaks it (D339, D340)",
+                )))
+            }
             other => Err(self.error(Diagnostic::refused(
                 expression.span,
                 format!("this is `{other}`, where a `bool` is needed"),
@@ -1964,6 +2063,37 @@ impl Checker<'_> {
     ) -> Check<Typed> {
         let mut written = method.text();
         let receiver_type = self.expression_type_quietly(body, receiver);
+        if written == "%reveal" && arguments.is_empty() {
+            return self.reveal(body, expression, receiver);
+        }
+        if written == "%pick"
+            && let Some(Type::Secret(inner)) = &receiver_type
+            && **inner == Type::Bool
+        {
+            return self.secret_pick(body, expression, receiver, arguments);
+        }
+        // A `simd`'s own methods, also on a value worked out right there, like `($a == $b).%any_true()` (D297).
+        let simd_methods = [
+            "%sum",
+            "%product",
+            "%min_val",
+            "%max_val",
+            "%all_true",
+            "%any_true",
+            "%pick",
+            "%shuffle",
+            "%reverse",
+            "%rotate.left",
+            "%rotate.right",
+            "%join",
+            "%interleave",
+            "%lookup",
+        ];
+        if matches!(receiver_type, Some(Type::Simd { .. }))
+            || (receiver_type.is_none() && simd_methods.contains(&written.as_str()))
+        {
+            return self.simd_method(body, expression, receiver, &written, arguments);
+        }
         if let Some(Type::Pointer { target, mutable, volatile }) = &receiver_type {
             return self.pointer_method(body, expression, receiver, (target, *mutable, *volatile), &written, arguments);
         }
@@ -3357,6 +3487,41 @@ impl Checker<'_> {
             // The units match, so the number goes on to the checks below with the unit it lands in.
             typed.value_type = typed.value_type.with_unit(into.unit().cloned());
         }
+        // trace: D340, D341
+        match (&typed.value_type, into) {
+            (Type::Secret(_), Type::Secret(to)) => {
+                let (inner, _) = typed.value_type.public();
+                if let (Type::Integer { bounds: Some(_), .. }, Type::Integer { bounds: Some(wanted), .. }) =
+                    (inner, &**to)
+                    && !matches!(inner, Type::Integer { bounds: Some(had), .. } if had.min >= wanted.min && had.max <= wanted.max)
+                {
+                    return Err(self.secret_bound(span, into));
+                }
+                if let (Type::Integer { bounds: None, .. }, Type::Integer { bounds: Some(_), .. }) = (inner, &**to) {
+                    return Err(self.secret_bound(span, into));
+                }
+                let inner = inner.clone();
+                let mut typed = typed;
+                typed.value_type = inner;
+                return self.convert_into(span, typed, to);
+            }
+            (Type::Secret(_), _) if !into.is_unknown() => {
+                return Err(self.error(Diagnostic::refused(
+                    span,
+                    format!("this is `{}`, where `{into}` is needed", typed.value_type),
+                    super::secret::PUBLIC_WHY,
+                )));
+            }
+            (_, Type::Secret(to)) => {
+                if let Type::Integer { bounds: Some(_), .. } = &**to
+                    && typed.literal.is_none()
+                {
+                    return Err(self.secret_bound(span, into));
+                }
+                return self.convert_into(span, typed, to);
+            }
+            _ => {}
+        }
         match (&typed.value_type, into) {
             (
                 Type::Integer { kind: from, bounds: from_bounds, .. },
@@ -3465,6 +3630,54 @@ impl Checker<'_> {
                 Err(self.error(Diagnostic::refused(span, format!("this is `{from}`, where `{to}` is needed"), why)))
             }
         }
+    }
+
+    /// A bound on a secret needs a check, which branches, unless it's proven away (D341).
+    fn secret_bound(&mut self, span: Span, into: &Type) -> Reported {
+        self.error(Diagnostic::refused(
+            span,
+            format!("this needs a check to go into `{into}`, which branches on the secret"),
+            "a bound on a secret is allowed only where the check is proven away, since the check itself is a branch (D341)",
+        ))
+    }
+
+    /// `$same.%pick(if_true: $z, if_false: …)` on a `bool.secret`: both worked out, one chosen with no branch (D340).
+    fn secret_pick(
+        &mut self,
+        body: &mut Body,
+        expression: &syntax::Expression,
+        receiver: &syntax::Expression,
+        arguments: &[syntax::Argument],
+    ) -> Check<Typed> {
+        let condition = self.expression(body, receiver, None)?;
+        let find = |label: &str| {
+            arguments.iter().find(|argument| argument.label.as_ref().is_some_and(|each| each.text == label))
+        };
+        let (Some(when_true), Some(when_false)) = (find("if_true"), find("if_false")) else {
+            return Err(self.not_yet(expression.span, "`.%pick` without `if_true:` and `if_false:`".to_string()));
+        };
+        let a = self.expression(body, &when_true.value, None)?;
+        let b = self.expression(body, &when_false.value, Some(&a.value_type))?;
+        let (a_type, _) = a.value_type.public();
+        let (b_type, _) = b.value_type.public();
+        if a_type.plain() != b_type.plain() {
+            return Err(self.error(Diagnostic::refused(
+                expression.span,
+                format!("this picks between `{}` and `{}`", a.value_type, b.value_type),
+                CONVERT_WHY,
+            )));
+        }
+        let value_type = Type::Secret(Box::new(a_type.plain()));
+        let machine_type = value_type.machine();
+        let _ = machine_type;
+        Ok(Typed::new(
+            value_type,
+            Kind::Select {
+                condition: Box::new(condition.value),
+                then: Box::new(a.value),
+                otherwise: Box::new(b.value),
+            },
+        ))
     }
 
     /// Checks while running that text fits a bounded string, failing otherwise (D326, D328).

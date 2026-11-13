@@ -521,7 +521,9 @@ impl<'context, 'module> Generator<'context, 'module> {
         }
         for (id, fields) in program.structs.iter().enumerate() {
             let fields: Vec<_> = fields.iter().map(|field| self.machine_type(field)).collect();
-            self.structs[id].set_struct_body(&fields, false);
+            // trace: D319
+            let packed = program.packed.get(id).copied().unwrap_or(false);
+            self.structs[id].set_struct_body(&fields, packed);
         }
         for (id, cases) in program.unions.iter().enumerate() {
             let case_types: Vec<_> = cases
@@ -1803,6 +1805,12 @@ impl<'context, 'module> Generator<'context, 'module> {
                 let fits = frame.builder.and(above_min, below_max, "").to_dynamic();
                 self.check(frame, fits, failure, &[(generated, value.machine_type.clone())])?;
                 generated
+            }
+            ExpressionKind::Select { condition, then, otherwise } => {
+                let condition = self.expression(frame, condition)?;
+                let then = self.expression(frame, then)?;
+                let otherwise = self.expression(frame, otherwise)?;
+                frame.builder.select(condition, then, otherwise, "").to_dynamic()
             }
             ExpressionKind::UnionBits(value) => {
                 // trace: D398

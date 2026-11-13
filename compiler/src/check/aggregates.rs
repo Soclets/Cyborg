@@ -181,6 +181,20 @@ impl Checker<'_> {
                             "a struct holding a `must_Give` value is `must_Give` itself, and nothing is implicit (D177, D3)",
                         ));
                     }
+                    // `.compact` lays fields out largest alignment first, ties in the written order, and `.any_order`
+                    // is this compiler's choice, the same (D388). Fields are found by name, so the order is theirs.
+                    let mut fields = fields;
+                    let layout = Layout::of_keyword(&declared.keyword.text());
+                    if matches!(layout, Layout::Compact | Layout::AnyOrder) {
+                        let mut aligned: Vec<(u64, FieldInfo)> = fields
+                            .into_iter()
+                            .map(|field| {
+                                (self.footprint(&field.value_type).map_or(8, |footprint| footprint.align), field)
+                            })
+                            .collect();
+                        aligned.sort_by(|a, b| b.0.cmp(&a.0));
+                        fields = aligned.into_iter().map(|(_, field)| field).collect();
+                    }
                     if let Some(info) = self.aggregates.structs.get_mut(struct_id) {
                         info.fields = fields;
                     }
@@ -246,6 +260,7 @@ impl Checker<'_> {
             machine_structs.push(info.fields.iter().map(|field| field.value_type.machine()).collect());
         }
         self.program.structs = machine_structs;
+        self.program.packed = self.aggregates.structs.iter().map(|info| info.layout == Layout::Packed).collect();
         self.program.unions = self
             .aggregates
             .unions

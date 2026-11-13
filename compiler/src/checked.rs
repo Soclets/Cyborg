@@ -48,8 +48,10 @@ pub type LoopId = usize;
 #[derive(Clone, Debug, Default)]
 pub struct Program {
     pub functions: Vec<Function>,
-    /// Each struct's fields.
+    /// Each struct's fields, in the order they're laid out: written, or sorted for `.compact` (D319, D388).
     pub structs: Vec<Vec<MachineType>>,
+    /// Whether each struct is `.packed`, with no padding between its fields (D319).
+    pub packed: Vec<bool>,
     /// Each union's cases, and each case's fields.
     pub unions: Vec<Vec<Vec<MachineType>>>,
     /// `fn.main`.
@@ -709,6 +711,12 @@ pub enum ExpressionKind {
         min: i128,
         max: i128,
         failure: Box<CheckFailure>,
+    },
+    /// One of two values, both worked out, picked by a condition: `simd`'s `.%pick` and its lanes' minimum (D302).
+    Select {
+        condition: Box<Expression>,
+        then: Box<Expression>,
+        otherwise: Box<Expression>,
     },
     /// A value's bits, widened into the number that holds a C union's bytes (D398).
     UnionBits(Box<Expression>),

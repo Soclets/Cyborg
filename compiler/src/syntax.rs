@@ -549,6 +549,8 @@ pub struct For {
     pub ownership: Option<(Ownership, Span)>,
     pub source: Expression,
     pub body: Vec<Statement>,
+    /// `leftovers $x:`, the section `simd_chunks.leftovers` hands each leftover item to (D300).
+    pub leftovers: Option<(Name, Vec<Statement>)>,
     pub end: Closer,
 }
 
