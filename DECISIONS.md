@@ -1322,6 +1322,8 @@ A `type_set` is a closed list of types that nothing can join later, as in `type_
 
 **D410. `OKAY\n`'s build cache lives in the system's cache folder, not in the project.** Compiled objects are saved in `~/Library/Caches/okay` on macOS and `~/.cache/okay` on Linux, or where `OKAY_CACHE` says, and shared by every project on the machine, as Go does, so a project folder holds only what its author writes and needs nothing in `.gitignore`. Sharing is safe because each object is found by a hash of everything that makes it, its IR, target, mode, compiler and every flag that changes the output, so the cache can never change what a build gives. Compiler claude built it this way and raised it; Claude suggested keeping it over a Rust-style folder in the project; the owner asked "what's that" and "why would you gitignore it?", and chose: "yea ok". (Owner, 2026-11-13)
 
+**D411. Rule 18: fix what needs no question.** A session that finds a bug, or a gap against a rule, like rule 10's incremental builds, fixes it straight away without asking, and mentions it in its next report. Only a fix that needs a design choice (rule 4), or would change what a test expects, goes to design claude first. Compiler claude had reported that adding a function rechecks the whole program, as something to look at, where rule 10 already asked for it; the owner said "Fix it now", then asked "Is there a rule about fixing bugs with no questions asked if it doesn't need questions, yet"; Claude proposed this; the owner chose: "yea". (Owner, 2026-11-13)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude

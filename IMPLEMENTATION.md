@@ -70,6 +70,9 @@ Each works in its own clone, on `main` with no branch, and runs `git pull --reba
     straight on. Stop only when you're blocked on a design question with nothing else to work on, when a gap in Lyftar
     blocks everything, when a test's expected output looks wrong, or at 8:30 PM. This is here because a session's first
     prompt doesn't survive compaction, and this file does. (D290)
+18. **Fix what needs no question.** A bug, or a gap against a rule, like rule 10's incremental builds, gets fixed straight
+    away, without asking, and is mentioned in the next report. Only a fix that needs a design choice, or would change what
+    a test expects, goes to design claude first. (D411)
 
 ## Tracing
 
