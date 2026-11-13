@@ -214,10 +214,10 @@ A raw pointer is `ptr.raw<T>`, which can only read, or `ptr.raw.mut<T>`, which c
 let $reg: ptr.raw.mut<u32> = ptr.raw.mut<u32>.at(address: hex 4004_0000);
 let $p: ptr.raw.mut<i32> = ptr.raw.mut<i32>.of(Lend.mut $count);
 let $now: u32 = $reg.%read();
-$reg.%%write(val: 1);
+$reg.%write(val: 1);
 ```
 
-`.at(address:)` makes a pointer from a number, for hardware registers and memory maps. `.of` takes a variable's address, with `Lend` for `ptr.raw` and `Lend.mut` for `ptr.raw.mut`, and the variable stays lent for as long as the pointer exists, while containment keeps the pointer in the shield ([9.9](#99-a-shields-walls)). `.%read()` reads, and `.%%write(val:)` writes, where `%%` marks the change to what the pointer stands for.
+`.at(address:)` makes a pointer from a number, for hardware registers and memory maps. `.of` takes a variable's address, with `Lend` for `ptr.raw` and `Lend.mut` for `ptr.raw.mut`, and the variable stays lent for as long as the pointer exists, while containment keeps the pointer in the shield ([9.9](#99-a-shields-walls)). `.%read()` reads, and `.%write(val:)` writes. Both lend the pointer read-only, as 5.6 says, since the pointer itself never changes, only the memory it points at, as with an atomic's `.%store`.
 
 `.%moved` gives a new pointer, always saying its unit, so one item and one byte can't be confused, and a negative number moves backwards. Nothing is checked, and nothing happens until a read or a write.
 
@@ -234,12 +234,12 @@ let $bytes: ptr.raw<u8> = $h_at.%viewed_as(item.type: u8);
 let $third: u8 = $bytes.%moved(offset.bytes: 2).%read();
 ```
 
-A volatile pointer, `ptr.volatile<T>` or `ptr.volatile.mut<T>`, is for hardware registers: every read and write through it happens, exactly once and in order, and the compiler never skips, merges or reorders them. It works like `ptr.raw`, with `.at`, `.of`, `.%read()`, `.%%write(val:)`, `.%moved` and `.%viewed_as`.
+A volatile pointer, `ptr.volatile<T>` or `ptr.volatile.mut<T>`, is for hardware registers: every read and write through it happens, exactly once and in order, and the compiler never skips, merges or reorders them. It works like `ptr.raw`, with `.at`, `.of`, `.%read()`, `.%write(val:)`, `.%moved` and `.%viewed_as`.
 
 ```
 let $led: ptr.volatile.mut<u32> = ptr.volatile.mut<u32>.at(address: hex 4004_0000);
-$led.%%write(val: 1);
-$led.%%write(val: 0);
+$led.%write(val: 1);
+$led.%write(val: 0);
 ```
 
 Writing your own allocator is shield code. How an allocator is spelled and what it must provide isn't decided ([2.10](2-values-and-types.md#210-lists)).
@@ -248,7 +248,7 @@ Using a limb doesn't need a shield by itself: `@` says it's a compiler extension
 
 **Refused:** any of these outside a shield, except in `FinalShit`; writing through a `ptr.raw` or a `ptr.volatile`; and `.%moved` with a bare `offset:`, with `fix: offset.items:`.
 
-**From:** D38, D40, D226, D314, D315, D316, D317, D342, D416.
+**From:** D38, D40, D226, D314, D315, D316, D317, D342, D416, D418.
 
 ## 9.9 A shield's walls
 

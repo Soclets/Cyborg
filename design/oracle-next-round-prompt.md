@@ -10,7 +10,7 @@ before changing it (rule 11 in `IMPLEMENTATION.md`).
 You've been idle since the generator was finished. Since then, compiler
 claude has nearly caught up: about 1571 of tests/'s 1719 pass on OKAY\n,
 and it's building everything up to D416 from the standard. Tankun has also
-made D403 to D416, which you haven't built yet, and the compiler found a
+made D403 to D418, which you haven't built yet, and the compiler found a
 few things in tests/ that need fixing. This round brings the oracle and
 tests/ up to date, so the live comparison can start finding real compiler
 bugs once both sides agree on what Cyborg is.
@@ -24,7 +24,7 @@ agreed, so it doesn't need asking again.
 </context>
 
 <work>
-Read DECISIONS.md from D403 to D416 and the standard sections they point
+Read DECISIONS.md from D403 to D418 and the standard sections they point
 to first. Then, in this order, committing in small steps:
 
 1. The fixes compiler claude found, all agreed with design claude:
@@ -38,6 +38,8 @@ to first. Then, in this order, committing in small steps:
    - d38_untagged_union_at_the_top underlines only `union.@`. 11.1 puts
      the ^ run under exactly the part in question, which is the whole
      `union.@csup::untagged`.
+   - D418 respells pointer writes from `.%%write(val:)` to `.%write(val:)`,
+     in the 7 or so tests that write through a pointer.
    - No test leaves a function through `?` with a `defer` pending, though
      D325 says defers run then too. The compiler had a bug there, so add
      one.
