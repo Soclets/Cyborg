@@ -12,7 +12,7 @@
 
 use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
-use std::rc::Rc;
+use std::sync::Arc;
 
 use crate::checked;
 use crate::source::{Sources, Span, relocation};
@@ -32,9 +32,9 @@ pub struct Store {
     /// Each function's checked body, by its key, with the line it started on.
     found: HashMap<String, (usize, Vec<u8>)>,
     kept: Vec<(String, (usize, Vec<u8>))>,
-    sources: Option<Rc<Sources>>,
+    sources: Option<Arc<Sources>>,
     /// The names of this build's functions, structs and unions, which kept bodies refer to.
-    pub names: Option<Rc<relocation::Names>>,
+    pub names: Option<Arc<relocation::Names>>,
     pub stats: Stats,
 }
 
@@ -70,8 +70,8 @@ impl Store {
         }
     }
 
-    fn sources(&mut self, sources: &Sources) -> Rc<Sources> {
-        self.sources.get_or_insert_with(|| Rc::new(sources.clone())).clone()
+    fn sources(&mut self, sources: &Sources) -> Arc<Sources> {
+        self.sources.get_or_insert_with(|| Arc::new(sources.clone())).clone()
     }
 
     /// A function kept from before under `key`, moved to where it is now.

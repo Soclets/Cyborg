@@ -459,7 +459,7 @@ impl Checker<'_> {
         }
         self.check_satisfies(file);
         if let Some(store) = self.store.as_mut() {
-            store.names = Some(std::rc::Rc::new(reference_names(
+            store.names = Some(std::sync::Arc::new(reference_names(
                 &self.functions,
                 &self.aggregates,
                 &self.result_names,
@@ -477,11 +477,7 @@ impl Checker<'_> {
         for (function, signature, _, _) in baked {
             self.function_body(function, &signature);
         }
-        for item in &file.items {
-            if let ItemKind::Const(constant) = &item.kind {
-                self.global_constant(constant);
-            }
-        }
+        self.global_constants(file);
         for (function, signature, key, place) in others {
             if let Some(generic) = self.generics.functions.get(&signature.name) {
                 // A generic's own body is checked once, against what its type parameters need (D235).
@@ -748,6 +744,13 @@ impl Checker<'_> {
                 }
             }
         }
+        if keyword == "fn.baked.pure" {
+            return Err(self.error(Diagnostic::refused_fix(
+                function.keyword.span,
+                "fn.pure.baked",
+                "narrowings go strongest first in a fixed order, and `fn.pure.baked` is how this one is spelled (D223, D91)",
+            )));
+        }
         let purity = match keyword.as_str() {
             "fn.pure" => Purity::Pure,
             "fn.pure.baked" => Purity::Baked,
@@ -949,6 +952,48 @@ impl Checker<'_> {
     }
 
     /// A `const` at the top of a file, worked out while compiling (D83, D91).
+    /// The program's `const`s, each once every constant it reads is known, since declarations work in any order
+    /// (D120). Constants that read each other in a loop can never be known, so they're refused.
+    fn global_constants(&mut self, file: &syntax::File) {
+        let mut waiting: Vec<(&syntax::Let, Span)> = file
+            .items
+            .iter()
+            .filter_map(|item| match &item.kind {
+                ItemKind::Const(constant) => Some((constant, item.span)),
+                _ => None,
+            })
+            .collect();
+        let names: Vec<String> = waiting.iter().map(|(constant, _)| constant.name.text.clone()).collect();
+        while !waiting.is_empty() {
+            let before = waiting.len();
+            let mut still = Vec::new();
+            for (constant, span) in waiting {
+                let text = self.slice(constant.value.span);
+                let reads = dollar_names(text);
+                let ready = reads.iter().all(|read| {
+                    !names.contains(read) || self.constants.contains_key(read) || *read == constant.name.text
+                });
+                if ready {
+                    self.global_constant(constant);
+                } else {
+                    still.push((constant, span));
+                }
+            }
+            if still.len() == before {
+                // Nothing more can be worked out, so what's left reads each other in a loop.
+                if let Some((_, span)) = still.first() {
+                    self.error(Diagnostic::refused(
+                        *span,
+                        "these constants read each other in a loop",
+                        "a `const`'s value must be fully known at compile time (D83)",
+                    ));
+                }
+                return;
+            }
+            waiting = still;
+        }
+    }
+
     fn global_constant(&mut self, constant: &syntax::Let) {
         let Some(written) = &constant.written_type else { return };
         let Ok(value_type) = self.resolve_type(written) else { return };
@@ -1037,6 +1082,35 @@ impl Checker<'_> {
             syntax::ExpressionKind::Binary { left, right, .. } => {
                 self.known_at_compile_time(body, left, why, constant)?;
                 self.known_at_compile_time(body, right, why, constant)
+            }
+            // A method is called on a value known at compile time, and is `fn.pure.baked` itself (D91, D130).
+            syntax::ExpressionKind::MethodCall { receiver, method, arguments, .. } => {
+                self.known_at_compile_time(body, receiver, why, constant)?;
+                let receiver_type = self.expression_type_quietly(body, receiver).or_else(|| match &receiver.kind {
+                    syntax::ExpressionKind::Variable(name) => {
+                        self.constants.get(&name.text).map(|(found, _)| found.clone())
+                    }
+                    _ => None,
+                });
+                if let Some(Type::Struct { name: owner, .. } | Type::Union { name: owner, .. }) = receiver_type {
+                    let bare = method.text().trim_start_matches('%').to_string();
+                    let found = [format!("{owner}.%{bare}"), format!("{owner}.%%{bare}")]
+                        .into_iter()
+                        .find(|name| self.functions.contains_key(name));
+                    if let Some(name) = found
+                        && self.functions.get(&name).is_some_and(|signature| signature.purity != Purity::Baked)
+                    {
+                        return Err(self.error(Diagnostic::refused(
+                            value.span,
+                            format!("`{name}` isn't `fn.pure.baked`"),
+                            why,
+                        )));
+                    }
+                }
+                for argument in arguments {
+                    self.known_at_compile_time(body, &argument.value, why, constant)?;
+                }
+                Ok(())
             }
             syntax::ExpressionKind::Unary { operand, .. } | syntax::ExpressionKind::Group(operand) => {
                 self.known_at_compile_time(body, operand, why, constant)
@@ -1979,4 +2053,20 @@ fn reference_names(
         }
     }
     crate::source::relocation::Names::new(tables)
+}
+
+/// Every `$name` written in a text.
+fn dollar_names(text: &str) -> Vec<String> {
+    let mut names = Vec::new();
+    let mut rest = text;
+    while let Some(at) = rest.find('$') {
+        let after = &rest[at + 1..];
+        let length =
+            after.find(|character: char| !(character.is_alphanumeric() || character == '_')).unwrap_or(after.len());
+        if length > 0 {
+            names.push(format!("${}", &after[..length]));
+        }
+        rest = &after[length..];
+    }
+    names
 }

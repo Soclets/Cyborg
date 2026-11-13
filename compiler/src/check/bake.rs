@@ -14,12 +14,22 @@ use crate::source::Span;
 /// How many statements compile-time work may run, the oracle's limit too (standard 12.1).
 const STEP_LIMIT: u64 = 10_000_000;
 
+/// How deep compile-time calls may go. Each call takes room on the checker's stack, which is sized for it (see
+/// `build`), so going deeper is refused like reaching the step limit, at the call that went too deep, rather than
+/// crashing the compiler (rule 6).
+pub const DEPTH_LIMIT: usize = 200_000;
+
 /// A value known while compiling.
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum Constant {
     Integer(i128),
     Float(f64),
     Bool(bool),
+    Text(String),
+    /// A struct's fields, with their machine types, in their declared order.
+    Built(Vec<(Constant, MachineType)>),
+    /// An array's items.
+    Items(Vec<Constant>),
 }
 
 impl Constant {
@@ -30,6 +40,17 @@ impl Constant {
             Constant::Integer(value) => ExpressionKind::Integer(value),
             Constant::Float(value) => ExpressionKind::Float(value),
             Constant::Bool(value) => ExpressionKind::Bool(value),
+            Constant::Text(text) => ExpressionKind::Text(text),
+            Constant::Built(fields) => ExpressionKind::Build(
+                fields.into_iter().map(|(field, machine_type)| field.expression(machine_type)).collect(),
+            ),
+            Constant::Items(items) => {
+                let item_type = match &machine_type {
+                    MachineType::Array { item, .. } | MachineType::List(item) => (**item).clone(),
+                    other => other.clone(),
+                };
+                ExpressionKind::ListOf(items.into_iter().map(|item| item.expression(item_type.clone())).collect())
+            }
         };
         Expression { kind, machine_type }
     }
@@ -59,12 +80,14 @@ pub struct Interpreter<'a> {
     pub known: HashMap<usize, Constant>,
     /// The loop being run, for the step limit's error.
     loop_span: Option<Span>,
+    /// The calls being run, innermost last.
+    calls: Vec<Span>,
 }
 
 impl<'a> Interpreter<'a> {
     #[must_use]
     pub fn new(program: &'a Program) -> Interpreter<'a> {
-        Interpreter { program, steps: 0, known: HashMap::new(), loop_span: None }
+        Interpreter { program, steps: 0, known: HashMap::new(), loop_span: None, calls: Vec::new() }
     }
 
     /// Works out an expression in the body around it, whose known locals are in `known`.
@@ -79,7 +102,7 @@ impl<'a> Interpreter<'a> {
     fn step(&mut self) -> Result<(), Stop> {
         self.steps += 1;
         if self.steps > STEP_LIMIT {
-            return Err(Stop::StepLimit(self.loop_span.unwrap_or_default()));
+            return Err(Stop::StepLimit(self.loop_span.or(self.calls.last().copied()).unwrap_or_default()));
         }
         Ok(())
     }
@@ -166,8 +189,32 @@ impl<'a> Interpreter<'a> {
             ExpressionKind::Float(value) => Ok(Constant::Float(*value)),
             ExpressionKind::Bool(value) => Ok(Constant::Bool(*value)),
             ExpressionKind::Local(local) => {
-                locals.get(local).copied().ok_or_else(|| Stop::NotBuilt("a value not known while baking".to_string()))
+                locals.get(local).cloned().ok_or_else(|| Stop::NotBuilt("a value not known while baking".to_string()))
             }
+            ExpressionKind::Text(text) => Ok(Constant::Text(text.clone())),
+            ExpressionKind::Build(fields) => {
+                let mut values = Vec::new();
+                for field in fields {
+                    values.push((self.expression(field, locals)?, field.machine_type.clone()));
+                }
+                Ok(Constant::Built(values))
+            }
+            ExpressionKind::ListOf(items) => {
+                let mut values = Vec::new();
+                for item in items {
+                    values.push(self.expression(item, locals)?);
+                }
+                Ok(Constant::Items(values))
+            }
+            ExpressionKind::Load(place) => self.place(place, locals),
+            ExpressionKind::Field { base, index } => match self.expression(base, locals)? {
+                Constant::Built(fields) => fields
+                    .into_iter()
+                    .nth(*index)
+                    .map(|(field, _)| field)
+                    .ok_or_else(|| Stop::NotBuilt("a missing field while baking".to_string())),
+                _ => Err(Stop::NotBuilt("a field of something that isn't a struct while baking".to_string())),
+            },
             ExpressionKind::Arithmetic { operator, left, right, failure, more } => {
                 let left_value = self.expression(left, locals)?;
                 let right_value = self.expression(right, locals)?;
@@ -215,7 +262,7 @@ impl<'a> Interpreter<'a> {
                     Ok(Constant::Integer(wrap(-value, bits, signed)))
                 }
                 Constant::Float(value) => Ok(Constant::Float(-value)),
-                Constant::Bool(_) => Err(Stop::NotBuilt("negating a bool while baking".to_string())),
+                _ => Err(Stop::NotBuilt("negating this while baking".to_string())),
             },
             ExpressionKind::Compare { operator, left, right } => {
                 let left_value = self.expression(left, locals)?;
@@ -245,7 +292,7 @@ impl<'a> Interpreter<'a> {
                     Ok(Constant::Integer(wrap(!value, bits, signed)))
                 }
                 Constant::Bool(value) => Ok(Constant::Bool(!value)),
-                Constant::Float(_) => Err(Stop::NotBuilt("`bit_not` on a float while baking".to_string())),
+                _ => Err(Stop::NotBuilt("`bit_not` on this while baking".to_string())),
             },
             ExpressionKind::And(left, right) => {
                 Ok(Constant::Bool(self.boolean(left, locals)? && self.boolean(right, locals)?))
@@ -283,18 +330,95 @@ impl<'a> Interpreter<'a> {
                 locals.insert(*local, value);
                 self.expression(body, locals)
             }
-            ExpressionKind::Call { function, arguments } => {
+            ExpressionKind::Call { function, arguments, span } => {
                 let mut values = Vec::new();
                 for argument in arguments {
-                    let crate::checked::Argument::Value(value) = argument else {
-                        return Err(Stop::NotBuilt("an argument that isn't a plain value while baking".to_string()));
+                    // A lent value reads the same as its copy, since nothing changes while baking (D91).
+                    let value = match argument {
+                        crate::checked::Argument::Value(value) | crate::checked::Argument::Temporary(value) => {
+                            self.expression(value, locals)?
+                        }
+                        crate::checked::Argument::Address(local) => locals
+                            .get(local)
+                            .cloned()
+                            .ok_or_else(|| Stop::NotBuilt("a value not known while baking".to_string()))?,
+                        _ => {
+                            return Err(Stop::NotBuilt(
+                                "an argument that isn't a plain value while baking".to_string(),
+                            ));
+                        }
                     };
-                    values.push(self.expression(value, locals)?);
+                    values.push(value);
                 }
-                self.call(*function, &values)
+                if self.calls.len() >= DEPTH_LIMIT {
+                    return Err(Stop::StepLimit(*span));
+                }
+                self.calls.push(*span);
+                let result = self.call(*function, &values);
+                self.calls.pop();
+                result
             }
             _ => Err(Stop::NotBuilt("this kind of value while baking".to_string())),
         }
+    }
+
+    /// A value at a place: through fields, and items, each position checked against the count (D133).
+    fn place(
+        &mut self,
+        place: &crate::checked::Place,
+        locals: &mut HashMap<usize, Constant>,
+    ) -> Result<Constant, Stop> {
+        let mut current = locals
+            .get(&place.local)
+            .cloned()
+            .ok_or_else(|| Stop::NotBuilt("a value not known while baking".to_string()))?;
+        for step in &place.steps {
+            current = match (step, current) {
+                (crate::checked::Step::Field(index), Constant::Built(fields)) => fields
+                    .into_iter()
+                    .nth(*index)
+                    .map(|(field, _)| field)
+                    .ok_or_else(|| Stop::NotBuilt("a missing field while baking".to_string()))?,
+                // An array is built like a struct, item by item (D102).
+                (crate::checked::Step::Item { position, from_one, check }, Constant::Built(fields)) => {
+                    let items = fields.into_iter().map(|(item, _)| item).collect();
+                    self.item(position, *from_one, check.as_deref(), items, locals)?
+                }
+                (crate::checked::Step::Item { position, from_one, check }, Constant::Items(items)) => {
+                    self.item(position, *from_one, check.as_deref(), items, locals)?
+                }
+                _ => return Err(Stop::NotBuilt("this place while baking".to_string())),
+            };
+        }
+        Ok(current)
+    }
+
+    /// One item, its position checked against the count (D133).
+    fn item(
+        &mut self,
+        position: &Expression,
+        from_one: bool,
+        check: Option<&CheckFailure>,
+        items: Vec<Constant>,
+        locals: &mut HashMap<usize, Constant>,
+    ) -> Result<Constant, Stop> {
+        let Constant::Integer(written) = self.expression(position, locals)? else {
+            return Err(Stop::NotBuilt("a position that isn't a number while baking".to_string()));
+        };
+        let index = if from_one { written - 1 } else { written };
+        let count = i128::try_from(items.len()).unwrap_or(i128::MAX);
+        if index < 0 || index >= count {
+            let Some(failure) = check else {
+                return Err(Stop::NotBuilt("an unchecked position while baking".to_string()));
+            };
+            let values = [Constant::Integer(written), Constant::Integer(count)];
+            let types = [position.machine_type.clone(), MachineType::Integer { bits: 64, signed: false }];
+            return Err(refuse(failure, &values, &types));
+        }
+        items
+            .into_iter()
+            .nth(usize::try_from(index).unwrap_or(usize::MAX))
+            .ok_or_else(|| Stop::NotBuilt("a missing item while baking".to_string()))
     }
 
     fn call(&mut self, function: usize, arguments: &[Constant]) -> Result<Constant, Stop> {
@@ -304,7 +428,7 @@ impl<'a> Interpreter<'a> {
         };
         let mut locals = HashMap::new();
         for (parameter, value) in callee.parameters.iter().zip(arguments) {
-            locals.insert(parameter.local, *value);
+            locals.insert(parameter.local, value.clone());
         }
         match self.block(&callee.body, &mut locals)? {
             Flow::Return(Some(value)) => Ok(value),
@@ -347,8 +471,8 @@ fn integer_arithmetic(
     failure: Option<&CheckFailure>,
     more: &[CheckFailure],
 ) -> Result<Constant, Stop> {
-    let (Constant::Integer(a), Constant::Integer(b)) = (left, right) else {
-        if let (Constant::Bool(a), Constant::Bool(b)) = (left, right) {
+    let (Constant::Integer(a), Constant::Integer(b)) = (&left, &right) else {
+        if let (Constant::Bool(a), Constant::Bool(b)) = (&left, &right) {
             return Ok(Constant::Bool(match operator {
                 Arithmetic::BitAnd => a & b,
                 _ => a | b,
@@ -356,6 +480,7 @@ fn integer_arithmetic(
         }
         return Err(Stop::NotBuilt("maths on something else while baking".to_string()));
     };
+    let (a, b) = (*a, *b);
     let (bits, signed) = integer_shape(machine_type);
     let (lowest, highest) = range(bits, signed);
     let values = [left, right];
@@ -448,27 +573,33 @@ fn refuse(failure: &CheckFailure, values: &[Constant], types: &[MachineType]) ->
     let Some(source) = &failure.source else {
         return Stop::NotBuilt("a check with no message while baking".to_string());
     };
+    let shown = |index: usize| match (values.get(index), types.get(index)) {
+        (Some(Constant::Integer(value)), _) => value.to_string(),
+        (Some(Constant::Float(value)), Some(MachineType::Float { bits })) => super::floats::shortest(*value, *bits),
+        (Some(Constant::Float(value)), _) => super::floats::shortest(*value, 64),
+        (Some(Constant::Bool(value)), _) => value.to_string(),
+        (Some(Constant::Text(text)), _) => text.clone(),
+        (Some(Constant::Built(_) | Constant::Items(_)) | None, _) => String::new(),
+    };
     let mut diagnostic = (**source).clone();
     if diagnostic.kind == Kind::CheckFailed {
         diagnostic.kind = Kind::Refused;
+    }
+    // A value can be marked in the `what:` line too, as a position is in "`pos: 9` is outside".
+    if let Some(what) = &mut diagnostic.what {
+        for index in 0..8u8 {
+            let mark = char::from(index + 1);
+            if what.contains(mark) {
+                *what = what.replace(mark, &shown(usize::from(index)));
+            }
+        }
     }
     if !failure.when_template.is_empty() {
         let mut when = String::new();
         for part in &failure.when_template {
             match part {
                 WhenPart::Text(text) => when.push_str(text),
-                WhenPart::Operand(index) => {
-                    let shown = match (values.get(*index), types.get(*index)) {
-                        (Some(Constant::Integer(value)), _) => value.to_string(),
-                        (Some(Constant::Float(value)), Some(MachineType::Float { bits })) => {
-                            super::floats::shortest(*value, *bits)
-                        }
-                        (Some(Constant::Float(value)), _) => super::floats::shortest(*value, 64),
-                        (Some(Constant::Bool(value)), _) => value.to_string(),
-                        (None, _) => String::new(),
-                    };
-                    when.push_str(&shown);
-                }
+                WhenPart::Operand(index) => when.push_str(&shown(*index)),
             }
         }
         diagnostic.when = Some(when);

@@ -8,6 +8,10 @@ use crate::source::{FileId, SourceFile, Sources, Span};
 use crate::target::{Mode, Target};
 use crate::{cache, check, codegen, lexer, manifest, parser, spacing};
 
+/// The checker's stack: room for compile-time calls as deep as `bake::DEPTH_LIMIT`. It's only reserved, and the
+/// system gives it memory as it's used.
+const CHECK_STACK: usize = 1 << 30;
+
 /// musl's MIT notice, which every Linux program `okay` links carries.
 const MUSL_NOTICE: &str = include_str!("../licenses/LICENSE-musl.txt");
 
@@ -269,7 +273,24 @@ fn check_program(
     let parsed_cleanly = parse_errors.is_empty();
     errors.extend(parse_errors);
     errors.extend(spacing::check(program_id, text, &lexed.tokens, &parsed.roles, parsed_cleanly));
-    let (program, check_errors, store) = check::check(program_id, sources, manifest, &parsed.file, target, mode, store);
+    // Checking runs compile-time work, whose calls go as deep as `bake::DEPTH_LIMIT`, so it gets a stack sized for
+    // that, rather than the main thread's (rule 6).
+    let shared: &Sources = sources;
+    let checked = std::thread::scope(|scope| {
+        std::thread::Builder::new()
+            .stack_size(CHECK_STACK)
+            .spawn_scoped(scope, || check::check(program_id, shared, manifest, &parsed.file, target, mode, store))
+            .ok()
+            .and_then(|thread| thread.join().ok())
+    });
+    let Some((program, check_errors, store)) = checked else {
+        let failed = Diagnostic::refused(
+            Span::new(program_id, 0, 1),
+            "the compiler itself failed while checking this program",
+            "this is a bug in the compiler, not your program; please report it with the program (rule 6)",
+        );
+        return (None, vec![failed], None);
+    };
     errors.extend(check_errors);
     errors.sort_by_key(|error| error.span.start);
     (program, errors, store)

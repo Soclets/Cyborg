@@ -1029,7 +1029,10 @@ impl Checker<'_> {
                 checked::Argument::Temporary(typed.value)
             });
         }
-        let call = Typed::new(signature.returns.clone(), Kind::Call { function: signature.id, arguments });
+        let call = Typed::new(
+            signature.returns.clone(),
+            Kind::Call { function: signature.id, arguments, span: expression.span },
+        );
         if negate {
             return Ok(Typed::new(Type::Bool, Kind::Not(Box::new(call.value))));
         }
@@ -1770,7 +1773,10 @@ impl Checker<'_> {
                 machine_type: MachineType::Address,
             }));
         }
-        let mut typed = Typed::new(signature.returns.clone(), Kind::Call { function: signature.id, arguments: values });
+        let mut typed = Typed::new(
+            signature.returns.clone(),
+            Kind::Call { function: signature.id, arguments: values, span: expression.span },
+        );
         if let Some(layout) = signature.result {
             typed.value.machine_type = super::failures::result_machine_type(layout);
             return Ok(self.crash_on_failure(expression.span, &signature, typed.value));
@@ -1951,7 +1957,10 @@ impl Checker<'_> {
         if let Type::Borrow { sources, .. } = &signature.returns {
             body.call_borrows = Some(self.borrowed_arguments(body, &signature, &matched, sources)?);
         }
-        let mut typed = Typed::new(signature.returns.clone(), Kind::Call { function: signature.id, arguments: values });
+        let mut typed = Typed::new(
+            signature.returns.clone(),
+            Kind::Call { function: signature.id, arguments: values, span: expression.span },
+        );
         if let Some(layout) = signature.result {
             typed.value.machine_type = super::failures::result_machine_type(layout);
         }
@@ -2045,6 +2054,16 @@ impl Checker<'_> {
                 }
                 if is_item(&argument.value) {
                     return self.lend_item(body, argument, parameter_type, handed);
+                }
+                if let Some(root) = root_name(&argument.value)
+                    && body.lookup(&root.text).is_none()
+                    && self.constants.contains_key(&root.text)
+                {
+                    return Err(self.error(Diagnostic::refused(
+                        argument.value.span,
+                        "a constant can't be lent with `Lend.mut`",
+                        "a constant's value is fixed at compile time (D83)",
+                    )));
                 }
                 let (Some((local, path)), Some(root)) =
                     (self.any_place(body, &argument.value), root_name(&argument.value))

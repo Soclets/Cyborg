@@ -545,6 +545,8 @@ pub enum ExpressionKind {
         #[serde(with = "function_number")]
         function: FunctionId,
         arguments: Vec<Argument>,
+        /// Where it's written, for compile-time work that goes too deep there (D89).
+        span: crate::source::Span,
     },
     /// Float arithmetic, with the checks that a `.stable` or `.fast` result isn't infinity or NaN (D158).
     FloatArithmetic {

@@ -67,7 +67,7 @@ impl<'de> serde::Deserialize<'de> for Span {
 /// starts, and messages that show places are rendered again from the file as it is now (D168).
 pub mod relocation {
     use std::cell::RefCell;
-    use std::rc::Rc;
+    use std::sync::Arc;
 
     use super::{FileId, Sources, Span};
 
@@ -79,10 +79,10 @@ pub mod relocation {
         /// the place it points at went.
         pub outside: bool,
         /// The files as they are now, when messages have to be rendered again because the lines above moved.
-        pub sources: Option<Rc<Sources>>,
+        pub sources: Option<Arc<Sources>>,
         /// The names of the functions, structs and unions a body refers to, which it's kept by instead of their
         /// numbers, since those come from the order of declarations.
-        pub names: Option<Rc<Names>>,
+        pub names: Option<Arc<Names>>,
     }
 
     /// What a function, struct or union is called, by its number, and the number for each name.

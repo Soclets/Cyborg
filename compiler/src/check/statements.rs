@@ -237,8 +237,10 @@ impl Checker<'_> {
         let local = body.new_local(declared.machine());
         let result =
             if declared.is_unknown() { Err(Reported) } else { self.constant_value(body, &binding.value, &declared) };
+        let known = result.is_ok();
+        let outcome = result.as_ref().map(|_| ()).map_err(|_| Reported);
         if let Ok(value) = result {
-            body.known.insert(local, value);
+            body.known.insert(local, value.clone());
             block.push(checked::Statement::Let { local, value: value.expression(declared.machine()) });
         }
         body.declare(
@@ -246,15 +248,15 @@ impl Checker<'_> {
                 name: binding.name.text.clone(),
                 value_type: declared,
                 mutable: false,
-                origin: if result.is_ok() { Origin::Constant } else { Origin::RefusedLet },
+                origin: if known { Origin::Constant } else { Origin::RefusedLet },
                 local,
                 declared: binding.name.span,
                 given: None,
                 known_case: None,
             },
-            if result.is_ok() { State::Assigned } else { State::Unassigned },
+            if known { State::Assigned } else { State::Unassigned },
         );
-        result.map(|_| ())
+        outcome
     }
 
     fn let_value(
@@ -923,6 +925,13 @@ impl Checker<'_> {
             )));
         };
         let Some(variable) = body.lookup(&root.text).cloned() else {
+            if self.constants.contains_key(&root.text) {
+                return Err(self.error(Diagnostic::refused(
+                    target.span,
+                    format!("`{}` is a constant, so it can't change", root.text),
+                    "a constant's value is fixed at compile time (D83)",
+                )));
+            }
             return Err(self.error(Diagnostic::refused(
                 root.span,
                 format!("`{}` isn't declared", root.text),

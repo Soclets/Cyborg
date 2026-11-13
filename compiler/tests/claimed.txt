@@ -1330,3 +1330,14 @@ d233_raw_lines_are_raw
 d233_the_chip_branch_is_checked
 d233_the_standard_example
 d233_writes_a_name_in_use
+d120_any_order
+d120_constants_in_a_loop
+d125_field_of_a_constant
+d130_baked_method
+d130_baking_a_method_that_isnt
+d133_change_item_of_a_constant
+d133_constant_past_the_end
+d133_item_of_a_constant
+d223_baked_before_pure
+d2_lend_mut_of_a_constant
+d89_step_limit

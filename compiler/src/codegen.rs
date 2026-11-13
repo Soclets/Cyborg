@@ -1618,7 +1618,7 @@ impl<'context, 'module> Generator<'context, 'module> {
                     std::cmp::Ordering::Equal => operand,
                 }
             }
-            ExpressionKind::Call { function, arguments } => {
+            ExpressionKind::Call { function, arguments, .. } => {
                 let callee = self.declare(*function)?;
                 let mut values = Vec::with_capacity(arguments.len());
                 for argument in arguments {
