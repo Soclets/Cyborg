@@ -31,7 +31,7 @@
 
 ## 10.2 No default
 
-**Rule:** there's no default build mode. You always say which, as its own flag. The compiler is `OKAY\n`, typed `okay`: `okay comp` compiles, and `okay run` compiles and runs. `--max_cores=` takes a number, `max` or `min`, and is `max` when left out. `okay` links by itself, with nothing else installed, and cross-compiles with one flag, as in `--target=arduino_uno_r4_wifi`. A bare-metal target names the exact board, since its memory map, startup code and pins are the board's. An operating-system target names the OS and the chip family, `macos_aarch64`, `linux_aarch64` or `linux_x86_64`, since the OS hides the board, and a specific chip in the family is chosen with `--machine.cpu=` ([10.11](#1011-tuning-for-one-machine-machine)).
+**Rule:** there's no default build mode. You always say which, as its own flag. The compiler is `OKAY\n`, typed `okay`: `okay comp` compiles, and `okay run` compiles and runs. `--max_cores=` takes a number, `max` or `min`, and is `max` when left out. Built objects are cached in the system's cache folder, `~/Library/Caches/okay` on macOS and `~/.cache/okay` on Linux, or where `OKAY_CACHE` says, shared by every project, and found by a hash of everything that changes them, so the cache never changes what a build gives. `okay` links by itself, with nothing else installed, and cross-compiles with one flag, as in `--target=arduino_uno_r4_wifi`. A bare-metal target names the exact board, since its memory map, startup code and pins are the board's. An operating-system target names the OS and the chip family, `macos_aarch64`, `linux_aarch64` or `linux_x86_64`, since the OS hides the board, and a specific chip in the family is chosen with `--machine.cpu=` ([10.11](#1011-tuning-for-one-machine-machine)).
 
 ```
 okay comp --FinalSafe
@@ -54,7 +54,7 @@ okay run --Working --opt=O0
 
 **Refused:** `okay comp` with no mode flag, and `--mode FinalSafe`, with `fix: --FinalSafe`. `--Working` without `--opt=`, with `fix: --opt=O0` for debugging or `--opt=O1` for quick runs, and `--opt=` with any other mode, whose optimization is fixed.
 
-**From:** D26, D222, D224, D261, D268, D281, D288.
+**From:** D26, D222, D224, D261, D268, D281, D288, D410.
 
 ## 10.3 What gets checked
 

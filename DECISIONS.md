@@ -1320,6 +1320,8 @@ A `type_set` is a closed list of types that nothing can join later, as in `type_
 
 **D409. "Trap" is gone: a failed check crashes.** "Trap" was Claude's word, from writing up D26 and D42, and never meant anything different from "crash", so it broke one name per concept. The standard now says "crash" everywhere: 10.3's "Kept, as traps" is just "Kept", and every "Trap" in 10.4's table is "Crash", so every failed check flushes as D408 says and prints its message. Where earlier entries, like D26, D42, D133, D401 and D406, say "trap", read "crash". Nothing in the compiler changes, since it already prints the same message in every mode that checks. Compiler claude asked whether `FinalSafe`'s traps should print `Working`'s message; the owner said "I don't even use the word "trap""; Claude proposed this; the owner chose: "yea". (Owner, 2026-11-13)
 
+**D410. `OKAY\n`'s build cache lives in the system's cache folder, not in the project.** Compiled objects are saved in `~/Library/Caches/okay` on macOS and `~/.cache/okay` on Linux, or where `OKAY_CACHE` says, and shared by every project on the machine, as Go does, so a project folder holds only what its author writes and needs nothing in `.gitignore`. Sharing is safe because each object is found by a hash of everything that makes it, its IR, target, mode, compiler and every flag that changes the output, so the cache can never change what a build gives. Compiler claude built it this way and raised it; Claude suggested keeping it over a Rust-style folder in the project; the owner asked "what's that" and "why would you gitignore it?", and chose: "yea ok". (Owner, 2026-11-13)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude
