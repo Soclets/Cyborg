@@ -20,7 +20,7 @@ D273, and ranges that know loop counters.
 
 ## Lyftar design
 
-Compiler claude has finished its resume prompt, so it's time (owner, 2026-11-13) to wake Lyftar design and pass on a gap: D233's
+Once compiler claude has finished its catch-up (owner, 2026-11-13), wake Lyftar design and pass on a gap: D233's
 check that inline assembly writes no register missing from `writes:` or `clobbers:` can't be done yet, since Lyftar can't
 say which registers an instruction defines. Compiler claude asks for something like
 `lyftar::registers_written(triple, cpu, assembly_text) -> Result<Vec<String>>`, running MC's assembly parser and giving
