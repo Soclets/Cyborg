@@ -34,7 +34,8 @@ Two more from compiler claude's catch-up:
 
 ## oracle claude
 
-Idle since 2026-11-12, with the generator's coverage finished. When woken: build D403 to D409 (`lanes: max` per target,
+Idle since 2026-11-12, with the generator's coverage finished. Woken with `design/oracle-next-round-prompt.md`, which
+covers this list: build D403 to D409 (`lanes: max` per target,
 `shift.left` and `rotate.left`, `std::math::sqrt`, crashes flushing only free writers, and the 10 error messages
 that say "traps" saying "crashes"), respell the 9 tests that still write `shl`/`shr` (compiler claude lists them:
 d49_bits_grouped, the three d49_shift_*, the two d116_bit_*, d340_constant_time_maths, d340_a_shift_by_a_secret and
