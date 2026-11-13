@@ -174,11 +174,22 @@ GAIM's favorite
 | `Ceil.machine` | The same, tuned for one machine | Plus `--machine.cpu=` or `--machine.gpu=` ([10.11](#1011-tuning-for-one-machine-machine)), which only hold on that machine |
 | `Ceil.program` | The same, tuned for one workload | Plus `--profile.use=` ([10.10](#1010-tuning-for-one-workload-profile)), which only holds for that work |
 
-A build with both is `Ceil.machine.program`. There's no bare `Ceil`, so a number always says which kind of fastest it is. Other languages' versions follow the same rules, so a Rust build with `-C target-cpu=native` is `Ceil.machine`.
+A build with both is `Ceil.machine.program`. There's no bare `Ceil`, so a number always says which kind of fastest it is.
+
+Every benchmark reports the same six things:
+
+| What | How |
+|---|---|
+| Run time | The whole program, startup included: the mean, ± the standard deviation and the minimum, after warm-up runs and with at least 10 measured runs |
+| Peak memory | The most it held at once |
+| Program size | The built file's bytes |
+| Compile time | Cold, and with the build cache warm |
+| Correctness | Checked first: every build's output matches the known answer before it's timed, and a wrong answer isn't timed |
+| The setup | The machine, its operating system, every compiler's version, and how busy the machine was | Other languages' versions follow the same rules, so a Rust build with `-C target-cpu=native` is `Ceil.machine`.
 
 **Refused:** a bare `Ceil`.
 
-**From:** D32, D77, D78, D364.
+**From:** D32, D77, D78, D364, D426.
 
 ## 10.10 Tuning for one workload: `--profile`
 
