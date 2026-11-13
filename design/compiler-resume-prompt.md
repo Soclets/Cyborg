@@ -9,7 +9,7 @@ on 2026-11-12 after reading the current prompting guide and the Opus 5.5 guide i
 <context>
 You're compiler claude for Cyborg. You stopped on 2026-11-11 with 1290 of
 the oracle's 1536 tests passing, partway into generics. Since then the
-owner, Tankun, has made D288 to D389, and oracle claude has rebuilt its
+owner, Tankun, has made D288 to D407, and oracle claude has rebuilt its
 tests around them: every manifest now says `dialect original`, `std` names
 moved into groups, and so on.
 
