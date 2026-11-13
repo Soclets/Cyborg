@@ -86,7 +86,7 @@ std::io::fmt_print(Lend.mut $out, "hi{newln}");
 
 A file imports the half of a package it uses: `import std;` for `std::`, and `import @std;` for `@std::`. `import pkg std;` brings in both.
 
-A package's own files are reached the same way, under `my::`. Each file is a module named by its path, with a `::` per folder, so `parser.cy` is `my::parser` and `net/http.cy` is `my::net::http`, with no module declarations. Another file is imported and written with its path, and a file's own things stay bare:
+A package's own files are reached the same way, under `my::`. Each file is a module named by its path, with a `::` per folder, so `parser.cy` is `my::parser` and `net/http.cy` is `my::net::http`, with no module declarations. Another file is imported and written with its path, and a file's own things stay bare. A file shows only what it marks `pub.pkg` or `pub` ([9.12](9-limbs-and-shields.md#912-pub)):
 
 ```
 import my::parser;
@@ -96,7 +96,7 @@ let $tree: my::parser::tree = my::parser::parse(Lend $text);
 
 `import std::io::fmt_print;` imports only that one thing, with its narrowings, like `.stored`, and the file can reach nothing else from `std`. It still writes the full path, unless a `use` shortens it. `import std::units::time;` imports a whole unit family.
 
-**From:** D22, D56, D80, D81, D82, D92, D161, D183, D186, D187, D188, D191, D196, D198, D199, D229, D412.
+**From:** D22, D56, D80, D81, D82, D92, D161, D183, D186, D187, D188, D191, D196, D198, D199, D229, D412, D413.
 
 ## 1.6 Narrowings: `.`
 

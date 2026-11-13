@@ -270,20 +270,21 @@ With its rule on, the limb also picks a variable's type, with `@precog::set_to_b
 
 ## 9.12 `pub`
 
-**Rule:** anything a package declares is private to that package unless it starts with `pub`. `pub` is a separate word in front, not a narrowing, and it works on anything a package declares.
+**Rule:** anything a file declares is seen only in that file, unless it starts with `pub.pkg`, which shares it with the package's other files ([1.5](1-programs.md#15-paths-)), or `pub`, which shows it to everyone. `pub` is a separate word in front, not a narrowing of what follows, and it works on anything a file declares.
 
 ```
 pub fn total [$xs: Lent std::coll::list<i32>[len.max: inf items]] -> i32:
 pub fn.pure area [$w: i32, $h: i32] -> i32:
 pub struct reading:
 pub const $max: i32 = 100;
+pub.pkg fn parse [$text: Lent str] -> tree:
 ```
 
 `fn.main` needs no `pub`.
 
-**Refused:** `fn.pub`, with `fix: pub fn`.
+**Refused:** `fn.pub`, with `fix: pub fn`, and `fn.pub.pkg`, with `fix: pub.pkg fn`.
 
-**From:** D186, D200.
+**From:** D186, D200, D413.
 
 ## 9.13 Rules: `rule`
 
