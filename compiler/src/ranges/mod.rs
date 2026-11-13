@@ -680,7 +680,9 @@ impl Walker<'_> {
                 self.expression(address);
                 match operation {
                     AtomicOperation::Load => {}
-                    AtomicOperation::Swap(value) | AtomicOperation::Update { value, .. } => {
+                    AtomicOperation::Swap(value)
+                    | AtomicOperation::Store(value)
+                    | AtomicOperation::Update { value, .. } => {
                         self.expression(value);
                     }
                     AtomicOperation::CompareSwap { expect, value } => {

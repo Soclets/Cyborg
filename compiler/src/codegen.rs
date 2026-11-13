@@ -2370,6 +2370,7 @@ impl<'context, 'module> Generator<'context, 'module> {
         let item = match operation {
             AtomicOperation::Load => result_type.clone(),
             AtomicOperation::Swap(value)
+            | AtomicOperation::Store(value)
             | AtomicOperation::Update { value, .. }
             | AtomicOperation::CompareSwap { value, .. } => value.machine_type.clone(),
         };
@@ -2391,6 +2392,14 @@ impl<'context, 'module> Generator<'context, 'module> {
         };
         let old = match operation {
             AtomicOperation::Load => load(frame, order),
+            AtomicOperation::Store(value) => {
+                // trace: D419
+                let value = self.expression(frame, value)?;
+                let value = widen(frame, value);
+                let stored = frame.builder.store(value, pointer);
+                stored.set_ordering(order);
+                return Ok(self.context.pointer_type(0).constant_null().to_dynamic());
+            }
             AtomicOperation::Swap(value) => {
                 let value = self.expression(frame, value)?;
                 let value = widen(frame, value);

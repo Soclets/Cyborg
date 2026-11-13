@@ -536,6 +536,8 @@ pub enum WhenPart {
 #[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
 pub enum AtomicOperation {
     Load,
+    /// `%store`: sets the value, giving back nothing (D419).
+    Store(Box<Expression>),
     Swap(Box<Expression>),
     /// `%add`, `%sub` and the bit operations, with `.wrap` or `.saturate` where they apply.
     Update {

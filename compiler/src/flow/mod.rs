@@ -375,7 +375,9 @@ fn children(expression: &checked::Expression) -> Vec<&checked::Expression> {
         Kind::Select { condition, then, otherwise } => vec![condition, then, otherwise],
         Kind::Atomic { address, operation, .. } => match operation {
             checked::AtomicOperation::Load => vec![address],
-            checked::AtomicOperation::Swap(value) | checked::AtomicOperation::Update { value, .. } => {
+            checked::AtomicOperation::Swap(value)
+            | checked::AtomicOperation::Store(value)
+            | checked::AtomicOperation::Update { value, .. } => {
                 vec![address, value]
             }
             checked::AtomicOperation::CompareSwap { expect, value } => vec![address, expect, value],

@@ -214,6 +214,7 @@ fn.main [none] -> void:
     $hits.%add(val: 1);
     $hits.%add.wrap.relaxed(val: 2);
     let $old: u64 = $hits.%swap(val: 7);
+    $hits.%store.release(val: 9);
     let $owner: @concur::atomic<i32> = @concur::atomic.new(0);
     $owner.%compare_swap(expect: 0, val: 5) otherwise:
         case not_expected $f:
@@ -226,14 +227,15 @@ end fn.main
 
 #[test]
 fn d354_d360_atomics_are_the_cpus_own_instructions() {
-    // trace: D354, D360
+    // trace: D354, D360, D419
     let text = ir("atomics_ir", ATOMICS, Mode::Working(Optimization::O0));
     assert!(text.contains("atomicrmw add ptr") && text.contains("monotonic"), "a `.wrap.relaxed` add:\n{text}");
     assert!(text.contains("atomicrmw xchg ptr"), "a swap:\n{text}");
     assert!(text.contains("cmpxchg ptr"), "a checked add or a compare_swap:\n{text}");
     assert!(text.contains("load atomic i64") && text.contains("acquire"), "an acquiring load:\n{text}");
+    assert!(text.contains("store atomic i64 9") && text.contains("release"), "a releasing store:\n{text}");
     let (code, out) = run("atomics_run", ATOMICS, &["--Working", "--opt=O0"]);
-    assert_eq!((code, out.as_str()), (Some(0), "3 7 5\n"));
+    assert_eq!((code, out.as_str()), (Some(0), "3 9 5\n"));
 }
 
 const LOCK_EXITS: &str = "import std;

@@ -1917,7 +1917,7 @@ impl Checker<'_> {
         }
     }
 
-    /// `$p.%read()`, `$p.%%write(val: 6)` and `$p.%moved(offset.items: 1)` (D315, D316, D317).
+    /// `$p.%read()`, `$p.%write(val: 6)` and `$p.%moved(offset.items: 1)` (D315, D316, D317).
     #[allow(clippy::too_many_arguments)]
     fn pointer_method(
         &mut self,
@@ -2016,7 +2016,7 @@ impl Checker<'_> {
                 let viewed = self.resolve_type(&written)?;
                 Ok(Typed::new(Type::Pointer { target: Box::new(viewed), mutable, volatile }, pointer.value.kind))
             }
-            ("%%write", [argument]) => {
+            ("%write", [argument]) => {
                 if !mutable {
                     // trace: D314
                     return Err(self.error(Diagnostic::refused(
@@ -2026,7 +2026,7 @@ impl Checker<'_> {
                     )));
                 }
                 if argument.label.as_ref().map(|label| label.text.as_str()) != Some("val") {
-                    return Err(self.not_yet(argument.span, "`%%write` without `val:`".to_string()));
+                    return Err(self.not_yet(argument.span, "`%write` without `val:`".to_string()));
                 }
                 let value = self.value_into(body, &argument.value, target)?;
                 Ok(Typed::new(
@@ -2270,7 +2270,7 @@ impl Checker<'_> {
             );
         }
         // A pointer's method on a pointer worked out right there, as in `$b.%moved(offset.bytes: 1).%read()`.
-        if receiver_type.is_none() && (matches!(written.as_str(), "%read" | "%%write" | "%moved" | "%viewed_as")) {
+        if receiver_type.is_none() && (matches!(written.as_str(), "%read" | "%write" | "%moved" | "%viewed_as")) {
             let typed = self.expression(body, receiver, None)?;
             if let Type::Pointer { target, mutable, volatile } = typed.value_type.clone() {
                 return self.pointer_method(

@@ -592,6 +592,24 @@ impl Checker<'_> {
         let Some(given) = labelled("val") else {
             return Err(self.not_yet(expression.span, format!("`{written}` without `val:`")));
         };
+        if operation == "store" {
+            if matches!(ordering, checked::AtomicOrder::Acquire | checked::AtomicOrder::AcquireRelease) {
+                // trace: D417, D419
+                return Err(self.error(Diagnostic::refused_fix(
+                    method.span,
+                    "%store.release".to_string(),
+                    "`acquire` belongs to reading and `release` to writing, so a store takes only `.relaxed`, `.release` or the bare strictest form (D417, D419)",
+                )));
+            }
+            let value = self.value_into(body, &given.value, &inner.plain())?;
+            let kind = Kind::Atomic {
+                address: Box::new(address),
+                operation: checked::AtomicOperation::Store(Box::new(value)),
+                ordering,
+                failure: None,
+            };
+            return Ok(Typed::new(Type::Void, kind));
+        }
         let value = self.value_into(body, &given.value, &inner.plain())?;
         let operator = match (operation, narrowings.first().copied()) {
             ("swap", None) => None,
