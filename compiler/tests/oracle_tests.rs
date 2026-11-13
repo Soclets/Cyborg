@@ -60,7 +60,9 @@ fn run(test: &Test) -> Result<(), String> {
         Err(_) => 1,
     };
     let output = Command::new(env!("CARGO_BIN_EXE_okay"))
-        .args(["run", "--Working", "--opt=O0", &test.program])
+        // One core each, since three tests run at once and the compiler session has three (rule 9).
+        .args(["run", "--Working", "--opt=O0", "--max_cores=1", &test.program])
+        .env("OKAY_CACHE", Path::new(env!("CARGO_TARGET_TMPDIR")).join("cache"))
         .current_dir(&test.folder)
         .output()
         .map_err(|error| format!("couldn't run okay: {error}"))?;

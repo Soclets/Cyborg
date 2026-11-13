@@ -11,8 +11,7 @@ use std::process::ExitCode;
 use okay::build::{self, Outcome};
 use okay::target::{Mode, Optimization, Target};
 
-const USAGE: &str =
-    "usage: okay comp|run --Working|--FinalSafe|--FinalPerf|--FinalShit|--FinalSmall|--Literal [--target=…] file.cy";
+const USAGE: &str = "usage: okay comp|run --Working|--FinalSafe|--FinalPerf|--FinalShit|--FinalSmall|--Literal [--target=…] [--max_cores=…] file.cy";
 
 fn main() -> ExitCode {
     let arguments: Vec<String> = std::env::args().skip(1).collect();
@@ -32,6 +31,7 @@ fn main() -> ExitCode {
     let mut optimization = None;
     let mut target = Target::host();
     let mut file = None;
+    let mut cores = None;
     for argument in &arguments[1..] {
         if let Some(chosen) = Mode::from_flag(argument) {
             if mode.is_some() {
@@ -47,9 +47,23 @@ fn main() -> ExitCode {
         } else if argument == "--mode" {
             eprintln!("okay: the build mode is a flag of its own, as in `--FinalSafe` (D224)");
             return ExitCode::from(2);
+        } else if let Some(count) = argument.strip_prefix("--max_cores=") {
+            // trace: D224
+            let available = std::thread::available_parallelism().map_or(1, std::num::NonZero::get);
+            cores = match count {
+                "max" => Some(available),
+                "min" => Some(1),
+                _ => match count.parse::<usize>() {
+                    Ok(number) if number > 0 => Some(number),
+                    _ => {
+                        eprintln!("okay: `--max_cores=` takes a number above 0, `max` or `min`, as in `--max_cores=4`");
+                        return ExitCode::from(2);
+                    }
+                },
+            };
         } else if let Some(name) = argument.strip_prefix("--target=") {
             if let Some(chosen) = Target::from_name(name) {
-                target = chosen
+                target = chosen;
             } else {
                 eprintln!("okay: `{name}` isn't a target this compiler builds for");
                 return ExitCode::from(2);
@@ -87,7 +101,9 @@ fn main() -> ExitCode {
         return ExitCode::from(2);
     };
     let output = output_path(&file, target, run);
-    match build::build(&file, target, mode, &output) {
+    // `--max_cores=` is `max` when left out (standard 10.2).
+    let cores = cores.unwrap_or_else(|| std::thread::available_parallelism().map_or(1, std::num::NonZero::get));
+    match build::build(&file, target, mode, cores, &output) {
         Outcome::Refused(text) => {
             eprint!("{text}");
             ExitCode::from(1)

@@ -1,7 +1,8 @@
 //! Machine code, through Lyftar (rule 1).
 //!
-//! The runtime's IR is read into the module first, so the program's code calls straight into it and LLVM's passes
-//! can inline it. Every local gets a stack slot in the function's entry block, which LLVM turns into registers.
+//! A program is built in units (D168): the runtime, then its functions. Each unit reads the runtime's small functions
+//! first, so the program's code calls straight into them and LLVM's passes can inline them, while their one real copy
+//! is in the runtime's own unit. Every local gets a stack slot in the function's entry block, which LLVM turns into registers.
 
 use std::collections::HashMap;
 
@@ -27,79 +28,198 @@ const BOARD_STARTUP: &str = include_str!("runtime/arduino_uno_r4_wifi/startup.ll
 /// The linker script for the Arduino Uno R4 `WiFi` (D261, D281).
 pub const BOARD_MEMORY: &str = include_str!("runtime/arduino_uno_r4_wifi/memory.ld");
 
-/// Builds the object file for a checked program.
+/// A unit of a build, compiled on its own, in parallel with the others, and cached by its IR (D168).
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum Unit {
+    /// The runtime, which is the same for every program on a target and mode, so it's built once and cached.
+    Runtime,
+    /// Some of the program's functions, by index.
+    Functions(Vec<usize>),
+}
+
+/// The most units a program's functions are split into, so linking stays quick for big programs.
+const MOST_UNITS: usize = 64;
+
+/// How a program is split. `Working` and `Literal`, which don't inline across functions, give each function its own
+/// unit, so changing one rebuilds only that one. The `Final` modes keep the program's functions together, so LLVM can
+/// inline across all of them.
+#[must_use]
+pub fn plan(program: &Program, mode: Mode) -> Vec<Unit> {
+    let count = program.functions.len();
+    let mut units = vec![Unit::Runtime];
+    if !matches!(mode, Mode::Working(_) | Mode::Literal) || count <= 1 {
+        units.push(Unit::Functions((0..count).collect()));
+        return units;
+    }
+    if count <= MOST_UNITS {
+        units.extend((0..count).map(|index| Unit::Functions(vec![index])));
+        return units;
+    }
+    // A function's unit comes from its name, not its position, so adding one elsewhere doesn't move it.
+    let names = symbols(program);
+    let mut buckets = vec![Vec::new(); MOST_UNITS];
+    for (index, name) in names.iter().enumerate() {
+        let hashed = name.bytes().fold(0usize, |sum, byte| sum.wrapping_mul(31).wrapping_add(usize::from(byte)));
+        buckets[hashed % MOST_UNITS].push(index);
+    }
+    units.extend(buckets.into_iter().filter(|bucket| !bucket.is_empty()).map(Unit::Functions));
+    units
+}
+
+/// Each function's symbol, made unique by its position where two would share one.
+fn symbols(program: &Program) -> Vec<String> {
+    let mut seen = std::collections::HashSet::new();
+    program
+        .functions
+        .iter()
+        .enumerate()
+        .map(|(index, function)| {
+            if seen.insert(function.symbol.clone()) {
+                function.symbol.clone()
+            } else {
+                format!("{}.{index}", function.symbol)
+            }
+        })
+        .collect()
+}
+
+/// The runtime's IR, as its own unit: the operating system's, with float printing, or the board's, with its
+/// startup code.
+fn runtime_text(target: Target) -> String {
+    if target.has_os() { format!("{OS_RUNTIME}\n{FLOAT_RUNTIME}") } else { format!("{BARE_RUNTIME}\n{BOARD_STARTUP}") }
+}
+
+/// The runtime as each unit of the program sees it: its small functions' bodies, so LLVM can inline them, marked as
+/// defined elsewhere, in the runtime's own unit, with float printing only declared, since it's too big to inline.
+fn inline_runtime_text(target: Target) -> String {
+    if target.has_os() {
+        let shared = OS_RUNTIME.replace(WRITERS_DEFINED, WRITERS_DECLARED);
+        format!("{shared}\ndeclare i64 @__cyborg_format_float(double, i32, i32, i32, i1, ptr)\n")
+    } else {
+        BARE_RUNTIME.to_string()
+    }
+}
+
+/// The list of buffered writers, which the runtime's unit defines and every other unit shares.
+const WRITERS_DEFINED: &str = "@__cyborg_writers = hidden global ptr null";
+const WRITERS_DECLARED: &str = "@__cyborg_writers = external hidden global ptr";
+
+/// The unoptimized IR for one unit, as text. It's all a unit's object depends on, besides the target and mode, so
+/// it's what the cache hashes.
 ///
 /// # Errors
 /// What LLVM reported, which is a bug in this compiler, since a checked program is always valid.
-pub fn object_file(program: &Program, target: Target, mode: Mode) -> Result<Vec<u8>> {
-    generate(program, target, mode, false)
+pub fn unit_ir(program: &Program, target: Target, mode: Mode, unit: &Unit) -> Result<String> {
+    let Unit::Functions(chosen) = unit else { return Ok(runtime_text(target)) };
+    with_context(|context| {
+        let module = context
+            .parse_ir_text(&inline_runtime_text(target))
+            .map_err(|error| format!("the runtime: {}", error.message()))?;
+        let view = context.module(&module);
+        let mut function = view.last_function();
+        while let Some(each) = function {
+            if !each.is_declaration() {
+                each.set_linkage(Linkage::AvailableExternally);
+            }
+            function = each.previous_function();
+        }
+        let mut defined = vec![false; program.functions.len()];
+        for index in chosen {
+            if let Some(slot) = defined.get_mut(*index) {
+                *slot = true;
+            }
+        }
+        let mut generator = Generator {
+            context,
+            module: view,
+            mode,
+            bare_metal: !target.has_os(),
+            program,
+            symbols: symbols(program),
+            whole: chosen.len() == program.functions.len(),
+            functions: vec![None; program.functions.len()],
+            structs: Vec::new(),
+            struct_fields: Vec::new(),
+            union_fields: Vec::new(),
+            sites: None,
+            unions: Vec::new(),
+        };
+        generator.aggregates(program);
+        for index in chosen {
+            generator.declare(*index)?;
+        }
+        for index in chosen {
+            let function = program.functions.get(*index).ok_or("a unit names a missing function")?;
+            generator.function(*index, function, *index == program.entry)?;
+        }
+        for name in mode.size_attributes() {
+            let kind = lyftar::attributes::AttributeKind::for_name(name)
+                .ok_or_else(|| format!("LLVM has no `{name}` attribute"))?;
+            let attribute = context.enum_attribute(kind, 0);
+            let mut function = view.last_function();
+            while let Some(each) = function {
+                if !each.is_declaration() {
+                    each.add_attribute(lyftar::attributes::AttributeLocation::Function, attribute);
+                }
+                function = each.previous_function();
+            }
+        }
+        view.verify().map_err(|error| format!("the generated code: {}", error.message()))?;
+        Ok(view.print_to_string())
+    })
 }
 
-/// The optimized LLVM IR for a checked program, as text, so tests can see what each build mode leaves in.
+/// The target machine for a target and mode.
+fn machine(target: Target, mode: Mode) -> Result<lyftar::target::TargetMachine> {
+    use crate::target::Optimization;
+    let triple = target.triple();
+    let level = match mode {
+        Mode::Literal | Mode::Working(Optimization::O0) => CodeGenerationOptimizationLevel::None,
+        Mode::Working(Optimization::O1) => CodeGenerationOptimizationLevel::Less,
+        Mode::Working(Optimization::O2 | Optimization::Os | Optimization::Oz) | Mode::FinalSmall => {
+            CodeGenerationOptimizationLevel::Default
+        }
+        _ => CodeGenerationOptimizationLevel::Aggressive,
+    };
+    let relocation = if target.has_os() { RelocationMode::PositionIndependentCode } else { RelocationMode::Static };
+    Ok(LlvmTarget::from_triple(triple).map_err(|error| error.message().to_string())?.create_target_machine(
+        triple,
+        target.cpu(),
+        "",
+        level,
+        relocation,
+        CodeModel::Default,
+    ))
+}
+
+/// Optimizes one unit's IR and makes its object file, in a context of its own, so units build on separate threads.
+///
+/// # Errors
+/// What LLVM reported, which is a bug in this compiler.
+pub fn compile_ir(ir: &str, target: Target, mode: Mode) -> Result<Vec<u8>> {
+    optimize(ir, target, mode, false)
+}
+
+/// The optimized LLVM IR for a whole program in one unit, as text, so tests can see what each build mode leaves in.
 ///
 /// # Errors
 /// What LLVM reported, which is a bug in this compiler.
 pub fn optimized_ir(program: &Program, target: Target, mode: Mode) -> Result<String> {
-    generate(program, target, mode, true).map(|bytes| String::from_utf8_lossy(&bytes).into_owned())
+    let unit = Unit::Functions((0..program.functions.len()).collect());
+    let ir = unit_ir(program, target, mode, &unit)?;
+    optimize(&ir, target, mode, true).map(|bytes| String::from_utf8_lossy(&bytes).into_owned())
 }
 
-fn generate(program: &Program, target: Target, mode: Mode, ir: bool) -> Result<Vec<u8>> {
+fn optimize(ir: &str, target: Target, mode: Mode, as_text: bool) -> Result<Vec<u8>> {
+    let machine = machine(target, mode)?;
     with_context(|context| {
-        let triple = target.triple();
-        let level = match mode {
-            Mode::Literal | Mode::Working(crate::target::Optimization::O0) => CodeGenerationOptimizationLevel::None,
-            Mode::Working(crate::target::Optimization::O1) => CodeGenerationOptimizationLevel::Less,
-            Mode::Working(
-                crate::target::Optimization::O2 | crate::target::Optimization::Os | crate::target::Optimization::Oz,
-            ) => CodeGenerationOptimizationLevel::Default,
-            _ => CodeGenerationOptimizationLevel::Aggressive,
-        };
-        let relocation = if target.has_os() { RelocationMode::PositionIndependentCode } else { RelocationMode::Static };
-        let machine = LlvmTarget::from_triple(triple)
-            .map_err(|error| error.message().to_string())?
-            .create_target_machine(triple, target.cpu(), "", level, relocation, CodeModel::Default);
-        let runtime = if target.has_os() {
-            format!("{OS_RUNTIME}\n{FLOAT_RUNTIME}")
-        } else {
-            format!("{BARE_RUNTIME}\n{BOARD_STARTUP}")
-        };
-        let mut module =
-            context.parse_ir_text(&runtime).map_err(|error| format!("the runtime: {}", error.message()))?;
-        {
-            let view = context.module(&module);
-            view.set_target_machine(&machine);
-            let mut generator = Generator {
-                context,
-                module: view,
-                mode,
-                bare_metal: !target.has_os(),
-                functions: Vec::new(),
-                structs: Vec::new(),
-                struct_fields: Vec::new(),
-                union_fields: Vec::new(),
-                sites: None,
-                unions: Vec::new(),
-            };
-            generator.program(program)?;
-            for name in mode.size_attributes() {
-                let kind = lyftar::attributes::AttributeKind::for_name(name)
-                    .ok_or_else(|| format!("LLVM has no `{name}` attribute"))?;
-                let attribute = context.enum_attribute(kind, 0);
-                let mut function = view.last_function();
-                while let Some(each) = function {
-                    if !each.is_declaration() {
-                        each.add_attribute(lyftar::attributes::AttributeLocation::Function, attribute);
-                    }
-                    function = each.previous_function();
-                }
-            }
-            view.verify().map_err(|error| format!("the generated code: {}", error.message()))?;
-        }
+        let mut module = context.parse_ir_text(ir).map_err(|error| format!("a unit's IR: {}", error.message()))?;
+        context.module(&module).set_target_machine(&machine);
         context
             .exclusive_module(&mut module)
             .run_passes(mode.pipeline(), Some(&machine), &PassOptions::default())
             .map_err(|error| error.message().to_string())?;
-        if ir {
+        if as_text {
             return Ok(context.module(&module).print_to_string().into_bytes());
         }
         let buffer = machine
@@ -122,7 +242,12 @@ struct Generator<'context, 'module> {
     mode: Mode,
     /// With no operating system, a failed check traps, since there's nowhere decided to print to.
     bare_metal: bool,
-    functions: Vec<Function<'context, 'module>>,
+    program: &'module Program,
+    symbols: Vec<String>,
+    /// Whether this unit holds every function, so all but `main` can be internal to it.
+    whole: bool,
+    /// Each function, once this unit defines or calls it.
+    functions: Vec<Option<Function<'context, 'module>>>,
     /// Each struct's LLVM type, and each union's, with each union's cases as LLVM structs.
     structs: Vec<lyftar::types::Type<'context>>,
     struct_fields: Vec<Vec<MachineType>>,
@@ -304,10 +429,14 @@ impl<'context, 'module> Generator<'context, 'module> {
     }
 
     /// The table of where each failure was raised: a constant array of texts.
-    fn sites_table(&mut self, program: &Program) {
+    /// The table of where each failure was raised, made the first time a unit needs it.
+    fn sites_table(&mut self) -> Value<'context, 'module> {
+        if let Some(table) = self.sites {
+            return table;
+        }
         let text_type = self.machine_type(&MachineType::Text);
         let mut entries = Vec::new();
-        for site in &program.sites {
+        for site in &self.program.sites {
             let bytes = self.constant_bytes(site);
             let length = self.integer(64, site.len() as u64);
             entries.push(self.context.constant_struct(&[bytes, length], false));
@@ -321,39 +450,46 @@ impl<'context, 'module> Generator<'context, 'module> {
         global.set_global_constant(true);
         global.set_linkage(Linkage::Private);
         self.sites = Some(global.to_dynamic());
+        global.to_dynamic()
     }
 
-    fn program(&mut self, program: &Program) -> Result<()> {
-        self.aggregates(program);
-        self.sites_table(program);
+    /// A function of the program, declared the first time this unit needs it, so a unit's IR only mentions what it
+    /// uses and stays the same when other functions change.
+    fn declare(&mut self, index: usize) -> Result<Function<'context, 'module>> {
+        if let Some(Some(declared)) = self.functions.get(index) {
+            return Ok(*declared);
+        }
+        let program = self.program;
+        let function = program.functions.get(index).ok_or("a call to a missing function")?;
+        let is_main = index == program.entry;
         let pointer = self.context.pointer_type(0);
-        for (index, function) in program.functions.iter().enumerate() {
-            let is_main = index == program.entry;
-            let returns =
-                if is_main { self.context.integer_type(32).to_dynamic() } else { self.machine_type(&function.returns) };
-            let parameters: Vec<_> = function
-                .parameters
-                .iter()
-                .map(|parameter| match parameter.passing {
-                    Passing::Value => self.machine_type(&function.locals[parameter.local]),
-                    Passing::Address => pointer,
-                })
-                .collect();
-            let declared =
-                self.module.add_function(&function.symbol, self.context.function_type(returns, &parameters, false));
-            if !is_main {
+        let returns =
+            if is_main { self.context.integer_type(32).to_dynamic() } else { self.machine_type(&function.returns) };
+        let parameters: Vec<_> = function
+            .parameters
+            .iter()
+            .map(|parameter| match parameter.passing {
+                Passing::Value => self.machine_type(&function.locals[parameter.local]),
+                Passing::Address => pointer,
+            })
+            .collect();
+        let symbol = if is_main { "main" } else { self.symbols.get(index).map_or("cyborg.function", String::as_str) };
+        let declared = self.module.add_function(symbol, self.context.function_type(returns, &parameters, false));
+        if !is_main {
+            if self.whole {
                 declared.set_linkage(Linkage::Internal);
+            } else {
+                declared.set_visibility(lyftar::enums::Visibility::Hidden);
             }
-            self.functions.push(declared);
         }
-        for (index, function) in program.functions.iter().enumerate() {
-            self.function(index, function, index == program.entry)?;
+        if let Some(slot) = self.functions.get_mut(index) {
+            *slot = Some(declared);
         }
-        Ok(())
+        Ok(declared)
     }
 
     fn function(&mut self, index: usize, function: &crate::checked::Function, is_main: bool) -> Result<()> {
-        let declared = *self.functions.get(index).ok_or("a function that wasn't declared")?;
+        let declared = self.declare(index)?;
         let entry = declared.append_basic_block("entry");
         let builder = Builder::at_end_of(entry);
         let mut slots = Vec::with_capacity(function.locals.len());
@@ -886,7 +1022,7 @@ impl<'context, 'module> Generator<'context, 'module> {
             self.print_number(frame, writer, value, &machine_type, &Shape::default())?;
         }
         self.text(frame, writer, &failure.after)?;
-        let table = self.sites.ok_or("no table of failure sites")?;
+        let table = self.sites_table();
         let entry_type = self.machine_type(&MachineType::Text);
         let wide_site = frame.builder.zero_extend(site, self.context.integer_type(64), "").to_dynamic();
         let entry = frame.builder.get_element_pointer(entry_type, table, &[wide_site], "").to_dynamic();
@@ -1308,7 +1444,7 @@ impl<'context, 'module> Generator<'context, 'module> {
                 }
             }
             ExpressionKind::Call { function, arguments } => {
-                let callee = *self.functions.get(*function).ok_or("a call to a missing function")?;
+                let callee = self.declare(*function)?;
                 let mut values = Vec::with_capacity(arguments.len());
                 for argument in arguments {
                     values.push(match argument {

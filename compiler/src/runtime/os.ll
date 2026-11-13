@@ -7,7 +7,7 @@
 ; of buffered writers, which a crash flushes before its message (D274). An unbuffered writer has no buffer.
 %writer = type { i32, ptr, i64, i64, ptr, ptr }
 
-@__cyborg_writers = internal global ptr null
+@__cyborg_writers = hidden global ptr null
 
 declare i64 @write(i32, ptr, i64)
 declare ptr @malloc(i64)

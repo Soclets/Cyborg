@@ -69,7 +69,7 @@ fn ir(name: &str, program: &str, mode: Mode) -> String {
 /// Builds and runs a program, giving its exit code and standard output.
 fn run(name: &str, program: &str, flags: &[&str]) -> (Option<i32>, String) {
     let file = project(name, program);
-    let mut arguments = vec!["comp"];
+    let mut arguments = vec!["comp", "--max_cores=1"];
     arguments.extend_from_slice(flags);
     arguments.push("main.cy");
     let folder = file.parent().expect("the program is in a folder");

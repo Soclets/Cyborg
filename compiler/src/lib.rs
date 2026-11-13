@@ -5,6 +5,7 @@
 #![warn(clippy::pedantic)]
 
 pub mod build;
+pub mod cache;
 pub mod check;
 pub mod checked;
 pub mod codegen;

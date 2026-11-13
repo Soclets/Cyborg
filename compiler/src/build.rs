@@ -1,11 +1,12 @@
 //! One build: read the manifest and the program, check them, and make the program.
 
-use std::path::Path;
+use std::path::{Path, PathBuf};
+use std::sync::Mutex;
 
 use crate::diagnostic::{Diagnostic, render_all};
 use crate::source::{FileId, SourceFile, Sources, Span};
 use crate::target::{Mode, Target};
-use crate::{check, codegen, lexer, manifest, parser, spacing};
+use crate::{cache, check, codegen, lexer, manifest, parser, spacing};
 
 /// musl's MIT notice, which every Linux program `okay` links carries.
 const MUSL_NOTICE: &str = include_str!("../licenses/LICENSE-musl.txt");
@@ -18,9 +19,9 @@ pub enum Outcome {
     Failed(String),
 }
 
-/// Builds `file` into the program at `output`.
+/// Builds `file` into the program at `output`, using up to `cores` threads.
 #[must_use]
-pub fn build(file: &Path, target: Target, mode: Mode, output: &Path) -> Outcome {
+pub fn build(file: &Path, target: Target, mode: Mode, cores: usize, output: &Path) -> Outcome {
     let mut sources = Sources::default();
     let text = match std::fs::read_to_string(file) {
         Ok(text) => text,
@@ -54,24 +55,17 @@ pub fn build(file: &Path, target: Target, mode: Mode, output: &Path) -> Outcome 
     let Some(program) = program else {
         return Outcome::Failed("the checker gave no program and no error".to_string());
     };
-    // Lyftar panics on a build call that's wrong, which is a bug in this compiler, so it's reported as one (rule 6).
-    let generated =
-        std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| codegen::object_file(&program, target, mode)));
-    let object = match generated {
-        Ok(Ok(object)) => object,
-        Ok(Err(message)) => return Outcome::Failed(message),
-        Err(panic) => {
-            let message = panic
-                .downcast_ref::<String>()
-                .cloned()
-                .or_else(|| panic.downcast_ref::<&str>().map(|text| (*text).to_string()))
-                .unwrap_or_else(|| "a panic while making machine code".to_string());
-            return Outcome::Failed(message);
-        }
+    let objects = match objects(&program, target, mode, cores) {
+        Ok(objects) => objects,
+        Err(message) => return Outcome::Failed(message),
     };
-    let object_path = output.with_extension("o");
-    if let Err(error) = std::fs::write(&object_path, object) {
-        return Outcome::Failed(format!("can't write {}: {error}", object_path.display()));
+    let mut object_paths = Vec::new();
+    for (index, object) in objects.iter().enumerate() {
+        let object_path = output.with_extension(format!("{index}.o"));
+        if let Err(error) = std::fs::write(&object_path, object) {
+            return Outcome::Failed(format!("can't write {}: {error}", object_path.display()));
+        }
+        object_paths.push(object_path);
     }
     let script_path = output.with_extension("ld");
     let script = if target.has_os() {
@@ -82,8 +76,11 @@ pub fn build(file: &Path, target: Target, mode: Mode, output: &Path) -> Outcome 
         }
         Some(script_path.as_path())
     };
-    let linked = lyftar::link(target.link_target(), &[&object_path], output, script);
-    let _ = std::fs::remove_file(&object_path);
+    let paths: Vec<&Path> = object_paths.iter().map(PathBuf::as_path).collect();
+    let linked = lyftar::link(target.link_target(), &paths, output, script);
+    for object_path in &object_paths {
+        let _ = std::fs::remove_file(object_path);
+    }
     if script.is_some() {
         let _ = std::fs::remove_file(&script_path);
     }
@@ -102,6 +99,69 @@ pub fn build(file: &Path, target: Target, mode: Mode, output: &Path) -> Outcome 
         Ok(_) => Outcome::Built,
         Err(error) => Outcome::Failed(format!("linking: {}", error.message())),
     }
+}
+
+/// Every unit's object file, in order (D168). Units are built on up to `cores` threads, each with its own LLVM context,
+/// and one whose IR is already in the cache isn't optimized or compiled again.
+fn objects(
+    program: &crate::checked::Program,
+    target: Target,
+    mode: Mode,
+    cores: usize,
+) -> Result<Vec<Vec<u8>>, String> {
+    let units = codegen::plan(program, mode);
+    let folder = cache::folder();
+    let next = Mutex::new(0usize);
+    let results: Mutex<Vec<Option<Built>>> = Mutex::new(vec![None; units.len()]);
+    let one = |unit: &codegen::Unit| -> Result<Vec<u8>, String> {
+        let ir = codegen::unit_ir(program, target, mode, unit)?;
+        let key = cache::key(target, mode, &ir);
+        if let Some(object) = folder.as_deref().and_then(|folder| cache::get(folder, &key)) {
+            return Ok(object);
+        }
+        let object = codegen::compile_ir(&ir, target, mode)?;
+        if let Some(folder) = folder.as_deref() {
+            cache::put(folder, &key, &object);
+        }
+        Ok(object)
+    };
+    std::thread::scope(|scope| {
+        for _ in 0..cores.clamp(1, units.len().max(1)) {
+            scope.spawn(|| {
+                loop {
+                    let index = {
+                        let Ok(mut next) = next.lock() else { return };
+                        let index = *next;
+                        *next += 1;
+                        index
+                    };
+                    let Some(unit) = units.get(index) else { return };
+                    // Lyftar panics on a build call that's wrong, which is a bug in this compiler, so it's reported
+                    // as one (rule 6).
+                    let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| one(unit)))
+                        .unwrap_or_else(|panic| Err(panic_message(panic.as_ref())));
+                    if let Ok(mut results) = results.lock()
+                        && let Some(slot) = results.get_mut(index)
+                    {
+                        *slot = Some(result);
+                    }
+                }
+            });
+        }
+    });
+    let results = results.into_inner().map_err(|_| "a thread building a unit stopped".to_string())?;
+    results.into_iter().map(|result| result.unwrap_or_else(|| Err("a unit wasn't built".to_string()))).collect()
+}
+
+/// One unit's object, or why it couldn't be made.
+type Built = Result<Vec<u8>, String>;
+
+fn panic_message(panic: &(dyn std::any::Any + Send)) -> String {
+    panic
+        .downcast_ref::<String>()
+        .cloned()
+        .or_else(|| panic.downcast_ref::<&str>().map(|text| (*text).to_string()))
+        .unwrap_or_else(|| "a panic while making machine code".to_string())
 }
 
 /// Checks the program in `file` against its manifest, giving the checked program or every error, rendered.
