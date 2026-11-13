@@ -32,6 +32,8 @@ fn main() -> ExitCode {
     let mut target = Target::host();
     let mut file = None;
     let mut cores = None;
+    let mut machine_cpu: Option<String> = None;
+    let mut profile: Option<String> = None;
     for argument in &arguments[1..] {
         if let Some(chosen) = Mode::from_flag(argument) {
             if mode.is_some() {
@@ -61,6 +63,16 @@ fn main() -> ExitCode {
                     }
                 },
             };
+        } else if let Some(name) = argument.strip_prefix("--machine.cpu=") {
+            // trace: D365
+            machine_cpu = Some(name.to_string());
+        } else if argument.starts_with("--machine.gpu=") {
+            eprintln!(
+                "okay: `--machine.gpu=` goes to the limb that gives a program its GPU code, and no limb here gives any (D365)"
+            );
+            return ExitCode::from(2);
+        } else if argument == "--profile.record" || argument.starts_with("--profile.use=") {
+            profile = Some(argument.clone());
         } else if let Some(name) = argument.strip_prefix("--target=") {
             if let Some(chosen) = Target::from_name(name) {
                 target = chosen;
@@ -97,6 +109,27 @@ fn main() -> ExitCode {
         }
         (other, None) => other,
     };
+    // trace: D363, D365
+    if mode == Mode::Literal && machine_cpu.is_some() {
+        eprintln!("okay: `--machine.cpu=` can't go with `--Literal`, which builds exactly what's written (D282, D365)");
+        return ExitCode::from(2);
+    }
+    if let Some(flag) = &profile {
+        if matches!(mode, Mode::Literal | Mode::Working(Optimization::O0)) {
+            eprintln!(
+                "okay: `{flag}` tunes an optimizing build, so it can't go with `--{}` (D282, D363)",
+                if mode == Mode::Literal { "Literal" } else { "Working --opt=O0" }
+            );
+            return ExitCode::from(2);
+        }
+        eprintln!(
+            "NotBuiltYet: `{flag}` needs LLVM's profile counters and their runtime, which Lyftar doesn't give yet (D286, D363)"
+        );
+        return ExitCode::from(1);
+    }
+    if let Some(name) = &machine_cpu {
+        okay::target::set_machine_cpu(name);
+    }
     let Some(file) = file else {
         eprintln!("{USAGE}");
         return ExitCode::from(2);

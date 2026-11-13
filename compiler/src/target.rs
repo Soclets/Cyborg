@@ -20,6 +20,28 @@ pub enum Target {
 /// has to do (D387, D389). Set once, from the command line.
 static NAMED: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
 
+/// The processor `--machine.cpu=` tunes for, as LLVM names it, with its features, if a build is tuned (D365).
+static MACHINE_CPU: std::sync::OnceLock<(String, String)> = std::sync::OnceLock::new();
+
+/// Tunes every build in this run for one processor: an exact name, like `apple_m5`, or `native` for this machine,
+/// which is recorded as the name it meant (D365).
+pub fn set_machine_cpu(name: &str) -> String {
+    let (cpu, features) = if name == "native" {
+        (lyftar::target::host_cpu_name(), lyftar::target::host_cpu_features())
+    } else {
+        (name.replace('_', "-"), String::new())
+    };
+    let shown = cpu.clone();
+    let _ = MACHINE_CPU.set((cpu, features));
+    shown
+}
+
+/// The processor a build is tuned for, and its features, if `--machine.cpu=` said one (D365).
+#[must_use]
+pub fn machine_cpu() -> Option<&'static (String, String)> {
+    MACHINE_CPU.get()
+}
+
 /// Records that `--target=` was given.
 pub fn set_named() {
     NAMED.store(true, std::sync::atomic::Ordering::Relaxed);

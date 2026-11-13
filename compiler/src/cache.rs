@@ -81,6 +81,13 @@ pub fn key(target: Target, mode: Mode, ir: &str) -> String {
     hasher.update(b"\0");
     hasher.update(format!("{mode:?}").as_bytes());
     hasher.update(b"\0");
+    // A build tuned for one processor makes other code from the same IR (D365, D410).
+    if let Some((cpu, features)) = crate::target::machine_cpu() {
+        hasher.update(cpu.as_bytes());
+        hasher.update(b"\0");
+        hasher.update(features.as_bytes());
+    }
+    hasher.update(b"\0");
     hasher.update(ir.as_bytes());
     hasher.finalize().iter().fold(String::new(), |mut text, byte| {
         use std::fmt::Write;

@@ -1918,20 +1918,103 @@ impl Checker<'_> {
     }
 
     /// `$p.%read()`, `$p.%%write(val: 6)` and `$p.%moved(offset.items: 1)` (D315, D316, D317).
+    #[allow(clippy::too_many_arguments)]
     fn pointer_method(
         &mut self,
         body: &mut Body,
         expression: &syntax::Expression,
         receiver: &syntax::Expression,
+        evaluated: Option<Typed>,
         (target, mutable, volatile): (&Type, bool, bool),
         written: &str,
         arguments: &[syntax::Argument],
     ) -> Check<Typed> {
         let pointer_type = Type::Pointer { target: Box::new(target.clone()), mutable, volatile };
-        let pointer = self.expression(body, receiver, None)?;
+        let pointer = match evaluated {
+            Some(typed) => typed,
+            None => self.expression(body, receiver, None)?,
+        };
         match (written, arguments) {
             ("%read", []) => {
-                Ok(Typed::new(target.clone(), Kind::PointerRead { pointer: Box::new(pointer.value), volatile }))
+                let read = checked::Expression {
+                    kind: Kind::PointerRead { pointer: Box::new(pointer.value), volatile },
+                    machine_type: target.machine(),
+                };
+                // A value read from memory is checked like any value of its type (D401, D416).
+                let checked = match target {
+                    Type::Bool => {
+                        let byte = checked::Expression {
+                            kind: Kind::PointerRead {
+                                pointer: Box::new(match read.kind {
+                                    Kind::PointerRead { pointer, .. } => *pointer,
+                                    _ => return Err(Reported),
+                                }),
+                                volatile,
+                            },
+                            machine_type: MachineType::U8,
+                        };
+                        let check = failure(
+                            self,
+                            Diagnostic::new(
+                                DiagnosticKind::CheckFailed,
+                                expression.span,
+                                "this reads a `bool` from the byte \u{1}, which is neither 0 nor 1",
+                                "a value read through a pointer is checked like any value of its type, and a `bool` is 0 or 1 (D401, D416)",
+                            ),
+                            &[],
+                        );
+                        let fitted = checked::Expression {
+                            kind: Kind::Fit { value: Box::new(byte), min: 0, max: 1, failure: Box::new(check) },
+                            machine_type: MachineType::U8,
+                        };
+                        checked::Expression { kind: Kind::Bits(Box::new(fitted)), machine_type: MachineType::Bool }
+                    }
+                    Type::Float { bits, kind, .. } if *kind != super::types::FloatKind::Ieee => {
+                        let check = failure(
+                            self,
+                            Diagnostic::new(
+                                DiagnosticKind::CheckFailed,
+                                expression.span,
+                                format!("this reads a `{target}` from bits that make NaN or infinity"),
+                                "a value read through a pointer is checked like any value of its type, and a float can't be NaN or infinity (D401, D416, D158)",
+                            ),
+                            &[],
+                        );
+                        let most = if *bits == 32 { f64::from(f32::MAX) } else { f64::MAX };
+                        checked::Expression {
+                            kind: Kind::FitFloat {
+                                value: Box::new(read),
+                                min: -most,
+                                max: most,
+                                failure: Box::new(check),
+                            },
+                            machine_type: target.machine(),
+                        }
+                    }
+                    _ => read,
+                };
+                Ok(Typed::new(target.clone(), checked.kind))
+            }
+            // trace: D416
+            ("%viewed_as", [argument]) => {
+                if argument.label.as_ref().map(|label| label.text.as_str()) != Some("item.type") {
+                    return Err(self.not_yet(argument.span, "`%viewed_as` without `item.type:`".to_string()));
+                }
+                let ExpressionKind::Path(path) = &argument.value.kind else {
+                    return Err(self.not_yet(argument.value.span, "viewing as this type".to_string()));
+                };
+                let written = syntax::Type {
+                    kind: syntax::TypeKind::Named {
+                        path: path.clone(),
+                        fill: Vec::new(),
+                        fill_span: None,
+                        labels: Vec::new(),
+                        labels_span: None,
+                    },
+                    span: argument.value.span,
+                };
+                let viewed = self.resolve_type(&written)?;
+                Ok(Typed::new(Type::Pointer { target: Box::new(viewed), mutable, volatile }, pointer.value.kind))
             }
             ("%%write", [argument]) => {
                 if !mutable {
@@ -2176,7 +2259,31 @@ impl Checker<'_> {
             return self.simd_method(body, expression, receiver, &written, arguments);
         }
         if let Some(Type::Pointer { target, mutable, volatile }) = &receiver_type {
-            return self.pointer_method(body, expression, receiver, (target, *mutable, *volatile), &written, arguments);
+            return self.pointer_method(
+                body,
+                expression,
+                receiver,
+                None,
+                (target, *mutable, *volatile),
+                &written,
+                arguments,
+            );
+        }
+        // A pointer's method on a pointer worked out right there, as in `$b.%moved(offset.bytes: 1).%read()`.
+        if receiver_type.is_none() && (matches!(written.as_str(), "%read" | "%%write" | "%moved" | "%viewed_as")) {
+            let typed = self.expression(body, receiver, None)?;
+            if let Type::Pointer { target, mutable, volatile } = typed.value_type.clone() {
+                return self.pointer_method(
+                    body,
+                    expression,
+                    receiver,
+                    Some(typed),
+                    (&target, mutable, volatile),
+                    &written,
+                    arguments,
+                );
+            }
+            return Err(self.not_yet(method.span, format!("a method on `{}`", typed.value_type)));
         }
         let on_list = matches!(receiver_type, Some(Type::List { .. }));
         // A kit method's short name stands for its path on the type that path names (D178).

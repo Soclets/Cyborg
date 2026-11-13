@@ -269,10 +269,13 @@ fn machine(target: Target, mode: Mode) -> Result<lyftar::target::TargetMachine> 
         _ => CodeGenerationOptimizationLevel::Aggressive,
     };
     let relocation = if target.has_os() { RelocationMode::PositionIndependentCode } else { RelocationMode::Static };
+    // trace: D365
+    let (cpu, features) =
+        crate::target::machine_cpu().map_or((target.cpu(), ""), |(cpu, features)| (cpu.as_str(), features.as_str()));
     Ok(LlvmTarget::from_triple(triple).map_err(|error| error.message().to_string())?.create_target_machine(
         triple,
-        target.cpu(),
-        "",
+        cpu,
+        features,
         level,
         relocation,
         CodeModel::Default,
