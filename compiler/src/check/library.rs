@@ -547,7 +547,7 @@ impl Checker<'_> {
             };
             if !applies {
                 return Err(self.error(Diagnostic::refused(
-                    hole.shapes_span,
+                    hole.span,
                     format!("`{}` doesn't apply to `{value_type}`", word.label()),
                     "a literal format is checked when building, including a shape that doesn't apply (D194)",
                 )));
@@ -668,6 +668,12 @@ impl Checker<'_> {
                 "not decided yet (standard 12.3)",
             ))),
             Type::Unknown => Err(super::Reported),
+            // How a struct or union prints isn't decided (D194).
+            Type::Struct { name, .. } | Type::Union { name, .. } => Err(self.error(Diagnostic::not_designed(
+                argument.value.span,
+                format!("how `{name}` prints"),
+                NOT_DECIDED,
+            ))),
             other => Err(self.not_yet(argument.value.span, format!("printing `{other}`"))),
         }
     }

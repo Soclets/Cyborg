@@ -42,6 +42,9 @@ impl Checker<'_> {
         let outer = std::mem::take(&mut body.events);
         let outer_before = std::mem::take(&mut body.before);
         for statement in statements {
+            if body.stopped {
+                break;
+            }
             if matches!(statement.kind, StatementKind::Instead(_)) {
                 gives = true;
             }
@@ -65,6 +68,16 @@ impl Checker<'_> {
             body.statement = None;
             let mark = block.len();
             let result = self.statement(body, statement, &mut block);
+            // A block's opening line that failed, or a line the parser couldn't read, leaves the rest of the
+            // function unjudged, since what it opens or declares is unknown (D215).
+            if result.is_err()
+                && matches!(
+                    statement.kind,
+                    StatementKind::If(_) | StatementKind::While { .. } | StatementKind::For(_) | StatementKind::Broken
+                )
+            {
+                body.stopped = true;
+            }
             // What the statement needs run first, like a waiting task before its `done` (D376).
             let before = std::mem::take(&mut body.before);
             if result.is_ok() {
@@ -981,6 +994,16 @@ impl Checker<'_> {
                 FINISH_WHY,
             )));
         }
+        // A list or array of values with duties: ending each isn't decided (D177).
+        if let Type::List { item, .. } | Type::Array { item, .. } = &variable.value_type
+            && self.must_give(item)
+        {
+            return Err(self.error(Diagnostic::not_designed(
+                name.span,
+                "`finish` on a collection of `must_Give` values",
+                NOT_DECIDED,
+            )));
+        }
         if body.lent.contains(&variable.local) {
             return Err(self.error(Diagnostic::refused(
                 name.span,
@@ -1503,6 +1526,11 @@ impl Checker<'_> {
         for (index, branch) in chain.branches.iter().enumerate() {
             let mark = body.events.len();
             let condition = self.branch_condition(body, &branch.condition);
+            // An opening line that failed leaves the rest of the function unjudged (D215).
+            if condition.is_err() && !matches!(branch.condition, Condition::Test { binding: Some(_), .. }) {
+                body.stopped = true;
+                return Err(Reported);
+            }
             // A later test only runs once the ones before it were false, so what it does goes in that `else`.
             let condition_events =
                 if index == 0 { Vec::new() } else { body.events.split_off(mark.min(body.events.len())) };
@@ -1937,7 +1965,10 @@ impl Checker<'_> {
         let before = body.states.clone();
         let locals = body.locals.len();
         let next_loop = body.next_loop;
+        let stopped = body.stopped;
         self.quiet(|checker| checker.block(body, inner));
+        // The quiet pass's errors are dropped, so stopping is the real pass's to decide.
+        body.stopped = stopped;
         body.locals.truncate(locals);
         body.next_loop = next_loop;
         body.states = Body::join_states(&before, &body.states[..before.len()]);

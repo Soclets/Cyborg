@@ -433,10 +433,12 @@ impl Checker<'_> {
                 if let ExpressionKind::Unary { operator: syntax::UnaryOperator::Negate, operand, .. } = &fallback.kind
                     && !matches!(operand.kind, ExpressionKind::Integer(_) | ExpressionKind::Float(_))
                 {
+                    let minus =
+                        Span::new(fallback.span.file, fallback.span.start as usize, fallback.span.start as usize + 1);
                     return Err(self.error(Diagnostic::refused(
-                        fallback.span,
+                        minus,
                         "`??`'s right side is one value, and unary `-` sits below it, so this needs `( )`",
-                        "`??` sticks to its call, and its right side is one value (D132)",
+                        "`??` sits level with `?`, and its right side is the next single value (D132)",
                     )));
                 }
                 if signature.returns == Type::Void {

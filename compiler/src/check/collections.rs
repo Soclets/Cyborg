@@ -165,6 +165,18 @@ impl Checker<'_> {
         labels: &[syntax::Label],
         collection: &Type,
     ) -> Check<(checked::Step, Type)> {
+        // A label that's no item's at all, as `[min: 100]`, is said at the `[` first, whatever it's on (D133, D148).
+        if let [label] = labels {
+            let word = label.name.text();
+            if !(word == "pos" || word.starts_with("pos.") || word.starts_with("offset")) {
+                let opening = expression.span.start as usize + base_text.len();
+                return Err(self.error(Diagnostic::refused(
+                    Span::new(self.file, opening, opening + 1),
+                    "getting an item says `pos:` or `offset.items:`",
+                    POSITION_WHY,
+                )));
+            }
+        }
         let item = match collection {
             Type::Array { item, .. } | Type::List { item, .. } => (**item).clone(),
             Type::Unknown => return Err(Reported),
@@ -553,7 +565,17 @@ impl Checker<'_> {
             _ => expression,
         };
         let growth = self.append_growth(body, &list_type, call, allocator, out_of_memory)?;
-        let value = self.value_into(body, &argument.value, item)?;
+        // `val: Give $q` hands a value with a duty into the list (D113, D180).
+        let value = match argument.ownership {
+            Some((syntax::Ownership::Give, _)) => {
+                let typed = self.expression(body, &argument.value, Some(item))?;
+                if let Some(root) = super::expressions::root_name(&argument.value).cloned() {
+                    self.give_away(body, &root, &argument.value)?;
+                }
+                self.convert_into(argument.value.span, typed, item)?
+            }
+            _ => self.value_into(body, &argument.value, item)?,
+        };
         // A list with room for at most `len.max`, or as many as its `len.type` counts, fails past it.
         let shown = self.slice(receiver.span).to_string();
         let room = match max {

@@ -1210,6 +1210,18 @@ impl Checker<'_> {
                 }
             }
         }
+        // Two whole structs or unions of one type, with no `op ==` of their own: comparing them isn't decided (D160).
+        if !self.operators.contains_key(&key)
+            && named == "=="
+            && sides[0].1.value_type == sides[1].1.value_type
+            && matches!(sides[0].1.value_type, Type::Struct { .. } | Type::Union { .. })
+        {
+            return Err(self.error(Diagnostic::not_designed(
+                expression.span,
+                format!("comparing `{}` values", sides[0].1.value_type),
+                NOT_DECIDED,
+            )));
+        }
         // A bounded value goes where its plain type is asked for, as `i64[min: 1, max: 10]` to an `i64` side (D236).
         if !self.operators.contains_key(&key) {
             let plain = (

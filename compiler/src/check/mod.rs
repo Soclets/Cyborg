@@ -192,6 +192,9 @@ pub struct Body {
     pub promised: Vec<(checked::LocalId, Span)>,
     /// Whether deferred statements are being checked where their block ends, which is where they give values away.
     pub running_defers: bool,
+    /// Whether checking this function stopped, at a block whose opening line failed or a statement the parser
+    /// couldn't read, since what follows can't be judged (D215).
+    pub stopped: bool,
     /// The deferred statements of each block open, innermost last, run in reverse when the block ends (D325).
     pub defers: Vec<Vec<Deferred>>,
     /// The lists and arrays a `for` around this is reading in place (D128).
@@ -759,10 +762,11 @@ impl Checker<'_> {
         let key = if first.limb { format!("@{package}") } else { package.clone() };
         // Only the first import with no `need` line is reported, since one missing line usually means the others are
         // missing too.
-        let reported = self
-            .errors
-            .iter()
-            .any(|error| error.what.as_deref().is_some_and(|what| what.contains("has no `need` line")));
+        let reported = self.manifest.missing
+            || self
+                .errors
+                .iter()
+                .any(|error| error.what.as_deref().is_some_and(|what| what.contains("has no `need` line")));
         if matches!(package.as_str(), "std" | "os" | "csup" | "concur") && !self.manifest.needs(&package) && !reported {
             // A limb's import is named without its `@`.
             let span = if first.limb { first.name.span } else { first.name.span.to(import.path.span) };
@@ -1428,7 +1432,7 @@ impl Checker<'_> {
         let (statements, leaves) = self.function_block(&mut body, &function.body);
         let statements: Vec<checked::Statement> =
             std::iter::once(checked::Statement::Flow(starts)).chain(prelude).chain(statements).collect();
-        if !leaves && !contains_broken(&function.body) {
+        if !leaves && !contains_broken(&function.body) && !body.stopped {
             self.function_end(&body, function);
         }
         // Ownership is checked over every path (D2, D285).

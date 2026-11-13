@@ -12,6 +12,8 @@ const NOT_DECIDED_PROJECTS: &str = "not decided yet (standard 12.9)";
 #[derive(Debug, Default)]
 pub struct Manifest {
     pub needs: Vec<(String, Span)>,
+    /// There's no manifest at all, which is said once, so nothing missing from it is said again (D183).
+    pub missing: bool,
 }
 
 impl Manifest {

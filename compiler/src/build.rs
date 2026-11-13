@@ -48,7 +48,7 @@ pub fn build(file: &Path, target: Target, mode: Mode, cores: usize, output: &Pat
             "there's no `CyJet.siml` next to this program",
             "every program has a manifest, hello world included (D183, D229)",
         ));
-        manifest::Manifest::default()
+        manifest::Manifest { missing: true, ..manifest::Manifest::default() }
     };
     let store = check::incremental::Store::open(cache::folder().as_deref(), file, target, mode);
     let (program, mut program_errors, store) =
