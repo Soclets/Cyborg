@@ -38,3 +38,5 @@ that say "traps" saying "crashes"), then channels when Tankun picks the run-loop
 
 - Rerun `bench/okay-vs-luajit`'s n-body once the compiler has `std::math::sqrt` or `inline.asm`, since today's numbers
   measure Newton's method against a hardware instruction.
+- Bench `OKAY\n` against Go properly, in standard 10.9's kinds, once compiler claude's catch-up is done (owner,
+  2026-11-13): CPU work, and networking once `@concur` and `os::events` are built, since GAIM says Go wins on both.
