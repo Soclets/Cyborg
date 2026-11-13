@@ -12,6 +12,13 @@ pub struct IntegerKind {
 }
 
 impl IntegerKind {
+    /// The most bytes this type's text can take, minus sign included, so `as str` with this bound can't fail (D328).
+    #[must_use]
+    pub fn most_text_bytes(self) -> u64 {
+        let (lowest, highest) = self.range();
+        let digits = |value: i128| value.unsigned_abs().to_string().len() as u64;
+        digits(highest).max(digits(lowest) + u64::from(lowest < 0))
+    }
     pub const I32: IntegerKind = IntegerKind { bits: 32, signed: true };
     pub const I64: IntegerKind = IntegerKind { bits: 64, signed: true };
     pub const U64: IntegerKind = IntegerKind { bits: 64, signed: false };
@@ -83,6 +90,15 @@ impl WriterKind {
 }
 
 /// Integer bounds (D20), as numbers.
+/// How a `str` holds its text: a view of someone else's, up to a number of bytes inside the value, or growing on the
+/// heap (D326, D327).
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub enum StrSize {
+    View,
+    Bytes(u64),
+    Growing,
+}
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub struct Bounds {
     pub min: i128,
@@ -205,7 +221,8 @@ pub enum Type {
         unit: Option<Unit>,
     },
     Bool,
-    Str,
+    /// Text: a read-only view, or owned, bounded or growing (D326, D327).
+    Str(StrSize),
     Void,
     Writer(WriterKind),
     /// A struct of the program's own, by its number and name (D57).
@@ -239,14 +256,14 @@ pub enum Type {
         sources: Vec<String>,
         inner: Box<Type>,
     },
-    /// `std::array<i32>[len: 3 items]`: exactly `len` items (D12, D24).
+    /// `std::coll::array<i32>[len: 3 items]`: exactly `len` items (D12, D24).
     Array {
         item: Box<Type>,
         len: u64,
         /// What `.len` is, `u64` unless `len.type` says otherwise (D140).
         len_type: IntegerKind,
     },
-    /// `std::list<i32>[len.max: inf items]`: from `min` to `max` items, with no `max` for `inf` (D11, D24).
+    /// `std::coll::list<i32>[len.max: inf items]`: from `min` to `max` items, with no `max` for `inf` (D11, D24).
     List {
         item: Box<Type>,
         min: u64,
@@ -341,7 +358,7 @@ impl Type {
             Type::New { inner, .. } | Type::Borrow { inner, .. } => inner.machine(),
             Type::Array { item, len, .. } => checked::MachineType::Array { item: Box::new(item.machine()), len: *len },
             Type::List { item, .. } => checked::MachineType::List(Box::new(item.machine())),
-            Type::Str => checked::MachineType::Text,
+            Type::Str(_) => checked::MachineType::Text,
             Type::Void | Type::Unknown => checked::MachineType::Void,
             // A generic's own body is only checked, never built: each call builds a copy with real types.
             Type::Param { .. } => checked::MachineType::Address,
@@ -387,7 +404,9 @@ impl fmt::Display for Type {
                 }
             }
             Type::Bool => write!(formatter, "bool"),
-            Type::Str => write!(formatter, "str"),
+            Type::Str(StrSize::View) => write!(formatter, "str"),
+            Type::Str(StrSize::Bytes(most)) => write!(formatter, "str[len.max: {most} bytes]"),
+            Type::Str(StrSize::Growing) => write!(formatter, "str[len.max: inf bytes]"),
             Type::Void => write!(formatter, "void"),
             Type::Writer(writer) => write!(formatter, "{}", writer.name()),
             Type::Struct { name, .. }
@@ -409,14 +428,14 @@ impl fmt::Display for Type {
                 }
             }
             Type::Array { item, len, len_type } => {
-                write!(formatter, "std::array<{item}>[len: {len} items")?;
+                write!(formatter, "std::coll::array<{item}>[len: {len} items")?;
                 if *len_type != IntegerKind::U64 {
                     write!(formatter, ", len.type: {}", len_type.name())?;
                 }
                 write!(formatter, "]")
             }
             Type::List { item, min, max, len_type } => {
-                write!(formatter, "std::list<{item}>[")?;
+                write!(formatter, "std::coll::list<{item}>[")?;
                 if *min > 0 {
                     write!(formatter, "len.min: {min} items, ")?;
                 }

@@ -316,6 +316,14 @@ impl<'a> Interpreter<'a> {
                 }
                 Ok(checked)
             }
+            ExpressionKind::Clamp { value, min, max } => match self.expression(value, locals)? {
+                Constant::Integer(number) => Ok(Constant::Integer(number.clamp(*min, *max))),
+                other => Ok(other),
+            },
+            ExpressionKind::ClampFloat { value, min, max } => match self.expression(value, locals)? {
+                Constant::Float(number) => Ok(Constant::Float(number.clamp(*min, *max))),
+                other => Ok(other),
+            },
             ExpressionKind::FitFloat { value, min, max, failure } => {
                 let checked = self.expression(value, locals)?;
                 if let Constant::Float(number) = checked
@@ -504,6 +512,21 @@ fn integer_arithmetic(
             wrap(exact, bits, signed)
         }
         Arithmetic::WrappingAdd => wrap(a + b, bits, signed),
+        Arithmetic::WrappingSubtract => wrap(a - b, bits, signed),
+        Arithmetic::WrappingMultiply => wrap(a.wrapping_mul(b), bits, signed),
+        Arithmetic::SaturatingAdd => (a + b).clamp(lowest, highest),
+        Arithmetic::SaturatingSubtract => (a - b).clamp(lowest, highest),
+        Arithmetic::SaturatingMultiply => a.saturating_mul(b).clamp(lowest, highest),
+        Arithmetic::RotateLeft | Arithmetic::RotateRight => {
+            let width = i128::from(bits);
+            let amount = b.rem_euclid(width);
+            let amount = if operator == Arithmetic::RotateLeft { amount } else { (width - amount) % width };
+            let mask = if bits >= 128 { -1 } else { (1i128 << bits) - 1 };
+            let unsigned = a & mask;
+            let rotated =
+                if amount == 0 { unsigned } else { ((unsigned << amount) | (unsigned >> (width - amount))) & mask };
+            wrap(rotated, bits, signed)
+        }
         Arithmetic::DivideTruncate
         | Arithmetic::DivideFloor
         | Arithmetic::DivideExact

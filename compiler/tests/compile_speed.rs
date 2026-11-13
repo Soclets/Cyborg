@@ -6,8 +6,7 @@
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
-const MANIFEST: &str =
-    "name speed\nver 2026y-11m-10d same\nokay 2026y-11m-10d\n\nneed std 2026y-11m-10d\nneed os 2026y-11m-10d\n";
+const MANIFEST: &str = "name speed\nver 2026y-11m-10d same\ndialect original 2026y-11m-10d\n\nneed std 2026y-11m-10d\nneed os 2026y-11m-10d\n";
 
 fn program(added: i32) -> String {
     format!(

@@ -68,10 +68,15 @@ fn run(test: &Test) -> Result<(), String> {
         Err(_) if expected_error.is_empty() => 0,
         Err(_) => 1,
     };
+    // A test whose answer depends on its target's sizes names the target (rule 5, D387, D389).
+    let target = std::fs::read_to_string(test.folder.join(format!("{stem}.target")))
+        .map(|target| vec![format!("--target={}", target.trim())])
+        .unwrap_or_default();
     let output = Command::new(env!("CARGO_BIN_EXE_okay"))
         // One core each, since three tests run at once and the compiler session has three (rule 9).
         .args(["run"])
         .args(mode_flags())
+        .args(target)
         .args(["--max_cores=1", &test.program])
         .env("OKAY_CACHE", Path::new(env!("CARGO_TARGET_TMPDIR")).join("cache"))
         .current_dir(&test.folder)
@@ -130,6 +135,14 @@ fn oracle_tests() {
         let passing: Vec<&str> =
             results.iter().filter(|(_, result)| result.is_ok()).map(|(name, _)| name.as_str()).collect();
         let _ = std::fs::write(here.join("passing.txt"), passing.join("\n") + "\n");
+        // `OKAY_FAILURES` names a file to get every failure's differences, to see what's left at a glance.
+        if let Some(path) = std::env::var_os("OKAY_FAILURES") {
+            let failures: Vec<String> = results
+                .iter()
+                .filter_map(|(name, result)| result.as_ref().err().map(|problem| format!("=== {name}\n{problem}")))
+                .collect();
+            let _ = std::fs::write(path, failures.join("\n"));
+        }
         println!("{} of {} tests pass", passing.len(), results.len());
         return;
     }

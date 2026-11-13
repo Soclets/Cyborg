@@ -240,6 +240,18 @@ impl Walker<'_> {
                 }
                 range.map(|range| Interval { low: range.low.max(low), high: range.high.min(high) })
             }
+            ExpressionKind::Clamp { value, min, max } => {
+                let range = self.expression(value);
+                let (low, high) = (*min, *max);
+                Some(range.map_or(Interval { low, high }, |range| Interval {
+                    low: range.low.clamp(low, high),
+                    high: range.high.clamp(low, high),
+                }))
+            }
+            ExpressionKind::ClampFloat { value, .. } => {
+                self.expression(value);
+                machine
+            }
             ExpressionKind::Bind { local, value, body } => {
                 if let Some(range) = self.expression(value) {
                     self.held.insert(*local, range);

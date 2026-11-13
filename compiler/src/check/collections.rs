@@ -81,7 +81,7 @@ impl Checker<'_> {
                 let value = self.value_into(body, value, item)?;
                 Ok(checked::Expression { kind: Kind::Fill { value: Box::new(value), len: *len }, machine_type })
             })()),
-            (ExpressionKind::Empty, Type::Str) => {
+            (ExpressionKind::Empty, Type::Str(_)) => {
                 Some(Ok(checked::Expression { kind: Kind::Text(String::new()), machine_type }))
             }
             _ => None,

@@ -263,12 +263,12 @@ pub struct Parameter {
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum ParameterOwnership {
-    /// Bare, lent read-only (D182).
+    /// `Lent`: lent read-only (D393).
     Lent,
     Given,
     LentMut,
-    /// `Lent` written out, which is refused since it's the default.
-    LentWritten,
+    /// No word, for what has no choice of how it's held, like a number or a view (D393).
+    Bare,
 }
 
 #[derive(Clone, Debug)]
@@ -376,7 +376,7 @@ pub struct Type {
 #[derive(Clone, Debug)]
 pub enum TypeKind {
     /// A named type, with what fills it in `< >` and what describes it in `[ ]`: `i32[min: 0, max: 100]`,
-    /// `std::list<i32>[len.max: inf items]`, `index<`text`: $article>`.
+    /// `std::coll::list<i32>[len.max: inf items]`, `index<`text`: $article>`.
     Named {
         path: Path,
         fill: Vec<TypeArgument>,
@@ -625,8 +625,18 @@ pub enum BinaryOperator {
     BitXor,
     ShiftLeft,
     ShiftRight,
-    /// `plus.wrap` (D42).
+    /// `plus.wrap`, `minus.wrap` and `times.wrap` (D42, D295).
     WrappingAdd,
+    WrappingSubtract,
+    WrappingMultiply,
+    /// `plus.saturate`, `minus.saturate` and `times.saturate`, which stick at the bounds of the type the result
+    /// goes into (D294, D372).
+    SaturatingAdd,
+    SaturatingSubtract,
+    SaturatingMultiply,
+    /// `rotate.left` and `rotate.right` (D404).
+    RotateLeft,
+    RotateRight,
     /// `lasts_at_least`, between borrow sources in `requires` (D174).
     LastsAtLeast,
 }
@@ -654,6 +664,8 @@ impl BinaryOperator {
                 | BinaryOperator::BitXor
                 | BinaryOperator::ShiftLeft
                 | BinaryOperator::ShiftRight
+                | BinaryOperator::RotateLeft
+                | BinaryOperator::RotateRight
         )
     }
 }

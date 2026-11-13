@@ -306,6 +306,17 @@ fn token_at(text: &str, at: usize) -> (TokenKind, usize) {
 
 /// An integer, `86_400`, or a float, `2.5` or `6.02214076e23`.
 fn number_at(bytes: &[u8], at: usize) -> (TokenKind, usize) {
+    // C's `0x40`, `0b1010` and `0o755` stay one token, so they can be refused with Cyborg's spelling (D374).
+    if bytes.get(at) == Some(&b'0')
+        && matches!(bytes.get(at + 1), Some(b'x' | b'X' | b'b' | b'B' | b'o' | b'O'))
+        && bytes.get(at + 2).is_some_and(u8::is_ascii_hexdigit)
+    {
+        let mut end = at + 2;
+        while end < bytes.len() && (bytes[end].is_ascii_alphanumeric() || bytes[end] == b'_') {
+            end += 1;
+        }
+        return (TokenKind::Integer, end);
+    }
     let digits = |mut end: usize| {
         while end < bytes.len() && (bytes[end].is_ascii_digit() || bytes[end] == b'_') {
             end += 1;

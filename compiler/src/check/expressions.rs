@@ -5,7 +5,7 @@ use crate::diagnostic::{Diagnostic, Kind as DiagnosticKind};
 use crate::source::Span;
 use crate::syntax::{self, BinaryOperator, ExpressionKind, UnaryOperator};
 
-use super::types::{Bounds, IntegerKind, Type};
+use super::types::{Bounds, IntegerKind, StrSize, Type};
 use super::{Body, Check, Checker, Origin, Reported, State};
 
 use super::names::NEW_WHY;
@@ -101,7 +101,7 @@ impl Checker<'_> {
                 if failed {
                     return Err(Reported);
                 }
-                Ok(Typed::new(Type::Str, Kind::Text(text.unwrap_or_default())))
+                Ok(Typed::new(Type::Str(StrSize::View), Kind::Text(text.unwrap_or_default())))
             }
             ExpressionKind::Variable(name) => self.read_variable(body, name),
             ExpressionKind::Result => match &body.result_value {
@@ -467,15 +467,25 @@ impl Checker<'_> {
             {
                 Ok(Typed::new(into.clone(), typed.value.kind))
             }
-            (Type::Integer { .. } | Type::Float { .. }, Type::Str) if body.purity != super::Purity::Plain => Err(self
-                .error(Diagnostic::not_designed(
+            // trace: D328
+            (Type::Integer { kind, .. }, Type::Str(StrSize::View | StrSize::Growing)) => {
+                let most = kind.most_text_bytes();
+                Err(self.error(Diagnostic::refused_fix(
+                    keyword.span.to(written_type.span),
+                    format!("as str[len.max: {most} bytes]"),
+                    "`as` never allocates, so text from `as` goes into a bounded `str`, held inside the value (D327, D328)",
+                )))
+            }
+            (Type::Integer { .. } | Type::Float { .. }, Type::Str(_)) if body.purity != super::Purity::Plain => {
+                Err(self.error(Diagnostic::not_designed(
                     expression.span,
                     "whether a `fn.pure` may allocate, as `as` can",
                     "not decided yet (standard 12.5)",
-                ))),
-            (Type::Integer { .. }, Type::Str) => Ok(Typed::new(Type::Str, Kind::TextOf(Box::new(typed.value)))),
-            (Type::Float { kind, .. }, Type::Str) if *kind != super::types::FloatKind::Fast => {
-                Ok(Typed::new(Type::Str, Kind::TextOf(Box::new(typed.value))))
+                )))
+            }
+            (Type::Integer { .. }, Type::Str(_)) => Ok(Typed::new(into.clone(), Kind::TextOf(Box::new(typed.value)))),
+            (Type::Float { kind, .. }, Type::Str(_)) if *kind != super::types::FloatKind::Fast => {
+                Ok(Typed::new(into.clone(), Kind::TextOf(Box::new(typed.value))))
             }
             (
                 Type::Float { bits: from_bits, kind: super::types::FloatKind::Ieee, .. },
@@ -846,7 +856,7 @@ impl Checker<'_> {
                     )))
                 }
             }
-            (Type::Str, Type::Str) => {
+            (Type::Str(_), Type::Str(_)) => {
                 Err(self.error(Diagnostic::not_designed(span, "comparing `str` values", NOT_DECIDED)))
             }
             (Type::Float { bits: a, .. }, Type::Float { bits: b, .. }) if a == b => {
@@ -893,14 +903,75 @@ impl Checker<'_> {
         let left_unit = left_typed.value_type.unit().cloned();
         let right_unit = right_typed.value_type.unit().cloned();
         if left_unit.is_none() && right_unit.is_none() {
-            return self.arithmetic_on(expression, operator, operator_span, (left_typed, right_typed));
+            let typed = self.arithmetic_on(expression, operator, operator_span, (left_typed, right_typed))?;
+            return self.saturated(expression, operator, typed, expected);
         }
         let unit = self.maths_unit(expression, operator, left, right, (&left_typed, &right_typed))?;
         left_typed.value_type = left_typed.value_type.with_unit(None);
         right_typed.value_type = right_typed.value_type.with_unit(None);
         let mut typed = self.arithmetic_on(expression, operator, operator_span, (left_typed, right_typed))?;
         typed.value_type = typed.value_type.with_unit(unit);
-        Ok(typed)
+        self.saturated(expression, operator, typed, expected)
+    }
+
+    /// Saturating maths sticks at the bounds of the type its result goes into, so a narrower written bound clamps
+    /// what the hardware gave (D294, D372), and a float sticks at its written bounds (D373).
+    fn saturated(
+        &mut self,
+        expression: &syntax::Expression,
+        operator: &BinaryOperator,
+        mut typed: Typed,
+        expected: Option<&Type>,
+    ) -> Check<Typed> {
+        if !matches!(
+            operator,
+            BinaryOperator::SaturatingAdd | BinaryOperator::SaturatingSubtract | BinaryOperator::SaturatingMultiply
+        ) {
+            return Ok(typed);
+        }
+        // trace: D294, D372, D373
+        match (&typed.value_type, expected) {
+            (Type::Integer { kind, .. }, Some(Type::Integer { kind: wanted, bounds: Some(bounds), .. }))
+                if kind == wanted =>
+            {
+                let machine_type = typed.value.machine_type.clone();
+                let value = std::mem::replace(
+                    &mut typed.value,
+                    checked::Expression { kind: Kind::Zero, machine_type: machine_type.clone() },
+                );
+                typed.value = checked::Expression {
+                    kind: Kind::Clamp { value: Box::new(value), min: bounds.min, max: bounds.max },
+                    machine_type,
+                };
+                Ok(typed)
+            }
+            (Type::Integer { .. }, _) => Ok(typed),
+            (Type::Float { .. }, Some(Type::Float { bounds: Some(bounds), .. })) => {
+                let machine_type = typed.value.machine_type.clone();
+                let value = std::mem::replace(
+                    &mut typed.value,
+                    checked::Expression { kind: Kind::Zero, machine_type: machine_type.clone() },
+                );
+                typed.value = checked::Expression {
+                    kind: Kind::ClampFloat {
+                        value: Box::new(value),
+                        min: f64::from_bits(bounds.min),
+                        max: f64::from_bits(bounds.max),
+                    },
+                    machine_type,
+                };
+                Ok(typed)
+            }
+            (Type::Float { .. }, _) => {
+                let shown = expected.unwrap_or(&typed.value_type).to_string();
+                Err(self.error(Diagnostic::not_designed(
+                    expression.span,
+                    format!("saturating `{shown}`, a float with no written bounds"),
+                    "not decided yet, and the standard doesn't say",
+                )))
+            }
+            _ => Ok(typed),
+        }
     }
 
     /// The unit maths on units gives: `+` and `-` keep one unit, and `x` and `div` combine them (D100, D242).
@@ -1228,6 +1299,14 @@ impl Checker<'_> {
                 pair(),
             ),
             BinaryOperator::WrappingAdd => (Arithmetic::WrappingAdd, None, Vec::new()),
+            BinaryOperator::WrappingSubtract => (Arithmetic::WrappingSubtract, None, Vec::new()),
+            BinaryOperator::WrappingMultiply => (Arithmetic::WrappingMultiply, None, Vec::new()),
+            BinaryOperator::SaturatingAdd => (Arithmetic::SaturatingAdd, None, Vec::new()),
+            BinaryOperator::SaturatingSubtract => (Arithmetic::SaturatingSubtract, None, Vec::new()),
+            BinaryOperator::SaturatingMultiply => (Arithmetic::SaturatingMultiply, None, Vec::new()),
+            // trace: D404
+            BinaryOperator::RotateLeft => (Arithmetic::RotateLeft, None, Vec::new()),
+            BinaryOperator::RotateRight => (Arithmetic::RotateRight, None, Vec::new()),
             BinaryOperator::Divide(narrowing) => match narrowing.as_deref() {
                 None => {
                     return Err(self.error(Diagnostic::refused(
@@ -1270,14 +1349,18 @@ impl Checker<'_> {
             BinaryOperator::BitXor => (Arithmetic::BitXor, None, Vec::new()),
             BinaryOperator::ShiftLeft => (
                 Arithmetic::ShiftLeft,
-                Some(Diagnostic::not_designed(expression.span, "what happens when `shl` overflows", NOT_DECIDED)),
+                Some(Diagnostic::not_designed(
+                    expression.span,
+                    format!("what happens when `{operator_name}` overflows"),
+                    NOT_DECIDED,
+                )),
                 pair(),
             ),
             BinaryOperator::ShiftRight => (
                 Arithmetic::ShiftRight,
                 Some(Diagnostic::not_designed(
                     expression.span,
-                    "whether `shr` on a negative number keeps its sign",
+                    format!("whether `{operator_name}` on a negative number keeps its sign"),
                     NOT_DECIDED,
                 )),
                 vec![When::Text("`".into()), When::Operand(0), When::Text("`".into())],
@@ -1286,7 +1369,10 @@ impl Checker<'_> {
         };
         let first = failure_diagnostic.map(|diagnostic| Box::new(failure(self, diagnostic, &when)));
         let mut more = Vec::new();
-        if matches!(arithmetic, Arithmetic::ShiftLeft | Arithmetic::ShiftRight) {
+        if matches!(
+            arithmetic,
+            Arithmetic::ShiftLeft | Arithmetic::ShiftRight | Arithmetic::RotateLeft | Arithmetic::RotateRight
+        ) {
             // Shifting by the type's width or more isn't decided (standard 12.3).
             more.push(failure(
                 self,
@@ -1349,10 +1435,23 @@ impl Checker<'_> {
         right: Typed,
     ) -> Check<Typed> {
         let Type::Float { bits, kind, .. } = value_type else { return Err(Reported) };
+        let saturating = matches!(
+            operator,
+            BinaryOperator::SaturatingAdd | BinaryOperator::SaturatingSubtract | BinaryOperator::SaturatingMultiply
+        );
         let arithmetic = match operator {
-            BinaryOperator::Add => checked::FloatArithmetic::Add,
-            BinaryOperator::Subtract => checked::FloatArithmetic::Subtract,
-            BinaryOperator::Multiply => checked::FloatArithmetic::Multiply,
+            BinaryOperator::Add | BinaryOperator::SaturatingAdd => checked::FloatArithmetic::Add,
+            BinaryOperator::Subtract | BinaryOperator::SaturatingSubtract => checked::FloatArithmetic::Subtract,
+            BinaryOperator::Multiply | BinaryOperator::SaturatingMultiply => checked::FloatArithmetic::Multiply,
+            BinaryOperator::WrappingAdd | BinaryOperator::WrappingSubtract | BinaryOperator::WrappingMultiply => {
+                // trace: D373
+                let name = self.slice(operator_span).to_string();
+                return Err(self.error(Diagnostic::refused(
+                    expression.span,
+                    format!("`{name}` is for integers"),
+                    "floats don't wrap: too big becomes infinity, so wrapping means nothing for them (D295, D373)",
+                )));
+            }
             BinaryOperator::Divide(None) => checked::FloatArithmetic::Divide,
             BinaryOperator::Divide(Some(narrowing)) => {
                 return Err(self.error(Diagnostic::not_designed(
@@ -1396,12 +1495,14 @@ impl Checker<'_> {
                 Diagnostic::new(DiagnosticKind::CheckFailed, expression.span, "this makes infinity", why),
                 &when,
             );
+            // Saturating sticks infinity at a bound instead (D373).
+            let infinity = if saturating { None } else { Some(Box::new(infinity)) };
             let nan = failure(
                 self,
                 Diagnostic::new(DiagnosticKind::CheckFailed, expression.span, "this makes NaN", why),
                 &when,
             );
-            (Some(Box::new(infinity)), Some(Box::new(nan)))
+            (infinity, Some(Box::new(nan)))
         };
         Ok(Typed::new(
             value_type,
@@ -1590,7 +1691,7 @@ impl Checker<'_> {
         // A kit method's short name stands for its path on the type that path names (D178).
         if on_list
             && let Some(full) = self.method_uses.get(&written)
-            && let Some(method_name) = full.strip_prefix("std::list.")
+            && let Some(method_name) = full.strip_prefix("std::coll::list.")
         {
             written = format!("std::{method_name}");
         } else if on_list && !written.contains("::") && written.trim_start_matches('%') == "append" {
@@ -1873,7 +1974,7 @@ impl Checker<'_> {
                 || ["%", "%%"].iter().any(|mark| {
                     self.method_uses
                         .get(&format!("{mark}{}", field.text))
-                        .is_some_and(|full| full.starts_with("std::list."))
+                        .is_some_and(|full| full.starts_with("std::coll::list."))
                 }))
         {
             let base_text = self.slice(base.span).to_string();
@@ -2230,9 +2331,12 @@ impl Checker<'_> {
                 }
                 Ok(checked::Argument::Value(self.convert_into(argument.value.span, typed, parameter_type)?))
             }
-            ParameterOwnership::Lent | ParameterOwnership::LentWritten => {
+            ParameterOwnership::Lent | ParameterOwnership::Bare => {
+                // A view is only ever copied, so passing one on needs no word (D367, D368).
+                let view = matches!(parameter_type, Type::Str(StrSize::View));
                 match word {
                     Some(Ownership::Lend) => {}
+                    None if held && view => {}
                     None if held => {
                         return Err(self.error(Diagnostic::refused_fix(
                             argument.span,
@@ -2274,7 +2378,9 @@ impl Checker<'_> {
                         NOT_DECIDED,
                     )));
                 }
-                if typed_type != *parameter_type && !typed_type.is_unknown() {
+                // Lending any string gives a view of it (D327).
+                let viewed = view && matches!(typed_type, Type::Str(_));
+                if typed_type != *parameter_type && !typed_type.is_unknown() && !viewed {
                     return Err(self.error(Diagnostic::refused(
                         argument.value.span,
                         format!("this is `{typed_type}`, where `{parameter_type}` is needed"),
@@ -2877,6 +2983,33 @@ impl Checker<'_> {
                     return Ok(typed.value);
                 }
                 Ok(self.fit_float(span, typed, into, *bounds))
+            }
+            (Type::Str(from), Type::Str(to)) if from != to => {
+                // trace: D326, D327, D369
+                match (from, to) {
+                    (_, StrSize::View) => Ok(typed.value),
+                    (StrSize::View, StrSize::Growing) if matches!(typed.value.kind, Kind::Text(_)) => {
+                        let shown = self.slice(span).to_string();
+                        Err(self.error(Diagnostic::refused_fix(
+                            span,
+                            format!("str.from({shown}, alloc: Lend $heap)"),
+                            "anything that takes heap memory takes an allocator, so heap text comes from a call like `str.from(…, alloc: Lend $heap)` (D321, D326, D328, D369)",
+                        )))
+                    }
+                    (_, StrSize::Bytes(most)) => {
+                        if let Kind::Text(text) = &typed.value.kind
+                            && text.len() as u64 > *most
+                        {
+                            return Err(self.error(Diagnostic::refused(
+                                span,
+                                format!("this text is {} bytes, and `{into}` holds {most}", text.len()),
+                                "a string's `len.max` is in bytes, and a literal that can't fit is a compile error (D326, D20)",
+                            )));
+                        }
+                        Ok(typed.value)
+                    }
+                    _ => Ok(typed.value),
+                }
             }
             (from, to) if from == to && !matches!(from, Type::Integer { .. }) => Ok(typed.value),
             (from, to) => {

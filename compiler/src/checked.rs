@@ -478,6 +478,14 @@ pub enum Arithmetic {
     RemainderTruncate,
     RemainderFloor,
     WrappingAdd,
+    WrappingSubtract,
+    WrappingMultiply,
+    /// Sticks at the hardware's limits, and a `Clamp` around it sticks at narrower written bounds (D294, D372).
+    SaturatingAdd,
+    SaturatingSubtract,
+    SaturatingMultiply,
+    RotateLeft,
+    RotateRight,
     BitAnd,
     BitOr,
     BitXor,
@@ -628,6 +636,18 @@ pub enum ExpressionKind {
         min: i128,
         max: i128,
         failure: Box<CheckFailure>,
+    },
+    /// A value stuck inside bounds, for saturating maths whose result goes into a bounded type (D294, D372).
+    Clamp {
+        value: Box<Expression>,
+        min: i128,
+        max: i128,
+    },
+    /// A float stuck inside its written bounds, for saturating float maths (D373).
+    ClampFloat {
+        value: Box<Expression>,
+        min: f64,
+        max: f64,
     },
     /// Puts a value in a local, then gives `body`, so a value used twice is evaluated once.
     Bind {

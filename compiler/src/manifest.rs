@@ -1,10 +1,10 @@
 //! The manifest, `CyJet.siml` (standard 9.1): one line per fact.
 
-use crate::diagnostic::Diagnostic;
+use crate::diagnostic::{Diagnostic, Kind};
 use crate::source::{FileId, SourceFile, Span};
 
 const LINE_WHY: &str =
-    "a manifest has one line per fact, starting with what it is: `name`, `ver`, `okay` or `need` (D228, D229)";
+    "a manifest has one line per fact, starting with what it is: `name`, `ver`, `dialect` or `need` (D228, D229, D309)";
 const VERSION_WHY: &str = "a version is a labelled date, biggest first, as in `2026y-11m-14d`, with `.2` for a second release that day (D231)";
 const NOT_DECIDED_PROJECTS: &str = "not decided yet (standard 12.9)";
 
@@ -69,7 +69,7 @@ fn words(line: &str, line_start: usize) -> Vec<Word<'_>> {
 pub fn read(file_id: FileId, file: &SourceFile, errors: &mut Vec<Diagnostic>) -> Manifest {
     let mut manifest = Manifest::default();
     let span = |start: usize, end: usize| Span::new(file_id, start, end);
-    let mut has_okay = false;
+    let mut has_dialect = false;
     for index in 0..file.line_count() {
         let line = file.line_text(index);
         let start = file.line_start(index);
@@ -99,12 +99,34 @@ pub fn read(file_id: FileId, file: &SourceFile, errors: &mut Vec<Diagnostic>) ->
                 }
                 3
             }
+            // trace: D310
             "okay" => {
-                has_okay = true;
-                if let Some(value) = found.get(1) {
+                let version = found.get(1).map_or(String::new(), |version| format!(" {}", version.text));
+                errors.push(Diagnostic::refused_fix(
+                    whole,
+                    format!("dialect original{version}"),
+                    "`dialect` says which compiler builds the project and which version of it, so plain Cyborg says `dialect original` and its version (D309, D310)",
+                ));
+                continue;
+            }
+            // trace: D309, D310
+            "dialect" => {
+                has_dialect = true;
+                if let Some(name) = found.get(1)
+                    && name.text != "original"
+                {
+                    errors.push(Diagnostic::new(
+                        Kind::NotBuiltYet,
+                        span(name.start, name.end),
+                        format!("building with the Dialect `{}`, which CyJet loads from its registry", name.text),
+                        "decided, but OKAY\\n doesn't handle it yet (D286)",
+                    ));
+                    continue;
+                }
+                if let Some(value) = found.get(2) {
                     check_version(value, span(value.start, value.end), errors);
                 }
-                2
+                3
             }
             "need" => {
                 let Some(package) = found.get(1) else {
@@ -120,7 +142,7 @@ pub fn read(file_id: FileId, file: &SourceFile, errors: &mut Vec<Diagnostic>) ->
                     ));
                     continue;
                 };
-                if !matches!(package.text, "std" | "os" | "csup") {
+                if !matches!(package.text, "std" | "os" | "csup" | "concur") {
                     errors.push(Diagnostic::not_designed(
                         package_span,
                         format!("how the package `{}` is found", package.text),
@@ -166,12 +188,13 @@ pub fn read(file_id: FileId, file: &SourceFile, errors: &mut Vec<Diagnostic>) ->
             ));
         }
     }
-    if !has_okay {
+    // trace: D309
+    if !has_dialect {
         let end = file.text.len();
-        errors.push(Diagnostic::not_designed(
+        errors.push(Diagnostic::refused_fix(
             span(end, end),
-            "whether a manifest can leave out its `okay` line",
-            NOT_DECIDED_PROJECTS,
+            "dialect original",
+            "every manifest has a `dialect` line, and plain Cyborg says `dialect original` and the version of `okay` that builds it (D309, D310)",
         ));
     }
     manifest

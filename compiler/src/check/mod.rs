@@ -30,7 +30,7 @@ use crate::source::{FileId, Sources, Span};
 use crate::syntax::{self, ItemKind, Joint, Path};
 use crate::target::{Mode, Target};
 
-use types::{IntegerKind, Type};
+use types::{IntegerKind, StrSize, Type};
 
 /// Why a closer that leaves something out is refused.
 pub const CLOSER_WHY: &str = "the closer repeats all of what it closes, including its narrowings and name (D33, D121)";
@@ -668,6 +668,71 @@ impl Checker<'_> {
         signature
     }
 
+    /// Where there's a choice of how a parameter holds its value, the word is written, and where there's none, as for a
+    /// number or a view, nothing is (D393, D394).
+    fn parameter_word(&mut self, parameter: &syntax::Parameter, value_type: &Type) -> Check<()> {
+        const CHOICE_WHY: &str = "where there's a choice, the choice is written, and a parameter holding a struct or list chooses how it's held (D393, D394)";
+        // In a copy of a generic, the word was written for the type parameter (D394).
+        if self.instance {
+            return Ok(());
+        }
+        let choice = self.has_holding_choice(value_type);
+        match parameter.ownership {
+            syntax::ParameterOwnership::Bare if choice == Some(true) => {
+                // trace: D393
+                Err(self.error(Diagnostic::refused(
+                    parameter.written_type.span,
+                    format!(
+                        "`${}` doesn't say how it holds its `{value_type}`: `Lent`, `Lent.mut` or `Given`",
+                        parameter.name.text
+                    ),
+                    CHOICE_WHY,
+                )))
+            }
+            syntax::ParameterOwnership::Lent if choice == Some(false) => {
+                let Some(start) = parameter.ownership_span else { return Ok(()) };
+                let span = start.to(parameter.written_type.span);
+                let shown = self.slice(parameter.written_type.span).to_string();
+                let why = if matches!(value_type, Type::Param { .. }) {
+                    // trace: D394
+                    "only plain numbers can fill this type parameter, and they're always copied, so there's no choice to write (D394)"
+                } else if value_type.is_copied() {
+                    "plain numbers and `bool` are always copied, and take no word (D2, D123)"
+                } else {
+                    "a view is only ever copied, so there's no choice to write (D368, D381, D393)"
+                };
+                Err(self.error(Diagnostic::refused_fix(span, shown, why)))
+            }
+            _ => Ok(()),
+        }
+    }
+
+    /// Whether a parameter of this type chooses how it's held: `Some(true)` for a struct, list or anything a struct
+    /// could fill, `Some(false)` for a number, `bool` or view, which are only ever copied, and `None` where neither
+    /// is said yet.
+    fn has_holding_choice(&self, value_type: &Type) -> Option<bool> {
+        match value_type {
+            Type::Integer { .. } | Type::Float { .. } | Type::Bool | Type::Str(StrSize::View) => Some(false),
+            Type::Str(_) => Some(true),
+            Type::New { inner, .. } => self.has_holding_choice(inner),
+            Type::Struct { .. } | Type::Union { .. } | Type::Array { .. } | Type::List { .. } | Type::Writer(_) => {
+                Some(true)
+            }
+            Type::Param { name, .. } => {
+                match self.type_scope.iter().rev().find(|(each, _)| each == name).map(|(_, bound)| bound) {
+                    // A type set of plain numbers alone leaves nothing to choose (D394).
+                    Some(generics::Bound::Itself(generics::Needs::Type { set: Some(set), .. })) => {
+                        let members = self.generics.type_sets.get(set);
+                        Some(!members.is_some_and(|members| members.iter().all(Type::is_copied)))
+                    }
+                    Some(generics::Bound::Itself(generics::Needs::Type { .. })) => Some(true),
+                    _ => None,
+                }
+            }
+            _ => None,
+        }
+    }
+
     fn signature_inner(&mut self, function: &syntax::Function, keyword: String, name: String) -> Check<Signature> {
         let mut parameters = Vec::new();
         for parameter in &function.parameters.list {
@@ -677,24 +742,16 @@ impl Checker<'_> {
                 let fixed = if keyword.text().starts_with("Lend.mut") {
                     format!("Lent.mut {target_text}")
                 } else {
-                    target_text
+                    format!("Lent {target_text}")
                 };
                 return Err(self.error(Diagnostic::refused_fix(
                     parameter.written_type.span,
                     fixed,
-                    "a bare parameter is already lent, and `Lent.mut` already is the changing one (D175)",
-                )));
-            }
-            if parameter.ownership == syntax::ParameterOwnership::LentWritten
-                && let Some(span) = parameter.ownership_span
-            {
-                return Err(self.error(Diagnostic::refused(
-                    span,
-                    "`Lent` alone is written bare",
-                    "a bare parameter is lent, so writing `Lent` alone is refused (D2)",
+                    "`Lent` already is a borrow, and `Lent.mut` already is the changing one (D175)",
                 )));
             }
             let value_type = self.resolve_type(&parameter.written_type)?;
+            self.parameter_word(parameter, &value_type)?;
             if value_type.is_copied()
                 && matches!(parameter.ownership, syntax::ParameterOwnership::Given)
                 && let Some(span) = parameter.ownership_span
@@ -1291,7 +1348,7 @@ impl Checker<'_> {
             syntax::ParameterOwnership::LentMut if !method.starts_with("%%") => {
                 return Err(self.error(Diagnostic::refused_fix(path.span, format!("{owner}.%%{bare}"), mark_why)));
             }
-            syntax::ParameterOwnership::Lent if method.starts_with("%%") => {
+            syntax::ParameterOwnership::Lent | syntax::ParameterOwnership::Bare if method.starts_with("%%") => {
                 return Err(self.error(Diagnostic::refused_fix(path.span, format!("{owner}.%{bare}"), mark_why)));
             }
             _ => {}
@@ -1309,11 +1366,19 @@ impl Checker<'_> {
                 "`main` says `return void;` (D11)",
             ));
         } else if body.returns == Type::Void {
-            self.error(Diagnostic::not_designed(
-                closer,
-                "whether every `void` function says `return void;`",
-                "not decided yet (standard 12.5)",
-            ));
+            // trace: D393
+            let insert = Span { file: closer.file, start: closer.start, end: closer.start };
+            self.error(
+                Diagnostic::refused_fix(
+                    closer,
+                    "return void;",
+                    "every function ends with a `return`, and a `void` one with `return void;` (D393)",
+                )
+                .with_edits(vec![crate::diagnostic::Edit {
+                    span: insert,
+                    replacement: "    return void;\n".to_string(),
+                }]),
+            );
         } else if !body.returns.is_unknown() {
             self.error(Diagnostic::refused(
                 closer,
@@ -1430,7 +1495,7 @@ impl Checker<'_> {
         }
         match text.as_str() {
             "bool" => Ok(Type::Bool),
-            "str" => Ok(Type::Str),
+            "str" => self.str_type(labels),
             "void" => Ok(Type::Void),
             "os::stdout.buffered" | "os::stdout.unbuffered" | "os::stderr.buffered" | "os::stderr.unbuffered" => {
                 self.require_import(&text, path.span)?;
@@ -1452,7 +1517,7 @@ impl Checker<'_> {
                 self.check_fills(written, &name, &sources)?;
                 Ok(found)
             }
-            "std::list" | "std::array" => self.collection_type(written, &text, path, fill, labels),
+            "std::coll::list" | "std::coll::array" => self.collection_type(written, &text, path, fill, labels),
             _ if let Some(reported) = self.bare_member(path, &text) => Err(reported),
             _ if text.contains("::") || text.contains('.') => {
                 Err(self.not_yet(written.span, format!("the type `{text}`")))
@@ -1653,7 +1718,7 @@ impl Checker<'_> {
         Ok(Type::Borrow { mutable, held, sources: named, inner: Box::new(inner) })
     }
 
-    /// `std::list<i32>[len.max: inf items]` or `std::array<i32>[len: 3 items]` (D11, D12, D13, D140).
+    /// `std::coll::list<i32>[len.max: inf items]` or `std::coll::array<i32>[len: 3 items]` (D11, D12, D13, D140).
     fn collection_type(
         &mut self,
         written: &syntax::Type,
@@ -1663,7 +1728,7 @@ impl Checker<'_> {
         labels: &[syntax::Label],
     ) -> Check<Type> {
         self.require_import(text, path.span)?;
-        let array = text == "std::array";
+        let array = text == "std::coll::array";
         let item = match fill {
             [syntax::TypeArgument { label: None, value: syntax::TypeArgumentValue::Type(item), .. }] => {
                 self.resolve_type(item)?
@@ -1735,6 +1800,39 @@ impl Checker<'_> {
     }
 
     /// A count of items, `3 items`, or `inf items` as `None` (D11, D101).
+    /// `str`, a view, or `str[len.max: 32 bytes]` and `str[len.max: inf bytes]`, which own their text (D326, D327).
+    fn str_type(&mut self, labels: &[syntax::Label]) -> Check<Type> {
+        let mut size = StrSize::View;
+        for label in labels {
+            let name = label.name.text();
+            if name != "len.max" {
+                return Err(self.not_yet(label.name.span, format!("`{name}` on `str`")));
+            }
+            let syntax::ExpressionKind::WithUnit { value: number, unit } = &label.value.kind else {
+                let shown = self.slice(label.value.span).to_string();
+                return Err(self.error(Diagnostic::refused_fix(
+                    label.value.span,
+                    format!("{shown} bytes"),
+                    "a string's bound is in bytes, since memory is counted in bytes (D326)",
+                )));
+            };
+            if self.resolve_path(unit) != "bytes" {
+                return Err(self.not_yet(unit.span, "a string's length in another unit".to_string()));
+            }
+            size = match &number.kind {
+                syntax::ExpressionKind::Path(path) if path.is_single("inf") => StrSize::Growing,
+                syntax::ExpressionKind::Infinity => StrSize::Growing,
+                _ => {
+                    let count = self.constant_integer(number)?;
+                    let count =
+                        u64::try_from(count).map_err(|_| self.not_yet(number.span, "this count".to_string()))?;
+                    StrSize::Bytes(count)
+                }
+            };
+        }
+        Ok(Type::Str(size))
+    }
+
     fn item_count(&mut self, value: &syntax::Expression) -> Check<Option<u64>> {
         let syntax::ExpressionKind::WithUnit { value: number, unit } = &value.kind else {
             let shown = self.slice(value.span).to_string();

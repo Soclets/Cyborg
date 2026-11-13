@@ -7,8 +7,7 @@ use std::path::{Path, PathBuf};
 
 use okay::target::{Mode, Optimization, Target};
 
-const MANIFEST: &str =
-    "name ranges\nver 2026y-11m-10d same\nokay 2026y-11m-10d\n\nneed std 2026y-11m-10d\nneed os 2026y-11m-10d\n";
+const MANIFEST: &str = "name ranges\nver 2026y-11m-10d same\ndialect original 2026y-11m-10d\n\nneed std 2026y-11m-10d\nneed os 2026y-11m-10d\n";
 
 const PROGRAM: &str = "import std;
 import os;
@@ -38,7 +37,7 @@ fn divided [$a: i32, $b: i32] -> i32:
 end fn divided
 
 fn second [none] -> i32:
-    let $xs: std::array<i32>[len: 3 items] = [1, 2, 3];
+    let $xs: std::coll::array<i32>[len: 3 items] = [1, 2, 3];
     return $xs[pos: 2];
 end fn second
 

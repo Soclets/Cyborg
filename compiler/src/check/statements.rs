@@ -1162,7 +1162,7 @@ impl Checker<'_> {
         }
         if let ExpressionKind::MethodCall { receiver, method, arguments, .. } = &expression.kind
             && (method.text() == "std::%%append"
-                || (self.method_uses.get(&method.text()).is_some_and(|full| full == "std::list.%%append")
+                || (self.method_uses.get(&method.text()).is_some_and(|full| full == "std::coll::list.%%append")
                     && matches!(self.expression_type_quietly(body, receiver), Some(Type::List { .. }))))
         {
             let statement = self.append(body, expression, receiver, arguments)?;
@@ -1549,7 +1549,7 @@ impl Checker<'_> {
                     }
                     (Type::Float { .. } | Type::Integer { .. }, Type::Float { .. } | Type::Integer { .. })
                     | (Type::Bool, Type::Bool)
-                    | (Type::Str, Type::Str) => Err(self.error(Diagnostic::not_designed(
+                    | (Type::Str(_), Type::Str(_)) => Err(self.error(Diagnostic::not_designed(
                         written_type.span,
                         format!("the test for `{tested}` on `{}`", typed.value_type),
                         "not decided yet (standard 12.2)",
@@ -1745,7 +1745,7 @@ impl Checker<'_> {
         }
         let ExpressionKind::Bracket { base, labels, .. } = &each.source.kind else {
             let typed = self.expression(body, &each.source, None)?;
-            if matches!(typed.value_type, Type::Integer { .. } | Type::Float { .. } | Type::Bool | Type::Str) {
+            if matches!(typed.value_type, Type::Integer { .. } | Type::Float { .. } | Type::Bool | Type::Str(_)) {
                 return Err(self.error(Diagnostic::refused(
                     each.source.span,
                     format!("`for` goes through a collection or range, and this is `{}`", typed.value_type),
@@ -1864,13 +1864,25 @@ impl Checker<'_> {
     #[allow(clippy::too_many_lines)]
     fn for_collection(&mut self, body: &mut Body, each: &syntax::For, block: &mut checked::Block) -> Check<()> {
         use syntax::Ownership;
-        let word = each.ownership.map(|(word, _)| word);
-        if let Some((Ownership::Lend, span)) = each.ownership {
+        let held = super::expressions::is_held(&each.source);
+        // trace: D393, D396
+        if each.ownership.is_none() && held {
             let shown = self.slice(each.source.span).to_string();
-            return Err(self.error(Diagnostic::refused_fix(
-                span.to(each.source.span),
-                shown,
-                "a bare loop reads in place, so `Lend` isn't written (D182)",
+            return Err(self.error(Diagnostic::refused(
+                each.source.span,
+                format!("this `for` doesn't say how it holds each item of `{shown}`: `Lend`, `Lend.mut` or `Give`"),
+                "where there's a choice, the choice is written, and a loop reads, changes or takes each item (D393)",
+            )));
+        }
+        // `Lend` reads each item in place, which is what a fresh collection's bare loop does too.
+        let word = each.ownership.map(|(word, _)| word).filter(|word| *word != Ownership::Lend);
+        if let Some((Ownership::Lend, _)) = each.ownership
+            && !held
+        {
+            return Err(self.error(Diagnostic::refused(
+                each.source.span,
+                "a fresh value takes no word",
+                "a fresh value that has no holder yet takes no word (D2)",
             )));
         }
         if let Some((Ownership::Copy, span)) = each.ownership {
@@ -1880,7 +1892,7 @@ impl Checker<'_> {
                 NOT_DECIDED,
             )));
         }
-        if word == Some(Ownership::Give) && !super::expressions::is_held(&each.source) {
+        if word == Some(Ownership::Give) && !held {
             return Err(self.error(Diagnostic::refused(
                 each.source.span,
                 "a fresh value takes no word",
@@ -1913,7 +1925,7 @@ impl Checker<'_> {
             Type::Array { item, .. } | Type::List { item, .. } => (**item).clone(),
             Type::Unknown => return Err(Reported),
             other => {
-                if matches!(other, Type::Integer { .. } | Type::Float { .. } | Type::Bool | Type::Str) {
+                if matches!(other, Type::Integer { .. } | Type::Float { .. } | Type::Bool | Type::Str(_)) {
                     return Err(self.error(Diagnostic::refused(
                         each.source.span,
                         format!("`for` goes through a collection or range, and this is `{other}`"),

@@ -1660,6 +1660,44 @@ impl<'context, 'module> Generator<'context, 'module> {
                 self.check(frame, fits, failure, &[(generated, value.machine_type.clone())])?;
                 generated
             }
+            ExpressionKind::Clamp { value, min, max } => {
+                let MachineType::Integer { bits, signed } = value.machine_type else {
+                    return Err("a clamp on something that isn't an integer".to_string());
+                };
+                let generated = self.expression(frame, value)?;
+                let (below, above) = if signed {
+                    (IntegerPredicate::SignedLessThan, IntegerPredicate::SignedGreaterThan)
+                } else {
+                    (IntegerPredicate::UnsignedLessThan, IntegerPredicate::UnsignedGreaterThan)
+                };
+                let low = integer_constant(self.context, bits, *min);
+                let high = integer_constant(self.context, bits, *max);
+                let too_low = frame.builder.integer_compare(below, generated, low, "").to_dynamic();
+                let raised = frame.builder.select(too_low, low, generated, "").to_dynamic();
+                let too_high = frame.builder.integer_compare(above, raised, high, "").to_dynamic();
+                frame.builder.select(too_high, high, raised, "").to_dynamic()
+            }
+            ExpressionKind::ClampFloat { value, min, max } => {
+                use lyftar::enums::FloatPredicate;
+                let MachineType::Float { bits } = value.machine_type else {
+                    return Err("a float clamp on a non-float".into());
+                };
+                let generated = self.expression(frame, value)?;
+                let constant = |number: f64| {
+                    if bits == 32 {
+                        self.context.get_type::<F32>().constant_float(number).to_dynamic()
+                    } else {
+                        self.context.get_type::<F64>().constant_float(number).to_dynamic()
+                    }
+                };
+                let (low, high) = (constant(*min), constant(*max));
+                let too_low =
+                    frame.builder.float_compare(FloatPredicate::OrderedLessThan, generated, low, "").to_dynamic();
+                let raised = frame.builder.select(too_low, low, generated, "").to_dynamic();
+                let too_high =
+                    frame.builder.float_compare(FloatPredicate::OrderedGreaterThan, raised, high, "").to_dynamic();
+                frame.builder.select(too_high, high, raised, "").to_dynamic()
+            }
             ExpressionKind::Zero => self.machine_type(&expression.machine_type).constant_null().to_dynamic(),
             ExpressionKind::AddressOf { local, path } => self.field_place(frame, *local, path)?,
             ExpressionKind::Load(place) => {
@@ -1946,8 +1984,38 @@ impl<'context, 'module> Generator<'context, 'module> {
                 Ok(frame.builder.logical_shift_right(left, right, "").to_dynamic())
             }
             Arithmetic::Add | Arithmetic::WrappingAdd => Ok(frame.builder.integer_add(left, right, "").to_dynamic()),
-            Arithmetic::Subtract => Ok(frame.builder.integer_subtract(left, right, "").to_dynamic()),
-            Arithmetic::Multiply => Ok(frame.builder.integer_multiply(left, right, "").to_dynamic()),
+            Arithmetic::Subtract | Arithmetic::WrappingSubtract => {
+                Ok(frame.builder.integer_subtract(left, right, "").to_dynamic())
+            }
+            Arithmetic::Multiply | Arithmetic::WrappingMultiply => {
+                Ok(frame.builder.integer_multiply(left, right, "").to_dynamic())
+            }
+            Arithmetic::SaturatingAdd | Arithmetic::SaturatingSubtract | Arithmetic::SaturatingMultiply => {
+                // trace: D294
+                let name = match (operator, signed) {
+                    (Arithmetic::SaturatingAdd, true) => "llvm.sadd.sat",
+                    (Arithmetic::SaturatingAdd, false) => "llvm.uadd.sat",
+                    (Arithmetic::SaturatingSubtract, true) => "llvm.ssub.sat",
+                    (Arithmetic::SaturatingSubtract, false) => "llvm.usub.sat",
+                    (_, true) => "llvm.smul.fix.sat",
+                    (_, false) => "llvm.umul.fix.sat",
+                };
+                let intrinsic = Intrinsic::find(name).ok_or_else(|| format!("LLVM has no `{name}`"))?;
+                let declaration = self.module.intrinsic_declaration(intrinsic, &[left.get_type()]);
+                if operator == Arithmetic::SaturatingMultiply {
+                    // A fixed-point multiply with no fraction bits is a whole-number one.
+                    let scale = self.integer(32, 0);
+                    return Ok(frame.builder.call(declaration, &[left, right, scale], "").to_dynamic());
+                }
+                Ok(frame.builder.call(declaration, &[left, right], "").to_dynamic())
+            }
+            Arithmetic::RotateLeft | Arithmetic::RotateRight => {
+                // trace: D404
+                let name = if operator == Arithmetic::RotateLeft { "llvm.fshl" } else { "llvm.fshr" };
+                let intrinsic = Intrinsic::find(name).ok_or_else(|| format!("LLVM has no `{name}`"))?;
+                let declaration = self.module.intrinsic_declaration(intrinsic, &[left.get_type()]);
+                Ok(frame.builder.call(declaration, &[left, left, right], "").to_dynamic())
+            }
             Arithmetic::BitAnd => Ok(frame.builder.and(left, right, "").to_dynamic()),
             Arithmetic::BitOr => Ok(frame.builder.or(left, right, "").to_dynamic()),
             Arithmetic::BitXor => Ok(frame.builder.exclusive_or(left, right, "").to_dynamic()),

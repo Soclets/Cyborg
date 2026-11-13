@@ -519,7 +519,7 @@ impl Checker<'_> {
         }
         match value_type {
             Type::Integer { .. } => Ok(checked::Piece::Value { value, shape, failures: None }),
-            Type::Str => {
+            Type::Str(_) => {
                 if let (checked::ExpressionKind::Text(text), Some(width), Some(checked::Align::Center)) =
                     (&value.kind, shape.width, shape.align)
                     && width > shape.columns_of(text)

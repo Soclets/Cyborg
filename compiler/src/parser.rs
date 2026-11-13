@@ -57,7 +57,12 @@ const OPERATOR_WORDS: &[&str] = &[
     "bit_not",
     "shl",
     "shr",
+    "xor",
+    "shift",
+    "rotate",
     "plus",
+    "minus",
+    "times",
     "as",
     "set_to",
     "otherwise",
@@ -813,10 +818,10 @@ impl<'source> Parser<'source> {
                     if path.text() == "Lent.mut" {
                         (ParameterOwnership::LentMut, Some(path.span))
                     } else {
-                        (ParameterOwnership::LentWritten, Some(path.span))
+                        (ParameterOwnership::Lent, Some(path.span))
                     }
                 }
-                _ => (ParameterOwnership::Lent, None),
+                _ => (ParameterOwnership::Bare, None),
             };
             let written_type = self.parse_type()?;
             parameters.list.push(Parameter {
@@ -2131,7 +2136,7 @@ impl<'source> Parser<'source> {
     }
 
     fn not_expression(&mut self) -> Parse<Expression> {
-        if self.is_word("not") {
+        if self.is_word("not") && !(self.kind_at(1) == Some(TokenKind::Dot) && self.word_at(2) == Some("bit")) {
             let start = self.current_span();
             self.advance();
             let operand = self.not_expression()?;
@@ -2189,42 +2194,149 @@ impl<'source> Parser<'source> {
         Ok(Expression { kind: ExpressionKind::Chain { operands, operators }, span })
     }
 
-    fn bit_operator(&self) -> Option<BinaryOperator> {
-        match self.word()? {
-            "bit_and" => Some(BinaryOperator::BitAnd),
-            "bit_or" => Some(BinaryOperator::BitOr),
-            "bit_xor" => Some(BinaryOperator::BitXor),
-            "shl" => Some(BinaryOperator::ShiftLeft),
-            "shr" => Some(BinaryOperator::ShiftRight),
+    /// The bit operator here, if there is one, read and marked binary: `and.bit`, `shift.left` and the rest (D361,
+    /// D404). The old words are refused with their new spelling, and read as it.
+    fn bit_operator(&mut self) -> Option<(BinaryOperator, Span)> {
+        const OLD_WHY: &str =
+            "the bit operators are the logic operators narrowed with `.bit`, as in `$a and.bit $b` (D361)";
+        const SHIFT_WHY: &str = "shifting and rotating say their direction, as in `$x shift.left 3`, since left and right are kinds of shifting (D404)";
+        const XOR_WHY: &str =
+            "the logic operators narrowed with `.bit` work on bits, and `!=` is `xor` for bools (D361)";
+        let word = self.word()?;
+        let narrowing = if self.kind_at(1) == Some(TokenKind::Dot) { self.word_at(2) } else { None };
+        let narrowed = match (word, narrowing) {
+            ("and", Some("bit")) => Some(BinaryOperator::BitAnd),
+            ("or", Some("bit")) => Some(BinaryOperator::BitOr),
+            ("xor", Some("bit")) => Some(BinaryOperator::BitXor),
+            ("shift", Some("left")) => Some(BinaryOperator::ShiftLeft),
+            ("shift", Some("right")) => Some(BinaryOperator::ShiftRight),
+            ("rotate", Some("left")) => Some(BinaryOperator::RotateLeft),
+            ("rotate", Some("right")) => Some(BinaryOperator::RotateRight),
             _ => None,
+        };
+        if let Some(operator) = narrowed {
+            let first = self.at;
+            let start = self.current_span();
+            self.advance();
+            self.advance();
+            self.advance();
+            self.mark_binary_word(first, self.at - 1);
+            return Some((operator, start.to(self.previous_span())));
         }
+        let (operator, fix, why) = match word {
+            "bit_and" => (BinaryOperator::BitAnd, "and.bit", OLD_WHY),
+            "bit_or" => (BinaryOperator::BitOr, "or.bit", OLD_WHY),
+            "bit_xor" => (BinaryOperator::BitXor, "xor.bit", OLD_WHY),
+            "xor" => (BinaryOperator::BitXor, "xor.bit", XOR_WHY),
+            "shl" => (BinaryOperator::ShiftLeft, "shift.left", SHIFT_WHY),
+            "shr" => (BinaryOperator::ShiftRight, "shift.right", SHIFT_WHY),
+            _ => return None,
+        };
+        let index = self.at;
+        let span = self.current_span();
+        self.errors.push(Diagnostic::refused_fix(span, fix, why));
+        self.advance();
+        self.mark_binary_word(index, index);
+        Some((operator, span))
     }
 
     /// Bit operators bind tightest of the binary operators, and mixing them with anything is refused by the checker
     /// (D116).
     fn bits(&mut self) -> Parse<Expression> {
         let mut left = self.unary()?;
-        while let Some(operator) = self.bit_operator() {
-            let index = self.at;
-            let span = self.current_span();
-            self.advance();
-            self.mark_binary_word(index, index);
+        while let Some((operator, span)) = self.bit_operator() {
             let right = self.unary()?;
             left = binary(operator, span, left, right);
         }
         Ok(left)
     }
 
+    /// `plus`, `minus` or `times` with how it handles overflow, as in `plus.wrap` (D295): the operator, or `None` when
+    /// the word isn't here.
+    fn overflow_word(&mut self, word: &str) -> Option<(BinaryOperator, Span)> {
+        const BARE_WHY: &str = "plain `+`, `-` and `x` are the checked defaults, and the words say how they handle overflow, as in `plus.wrap` (D295)";
+        if !self.is_word(word) {
+            return None;
+        }
+        let narrowing = if self.kind_at(1) == Some(TokenKind::Dot) { self.word_at(2) } else { None };
+        let (plain, wrapping, saturating, symbol) = match word {
+            "plus" => (BinaryOperator::Add, BinaryOperator::WrappingAdd, BinaryOperator::SaturatingAdd, "+"),
+            "minus" => {
+                (BinaryOperator::Subtract, BinaryOperator::WrappingSubtract, BinaryOperator::SaturatingSubtract, "-")
+            }
+            _ => (BinaryOperator::Multiply, BinaryOperator::WrappingMultiply, BinaryOperator::SaturatingMultiply, "x"),
+        };
+        let index = self.at;
+        let start = self.current_span();
+        match narrowing {
+            Some(narrowing) => {
+                self.advance();
+                self.advance();
+                self.advance();
+                self.mark_binary_word(index, self.at - 1);
+                let span = start.to(self.previous_span());
+                let operator = match narrowing {
+                    "wrap" => wrapping,
+                    "saturate" => saturating,
+                    other => {
+                        self.errors.push(Diagnostic::not_designed(
+                            span,
+                            format!("`{word}.{other}`"),
+                            "not decided yet (standard 12.3)",
+                        ));
+                        plain
+                    }
+                };
+                Some((operator, span))
+            }
+            None => {
+                // trace: D295
+                self.errors.push(Diagnostic::refused_fix(start, symbol, BARE_WHY));
+                self.advance();
+                self.mark_binary_word(index, index);
+                Some((plain, start))
+            }
+        }
+    }
+
+    /// A symbol narrowed, like `+.wrap`, is refused with its word (D295).
+    fn narrowed_symbol(&mut self, word: &str) -> Option<Span> {
+        const WHY: &str = "`+`, `-` and `x` are written as words, `plus`, `minus` and `times`, to say how they handle overflow, the same shape as `div.trunc` (D295)";
+        if self.kind_at(1) != Some(TokenKind::Dot) || self.kind_at(2) != Some(TokenKind::Word) {
+            return None;
+        }
+        let narrowing = self.word_at(2).unwrap_or("").to_string();
+        let start = self.current_span();
+        self.advance();
+        self.advance();
+        self.advance();
+        let span = start.to(self.previous_span());
+        self.errors.push(Diagnostic::refused_fix(span, format!("{word}.{narrowing}"), WHY));
+        Some(span)
+    }
+
     fn additive(&mut self) -> Parse<Expression> {
         let mut left = self.multiplicative()?;
         loop {
             let operator = match self.kind() {
-                Some(TokenKind::Plus) => BinaryOperator::Add,
-                Some(TokenKind::Minus) => BinaryOperator::Subtract,
-                Some(TokenKind::Word) if self.is_word("plus") && self.kind_at(1) == Some(TokenKind::Dot) => {
-                    let (_, span) = self.operator_word("plus", |_| BinaryOperator::WrappingAdd);
+                Some(TokenKind::Plus | TokenKind::Minus) => {
+                    let (plain, word) = if self.is(TokenKind::Plus) {
+                        (BinaryOperator::Add, "plus")
+                    } else {
+                        (BinaryOperator::Subtract, "minus")
+                    };
+                    if let Some(span) = self.narrowed_symbol(word) {
+                        let right = self.multiplicative()?;
+                        left = binary(plain, span, left, right);
+                        continue;
+                    }
+                    plain
+                }
+                Some(TokenKind::Word) => {
+                    let found = self.overflow_word("plus").or_else(|| self.overflow_word("minus"));
+                    let Some((operator, span)) = found else { break };
                     let right = self.multiplicative()?;
-                    left = binary(BinaryOperator::WrappingAdd, span, left, right);
+                    left = binary(operator, span, left, right);
                     continue;
                 }
                 _ => break,
@@ -2243,6 +2355,11 @@ impl<'source> Parser<'source> {
         let mut left = self.bits()?;
         loop {
             let (operator, span) = match self.word() {
+                Some("x") if let Some(span) = self.narrowed_symbol("times") => (BinaryOperator::Multiply, span),
+                Some("times") => match self.overflow_word("times") {
+                    Some(found) => found,
+                    None => break,
+                },
                 Some("x") => {
                     let index = self.at;
                     let span = self.current_span();
@@ -2276,16 +2393,28 @@ impl<'source> Parser<'source> {
                 span,
             });
         }
-        if self.is_word("bit_not") {
+        let not_bit = self.is_word("not") && self.kind_at(1) == Some(TokenKind::Dot) && self.word_at(2) == Some("bit");
+        if not_bit || self.is_word("bit_not") {
             let start = self.current_span();
+            if not_bit {
+                self.advance();
+                self.advance();
+            } else {
+                self.errors.push(Diagnostic::refused_fix(
+                    start,
+                    "not.bit",
+                    "the bit operators are the logic operators narrowed with `.bit`, as in `$a and.bit $b` (D361)",
+                ));
+            }
             self.advance();
+            let operator_span = start.to(self.previous_span());
             let operand = self.unary()?;
             let span = start.to(operand.span);
             return Ok(Expression {
                 kind: ExpressionKind::Unary {
                     operator: UnaryOperator::BitNot,
                     operand: Box::new(operand),
-                    operator_span: start,
+                    operator_span,
                 },
                 span,
             });
@@ -2510,6 +2639,25 @@ impl<'source> Parser<'source> {
                 let span = start.to(name.span);
                 Ok(Expression { kind: ExpressionKind::Variable(Name { text: format!("?{}", name.text), span }), span })
             }
+            TokenKind::Integer
+                if matches!(self.text_of(token).get(..2), Some("0x" | "0X" | "0b" | "0B" | "0o" | "0O")) =>
+            {
+                // trace: D374
+                self.advance();
+                let text = self.text_of(token);
+                let base = match text.as_bytes().get(1) {
+                    Some(b'x' | b'X') => "hex",
+                    Some(b'b' | b'B') => "bin",
+                    _ => "oct",
+                };
+                let digits = text.get(2..).unwrap_or("").to_string();
+                self.errors.push(Diagnostic::refused_fix(
+                    token.span,
+                    format!("{base} {digits}"),
+                    "a literal says its base with a word in front, as an exponent says `exponent`, so a stray letter can't quietly change a number (D165, D374)",
+                ));
+                Err(Reported)
+            }
             TokenKind::Integer | TokenKind::Float => {
                 self.advance();
                 let text = self.text_of(token).to_string();
@@ -2690,6 +2838,13 @@ impl<'source> Parser<'source> {
                 let span = start.to(value.span);
                 return Ok(Expression { kind: ExpressionKind::Bake(Box::new(value)), span });
             }
+            Some(base @ ("hex" | "bin" | "oct"))
+                if !self.followed_by_path_joint()
+                    && matches!(self.kind_at(1), Some(TokenKind::Integer | TokenKind::Word))
+                    && !self.starts_line_at(self.at + 1) =>
+            {
+                return self.base_literal(base);
+            }
             Some("exponent")
                 if matches!(
                     self.kind_at(1),
@@ -2736,6 +2891,51 @@ impl<'source> Parser<'source> {
         }
         let path = self.path()?;
         Ok(Expression { span: path.span, kind: ExpressionKind::Path(path) })
+    }
+
+    /// `hex 4004_0000`, `bin 1111_1110` or `oct 755`: a whole number in another base, its digits grouped with `_`
+    /// and hex digits in either case (D374). It reads as the same number written in decimal.
+    fn base_literal(&mut self, base: &str) -> Parse<Expression> {
+        let start = self.current_span();
+        self.advance();
+        let mut digits = String::new();
+        let mut end = start;
+        // The digits can come as several tokens, like `10ab_cd`, which are all stuck together.
+        loop {
+            let Some(token) = self.peek() else { break };
+            if !matches!(token.kind, TokenKind::Integer | TokenKind::Word)
+                || (!digits.is_empty() && self.gap_before_current())
+            {
+                break;
+            }
+            digits.push_str(self.text_of(token));
+            end = token.span;
+            self.advance();
+        }
+        let span = start.to(end);
+        let radix = match base {
+            "hex" => 16,
+            "bin" => 2,
+            _ => 8,
+        };
+        if let Some(bad) = digits.chars().find(|digit| *digit != '_' && !digit.is_digit(radix)) {
+            self.errors.push(Diagnostic::refused(
+                span,
+                format!("`{bad}` isn't a digit in `{base}`"),
+                "`hex` takes 0 to 9 and a to f, `bin` 0 and 1, and `oct` 0 to 7 (D374)",
+            ));
+            return Err(Reported);
+        }
+        let cleaned: String = digits.chars().filter(|digit| *digit != '_').collect();
+        let Ok(value) = u128::from_str_radix(&cleaned, radix) else {
+            self.errors.push(Diagnostic::refused(
+                span,
+                format!("`{base} {digits}` is too big for any integer"),
+                "a literal that can't fit is a compile error (D20)",
+            ));
+            return Err(Reported);
+        };
+        Ok(Expression { kind: ExpressionKind::Integer(value.to_string()), span })
     }
 
     fn followed_by_path_joint(&self) -> bool {

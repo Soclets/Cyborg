@@ -9,8 +9,7 @@ use std::process::Command;
 
 use okay::target::{Mode, Optimization, Target};
 
-const MANIFEST: &str =
-    "name modes\nver 2026y-11m-10d same\nokay 2026y-11m-10d\n\nneed std 2026y-11m-10d\nneed os 2026y-11m-10d\n";
+const MANIFEST: &str = "name modes\nver 2026y-11m-10d same\ndialect original 2026y-11m-10d\n\nneed std 2026y-11m-10d\nneed os 2026y-11m-10d\n";
 
 /// Sums 1 to 100 million in an `i64`, which never overflows, so a mode with no checks can fold the loop to its answer.
 const SUM: &str = "import std;

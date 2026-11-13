@@ -330,7 +330,9 @@ fn children(expression: &checked::Expression) -> Vec<&checked::Expression> {
         | Kind::CaseField { base: inner, .. }
         | Kind::FromIeee { value: inner, .. }
         | Kind::FitFloat { value: inner, .. }
-        | Kind::Fit { value: inner, .. } => vec![inner],
+        | Kind::Fit { value: inner, .. }
+        | Kind::Clamp { value: inner, .. }
+        | Kind::ClampFloat { value: inner, .. } => vec![inner],
         Kind::Handle { call, .. } => vec![call],
         Kind::Call { arguments, .. } => arguments
             .iter()
