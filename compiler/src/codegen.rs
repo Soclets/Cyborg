@@ -141,7 +141,6 @@ pub fn unit_ir(program: &Program, target: Target, mode: Mode, unit: &Unit) -> Re
             structs: Vec::new(),
             struct_fields: Vec::new(),
             union_fields: Vec::new(),
-            sites: None,
             unions: Vec::new(),
         };
         generator.aggregates(program);
@@ -253,8 +252,6 @@ struct Generator<'context, 'module> {
     struct_fields: Vec<Vec<MachineType>>,
     /// Each union's cases' fields, by machine type.
     union_fields: Vec<Vec<Vec<MachineType>>>,
-    /// The table of where each failure was raised, for crash messages.
-    sites: Option<Value<'context, 'module>>,
     unions: Vec<(lyftar::types::Type<'context>, Vec<lyftar::types::Type<'context>>)>,
 }
 
@@ -270,6 +267,8 @@ struct Frame<'context, 'module> {
     local_types: Vec<MachineType>,
     /// Where `instead` goes, for each `otherwise:` around the code being made, innermost last.
     handlers: Vec<BasicBlock<'context, 'module>>,
+    /// The function's sites' texts.
+    sites: Vec<String>,
 }
 
 /// A value with its machine type, which a failure's `when:` line prints.
@@ -428,29 +427,17 @@ impl<'context, 'module> Generator<'context, 'module> {
         }
     }
 
-    /// The table of where each failure was raised: a constant array of texts.
-    /// The table of where each failure was raised, made the first time a unit needs it.
-    fn sites_table(&mut self) -> Value<'context, 'module> {
-        if let Some(table) = self.sites {
-            return table;
-        }
-        let text_type = self.machine_type(&MachineType::Text);
-        let mut entries = Vec::new();
-        for site in &self.program.sites {
-            let bytes = self.constant_bytes(site);
-            let length = self.integer(64, site.len() as u64);
-            entries.push(self.context.constant_struct(&[bytes, length], false));
-        }
-        if entries.is_empty() {
-            entries.push(text_type.constant_null().to_dynamic());
-        }
-        let table = self.context.constant_array(text_type, &entries);
-        let global = self.module.add_global("cyborg.sites", table.get_type());
-        global.set_initializer(table);
+    /// A site of the function being made: a constant holding its text, whose address is what travels (D29, D96).
+    fn site(&mut self, frame: &Frame<'context, 'module>, index: usize) -> Result<Value<'context, 'module>> {
+        let text = frame.sites.get(index).ok_or("a site the function doesn't have")?.clone();
+        let bytes = self.constant_bytes(&text);
+        let length = self.integer(64, text.len() as u64);
+        let entry = self.context.constant_struct(&[bytes, length], false);
+        let global = self.module.add_global("", entry.get_type());
+        global.set_initializer(entry);
         global.set_global_constant(true);
         global.set_linkage(Linkage::Private);
-        self.sites = Some(global.to_dynamic());
-        global.to_dynamic()
+        Ok(global.to_dynamic())
     }
 
     /// A function of the program, declared the first time this unit needs it, so a unit's IR only mentions what it
@@ -517,6 +504,7 @@ impl<'context, 'module> Generator<'context, 'module> {
             is_main,
             local_types: function.locals.clone(),
             handlers: Vec::new(),
+            sites: function.sites.clone(),
         };
         self.block(&mut frame, &function.body)?;
         // The end of a body the checker let run off its end can't be reached, since every function returns.
@@ -1004,7 +992,7 @@ impl<'context, 'module> Generator<'context, 'module> {
         }
     }
 
-    /// Crashes with a failure's message, then where it was raised, from the sites table (D96).
+    /// Crashes with a failure's message, then where it was raised, from the site's text (D96).
     fn crash_with_site(
         &mut self,
         frame: &mut Frame<'context, 'module>,
@@ -1022,11 +1010,8 @@ impl<'context, 'module> Generator<'context, 'module> {
             self.print_number(frame, writer, value, &machine_type, &Shape::default())?;
         }
         self.text(frame, writer, &failure.after)?;
-        let table = self.sites_table();
         let entry_type = self.machine_type(&MachineType::Text);
-        let wide_site = frame.builder.zero_extend(site, self.context.integer_type(64), "").to_dynamic();
-        let entry = frame.builder.get_element_pointer(entry_type, table, &[wide_site], "").to_dynamic();
-        let text = frame.builder.load(entry_type, entry, "").to_dynamic();
+        let text = frame.builder.load(entry_type, site, "").to_dynamic();
         let data = frame.builder.extract_value(text, 0, "").to_dynamic();
         let length = frame.builder.extract_value(text, 1, "").to_dynamic();
         frame.builder.call(self.runtime("__cyborg_writer_write")?, &[writer, data, length], "");
@@ -1190,6 +1175,7 @@ impl<'context, 'module> Generator<'context, 'module> {
         expression: &Expression,
     ) -> Result<Value<'context, 'module>> {
         let value = match &expression.kind {
+            ExpressionKind::Site(index) => self.site(frame, *index)?,
             ExpressionKind::Integer(value) => {
                 let MachineType::Integer { bits, .. } = expression.machine_type else {
                     return Err("an integer that isn't one".to_string());

@@ -170,6 +170,8 @@ pub struct Body {
     pub give_loops: Vec<(usize, String, Span)>,
     /// The receiver a method call is lending with `Lend.mut`, while its arguments are checked.
     pub lent_receiver: Option<String>,
+    /// Where this function raises a failure or calls one with `requires`, rendered for crash messages.
+    pub sites: Vec<String>,
     /// What fills each source of the struct or union being built, from the type it goes into (D171).
     pub expected_fills: Option<Vec<(String, String)>>,
     /// What fills each source of the function's result, for its `return` (D171).
@@ -606,6 +608,7 @@ impl Checker<'_> {
             returns: machine_returns,
             locals: Vec::new(),
             body: Vec::new(),
+            sites: Vec::new(),
         });
         let mut top = self.top_of_body(function);
         // A label can carry its parameter's unit, as in `labels [$x as at.screen.pixels];` (D144).
@@ -759,7 +762,7 @@ impl Checker<'_> {
         // A function with `requires` is told where it was called from, for its crash message (D29).
         let mut prelude = Vec::new();
         if contracts::needs_site(&signature.top) {
-            let site = body.new_local(checked::MachineType::Integer { bits: 32, signed: true });
+            let site = body.new_local(checked::MachineType::Address);
             parameters.push(checked::Parameter { local: site, passing: checked::Passing::Value });
             prelude = self.requires_checks(&mut body, &signature.top, site);
         }
@@ -778,6 +781,7 @@ impl Checker<'_> {
             target.parameters = parameters;
             target.locals = body.locals;
             target.body = statements;
+            target.sites = body.sites;
         }
     }
 

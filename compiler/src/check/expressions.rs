@@ -1769,11 +1769,11 @@ impl Checker<'_> {
             values.push(value?);
         }
         if super::contracts::needs_site(&signature.top) {
-            let site = self.program.sites.len();
-            self.program.sites.push(crate::diagnostic::render_because(self.sources, expression.span, "called here"));
+            let site = body.sites.len();
+            body.sites.push(crate::diagnostic::render_because(self.sources, expression.span, "called here"));
             values.push(checked::Argument::Value(checked::Expression {
-                kind: Kind::Integer(i128::try_from(site).unwrap_or(0)),
-                machine_type: MachineType::Integer { bits: 32, signed: true },
+                kind: Kind::Site(site),
+                machine_type: MachineType::Address,
             }));
         }
         let mut typed = Typed::new(signature.returns.clone(), Kind::Call { function: signature.id, arguments: values });
@@ -1943,11 +1943,11 @@ impl Checker<'_> {
             return Err(Reported);
         }
         if super::contracts::needs_site(&signature.top) {
-            let site = self.program.sites.len();
-            self.program.sites.push(crate::diagnostic::render_because(self.sources, expression.span, "called here"));
+            let site = body.sites.len();
+            body.sites.push(crate::diagnostic::render_because(self.sources, expression.span, "called here"));
             values.push(checked::Argument::Value(checked::Expression {
-                kind: Kind::Integer(i128::try_from(site).unwrap_or(0)),
-                machine_type: MachineType::Integer { bits: 32, signed: true },
+                kind: Kind::Site(site),
+                machine_type: MachineType::Address,
             }));
         }
         if let Type::Borrow { sources, .. } = &signature.returns {

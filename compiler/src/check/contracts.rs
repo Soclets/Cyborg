@@ -232,10 +232,7 @@ impl Checker<'_> {
                 condition: checked.0,
                 failure: checked.1,
                 operands: checked.2,
-                site: checked::Expression {
-                    kind: Kind::Local(site),
-                    machine_type: MachineType::Integer { bits: 32, signed: true },
-                },
+                site: checked::Expression { kind: Kind::Local(site), machine_type: MachineType::Address },
             });
         }
         block

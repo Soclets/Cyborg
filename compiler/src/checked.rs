@@ -51,8 +51,6 @@ pub struct Program {
     pub structs: Vec<Vec<MachineType>>,
     /// Each union's cases, and each case's fields.
     pub unions: Vec<Vec<Vec<MachineType>>>,
-    /// Where each failure was raised, as the `because:` part its crash message ends with.
-    pub sites: Vec<String>,
     /// `fn.main`.
     pub entry: FunctionId,
 }
@@ -66,6 +64,9 @@ pub struct Function {
     /// Every local's type, parameters first.
     pub locals: Vec<MachineType>,
     pub body: Block,
+    /// Where this function raises a failure or calls one with `requires`, as the `because:` part a crash message
+    /// ends with (D29, D96). A site travels as a pointer to its text, so each function keeps its own.
+    pub sites: Vec<String>,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -372,6 +373,8 @@ pub struct Expression {
 
 #[derive(Clone, Debug)]
 pub enum ExpressionKind {
+    /// The address of this function's site, by its position in `sites`.
+    Site(usize),
     Integer(i128),
     Float(f64),
     Bool(bool),

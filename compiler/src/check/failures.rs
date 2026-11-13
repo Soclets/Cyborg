@@ -167,11 +167,7 @@ impl Checker<'_> {
             other => other,
         };
         let structure = self.program.structs.len();
-        self.program.structs.push(vec![
-            value,
-            MachineType::Union(union),
-            MachineType::Integer { bits: 32, signed: true },
-        ]);
+        self.program.structs.push(vec![value, MachineType::Union(union), MachineType::Address]);
         ResultLayout { structure, union }
     }
 
@@ -205,10 +201,7 @@ impl Checker<'_> {
                     kind: Kind::BuildCase { case: 0, fields: Vec::new() },
                     machine_type: MachineType::Union(layout.union),
                 },
-                checked::Expression {
-                    kind: Kind::Integer(0),
-                    machine_type: MachineType::Integer { bits: 32, signed: true },
-                },
+                checked::Expression { kind: Kind::Zero, machine_type: MachineType::Address },
             ]),
             machine_type: MachineType::Struct(layout.structure),
         }
@@ -265,8 +258,8 @@ impl Checker<'_> {
                 "a failure can carry data in `[ ]` (D47)",
             )));
         }
-        let site = self.program.sites.len();
-        self.program.sites.push(crate::diagnostic::render_because(self.sources, span, "it was raised here"));
+        let site = body.sites.len();
+        body.sites.push(crate::diagnostic::render_because(self.sources, span, "it was raised here"));
         let value_type = match body.returns.machine() {
             MachineType::Void => MachineType::Integer { bits: 8, signed: false },
             other => other,
@@ -278,10 +271,7 @@ impl Checker<'_> {
                     kind: Kind::BuildCase { case: index + 1, fields: values.into_iter().flatten().collect() },
                     machine_type: MachineType::Union(layout.union),
                 },
-                checked::Expression {
-                    kind: Kind::Integer(i128::try_from(site).unwrap_or(0)),
-                    machine_type: MachineType::Integer { bits: 32, signed: true },
-                },
+                checked::Expression { kind: Kind::Site(site), machine_type: MachineType::Address },
             ]),
             machine_type: MachineType::Struct(layout.structure),
         };
