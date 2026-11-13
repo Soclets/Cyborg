@@ -40,7 +40,7 @@ Waiting on the owner, most needed first. Each is `NotDesignedYet` unless it says
 - **`type.new`.** Whether maths and `==` work between two of the same one.
 - **Type names, readings.** `type.alias int.signed.32_bit = i32;` works, with dots in the name. An alias works everywhere its target does, including cases. A `type.new` over a number takes no word, over a struct needs one, and over a `must_Give` carries the duty.
 - **Type names, smaller.** A method on an alias or a family's type. A narrowing or bounds on a name. `type.…` inside a function. A `type.new` holding itself through a list. An alias named like a struct. Declaring a name twice.
-- **`fam.fn`.** D135 includes `fn` collections, but no spelling's shown.
+- **`fam.fn`, beyond methods (D421).** Whether a type can have more than one `fam.fn` block, as across files; whether one can hold functions that aren't methods; and where `pub` and `pub.pkg` go.
 - **`Copy`'s depth.** Whether copying a struct holding a list copies the list too. Other languages disagree on this.
 - **Reading a case (D139).** Whether `case status.failed: … $s.code` with no name is still allowed. Whether `$f` is a read-only view, as it is today, or a copy. `if $s: status.failed $f:`. `instead` inside a loop inside its arm.
 - **Arms, readings.** An arm that can run off its end where a value's needed is refused. A bare value as an arm's last line is refused, with `fix: instead …`. `instead` on a call giving nothing back is refused. `*` on a handler with only `instead` is refused. What an arm gives away is only maybe gone afterwards. A failure's `$f` reads data only, and non-numbers need a word: `instead Copy $x.label;`.

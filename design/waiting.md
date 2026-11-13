@@ -48,7 +48,7 @@ d379_a_view_cant_grow), and make d38_limb_inside_a_shield's message describe the
 the oracle, which has no C or assembly in it"), underline the whole `union.@csup::untagged` in
 d38_untagged_union_at_the_top rather than only `union.@` (11.1: the run sits under exactly the part in question). Then modules, D412 to D415: every test file gets a `module` line, the
 tests grow files that import each other with `pkg::`, and `pub.pkg` is tested. Also D416's `.%viewed_as`, with a test that reads a `struct.packed` and a
-`struct.compact` value's raw bytes, which pins the real layouts. Respell pointer writes as `.%write` (D418), in about 7 tests. A test for D325's defers running when a function leaves through `?`, which compiler claude found
+`struct.compact` value's raw bytes, which pins the real layouts. Respell pointer writes as `.%write` (D418), in about 7 tests. Respell method declarations into `fam.fn` blocks (D421), in about 42 tests. A test for D325's defers running when a function leaves through `?`, which compiler claude found
 untested (it had a bug there, fixed in 6565b9cf). And channels (D353), with the run-loop rewrite they
 need, in this same round (owner, 2026-11-13: "add"), since the compiler has the rest of `@concur` and can follow straight
 away.

@@ -114,21 +114,23 @@ $x.@csup::%name();
 
 **Refused:** `$xs.%%append(val: 4);`, with `fix: $xs.std::%%append(val: 4);`, and `$xs.std::%append(val: 4);`, with `fix: .%%`, since `append` changes its receiver.
 
-A method is declared as a normal function with its type in the name. The first parameter is the receiver, and says how it's held, which has to match the `%` or `%%` in the name.
+A type's methods are declared together, as a family, `fam.fn`, with the type's name. Each is a normal function inside it, and is the family member `reading.%%warm_up`. The first parameter is the receiver, and says how it's held, which has to match the `%` or `%%` in the name.
 
 ```
-fn reading.%%warm_up [$r: Lent.mut reading, $by: i32] -> void:
-    labels [$by as by];
-    change $r.celsius = $r.celsius + $by;
-    return void;
-end fn reading.%%warm_up
+fam.fn reading:
+    fn %%warm_up [$r: Lent.mut reading, $by: i32] -> void:
+        labels [$by as by];
+        change $r.celsius = $r.celsius + $by;
+        return void;
+    end fn %%warm_up
+end fam.fn reading
 
 $r.%%warm_up(by: 2);
 ```
 
 A receiver that's `Given` is refused, because methods only borrow.
 
-**From:** D4, D5, D8, D115, D130, D211.
+**From:** D4, D5, D8, D115, D130, D135, D211, D421.
 
 ## 5.7 Builtins: `@`
 

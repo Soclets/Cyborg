@@ -1349,6 +1349,8 @@ A `type_set` is a closed list of types that nothing can join later, as in `type_
 
 The CPU is written with Cyborg's spelling, `apple_m5`, not LLVM's `apple-m5`, and the instruction family without LLVM's `+`. Compiler claude built the check with a placeholder, `stopped: …`; Claude proposed this; the owner chose: "yea". (Owner, 2026-11-13)
 
+**D421. A type's methods are declared together in `fam.fn`.** Methods are the `fn` collections D135 named as a family without a spelling: a type's methods sit in one block, `fam.fn reading:` … `end fam.fn reading`, each declared inside as `fn %%warm_up […]:` … `end fn %%warm_up`, and each is the family member `reading.%%warm_up`, as `length.meters` is a unit family's. Calls don't change: `$r.%%warm_up(by: 2);`. The receiver is still the first parameter, and its `Lent` or `Lent.mut` still matches the `%` or `%%` (D130, D211). This replaces D130's one-at-a-time `fn reading.%warm_up`, so a type's methods are all in one place and declared the way every other family is, and it settles 12.2's `fam.fn`. Not settled here: whether a type may have more than one `fam.fn` block, as across files, whether a `fam.fn` can hold functions that aren't methods, and how `pub` and `pub.pkg` sit on the block or its members. The owner asked "Idk if `list.%%append` is correct, how do u make meth", then "Wait, why doesn't it use `fam`?"; Claude proposed the block; the owner chose: "yea". (Owner, 2026-11-13)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude
