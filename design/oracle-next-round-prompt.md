@@ -49,6 +49,8 @@ to first. Then, in this order, committing in small steps:
    "trap" to "crash", which changes about 10 expected messages. D408
    (flushing only the writers nobody is using) may have nothing testable
    yet, since its time limit isn't decided; say so if that's the case.
+   Also D417 and D419: each atomic operation takes only the orderings
+   that fit it, and atomics get `.%store(val:)`.
 3. D416, `.%viewed_as(item.type:)`, with tests that read a
    `struct.packed` and a `struct.compact` value's raw bytes through it.
    Those pin the real layouts, which nothing else can. Give a test a
