@@ -1940,6 +1940,13 @@ impl<'context, 'module> Generator<'context, 'module> {
                 frame.builder.position_at_end(after);
                 frame.builder.load(list_type, record, "").to_dynamic()
             }
+            ExpressionKind::Maths { function: crate::checked::MathsFunction::Sqrt, value } => {
+                // trace: D405
+                let argument = self.expression(frame, value)?;
+                let intrinsic = Intrinsic::find("llvm.sqrt").ok_or("LLVM has no `llvm.sqrt`")?;
+                let declaration = self.module.intrinsic_declaration(intrinsic, &[argument.get_type()]);
+                frame.builder.call(declaration, &[argument], "").to_dynamic()
+            }
             ExpressionKind::Maths { function, value } => {
                 // trace: D256
                 let argument = self.expression(frame, value)?;

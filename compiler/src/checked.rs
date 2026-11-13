@@ -541,6 +541,8 @@ pub enum MathsFunction {
     Sin,
     Cos,
     Tan,
+    /// One instruction, already correctly rounded, so no CORE-MATH (D405).
+    Sqrt,
 }
 
 impl MathsFunction {
@@ -553,6 +555,7 @@ impl MathsFunction {
             MathsFunction::Sin => "cr_sin",
             MathsFunction::Cos => "cr_cos",
             MathsFunction::Tan => "cr_tan",
+            MathsFunction::Sqrt => "llvm.sqrt",
         }
     }
 
@@ -563,6 +566,7 @@ impl MathsFunction {
             "std::math::sin" => Some(MathsFunction::Sin),
             "std::math::cos" => Some(MathsFunction::Cos),
             "std::math::tan" => Some(MathsFunction::Tan),
+            "std::math::sqrt" => Some(MathsFunction::Sqrt),
             _ => None,
         }
     }

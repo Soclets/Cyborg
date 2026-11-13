@@ -13,6 +13,8 @@ fn source(function: MathsFunction) -> &'static str {
         MathsFunction::Sin => include_str!("../core-math/src/binary64/sin/sin.c"),
         MathsFunction::Cos => include_str!("../core-math/src/binary64/cos/cos.c"),
         MathsFunction::Tan => include_str!("../core-math/src/binary64/tan/tan.c"),
+        // Square root is one instruction, and never compiled from C (D405).
+        MathsFunction::Sqrt => "",
     }
 }
 

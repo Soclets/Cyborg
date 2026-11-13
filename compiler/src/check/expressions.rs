@@ -913,10 +913,22 @@ impl Checker<'_> {
         // type that's wrong (D7).
         if (left_type.unit().is_some() || right_type.unit().is_some()) && same_number(left_type, right_type) {
             if !self.same_unit(left_type.unit(), right_type.unit()) {
+                // Units with the same powers in another scale need the `as` storing would (D397).
+                let scaled = match (left_type.unit(), right_type.unit()) {
+                    (Some(a), Some(b)) => {
+                        self.units.expand(a).zip(self.units.expand(b)).is_some_and(|(a, b)| a.powers == b.powers)
+                    }
+                    _ => false,
+                };
+                let why = if scaled {
+                    CONVERT_WHY
+                } else {
+                    "the same units can add and compare, and mixing them is refused (D100)"
+                };
                 return Err(self.error(Diagnostic::refused(
                     span,
                     format!("this compares `{left_type}` and `{right_type}`"),
-                    "the same units can add and compare, and mixing them is refused (D100)",
+                    why,
                 )));
             }
             let (mut left, mut right) = (left.clone(), right.clone());
@@ -1797,6 +1809,9 @@ impl Checker<'_> {
         if argument.label.is_some() || argument.ownership.is_some() {
             return Err(self.not_yet(argument.span, "a label or a word on `std::math`'s argument".to_string()));
         }
+        if function == checked::MathsFunction::Sqrt {
+            return self.square_root(body, argument);
+        }
         // A bare literal is typed as a plain float, which is then refused for having no unit.
         let plain = Type::Float { bits: 64, kind: super::types::FloatKind::Stable, bounds: None, unit: None };
         let typed = self.expression(body, &argument.value, Some(&plain))?;
@@ -1979,6 +1994,52 @@ impl Checker<'_> {
             }
             _ => Err(self.not_yet(expression.span, format!("the method `{written}` on a pointer"))),
         }
+    }
+
+    /// `std::math::sqrt($x)`: any float kind, taking and giving values 0 or above as bounds, with every unit power
+    /// halved (D405, D406, D407).
+    fn square_root(&mut self, body: &mut Body, argument: &syntax::Argument) -> Check<Typed> {
+        let typed = self.expression(body, &argument.value, None)?;
+        let Type::Float { bits, kind, unit, .. } = typed.value_type.clone() else {
+            if typed.value_type.is_unknown() {
+                return Err(Reported);
+            }
+            return Err(self.error(Diagnostic::refused(
+                argument.value.span,
+                format!("this is `{}`, where a float is needed", typed.value_type),
+                "`std::math::sqrt` takes a float of any kind (D405)",
+            )));
+        };
+        // trace: D407
+        let halved = match &unit {
+            None => None,
+            Some(written) => {
+                let Some(expansion) = self.units.expand(written) else {
+                    return Err(self.not_yet(argument.value.span, "the square root of this unit".to_string()));
+                };
+                if expansion.powers.iter().any(|(_, power)| power % 2 != 0) {
+                    let shown = self.slice(argument.value.span).to_string();
+                    let plain = Type::Float { bits, kind, bounds: None, unit: None };
+                    return Err(self.error(Diagnostic::refused_fix(
+                        argument.value.span,
+                        format!("{shown} as {plain}"),
+                        "a square root halves every unit power, so an odd one, like plain meters, would give a power of ½, which no unit uses, and the unit comes off with `as` first (D407, D255)",
+                    )));
+                }
+                if expansion.scale != super::units::Ratio::ONE || expansion.pi != 0 {
+                    return Err(self.not_yet(argument.value.span, "the square root of a scaled unit".to_string()));
+                }
+                Some(super::types::Unit {
+                    factors: expansion.powers.iter().map(|(base, power)| (base.clone(), power / 2)).collect(),
+                })
+            }
+        };
+        // trace: D406
+        let bounds = super::types::FloatBounds::new(0.0, f64::INFINITY);
+        let into = Type::Float { bits, kind, bounds: Some(bounds), unit: unit.clone() };
+        let value = self.convert_into(argument.value.span, typed, &into)?;
+        let result = Type::Float { bits, kind, bounds: Some(bounds), unit: halved };
+        Ok(Typed::new(result, Kind::Maths { function: checked::MathsFunction::Sqrt, value: Box::new(value) }))
     }
 
     /// A call into a limb or an inline language (D22, D225, D227, D38).
