@@ -23,8 +23,10 @@ use crate::target::{Checks, Mode, Overflow, Target};
 const OS_RUNTIME: &str = include_str!("runtime/os.ll");
 const BARE_RUNTIME: &str = include_str!("runtime/bare.ll");
 const FLOAT_RUNTIME: &str = include_str!("runtime/floats.ll");
-const LOCKS_MACOS: &str = include_str!("runtime/locks_macos.ll");
-const LOCKS_LINUX: &str = include_str!("runtime/locks_linux.ll");
+const SYSTEM_MACOS: &str = include_str!("runtime/system_macos.ll");
+const SYSTEM_LINUX: &str = include_str!("runtime/system_linux.ll");
+const PROBE_LINUX_AARCH64: &str = include_str!("runtime/probe_linux_aarch64.ll");
+const PROBE_LINUX_X86_64: &str = include_str!("runtime/probe_linux_x86_64.ll");
 const BOARD_STARTUP: &str = include_str!("runtime/arduino_uno_r4_wifi/startup.ll");
 
 /// The linker script for the Arduino Uno R4 `WiFi` (D261, D281).
@@ -104,13 +106,14 @@ fn runtime_text(target: Target) -> String {
     }
 }
 
-/// The part of the runtime each operating system does its own way: how a lock waits (D348).
+/// The part of the runtime each operating system does its own way: how a lock waits (D348), and how a tuned program
+/// asks for its instructions (D365).
 fn system_runtime(target: Target) -> String {
     match target {
-        Target::MacOsAarch64 => LOCKS_MACOS.to_string(),
+        Target::MacOsAarch64 => SYSTEM_MACOS.to_string(),
         // The futex system call's number on each processor.
-        Target::LinuxAarch64 => LOCKS_LINUX.replace("FUTEX", "98"),
-        Target::LinuxX86_64 => LOCKS_LINUX.replace("FUTEX", "202"),
+        Target::LinuxAarch64 => format!("{}\n{PROBE_LINUX_AARCH64}", SYSTEM_LINUX.replace("FUTEX", "98")),
+        Target::LinuxX86_64 => format!("{}\n{PROBE_LINUX_X86_64}", SYSTEM_LINUX.replace("FUTEX", "202")),
         Target::ArduinoUnoR4Wifi => String::new(),
     }
 }
@@ -173,6 +176,7 @@ pub fn unit_ir(program: &Program, target: Target, mode: Mode, unit: &Unit) -> Re
             module: view,
             mode,
             bare_metal: !target.has_os(),
+            target,
             // `sysconf`'s own number for asking how many cores are online, `_SC_NPROCESSORS_ONLN`.
             cores_name: if target == Target::MacOsAarch64 { 58 } else { 84 },
             program,
@@ -364,6 +368,7 @@ struct Generator<'context, 'module> {
     mode: Mode,
     /// With no operating system, a failed check traps, since there's nowhere decided to print to.
     bare_metal: bool,
+    target: Target,
     cores_name: u64,
     program: &'module Program,
     symbols: Vec<String>,
@@ -654,6 +659,9 @@ impl<'context, 'module> Generator<'context, 'module> {
             handlers: Vec::new(),
             sites: function.sites.clone(),
         };
+        if is_main {
+            self.machine_check(&mut frame)?;
+        }
         self.block(&mut frame, &function.body)?;
         // The end of a body the checker let run off its end can't be reached, since every function returns.
         if frame.builder.insertion_basic_block().terminator().is_none() {
@@ -2207,6 +2215,53 @@ impl<'context, 'module> Generator<'context, 'module> {
             }
         };
         Ok(value)
+    }
+
+    /// A program tuned with `--machine.cpu=` asks for each instruction family it was built to use before anything
+    /// else, and stops naming the first one missing (D365).
+    fn machine_check(&mut self, frame: &mut Frame<'context, 'module>) -> Result<()> {
+        // trace: D365
+        let Some((cpu, features)) = crate::target::machine_cpu() else { return Ok(()) };
+        let probes = crate::machine::probes(self.target, features);
+        if probes.is_empty() {
+            return Ok(());
+        }
+        // Cyborg spells a processor `apple_m5`, where LLVM says `apple-m5` (D420).
+        let shown = cpu.replace('-', "_");
+        for (feature, probe) in probes {
+            let has = match probe {
+                crate::machine::Probe::Sysctl(name) => {
+                    let name = self.constant_bytes(&format!("hw.optional.arm.{name}\0"));
+                    frame.builder.call(self.runtime("__cyborg_has_sysctl")?, &[name], "").to_dynamic()
+                }
+                crate::machine::Probe::Hwcap { second, bit } => {
+                    let which = self.integer(64, if second { 26 } else { 16 });
+                    let arguments = [which, self.integer(64, u64::from(bit))];
+                    frame.builder.call(self.runtime("__cyborg_has_hwcap")?, &arguments, "").to_dynamic()
+                }
+                crate::machine::Probe::Cpuid { leaf, register, bit } => {
+                    let arguments = [
+                        self.integer(32, u64::from(leaf)),
+                        self.integer(32, u64::from(register)),
+                        self.integer(32, u64::from(bit)),
+                    ];
+                    frame.builder.call(self.runtime("__cyborg_has_cpuid")?, &arguments, "").to_dynamic()
+                }
+            };
+            let fine = frame.function.append_basic_block("has_instructions");
+            let missing = frame.function.append_basic_block("missing_instructions");
+            frame.builder.conditional_branch(has, fine, missing);
+            frame.builder.position_at_end(missing);
+            // trace: D420
+            let message = format!(
+                "check failed: this processor is missing instructions the program was built for\n what: built with --machine.cpu={shown}, and this processor has no `{feature}` instructions\n why:  a program tuned for one processor needs its instructions (D365)\n fix:  rebuild for this machine with --machine.cpu=native, or without --machine.cpu=\n"
+            );
+            let arguments = [self.constant_bytes(&message), self.integer(64, message.len() as u64)];
+            frame.builder.call(self.runtime("__cyborg_machine_missing")?, &arguments, "");
+            frame.builder.unreachable();
+            frame.builder.position_at_end(fine);
+        }
+        Ok(())
     }
 
     /// Starts a call on one of an OS pool's threads (D343, D345, D356). Its arguments are worked out here, where the

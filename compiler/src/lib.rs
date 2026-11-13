@@ -12,6 +12,7 @@ pub mod codegen;
 pub mod diagnostic;
 pub mod flow;
 pub mod lexer;
+pub mod machine;
 pub mod manifest;
 pub mod maths;
 pub mod parser;

@@ -886,3 +886,13 @@ entry:
   call void @free(ptr %task)
   ret void
 }
+
+; Stops a program tuned with `--machine.cpu=` on a machine missing instructions it was built to use, with the
+; message the compiler wrote for that instruction family, instead of crashing midway (D365, D420).
+define void @__cyborg_machine_missing(ptr %message, i64 %length) noreturn {
+entry:
+  call void @__cyborg_flush_all()
+  call void @__cyborg_write_all(i32 2, ptr %message, i64 %length)
+  call void @exit(i32 1)
+  unreachable
+}
