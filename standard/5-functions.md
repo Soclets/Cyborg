@@ -53,9 +53,9 @@ In `std`, the first argument, the thing being worked on, stays bare, and every o
 
 ## 5.3 `return`
 
-**Rule:** `return` hands back a value. `main` says `return void;`. Whether every `void` function must isn't decided.
+**Rule:** `return` hands back a value, and every function ends with one, so every `void` function, `main` included, says `return void;`.
 
-**From:** D11, the sketch.
+**From:** D11, D393, the sketch.
 
 ## 5.4 The top of the body
 
