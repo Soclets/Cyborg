@@ -13,6 +13,9 @@ use crate::diagnostic::{Diagnostic, Kind as DiagnosticKind};
 use crate::source::Span;
 use crate::syntax::{self, ExpressionKind, Ownership};
 
+/// A lock's word, which the OS waits on: 0 while it's free (D348).
+const LOCK_WORD: MachineType = MachineType::Integer { bits: 32, signed: false };
+
 const STACK_WHY: &str = "each task on a runner that switches tasks has its own stack, from the allocator the spawn names, with its size written, as in `alloc: Lend $heap, stack: 4 kib` (D351, D352, D384, D392)";
 const ATOMIC_MARK_WHY: &str =
     "an atomic is shared with plain `Lend` and changed by indivisible instructions, so its operations take `.%` (D354)";
@@ -74,7 +77,7 @@ impl Checker<'_> {
             let inner = self.resolve_type(inner)?;
             match text {
                 "@concur::task" => Ok(Type::Task(Box::new(inner))),
-                "@concur::lock" => Ok(Type::Lock(Box::new(inner))),
+                "@concur::lock" => Ok(self.lock_type(inner)),
                 _ => {
                     if !matches!(inner, Type::Integer { .. } | Type::Bool) {
                         // trace: D354
@@ -115,9 +118,9 @@ impl Checker<'_> {
                 let [argument] = arguments else {
                     return Err(self.not_yet(expression.span, format!("`{name}` with these arguments")));
                 };
-                let (inner, wrap): (Type, fn(Box<Type>) -> Type) = match (name, expected) {
-                    ("@concur::lock.new", Some(Type::Lock(inner))) => ((**inner).clone(), Type::Lock),
-                    ("@concur::atomic.new", Some(Type::Atomic(inner))) => ((**inner).clone(), Type::Atomic),
+                let (inner, made) = match (name, expected) {
+                    ("@concur::lock.new", Some(lock @ Type::Lock { inner, .. })) => ((**inner).clone(), lock.clone()),
+                    ("@concur::atomic.new", Some(atomic @ Type::Atomic(inner))) => ((**inner).clone(), atomic.clone()),
                     _ => return Err(self.not_yet(expression.span, format!("`{name}` where nothing says its type"))),
                 };
                 let value = match argument.ownership {
@@ -129,14 +132,19 @@ impl Checker<'_> {
                     }
                     _ => self.value_into(body, &argument.value, &inner)?,
                 };
-                Ok(Typed::new(wrap(Box::new(inner)), value.kind))
+                // A lock starts with its word at 0, unlocked, ahead of what it holds.
+                if matches!(made, Type::Lock { .. }) {
+                    let word = checked::Expression { kind: Kind::Integer(0), machine_type: LOCK_WORD };
+                    return Ok(Typed::new(made, Kind::Build(vec![word, value])));
+                }
+                Ok(Typed::new(made, value.kind))
             })()),
             "@concur::lock.done" => Some((|| {
                 let [argument] = arguments else {
                     return Err(self.not_yet(expression.span, "`@concur::lock.done` with these arguments".to_string()));
                 };
                 let typed = self.expression(body, &argument.value, None)?;
-                let Type::Lock(inner) = typed.value_type.clone() else {
+                let Type::Lock { inner, .. } = typed.value_type.clone() else {
                     return Err(
                         self.not_yet(argument.span, "`@concur::lock.done` on something that isn't a lock".to_string())
                     );
@@ -144,7 +152,7 @@ impl Checker<'_> {
                 if let Some(root) = root_name(&argument.value).cloned() {
                     self.give_away(body, &root, &argument.value)?;
                 }
-                Ok(Typed::new(*inner, typed.value.kind))
+                Ok(Typed::new(*inner, Kind::Field { base: Box::new(typed.value), index: 1 }))
             })()),
             "@concur::task.done" => Some((|| {
                 let (signature, value) = self.task_done(body, expression, arguments)?;
@@ -434,11 +442,12 @@ impl Checker<'_> {
         }
         body.scopes.push(Vec::new());
         let start = body.states.len();
+        let mut words = Vec::new();
         for (lock, name) in locks.iter().zip(names) {
             let Some(reached) = self.reach(body, lock)? else {
                 return Err(self.not_yet(lock.span, "locking this".to_string()));
             };
-            let Type::Lock(inner) = &reached.value_type else {
+            let Type::Lock { inner, .. } = &reached.value_type else {
                 if reached.value_type.is_unknown() {
                     return Err(Reported);
                 }
@@ -448,16 +457,18 @@ impl Checker<'_> {
                     "`@concur::locked` takes locks, `@concur::lock<…>`, and lends what each holds to change (D348)",
                 )));
             };
+            // The lock's word, then its data, through its fields and items alike.
+            let part = |index: usize| {
+                let mut steps = reached.steps.clone();
+                steps.push(checked::Step::Field(index));
+                checked::Expression {
+                    kind: Kind::PlaceAddress(checked::Place { local: reached.root.local, steps }),
+                    machine_type: MachineType::Address,
+                }
+            };
+            words.push(part(0));
             let local = body.new_local(inner.machine());
-            let path: Vec<usize> = reached
-                .steps
-                .iter()
-                .filter_map(|step| match step {
-                    checked::Step::Field(index) => Some(*index),
-                    checked::Step::Item { .. } => None,
-                })
-                .collect();
-            block.push(checked::Statement::Alias { local, target: reached.root.local, path });
+            block.push(checked::Statement::AliasValue { local, value: part(1) });
             body.declare(
                 super::Variable {
                     name: name.text.clone(),
@@ -472,12 +483,30 @@ impl Checker<'_> {
                 super::State::Assigned,
             );
         }
+        // trace: D348, D349
+        let count = words.len() as u64;
+        let addresses = body.new_local(MachineType::Array { item: Box::new(MachineType::Address), len: count });
+        block.push(checked::Statement::Let {
+            local: addresses,
+            value: checked::Expression {
+                kind: Kind::Build(words),
+                machine_type: MachineType::Array { item: Box::new(MachineType::Address), len: count },
+            },
+        });
+        block.push(checked::Statement::LockAll { addresses, count });
+        // Every way out of the block gives the locks back: its end, and any `return`, `fail`, `?` or `break` past it.
+        let unlock = checked::Statement::UnlockAll { addresses, count };
+        body.defers.push(vec![super::Deferred::Unlock(unlock.clone())]);
         body.locked += 1;
         let checked = self.block(body, inner);
         body.locked -= 1;
+        body.defers.pop();
         body.scopes.pop();
         body.forget_after(start);
         block.extend(checked.block);
+        if !checked.leaves {
+            block.push(unlock);
+        }
         Ok(checked.leaves)
     }
 
@@ -525,10 +554,11 @@ impl Checker<'_> {
         let address = atomic_address(&reached);
         if operation == "load" {
             if matches!(ordering, checked::AtomicOrder::Release | checked::AtomicOrder::AcquireRelease) {
-                return Err(self.error(Diagnostic::not_designed(
+                // trace: D417
+                return Err(self.error(Diagnostic::refused_fix(
                     method.span,
-                    format!("what `{written}` means, since a load only reads, and releasing is for writes"),
-                    "not decided yet: D354 gives loads their orderings without saying which fit a load",
+                    "%load.acquire".to_string(),
+                    "`acquire` belongs to reading and `release` to writing, so a load takes only `.relaxed`, `.acquire` or the bare strictest form (D417)",
                 )));
             }
             let kind = Kind::Atomic {
@@ -755,6 +785,43 @@ impl Checker<'_> {
         id
     }
 
+    /// `@concur::lock<T>`: a struct of the lock's word and the data, made once per type (D348).
+    pub fn lock_type(&mut self, inner: Type) -> Type {
+        let name = format!("@concur::lock<{inner}>");
+        if let Some(Type::Struct { id, .. }) = self.aggregates.names.get(&name) {
+            return Type::Lock { inner: Box::new(inner), id: *id };
+        }
+        let word =
+            Type::Integer { kind: super::types::IntegerKind { bits: 32, signed: false }, bounds: None, unit: None };
+        let id = self.program.structs.len();
+        while self.aggregates.structs.len() < id {
+            self.aggregates.structs.push(super::aggregates::StructInfo {
+                name: String::new(),
+                fields: Vec::new(),
+                must_give: false,
+                layout: super::aggregates::Layout::Written,
+                sources: Vec::new(),
+                facts: Vec::new(),
+            });
+        }
+        let field = |name: &str, value_type: &Type| super::aggregates::FieldInfo {
+            name: name.to_string(),
+            value_type: value_type.clone(),
+            span: Span::default(),
+        };
+        self.aggregates.structs.push(super::aggregates::StructInfo {
+            name: name.clone(),
+            fields: vec![field("word", &word), field("value", &inner)],
+            must_give: false,
+            layout: super::aggregates::Layout::Written,
+            sources: Vec::new(),
+            facts: Vec::new(),
+        });
+        self.program.structs.push(vec![LOCK_WORD, inner.machine()]);
+        self.aggregates.names.insert(name.clone(), Type::Struct { id, name });
+        Type::Lock { inner: Box::new(inner), id }
+    }
+
     /// `std::coll::halves<T>` or `.mut`: a struct of two list views, `.first` and `.second`, made once per type (D382).
     pub fn halves_type(&mut self, item: &Type, changes: bool) -> Type {
         let name = format!("std::coll::halves{}<{item}>", if changes { ".mut" } else { "" });
@@ -876,4 +943,3 @@ fn atomic_address(reached: &super::collections::Reached) -> checked::Expression 
         machine_type: MachineType::Address,
     }
 }
-

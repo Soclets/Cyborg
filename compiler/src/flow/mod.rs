@@ -256,6 +256,8 @@ impl Lowering {
             | Statement::Alias { .. }
             | Statement::Print { .. }
             | Statement::Flush { .. }
+            | Statement::LockAll { .. }
+            | Statement::UnlockAll { .. }
             | Statement::Done { .. } => Some(here),
         }
     }

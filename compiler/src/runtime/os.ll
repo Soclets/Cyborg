@@ -640,3 +640,106 @@ place:
   store i64 %more, ptr %count_place
   ret ptr %slot
 }
+
+; Locks (D348): a lock's word is 0 while it's free. `__cyborg_lock` and `__cyborg_unlock` come from the system's own
+; part of the runtime, and put a waiting task to sleep rather than spinning, since a lock can be held a long time.
+
+; Sorts an array of addresses into increasing order, in place. It's short, so insertion sort.
+define void @__cyborg_sort_addresses(ptr %words, i64 %count) {
+entry:
+  br label %outer
+outer:
+  %i = phi i64 [ 1, %entry ], [ %i_next, %placed ]
+  %more = icmp ult i64 %i, %count
+  br i1 %more, label %pick, label %done
+pick:
+  %at = getelementptr ptr, ptr %words, i64 %i
+  %item = load ptr, ptr %at
+  %key = ptrtoint ptr %item to i64
+  br label %inner
+inner:
+  %j = phi i64 [ %i, %pick ], [ %j_less, %shift ]
+  %has_left = icmp ugt i64 %j, 0
+  br i1 %has_left, label %look, label %place
+look:
+  %j_less = sub i64 %j, 1
+  %left_at = getelementptr ptr, ptr %words, i64 %j_less
+  %left = load ptr, ptr %left_at
+  %left_key = ptrtoint ptr %left to i64
+  %bigger = icmp ugt i64 %left_key, %key
+  br i1 %bigger, label %shift, label %place
+shift:
+  %here_at = getelementptr ptr, ptr %words, i64 %j
+  store ptr %left, ptr %here_at
+  br label %inner
+place:
+  %slot_at = getelementptr ptr, ptr %words, i64 %j
+  store ptr %item, ptr %slot_at
+  br label %placed
+placed:
+  %i_next = add i64 %i, 1
+  br label %outer
+done:
+  ret void
+}
+
+; Takes every lock whose word's address is in the array, in address order, so blocks taking the same locks always
+; take them in the same order, and can't each hold one the other waits for (D349). One lock reached twice is taken
+; once. The array is left sorted, for `__cyborg_unlock_all`.
+define void @__cyborg_lock_all(ptr %words, i64 %count) {
+entry:
+  call void @__cyborg_sort_addresses(ptr %words, i64 %count)
+  br label %loop
+loop:
+  %i = phi i64 [ 0, %entry ], [ %next, %step ]
+  %more = icmp ult i64 %i, %count
+  br i1 %more, label %look, label %done
+look:
+  %at = getelementptr ptr, ptr %words, i64 %i
+  %word = load ptr, ptr %at
+  %first = icmp eq i64 %i, 0
+  br i1 %first, label %take, label %compare
+compare:
+  %before_index = sub i64 %i, 1
+  %before_at = getelementptr ptr, ptr %words, i64 %before_index
+  %before = load ptr, ptr %before_at
+  %same = icmp eq ptr %before, %word
+  br i1 %same, label %step, label %take
+take:
+  call void @__cyborg_lock(ptr %word)
+  br label %step
+step:
+  %next = add i64 %i, 1
+  br label %loop
+done:
+  ret void
+}
+
+; Gives back the locks `__cyborg_lock_all` took from the same array, which it left sorted.
+define void @__cyborg_unlock_all(ptr %words, i64 %count) {
+entry:
+  br label %loop
+loop:
+  %i = phi i64 [ 0, %entry ], [ %next, %step ]
+  %more = icmp ult i64 %i, %count
+  br i1 %more, label %look, label %done
+look:
+  %at = getelementptr ptr, ptr %words, i64 %i
+  %word = load ptr, ptr %at
+  %first = icmp eq i64 %i, 0
+  br i1 %first, label %give, label %compare
+compare:
+  %before_index = sub i64 %i, 1
+  %before_at = getelementptr ptr, ptr %words, i64 %before_index
+  %before = load ptr, ptr %before_at
+  %same = icmp eq ptr %before, %word
+  br i1 %same, label %step, label %give
+give:
+  call void @__cyborg_unlock(ptr %word)
+  br label %step
+step:
+  %next = add i64 %i, 1
+  br label %loop
+done:
+  ret void
+}

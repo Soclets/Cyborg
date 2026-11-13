@@ -15,14 +15,16 @@ use lyftar::target::{
 use lyftar::{Builder, with_context};
 
 use crate::checked::{
-    Argument, Arithmetic, AtomicOperation, AtomicOrder, Base, Block, CheckFailure, Comparison, Expression, ExpressionKind, MachineType, Passing,
-    Piece, Program, Shape, Statement,
+    Argument, Arithmetic, AtomicOperation, AtomicOrder, Base, Block, CheckFailure, Comparison, Expression,
+    ExpressionKind, MachineType, Passing, Piece, Program, Shape, Statement,
 };
 use crate::target::{Checks, Mode, Overflow, Target};
 
 const OS_RUNTIME: &str = include_str!("runtime/os.ll");
 const BARE_RUNTIME: &str = include_str!("runtime/bare.ll");
 const FLOAT_RUNTIME: &str = include_str!("runtime/floats.ll");
+const LOCKS_MACOS: &str = include_str!("runtime/locks_macos.ll");
+const LOCKS_LINUX: &str = include_str!("runtime/locks_linux.ll");
 const BOARD_STARTUP: &str = include_str!("runtime/arduino_uno_r4_wifi/startup.ll");
 
 /// The linker script for the Arduino Uno R4 `WiFi` (D261, D281).
@@ -95,7 +97,22 @@ fn symbols(program: &Program) -> Vec<String> {
 /// The runtime's IR, as its own unit: the operating system's, with float printing, or the board's, with its
 /// startup code.
 fn runtime_text(target: Target) -> String {
-    if target.has_os() { format!("{OS_RUNTIME}\n{FLOAT_RUNTIME}") } else { format!("{BARE_RUNTIME}\n{BOARD_STARTUP}") }
+    if target.has_os() {
+        format!("{OS_RUNTIME}\n{}\n{FLOAT_RUNTIME}", system_runtime(target))
+    } else {
+        format!("{BARE_RUNTIME}\n{BOARD_STARTUP}")
+    }
+}
+
+/// The part of the runtime each operating system does its own way: how a lock waits (D348).
+fn system_runtime(target: Target) -> String {
+    match target {
+        Target::MacOsAarch64 => LOCKS_MACOS.to_string(),
+        // The futex system call's number on each processor.
+        Target::LinuxAarch64 => LOCKS_LINUX.replace("FUTEX", "98"),
+        Target::LinuxX86_64 => LOCKS_LINUX.replace("FUTEX", "202"),
+        Target::ArduinoUnoR4Wifi => String::new(),
+    }
 }
 
 /// The runtime as each unit of the program sees it: its small functions' bodies, so LLVM can inline them, marked as
@@ -106,7 +123,8 @@ fn inline_runtime_text(target: Target) -> String {
             .replace(WRITERS_DEFINED, WRITERS_DECLARED)
             .replace(HEAP_DEFINED, HEAP_DECLARED)
             .replace(NEXT_DEFINED, NEXT_DECLARED);
-        format!("{shared}\ndeclare i64 @__cyborg_format_float(double, i32, i32, i32, i1, ptr)\n")
+        let system = system_runtime(target);
+        format!("{shared}\n{system}\ndeclare i64 @__cyborg_format_float(double, i32, i32, i32, i1, ptr)\n")
     } else {
         BARE_RUNTIME.to_string()
     }
@@ -905,6 +923,16 @@ impl<'context, 'module> Generator<'context, 'module> {
             Statement::Print { writer, pieces } => {
                 let writer = frame.slots[*writer];
                 self.pieces(frame, writer, pieces)?;
+            }
+            Statement::LockAll { addresses, count } | Statement::UnlockAll { addresses, count } => {
+                // trace: D348, D349
+                let name = if matches!(statement, Statement::LockAll { .. }) {
+                    "__cyborg_lock_all"
+                } else {
+                    "__cyborg_unlock_all"
+                };
+                let function = self.runtime(name)?;
+                frame.builder.call(function, &[frame.slots[*addresses], self.integer(64, *count)], "");
             }
             Statement::Flush { writer } => {
                 let flush = self.runtime("__cyborg_writer_flush")?;

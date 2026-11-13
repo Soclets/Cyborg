@@ -235,3 +235,58 @@ fn d354_d360_atomics_are_the_cpus_own_instructions() {
     let (code, out) = run("atomics_run", ATOMICS, &["--Working", "--opt=O0"]);
     assert_eq!((code, out.as_str()), (Some(0), "3 7 5\n"));
 }
+
+const LOCK_EXITS: &str = "import std;
+import os;
+import @concur;
+
+fn half [$n: i32] -> i32 fails [odd]:
+    if $n mod.trunc 2 == 1:
+        fail odd;
+    end if
+    return $n div.trunc 2;
+end fn half
+
+fn early [$account: Lent @concur::lock<i32>, $n: i32] -> i32 fails [odd]:
+    @concur::locked $account as $balance:
+        change $balance = $balance + half($n)?;
+        if $balance above 100:
+            return $balance;
+        end if
+    end @concur::locked
+    return 0;
+end fn early
+
+fn.main [none] -> void:
+    let mut $out: os::stdout.unbuffered = os::stdout.unbuffered();
+    let $account: @concur::lock<i32> = @concur::lock.new(98);
+    let mut $seen: i32 = 0;
+    for $n in range[from: 1, to: 10]:
+        let $got: i32 = early(Lend $account, $n) otherwise:
+            case odd:
+                instead -1;
+        end otherwise
+        change $seen = $seen + $got;
+        @concur::locked $account as $balance:
+            if $seen above 200:
+                break;
+            end if
+        end @concur::locked
+    end for
+    @concur::locked $account as $balance:
+        std::io::fmt_print(Lend.mut $out, \"{} {}{newln}\", $balance, $seen);
+    end @concur::locked
+    return void;
+end fn.main
+";
+
+#[test]
+fn d348_every_way_out_of_a_locked_block_unlocks() {
+    // trace: D325, D348
+    let text = ir("lock_exits_ir", LOCK_EXITS, Mode::FinalSafe);
+    if cfg!(target_os = "macos") {
+        assert!(text.contains("@os_unfair_lock_lock"), "a lock that waits in the kernel:\n{text}");
+    }
+    let (code, out) = run("lock_exits_run", LOCK_EXITS, &["--FinalSafe"]);
+    assert_eq!((code, out.as_str()), (Some(0), "104 202\n"));
+}

@@ -126,6 +126,14 @@ const BOUND_UNIT_WHY: &str = "a bound writes its unit like any value given to it
 /// The `why` for something nobody has decided yet.
 pub const NOT_DECIDED: &str = "not decided yet, and the standard doesn't say";
 
+/// What runs where a block ends, however it ends: a written `defer` (D325), or giving back the locks a
+/// `@concur::locked` took (D348).
+#[derive(Clone)]
+pub enum Deferred {
+    Written(syntax::Statement),
+    Unlock(checked::Statement),
+}
+
 /// What's in scope while checking one function's body.
 #[derive(Default)]
 pub struct Body {
@@ -185,7 +193,7 @@ pub struct Body {
     /// Whether deferred statements are being checked where their block ends, which is where they give values away.
     pub running_defers: bool,
     /// The deferred statements of each block open, innermost last, run in reverse when the block ends (D325).
-    pub defers: Vec<Vec<syntax::Statement>>,
+    pub defers: Vec<Vec<Deferred>>,
     /// The lists and arrays a `for` around this is reading in place (D128).
     pub reading: Vec<String>,
     /// The ones a `for` reads only a part of, like `$g[pos: 1]`.
@@ -911,7 +919,7 @@ impl Checker<'_> {
         match value_type {
             Type::Integer { .. } | Type::Float { .. } | Type::Bool | Type::Str(StrSize::View) => Some(false),
             Type::List { view: types::ListView::Read | types::ListView::Change, .. } => Some(false),
-            Type::Task(_) | Type::Runner(_) | Type::Lock(_) | Type::Atomic(_) | Type::Allocator(_) => Some(true),
+            Type::Task(_) | Type::Runner(_) | Type::Lock { .. } | Type::Atomic(_) | Type::Allocator(_) => Some(true),
             Type::Str(_) => Some(true),
             Type::New { inner, .. } => self.has_holding_choice(inner),
             Type::Struct { .. } | Type::Union { .. } | Type::Array { .. } | Type::List { .. } | Type::Writer(_) => {
@@ -1253,7 +1261,7 @@ impl Checker<'_> {
             Type::Allocator(types::AllocatorKind::Arena) | Type::Str(StrSize::Growing) => true,
             // A task has to be joined, and a runner from the OS owns threads (D343, D392).
             Type::Task(_) | Type::Runner(types::RunnerKind::Threads | types::RunnerKind::Events) => true,
-            Type::Lock(inner) => self.must_give(inner),
+            Type::Lock { inner, .. } => self.must_give(inner),
             _ => false,
         }
     }

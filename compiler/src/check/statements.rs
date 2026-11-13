@@ -129,20 +129,27 @@ impl Checker<'_> {
             }
         }
         if let Some(frame) = body.defers.last_mut() {
-            frame.push(deferred.clone());
+            frame.push(super::Deferred::Written(deferred.clone()));
         }
     }
 
     /// Runs the deferred statements of every open block from `from` in, innermost first and each block's in reverse
     /// (D325). A statement deferred once and run at several exits says each error once.
     pub fn run_defers(&mut self, body: &mut Body, from: usize, block: &mut checked::Block) {
-        let frames: Vec<Vec<syntax::Statement>> = body.defers.get(from..).map(<[_]>::to_vec).unwrap_or_default();
+        let frames: Vec<Vec<super::Deferred>> = body.defers.get(from..).map(<[_]>::to_vec).unwrap_or_default();
         if frames.iter().all(Vec::is_empty) {
             return;
         }
         let running = std::mem::replace(&mut body.running_defers, true);
         for frame in frames.iter().rev() {
             for deferred in frame.iter().rev() {
+                let deferred = match deferred {
+                    super::Deferred::Written(deferred) => deferred,
+                    super::Deferred::Unlock(unlock) => {
+                        block.push(unlock.clone());
+                        continue;
+                    }
+                };
                 let before = self.errors.len();
                 let mark = block.len();
                 let outer = std::mem::take(&mut body.events);

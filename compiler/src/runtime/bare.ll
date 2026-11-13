@@ -8,3 +8,14 @@ entry:
 }
 
 declare void @llvm.trap()
+
+; With one thread, nothing else can hold a lock, so taking one does nothing (D348).
+define void @__cyborg_lock_all(ptr %words, i64 %count) {
+entry:
+  ret void
+}
+
+define void @__cyborg_unlock_all(ptr %words, i64 %count) {
+entry:
+  ret void
+}

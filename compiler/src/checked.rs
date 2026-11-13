@@ -96,6 +96,17 @@ pub type Block = Vec<Statement>;
 
 #[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
 pub enum Statement {
+    /// Takes every lock whose word's address is in an array local, in address order, waiting for each, so two blocks
+    /// taking the same locks can't each hold one the other waits for (D348, D349).
+    LockAll {
+        addresses: LocalId,
+        count: u64,
+    },
+    /// Gives back the locks a `LockAll` on the same array took (D348).
+    UnlockAll {
+        addresses: LocalId,
+        count: u64,
+    },
     /// Gives a local its first value.
     Let {
         local: LocalId,

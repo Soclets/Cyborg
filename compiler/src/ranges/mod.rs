@@ -14,9 +14,9 @@ use std::collections::{HashMap, HashSet};
 
 use checks::Interval;
 
-use crate::checked::{AtomicOperation, 
-    Argument, Arithmetic, Block, Comparison, Expression, ExpressionKind, LocalId, MachineType, OnFailure, Piece, Place,
-    Program, Statement, Step,
+use crate::checked::{
+    Argument, Arithmetic, AtomicOperation, Block, Comparison, Expression, ExpressionKind, LocalId, MachineType,
+    OnFailure, Piece, Place, Program, Statement, Step,
 };
 
 /// Drops every check in the program that its ranges prove can't fail.
@@ -364,7 +364,11 @@ impl Walker<'_> {
                     self.taken.insert(*local);
                 }
             }
-            Statement::Flush { .. } | Statement::Done { .. } | Statement::Flow(_) => {}
+            Statement::Flush { .. }
+            | Statement::Done { .. }
+            | Statement::Flow(_)
+            | Statement::LockAll { .. }
+            | Statement::UnlockAll { .. } => {}
         }
         true
     }

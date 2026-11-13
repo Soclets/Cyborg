@@ -313,8 +313,12 @@ pub enum Type {
     Task(Box<Type>),
     /// Where tasks run (D345, D350, D377).
     Runner(RunnerKind),
-    /// `@concur::lock<T>`: data reached only by locking it (D348).
-    Lock(Box<Type>),
+    /// `@concur::lock<T>`: data reached only by locking it (D348). It's a struct of its own, `id`, holding the lock's
+    /// word, which the OS waits on, and then the data.
+    Lock {
+        inner: Box<Type>,
+        id: usize,
+    },
     /// `@concur::atomic<T>`: an integer or `bool` changed by indivisible instructions (D354).
     Atomic(Box<Type>),
     /// An integer or `bool` that mustn't affect how long the program takes (D339).
@@ -442,7 +446,8 @@ impl Type {
             Type::Str(_) => checked::MachineType::Text,
             Type::Allocator(_) | Type::Pointer { .. } => checked::MachineType::Address,
             Type::Simd { item, lanes } => checked::MachineType::Array { item: Box::new(item.machine()), len: *lanes },
-            Type::Secret(inner) | Type::Lock(inner) | Type::Atomic(inner) => inner.machine(),
+            Type::Secret(inner) | Type::Atomic(inner) => inner.machine(),
+            Type::Lock { id, .. } => checked::MachineType::Struct(*id),
             Type::Task(_) | Type::Runner(_) => checked::MachineType::I64,
             Type::Void | Type::Unknown => checked::MachineType::Void,
             // A generic's own body is only checked, never built: each call builds a copy with real types.
@@ -521,7 +526,7 @@ impl fmt::Display for Type {
             }
             Type::Simd { item, lanes } => write!(formatter, "simd<{item}>[lanes: {lanes}]"),
             Type::Task(inner) => write!(formatter, "@concur::task<{inner}>"),
-            Type::Lock(inner) => write!(formatter, "@concur::lock<{inner}>"),
+            Type::Lock { inner, .. } => write!(formatter, "@concur::lock<{inner}>"),
             Type::Atomic(inner) => write!(formatter, "@concur::atomic<{inner}>"),
             Type::Runner(RunnerKind::OneThread) => write!(formatter, "std::run::one_thread"),
             Type::Runner(RunnerKind::Threads) => write!(formatter, "os::threads"),
