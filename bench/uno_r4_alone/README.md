@@ -23,7 +23,7 @@ What's behind them:
   checks barely add to. xorshift has nothing to check, so the two are identical.
 - **`FinalSmall` is the smallest, at 500 bytes, and close to `FinalSafe`'s speed,** except on xorshift, where it keeps
   the loop rolled up, at exactly 7 cycles a round.
-- **`Literal` is 5 to 21 times slower,** on purpose: it does exactly what the code says, with no optimizing.
+- **`Literal` is 4 to 21 times slower than `FinalPerf`,** on purpose: it does exactly what the code says, with no optimizing.
 - **Overflow on `x` is still checked in `FinalPerf`** (the `smull` and compare in primes' `$d x $d`), since 10.5 leaves
   `-` and `x` undecided, and rule 4 keeps an undecided stop.
 
