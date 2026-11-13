@@ -38,6 +38,9 @@ to first. Then, in this order, committing in small steps:
    - d38_untagged_union_at_the_top underlines only `union.@`. 11.1 puts
      the ^ run under exactly the part in question, which is the whole
      `union.@csup::untagged`.
+   - No test leaves a function through `?` with a `defer` pending, though
+     D325 says defers run then too. The compiler had a bug there, so add
+     one.
 2. D403 to D409: `lanes: max` per target, `shift.left`, `shift.right`,
    `rotate.left` and `rotate.right`, `std::math::sqrt` (correctly rounded,
    bounded to 0 and above, halving unit powers), and D409's rename of
