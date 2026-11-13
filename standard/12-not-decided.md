@@ -125,6 +125,7 @@ Waiting on the owner, most needed first. Each is `NotDesignedYet` unless it says
 - Whether `??` can take a call, not just a value.
 - `?` in a function that lists no failures, and in `main`.
 - The list of a handler narrowing's arguments, if any.
+- How long a crash waits for each writer's flush (D408).
 
 ## 12.7 Build modes
 
