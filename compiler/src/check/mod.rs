@@ -174,6 +174,8 @@ pub struct Body {
     pub lent_receiver: Option<String>,
     /// Where this function raises a failure or calls one with `requires`, rendered for crash messages.
     pub sites: Vec<checked::Site>,
+    /// Each local's bounds, if it's a bounded integer (D312).
+    pub local_bounds: Vec<Option<(i128, i128)>>,
     /// What fills each source of the struct or union being built, from the type it goes into (D171).
     pub expected_fills: Option<Vec<(String, String)>>,
     /// What fills each source of the function's result, for its `return` (D171).
@@ -246,6 +248,13 @@ impl Body {
 
     /// Declares a variable in the innermost scope, giving its index.
     pub fn declare(&mut self, variable: Variable, state: State) -> usize {
+        // Every value given to a bounded variable is checked against its bounds, so they hold wherever it's read,
+        // which the ranges pass builds on (D312).
+        if let Type::Integer { bounds: Some(bounds), .. } = &variable.value_type
+            && let Some(slot) = self.local_bounds.get_mut(variable.local)
+        {
+            *slot = Some((bounds.min, bounds.max));
+        }
         let index = self.variables.len();
         if let Some(scope) = self.scopes.last_mut() {
             scope.push((variable.name.clone(), index));
@@ -256,6 +265,7 @@ impl Body {
     }
 
     pub fn new_local(&mut self, machine_type: checked::MachineType) -> checked::LocalId {
+        self.local_bounds.push(None);
         self.locals.push(machine_type);
         self.locals.len() - 1
     }
@@ -752,6 +762,7 @@ impl Checker<'_> {
             body: Vec::new(),
             sites: Vec::new(),
             template: false,
+            local_bounds: Vec::new(),
         });
         let mut top = self.top_of_body(function);
         // A label can carry its parameter's unit, as in `labels [$x as at.screen.pixels];` (D144).
@@ -853,6 +864,7 @@ impl Checker<'_> {
             target.locals = kept.locals;
             target.body = kept.body;
             target.sites = kept.sites;
+            target.local_bounds = kept.local_bounds;
             self.store = Some(store);
             return;
         }
@@ -963,6 +975,7 @@ impl Checker<'_> {
             target.locals = body.locals;
             target.body = statements;
             target.sites = body.sites;
+            target.local_bounds = body.local_bounds;
         }
     }
 

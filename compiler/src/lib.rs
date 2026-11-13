@@ -14,6 +14,7 @@ pub mod flow;
 pub mod lexer;
 pub mod manifest;
 pub mod parser;
+pub mod ranges;
 pub mod source;
 pub mod spacing;
 pub mod syntax;

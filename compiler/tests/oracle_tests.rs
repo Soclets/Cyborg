@@ -48,6 +48,15 @@ fn all_tests() -> Vec<Test> {
     tests
 }
 
+/// The build mode the tests run in: `Working --opt=O0`, as the oracle's tests expect, or what `OKAY_TEST_MODE` says,
+/// as in `--FinalSafe`, to see that dropping proven checks changes no answer.
+fn mode_flags() -> Vec<String> {
+    match std::env::var("OKAY_TEST_MODE") {
+        Ok(flags) => flags.split_whitespace().map(str::to_string).collect(),
+        Err(_) => vec!["--Working".to_string(), "--opt=O0".to_string()],
+    }
+}
+
 /// Runs one test, giving what differs if it fails.
 fn run(test: &Test) -> Result<(), String> {
     let stem = test.program.trim_end_matches(".cy");
@@ -61,7 +70,9 @@ fn run(test: &Test) -> Result<(), String> {
     };
     let output = Command::new(env!("CARGO_BIN_EXE_okay"))
         // One core each, since three tests run at once and the compiler session has three (rule 9).
-        .args(["run", "--Working", "--opt=O0", "--max_cores=1", &test.program])
+        .args(["run"])
+        .args(mode_flags())
+        .args(["--max_cores=1", &test.program])
         .env("OKAY_CACHE", Path::new(env!("CARGO_TARGET_TMPDIR")).join("cache"))
         .current_dir(&test.folder)
         .output()

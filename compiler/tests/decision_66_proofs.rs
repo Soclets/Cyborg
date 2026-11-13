@@ -21,7 +21,7 @@ fn verus() -> PathBuf {
 }
 
 /// Each file of proven checks.
-const CHECKS: [&str; 1] = ["src/flow/checks.rs"];
+const CHECKS: [&str; 2] = ["src/flow/checks.rs", "src/ranges/checks.rs"];
 
 fn source(file: &str) -> String {
     std::fs::read_to_string(Path::new(env!("CARGO_MANIFEST_DIR")).join(file)).expect("reading the checks")

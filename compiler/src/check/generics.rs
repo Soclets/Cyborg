@@ -554,6 +554,7 @@ impl Checker<'_> {
             body: Vec::new(),
             sites: Vec::new(),
             template: false,
+            local_bounds: Vec::new(),
         });
         signature.id = id;
         self.generics.instances.insert(key, id);

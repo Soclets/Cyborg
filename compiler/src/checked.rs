@@ -70,6 +70,9 @@ pub struct Function {
     /// A generic's own body, which is only checked: each call builds a copy with real types (D235).
     #[serde(default)]
     pub template: bool,
+    /// Each local's bounds, if it's a bounded integer, which hold wherever it's read (D312).
+    #[serde(default)]
+    pub local_bounds: Vec<Option<(i128, i128)>>,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]

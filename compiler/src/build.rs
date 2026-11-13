@@ -61,9 +61,10 @@ pub fn build(file: &Path, target: Target, mode: Mode, cores: usize, output: &Pat
     if !errors.is_empty() {
         return Outcome::Refused(render_all(&errors, &sources));
     }
-    let Some(program) = program else {
+    let Some(mut program) = program else {
         return Outcome::Failed("the checker gave no program and no error".to_string());
     };
+    proven(&mut program, mode);
     let objects = match objects(&program, target, mode, cores) {
         Ok(objects) => objects,
         Err(message) => return Outcome::Failed(message),
@@ -209,6 +210,13 @@ fn panic_message(panic: &(dyn std::any::Any + Send)) -> String {
         .unwrap_or_else(|| "a panic while making machine code".to_string())
 }
 
+/// Drops the checks that can't fail, in every mode but `Working`, which keeps them all (D280, D312).
+fn proven(program: &mut crate::checked::Program, mode: Mode) {
+    if !matches!(mode, Mode::Working(_)) {
+        crate::ranges::drop_proven(program);
+    }
+}
+
 /// Checks the program in `file` against its manifest, giving the checked program or every error, rendered.
 ///
 /// # Errors
@@ -246,7 +254,10 @@ pub fn checked_incrementally(
     }
     errors.extend(program_errors);
     let result = match program {
-        Some(program) if errors.is_empty() => Ok(program),
+        Some(mut program) if errors.is_empty() => {
+            proven(&mut program, mode);
+            Ok(program)
+        }
         _ => Err(render_all(&errors, &sources)),
     };
     (result, stats)
