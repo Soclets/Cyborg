@@ -53,7 +53,7 @@ In `std`, the first argument, the thing being worked on, stays bare, and every o
 
 ## 5.3 `return`
 
-**Rule:** `return` hands back a value, and every function ends with one, so every `void` function, `main` included, ends with `return void;`. Leaving a `void` function before its end is `return early;`, and a function that can do that says so in its header, `-> void/early`, where `/` lists the ways it returns.
+**Rule:** `return` hands back a value, and every path through a function ends in one. `return void;` is a `void` function's normal finish, `main` included, allowed wherever nothing else can run after it, so it can end an `else` path. Leaving before the work is done is `return early;`, and a function that can do that says so in its header, `-> void/early`, where `/` lists the ways it returns. `end fn` only closes the syntax.
 
 ```
 fn greet [$out: Lent.mut os::stdout.buffered, $name: str] -> void/early:
@@ -61,16 +61,16 @@ fn greet [$out: Lent.mut os::stdout.buffered, $name: str] -> void/early:
         return early;
     else:
         std::io::fmt_print(Lend.mut $out, "Hi {$name}{newln}") ?? void;
+        return void;
     end if
-    return void;
 end fn greet
 ```
 
 Whether a function with a result can leave early isn't decided.
 
-**Refused:** `return early;` in a plain `-> void` function, with `fix: -> void/early`, and `return void;` anywhere but the end, with `fix: return early;`.
+**Refused:** `return early;` in a plain `-> void` function, with `fix: -> void/early`, a path that ends without a `return`, and a `return void;` with more code still to run after it, with `fix: return early;`.
 
-**From:** D11, D393, D427, the sketch.
+**From:** D11, D393, D427, D431, the sketch.
 
 ## 5.4 The top of the body
 

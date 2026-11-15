@@ -42,8 +42,8 @@ if $name.len == 0 bytes:
     return early;
 else:
     std::io::fmt_print(Lend.mut $out, "Hi {$name}{newln}") ?? void;
+    return void;
 end if
-return void;
 ```
 
 **Refused:** code after `end if` when the `if` block always leaves and has no `else:`, with a fix moving it into `else:`.
