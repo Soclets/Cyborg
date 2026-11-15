@@ -142,7 +142,7 @@ These are inherited from Radium with D2:
 ## 12.9 Limbs and projects
 
 - Modules, beyond D412 to D415: importing one thing from another file (D198).
-- The manifest (D228): what features are, the lockfile, and per-target settings. The word `same` in versions (D231).
+- The manifest (D436): how `rule` lines and a need's features are written in SIML, whether its block and key names are final, the lockfile, and per-target settings.
 - How the manifest says which compiler a package's limb half works with.
 - Whether the mark goes only at the path's start.
 - Whether other limbs have a kit part like `std`.

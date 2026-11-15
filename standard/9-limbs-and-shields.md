@@ -35,24 +35,29 @@ The manifest lists packages. `std` is a package with both halves, and works anyw
 
 Packages are installed with CyJet, Cyborg's package manager, which shares only its name with CyborgPL's.
 
-The manifest, `CyJet.siml`, has one line per fact:
+The manifest, `CyJet.siml`, follows the SIML standard (Soclets/SIML): named blocks closed by `end`, `key = value`, text in quotes, Cyborg's own words bare, lists in `[ ]`, and `( )` comments. SIML only knows that shape, and Cyborg decides the blocks and keys:
 
 ```
-name weather
-ver 2026y-11m-14d same
-dialect original 2026y-11m-01d
+package:
+    name = "weather"
+    version = "2026y-11m-14d"
+    breaks = no                    (yes if this release breaks anything)
+    dialect = original
+    dialect_version = "2026y-11m-01d"
+end package
 
-need std 2026y-11m-01d
-need os 2026y-11m-01d
-need json 2026y-10m-20d
-need csup 2026y-09m-30d with headers
+needs:
+    std = "2026y-11m-01d"
+    os = "2026y-11m-01d"
+    json = "2026y-10m-20d"
+end needs
 ```
 
-`name` and `ver` are the project's own. A version is a labelled date, biggest first, and a release says whether it `breaks` anything or stays the `same`, a placeholder word. CyJet checks that flag against what changed in the `pub` items. A `need` line names a date, and CyJet may update it to any later release up to the next one that breaks. A second release on one day adds a counter, as in `2026y-11m-14d.2`. `dialect` says which compiler builds the project, and which version of it: `dialect original 2026y-11m-01d` is plain Cyborg, built by `okay` at that version, and any other name is a Dialect, a compiler forked from `OKAY\n` that CyJet loads from its registry, and which needn't follow any of Cyborg's rules. Every manifest has a `dialect` line, and `original` is reserved, so no Dialect can take it. A `dialect original` project can't use a package written in a Dialect, and CyJet stops it when installing, since that code needs another compiler and none of Cyborg's checks cover it. Whether a Dialect project can use plain Cyborg packages is up to the Dialect. Each package it uses has a `need` line with its version, and `with` adds features. A value is quoted only when it needs to be, and `//` starts a comment, as in Cyborg code.
+`name` and `version` are the project's own. A version is a labelled date, biggest first, and a release says whether it `breaks` anything, `yes` or `no`. CyJet checks that flag against what changed in the `pub` items. A need names a date, and CyJet may update it to any later release up to the next one that breaks. A second release on one day adds a counter, as in `2026y-11m-14d.2`. `dialect` and `dialect_version` say which compiler builds the project, and which version of it: `dialect = original` is plain Cyborg, built by `okay` at that version, and any other name is a Dialect, a compiler forked from `OKAY\n` that CyJet loads from its registry, and which needn't follow any of Cyborg's rules. Every manifest names its `dialect`, and `original` is reserved, so no Dialect can take it. A `dialect original` project can't use a package written in a Dialect, and CyJet stops it when installing, since that code needs another compiler and none of Cyborg's checks cover it. Whether a Dialect project can use plain Cyborg packages is up to the Dialect. Each package it uses has a `need` line with its version, and `with` adds features. A value is quoted only when it needs to be, and `//` starts a comment, as in Cyborg code.
 
-**Refused:** a manifest with no `dialect` line, with `fix: dialect original`; an `okay` line, with `fix: dialect original` and its version; a Dialect named `original`; a `dialect original` project needing a package written in a Dialect; a line like Go's `package main`, a `need` line with no version, and a release that changes or removes a `pub` item while saying it doesn't break.
+**Refused:** a manifest with no `dialect`, with `fix: dialect = original`; an `okay` key, with `fix: dialect = original` and its version; the old line-per-fact layout, with the SIML form as the fix; a Dialect named `original`; a `dialect original` project needing a package written in a Dialect; a line like Go's `package main`, a need with no version, and a release that changes or removes a `pub` item while saying it doesn't break.
 
-**From:** D22, D28, D36, D56, D186, D189, D190, D228, D229, D230, D231, D271, D309, D310, D311.
+**From:** D22, D28, D36, D56, D186, D189, D190, D228, D229, D230, D231, D271, D309, D310, D311, D436.
 
 ## 9.2 `@`: a limb
 

@@ -1379,6 +1379,23 @@ The CPU is written with Cyborg's spelling, `apple_m5`, not LLVM's `apple-m5`, an
 
 **D435. Compile-time limits have a written minimum, and a project can raise them with a `rule` line.** Reading deeply nested code uses the compiler's own stack, so "the hardware's limit" would be wherever a given machine's compiler ran out, which differs between machines and would make the same program build on one and fail on another. So the standard sets a minimum every compiler must handle for each compile-time limit, like nesting depth, call depth while baking and compile-time steps, and anything past it may be refused, always with a clean error, never a crash (rule 6). A project that needs more raises a limit in its manifest, as in `rule nesting.max 10000` (D265), so every build of it reads the same setting and stays reproducible, and the compiler meets it, as by giving its own work more stack, or refuses cleanly, naming the rule. The minimum's numbers and the rules' names are not settled here; the oracle's own limits in 12 stay its own until they are. The owner asked "What happens if you stack lists a bajillions times?", "Why is there a limit? Shouldn't it just be the hardware's?" and "Shouldn't there be a way to go past the limit?"; Claude proposed this; the owner chose: "yup". (Owner, 2026-11-15)
 
+**D436. `CyJet.siml` follows the SIML standard: blocks, `key = value`, `( )` comments.** SIML is now its own format, specified at Soclets/SIML, where its D2 replaced the line-per-fact first version Cyborg made (D228, D230), so Cyborg's manifest moves to it: named blocks closed by `end`, `key = value`, text always quoted, host words bare, lists in `[ ]`, and `( )` comments. SIML only knows that shape, and Cyborg, its host, decides the blocks and keys:
+
+    package:
+        name = "weather"
+        version = "2026y-11m-14d"
+        breaks = no
+        dialect = original
+        dialect_version = "2026y-11m-01d"
+    end package
+
+    needs:
+        std = "2026y-11m-01d"
+        os = "2026y-11m-01d"
+    end needs
+
+A version is still D231's labelled date, and `breaks` takes `yes` or `no`, replacing the placeholder `same`. D309's rule holds: every manifest names its dialect, and `original` is reserved. This replaces D228's layout and D230's `//` comments; the name `CyJet.siml` stays (D229). Not settled here: how `rule` lines (D265, D435) are written, since SIML keys can't hold the dots and paths rule names have, how a need's features are written, and whether these block and key names are final. The owner pointed to the SIML repo; Claude compared the two and sketched a manifest; the owner chose: "yes". (Owner, 2026-11-15)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude
