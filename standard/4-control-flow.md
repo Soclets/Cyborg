@@ -152,11 +152,17 @@ When the numbers are only known while running, a range that can't reach its end 
 
 `step_by:` takes a literal or any integer, and doesn't have to match the range's type, so `range[from: $xs.len, to: 1, step_by: -1]` counts down a length.
 
+`.%sum()` adds a range up, and lists and arrays have it too, as `$xs.std::coll::list.%sum()`. It's checked like `+`, adds in order, and gives 0 when empty:
+
+```
+let $total: i32 = range[from: 1, to: 3].%sum();
+```
+
 **Refused:** a literal range that can never reach its end, as in `range[from: 5, to: 1]`, and labels out of order.
 
 Inside the loop, the compiler knows the value is within its range, and skips any check it can see will pass, such as `$xs[pos: $i]` when going up to `$xs.len`. If the loop could make that untrue, the check stays.
 
-**From:** D128, D142, D145, D146, D147.
+**From:** D128, D142, D145, D146, D147, D433.
 
 ## 4.6 `while`
 
