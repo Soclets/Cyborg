@@ -59,8 +59,9 @@ In `std`, the first argument, the thing being worked on, stays bare, and every o
 fn greet [$out: Lent.mut os::stdout.buffered, $name: str] -> void/early:
     if $name.len == 0 bytes:
         return early;
+    else:
+        std::io::fmt_print(Lend.mut $out, "Hi {$name}{newln}") ?? void;
     end if
-    std::io::fmt_print(Lend.mut $out, "Hi {$name}{newln}") ?? void;
     return void;
 end fn greet
 ```

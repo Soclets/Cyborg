@@ -1367,6 +1367,8 @@ The CPU is written with Cyborg's spelling, `apple_m5`, not LLVM's `apple-m5`, an
 
 **D429. `==` is refused on strings: a comparison says how it compares.** Two strings can look the same and differ in bytes, as "é" written as one code point or as "e" plus an accent, so there's no single right answer for "equal", as with integer `div` (D48). `==` and `!=` on a `str` are refused, and comparing is a named call that says how, as in comparing `by: bytes`, exactly, or as text, Unicode-normalized; its spelling is a placeholder. Checking for no text is `$name.len == 0 bytes`, which compares a number. This settles 12's "`==` on `str`". The owner asked whether `==` on strings is good, given UTF-8, UTF-16, graphemes, bytes and code points, and whether it should be a function; Claude proposed refusing it; the owner chose: "refused". (Owner, 2026-11-15)
 
+**D430. Code after an `if` that leaves goes in its `else`.** When an `if` block always leaves, by `return early;`, `return`, `break` or `fail`, the code that runs otherwise is written in that `if`'s `else:`, not after `end if`, so the two paths read as alternatives and nothing below an exit looks like it always runs. Code after `end if` there is refused, with a fix moving it into `else:`. It costs nothing at run time: both shapes are one test and one jump, and compile to the same machine code. This rules out guard clauses, at the cost of indenting the main work. Claude showed a guard clause with `return early;`; the owner said it "looks like it would do two things", asked "Would it cost perf, though?", and chose: "Ah, enforce (rhymes with zero cost)". (Owner, 2026-11-15)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude
