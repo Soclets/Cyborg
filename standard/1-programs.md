@@ -7,7 +7,7 @@
 | [1.3](#13-blocks-and-statements) | `:`, `;`, `end` | How code is laid out |
 | [1.4](#14-names-and-) | `$` | Variables have it, fields don't |
 | [1.5](#15-paths-) | `::` | How you reach a kit or limb |
-| [1.11](#111-short-names-use) | `use … as …;` | A shorter name for a path |
+| [1.11](#111-short-names-use) | `use …;`, `use … as …;` | A shorter name for a path |
 | [1.12](#112-comments) | `//`, `///`, `comment` | Notes and documentation |
 | [1.13](#113-printing-stdiofmt_print) | `std::io::fmt_print` | The one print, a format print |
 | [1.14](#114-spacing) | Spaces | Part of the syntax |
@@ -32,7 +32,7 @@ module hello;
 
 import std;
 import os;
-use std::io::fmt_print as fmt_print;
+use std::io::fmt_print;
 
 fn.main [none] -> void:
     let mut $out: os::stdout.buffered = os::stdout.buffered(room: 1024 bytes);
@@ -203,43 +203,42 @@ If Cyborg later adds a built-in with the same name, old code gets a compile erro
 
 ## 1.11 Short names: `use`
 
-**Rule:** `use` gives a path into a kit or limb a shorter name for that file, and `as` is always written. Anything in the base language, like `inline.asm`, has no path to shorten, so `use` refuses it. Your own package's path is `my::`, so `use my::temperature.celsius as celsius;` shortens a unit, type or function you declared. An unquoted name has to match the last word of the path, so it can't lie. A quoted name is your own choice, and the quotes only appear on this line.
+**Rule:** `use` gives a path into a kit or limb a shorter name for that file. With no `as`, the short name is the path's last word, so it can't lie. `as name` gives your own name, a visible rename on the `use` line. Anything in the base language, like `inline.asm`, has no path to shorten, so `use` refuses it.
 
 ```
-use std::units::time.seconds as seconds;
-use std::io::fmt_print as "say";
+use std::units::time.seconds;
+use std::io::fmt_print as say;
 
 let $a: i32[unit: seconds] = 3600 seconds;
 say(Lend.mut $out, "hi{newln}");
 ```
 
-A limb works the same way: `use @money::round as round;`, then `round.half_even($x)`, or a quoted name.
+A function's narrowings come with it, so shorten the function and write the narrowing after it. A unit family works the same way, while one unit can still be shortened alone:
+
+```
+use std::io::fmt_print;
+use std::units::time;
+
+fmt_print.stored(Lend.mut $out, "{}{newln}", $x);
+let $t: i32[unit: time.minutes] = 5 time.minutes;
+```
+
+A limb works the same way: `use @money::round;`, then `round.half_even($x)`. A limb's short name has no `@`, since a bare `@name` is a builtin.
 
 A kit method works the same way, with its type in the path and its `%` kept:
 
 ```
-use std::coll::list.%%append as %%append;
+use std::coll::list.%%append;
+use std::coll::list.%%append as %%push;
 
 $xs.%%append(val: 4);
 ```
 
-A method of your own with the same name on the same type in that file clashes, and is refused. A quoted name keeps the `%` or `%%` outside the quotes, as in `use std::coll::list.%%append as %%"push";`. A limb's short name has no `@`, since a bare `@name` is a builtin.
+A method of your own with the same name on the same type in that file clashes, and is refused.
 
-A function's narrowing can't be shortened to its bare name, since `stored(…)` alone reads like something else. Shorten the function, and write the narrowing after it, or use a quoted name:
+**Refused:** `use` on a function's narrowing, as in `use std::io::fmt_print.stored;`, with `fix: use std::io::fmt_print;`; `as %append` for a `%%` method, which drops a `%`; `use @money::round as @round;`, because `@round` looks like a builtin; a quoted name, as in `as "say"`, with `fix: as say`; and a short name that's a keyword.
 
-```
-use std::io::fmt_print as fmt_print;
-use std::io::fmt_print.stored as "print_exact";
-
-fmt_print.stored(Lend.mut $out, "{}{newln}", $x);
-print_exact("{}{newln}", $x);
-```
-
-Units keep the matching name, as in `use std::units::time.seconds as seconds;`.
-
-**Refused:** `use std::io::fmt_print.stored as stored;`, with `fix: use std::io::fmt_print as fmt_print;`, `use std::coll::list.%%append as "push";` and `as "%%push"`, with `fix: as %%"push"`, `as %append`, which drops a `%`, `use std::units::time.seconds as minutes;`, `use @money::round as @round;`, because `@round` looks like a builtin, and a quoted name nothing could use, like `"my say"`, `""` or `"fn"`.
-
-**From:** D93, D150, D151, D155, D178, D179, D220, D225, D232, D248.
+**From:** D93, D150, D151, D155, D178, D179, D220, D225, D232, D248, D432.
 
 ## 1.12 Comments
 
@@ -285,7 +284,7 @@ With `$name` as `"rope"`, `$count` as `3`, `$price` as an `f64.stable` holding `
 - **Shapes are words:** `align: left`, `right` or `center`; `width:` with its unit, `cols`, `cols.east_asian`, `graphemes`, `points` or `bytes`; `places:`; `base: bin`, `oct`, `hex` or `hex.upper`; `form: science`; and bare `zeros` and `sign`.
 - **Escapes in the text:** `\\`, `\"`, `\'`, `\r`, `\0`, `\xHH`, `\uHHHH`, `\UHHHHHHHH`, and `\{` and `\}` for a brace.
 - **Too wide:** a value wider than its width prints whole.
-- **`unit`:** prints the value and its unit, the way its own file writes it, so with `use std::units::time.seconds as seconds;`, `{unit}` prints `3600 seconds`. The package path is left off.
+- **`unit`:** prints the value and its unit, the way its own file writes it, so with `use std::units::time.seconds;`, `{unit}` prints `3600 seconds`. The package path is left off.
 - **`.stored`:** prints every float exactly as it's stored.
 
 A literal format is checked when building.

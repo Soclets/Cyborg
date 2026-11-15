@@ -214,7 +214,7 @@ load(Lend $log);
 
 ## 2.10 Lists
 
-**Rule:** a list, `std::coll::list`, holds its element type in `< >`, and always writes its `len.max`, with `inf` for unbounded. It can also have a `len.min`. An empty list always writes `= std::coll::list.empty`, since `empty` always says what's empty, everywhere; a long one is shortened with `use`, as in `use std::coll::list as list;` and `list.empty`. A bare `empty` is refused, with a fix naming the type.
+**Rule:** a list, `std::coll::list`, holds its element type in `< >`, and always writes its `len.max`, with `inf` for unbounded. It can also have a `len.min`. An empty list always writes `= std::coll::list.empty`, since `empty` always says what's empty, everywhere; a long one is shortened with `use`, as in `use std::coll::list;` and `list.empty`. A bare `empty` is refused, with a fix naming the type.
 
 ```
 let mut $xs: std::coll::list<i32>[len.max: inf items] = std::coll::list.empty;
@@ -373,7 +373,7 @@ let $a: i32[unit: time.seconds] = 3600 time.seconds;
 let $b: i32[unit: time.seconds] = 5 time.seconds;
 let $c: i32[unit: time.seconds] = $a + $b;
 
-use std::units::time.seconds as seconds;
+use std::units::time.seconds;
 let $d: i32[unit: seconds] = 3600 seconds;
 ```
 
@@ -448,8 +448,8 @@ let $accel: f64.stable[unit: motion.accel] = $speed div $time;
 `std` has an `angle` family, with radians as the base, degrees and turns:
 
 ```
-use std::units::angle.degrees as degrees;
-use std::units::angle.radians as radians;
+use std::units::angle.degrees;
+use std::units::angle.radians;
 
 let $a: f64.stable[unit: degrees] = 90.0 degrees;
 let $s: f64.stable = std::math::sin($a as f64.stable[unit: radians]);
@@ -477,7 +477,7 @@ fam.unit temperature:
     temperature.celsius = temperature.kelvin offset ~-273.15;
 end fam.unit temperature
 
-use my::temperature.celsius as celsius;
+use my::temperature.celsius;
 
 let $now: f64.stable[unit: celsius.point] = 20.0 celsius;
 let $rise: f64.stable[unit: celsius.span] = 10.0 celsius;

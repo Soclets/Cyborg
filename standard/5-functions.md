@@ -119,7 +119,7 @@ Contracts can only call pure functions ([5.9](#59-pure-functions)), so turning c
 ```
 $xs.std::coll::list.%%append(val: 4);
 
-use std::coll::list.%%append as %%append;
+use std::coll::list.%%append;
 $xs.%%append(val: 4);
 ```
 
