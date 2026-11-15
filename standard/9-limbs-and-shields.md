@@ -35,7 +35,7 @@ The manifest lists packages. `std` is a package with both halves, and works anyw
 
 Packages are installed with CyJet, Cyborg's package manager, which shares only its name with CyborgPL's.
 
-The manifest, `CyJet.siml`, follows the SIML standard (Soclets/SIML): named blocks closed by `end`, `key = value`, text in quotes, Cyborg's own words bare, lists in `[ ]`, and `( )` comments. SIML only knows that shape, and Cyborg decides the blocks and keys:
+The manifest is `CyJet.sixl`, in Cyborg's own format, `.sixl`, whose design is for later (D437). Until then, this placeholder follows the SIML standard (Soclets/SIML): named blocks closed by `end`, `key = value`, text in quotes, Cyborg's own words bare, lists in `[ ]`, and `( )` comments. SIML only knows that shape, and Cyborg decides the blocks and keys:
 
 ```
 package:

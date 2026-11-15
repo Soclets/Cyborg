@@ -1396,6 +1396,8 @@ The CPU is written with Cyborg's spelling, `apple_m5`, not LLVM's `apple-m5`, an
 
 A version is still D231's labelled date, and `breaks` takes `yes` or `no`, replacing the placeholder `same`. D309's rule holds: every manifest names its dialect, and `original` is reserved. This replaces D228's layout and D230's `//` comments; the name `CyJet.siml` stays (D229). Not settled here: how `rule` lines (D265, D435) are written, since SIML keys can't hold the dots and paths rule names have, how a need's features are written, and whether these block and key names are final. The owner pointed to the SIML repo; Claude compared the two and sketched a manifest; the owner chose: "yes". (Owner, 2026-11-15)
 
+**D437. Cyborg's manifest gets its own format, `.sixl`.** Cyborg makes its own format instead of following the SIML standard, with the extension `.sixl`, said "Sixal" or letter by letter, s-i-x-l, so the manifest is `CyJet.sixl`, which is Claude's reading of the file's name. Its design is for later, and until then D436's SIML form in the standard stands as a placeholder. This replaces D436's move to SIML, and D229's `.siml`. The owner said "Hm, actually? Let's make our own, `.sixl` (Sixal, or s-i-x-l). Design's for later". (Owner, 2026-11-15)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude
