@@ -1398,6 +1398,24 @@ A version is still D231's labelled date, and `breaks` takes `yes` or `no`, repla
 
 **D437. Cyborg's manifest gets its own format, `.sixl`.** Cyborg makes its own format instead of following the SIML standard, with the extension `.sixl`, said "Sixal" or letter by letter, s-i-x-l, so the manifest is `CyJet.sixl`, which is Claude's reading of the file's name. Its design is for later, and until then D436's SIML form in the standard stands as a placeholder. This replaces D436's move to SIML, and D229's `.siml`. The owner said "Hm, actually? Let's make our own, `.sixl` (Sixal, or s-i-x-l). Design's for later". (Owner, 2026-11-15)
 
+**D438. `.sixl` is TOML, plus `file` blocks that add lines to source files.** A `.sixl` file is TOML, with its `[tables]`, `key = value` and `#` comments, plus one thing TOML doesn't have: a `file` block holding lines of Cyborg that are added to a source file, so a `use` or `import` can be written once in the manifest. `file net::http:` names one file by its module (D415), so the block keeps working when the file is moved or renamed on disk, and `file.every:` adds its lines to every file in the package, a narrowing on `file` (D400):
+
+    [package]
+    name = "weather"
+    version = "2026y-11m-14d"
+
+    # lines added to one file
+    file net::http:
+    use std::io::fmt_print;
+    end file net::http
+
+    # lines added to every file
+    file.every:
+    import std;
+    end file.every
+
+The lines go at the top of the file, after its `module` line and before its own lines, so 1.5's imports-at-the-top still holds, and closers repeat what they close, as Cyborg's do (D121); both are Claude's reading. This settles D437's design in outline. Not settled here: which TOML tables and keys a manifest has, how `rule` lines and features are written, what kinds of lines a `file` block may hold, and whether a file block naming a module that doesn't exist is refused. The owner sketched `file:` … `use std::io::fmt_print;` … `end file` with "others are TOML", said "you name the file too. And if you want every file it hosts, say `file.every`"; Claude proposed naming by module; the owner chose: "yes". (Owner, 2026-11-15)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude
