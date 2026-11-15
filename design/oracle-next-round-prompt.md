@@ -10,7 +10,7 @@ before changing it (rule 11 in `IMPLEMENTATION.md`).
 You've been idle since the generator was finished. Since then, compiler
 claude has nearly caught up: about 1571 of tests/'s 1719 pass on OKAY\n,
 and it's building everything up to D416 from the standard. Tankun has also
-made D403 to D432, which you haven't built yet, and the compiler found a
+made D403 to D434, which you haven't built yet, and the compiler found a
 few things in tests/ that need fixing. This round brings the oracle and
 tests/ up to date, so the live comparison can start finding real compiler
 bugs once both sides agree on what Cyborg is.
@@ -24,7 +24,7 @@ agreed, so it doesn't need asking again.
 </context>
 
 <work>
-Read DECISIONS.md from D403 to D432 and the standard sections they point
+Read DECISIONS.md from D403 to D434 and the standard sections they point
 to first. Then, in this order, committing in small steps:
 
 1. The fixes compiler claude found, all agreed with design claude:
@@ -67,7 +67,10 @@ to first. Then, in this order, committing in small steps:
    `return void;` ending a path; `str.empty` and other typed empties, with
    a bare `empty` refused; `==` refused on strings; code after an `if`
    that leaves goes in its `else`; and `use path;` with no `as`, `as name`
-   for a rename, and no quoted names. These respell many tests.
+   for a rename, and no quoted names; D433's `.%sum()`; and D434, every
+   failure handled, with `?? crash` for crashing on purpose, which means
+   nearly every test's unhandled print gets a handler. These respell many
+   tests.
    D423 respells kit method calls to their full path, as in
    `$xs.std::coll::list.%%append(…)`, in about 52 tests.
 3. D416, `.%viewed_as(item.type:)`, with tests that read a
