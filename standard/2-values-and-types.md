@@ -175,7 +175,7 @@ let $avogadro: f64.stable = exponent ~6.02214076e23;
 
 **Rule:** a bare `str` means UTF-8. Other encodings are narrowings, such as `str.utf16`.
 
-An empty string is `str.empty`: `empty` always says what's empty ([2.10](#210-lists)).
+An empty string is `str.empty`: `empty` always says what's empty ([2.10](#210-lists)). `==` and `!=` are refused on strings, since two strings can look the same and differ in bytes: a comparison is a named call that says how, by bytes or as text, whose spelling isn't decided, and checking for no text is `$s.len == 0 bytes`.
 
 ```
 let $a: str = "hi";
