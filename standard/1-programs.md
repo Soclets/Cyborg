@@ -36,7 +36,7 @@ use std::io::fmt_print;
 
 fn.main [none] -> void:
     let mut $out: os::stdout.buffered = os::stdout.buffered(room: 1024 bytes);
-    fmt_print(Lend.mut $out, "Hello, World!{newln}");
+    fmt_print(Lend.mut $out, "Hello, World!{newln}") ?? crash;
     os::done(Give $out);
     return void;
 end fn.main
@@ -70,7 +70,7 @@ end if
 
 ```
 let $r: reading = reading[celsius = 21, time = 3600 std::units::time.seconds];
-std::io::fmt_print(Lend.mut $out, "{}{newln}", $r.celsius);
+std::io::fmt_print(Lend.mut $out, "{}{newln}", $r.celsius) ?? crash;
 ```
 
 **From:** D57, D58, the sketch.
@@ -83,7 +83,7 @@ std::io::fmt_print(Lend.mut $out, "{}{newln}", $r.celsius);
 import std;
 import @csup;
 
-std::io::fmt_print(Lend.mut $out, "hi{newln}");
+std::io::fmt_print(Lend.mut $out, "hi{newln}") ?? crash;
 ```
 
 A file imports the half of a package it uses: `import std;` for `std::`, and `import @std;` for `@std::`. `import pkg std;` brings in both.
@@ -142,7 +142,7 @@ A default the language or `std` fixes can't be written out. In a collection you 
 
 ```
 let $a: str = "hi";
-std::io::fmt_print(Lend.mut $out, "hi{newln}");
+std::io::fmt_print(Lend.mut $out, "hi{newln}") ?? crash;
 7 div.trunc 2
 ```
 
@@ -219,7 +219,7 @@ A function's narrowings come with it, so shorten the function and write the narr
 use std::io::fmt_print;
 use std::units::time;
 
-fmt_print.stored(Lend.mut $out, "{}{newln}", $x);
+fmt_print.stored(Lend.mut $out, "{}{newln}", $x) ?? crash;
 let $t: i32[unit: time.minutes] = 5 time.minutes;
 ```
 
@@ -231,7 +231,7 @@ A kit method works the same way, with its type in the path and its `%` kept:
 use std::coll::list.%%append;
 use std::coll::list.%%append as %%push;
 
-$xs.%%append(val: 4);
+$xs.%%append(val: 4) ?? crash;
 ```
 
 A method of your own with the same name on the same type in that file clashes, and is refused.
@@ -270,11 +270,11 @@ end comment why_sorted
 **Rule:** `std` has one print, `std::io::fmt_print`, and it's always a format print. Its first argument is the writer, where the output goes. On a terminal, that's `os::stdout` or `os::stderr`, which must say whether they're `.buffered(room: 1024 bytes)`, writing in chunks, or `.unbuffered()`, writing each print straight away. A buffered writer is flushed with `$out.%%flush();` to push output now, and finished with `os::done(Give $out);`, without which the program doesn't compile. On bare metal, the writer is the board's port. Plain text is a format with no holes. A newline is `{newln}` and a tab is `{tab}`, inside the text.
 
 ```
-std::io::fmt_print(Lend.mut $out, "hi{newln}");
-std::io::fmt_print(Lend.mut $out, "{}: {} at ${places: 2}{newln}", $name, $count, $price);
-std::io::fmt_print(Lend.mut $out, "0x{base: hex.upper, zeros, width: 4 cols}{newln}", 255);
-std::io::fmt_print(Lend.mut $out, "[{align: right, width: 6 cols}] {form: science, places: 2}{newln}", 42, $price);
-std::io::fmt_print.stored(Lend.mut $out, "{}{newln}", $tenth);
+std::io::fmt_print(Lend.mut $out, "hi{newln}") ?? crash;
+std::io::fmt_print(Lend.mut $out, "{}: {} at ${places: 2}{newln}", $name, $count, $price) ?? crash;
+std::io::fmt_print(Lend.mut $out, "0x{base: hex.upper, zeros, width: 4 cols}{newln}", 255) ?? crash;
+std::io::fmt_print(Lend.mut $out, "[{align: right, width: 6 cols}] {form: science, places: 2}{newln}", 42, $price) ?? crash;
+std::io::fmt_print.stored(Lend.mut $out, "{}{newln}", $tenth) ?? crash;
 ```
 
 With `$name` as `"rope"`, `$count` as `3`, `$price` as an `f64.stable` holding `12.5`, and `$tenth` as an `f64.stable` holding `~0.1`, these print `hi`, `rope: 3 at $12.50`, `0x00FF`, `[    42] 1.25e1`, and `0.1000000000000000055511151231257827021181583404541015625`.
@@ -316,7 +316,7 @@ std::io::fmt_print(
     $name,
     $count,
     $price
-);
+) ?? crash;
 ```
 
 Indentation, line length, and the space before an opening `[` aren't decided ([12.1](12-not-decided.md#121-problems-found-writing-this)).

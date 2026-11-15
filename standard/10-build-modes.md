@@ -87,7 +87,7 @@ requires.only_in_working is_sorted(Lend $xs);
 | Division by zero | Crash | Crash | UB | UB | UB allowed | Crash |
 | A contract is false | Crash | See [10.3](#103-what-gets-checked) | UB | UB | UB allowed | See [10.3](#103-what-gets-checked) |
 | A float becomes NaN or infinity | Crash | Crash | UB | UB | UB allowed | Crash |
-| A failure nothing handles | Crash | Crash | Crash | UB | Crash | Crash |
+| A failure reaches `?? crash` | Crash | Crash | Crash | UB | Crash | Crash |
 | A compile-time safety rule is broken | Refused | Refused | Refused | UB | Refused | Refused |
 
 The `FinalPerf` entries follow from D14 having no checks there; the owner's answer was "you test your shit throughly first".

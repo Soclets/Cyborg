@@ -117,10 +117,10 @@ Contracts can only call pure functions ([5.9](#59-pure-functions)), so turning c
 **Rule:** a method is a function attached to a type, called on a receiver with `.%` when it lends the receiver read-only, or `.%%` when it lends it to change. A `.` never runs code, and a `.%` always does. A method from a kit says its full path, its family's path plus its name, because bare means base or your own, and a `use` shortens it ([1.11](1-programs.md#111-short-names-use)). A limb's has `@`.
 
 ```
-$xs.std::coll::list.%%append(val: 4);
+$xs.std::coll::list.%%append(val: 4) ?? crash;
 
 use std::coll::list.%%append;
-$xs.%%append(val: 4);
+$xs.%%append(val: 4) ?? crash;
 ```
 
 Methods only borrow, because `%` and `%%` stand only for `Lend` and `Lend.mut` ([6.8](6-ownership.md#68--and--lending-a-receiver)). Anything that consumes its value is a plain function: `close(Give $f)`.

@@ -97,7 +97,7 @@ end otherwise
 ```
 let $h: i32 = half($n) otherwise:
     case negative $f:
-        std::io::fmt_print(Lend.mut $out, "{}{newln}", $f.got);
+        std::io::fmt_print(Lend.mut $out, "{}{newln}", $f.got) ?? crash;
         instead 0;
 end otherwise
 ```
@@ -135,13 +135,13 @@ let $w: str = first_word(Lend $text) otherwise word_failed.*bail;
 
 **From:** D46, D128.
 
-## 8.9 Crash by default
+## 8.9 Every failure is handled
 
-**Rule:** a call that fails with nothing handling it stops the program loudly. You opt in to handling it. This covers every failure, including printing, a full list, running out of memory and a failed `as`.
+**Rule:** a call that can fail says what happens if it does. A call with no handling is refused, so how a failure is dealt with is always written. This covers every failure, including printing, a full list, running out of memory and a failed `as`.
 
 ```
-// crashes if it fails
-std::io::fmt_print(Lend.mut $out, "hi{newln}");
+// crashes, on purpose
+std::io::fmt_print(Lend.mut $out, "hi{newln}") ?? crash;
 
 // hands it to the caller
 std::io::fmt_print(Lend.mut $out, "hi{newln}")?;
@@ -152,10 +152,12 @@ std::io::fmt_print(Lend.mut $out, "hi{newln}") ?? void;
 // handles it
 std::io::fmt_print(Lend.mut $out, "hi{newln}") otherwise:
     case print_failed:
-        return void;
+        return early;
 end otherwise
 ```
 
-Before the crash message, every buffered writer still holding output is flushed, so the last thing printed before a crash usually shows. A writer that's locked or in the middle of an operation is skipped, since flushing it could deadlock or send out half-written bytes, and each flush has a time limit, so a full pipe can't hang the crash. The crash message names each writer it skipped or that timed out. How long the limit is isn't decided ([12.6](12-not-decided.md#126-failures)). A search for `?? void` finds every ignored failure. The crash stays in every mode except `FinalShit`, where it's UB ([10.7](10-build-modes.md#107-finalshit)). The linter can be stricter, such as requiring handling ([9.11](9-limbs-and-shields.md#911-the-linter)). `print_failed` is a placeholder.
+`?? crash` stops the program loudly, in every mode except `FinalShit`, where a failure is UB ([10.7](10-build-modes.md#107-finalshit)). Before the crash message, every buffered writer still holding output is flushed, so the last thing printed before a crash usually shows. A writer that's locked or in the middle of an operation is skipped, since flushing it could deadlock or send out half-written bytes, and each flush has a time limit, so a full pipe can't hang the crash. The crash message names each writer it skipped or that timed out. How long the limit is isn't decided ([12.6](12-not-decided.md#126-failures)). A search for `?? crash` finds every deliberate crash, and `?? void` every ignored failure.
 
-**From:** D95, D96, D107, D274, D408.
+**Refused:** a call that can fail, with no `?`, `??` or `otherwise:`.
+
+**From:** D95, D96, D107, D274, D408, D434.

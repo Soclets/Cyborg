@@ -127,7 +127,7 @@ A bare `str` is a read-only view, so copying one needs no word, like a plain num
 
 ```
 $p.%area();
-$xs.std::coll::list.%%append(val: 4);
+$xs.std::coll::list.%%append(val: 4) ?? crash;
 ```
 
 **Refused:** `total(%$xs)`, because `%` goes only on a method call, a `.%` on a method that changes its receiver, with `fix: .%%`, and a `.%%` on one that doesn't, with `fix: .%`. Methods can't give their receiver away: write `close(Give $f)`.
@@ -198,11 +198,11 @@ A stored borrow ends at its last use. `.held` makes it last until the end of its
 ```
 let mut $r: reading = reading[celsius = 21, time = 3600 std::units::time.seconds];
 let $view: Lend from $r reading = Lend $r;
-std::io::fmt_print(Lend.mut $out, "{}{newln}", $view.celsius);
+std::io::fmt_print(Lend.mut $out, "{}{newln}", $view.celsius) ?? crash;
 change $r.celsius = 22;
 
 let $lock: Lend.held from $r reading = Lend $r;
-std::io::fmt_print(Lend.mut $out, "{}{newln}", $lock.celsius);
+std::io::fmt_print(Lend.mut $out, "{}{newln}", $lock.celsius) ?? crash;
 ```
 
 The `change` is fine, because `$view` isn't used after the print. After `$lock`, nothing can change `$r` until the block ends. `Lend.mut.held` works the same way, and `held` is a placeholder name.

@@ -126,8 +126,8 @@ A float prints as the shortest text that means its value, and `std::io::fmt_prin
 
 ```
 let $x: f64.stable = ~0.1;
-std::io::fmt_print(Lend.mut $out, "{}{newln}", $x);
-std::io::fmt_print.stored(Lend.mut $out, "{}{newln}", $x);
+std::io::fmt_print(Lend.mut $out, "{}{newln}", $x) ?? crash;
+std::io::fmt_print.stored(Lend.mut $out, "{}{newln}", $x) ?? crash;
 ```
 
 The first prints `0.1`, and the second prints every digit, with no limit: `0.1000000000000000055511151231257827021181583404541015625`.
@@ -239,7 +239,7 @@ Allocation is explicit, as in Zig: anything that takes heap memory takes an allo
 ```
 let $alloc: os::heap = os::heap();
 let mut $xs: std::coll::list<i32>[len.max: inf items] = std::coll::list.empty;
-$xs.std::coll::list.%%append(val: 4, alloc: Lend $alloc);
+$xs.std::coll::list.%%append(val: 4, alloc: Lend $alloc) ?? crash;
 ```
 
 The list doesn't hold its allocator: every call that allocates is handed it, so a list is plain data with no borrow inside, and moves, returns and sits in structs like any other value. The list remembers which allocator it uses, as a small ID, and handing it a different one is a failed check, like a bounds check.
@@ -267,7 +267,7 @@ let mut $log: std::coll::list<line>[len.max: inf items, grow: exact] = std::coll
 ``` `kib` and `mib` are 1024 and 1024² `bytes`.
 
 ```
-let mut $arena: std::mem::arena = std::mem::arena.new(room: 1 mib, alloc: Lend $heap);
+let mut $arena: std::mem::arena = std::mem::arena.new(room: 1 mib, alloc: Lend $heap) ?? crash;
 defer std::mem::arena.done(Give $arena, alloc: Lend $heap);
 
 let mut $xs: std::coll::list<i32>[len.max: inf items] = std::coll::list.empty;
@@ -575,7 +575,7 @@ if $hot:
 else:
     assign $x = 2;
 end if
-std::io::fmt_print(Lend.mut $out, "{}{newln}", $x);
+std::io::fmt_print(Lend.mut $out, "{}{newln}", $x) ?? crash;
 ```
 
 It isn't uninitialized memory, since nothing can read it empty, so it needs no shield.
