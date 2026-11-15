@@ -142,7 +142,7 @@ These are inherited from Radium with D2:
 ## 12.9 Limbs and projects
 
 - Modules, beyond D412 to D415: importing one thing from another file (D198).
-- The manifest's `.sixl` format (D437, D438): which TOML tables and keys a manifest has, what a `file` block may hold, and a block naming a module that doesn't exist. From the SIML placeholder (D436): how `rule` lines and a need's features are written in SIML, whether its block and key names are final, the lockfile, and per-target settings.
+- The manifest's `.sixl` format (D437, D438): which TOML tables and keys a manifest has, and what a `file` block may hold. From the SIML placeholder (D436): how `rule` lines and a need's features are written in SIML, whether its block and key names are final, the lockfile, and per-target settings.
 - How the manifest says which compiler a package's limb half works with.
 - Whether the mark goes only at the path's start.
 - Whether other limbs have a kit part like `std`.

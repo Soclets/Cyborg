@@ -1416,6 +1416,8 @@ A version is still D231's labelled date, and `breaks` takes `yes` or `no`, repla
 
 The lines go at the top of the file, after its `module` line and before its own lines, so 1.5's imports-at-the-top still holds, and closers repeat what they close, as Cyborg's do (D121); both are Claude's reading. This settles D437's design in outline. Not settled here: which TOML tables and keys a manifest has, how `rule` lines and features are written, what kinds of lines a `file` block may hold, and whether a file block naming a module that doesn't exist is refused. The owner sketched `file:` … `use std::io::fmt_print;` … `end file` with "others are TOML", said "you name the file too. And if you want every file it hosts, say `file.every`"; Claude proposed naming by module; the owner chose: "yes". (Owner, 2026-11-15)
 
+**D439. A `file` block naming a module that doesn't exist is an error.** `file net::http:` in `CyJet.sixl` with no file whose `module` line says `net::http` is refused while building, so a renamed or deleted module can't leave lines silently going nowhere. This settles one of D438's open points. The owner answered Claude's question on it: "No, that's the answer. Error". (Owner, 2026-11-15)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude

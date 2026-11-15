@@ -48,7 +48,7 @@ use std::io::fmt_print;
 end file net::http
 ```
 
-Which TOML tables and keys a manifest has isn't decided yet. Until it is, this placeholder follows the SIML standard (Soclets/SIML): named blocks closed by `end`, `key = value`, text in quotes, Cyborg's own words bare, lists in `[ ]`, and `( )` comments. SIML only knows that shape, and Cyborg decides the blocks and keys:
+A `file` block naming a module no file declares is refused. Which TOML tables and keys a manifest has isn't decided yet. Until it is, this placeholder follows the SIML standard (Soclets/SIML): named blocks closed by `end`, `key = value`, text in quotes, Cyborg's own words bare, lists in `[ ]`, and `( )` comments. SIML only knows that shape, and Cyborg decides the blocks and keys:
 
 ```
 package:
@@ -70,7 +70,7 @@ end needs
 
 **Refused:** a manifest with no `dialect`, with `fix: dialect = original`; an `okay` key, with `fix: dialect = original` and its version; the old line-per-fact layout, with the SIML form as the fix; a Dialect named `original`; a `dialect original` project needing a package written in a Dialect; a line like Go's `package main`, a need with no version, and a release that changes or removes a `pub` item while saying it doesn't break.
 
-**From:** D22, D28, D36, D56, D186, D189, D190, D228, D229, D230, D231, D271, D309, D310, D311, D436, D437, D438.
+**From:** D22, D28, D36, D56, D186, D189, D190, D228, D229, D230, D231, D271, D309, D310, D311, D436, D437, D438, D439.
 
 ## 9.2 `@`: a limb
 
