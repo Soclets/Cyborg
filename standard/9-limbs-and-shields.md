@@ -301,7 +301,7 @@ pub.pkg fn parse [$text: Lent str] -> tree:
 
 ## 9.13 Rules: `rule`
 
-**Rule:** the rules the compiler and its linter hold code to are `rule` lines in `CyJet.siml`. They apply to every file in the project, and with no `rule` lines, the compiler's defaults apply. An exception for one file names the file:
+**Rule:** the rules the compiler and its linter hold code to are `rule` lines in `CyJet.siml`. They apply to every file in the project, and with no `rule` lines, the compiler's defaults apply. An exception for one file names the file: Since the manifest moved to SIML ([9.1](#91-base-kits-and-limbs), D436), how a rule is written there isn't decided: SIML keys can't hold the dots and paths rule names have, so the lines below show the old layout.
 
 ```
 name weather
