@@ -175,18 +175,18 @@ let $avogadro: f64.stable = exponent ~6.02214076e23;
 
 **Rule:** a bare `str` means UTF-8. Other encodings are narrowings, such as `str.utf16`.
 
-An empty string is `empty`.
+An empty string is `str.empty`: `empty` always says what's empty ([2.10](#210-lists)).
 
 ```
 let $a: str = "hi";
-let $b: str = empty;
+let $b: str = str.empty;
 ```
 
 A string's memory works like a list's ([2.10](#210-lists)), with a `len.max` in bytes, since UTF-8 characters vary in size. A finite `len.max` holds the bytes inside the value: no allocator, nothing to free, and too much text is a failure. `len.max: inf bytes` grows on the heap, takes an allocator on each call that grows it, and is `must_Give` ([6.9](6-ownership.md#69-must_give)). It ends with `str.done`, the word that ends every owner ([6.9](6-ownership.md#69-must_give)).
 
 ```
 let $name: str[len.max: 32 bytes] = "Tankun";
-let mut $log: str[len.max: inf bytes] = empty;
+let mut $log: str[len.max: inf bytes] = str.empty;
 defer str.done(Give $log, alloc: Lend $alloc);
 ```
 
@@ -208,17 +208,17 @@ load(Lend $log);
 | `str[len.max: 32 bytes]` | Yes, inside the value | Yes |
 | `str[len.max: inf bytes]` | Yes, on the heap, `must_Give` | Yes |
 
-**Refused:** `str.utf8`, because it's the default ([1.7](1-programs.md#17-bare-names)), and `""`, with `fix: empty`, because it could look like unfinished work.
+**Refused:** `str.utf8`, because it's the default ([1.7](1-programs.md#17-bare-names)), and `""`, with `fix: str.empty`, because it could look like unfinished work.
 
 **From:** D48, D50, D51, D103, D326, D327, D367, D368.
 
 ## 2.10 Lists
 
-**Rule:** a list, `std::coll::list`, holds its element type in `< >`, and always writes its `len.max`, with `inf` for unbounded. It can also have a `len.min`. An empty list always writes `= empty`.
+**Rule:** a list, `std::coll::list`, holds its element type in `< >`, and always writes its `len.max`, with `inf` for unbounded. It can also have a `len.min`. An empty list always writes `= std::coll::list.empty`, since `empty` always says what's empty, everywhere; a long one is shortened with `use`, as in `use std::coll::list as list;` and `list.empty`. A bare `empty` is refused, with a fix naming the type.
 
 ```
-let mut $xs: std::coll::list<i32>[len.max: inf items] = empty;
-let mut $ys: std::coll::list<i32>[len.max: 8 items] = empty;
+let mut $xs: std::coll::list<i32>[len.max: inf items] = std::coll::list.empty;
+let mut $ys: std::coll::list<i32>[len.max: 8 items] = std::coll::list.empty;
 std::coll::list<i32>[len.min: 1 items, len.max: 8 items]
 ```
 
@@ -238,7 +238,7 @@ Allocation is explicit, as in Zig: anything that takes heap memory takes an allo
 
 ```
 let $alloc: os::heap = os::heap();
-let mut $xs: std::coll::list<i32>[len.max: inf items] = empty;
+let mut $xs: std::coll::list<i32>[len.max: inf items] = std::coll::list.empty;
 $xs.std::coll::list.%%append(val: 4, alloc: Lend $alloc);
 ```
 
@@ -263,14 +263,14 @@ An arena hands out memory from one big block and frees it all at once, as `std::
 How much memory each allocation takes is fixed by the standard, so whether a program runs out is the same on every machine for a target. An item takes its type's size, which is known since a bare `struct` has an exact layout, at its natural alignment. A growable list's first allocation holds what it needs, but room for at least 4 items, and a full one doubles, so appending to an empty list goes 4, 8, 16, and a list made from 5 items goes 5, 10, 20. A list can choose otherwise with an optional `grow:` label: `grow: exact` takes only what each append needs, using the least memory but growing slowly, and `grow: by 4 kib` or `grow: by 64 items` grows in fixed steps, always holding a multiple of the step, so its first allocation is what's needed rounded up to the next one. `grow: exact` is exactly what's needed every time. An arena grows a list's block where it is when that block was the last one it handed out, and otherwise hands out a new block. A `bool` takes 1 byte. A `str` view or a list view is a pointer and a pointer-sized length, so 16 bytes on a 64-bit target and 8 on the Uno R4 WiFi. A bounded list inside a struct takes its length, as its `len.type`, then room for every item, each at its natural alignment.
 
 ```
-let mut $log: std::coll::list<line>[len.max: inf items, grow: exact] = empty;
+let mut $log: std::coll::list<line>[len.max: inf items, grow: exact] = std::coll::list.empty;
 ``` `kib` and `mib` are 1024 and 1024² `bytes`.
 
 ```
 let mut $arena: std::mem::arena = std::mem::arena.new(room: 1 mib, alloc: Lend $heap);
 defer std::mem::arena.done(Give $arena, alloc: Lend $heap);
 
-let mut $xs: std::coll::list<i32>[len.max: inf items] = empty;
+let mut $xs: std::coll::list<i32>[len.max: inf items] = std::coll::list.empty;
 defer std::coll::list.done(Give $xs, alloc: Lend $arena);
 ```
 
@@ -282,9 +282,9 @@ let $h: std::coll::halves.mut<i32> = $xs.std::coll::list.%%split.mut(at.items: 5
 @concur::spawn(on: Lend $pool) fill(Lend.mut $h.second);
 ```
 
-**Refused:** `[ ]` with items, or a string literal, given straight to a growable list or string, with `fix: std::coll::list.from` or `str.from`; `std::coll::list.mut<i32>` growing or shrinking, a list with a bare `len`, in favour of `array`, `= empty` on a list with `len.min` above 0, `[]`, with `fix: empty`, and too few or too many items.
+**Refused:** `[ ]` with items, or a string literal, given straight to a growable list or string, with `fix: std::coll::list.from` or `str.from`; `std::coll::list.mut<i32>` growing or shrinking, a list with a bare `len`, in favour of `array`, `std::coll::list.empty` on a list with `len.min` above 0, a bare `empty`, `[]`, with `fix: std::coll::list.empty`, and too few or too many items.
 
-**From:** D11, D12, D13, D24, D102, D103, D140, D321, D322, D323, D324, D330, D333, D369, D370, D371, D379, D381, D382, D385, D386, D389, D390.
+**From:** D11, D12, D13, D24, D102, D103, D140, D321, D322, D323, D324, D330, D333, D369, D370, D371, D379, D381, D382, D385, D386, D389, D390, D428.
 
 ## 2.11 Arrays
 
@@ -297,7 +297,7 @@ let $a: std::coll::array<i32>[len: 3 items] = [1, 2, 3];
 let mut $d: std::coll::array<u8>[len: 4096 items] = all 0;
 ```
 
-**Refused:** `len.always`, which doesn't exist, the wrong number of items, and `= empty`.
+**Refused:** `len.always`, which doesn't exist, the wrong number of items, and `= std::coll::list.empty`.
 
 **From:** D12, D13, D24, D102.
 

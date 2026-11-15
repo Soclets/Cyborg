@@ -306,11 +306,11 @@ reading[celsius = 21, time = 3600 std::units::time.seconds]
 
 ```
 fn total_of_both [$alloc: Lent os::heap] -> i64 fails [out_of_memory, bad_number]:
-    let mut $xs: std::coll::list<i64>[len.max: inf items] = empty;
+    let mut $xs: std::coll::list<i64>[len.max: inf items] = std::coll::list.empty;
     defer std::coll::list.done(Give $xs, alloc: Lend $alloc);
     read_numbers(Lend.mut $xs, alloc: Lend $alloc)?;
 
-    let mut $ys: std::coll::list<i64>[len.max: inf items] = empty;
+    let mut $ys: std::coll::list<i64>[len.max: inf items] = std::coll::list.empty;
     defer std::coll::list.done(Give $ys, alloc: Lend $alloc);
     read_numbers(Lend.mut $ys, alloc: Lend $alloc)?;
 

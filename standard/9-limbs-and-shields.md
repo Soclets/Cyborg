@@ -351,7 +351,7 @@ end @concur::locked
 A channel is a queue between tasks: one side sends values in, the other takes them out, in order. Its capacity is always written, like a list's `len.max`: a finite one needs no allocator, and `len.max: inf items` takes one and is `must_Give`. Sending moves a value with `Give`, so it's only ever owned by one task. A full channel makes the sender wait, through its runner, so a fast producer can't bury a slow worker, and when every sender is done, the channel closes and the receiver's loop ends. One sender into one receiver keeps its order every run, while with several senders, the order depends on timing.
 
 ```
-let $jobs: @concur::channel<job>[len.max: 64 items] = empty;
+let $jobs: @concur::channel<job>[len.max: 64 items] = @concur::channel.empty;
 $jobs.%send(val: Give $j, run: Lend $events)?;
 
 for $j in Give $jobs.%receive(run: Lend $events):

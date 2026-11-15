@@ -63,7 +63,7 @@ What Cyborg does now, in one place. The oracle, the compiler and check claude fo
 | curse | [10.8](10-build-modes.md#108-the-curse) | | UB | [10.4](10-build-modes.md#104-what-happens-when-something-goes-wrong) |
 | `d32` | [2.8](2-values-and-types.md#28-decimal-floats) | | `unproven:` | [11.2](11-errors.md#112-kinds) |
 | `div` | [3.3](3-operators.md#33-division-div) | | `void` | [2.15](2-values-and-types.md#215-void-and-bool) |
-| `empty` | [2.10](2-values-and-types.md#210-lists) | | `warning:` | [11.2](11-errors.md#112-kinds) |
+| `str.empty`, `std::coll::list.empty` | [2.10](2-values-and-types.md#210-lists) | | `warning:` | [11.2](11-errors.md#112-kinds) |
 | `end` | [1.3](1-programs.md#13-blocks-and-statements) | | `what:`, `why:`, `when:` | [11.4](11-errors.md#114-labels) |
 | `f32`, `f64` | [2.6](2-values-and-types.md#26-floats) | | `Working`, `FinalSafe`, `FinalPerf` | [10.1](10-build-modes.md#101-the-modes) |
 | `fail` | [8.2](8-failures.md#82-fail) | | `FinalShit` | [10.7](10-build-modes.md#107-finalshit) |
