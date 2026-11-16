@@ -92,6 +92,8 @@ requires.only_in_working is_sorted(Lend $xs);
 
 The `FinalPerf` entries follow from D14 having no checks there; the owner's answer was "you test your shit throughly first".
 
+In `FinalSafe`, a float becoming NaN or infinity is caught through the CPU's IEEE 754 sticky flags, which every operation already sets for free, read at points rather than after each operation: before a float can leave the function that made it, by a return, a print, a pointer write or a call, and where a loop ends. So the crash names the function or loop, and `Working`, which checks every operation, finds the line. Where a chip has no flags for a float, the compiler checks some other way, still at points.
+
 **From:** D14, D20, D26, D40, D41, D42, D96, D107, D158, D409.
 
 ## 10.5 Overflow
