@@ -201,7 +201,20 @@ end shield.danger read_bits
 
 **Rule:** a shield is a named block with a written reason, and it's the only place dangerous code may live. The build report lists each one with its size. Cyborg isn't all proven, so a shield is closer to Rust's `unsafe`, unless the Precog limb's strict mode is on.
 
-There are three kinds, each saying what guarantee it gives up (D441): `shield.danger` for what can corrupt memory or crash, like inline assembly, raw pointers and C calls; `shield.repro` for what can make results differ between runs or machines, like the clock, true randomness and thread timing; and `shield.logic` for what's memory-safe but leaves correctness to the programmer, like `.%reveal()` on a secret. Every shield says its kind, and a bare `shield` is refused, with the kind its contents need as the fix (D442). Exactly what goes in each, and whether one block can be more than one kind, aren't decided.
+There are three kinds, each saying what guarantee it gives up (D441): `shield.danger` for what can corrupt memory or crash, like inline assembly, raw pointers and C calls; `shield.repro` for what can make results differ between runs or machines, like the clock, true randomness and thread timing; and `shield.logic` for what's memory-safe but leaves correctness to the programmer, like `.%reveal()` on a secret. Every shield says its kind, and a bare `shield` is refused, with the kind its contents need as the fix (D442). Code that gives up two guarantees nests one shield inside another, each with its own reason, and each operation must sit inside a shield of its kind (D443):
+
+```
+shield.danger timer:
+    reason "the cycle counter is a hardware register"
+    let $cycles: ptr.volatile.mut<u32> = ptr.volatile.mut<u32>.at(address: hex e000_1004);
+    shield.repro read_time:
+        reason "how many cycles pass differs between runs"
+        let $now: u32 = $cycles.%read();
+    end shield.repro read_time
+end shield.danger timer
+```
+
+Exactly what goes in each kind isn't decided.
 
 The keyword `shield` is Radium's working word.
 
@@ -212,7 +225,7 @@ shield.danger sensor_driver:
 end shield.danger sensor_driver
 ```
 
-**From:** D34, D441, D442.
+**From:** D34, D441, D442, D443.
 
 ## 9.8 What must live in a shield
 

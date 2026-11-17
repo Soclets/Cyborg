@@ -1428,6 +1428,8 @@ Exactly which operations go in `.repro` and `.logic`, whether a bare `shield` is
 
 **D442. Every shield says its kind, and a bare `shield` is refused.** With three kinds (D441), which one a block is is a real choice, so it's written (D393), and a bare one isn't the obvious default D318 would need. A bare `shield` is refused, and the fix is certain, since the compiler sees what's inside: a block with inline assembly or a raw pointer gets `fix: shield.danger`, one reading the clock `fix: shield.repro`, one revealing a secret `fix: shield.logic`. Closers repeat the kind, as in `end shield.danger blink` (D121). Existing examples and tests respell their shields as `shield.danger`. Claude proposed it; the owner chose: "Not allowed". (Owner, 2026-11-17)
 
+**D443. A block that's more than one kind nests its shields.** Code that gives up two guarantees, like inline assembly that also reads the clock, puts one shield inside another, each with its own `reason`, so each line shows exactly what it gives up: an outer `shield.danger` with a `shield.repro` inside it, or the other way round. Each operation must sit inside a shield of its own kind, so the clock read inside only a `shield.danger` is refused, with a fix nesting a `shield.repro` around it. A combined kind like `shield.danger.repro` doesn't exist. Claude proposed nesting over a combined kind; the owner chose: "nest". (Owner, 2026-11-17)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude
