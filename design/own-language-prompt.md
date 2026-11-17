@@ -5,7 +5,8 @@ steering. It isn't part of Cyborg; it lives here only so it isn't lost. Written 
 reading the current prompting guide and the Opus 5.5 guide in full (rule 11 in `IMPLEMENTATION.md`).
 
 It lets the session make its own public GitHub repository under Soclets, choose its own licences, and use at most 3 CPU
-cores (owner, 2026-11-17).
+cores (owner, 2026-11-17). Unlike Tankun's own sessions, it has no 8:30 PM stop and may work overnight (owner,
+2026-11-17).
 
 ```text
 <context>
@@ -60,8 +61,8 @@ Stop when the standard covers the whole language: syntax, types, memory,
 errors, modules and packages, the standard library's core, and the
 toolchain's commands. Every chapter should be complete enough to implement
 from. Then write a short README saying what the language is and how its
-standard is organized, and tell Tankun you're done. Also stop at 8:30 PM
-local time (check with `date`), push what you have, and say where you'd
-pick up.
+standard is organized, and tell Tankun you're done. There's no time limit:
+Tankun will be asleep while you work, so keep going through the night if
+the standard needs it.
 </when_to_stop>
 ```
