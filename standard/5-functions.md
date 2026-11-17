@@ -51,6 +51,20 @@ In `std`, the first argument, the thing being worked on, stays bare, and every o
 
 **From:** D2, D20, D23, D113, D114.
 
+### The pipe: `|>`
+
+`|>` passes a value along a chain of calls, left to right: each step's result is the next call's bare first argument. The starting value writes its ownership word, and later steps pass fresh results. A step with no other arguments is bare, a step with labels keeps its brackets, and a step that can fail carries its handling (D446).
+
+```
+use std::math::sqrt;
+
+let $root: f64.stable = Lend $xs |> average |> sqrt;
+let $cfg: config = Lend $path |> load? |> validate ?? defaults();
+let $hp: i32 = $hp |> heal(by: 30) |> clamp(max: 100);
+```
+
+**From:** D446.
+
 ## 5.3 `return`
 
 **Rule:** `return` hands back a value, and every path through a function ends in one. `return void;` is a `void` function's normal finish, `main` included, allowed wherever nothing else can run after it, so it can end an `else` path. Leaving before the work is done is `return early;`, and a function that can do that says so in its header, `-> void/early`, where `/` lists the ways it returns. `end fn` only closes the syntax.
