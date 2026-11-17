@@ -201,6 +201,8 @@ end shield read_bits
 
 **Rule:** a shield is a named block with a written reason, and it's the only place dangerous code may live. The build report lists each one with its size. Cyborg isn't all proven, so a shield is closer to Rust's `unsafe`, unless the Precog limb's strict mode is on.
 
+There are three kinds, each saying what guarantee it gives up (D441): `shield.danger` for what can corrupt memory or crash, like inline assembly, raw pointers and C calls; `shield.repro` for what can make results differ between runs or machines, like the clock, true randomness and thread timing; and `shield.logic` for what's memory-safe but leaves correctness to the programmer, like `.%reveal()` on a secret. Exactly what goes in each, whether a bare `shield` stays, and whether one block can be more than one kind aren't decided.
+
 The keyword `shield` is Radium's working word.
 
 ```
@@ -210,7 +212,7 @@ shield sensor_driver:
 end shield sensor_driver
 ```
 
-**From:** D34.
+**From:** D34, D441.
 
 ## 9.8 What must live in a shield
 
