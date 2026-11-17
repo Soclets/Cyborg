@@ -137,7 +137,7 @@ An assembly block says in words what goes in and out, then holds raw assembly, o
 
 ```
 on.target aarch64:
-    shield mul_add:
+    shield.danger mul_add:
         reason "one madd instruction computes a times b plus c"
         inline.asm:
             reads: [x0 = $a, x1 = $b, x2 = $c];
@@ -145,7 +145,7 @@ on.target aarch64:
             clobbers: [none];
             madd x0, x0, x1, x2
         end inline.asm
-    end shield mul_add
+    end shield.danger mul_add
 else:
     let $r: i64 = $a x $b + $c;
 end on.target
@@ -174,23 +174,23 @@ The compiler reads the text through LLVM and refuses any register the code write
 **Rule:** C's untagged union has its own spelling, and must be inside a shield. It can't be tested, because nothing records which case is live.
 
 ```
-shield c_number:
+shield.danger c_number:
     reason "matches the union in libfoo's header"
     union.@csup::untagged number:
         i: i32;
         f: f32.ieee;
     end union.@csup::untagged number
-end shield c_number
+end shield.danger c_number
 ```
 
 It's built like a struct, naming exactly one field, the one being written, and saying what the rest of its bytes are: `rest = all 0` sets every byte the field doesn't cover to 0, as `all 0` fills an array, so reading a wider field gives the same answer everywhere. Any field can be read, which nothing checks against the one written, and a read checks the value like any value of that type, so a `bool` that isn't 0 or 1, a value outside its bounds, or a float that's NaN or infinity follows 10.4's rows for those ([10.4](10-build-modes.md#104-what-happens-when-something-goes-wrong)). Building and reading it are shield code too, where the reason vouches for it.
 
 ```
-shield read_bits:
+shield.danger read_bits:
     reason "reading the bits libfoo wrote as an i32"
     let $n: union.@csup::untagged number = number[f = 1.5, rest = all 0];
     let $bits: i32 = $n.i;
-end shield read_bits
+end shield.danger read_bits
 ```
 
 **Refused:** `@csup::union.untagged`, with `fix: union.@csup::untagged`; building one without `rest`, with `fix: rest = all 0`, and `rest = empty`, since a union's bytes always exist; building one with no field or more than one, and declaring, building or reading one outside a shield.
@@ -201,18 +201,18 @@ end shield read_bits
 
 **Rule:** a shield is a named block with a written reason, and it's the only place dangerous code may live. The build report lists each one with its size. Cyborg isn't all proven, so a shield is closer to Rust's `unsafe`, unless the Precog limb's strict mode is on.
 
-There are three kinds, each saying what guarantee it gives up (D441): `shield.danger` for what can corrupt memory or crash, like inline assembly, raw pointers and C calls; `shield.repro` for what can make results differ between runs or machines, like the clock, true randomness and thread timing; and `shield.logic` for what's memory-safe but leaves correctness to the programmer, like `.%reveal()` on a secret. Exactly what goes in each, whether a bare `shield` stays, and whether one block can be more than one kind aren't decided.
+There are three kinds, each saying what guarantee it gives up (D441): `shield.danger` for what can corrupt memory or crash, like inline assembly, raw pointers and C calls; `shield.repro` for what can make results differ between runs or machines, like the clock, true randomness and thread timing; and `shield.logic` for what's memory-safe but leaves correctness to the programmer, like `.%reveal()` on a secret. Every shield says its kind, and a bare `shield` is refused, with the kind its contents need as the fix (D442). Exactly what goes in each, and whether one block can be more than one kind, aren't decided.
 
 The keyword `shield` is Radium's working word.
 
 ```
-shield sensor_driver:
+shield.danger sensor_driver:
     reason "talks to the temperature chip over raw memory-mapped I/O"
     …
-end shield sensor_driver
+end shield.danger sensor_driver
 ```
 
-**From:** D34, D441.
+**From:** D34, D441, D442.
 
 ## 9.8 What must live in a shield
 

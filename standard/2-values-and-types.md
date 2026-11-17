@@ -735,13 +735,13 @@ let $same: bool.secret = $a == $b;
 let $out: u32.secret = $same.%pick(if_true: $x, if_false: $y);
 ```
 
-A secret becomes public only with `.%reveal()`, inside a shield ([9.7](9-limbs-and-shields.md#97-shields)), since only the programmer knows it's safe to make public, which is a claim the compiler can't check. The shield's reason says why:
+A secret becomes public only with `.%reveal()`, inside a `shield.logic` ([9.7](9-limbs-and-shields.md#97-shields)), since only the programmer knows it's safe to make public, which is a claim the compiler can't check. The shield's reason says why:
 
 ```
-shield publish:
+shield.logic publish:
     reason "ciphertext is safe to publish once encrypted"
     let $out: u32 = $cipher.%reveal();
-end shield publish
+end shield.logic publish
 ```
 
 **Refused:** `.%reveal()` outside a shield; plain `and` and `or` on a `bool.secret`, since stopping early branches on it, with `fix: and.both` or `or.both`; plain `+`, `-` and `x` on a secret, since their overflow check is a branch that leaks it, with `fix: plus.wrap` or `plus.saturate`; bounds on a secret, as in `u8.secret[max: 100]`, unless the check is proven away; `if`, `while` or `match` on a secret, since the path taken leaks it; a secret as a position, as in `$xs[pos: $s]`, since which memory is touched leaks it through the cache; shifting by a secret amount, since some CPUs take longer for bigger shifts; `div` and `mod` with a secret on either side, since division takes longer for some values on most CPUs; and passing a secret where a plain value is expected, printing included.

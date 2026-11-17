@@ -10,7 +10,7 @@ before changing it (rule 11 in `IMPLEMENTATION.md`).
 You've been idle since the generator was finished. Since then, compiler
 claude has nearly caught up: about 1571 of tests/'s 1719 pass on OKAY\n,
 and it's building everything up to D416 from the standard. Tankun has also
-made D403 to D437, which you haven't built yet, and the compiler found a
+made D403 to D442, which you haven't built yet, and the compiler found a
 few things in tests/ that need fixing. This round brings the oracle and
 tests/ up to date, so the live comparison can start finding real compiler
 bugs once both sides agree on what Cyborg is.
@@ -24,7 +24,7 @@ agreed, so it doesn't need asking again.
 </context>
 
 <work>
-Read DECISIONS.md from D403 to D437 and the standard sections they point
+Read DECISIONS.md from D403 to D442 and the standard sections they point
 to first. Then, in this order, committing in small steps:
 
 1. The fixes compiler claude found, all agreed with design claude:
@@ -72,7 +72,10 @@ to first. Then, in this order, committing in small steps:
    nearly every test's unhandled print gets a handler; D435's limits; and
    D436 and D437: the manifest gets Cyborg's own format, `.sixl`, which
    isn't designed yet, so leave every CyJet.siml in tests/ as it is for
-   now. These respell many tests.
+   now. D440 moves FinalSafe's float checks to sticky flags (compiler
+   only). D441 and D442: shields say their kind, so every `shield name:`
+   in tests/ becomes `shield.danger name:`, and `.%reveal()` needs
+   `shield.logic`. These respell many tests.
    D423 respells kit method calls to their full path, as in
    `$xs.std::coll::list.%%append(…)`, in about 52 tests.
 3. D416, `.%viewed_as(item.type:)`, with tests that read a

@@ -1426,6 +1426,8 @@ The lines go at the top of the file, after its `module` line and before its own 
 - `shield.logic` is for what's memory-safe but where the programmer takes over correctness from the compiler, like `.%reveal()` on a secret (D342), which moves here from the one shield it shared with assembly.
 Exactly which operations go in `.repro` and `.logic`, whether a bare `shield` is still allowed, whether one block can be more than one kind, which of D37's and D39's walls each kind keeps, and where inline assembly inside a handler shows its shield, are not settled here. The owner's words, relayed by multifinity's chat on 2026-11-16, were "3 Shields: shield.danger, .repro, and .logic"; that chat's Claude guessed their meanings; Claude proposed these readings; the owner said: "Fucking profound (in a good way), now Cyborg will be more Cyborg." (Owner, 2026-11-17)
 
+**D442. Every shield says its kind, and a bare `shield` is refused.** With three kinds (D441), which one a block is is a real choice, so it's written (D393), and a bare one isn't the obvious default D318 would need. A bare `shield` is refused, and the fix is certain, since the compiler sees what's inside: a block with inline assembly or a raw pointer gets `fix: shield.danger`, one reading the clock `fix: shield.repro`, one revealing a secret `fix: shield.logic`. Closers repeat the kind, as in `end shield.danger blink` (D121). Existing examples and tests respell their shields as `shield.danger`. Claude proposed it; the owner chose: "Not allowed". (Owner, 2026-11-17)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude
