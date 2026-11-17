@@ -121,7 +121,9 @@ end fam.handler word_failed
 let $w: str = first_word(Lend $text) otherwise word_failed.use_placeholder;
 ```
 
-**From:** D45, D46.
+A handler whose arms hold a shield, like inline assembly in a `shield.danger`, can only be used inside a shield of each kind it holds, so the danger shows where it's used too (D445). Using one outside is refused, with a fix wrapping the call in that kind of shield.
+
+**From:** D45, D46, D445.
 
 ## 8.8 `*`: handlers that jump
 
