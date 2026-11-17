@@ -4,7 +4,8 @@ The owner pastes this into a new session, started in an empty folder, to see wha
 steering. It isn't part of Cyborg; it lives here only so it isn't lost. Written on 2026-11-17 by design claude, after
 reading the current prompting guide and the Opus 5.5 guide in full (rule 11 in `IMPLEMENTATION.md`).
 
-It allows local git only. It doesn't let the session create or push to a GitHub repository.
+It lets the session make its own public GitHub repository under Soclets, choose its own licences, and use at most 3 CPU
+cores (owner, 2026-11-17).
 
 ```text
 <context>
@@ -38,7 +39,14 @@ you anything. No compiler or interpreter yet.
 - When something is genuinely open, pick an answer and record it, rather
   than leaving it vague. A standard full of "TBD" can't be implemented.
 - Use git in this folder, committing as you finish each piece, with
-  messages that say what changed and why.
+  messages that say what changed and why. Once the language has a name,
+  create a public GitHub repository for it under the Soclets organization
+  with `gh`, named after the language, and push as you go.
+- Choose the language's licences yourself, for its code and for its
+  writing, record why in DECISIONS.md, and add the licence files before
+  the first push, so the repository is never public without one.
+- Use at most 3 CPU cores for anything you run, such as builds or tests
+  (for example `-j 3`), since other sessions share this machine.
 </rules>
 
 <when_to_stop>
