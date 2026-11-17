@@ -2,11 +2,21 @@
   "hooks": {
     "SessionStart": [
       {
-        "matcher": "startup|compact|resume|clear",
+        "matcher": "startup|compact|clear",
         "hooks": [
           {
             "type": "command",
             "command": "cat \"$CLAUDE_PROJECT_DIR/IMPLEMENTATION.md\""
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "hm=$(date +%H%M); echo \"Current time: $(date +%H:%M)\"; if [ \"$hm\" -ge 2030 ] || [ \"$hm\" -lt 0500 ]; then echo \"It is past 20:30. Stop working now and suggest the owner stops too (IMPLEMENTATION.md rule 12).\"; fi"
           }
         ]
       }

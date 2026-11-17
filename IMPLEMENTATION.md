@@ -55,7 +55,8 @@ Each works in its own clone, on `main` with no branch, and runs `git pull --reba
 11. **Prompting.** Before prompting a subagent or a new session, a session reads the current prompting guide for that AI, in
     full and itself, and again after every compaction. Messaging another session isn't prompting, and isn't written like
     prompting: write it like one colleague talking to another.
-12. **Stop at 8:30 PM.** Every session stops then, and suggests the owner stops too.
+12. **Stop at 8:30 PM.** Every session stops then, and suggests the owner stops too. A hook adds the current time to
+    each of the owner's messages, and a reminder from 20:30 on. (D447)
 13. **Verus.** The compiler's checks for ownership, bounds, failure coverage, shield containment, and the `@` and `%` rules are
     proven with Verus. The oracle stays plain. (D66, D67)
 14. **Scratchpad.** Scratch space is for what can be lost. Anything needed later goes in the repository and gets committed. (D70)
