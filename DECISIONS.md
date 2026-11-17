@@ -1430,6 +1430,8 @@ Exactly which operations go in `.repro` and `.logic`, whether a bare `shield` is
 
 **D443. A block that's more than one kind nests its shields.** Code that gives up two guarantees, like inline assembly that also reads the clock, puts one shield inside another, each with its own `reason`, so each line shows exactly what it gives up: an outer `shield.danger` with a `shield.repro` inside it, or the other way round. Each operation must sit inside a shield of its own kind, so the clock read inside only a `shield.danger` is refused, with a fix nesting a `shield.repro` around it. A combined kind like `shield.danger.repro` doesn't exist. Claude proposed nesting over a combined kind; the owner chose: "nest". (Owner, 2026-11-17)
 
+**D444. Every kind of shield keeps contracts, and only `shield.danger` keeps containment.** `requires` on the way in and `ensures` on the way out (D37, D39) work in all three kinds, since a promise about values is useful wherever the programmer takes over from the compiler. Containment, where what's made inside can't leave, like a raw pointer (D39), applies only to `shield.danger`, since in `shield.repro` and `shield.logic` getting a value out is the point: the time read from the clock, or a secret's revealed value. Claude proposed it; the owner asked "?", Claude explained it more plainly, and the owner chose: "yes, daddy, meow (a fucking not-so-profound joke)". (Owner, 2026-11-17)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude

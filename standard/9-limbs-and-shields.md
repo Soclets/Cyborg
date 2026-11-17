@@ -214,7 +214,7 @@ shield.danger timer:
 end shield.danger timer
 ```
 
-Exactly what goes in each kind isn't decided.
+Every kind keeps a shield's contracts, `requires` on entry and `ensures` on exit, and only `shield.danger` keeps containment, so a raw pointer can't leave it, while a `shield.repro` or `shield.logic` exists to hand a value out (D444). Exactly what goes in each kind isn't decided.
 
 The keyword `shield` is Radium's working word.
 
@@ -225,7 +225,7 @@ shield.danger sensor_driver:
 end shield.danger sensor_driver
 ```
 
-**From:** D34, D441, D442, D443.
+**From:** D34, D441, D442, D443, D444.
 
 ## 9.8 What must live in a shield
 
