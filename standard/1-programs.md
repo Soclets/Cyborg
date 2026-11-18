@@ -302,7 +302,7 @@ A literal format is checked when building.
 |---|---|---|
 | Around `.`, `::`, `%`, `%%`, `@` | None | `fn.main`, `@std::io::fmt_print`, `$p.%area()` |
 | After `$`, a unary `-`, a `~` on a literal, an opening `(`, `[`, `<`, `{` | None | `-$x`, `~0.1`, `total(Lend $xs)`, `std::coll::list<i32>`, `{$a + $b}` |
-| Before a closing bracket, or a postfix `?` | None | `read()?` |
+| Before a closing bracket, a postfix `?`, or an unchecked `^` | None | `read()?`, `$xs[pos^: $i]` |
 | Around a binary operator, word operators and `=` included | One on each side | `1 below 8`, `$a + $b`, `$x at_least 0` |
 | After a comma, or a label's `:` | One | `range[from: 1, to: 3]` |
 
@@ -322,4 +322,4 @@ A line break inside a statement is allowed only after a comma, after an opening 
 
 Indentation, line length, and the space before an opening `[` aren't decided ([12.1](12-not-decided.md#121-problems-found-writing-this)).
 
-**From:** D23, D213, D219, D460.
+**From:** D23, D213, D219, D460, D463.

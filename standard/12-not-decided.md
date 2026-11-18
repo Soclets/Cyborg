@@ -93,7 +93,7 @@ Waiting on the owner, most needed first. Each is `NotDesignedYet` unless it says
 - Two narrowings on one struct, like `struct.packed.must_Give`, and their order.
 
 - The box (D449 to D453): the spellings of `std::mem::box.new` and `.done`. Whether `ptr.volatile` has `.%lend(from:)` (D451).
-- Unchecked versions (D462): how they're spelled, and which operations have one.
+- Unchecked versions (D462, D463): which operations have one.
 - Slots (D457 to D459): the spellings of `std::coll::slots`, its handle, `%%put` and `%get`, and the failure's name.
 
 ## 12.3 Operators and conversion

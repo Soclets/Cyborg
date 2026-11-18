@@ -235,7 +235,7 @@ end shield.danger sensor_driver
 - Raw pointers, with any address and pointer arithmetic
 - Volatile reads and writes, for hardware registers
 - Your own allocator
-- An unchecked version of a checked operation, like a position or a slot lookup, which `Working` still checks ([10.3](10-build-modes.md#103-what-gets-checked))
+- An unchecked version of a checked operation, marked `^`, like a position, `$xs[pos^: $i]`, or a slot lookup, `%get^(at: $h)`, which `Working` still checks ([10.3](10-build-modes.md#103-what-gets-checked))
 - An array whose items start unfilled, `all unfilled`, for a C function or hardware to fill ([2.11](2-values-and-types.md#211-arrays))
 - `@csup` C calls
 - `union.@csup::untagged`
@@ -302,7 +302,7 @@ Using a limb doesn't need a shield by itself: `@` says it's a compiler extension
 
 **Refused:** any of these outside a shield, except in `FinalShit`; writing through a `ptr.raw` or a `ptr.volatile`; `.%lend.mut` on a `ptr.raw`, and `.%lend(from:)` with a source that isn't a named value; and `.%moved` with a bare `offset:`, with `fix: offset.items:`.
 
-**From:** D38, D40, D226, D314, D315, D316, D317, D324, D333, D342, D416, D418, D451, D454, D455, D456, D461, D462.
+**From:** D38, D40, D226, D314, D315, D316, D317, D324, D333, D342, D416, D418, D451, D454, D455, D456, D461, D462, D463.
 
 ## 9.9 A shield's walls
 
