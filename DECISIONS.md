@@ -1460,6 +1460,8 @@ Exactly which operations go in `.repro` and `.logic`, whether a bare `shield` is
 
 **D458. Slots remove a value with `%%remove`, or `%%take`, which hands it back.** `$enemies.std::coll::slots.%%remove(at: $h)?;` empties a slot whose value has nothing of its own to free, and `let $orc: enemy = $enemies.std::coll::slots.%%take(at: $h)?;` empties it and hands the value back. `%%remove` on a `must_Give` value, like an enemy holding a growable list, is refused, with `fix: %%take`, as D452 does for a box, so a value that owns memory always comes back, and the box and slots share one pair of words. Either one raises the slot's version, so every handle still pointing at it fails from then on (D457), and both can fail, since the handle may already be stale. Claude proposed it; the owner chose: "yea". (Owner, 2026-11-18)
 
+**D459. A slot handle carries its collection's ID, so a handle used on the wrong collection fails.** Every slot collection gets its own ID when it's made, every handle carries it beside its slot and version, and a lookup with a handle from another collection fails, as a stale handle does (D457), the way D322's lists check their allocator's ID. Collections of different types are already kept apart by the handle's type, as `std::coll::slots.handle<enemy>` can't reach a collection of `ally`, so the ID is for two collections of the same type, like the enemies of two levels. It costs a few bytes per handle and one comparison per lookup, beside the version check already there. Claude proposed it; the owner chose: "yea". (Owner, 2026-11-18)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude

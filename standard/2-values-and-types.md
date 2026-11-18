@@ -816,8 +816,10 @@ $enemies.std::coll::slots.%%remove(at: $h)?;
 let $orc: enemy = $enemies.std::coll::slots.%%take(at: $h)?;
 ```
 
-The spellings, the failure's name, and whether a handle used on a different collection is caught aren't decided ([12.2](12-not-decided.md#122-types)).
+A handle also carries its collection's ID, so using it on another collection of the same type fails too, as a list checks its allocator ([2.10](#210-lists)).
+
+The spellings and the failure's name aren't decided ([12.2](12-not-decided.md#122-types)).
 
 **Refused:** `%%remove` on a `must_Give` value, with `fix: %%take`.
 
-**From:** D325, D452, D457, D458.
+**From:** D322, D325, D452, D457, D458, D459.
