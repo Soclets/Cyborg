@@ -298,9 +298,11 @@ let $a: std::coll::array<i32>[len: 3 items] = [1, 2, 3];
 let mut $d: std::coll::array<u8>[len: 4096 items] = all 0;
 ```
 
-**Refused:** `len.always`, which doesn't exist, the wrong number of items, and `= std::coll::list.empty`.
+Inside a `shield.danger`, an array can start unfilled instead, for a buffer something outside Cyborg fills, like a C function or hardware ([9.8](9-limbs-and-shields.md#98-what-must-live-in-a-shield)). Filling it before anything reads it is the shield writer's promise. How it's spelled isn't decided.
 
-**From:** D12, D13, D24, D102.
+**Refused:** `len.always`, which doesn't exist, the wrong number of items, `= std::coll::list.empty`, and an unfilled array outside a shield.
+
+**From:** D12, D13, D24, D102, D455.
 
 ## 2.12 Maps
 

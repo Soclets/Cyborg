@@ -235,6 +235,7 @@ end shield.danger sensor_driver
 - Raw pointers, with any address and pointer arithmetic
 - Volatile reads and writes, for hardware registers
 - Your own allocator
+- An array whose items start unfilled, for a C function or hardware to fill ([2.11](2-values-and-types.md#211-arrays))
 - `@csup` C calls
 - `union.@csup::untagged`
 - Making a secret public, with `.%reveal()` ([2.22](2-values-and-types.md#222-secrets-secret))
@@ -300,7 +301,7 @@ Using a limb doesn't need a shield by itself: `@` says it's a compiler extension
 
 **Refused:** any of these outside a shield, except in `FinalShit`; writing through a `ptr.raw` or a `ptr.volatile`; `.%lend.mut` on a `ptr.raw`, and `.%lend(from:)` with a source that isn't a named value; and `.%moved` with a bare `offset:`, with `fix: offset.items:`.
 
-**From:** D38, D40, D226, D314, D315, D316, D317, D324, D333, D342, D416, D418, D451, D454.
+**From:** D38, D40, D226, D314, D315, D316, D317, D324, D333, D342, D416, D418, D451, D454, D455.
 
 ## 9.9 A shield's walls
 
