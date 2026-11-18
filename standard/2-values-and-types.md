@@ -759,6 +759,15 @@ let $b: std::mem::box<node> = std::mem::box.new(val: Give $first, alloc: Lend $h
 defer std::mem::box.done(Give $b, alloc: Lend $heap);
 ```
 
-How the value inside is read and changed, whether `done` hands the value back, and how a type that holds more of itself is written aren't decided ([12.2](12-not-decided.md#122-types)).
+`.%get()` lends the value inside read-only, and `.%%get.mut()` lends it to change. Each returns a borrow of the box, `Lend from $b T` or `Lend.mut from $b T` ([6.10](6-ownership.md#610-stored-borrows)), so the box stays lent while it's used. They're ordinary methods, with no hidden field and no looking straight through the box.
 
-**From:** D321, D322, D325, D331, D449.
+```
+let $hp: i32 = $b.%get().hp;
+change $b.%%get.mut().hp = 10;
+```
+
+Whether `done` hands the value back, how a type that holds more of itself is written, and how `std` makes the borrow from the box's pointer aren't decided ([12.2](12-not-decided.md#122-types)).
+
+**Refused:** `$b.hp`, since a box isn't its value, with `fix: $b.%get().hp`.
+
+**From:** D3, D321, D322, D325, D331, D449, D450.
