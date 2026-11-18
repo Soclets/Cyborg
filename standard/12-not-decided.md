@@ -59,7 +59,7 @@ Waiting on the owner, most needed first. Each is `NotDesignedYet` unless it says
 - **Handling what can't fail.** `?`, `??` and `otherwise` on a call that can't fail.
 - **A failed `as`.** What the failure is called.
 - **`Given` parameters.** They can't change without `let mut $ys: … = Give $xs;`. This follows the rules, and is only flagged.
-- **Smaller ones.** A bound with only `min` or only `max`; `my::` on a name that doesn't clash; building fields out of order; two `case`s for one failure; `case file_failed:` covering a set; `match` on a non-union; a variable typed `status.failed`; `==` on structs; how a string comparison is spelled (D429); `below` on `bool`; `shift.right` on a negative; `shift.left` into the sign bit; the lowest `i32` divided by -1; `all` with something other than a plain number; `std::io::fmt_print()` with no text; a struct holding itself.
+- **Smaller ones.** A bound with only `min` or only `max`; `my::` on a name that doesn't clash; building fields out of order; two `case`s for one failure; `case file_failed:` covering a set; `match` on a non-union; a variable typed `status.failed`; `==` on structs; how a string comparison is spelled (D429); `below` on `bool`; `shift.right` on a negative; `shift.left` into the sign bit; the lowest `i32` divided by -1; `all` with something other than a plain number; `@std::io::fmt_print()` with no text; a struct holding itself.
 - **The minimum compile-time limits** (D435) and the names of the `rule` lines that raise them. Until then, **the oracle's own limits**, so they don't get pinned by accident: 2000 levels of nesting, 10,000 call depth, 10 million compile-time steps, 16 million items in `all`, exit code 0 or 1, and stopping at the first error. Running out of stack may want a row in [10.4](10-build-modes.md#104-what-happens-when-something-goes-wrong).
 - **The `NotDesignedYet:` layout**, as a first word in the D16 format.
 
@@ -78,7 +78,7 @@ Waiting on the owner, most needed first. Each is `NotDesignedYet` unless it says
 - Checking past an error (D215): an error in a block's opening line, like `if` or `for`, or in a function's header.
 - Spacing (D213): indentation, line length, and the space before an opening `[`, which `fn total [$xs: …]` has and `reading[celsius = 21]` doesn't.
 - `os` and writers (D271 to D273): what else goes in `os`, and a bare-metal program's writers, like a board's serial port.
-- Print (D194): how the fill character is written, a per-value `form: stored`, formatting to a `str` without printing, and what the output is on bare metal. `form: science` is how a float prints with an exponent.
+- Print (D194, D461): how the fill character is written, a per-value `form: stored`, the name of `@fmt`'s format value's type, the function that formats into a `str` without printing, and what the output is on bare metal. `form: science` is how a float prints with an exponent.
 - How to check a float's sign.
 - Function types: `-> i32` no longer shows failures, so a function's type needs some way to include them.
 - How a type's writer defines label narrowings like `len.max`.

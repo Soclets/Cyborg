@@ -9,7 +9,7 @@
 | [1.5](#15-paths-) | `::` | How you reach a kit or limb |
 | [1.11](#111-short-names-use) | `use …;`, `use … as …;` | A shorter name for a path |
 | [1.12](#112-comments) | `//`, `///`, `comment` | Notes and documentation |
-| [1.13](#113-printing-stdiofmt_print) | `std::io::fmt_print` | The one print, a format print |
+| [1.13](#113-printing-stdiofmt_print) | `@std::io::fmt_print` | The one print, a format print |
 | [1.14](#114-spacing) | Spaces | Part of the syntax |
 | [1.6](#16-narrowings-) | `.` | Makes the thing before it more specific |
 | [1.7](#17-bare-names) | Bare names | The obvious default, or nothing |
@@ -32,7 +32,7 @@ module hello;
 
 import std;
 import os;
-use std::io::fmt_print;
+use @std::io::fmt_print;
 
 fn.main [none] -> void:
     let mut $out: os::stdout.buffered = os::stdout.buffered(room: 1024 bytes);
@@ -70,7 +70,7 @@ end if
 
 ```
 let $r: reading = reading[celsius = 21, time = 3600 std::units::time.seconds];
-std::io::fmt_print(Lend.mut $out, "{}{newln}", $r.celsius) ?? crash;
+@std::io::fmt_print(Lend.mut $out, "{}{newln}", $r.celsius) ?? crash;
 ```
 
 **From:** D57, D58, the sketch.
@@ -83,7 +83,7 @@ std::io::fmt_print(Lend.mut $out, "{}{newln}", $r.celsius) ?? crash;
 import std;
 import @csup;
 
-std::io::fmt_print(Lend.mut $out, "hi{newln}") ?? crash;
+@std::io::fmt_print(Lend.mut $out, "hi{newln}") ?? crash;
 ```
 
 A file imports the half of a package it uses: `import std;` for `std::`, and `import @std;` for `@std::`. `import pkg std;` brings in both.
@@ -103,7 +103,7 @@ The compiler reads every `.cy` file in the package, and every one has a `module`
 
 **Refused:** a file with no `module` line, with a fix suggesting a name from the file's name, as in `fix: module http_client;`; a `module` line that isn't first; two files with the same name, naming both; `module pkg::net::http;`, with `fix: module net::http;`; and a name that means two things, like a module `net` with a function `http` beside a module `net::http`.
 
-`import std::io::fmt_print;` imports only that one thing, with its narrowings, like `.stored`, and the file can reach nothing else from `std`. It still writes the full path, unless a `use` shortens it. `import std::units::time;` imports a whole unit family.
+`import @std::io::fmt_print;` imports only that one thing, with its narrowings, like `.stored`, and the file can reach nothing else from `std`. It still writes the full path, unless a `use` shortens it. `import std::units::time;` imports a whole unit family.
 
 **From:** D22, D56, D80, D81, D82, D92, D161, D183, D186, D187, D188, D191, D196, D198, D199, D229, D412, D413, D414, D415.
 
@@ -142,7 +142,7 @@ A default the language or `std` fixes can't be written out. In a collection you 
 
 ```
 let $a: str = "hi";
-std::io::fmt_print(Lend.mut $out, "hi{newln}") ?? crash;
+@std::io::fmt_print(Lend.mut $out, "hi{newln}") ?? crash;
 7 div.trunc 2
 ```
 
@@ -208,7 +208,7 @@ If Cyborg later adds a built-in with the same name, old code gets a compile erro
 
 ```
 use std::units::time.seconds;
-use std::io::fmt_print as say;
+use @std::io::fmt_print as say;
 
 let $a: i32[unit: seconds] = 3600 seconds;
 say(Lend.mut $out, "hi{newln}");
@@ -217,7 +217,7 @@ say(Lend.mut $out, "hi{newln}");
 A function's narrowings come with it, so shorten the function and write the narrowing after it. A unit family works the same way, while one unit can still be shortened alone:
 
 ```
-use std::io::fmt_print;
+use @std::io::fmt_print;
 use std::units::time;
 
 fmt_print.stored(Lend.mut $out, "{}{newln}", $x) ?? crash;
@@ -237,7 +237,7 @@ $xs.%%append(val: 4) ?? crash;
 
 A method of your own with the same name on the same type in that file clashes, and is refused.
 
-**Refused:** `use` on a function's narrowing, as in `use std::io::fmt_print.stored;`, with `fix: use std::io::fmt_print;`; `as %append` for a `%%` method, which drops a `%`; `use @money::round as @round;`, because `@round` looks like a builtin; a quoted name, as in `as "say"`, with `fix: as say`; and a short name that's a keyword.
+**Refused:** `use` on a function's narrowing, as in `use @std::io::fmt_print.stored;`, with `fix: use @std::io::fmt_print;`; `as %append` for a `%%` method, which drops a `%`; `use @money::round as @round;`, because `@round` looks like a builtin; a quoted name, as in `as "say"`, with `fix: as say`; and a short name that's a keyword.
 
 **From:** D93, D150, D151, D155, D178, D179, D220, D225, D232, D248, D432.
 
@@ -266,16 +266,16 @@ end comment why_sorted
 
 **From:** D118, D119, D205, D206.
 
-## 1.13 Printing: `std::io::fmt_print`
+## 1.13 Printing: `@std::io::fmt_print`
 
-**Rule:** `std` has one print, `std::io::fmt_print`, and it's always a format print. Its first argument is the writer, where the output goes. On a terminal, that's `os::stdout` or `os::stderr`, which must say whether they're `.buffered(room: 1024 bytes)`, writing in chunks, or `.unbuffered()`, writing each print straight away. A buffered writer is flushed with `$out.%%flush();` to push output now, and finished with `os::done(Give $out);`, without which the program doesn't compile. On bare metal, the writer is the board's port. Plain text is a format with no holes. A newline is `{newln}` and a tab is `{tab}`, inside the text.
+**Rule:** `std` has one print, `@std::io::fmt_print`, and it's always a format print. It's in `std`'s limb half ([9.3](9-limbs-and-shields.md#93-stds-two-parts)), since it takes any number of values of any type, checks its format while building, and reads its caller's variables for named holes, which a plain function can't. `use @std::io::fmt_print;` shortens it to `fmt_print(…)`. To hand a format to something else, like a logger, `@fmt("…")` makes a format value ([5.7](5-functions.md#57-builtins-)). Its first argument is the writer, where the output goes. On a terminal, that's `os::stdout` or `os::stderr`, which must say whether they're `.buffered(room: 1024 bytes)`, writing in chunks, or `.unbuffered()`, writing each print straight away. A buffered writer is flushed with `$out.%%flush();` to push output now, and finished with `os::done(Give $out);`, without which the program doesn't compile. On bare metal, the writer is the board's port. Plain text is a format with no holes. A newline is `{newln}` and a tab is `{tab}`, inside the text.
 
 ```
-std::io::fmt_print(Lend.mut $out, "hi{newln}") ?? crash;
-std::io::fmt_print(Lend.mut $out, "{}: {} at ${places: 2}{newln}", $name, $count, $price) ?? crash;
-std::io::fmt_print(Lend.mut $out, "0x{base: hex.upper, zeros, width: 4 cols}{newln}", 255) ?? crash;
-std::io::fmt_print(Lend.mut $out, "[{align: right, width: 6 cols}] {form: science, places: 2}{newln}", 42, $price) ?? crash;
-std::io::fmt_print.stored(Lend.mut $out, "{}{newln}", $tenth) ?? crash;
+@std::io::fmt_print(Lend.mut $out, "hi{newln}") ?? crash;
+@std::io::fmt_print(Lend.mut $out, "{}: {} at ${places: 2}{newln}", $name, $count, $price) ?? crash;
+@std::io::fmt_print(Lend.mut $out, "0x{base: hex.upper, zeros, width: 4 cols}{newln}", 255) ?? crash;
+@std::io::fmt_print(Lend.mut $out, "[{align: right, width: 6 cols}] {form: science, places: 2}{newln}", 42, $price) ?? crash;
+@std::io::fmt_print.stored(Lend.mut $out, "{}{newln}", $tenth) ?? crash;
 ```
 
 With `$name` as `"rope"`, `$count` as `3`, `$price` as an `f64.stable` holding `12.5`, and `$tenth` as an `f64.stable` holding `~0.1`, these print `hi`, `rope: 3 at $12.50`, `0x00FF`, `[    42] 1.25e1`, and `0.1000000000000000055511151231257827021181583404541015625`.
@@ -290,9 +290,9 @@ With `$name` as `"rope"`, `$count` as `3`, `$price` as an `f64.stable` holding `
 
 A literal format is checked when building.
 
-**Refused:** a bare `{` in the text, with `fix: \{`; `\n`, with `fix: {newln}`; `{0}`; mixing plain and numbered holes; more or fewer values than holes; a shape that doesn't apply, like `places:` on an integer; a width with no unit; `zeros` with no width; a shape written twice; an unknown escape; `.stdout` and `.stderr`, since the writer says where output goes, a bare `os::stdout()`, asking which kind, a buffered writer never given to `os::done`, and `std::io::fmt_println`, with `fix: std::io::fmt_print`.
+**Refused:** a bare `{` in the text, with `fix: \{`; `\n`, with `fix: {newln}`; `{0}`; mixing plain and numbered holes; more or fewer values than holes; a shape that doesn't apply, like `places:` on an integer; a width with no unit; `zeros` with no width; a shape written twice; an unknown escape; `.stdout` and `.stderr`, since the writer says where output goes, a bare `os::stdout()`, asking which kind, a buffered writer never given to `os::done`, and `@std::io::fmt_println`, with `fix: @std::io::fmt_print`.
 
-**From:** D11, D50, D51, D122, D162, D165, D194, D195, D197, D210, D221, D223, D246, D247, D272, D273, and CyborgPL's format print.
+**From:** D11, D50, D51, D122, D162, D165, D194, D195, D197, D210, D221, D223, D246, D247, D272, D273, and CyborgPL's format print, D461.
 
 ## 1.14 Spacing
 
@@ -300,7 +300,7 @@ A literal format is checked when building.
 
 | Where | Spaces | Example |
 |---|---|---|
-| Around `.`, `::`, `%`, `%%`, `@` | None | `fn.main`, `std::io::fmt_print`, `$p.%area()` |
+| Around `.`, `::`, `%`, `%%`, `@` | None | `fn.main`, `@std::io::fmt_print`, `$p.%area()` |
 | After `$`, a unary `-`, a `~` on a literal, an opening `(`, `[`, `<`, `{` | None | `-$x`, `~0.1`, `total(Lend $xs)`, `std::coll::list<i32>`, `{$a + $b}` |
 | Before a closing bracket, or a postfix `?` | None | `read()?` |
 | Around a binary operator, word operators and `=` included | One on each side | `1 below 8`, `$a + $b`, `$x at_least 0` |
@@ -311,7 +311,7 @@ A literal format is checked when building.
 A line break inside a statement is allowed only after a comma, after an opening `(`, `[`, `<` or `{`, with the closing one then on its own line, and after a binary operator. Every block opener and closer stays on one line.
 
 ```
-std::io::fmt_print(
+@std::io::fmt_print(
     Lend.mut $out,
     "{}: {} at ${places: 2}{newln}",
     $name,

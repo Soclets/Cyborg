@@ -26,7 +26,7 @@ Bare `@`, with no `::`, is a compiler builtin instead ([5.7](5-functions.md#57-b
 | Thing | What it is | How it looks |
 |---|---|---|
 | Base | The language itself | Bare |
-| Kit | A library, written in Cyborg | Its path: `std::io::fmt_print` |
+| Kit | A library, written in Cyborg | Its path: `@std::io::fmt_print` |
 | Limb | A compiler extension | `@` and its path: `@precog::set_to_best` |
 | Package | What you install: a kit, a limb, or both, with one name and one version | Its halves, as `std::` and `@std::` |
 | Dialect | A compiler forked from `OKAY\n`, on CyJet's registry, with no rules of Cyborg's | A `dialect` line in the manifest |
@@ -44,7 +44,7 @@ import std;
 end file.every
 
 file net::http:
-use std::io::fmt_print;
+use @std::io::fmt_print;
 end file net::http
 ```
 
@@ -290,18 +290,18 @@ fam.fn box<?item: any.type>:
 end fam.fn box
 ```
 
-Writing your own allocator is shield code, against `std::mem::allocator`, whose `%allocate` takes a size and an alignment in bytes ([2.10](2-values-and-types.md#210-lists)). `@std::mem::size_of<player>()` gives how many bytes a type takes, and `@std::mem::align_of<player>()` which addresses it may start at, both known while compiling, from `std`'s limb half ([9.3](#93-stds-two-parts)). They work anywhere, not only in shields.
+Writing your own allocator is shield code, against `std::mem::allocator`, whose `%allocate` takes a size and an alignment in bytes ([2.10](2-values-and-types.md#210-lists)). `@size_of<player>()` gives how many bytes a type takes, and `@align_of<player>()` which addresses it may start at, both known while compiling, as builtins ([5.7](5-functions.md#57-builtins-)). They work anywhere, not only in shields.
 
 ```
 // %allocate's labels are placeholders
-let $mem: ptr.raw.mut<u8> = $alloc.%allocate(size: @std::mem::size_of<player>(), align: @std::mem::align_of<player>())?;
+let $mem: ptr.raw.mut<u8> = $alloc.%allocate(size: @size_of<player>(), align: @align_of<player>())?;
 ```
 
 Using a limb doesn't need a shield by itself: `@` says it's a compiler extension, and a shield says it's dangerous.
 
 **Refused:** any of these outside a shield, except in `FinalShit`; writing through a `ptr.raw` or a `ptr.volatile`; `.%lend.mut` on a `ptr.raw`, and `.%lend(from:)` with a source that isn't a named value; and `.%moved` with a bare `offset:`, with `fix: offset.items:`.
 
-**From:** D38, D40, D226, D314, D315, D316, D317, D324, D333, D342, D416, D418, D451, D454, D455, D456.
+**From:** D38, D40, D226, D314, D315, D316, D317, D324, D333, D342, D416, D418, D451, D454, D455, D456, D461.
 
 ## 9.9 A shield's walls
 

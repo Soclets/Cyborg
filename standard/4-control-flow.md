@@ -19,7 +19,7 @@ Each loop says how it ends. There is no `continue`: wrap the work in an `if` ins
 
 ```
 if $t at_least 10:
-    std::io::fmt_print(Lend.mut $out, "big total: {}{newln}", $t) ?? crash;
+    @std::io::fmt_print(Lend.mut $out, "big total: {}{newln}", $t) ?? crash;
 end if
 ```
 
@@ -27,11 +27,11 @@ end if
 
 ```
 if $n above 100:
-    std::io::fmt_print(Lend.mut $out, "huge{newln}") ?? crash;
+    @std::io::fmt_print(Lend.mut $out, "huge{newln}") ?? crash;
 else if $n above 0:
-    std::io::fmt_print(Lend.mut $out, "big{newln}") ?? crash;
+    @std::io::fmt_print(Lend.mut $out, "big{newln}") ?? crash;
 else:
-    std::io::fmt_print(Lend.mut $out, "small{newln}") ?? crash;
+    @std::io::fmt_print(Lend.mut $out, "small{newln}") ?? crash;
 end if
 ```
 
@@ -41,7 +41,7 @@ When an `if` block always leaves, by `return`, `break` or `fail`, the code that 
 if $name.len == 0 bytes:
     return void;
 else:
-    std::io::fmt_print(Lend.mut $out, "Hi {$name}{newln}") ?? void;
+    @std::io::fmt_print(Lend.mut $out, "Hi {$name}{newln}") ?? void;
     return void;
 end if
 ```
@@ -58,7 +58,7 @@ It works on a union's case, and on a bound for a plain integer.
 
 ```
 if $s: status.failed:
-    std::io::fmt_print(Lend.mut $out, "failed: {}{newln}", $s.code) ?? crash;
+    @std::io::fmt_print(Lend.mut $out, "failed: {}{newln}", $s.code) ?? crash;
 end if
 
 if $n: i32[min: 0, max: 100]:
@@ -72,7 +72,7 @@ Changing `$s` inside the block, or lending it with `Lend.mut`, is allowed, and t
 
 ```
 if $s: status.failed:
-    std::io::fmt_print(Lend.mut $out, "{}{newln}", $s.code) ?? crash;
+    @std::io::fmt_print(Lend.mut $out, "{}{newln}", $s.code) ?? crash;
     change $s = status.ok;
 end if
 ```
@@ -90,9 +90,9 @@ The test is the program's own logic, so on a plain integer it stays in every bui
 ```
 match $s:
     case status.ok:
-        std::io::fmt_print(Lend.mut $out, "worked{newln}") ?? crash;
+        @std::io::fmt_print(Lend.mut $out, "worked{newln}") ?? crash;
     case status.failed:
-        std::io::fmt_print(Lend.mut $out, "failed{newln}") ?? crash;
+        @std::io::fmt_print(Lend.mut $out, "failed{newln}") ?? crash;
 end match
 ```
 
@@ -101,9 +101,9 @@ Naming a case lets its arm read its data:
 ```
 match $s:
     case status.failed $f:
-        std::io::fmt_print(Lend.mut $out, "{}{newln}", $f.code) ?? crash;
+        @std::io::fmt_print(Lend.mut $out, "{}{newln}", $f.code) ?? crash;
     case status.ok:
-        std::io::fmt_print(Lend.mut $out, "worked{newln}") ?? crash;
+        @std::io::fmt_print(Lend.mut $out, "worked{newln}") ?? crash;
 end match
 ```
 

@@ -8,7 +8,7 @@
 | [5.4](#54-the-top-of-the-body) | `labels`, `defaults`, `requires`, `ensures` | In that order, first in the body |
 | [5.5](#55-contracts) | `requires`, `ensures` | When they're checked |
 | [5.6](#56-methods-) | `.%` | A function on a receiver |
-| [5.7](#57-builtins-) | Bare `@` | A compiler builtin |
+| [5.7](#57-builtins-) | `@size_of`, `@fmt` | Bare `@`: what the language defines |
 | [5.8](#58-generics) | `<?item: ordered>`, `interface`, `satisfies` | C++ templates, but safer |
 | [5.9](#59-pure-functions) | `fn.pure` | Same input, same output, nothing else changes |
 | [5.10](#510-compile-time-features) | Compile-time features | Templates, but safe, one feature per job |
@@ -74,7 +74,7 @@ fn greet [$out: Lent.mut os::stdout.buffered, $name: str] -> void:
     if $name.len == 0 bytes:
         return void;
     else:
-        std::io::fmt_print(Lend.mut $out, "Hi {$name}{newln}") ?? void;
+        @std::io::fmt_print(Lend.mut $out, "Hi {$name}{newln}") ?? void;
         return void;
     end if
 end fn greet
@@ -170,11 +170,19 @@ A receiver that's `Given` is refused, because methods only borrow, and so is a m
 
 **Rule:** a bare `@`, with no `::`, is a compiler builtin, and it's always available. A builtin looks like a function call, and can't be written as a Cyborg function.
 
-Which builtins exist isn't decided ([12.9](12-not-decided.md#129-limbs-and-projects)). What the compiler knows about a program can also come from a limb, like `std`'s own limb half: a type's size and alignment are `@std::mem::size_of<i32>()` and `@std::mem::align_of<i32>()` ([9.8](9-limbs-and-shields.md#98-what-must-live-in-a-shield)), not builtins.
+A builtin is for what the language itself defines. A type's size and alignment, fixed by the standard for every type, base types included, are `@size_of<player>()` and `@align_of<player>()`, in `bytes` ([9.8](9-limbs-and-shields.md#98-what-must-live-in-a-shield)). `@fmt("…")` makes a format value: the text, checked while building, and borrows of the values its holes read, with no text made yet, for a kit that takes a format, like a logger. Conveniences built on top live in `std`, like printing, in its limb half ([1.13](1-programs.md#113-printing-stdiofmt_print)).
 
-**Refused:** `@let`. `let`, `+` and `as` aren't calls, and `std::io::fmt_print` could be written in Cyborg.
+```
+@size_of<i32>()
+@align_of<player>()
+@fmt("{$name}: {$count}")
+```
 
-**From:** D56, D454.
+The rest of the list of builtins isn't decided ([12.9](12-not-decided.md#129-limbs-and-projects)).
+
+**Refused:** `@let`. `let`, `+` and `as` aren't calls.
+
+**From:** D56, D454, D461.
 
 ## 5.8 Generics
 

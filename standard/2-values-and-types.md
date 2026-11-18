@@ -124,12 +124,12 @@ Comparing works as usual, and `-0.0 == 0.0` is true. The linter can flag compari
 
 IEEE 754 is the authority on how `f64.ieee` behaves, including comparing, arithmetic, and NaN and infinity moving through the maths. So any comparison with NaN is false except `!=`, and `NaN == NaN` is false. Cyborg still decides syntax, printing, `as` crossings and bounds.
 
-A float prints as the shortest text that means its value, and `std::io::fmt_print.stored` prints what's actually in memory:
+A float prints as the shortest text that means its value, and `@std::io::fmt_print.stored` prints what's actually in memory:
 
 ```
 let $x: f64.stable = ~0.1;
-std::io::fmt_print(Lend.mut $out, "{}{newln}", $x) ?? crash;
-std::io::fmt_print.stored(Lend.mut $out, "{}{newln}", $x) ?? crash;
+@std::io::fmt_print(Lend.mut $out, "{}{newln}", $x) ?? crash;
+@std::io::fmt_print.stored(Lend.mut $out, "{}{newln}", $x) ?? crash;
 ```
 
 The first prints `0.1`, and the second prints every digit, with no limit: `0.1000000000000000055511151231257827021181583404541015625`.
@@ -587,7 +587,7 @@ if $hot:
 else:
     assign $x = 2;
 end if
-std::io::fmt_print(Lend.mut $out, "{}{newln}", $x) ?? crash;
+@std::io::fmt_print(Lend.mut $out, "{}{newln}", $x) ?? crash;
 ```
 
 It isn't uninitialized memory, since nothing can read it empty, so it needs no shield.
