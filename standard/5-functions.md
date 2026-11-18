@@ -8,7 +8,7 @@
 | [5.4](#54-the-top-of-the-body) | `labels`, `defaults`, `requires`, `ensures` | In that order, first in the body |
 | [5.5](#55-contracts) | `requires`, `ensures` | When they're checked |
 | [5.6](#56-methods-) | `.%` | A function on a receiver |
-| [5.7](#57-builtins-) | `@bytes_of` | Bare `@` |
+| [5.7](#57-builtins-) | Bare `@` | A compiler builtin |
 | [5.8](#58-generics) | `<?item: ordered>`, `interface`, `satisfies` | C++ templates, but safer |
 | [5.9](#59-pure-functions) | `fn.pure` | Same input, same output, nothing else changes |
 | [5.10](#510-compile-time-features) | Compile-time features | Templates, but safe, one feature per job |
@@ -170,13 +170,11 @@ A receiver that's `Given` is refused, because methods only borrow, and so is a m
 
 **Rule:** a bare `@`, with no `::`, is a compiler builtin, and it's always available. A builtin looks like a function call, and can't be written as a Cyborg function.
 
-```
-@bytes_of<i32>()
-```
+Which builtins exist isn't decided ([12.9](12-not-decided.md#129-limbs-and-projects)). What the compiler knows about a program can also come from a limb, like `std`'s own limb half: a type's size and alignment are `@std::mem::size_of<i32>()` and `@std::mem::align_of<i32>()` ([9.8](9-limbs-and-shields.md#98-what-must-live-in-a-shield)), not builtins.
 
 **Refused:** `@let`. `let`, `+` and `as` aren't calls, and `std::io::fmt_print` could be written in Cyborg.
 
-**From:** D56.
+**From:** D56, D454.
 
 ## 5.8 Generics
 
