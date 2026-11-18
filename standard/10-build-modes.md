@@ -67,6 +67,7 @@ okay run --Working --opt=O0
 | A shield's entry (`requires`) | Kept | Follows the mode | Gone | Gone | If smaller | Follows the mode |
 | Other contracts | Kept | Kept, unless marked | Gone | Gone | If smaller | Kept, unless marked |
 | `if $n: T:` on a plain value | Kept | Kept | Kept | Kept | Kept | Kept |
+| An unchecked version, in a `shield.danger` | Kept | Gone | Gone | Gone | Gone | Gone |
 
 A check in `Working` is kept no matter the cost. `.only_in_working` on `requires` or `ensures` marks a contract as checked in `Working` only:
 
@@ -74,7 +75,9 @@ A check in `Working` is kept no matter the cost. `.only_in_working` on `requires
 requires.only_in_working is_sorted(Lend $xs);
 ```
 
-**From:** D14, D20, D26, D37, D39, D105, D106, D280, D409.
+An unchecked version is the programmer's own proof that a check can't fail, so `Working` keeps it like any other proof ([9.8](9-limbs-and-shields.md#98-what-must-live-in-a-shield)).
+
+**From:** D14, D20, D26, D37, D39, D105, D106, D280, D409, D462.
 
 ## 10.4 What happens when something goes wrong
 
