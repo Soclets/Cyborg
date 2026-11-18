@@ -10,7 +10,7 @@ before changing it (rule 11 in `IMPLEMENTATION.md`).
 You've been idle since the generator was finished. Since then, compiler
 claude has nearly caught up: about 1571 of tests/'s 1719 pass on OKAY\n,
 and it's building everything up to D416 from the standard. Tankun has also
-made D403 to D454, which you haven't built yet, and the compiler found a
+made D403 to D460, which you haven't built yet, and the compiler found a
 few things in tests/ that need fixing. This round brings the oracle and
 tests/ up to date, so the live comparison can start finding real compiler
 bugs once both sides agree on what Cyborg is.
@@ -24,7 +24,7 @@ agreed, so it doesn't need asking again.
 </context>
 
 <work>
-Read DECISIONS.md from D403 to D454 and the standard sections they point
+Read DECISIONS.md from D403 to D460 and the standard sections they point
 to first. Then, in this order, committing in small steps:
 
 1. The fixes compiler claude found, all agreed with design claude:
@@ -84,7 +84,11 @@ to first. Then, in this order, committing in small steps:
    of themselves, `.%lend(from:)` on a raw pointer, and
    `@std::mem::size_of` and `@std::mem::align_of`. D454 drops the builtin
    `@bytes_of`, so d56_builtin_list_isnt_decided needs another way to
-   reach an undecided builtin.
+   reach an undecided builtin. D455 to D459 add `all unfilled` arrays
+   inside `shield.danger`, and slots handing out checked handles. D460
+   makes maths group with `{ }`, as in `{$a + $b} x 2`, so every test
+   that groups with `( )` gets respelled, and `( )` only ever runs
+   something.
    D423 respells kit method calls to their full path, as in
    `$xs.std::coll::list.%%append(…)`, in about 52 tests.
 3. D416, `.%viewed_as(item.type:)`, with tests that read a

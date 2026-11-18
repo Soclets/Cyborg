@@ -10,7 +10,7 @@
 | [3.6](#36-logic) | `and`, `or`, `not` | |
 | [3.7](#37-bits-and-shifts) | `and.bit`, `or.bit`, `xor.bit`, `not.bit`, `shift.left`, `shift.right`, `rotate.left`, `rotate.right` | |
 | [3.8](#38-wrapping-and-saturating-pluswrap-plussaturate) | `plus.wrap`, `plus.saturate` | Wraps or sticks, in every mode |
-| [3.9](#39-grouping-and-precedence) | `( )`, precedence | Follows maths |
+| [3.9](#39-grouping-and-precedence) | `{ }`, precedence | Follows maths |
 | [3.10](#310-operators-for-your-own-types-op) | `op below` | A struct defines an operator for itself |
 
 ## 3.1 Every operator
@@ -142,7 +142,7 @@ let $louder: u8[min: 0, max: 100] = $volume plus.saturate 10;
 
 ## 3.9 Grouping and precedence
 
-**Rule:** precedence follows maths, and `( )` groups, which is the one case where `( )` doesn't run something. Tightest first:
+**Rule:** precedence follows maths, and `{ }` groups, so `( )` always runs something ([1.8](1-programs.md#18-brackets)). Tightest first:
 
 | Level | Operators |
 |---|---|
@@ -157,16 +157,17 @@ let $louder: u8[min: 0, max: 100] = $volume plus.saturate 10;
 
 ```
 $a + $b x 2
-($a + $b) x 2
-($a + $b) as str[len.max: 20 bytes]
+{$a + $b} x 2
+{$a + $b} as str[len.max: 20 bytes]
+std::math::sqrt({$a + $b} x 2)
 $a + read() ?? 0
 ```
 
 **Refused:** where maths gives no order, so bit operators and shifts mixed with anything, as in `$a shift.left 2 + 1`, and `as` on anything but a single value, as in `$a + $b as str[len.max: 20 bytes]`.
 
-Unary `-` negates, so `-$x` and `-7` are both allowed. A comparison chain means all of it is true, and each value is evaluated once: `1 below $x below 5` means `1 below $x and $x below 5`. It stops at its first false. The linter can ask for parentheses.
+Unary `-` negates, so `-$x` and `-7` are both allowed. A comparison chain means all of it is true, and each value is evaluated once: `1 below $x below 5` means `1 below $x and $x below 5`. It stops at its first false. The linter can ask for `{ }`.
 
-**From:** D23, D116, D117, D124, D131, D132.
+**From:** D23, D116, D117, D124, D131, D132, D460.
 
 ## 3.10 Operators for your own types: `op`
 

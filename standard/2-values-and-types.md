@@ -632,7 +632,7 @@ let $d: simd<i32>[lanes: max] = all 0;
 
 A lane follows its type's rules exactly: if any lane overflows or breaks its bound, it's the same failure as for one value of that type, and the message says which lane. `simd<i32[min: 0, max: 100]>` checks every lane's bounds. A check that's proven can be dropped, and the modes treat these checks like any other.
 
-Adding up all the lanes into one value uses a fixed pairwise order: neighbouring lanes are added in pairs, then the results in pairs, until one is left, with an odd lane out carried up to the next round. Four lanes add as `(a + b) + (c + d)`, and three as `(a + b) + c`. So `.stable` and `.ieee` floats give the same answer on every CPU for the same lane count, even when the vector is split, and an integer overflows at the same place every time. `.fast` floats let the compiler pick any order. `lanes: max` changes the lane count between targets, and so the grouping.
+Adding up all the lanes into one value uses a fixed pairwise order: neighbouring lanes are added in pairs, then the results in pairs, until one is left, with an odd lane out carried up to the next round. Four lanes add as `{a + b} + {c + d}`, and three as `{a + b} + c`. So `.stable` and `.ieee` floats give the same answer on every CPU for the same lane count, even when the vector is split, and an integer overflows at the same place every time. `.fast` floats let the compiler pick any order. `lanes: max` changes the lane count between targets, and so the grouping.
 
 Combining the lanes into one value is a `.%` method, since it only reads the `simd`:
 
@@ -687,7 +687,7 @@ Comparisons work lane by lane: `==`, `!=`, `below`, `above`, `at_least` and `at_
 let $a: simd<i32>[lanes: 4] = [1, 8, 3, 6];
 let $b: simd<i32>[lanes: 4] = [5, 5, 5, 5];
 let $m: simd<bool>[lanes: 4] = $a above $b;
-if ($a == $b).%all_true():
+if {$a == $b}.%all_true():
 ```
 
 `$m` holds `[false, true, false, true]`.

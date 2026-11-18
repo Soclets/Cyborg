@@ -13,7 +13,7 @@
 | [1.14](#114-spacing) | Spaces | Part of the syntax |
 | [1.6](#16-narrowings-) | `.` | Makes the thing before it more specific |
 | [1.7](#17-bare-names) | Bare names | The obvious default, or nothing |
-| [1.8](#18-brackets) | `( )`, `[ ]`, `< >` | Runs, describes, fills in |
+| [1.8](#18-brackets) | `( )`, `[ ]`, `< >`, `{ }` | Runs, describes, fills in, groups |
 | [1.9](#19-labels-) | `:` in brackets | Names a value, and can be narrowed |
 | [1.10](#110-clashing-names-my) | `my::` | A name of yours that clashes |
 
@@ -159,14 +159,15 @@ std::io::fmt_print(Lend.mut $out, "hi{newln}") ?? crash;
 | `( )` | Runs something | `total(Lend $xs)` |
 | `[ ]` | Describes or holds values | `fn total [$xs: …]`, `i32[min: 0, max: 100]` |
 | `< >` | Fills in a type or a source | `std::coll::list<i32>` |
+| `{ }` | Groups in maths | `{$a + $b} x 2` |
 
-The one exception is grouping in maths: `($a + $b) x 2`.
+`( )` always runs something: grouping uses `{ }`, so `sqrt({$a + $b} x 2)` shows a call and a group apart (D460).
 
 An opening `<` has no space after it, and a closing `>` has none before it. `<` and `>` are never comparisons, which are `below` and `above` ([3.5](3-operators.md#35-comparison)).
 
 **Refused:** `$a < $b`, with `fix: below`.
 
-**From:** D23.
+**From:** D23, D460.
 
 ## 1.9 Labels: `:`
 
@@ -300,14 +301,14 @@ A literal format is checked when building.
 | Where | Spaces | Example |
 |---|---|---|
 | Around `.`, `::`, `%`, `%%`, `@` | None | `fn.main`, `std::io::fmt_print`, `$p.%area()` |
-| After `$`, a unary `-`, a `~` on a literal, an opening `(`, `[`, `<` | None | `-$x`, `~0.1`, `total(Lend $xs)`, `std::coll::list<i32>` |
+| After `$`, a unary `-`, a `~` on a literal, an opening `(`, `[`, `<`, `{` | None | `-$x`, `~0.1`, `total(Lend $xs)`, `std::coll::list<i32>`, `{$a + $b}` |
 | Before a closing bracket, or a postfix `?` | None | `read()?` |
 | Around a binary operator, word operators and `=` included | One on each side | `1 below 8`, `$a + $b`, `$x at_least 0` |
 | After a comma, or a label's `:` | One | `range[from: 1, to: 3]` |
 
-**Refused:** `fn . main`, `std :: io`, `$a+$b`, `$a  +  $b`, and `( $x )`, each with the spaced version as its fix, and a line break anywhere else, such as between `end` and `fn.main`, with a fix that joins the line.
+**Refused:** `fn . main`, `std :: io`, `$a+$b`, `$a  +  $b`, `( $x )` and `{ $a + $b }`, each with the spaced version as its fix, and a line break anywhere else, such as between `end` and `fn.main`, with a fix that joins the line.
 
-A line break inside a statement is allowed only after a comma, after an opening `(`, `[` or `<`, with the closing one then on its own line, and after a binary operator. Every block opener and closer stays on one line.
+A line break inside a statement is allowed only after a comma, after an opening `(`, `[`, `<` or `{`, with the closing one then on its own line, and after a binary operator. Every block opener and closer stays on one line.
 
 ```
 std::io::fmt_print(
@@ -321,4 +322,4 @@ std::io::fmt_print(
 
 Indentation, line length, and the space before an opening `[` aren't decided ([12.1](12-not-decided.md#121-problems-found-writing-this)).
 
-**From:** D23, D213, D219.
+**From:** D23, D213, D219, D460.
