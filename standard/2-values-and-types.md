@@ -766,8 +766,8 @@ let $hp: i32 = $b.%get().hp;
 change $b.%%get.mut().hp = 10;
 ```
 
-Whether `done` hands the value back, how a type that holds more of itself is written, and how `std` makes the borrow from the box's pointer aren't decided ([12.2](12-not-decided.md#122-types)).
+`std` makes that borrow from the box's pointer with `.%lend(from:)` ([9.8](9-limbs-and-shields.md#98-what-must-live-in-a-shield)). Whether `done` hands the value back, and how a type that holds more of itself is written, aren't decided ([12.2](12-not-decided.md#122-types)).
 
 **Refused:** `$b.hp`, since a box isn't its value, with `fix: $b.%get().hp`.
 
-**From:** D3, D321, D322, D325, D331, D449, D450.
+**From:** D3, D321, D322, D325, D331, D449, D450, D451.

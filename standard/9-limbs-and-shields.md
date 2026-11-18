@@ -275,13 +275,27 @@ $led.%write(val: 1);
 $led.%write(val: 0);
 ```
 
+`.%lend(from:)` turns a raw pointer into a borrow, the other way from `.of`. A raw pointer has no lifetime, so `from:` names the value the borrow lives as long as ([6.10](6-ownership.md#610-stored-borrows)), as a promise that the memory stays alive that long, which the compiler can't check. After that it's an ordinary checked borrow, so it can leave the shield. `.%lend.mut(from: Lend.mut …)` gives a changing borrow, from a `ptr.raw.mut` only. This is how a kit written in Cyborg, like `std::mem::box` ([2.23](2-values-and-types.md#223-one-value-on-the-heap-stdmembox)), hands out safe borrows of memory it manages through pointers.
+
+```
+// std's own code, sketched
+fam.fn box<T>:
+    fn %get [$b: Lent box<T>] -> Lend from $b T:
+        shield.danger lend_inside:
+            reason "a box's pointer stays valid while the box is alive"
+            return $b.at.%lend(from: Lend $b);
+        end shield.danger lend_inside
+    end fn %get
+end fam.fn box
+```
+
 Writing your own allocator is shield code. How an allocator is spelled and what it must provide isn't decided ([2.10](2-values-and-types.md#210-lists)).
 
 Using a limb doesn't need a shield by itself: `@` says it's a compiler extension, and a shield says it's dangerous.
 
-**Refused:** any of these outside a shield, except in `FinalShit`; writing through a `ptr.raw` or a `ptr.volatile`; and `.%moved` with a bare `offset:`, with `fix: offset.items:`.
+**Refused:** any of these outside a shield, except in `FinalShit`; writing through a `ptr.raw` or a `ptr.volatile`; `.%lend.mut` on a `ptr.raw`, and `.%lend(from:)` with a source that isn't a named value; and `.%moved` with a bare `offset:`, with `fix: offset.items:`.
 
-**From:** D38, D40, D226, D314, D315, D316, D317, D342, D416, D418.
+**From:** D38, D40, D226, D314, D315, D316, D317, D342, D416, D418, D451.
 
 ## 9.9 A shield's walls
 
@@ -291,9 +305,9 @@ Using a limb doesn't need a shield by itself: `@` says it's a compiler extension
 |---|---|---|
 | Entry | The caller meets `requires` | At runtime unless it's proven, by `OKAY\n` or Precog, following the build mode |
 | Exit | `ensures` holds | [10.3](10-build-modes.md#103-what-gets-checked) |
-| Containment | Raw pointers and unchecked borrows can't leave | A compile error, except in `FinalShit` |
+| Containment | Raw pointers and unchecked borrows can't leave, though a borrow made with `.%lend(from:)` is checked and can | A compile error, except in `FinalShit` |
 
-**From:** D37, D39.
+**From:** D37, D39, D451.
 
 ## 9.10 Precog
 
