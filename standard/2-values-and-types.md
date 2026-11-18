@@ -25,6 +25,7 @@
 | [2.21](#221-simd) | `simd<i32>[lanes: 4]` | Several values worked on by one instruction |
 | [2.22](#222-secrets-secret) | `u32.secret` | A value that can't affect timing |
 | [2.23](#223-one-value-on-the-heap-stdmembox) | `std::mem::box<player>` | One value on the heap |
+| [2.24](#224-many-holders-stdcollslots) | `std::coll::slots<enemy>` | Values reached by checked handles |
 
 ## 2.1 `let`
 
@@ -797,3 +798,17 @@ end union.tagged chain
 **Refused:** `$b.hp`, since a box isn't its value, with `fix: $b.%get().hp`; `done` on a box whose value is `must_Give`, with `fix: take`; and a type holding itself directly, as in `rest: chain`, which would have no size, with `fix: std::mem::box<chain>`, or a loop of types holding each other directly, with the fix on one of them.
 
 **From:** D3, D33, D321, D322, D325, D331, D449, D450, D451, D452, D453.
+
+## 2.24 Many holders: `std::coll::slots`
+
+**Rule:** data that many things point at, and that dies when the program decides, like a game's enemies, lives in one collection of slots that owns every value. Everyone else holds a handle, a small plain number saying which slot and which version of it, so it's copied anywhere, with no borrows. Looking a value up checks that its slot still holds that version, so a handle to a removed value gives a failure instead of reading freed memory. Removing a value is an explicit call, and the collection is `must_Give`, ending with `done` ([6.9](6-ownership.md#69-must_give)). There's no reference counting, since nothing is freed automatically.
+
+```
+// placeholder spellings
+let $h: std::coll::slots.handle<enemy> = $enemies.std::coll::slots.%%put(val: Give $orc, alloc: Lend $heap)?;
+let $hp: i32 = $enemies.std::coll::slots.%get(at: $h)?.hp;
+```
+
+The spellings, what removing gives back, the failure's name, and whether a handle used on a different collection is caught aren't decided ([12.2](12-not-decided.md#122-types)).
+
+**From:** D325, D457.

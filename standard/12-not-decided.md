@@ -93,7 +93,7 @@ Waiting on the owner, most needed first. Each is `NotDesignedYet` unless it says
 - Two narrowings on one struct, like `struct.packed.must_Give`, and their order.
 
 - The box (D449 to D453): the spellings of `std::mem::box.new` and `.done`. Whether `ptr.volatile` has `.%lend(from:)` (D451).
-- Data with many holders that dies when the program decides, like a game's objects: a `std` collection of slots handing out handles checked while running, like CyborgPL's `manual[T]`, so a handle to a freed object gives a failure instead of reading freed memory.
+- Slots (D457): the spellings of `std::coll::slots`, its handle, `%%put` and `%get`, what removing gives back, the failure's name, and whether a handle used on a different collection is caught.
 
 ## 12.3 Operators and conversion
 
