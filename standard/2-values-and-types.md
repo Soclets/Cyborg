@@ -809,6 +809,15 @@ let $h: std::coll::slots.handle<enemy> = $enemies.std::coll::slots.%%put(val: Gi
 let $hp: i32 = $enemies.std::coll::slots.%get(at: $h)?.hp;
 ```
 
-The spellings, what removing gives back, the failure's name, and whether a handle used on a different collection is caught aren't decided ([12.2](12-not-decided.md#122-types)).
+`%%remove` empties a slot whose value has nothing of its own to free, and `%%take` empties it and hands the value back, as a box's `done` and `take` do ([2.23](#223-one-value-on-the-heap-stdmembox)). Either raises the slot's version, so every handle still pointing at it fails from then on.
 
-**From:** D325, D457.
+```
+$enemies.std::coll::slots.%%remove(at: $h)?;
+let $orc: enemy = $enemies.std::coll::slots.%%take(at: $h)?;
+```
+
+The spellings, the failure's name, and whether a handle used on a different collection is caught aren't decided ([12.2](12-not-decided.md#122-types)).
+
+**Refused:** `%%remove` on a `must_Give` value, with `fix: %%take`.
+
+**From:** D325, D452, D457, D458.
