@@ -1470,6 +1470,8 @@ Exactly which operations go in `.repro` and `.logic`, whether a bare `shield` is
 
 **D463. An unchecked version is marked `^`, right after what does the check.** `$xs[pos^: $i]` reads a position unchecked, and `$enemies.std::coll::slots.%get^(at: $h)` looks up a slot unchecked, with no `?`, since it can't fail any more. On a label, `^` goes before the colon, and on a method, before the brackets, with no space either side. The shield and its `reason` already carry the warning (D462), so the mark only has to say which operation skips its check, and a symbol is short, joining the symbols that mark how something behaves, like `~` on a rounded literal. `^` was free in code, since exclusive or is `xor.bit`. `.unchecked` was weighed, as Cyborg's habit of words for a kind of thing, and `.trust` as a shorter word. Claude worried that error messages underline with `^` (11.1), so an error on such a line shows both; the owner said "I don't think it's that bad, tbh". Claude proposed `.unchecked`; the owner asked "What about `^` instead?", said "`.unchecked` is long, and it's already in a shield", and chose: "yea". (Owner, 2026-11-18)
 
+**D464. A box is made with `std::mem::box.new(val: Give $p, alloc: Lend $heap)`.** This settles D449's placeholder as it was: `.new` as the arena's `std::mem::arena.new` (D333), `val:` as the label for a value being put in, as in `%%append(val:)`, `.%write(val:)` and `.%store(val:)`, and `alloc:` as every allocating call (D322). `done` was already settled by D331, and `take` by D452. Claude proposed keeping it; the owner chose: "yea". (Owner, 2026-11-18)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude

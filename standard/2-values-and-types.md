@@ -765,7 +765,6 @@ end shield.logic publish
 **Rule:** `std::mem::box<?item: any.type>`, as in `std::mem::box<player>`, owns one value on the heap, for a value too big to move around cheaply, or a type that holds more of itself, like a tree node. It's a `std` type, a small struct holding a pointer and its allocator's ID, so its size is the same whatever `?item` is. Like every heap owner, making one takes an allocator ([2.10](#210-lists)), it remembers which one, and it's `must_Give`, ending with `done` ([6.9](6-ownership.md#69-must_give)).
 
 ```
-// placeholder spellings
 let $b: std::mem::box<node> = std::mem::box.new(val: Give $first, alloc: Lend $heap)?;
 defer std::mem::box.done(Give $b, alloc: Lend $heap);
 ```
@@ -797,7 +796,7 @@ end union.tagged chain
 
 **Refused:** `$b.hp`, since a box isn't its value, with `fix: $b.%get().hp`; `done` on a box whose value is `must_Give`, with `fix: take`; and a type holding itself directly, as in `rest: chain`, which would have no size, with `fix: std::mem::box<chain>`, or a loop of types holding each other directly, with the fix on one of them.
 
-**From:** D3, D33, D321, D322, D325, D331, D449, D450, D451, D452, D453.
+**From:** D3, D33, D321, D322, D325, D331, D449, D450, D451, D452, D453, D464.
 
 ## 2.24 Many holders: `std::coll::slots`
 
