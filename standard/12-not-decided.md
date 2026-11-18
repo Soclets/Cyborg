@@ -93,6 +93,7 @@ Waiting on the owner, most needed first. Each is `NotDesignedYet` unless it says
 - SIMD: an operator or comparison between a `simd` and one plain value, and comparison chains on `simd` values.
 - Two narrowings on one struct, like `struct.packed.must_Give`, and their order.
 
+- The box (D449): the spellings of `std::mem::box.new` and `.done`, how the value inside is read and changed, whether `done` hands the value back, and how a type that holds more of itself is written.
 - Data with many holders that dies when the program decides, like a game's objects: a `std` collection of slots handing out handles checked while running, like CyborgPL's `manual[T]`, so a handle to a freed object gives a failure instead of reading freed memory.
 
 ## 12.3 Operators and conversion

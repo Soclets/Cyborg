@@ -24,6 +24,7 @@
 | [2.20](#220-types-are-always-written-and-precogs-pick-precogset_to_best) | `@precog::set_to_best` | Precog picks the type |
 | [2.21](#221-simd) | `simd<i32>[lanes: 4]` | Several values worked on by one instruction |
 | [2.22](#222-secrets-secret) | `u32.secret` | A value that can't affect timing |
+| [2.23](#223-one-value-on-the-heap-stdmembox) | `std::mem::box<T>` | One value on the heap |
 
 ## 2.1 `let`
 
@@ -747,3 +748,17 @@ end shield.logic publish
 **Refused:** `.%reveal()` outside a shield; plain `and` and `or` on a `bool.secret`, since stopping early branches on it, with `fix: and.both` or `or.both`; plain `+`, `-` and `x` on a secret, since their overflow check is a branch that leaks it, with `fix: plus.wrap` or `plus.saturate`; bounds on a secret, as in `u8.secret[max: 100]`, unless the check is proven away; `if`, `while` or `match` on a secret, since the path taken leaks it; a secret as a position, as in `$xs[pos: $s]`, since which memory is touched leaks it through the cache; shifting by a secret amount, since some CPUs take longer for bigger shifts; `div` and `mod` with a secret on either side, since division takes longer for some values on most CPUs; and passing a secret where a plain value is expected, printing included.
 
 **From:** D339, D340, D341, D342, D361, D362.
+
+## 2.23 One value on the heap: `std::mem::box`
+
+**Rule:** `std::mem::box<T>` owns one value on the heap, for a value too big to move around cheaply, or a type that holds more of itself, like a tree node. It's a `std` type, a small struct holding a pointer and its allocator's ID, so its size is the same whatever `T` is. Like every heap owner, making one takes an allocator ([2.10](#210-lists)), it remembers which one, and it's `must_Give`, ending with `done` ([6.9](6-ownership.md#69-must_give)).
+
+```
+// placeholder spellings
+let $b: std::mem::box<node> = std::mem::box.new(val: Give $first, alloc: Lend $heap)?;
+defer std::mem::box.done(Give $b, alloc: Lend $heap);
+```
+
+How the value inside is read and changed, whether `done` hands the value back, and how a type that holds more of itself is written aren't decided ([12.2](12-not-decided.md#122-types)).
+
+**From:** D321, D322, D325, D331, D449.
