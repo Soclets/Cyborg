@@ -82,7 +82,6 @@ Waiting on the owner, most needed first. Each is `NotDesignedYet` unless it says
 - How to check a float's sign.
 - Function types: `-> i32` no longer shows failures, so a function's type needs some way to include them.
 - How a type's writer defines label narrowings like `len.max`.
-- How an array that starts unfilled inside a `shield.danger` is spelled (D455).
 - Whether a bad position can be handled, rather than crashing.
 - `str` narrowings other than `str.utf16`, and how string literals work.
 - The test on a value already known to be that type, like `if $n: bool:` on a `bool`. Claude suggested refusing it.
