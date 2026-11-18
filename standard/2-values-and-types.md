@@ -766,8 +766,17 @@ let $hp: i32 = $b.%get().hp;
 change $b.%%get.mut().hp = 10;
 ```
 
-`std` makes that borrow from the box's pointer with `.%lend(from:)` ([9.8](9-limbs-and-shields.md#98-what-must-live-in-a-shield)). Whether `done` hands the value back, and how a type that holds more of itself is written, aren't decided ([12.2](12-not-decided.md#122-types)).
+`std` makes that borrow from the box's pointer with `.%lend(from:)` ([9.8](9-limbs-and-shields.md#98-what-must-live-in-a-shield)).
 
-**Refused:** `$b.hp`, since a box isn't its value, with `fix: $b.%get().hp`.
+`done` frees a box whose value has nothing of its own to free. `take` frees the box and hands the value back, and a value that owns memory, being `must_Give`, has to come out that way, so it can't leak through its box. Either one ends the box.
 
-**From:** D3, D321, D322, D325, D331, D449, D450, D451.
+```
+// a player holding a growable list, so it comes back, and is still yours to end
+let $p: player = std::mem::box.take(Give $b, alloc: Lend $heap);
+```
+
+How a type that holds more of itself is written isn't decided ([12.2](12-not-decided.md#122-types)).
+
+**Refused:** `$b.hp`, since a box isn't its value, with `fix: $b.%get().hp`; and `done` on a box whose value is `must_Give`, with `fix: take`.
+
+**From:** D3, D321, D322, D325, D331, D449, D450, D451, D452.

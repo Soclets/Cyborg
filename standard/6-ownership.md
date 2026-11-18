@@ -138,7 +138,7 @@ $xs.std::coll::list.%%append(val: 4) ?? crash;
 
 **Rule:** a `must_Give` type is linear: it's handed off with `Give` exactly once. Lending doesn't count.
 
-Every value that owns memory is `must_Give`, and ends with a function called `done`, as in `os::done`, `std::coll::list.done`, `str.done` and `std::mem::arena.done`. Nothing is ever freed automatically: you write every free, and the compiler checks every one, so a leak is a compile error as much as a double free or a use after free. That covers growable lists ([2.10](2-values-and-types.md#210-lists)), strings made with `as str`, maps, and any struct or type holding one. `defer` ([6.12](#612-defer)) keeps the freeing in one place.
+Every value that owns memory is `must_Give`, and ends with a function called `done`, as in `os::done`, `std::coll::list.done`, `str.done` and `std::mem::arena.done`, or, for a box, with `take`, which hands its value back ([2.23](2-values-and-types.md#223-one-value-on-the-heap-stdmembox)). Nothing is ever freed automatically: you write every free, and the compiler checks every one, so a leak is a compile error as much as a double free or a use after free. That covers growable lists ([2.10](2-values-and-types.md#210-lists)), strings made with `as str`, maps, and any struct or type holding one. `defer` ([6.12](#612-defer)) keeps the freeing in one place.
 
 ```
 struct.must_Give open_file:
@@ -180,7 +180,7 @@ end fn close_log
 
 **Refused:** forgetting it, giving it twice, `finish` outside the kit or file that declared the type, `finish` while a `must_Give` field inside hasn't been given away, a struct holding a `must_Give` field without saying `must_Give`, with the fix shown, moving a field out of something borrowed, and using a value whole after a field has been moved out.
 
-**From:** D2, D57, D129, D177, D185, D325.
+**From:** D2, D57, D129, D177, D185, D325, D452.
 
 ## 6.10 Stored borrows
 
