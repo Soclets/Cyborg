@@ -279,8 +279,8 @@ $led.%write(val: 0);
 
 ```
 // std's own code, sketched
-fam.fn box<T>:
-    fn %get [$b: Lent box<T>] -> Lend from $b T:
+fam.fn box<?item: any.type>:
+    fn %get [$b: Lent box<?item>] -> Lend from $b ?item:
         shield.danger lend_inside:
             reason "a box's pointer stays valid while the box is alive"
             return $b.at.%lend(from: Lend $b);

@@ -24,7 +24,7 @@
 | [2.20](#220-types-are-always-written-and-precogs-pick-precogset_to_best) | `@precog::set_to_best` | Precog picks the type |
 | [2.21](#221-simd) | `simd<i32>[lanes: 4]` | Several values worked on by one instruction |
 | [2.22](#222-secrets-secret) | `u32.secret` | A value that can't affect timing |
-| [2.23](#223-one-value-on-the-heap-stdmembox) | `std::mem::box<T>` | One value on the heap |
+| [2.23](#223-one-value-on-the-heap-stdmembox) | `std::mem::box<player>` | One value on the heap |
 
 ## 2.1 `let`
 
@@ -751,7 +751,7 @@ end shield.logic publish
 
 ## 2.23 One value on the heap: `std::mem::box`
 
-**Rule:** `std::mem::box<T>` owns one value on the heap, for a value too big to move around cheaply, or a type that holds more of itself, like a tree node. It's a `std` type, a small struct holding a pointer and its allocator's ID, so its size is the same whatever `T` is. Like every heap owner, making one takes an allocator ([2.10](#210-lists)), it remembers which one, and it's `must_Give`, ending with `done` ([6.9](6-ownership.md#69-must_give)).
+**Rule:** `std::mem::box<?item: any.type>`, as in `std::mem::box<player>`, owns one value on the heap, for a value too big to move around cheaply, or a type that holds more of itself, like a tree node. It's a `std` type, a small struct holding a pointer and its allocator's ID, so its size is the same whatever `?item` is. Like every heap owner, making one takes an allocator ([2.10](#210-lists)), it remembers which one, and it's `must_Give`, ending with `done` ([6.9](6-ownership.md#69-must_give)).
 
 ```
 // placeholder spellings
@@ -759,7 +759,7 @@ let $b: std::mem::box<node> = std::mem::box.new(val: Give $first, alloc: Lend $h
 defer std::mem::box.done(Give $b, alloc: Lend $heap);
 ```
 
-`.%get()` lends the value inside read-only, and `.%%get.mut()` lends it to change. Each returns a borrow of the box, `Lend from $b T` or `Lend.mut from $b T` ([6.10](6-ownership.md#610-stored-borrows)), so the box stays lent while it's used. They're ordinary methods, with no hidden field and no looking straight through the box.
+`.%get()` lends the value inside read-only, and `.%%get.mut()` lends it to change. Each returns a borrow of the box, `Lend from $b ?item` or `Lend.mut from $b ?item` ([6.10](6-ownership.md#610-stored-borrows)), so the box stays lent while it's used. They're ordinary methods, with no hidden field and no looking straight through the box.
 
 ```
 let $hp: i32 = $b.%get().hp;
