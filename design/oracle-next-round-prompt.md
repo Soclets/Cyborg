@@ -10,7 +10,7 @@ before changing it (rule 11 in `IMPLEMENTATION.md`).
 You've been idle since the generator was finished. Since then, compiler
 claude has nearly caught up: about 1571 of tests/'s 1719 pass on OKAY\n,
 and it's building everything up to D416 from the standard. Tankun has also
-made D403 to D461, which you haven't built yet, and the compiler found a
+made D403 to D463, which you haven't built yet, and the compiler found a
 few things in tests/ that need fixing. This round brings the oracle and
 tests/ up to date, so the live comparison can start finding real compiler
 bugs once both sides agree on what Cyborg is.
@@ -24,7 +24,7 @@ agreed, so it doesn't need asking again.
 </context>
 
 <work>
-Read DECISIONS.md from D403 to D461 and the standard sections they point
+Read DECISIONS.md from D403 to D463 and the standard sections they point
 to first. Then, in this order, committing in small steps:
 
 1. The fixes compiler claude found, all agreed with design claude:
@@ -92,6 +92,9 @@ to first. Then, in this order, committing in small steps:
    something. D461 moves printing to `std`'s limb half, so every
    `std::io::fmt_print` becomes `@std::io::fmt_print`, in nearly every
    test, and adds the builtin `@fmt("…")`, which makes a format value.
+   D462 and D463 give checked operations unchecked versions inside
+   `shield.danger`, marked `^`, as in `$xs[pos^: $i]`, which `Working`
+   still checks.
    D423 respells kit method calls to their full path, as in
    `$xs.std::coll::list.%%append(…)`, in about 52 tests.
 3. D416, `.%viewed_as(item.type:)`, with tests that read a
