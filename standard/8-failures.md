@@ -154,7 +154,7 @@ std::io::fmt_print(Lend.mut $out, "hi{newln}") ?? void;
 // handles it
 std::io::fmt_print(Lend.mut $out, "hi{newln}") otherwise:
     case print_failed:
-        return early;
+        return void;
 end otherwise
 ```
 

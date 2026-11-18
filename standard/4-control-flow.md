@@ -35,11 +35,11 @@ else:
 end if
 ```
 
-When an `if` block always leaves, by `return early;`, `return`, `break` or `fail`, the code that runs otherwise goes in its `else:`, so the two paths read as alternatives. It costs nothing, since both shapes compile to the same test and jump.
+When an `if` block always leaves, by `return`, `break` or `fail`, the code that runs otherwise goes in its `else:`, so the two paths read as alternatives. It costs nothing, since both shapes compile to the same test and jump.
 
 ```
 if $name.len == 0 bytes:
-    return early;
+    return void;
 else:
     std::io::fmt_print(Lend.mut $out, "Hi {$name}{newln}") ?? void;
     return void;
@@ -48,7 +48,7 @@ end if
 
 **Refused:** code after `end if` when the `if` block always leaves and has no `else:`, with a fix moving it into `else:`.
 
-**From:** D126, D430, the sketch.
+**From:** D126, D430, D448, the sketch.
 
 ## 4.2 The test: `if $n: T:`
 

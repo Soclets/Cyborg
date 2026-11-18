@@ -67,12 +67,12 @@ let $hp: i32 = $hp |> heal(by: 30) |> clamp(max: 100);
 
 ## 5.3 `return`
 
-**Rule:** `return` hands back a value, and every path through a function ends in one. `return void;` is a `void` function's normal finish, `main` included, allowed wherever nothing else can run after it, so it can end an `else` path. Leaving before the work is done is `return early;`, and a function that can do that says so in its header, `-> void/early`, where `/` lists the ways it returns. `end fn` only closes the syntax.
+**Rule:** `return` hands back a value, and every path through a function ends in one. A `return` may end any path, partway or at the end, wherever nothing else can run after it: `return void;` in a `void` function, `main` included, and `return 1000;` in an `-> i32` one. `end fn` only closes the syntax.
 
 ```
-fn greet [$out: Lent.mut os::stdout.buffered, $name: str] -> void/early:
+fn greet [$out: Lent.mut os::stdout.buffered, $name: str] -> void:
     if $name.len == 0 bytes:
-        return early;
+        return void;
     else:
         std::io::fmt_print(Lend.mut $out, "Hi {$name}{newln}") ?? void;
         return void;
@@ -80,11 +80,9 @@ fn greet [$out: Lent.mut os::stdout.buffered, $name: str] -> void/early:
 end fn greet
 ```
 
-Whether a function with a result can leave early isn't decided.
+**Refused:** a path that ends without a `return`, and a `return` with more code still to run after it, since that code could never run.
 
-**Refused:** `return early;` in a plain `-> void` function, with `fix: -> void/early`, a path that ends without a `return`, and a `return void;` with more code still to run after it, with `fix: return early;`.
-
-**From:** D11, D393, D427, D431, the sketch.
+**From:** D11, D393, D431, D448, the sketch.
 
 ## 5.4 The top of the body
 
