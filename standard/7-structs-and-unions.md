@@ -75,7 +75,9 @@ union.tagged status:
 end union.tagged status
 ```
 
-**From:** D33, D208.
+A struct or union can hold a box of its own type, as a chain of links does ([2.23](2-values-and-types.md#223-one-value-on-the-heap-stdmembox)), but never itself directly.
+
+**From:** D33, D208, D453.
 
 ## 7.6 Using a union
 

@@ -775,8 +775,15 @@ change $b.%%get.mut().hp = 10;
 let $p: player = std::mem::box.take(Give $b, alloc: Lend $heap);
 ```
 
-How a type that holds more of itself is written isn't decided ([12.2](12-not-decided.md#122-types)).
+A type can hold a box of itself, with nothing extra written, since a box's size doesn't depend on what it holds. A case holding nothing ends it ([7.5](7-structs-and-unions.md#75-tagged-unions)):
 
-**Refused:** `$b.hp`, since a box isn't its value, with `fix: $b.%get().hp`; and `done` on a box whose value is `must_Give`, with `fix: take`.
+```
+union.tagged chain:
+    link[num: i32, rest: std::mem::box<chain>];
+    end_of_chain;
+end union.tagged chain
+```
 
-**From:** D3, D321, D322, D325, D331, D449, D450, D451, D452.
+**Refused:** `$b.hp`, since a box isn't its value, with `fix: $b.%get().hp`; `done` on a box whose value is `must_Give`, with `fix: take`; and a type holding itself directly, as in `rest: chain`, which would have no size, with `fix: std::mem::box<chain>`, or a loop of types holding each other directly, with the fix on one of them.
+
+**From:** D3, D33, D321, D322, D325, D331, D449, D450, D451, D452, D453.
