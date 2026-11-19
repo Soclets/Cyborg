@@ -818,8 +818,15 @@ let $orc: enemy = $enemies.std::coll::slots.%%take(at: $h)?;
 
 A handle also carries its collection's ID, so using it on another collection of the same type fails too, as a list checks its allocator ([2.10](#210-lists)).
 
-`%%put` hands back a `std::coll::slot_handle`, and `%get(at:)` and `%%get.mut(at:)` lend the value, as a box's do ([2.23](#223-one-value-on-the-heap-stdmembox)). The failure's name isn't decided ([12.2](12-not-decided.md#122-types)).
+`%%put` hands back a `std::coll::slot_handle`, and `%get(at:)` and `%%get.mut(at:)` lend the value, as a box's do ([2.23](#223-one-value-on-the-heap-stdmembox)). A bad handle fails with `slot_failed.stale` when its value was removed, or `slot_failed.wrong_slots` when it came from another collection ([8.3](8-failures.md#83-named-sets-famfailure)):
+
+```
+fam.failure slot_failed:
+    slot_failed.stale;
+    slot_failed.wrong_slots;
+end fam.failure slot_failed
+```
 
 **Refused:** `%%remove` on a `must_Give` value, with `fix: %%take`.
 
-**From:** D322, D325, D428, D450, D452, D457, D458, D459, D465.
+**From:** D322, D325, D428, D450, D452, D457, D458, D459, D465, D466.
