@@ -201,20 +201,21 @@ end shield.danger read_bits
 
 **Rule:** a shield is a named block with a written reason, and it's the only place dangerous code may live. The build report lists each one with its size. Cyborg isn't all proven, so a shield is closer to Rust's `unsafe`, unless the Precog limb's strict mode is on.
 
-There are three kinds, each saying what guarantee it gives up (D441): `shield.danger` for what can corrupt memory or crash, like inline assembly, raw pointers and C calls; `shield.repro` for what can make results differ between runs or machines, where it enters a program unmarked; and `shield.logic` for what's memory-safe but leaves correctness to the programmer, like `.%reveal()` on a secret. Every shield says its kind, and a bare `shield` is refused, with the kind its contents need as the fix (D442). Code that gives up two guarantees nests one shield inside another, each with its own reason, and each operation must sit inside a shield of its kind (D443):
+There are two kinds, each saying what guarantee it gives up (D441, D475): `shield.danger` for what can corrupt memory or crash, like inline assembly, raw pointers and C calls, and `shield.logic` for what's memory-safe but leaves correctness to the programmer, like `.%reveal()` on a secret. Every shield says its kind, and a bare `shield` is refused, with the kind its contents need as the fix (D442). Code that gives up two guarantees nests one shield inside another, each with its own reason, and each operation must sit inside a shield of its kind (D443):
 
 ```
-shield.danger timer:
-    reason "the cycle counter is a hardware register"
-    let $cycles: ptr.volatile.mut<u32> = ptr.volatile.mut<u32>.at(address: hex e000_1004);
-    shield.repro read_time:
-        reason "how many cycles pass differs between runs"
-        let $now: u32 = $cycles.%read();
-    end shield.repro read_time
-end shield.danger timer
+shield.logic publish:
+    reason "ciphertext is safe to publish once encrypted"
+    let $out: u32 = $cipher.%reveal();
+    shield.danger send:
+        reason "the radio's data register"
+        let $radio: ptr.volatile.mut<u32> = ptr.volatile.mut<u32>.at(address: hex 4004_8000);
+        $radio.%write(val: $out);
+    end shield.danger send
+end shield.logic publish
 ```
 
-Every kind keeps a shield's contracts, `requires` on entry and `ensures` on exit, and only `shield.danger` keeps containment, so a raw pointer can't leave it, while a `shield.repro` or `shield.logic` exists to hand a value out (D444). Exactly what goes in each kind isn't decided.
+Every kind keeps a shield's contracts, `requires` on entry and `ensures` on exit, and only `shield.danger` keeps containment, so a raw pointer can't leave it, while a `shield.logic` exists to hand a value out (D444). Exactly what goes in each kind isn't decided.
 
 A shield marks where something enters plain values unmarked. A type that keeps its kind wherever its value goes marks itself, so `f64.fast` and `f64.ieee` need no shield, and a search for `.fast` finds every one (D474).
 
@@ -238,7 +239,7 @@ shield.danger sensor_driver:
 end shield.danger sensor_driver
 ```
 
-**From:** D34, D441, D442, D443, D444, D473, D474.
+**From:** D34, D441, D442, D443, D444, D473, D474, D475.
 
 ## 9.8 What must live in a shield
 
