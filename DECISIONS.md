@@ -1478,6 +1478,8 @@ Exactly which operations go in `.repro` and `.logic`, whether a bare `shield` is
 
 **D467. A format value's type is `fmt`.** What `@fmt("…")` gives (D461) is a base type, named `fmt` to match it, as a string literal gives a `str`, so a kit takes one as `$f: Lent fmt`. It doesn't clash with `fmt_print`, which D400 joined with `_` because printing isn't a kind of format, which stays true now that a plain `fmt` exists. A format value borrows what its holes read, so storing one names its sources, as any stored borrow does (6.10): `let $f: Lend from <$name, $count> fmt = @fmt("{$name}: {$count}");`, though usually it goes straight into a call. Claude proposed it; the owner chose: "yea". (Owner, 2026-11-19)
 
+**D468. A `fmt` becomes text as a number does: `as str[len.max: …]`, or `str.from(…, alloc:)`.** `@fmt("{$name}: {$count}") as str[len.max: 64 bytes]` fills a bounded string with no allocator, failing if the text doesn't fit, as `as` turns a number into text (D328), and `str.from(@fmt("{$name}: {$count}"), alloc: Lend $heap)` fills a growable one, as `str.from` already does for a string or a number (D369). So formatting into a string without printing, open since D194, needs no new function. Claude proposed it; the owner chose: "yea". (Owner, 2026-11-19)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude

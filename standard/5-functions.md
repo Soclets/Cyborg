@@ -182,7 +182,9 @@ The rest of the list of builtins isn't decided ([12.9](12-not-decided.md#129-lim
 
 **Refused:** `@let`. `let`, `+` and `as` aren't calls.
 
-**From:** D56, D454, D461, D467.
+A `fmt` becomes text as a number does: `@fmt("{$name}: {$count}") as str[len.max: 64 bytes]` into a bounded string, failing if it doesn't fit, or `str.from(@fmt("{$name}: {$count}"), alloc: Lend $heap)` into a growable one ([2.14](2-values-and-types.md#214-conversion-as)).
+
+**From:** D56, D328, D369, D454, D461, D467, D468.
 
 ## 5.8 Generics
 
