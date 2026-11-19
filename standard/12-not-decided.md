@@ -78,7 +78,7 @@ Waiting on the owner, most needed first. Each is `NotDesignedYet` unless it says
 - Checking past an error (D215): an error in a block's opening line, like `if` or `for`, or in a function's header.
 - Spacing (D213): indentation, line length, and the space before an opening `[`, which `fn total [$xs: …]` has and `reading[celsius = 21]` doesn't.
 - `os` and writers (D271 to D273): what else goes in `os`, and a bare-metal program's writers, like a board's serial port.
-- Print (D194, D461): how the fill character is written, a per-value `form: stored`, the name of `@fmt`'s format value's type, the function that formats into a `str` without printing, and what the output is on bare metal. `form: science` is how a float prints with an exponent.
+- Print (D194, D461): how the fill character is written, a per-value `form: stored`, the function that formats into a `str` without printing, and what the output is on bare metal. `form: science` is how a float prints with an exponent.
 - How to check a float's sign.
 - Function types: `-> i32` no longer shows failures, so a function's type needs some way to include them.
 - How a type's writer defines label narrowings like `len.max`.

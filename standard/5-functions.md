@@ -170,7 +170,7 @@ A receiver that's `Given` is refused, because methods only borrow, and so is a m
 
 **Rule:** a bare `@`, with no `::`, is a compiler builtin, and it's always available. A builtin looks like a function call, and can't be written as a Cyborg function.
 
-A builtin is for what the language itself defines. A type's size and alignment, fixed by the standard for every type, base types included, are `@size_of<player>()` and `@align_of<player>()`, in `bytes` ([9.8](9-limbs-and-shields.md#98-what-must-live-in-a-shield)). `@fmt("…")` makes a format value: the text, checked while building, and borrows of the values its holes read, with no text made yet, for a kit that takes a format, like a logger. Conveniences built on top live in `std`, like printing, in its limb half ([1.13](1-programs.md#113-printing-stdiofmt_print)).
+A builtin is for what the language itself defines. A type's size and alignment, fixed by the standard for every type, base types included, are `@size_of<player>()` and `@align_of<player>()`, in `bytes` ([9.8](9-limbs-and-shields.md#98-what-must-live-in-a-shield)). `@fmt("…")` makes a format value, of type `fmt`: the text, checked while building, and borrows of the values its holes read, with no text made yet, for a kit that takes a format, like a logger taking `$f: Lent fmt`. Stored in a variable, it names what it borrows, as `Lend from <$name, $count> fmt` ([6.10](6-ownership.md#610-stored-borrows)). Conveniences built on top live in `std`, like printing, in its limb half ([1.13](1-programs.md#113-printing-stdiofmt_print)).
 
 ```
 @size_of<i32>()
@@ -182,7 +182,7 @@ The rest of the list of builtins isn't decided ([12.9](12-not-decided.md#129-lim
 
 **Refused:** `@let`. `let`, `+` and `as` aren't calls.
 
-**From:** D56, D454, D461.
+**From:** D56, D454, D461, D467.
 
 ## 5.8 Generics
 

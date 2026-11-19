@@ -1476,6 +1476,8 @@ Exactly which operations go in `.repro` and `.logic`, whether a bare `shield` is
 
 **D466. A bad slot handle fails with `slot_failed`: `slot_failed.stale` or `slot_failed.wrong_slots`.** A named set of failures (D47), like `file_failed`: `slot_failed.stale` when the value was removed and the slot's version moved on (D458), and `slot_failed.wrong_slots` when the handle came from another collection (D459). `case slot_failed:` handles both, or each separately, so a game can let a turret pick a new target on `stale` while treating `wrong_slots` as a bug with `?? crash`. "Stale" is the usual word for an outdated handle. This settles the last of D457's open spellings. Claude proposed it; the owner chose: "yea". (Owner, 2026-11-19)
 
+**D467. A format value's type is `fmt`.** What `@fmt("…")` gives (D461) is a base type, named `fmt` to match it, as a string literal gives a `str`, so a kit takes one as `$f: Lent fmt`. It doesn't clash with `fmt_print`, which D400 joined with `_` because printing isn't a kind of format, which stays true now that a plain `fmt` exists. A format value borrows what its holes read, so storing one names its sources, as any stored borrow does (6.10): `let $f: Lend from <$name, $count> fmt = @fmt("{$name}: {$count}");`, though usually it goes straight into a call. Claude proposed it; the owner chose: "yea". (Owner, 2026-11-19)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude
