@@ -1486,6 +1486,8 @@ Exactly which operations go in `.repro` and `.logic`, whether a bare `shield` is
 
 **D471. `&` has no precedence level: next to any other operator it needs `{ }`.** `$nick ?? $name & "!"` is refused, asking for `{$nick ?? $name} & "!"` or `$nick ?? {$name & "!"}`, which mean different things, as the bit operators are refused next to other operators (3.9). Since text and numbers don't mix, a level would rarely matter, and where it would, as beside `??`, a silent default could read the line other than meant. A chain of `&` is one operator, so `$first & " " & $last` needs nothing, and joins left to right. Claude first proposed a level between `+` and `-` and the comparisons, as most languages with a join operator have; the owner asked "Why?", and Claude found the reason weak and proposed this instead; the owner chose: "yea". (Owner, 2026-11-19)
 
+**D472. `.%lend` is refused on a volatile pointer.** A `ptr.volatile` exists so every read and write really happens, once and in order, since hardware reacts to each access (9.8). A plain borrow made from one would lose that, letting the compiler skip a read it thinks repeats or merge two writes, which for a register means an LED that never blinks or a sensor read once instead of every loop. So `.%lend(from:)` (D451) is refused on `ptr.volatile`, saying volatile memory is reached only through `.%read()` and `.%write(val:)`, which already do everything a register needs. This settles D451's open question. Claude proposed it; the owner chose: "yea". (Owner, 2026-11-19)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude
