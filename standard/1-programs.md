@@ -44,9 +44,17 @@ end fn.main
 
 This is the owner's hello world, with the `module` line every file starts with ([1.5](#15-paths-)). The `use` line is on purpose.
 
+A program that takes command-line arguments is handed them by `main`, as a list of the operating system's text ([2.9](2-values-and-types.md#29-strings)), and nothing else can read them, so a function that depends on them is handed what it needs and says so in its header:
+
+```
+use str.@os::io::os;
+
+fn.main [$args: Lent std::coll::list<str.os>] -> void:
+```
+
 Its manifest says `need std` and `need os`. Examples elsewhere in the standard assume a writer `$out` like this one.
 
-**From:** D11, D23, D93, D197, D265, D267, D271, D272, D273, D415, the sketch.
+**From:** D11, D23, D93, D197, D265, D267, D271, D272, D273, D415, D478, the sketch.
 
 ## 1.3 Blocks and statements
 
