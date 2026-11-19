@@ -94,6 +94,7 @@ Waiting on the owner, most needed first. Each is `NotDesignedYet` unless it says
 
 - Unchecked versions (D462, D463): which operations have one.
 - The clock and randomness (D473): their names, and the `std::time` group.
+- `os::done` (D476): whether it moves into a group, or each `os` group gets its own `done`.
 
 ## 12.3 Operators and conversion
 

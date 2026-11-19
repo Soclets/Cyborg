@@ -246,10 +246,10 @@ std::coll::list<i32>[len.max: inf items, len.type: u32]
 let $b: std::coll::list<i32>[len.min: 1 items, len.max: 8 items] = [4, 6];
 ```
 
-Allocation is explicit, as in Zig: anything that takes heap memory takes an allocator, the way printing takes a writer ([1.13](1-programs.md#113-printing-stdiofmt_print)). A list with a finite `len.max` needs none, since its size is known. A growable list can't take items straight from `[ ]`, since filling it allocates: `std::coll::list.from([1, 2, 3], alloc: Lend $heap)` does it, and a growable string comes from `str.from("abc", alloc: Lend $heap)`, which takes a string or a number. Running out of memory is a failure, handled like any other, and a program with no allocator, as on bare metal, can't call anything that allocates. `os::heap()` is the operating system's allocator, so bare metal has none. Every `os::heap()` is a handle to the one OS heap, so memory from one can be freed through another, while every arena and every allocator you write is its own.
+Allocation is explicit, as in Zig: anything that takes heap memory takes an allocator, the way printing takes a writer ([1.13](1-programs.md#113-printing-stdiofmt_print)). A list with a finite `len.max` needs none, since its size is known. A growable list can't take items straight from `[ ]`, since filling it allocates: `std::coll::list.from([1, 2, 3], alloc: Lend $heap)` does it, and a growable string comes from `str.from("abc", alloc: Lend $heap)`, which takes a string or a number. Running out of memory is a failure, handled like any other, and a program with no allocator, as on bare metal, can't call anything that allocates. `os::mem::heap()` is the operating system's allocator, so bare metal has none. Every `os::mem::heap()` is a handle to the one OS heap, so memory from one can be freed through another, while every arena and every allocator you write is its own.
 
 ```
-let $alloc: os::heap = os::heap();
+let $alloc: os::mem::heap = os::mem::heap();
 let mut $xs: std::coll::list<i32>[len.max: inf items] = std::coll::list.empty;
 $xs.std::coll::list.%%append(val: 4, alloc: Lend $alloc) ?? crash;
 ```

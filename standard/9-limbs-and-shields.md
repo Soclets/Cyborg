@@ -223,7 +223,7 @@ The clock and randomness aren't shield code: a function that reads the time take
 
 ```
 // placeholder names
-fn stamp [$out: Lent.mut os::stdout.buffered, $clock: Lent os::clock] -> void:
+fn stamp [$out: Lent.mut os::io::stdout.buffered, $clock: Lent os::time::clock] -> void:
     let $now: i64 = $clock.%now();
     @std::io::fmt_print(Lend.mut $out, "{$now}{newln}") ?? crash;
     return void;
@@ -389,15 +389,15 @@ Code has no rules lines of its own.
 
 **Rule:** concurrency and parallelism come from the `@concur` limb, its own package, so a program asks for it with `need concur` in its manifest and `import @concur;`, and a search for `@concur` finds every place a program goes parallel. Tasks are structured: every task is joined before the block that started it ends, and a task is `must_Give`, so none can leak or outlive its caller. That needs no special block: a task can start in any block, like a function body, a loop or an `if`, since `must_Give` and the borrow checker already make it end in time. Its failure comes back when it's joined.
 
-Every spawn names its runner, as every `append` names its allocator. `@concur::spawn` is a prefix before a call, so a call becomes a task by adding it: the arguments, borrows included, are taken where it's written, and only the body runs later, as a task. A task ends with `@concur::task.done(Give $left)`, D331's word for ending every owner, which waits for it and gives back its result. A task whose function can fail passes its failure up through `done`, handled like any call's, with `?` and the rest. `sum` here can't fail, so its tasks need none. `std` has the runner interface, `std::run::runner`, and `std::run::one_thread()`, a runner that works on any machine, bare metal included: it runs one task at a time and switches to the next ready one, in the order they were spawned, whenever the current one has to wait, so it's single-threaded and gives the same answers every run. If every task is waiting at once, that's a deadlock, and a failed check: "every task is waiting". `os::threads(count: 8)` gives threads on an operating system, and `count: max` a thread for every core. `os::events(count: 4, alloc: Lend $heap)` gives an event runner, spreading tasks over that many threads, with `count: 1` a single-threaded event loop, and taking an allocator for its own queue of waiting tasks. Both own OS resources, so both are `must_Give` and end with `os::done`, by which time every task has already finished.
+Every spawn names its runner, as every `append` names its allocator. `@concur::spawn` is a prefix before a call, so a call becomes a task by adding it: the arguments, borrows included, are taken where it's written, and only the body runs later, as a task. A task ends with `@concur::task.done(Give $left)`, D331's word for ending every owner, which waits for it and gives back its result. A task whose function can fail passes its failure up through `done`, handled like any call's, with `?` and the rest. `sum` here can't fail, so its tasks need none. `std` has the runner interface, `std::run::runner`, and `std::run::one_thread()`, a runner that works on any machine, bare metal included: it runs one task at a time and switches to the next ready one, in the order they were spawned, whenever the current one has to wait, so it's single-threaded and gives the same answers every run. If every task is waiting at once, that's a deadlock, and a failed check: "every task is waiting". `os::run::threads(count: 8)` gives threads on an operating system, and `count: max` a thread for every core. `os::run::events(count: 4, alloc: Lend $heap)` gives an event runner, spreading tasks over that many threads, with `count: 1` a single-threaded event loop, and taking an allocator for its own queue of waiting tasks. Both own OS resources, so both are `must_Give` and end with `os::done`, by which time every task has already finished.
 
 ```
-let $events: os::events = os::events(count: 4, alloc: Lend $heap);
+let $events: os::run::events = os::run::events(count: 4, alloc: Lend $heap);
 defer os::done(Give $events);
 ```
 
 ```
-let $pool: os::threads = os::threads(count: max);
+let $pool: os::run::threads = os::run::threads(count: max);
 defer os::done(Give $pool);
 let $h: std::coll::halves<i64> = $xs.std::coll::list.%split(at.items: 500);
 let $left: @concur::task<i64> = @concur::spawn(on: Lend $pool) sum($h.first);
@@ -445,7 +445,7 @@ $owner.%compare_swap(expect: 0, val: $me) otherwise:
 end otherwise
 ```
 
-There's no `async` or `await`. A function that waits takes the runner, and the runner decides how waiting works: a thread blocks, or an event runner, `os::events`, parks the task and runs another, with each task on its own small stack. A spawn onto an event runner or `std::run::one_thread`, both of which switch tasks, takes the allocator for that stack and always writes its size with `stack:`, so the writer picks where stacks live and how big they are, and running out of memory is an `out_of_memory` failure from the spawn. The compiler checks the size instead of choosing it: where it can measure what the task needs, a size that's too small is refused, with the number in the fix, and for recursive code, which it can't measure, running past the size is a failed check, a clean stack overflow. The measurement depends on the machine code, so the too-small refusal is the compiler's own, tested per target outside the shared tests, while the oracle accepts any size. A spawn onto `os::threads` takes neither, since the OS gives its threads their stacks.
+There's no `async` or `await`. A function that waits takes the runner, and the runner decides how waiting works: a thread blocks, or an event runner, `os::run::events`, parks the task and runs another, with each task on its own small stack. A spawn onto an event runner or `std::run::one_thread`, both of which switch tasks, takes the allocator for that stack and always writes its size with `stack:`, so the writer picks where stacks live and how big they are, and running out of memory is an `out_of_memory` failure from the spawn. The compiler checks the size instead of choosing it: where it can measure what the task needs, a size that's too small is refused, with the number in the fix, and for recursive code, which it can't measure, running past the size is a failed check, a clean stack overflow. The measurement depends on the machine code, so the too-small refusal is the compiler's own, tested per target outside the shared tests, while the oracle accepts any size. A spawn onto `os::run::threads` takes neither, since the OS gives its threads their stacks.
 
 ```
 @concur::spawn(on: Lend $events, alloc: Lend $arena, stack: 16 kib) handle(Lend $conn);

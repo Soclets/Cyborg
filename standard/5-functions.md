@@ -70,7 +70,7 @@ let $hp: i32 = $hp |> heal(by: 30) |> clamp(max: 100);
 **Rule:** `return` hands back a value, and every path through a function ends in one. A `return` may end any path, partway or at the end, wherever nothing else can run after it: `return void;` in a `void` function, `main` included, and `return 1000;` in an `-> i32` one. `end fn` only closes the syntax.
 
 ```
-fn greet [$out: Lent.mut os::stdout.buffered, $name: str] -> void:
+fn greet [$out: Lent.mut os::io::stdout.buffered, $name: str] -> void:
     if $name.len == 0 bytes:
         return void;
     else:

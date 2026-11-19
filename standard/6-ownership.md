@@ -305,7 +305,7 @@ reading[celsius = 21, time = 3600 std::units::time.seconds]
 **Rule:** `defer` runs a statement when its block ends, however it ends: reaching `end`, `return`, `fail`, `?` or `break`. Deferred statements run in reverse order, so things are torn down opposite to how they were built. A deferred `Give` ends the value's duty on every path, so `must_Give` is met once, where the value is made. Until then the value is still yours to read and change.
 
 ```
-fn total_of_both [$alloc: Lent os::heap] -> i64 fails [out_of_memory, bad_number]:
+fn total_of_both [$alloc: Lent os::mem::heap] -> i64 fails [out_of_memory, bad_number]:
     let mut $xs: std::coll::list<i64>[len.max: inf items] = std::coll::list.empty;
     defer std::coll::list.done(Give $xs, alloc: Lend $alloc);
     read_numbers(Lend.mut $xs, alloc: Lend $alloc)?;

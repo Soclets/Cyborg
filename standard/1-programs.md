@@ -35,7 +35,7 @@ import os;
 use @std::io::fmt_print;
 
 fn.main [none] -> void:
-    let mut $out: os::stdout.buffered = os::stdout.buffered(room: 1024 bytes);
+    let mut $out: os::io::stdout.buffered = os::io::stdout.buffered(room: 1024 bytes);
     fmt_print(Lend.mut $out, "Hello, World!{newln}") ?? crash;
     os::done(Give $out);
     return void;
@@ -268,7 +268,7 @@ end comment why_sorted
 
 ## 1.13 Printing: `@std::io::fmt_print`
 
-**Rule:** `std` has one print, `@std::io::fmt_print`, and it's always a format print. It's in `std`'s limb half ([9.3](9-limbs-and-shields.md#93-stds-two-parts)), since it takes any number of values of any type, checks its format while building, and reads its caller's variables for named holes, which a plain function can't. `use @std::io::fmt_print;` shortens it to `fmt_print(…)`. To hand a format to something else, like a logger, `@fmt("…")` makes a format value ([5.7](5-functions.md#57-builtins-)). Its first argument is the writer, where the output goes. On a terminal, that's `os::stdout` or `os::stderr`, which must say whether they're `.buffered(room: 1024 bytes)`, writing in chunks, or `.unbuffered()`, writing each print straight away. A buffered writer is flushed with `$out.%%flush();` to push output now, and finished with `os::done(Give $out);`, without which the program doesn't compile. On bare metal, the writer is the board's port. Plain text is a format with no holes. A newline is `{newln}` and a tab is `{tab}`, inside the text.
+**Rule:** `std` has one print, `@std::io::fmt_print`, and it's always a format print. It's in `std`'s limb half ([9.3](9-limbs-and-shields.md#93-stds-two-parts)), since it takes any number of values of any type, checks its format while building, and reads its caller's variables for named holes, which a plain function can't. `use @std::io::fmt_print;` shortens it to `fmt_print(…)`. To hand a format to something else, like a logger, `@fmt("…")` makes a format value ([5.7](5-functions.md#57-builtins-)). Its first argument is the writer, where the output goes. On a terminal, that's `os::io::stdout` or `os::io::stderr`, which must say whether they're `.buffered(room: 1024 bytes)`, writing in chunks, or `.unbuffered()`, writing each print straight away. A buffered writer is flushed with `$out.%%flush();` to push output now, and finished with `os::done(Give $out);`, without which the program doesn't compile. On bare metal, the writer is the board's port. Plain text is a format with no holes. A newline is `{newln}` and a tab is `{tab}`, inside the text.
 
 ```
 @std::io::fmt_print(Lend.mut $out, "hi{newln}") ?? crash;
@@ -290,7 +290,7 @@ With `$name` as `"rope"`, `$count` as `3`, `$price` as an `f64.stable` holding `
 
 A literal format is checked when building.
 
-**Refused:** a bare `{` in the text, with `fix: \{`; `\n`, with `fix: {newln}`; `{0}`; mixing plain and numbered holes; more or fewer values than holes; a shape that doesn't apply, like `places:` on an integer; a width with no unit; `zeros` with no width; a shape written twice; an unknown escape; `.stdout` and `.stderr`, since the writer says where output goes, a bare `os::stdout()`, asking which kind, a buffered writer never given to `os::done`, and `@std::io::fmt_println`, with `fix: @std::io::fmt_print`.
+**Refused:** a bare `{` in the text, with `fix: \{`; `\n`, with `fix: {newln}`; `{0}`; mixing plain and numbered holes; more or fewer values than holes; a shape that doesn't apply, like `places:` on an integer; a width with no unit; `zeros` with no width; a shape written twice; an unknown escape; `.stdout` and `.stderr`, since the writer says where output goes, a bare `os::io::stdout()`, asking which kind, a buffered writer never given to `os::done`, and `@std::io::fmt_println`, with `fix: @std::io::fmt_print`.
 
 **From:** D11, D50, D51, D122, D162, D165, D194, D195, D197, D210, D221, D223, D246, D247, D272, D273, and CyborgPL's format print, D461.
 
