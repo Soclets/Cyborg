@@ -216,6 +216,8 @@ end shield.danger timer
 
 Every kind keeps a shield's contracts, `requires` on entry and `ensures` on exit, and only `shield.danger` keeps containment, so a raw pointer can't leave it, while a `shield.repro` or `shield.logic` exists to hand a value out (D444). Exactly what goes in each kind isn't decided.
 
+A shield marks where something enters plain values unmarked. A type that keeps its kind wherever its value goes marks itself, so `f64.fast` and `f64.ieee` need no shield, and a search for `.fast` finds every one (D474).
+
 The clock and randomness aren't shield code: a function that reads the time takes a clock, as one that prints takes a writer, so its header shows it, and a test can hand it a fixed clock (D473). `std` has the clock interface and a fixed clock, `os` the operating system's clock, and a board's package a clock reading its timer.
 
 ```
@@ -236,7 +238,7 @@ shield.danger sensor_driver:
 end shield.danger sensor_driver
 ```
 
-**From:** D34, D441, D442, D443, D444, D473.
+**From:** D34, D441, D442, D443, D444, D473, D474.
 
 ## 9.8 What must live in a shield
 
