@@ -218,11 +218,11 @@ let $log: str[len.max: inf bytes] = str.from($first & " " & $last, alloc: Lend $
 @std::io::fmt_print(Lend.mut $out, "{}{newln}", $first & $last) ?? crash;
 ```
 
-`&` joins text only. A number goes through a hole, `@fmt("hp: {$hp}")`, so every conversion to text shows on the line. `&`'s precedence isn't decided ([12.3](12-not-decided.md#123-operators-and-conversion)).
+`&` joins text only. A number goes through a hole, `@fmt("hp: {$hp}")`, so every conversion to text shows on the line. `&` has no precedence level: a chain of `&` needs nothing, but next to any other operator it needs `{ }`, as in `{$nick ?? $name} & "!"` ([3.9](3-operators.md#39-grouping-and-precedence)).
 
-**Refused:** `str.utf8`, because it's the default ([1.7](1-programs.md#17-bare-names)), `""`, with `fix: str.empty`, because it could look like unfinished work, and `&` with something that isn't text, as in `"hp: " & $hp`, with `fix: @fmt("hp: {$hp}")`.
+**Refused:** `str.utf8`, because it's the default ([1.7](1-programs.md#17-bare-names)), `""`, with `fix: str.empty`, because it could look like unfinished work, and `&` with something that isn't text, as in `"hp: " & $hp`, with `fix: @fmt("hp: {$hp}")`, and `&` next to another operator without `{ }`.
 
-**From:** D48, D50, D51, D103, D326, D327, D367, D368, D469, D470.
+**From:** D48, D50, D51, D103, D326, D327, D367, D368, D469, D470, D471.
 
 ## 2.10 Lists
 

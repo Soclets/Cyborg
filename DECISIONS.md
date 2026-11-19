@@ -1484,6 +1484,8 @@ Exactly which operations go in `.repro` and `.logic`, whether a bare `shield` is
 
 **D470. `&` joins text only; anything else goes through a hole.** `"hp: " & $hp` is refused, with `fix: @fmt("hp: {$hp}")`, since turning `$hp` into text there would be a conversion nothing on the line shows, where Cyborg turns a number into text only through `as` (D328) or a hole, the visible marker for "show this value here". A named hole is barely longer, as `@fmt("player {$id}")` against `"player " & $id`, so `&` glues texts and formats mix in values. A `fmt` from `&` or `@fmt` counts as text, so they can be joined. Claude first proposed `&` taking any value a hole can show; the owner asked "Isn't that implicit?", and chose: "yea". (Owner, 2026-11-19)
 
+**D471. `&` has no precedence level: next to any other operator it needs `{ }`.** `$nick ?? $name & "!"` is refused, asking for `{$nick ?? $name} & "!"` or `$nick ?? {$name & "!"}`, which mean different things, as the bit operators are refused next to other operators (3.9). Since text and numbers don't mix, a level would rarely matter, and where it would, as beside `??`, a silent default could read the line other than meant. A chain of `&` is one operator, so `$first & " " & $last` needs nothing, and joins left to right. Claude first proposed a level between `+` and `-` and the comparisons, as most languages with a join operator have; the owner asked "Why?", and Claude found the reason weak and proposed this instead; the owner chose: "yea". (Owner, 2026-11-19)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude

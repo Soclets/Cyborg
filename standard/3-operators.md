@@ -163,11 +163,11 @@ std::math::sqrt({$a + $b} x 2)
 $a + read() ?? 0
 ```
 
-**Refused:** where maths gives no order, so bit operators and shifts mixed with anything, as in `$a shift.left 2 + 1`, and `as` on anything but a single value, as in `$a + $b as str[len.max: 20 bytes]`.
+**Refused:** where maths gives no order, so bit operators, shifts and `&` mixed with anything, as in `$a shift.left 2 + 1` and `$nick ?? $name & "!"`, and `as` on anything but a single value, as in `$a + $b as str[len.max: 20 bytes]`.
 
 Unary `-` negates, so `-$x` and `-7` are both allowed. A comparison chain means all of it is true, and each value is evaluated once: `1 below $x below 5` means `1 below $x and $x below 5`. It stops at its first false. The linter can ask for `{ }`.
 
-**From:** D23, D116, D117, D124, D131, D132, D460.
+**From:** D23, D116, D117, D124, D131, D132, D460, D471.
 
 ## 3.10 Operators for your own types: `op`
 
