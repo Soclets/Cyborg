@@ -201,7 +201,7 @@ end shield.danger read_bits
 
 **Rule:** a shield is a named block with a written reason, and it's the only place dangerous code may live. The build report lists each one with its size. Cyborg isn't all proven, so a shield is closer to Rust's `unsafe`, unless the Precog limb's strict mode is on.
 
-There are three kinds, each saying what guarantee it gives up (D441): `shield.danger` for what can corrupt memory or crash, like inline assembly, raw pointers and C calls; `shield.repro` for what can make results differ between runs or machines, like the clock, true randomness and thread timing; and `shield.logic` for what's memory-safe but leaves correctness to the programmer, like `.%reveal()` on a secret. Every shield says its kind, and a bare `shield` is refused, with the kind its contents need as the fix (D442). Code that gives up two guarantees nests one shield inside another, each with its own reason, and each operation must sit inside a shield of its kind (D443):
+There are three kinds, each saying what guarantee it gives up (D441): `shield.danger` for what can corrupt memory or crash, like inline assembly, raw pointers and C calls; `shield.repro` for what can make results differ between runs or machines, where it enters a program unmarked; and `shield.logic` for what's memory-safe but leaves correctness to the programmer, like `.%reveal()` on a secret. Every shield says its kind, and a bare `shield` is refused, with the kind its contents need as the fix (D442). Code that gives up two guarantees nests one shield inside another, each with its own reason, and each operation must sit inside a shield of its kind (D443):
 
 ```
 shield.danger timer:
@@ -216,6 +216,17 @@ end shield.danger timer
 
 Every kind keeps a shield's contracts, `requires` on entry and `ensures` on exit, and only `shield.danger` keeps containment, so a raw pointer can't leave it, while a `shield.repro` or `shield.logic` exists to hand a value out (D444). Exactly what goes in each kind isn't decided.
 
+The clock and randomness aren't shield code: a function that reads the time takes a clock, as one that prints takes a writer, so its header shows it, and a test can hand it a fixed clock (D473). `std` has the clock interface and a fixed clock, `os` the operating system's clock, and a board's package a clock reading its timer.
+
+```
+// placeholder names
+fn stamp [$out: Lent.mut os::stdout.buffered, $clock: Lent os::clock] -> void:
+    let $now: i64 = $clock.%now();
+    @std::io::fmt_print(Lend.mut $out, "{$now}{newln}") ?? crash;
+    return void;
+end fn stamp
+```
+
 The keyword `shield` is Radium's working word.
 
 ```
@@ -225,7 +236,7 @@ shield.danger sensor_driver:
 end shield.danger sensor_driver
 ```
 
-**From:** D34, D441, D442, D443, D444.
+**From:** D34, D441, D442, D443, D444, D473.
 
 ## 9.8 What must live in a shield
 
