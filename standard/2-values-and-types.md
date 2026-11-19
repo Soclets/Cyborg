@@ -218,11 +218,11 @@ let $log: str[len.max: inf bytes] = str.from($first & " " & $last, alloc: Lend $
 @std::io::fmt_print(Lend.mut $out, "{}{newln}", $first & $last) ?? crash;
 ```
 
-What `&` accepts besides text, and its precedence, aren't decided ([12.3](12-not-decided.md#123-operators-and-conversion)).
+`&` joins text only. A number goes through a hole, `@fmt("hp: {$hp}")`, so every conversion to text shows on the line. `&`'s precedence isn't decided ([12.3](12-not-decided.md#123-operators-and-conversion)).
 
-**Refused:** `str.utf8`, because it's the default ([1.7](1-programs.md#17-bare-names)), and `""`, with `fix: str.empty`, because it could look like unfinished work.
+**Refused:** `str.utf8`, because it's the default ([1.7](1-programs.md#17-bare-names)), `""`, with `fix: str.empty`, because it could look like unfinished work, and `&` with something that isn't text, as in `"hp: " & $hp`, with `fix: @fmt("hp: {$hp}")`.
 
-**From:** D48, D50, D51, D103, D326, D327, D367, D368, D469.
+**From:** D48, D50, D51, D103, D326, D327, D367, D368, D469, D470.
 
 ## 2.10 Lists
 
