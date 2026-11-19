@@ -94,7 +94,7 @@ Waiting on the owner, most needed first. Each is `NotDesignedYet` unless it says
 
 - Unchecked versions (D462, D463): which operations have one.
 - The clock and randomness (D473): their names, and the `std::time` group.
-- `str.os` (D477): how it's turned into a plain `str`.
+- `str.os` (D477, D479): the name of the failure `.%checked_as` gives, and a target whose OS text can't be viewed in the asked encoding without converting.
 - `os::done` (D476): whether it moves into a group, or each `os` group gets its own `done`.
 
 ## 12.3 Operators and conversion

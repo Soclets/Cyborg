@@ -175,7 +175,11 @@ let $avogadro: f64.stable = exponent ~6.02214076e23;
 
 ## 2.9 Strings
 
-**Rule:** a bare `str` means UTF-8. Other encodings are narrowings, such as `str.utf16`. The operating system's own text, raw bytes on macOS and Linux, valid in no fixed encoding, is `str.@os::io::os`, which `os`'s limb half adds and `use str.@os::io::os;` shortens to `str.os` ([1.11](1-programs.md#111-short-names-use)). It goes back to the OS unchanged, and turning it into a plain `str` can fail on bytes that aren't UTF-8.
+**Rule:** a bare `str` means UTF-8. Other encodings are narrowings, such as `str.utf16`. The operating system's own text, raw bytes on macOS and Linux, valid in no fixed encoding, is `str.@os::io::os`, which `os`'s limb half adds and `use str.@os::io::os;` shortens to `str.os` ([1.11](1-programs.md#111-short-names-use)). It goes back to the OS unchanged. `.%checked_as<str>()` checks that its bytes are valid UTF-8 and lends them as a `str`, a view with nothing copied, failing if they aren't, and any encoding can go in `< >`, as `.%checked_as<str.utf16>()`:
+
+```
+let $name: str = $args[pos: 1].%checked_as<str>()?;
+```
 
 An empty string is `str.empty`: `empty` always says what's empty ([2.10](#210-lists)). `==` and `!=` are refused on strings, since two strings can look the same and differ in bytes: a comparison is a named call that says how, by bytes or as text, whose spelling isn't decided, and checking for no text is `$s.len == 0 bytes`.
 
@@ -222,7 +226,7 @@ let $log: str[len.max: inf bytes] = str.from($first & " " & $last, alloc: Lend $
 
 **Refused:** `str.utf8`, because it's the default ([1.7](1-programs.md#17-bare-names)), `""`, with `fix: str.empty`, because it could look like unfinished work, and `&` with something that isn't text, as in `"hp: " & $hp`, with `fix: @fmt("hp: {$hp}")`, and `&` next to another operator without `{ }`.
 
-**From:** D48, D50, D51, D103, D326, D327, D367, D368, D469, D470, D471, D477.
+**From:** D48, D50, D51, D103, D326, D327, D367, D368, D469, D470, D471, D477, D479.
 
 ## 2.10 Lists
 
