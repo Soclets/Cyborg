@@ -226,6 +226,15 @@ let $t: i32[unit: time.minutes] = 5 time.minutes;
 
 A limb works the same way: `use @money::round;`, then `round.half_even($x)`. A limb's short name has no `@`, since a bare `@name` is a builtin.
 
+A limb's narrowing of a base family is shortened with the family in front, so the `use` line minus its path is what's written afterwards:
+
+```
+use str.@os::io::os;
+use union.@csup::untagged;
+
+let $name: str.os = …;
+```
+
 A kit method works the same way, with its type in the path and its `%` kept:
 
 ```
@@ -237,9 +246,9 @@ $xs.%%append(val: 4) ?? crash;
 
 A method of your own with the same name on the same type in that file clashes, and is refused.
 
-**Refused:** `use` on a function's narrowing, as in `use @std::io::fmt_print.stored;`, with `fix: use @std::io::fmt_print;`; `as %append` for a `%%` method, which drops a `%`; `use @money::round as @round;`, because `@round` looks like a builtin; a quoted name, as in `as "say"`, with `fix: as say`; and a short name that's a keyword.
+**Refused:** `use` on a function's narrowing, as in `use @std::io::fmt_print.stored;`, with `fix: use @std::io::fmt_print;`; `as %append` for a `%%` method, which drops a `%`; `use @money::round as @round;`, because `@round` looks like a builtin; a quoted name, as in `as "say"`, with `fix: as say`; a short name that's a keyword; and a limb's narrowing of a base family without its family, as in `use @os::io::os;`, with `fix: use str.@os::io::os;`.
 
-**From:** D93, D150, D151, D155, D178, D179, D220, D225, D232, D248, D432.
+**From:** D93, D150, D151, D155, D178, D179, D220, D225, D232, D248, D432, D477.
 
 ## 1.12 Comments
 
