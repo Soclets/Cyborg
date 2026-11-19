@@ -210,9 +210,19 @@ load(Lend $log);
 | `str[len.max: 32 bytes]` | Yes, inside the value | Yes |
 | `str[len.max: inf bytes]` | Yes, on the heap, `must_Give` | Yes |
 
+`&` joins text. Joined text needs memory, so `&` makes no text yet: it gives a `fmt`, a recipe borrowing each side ([5.7](5-functions.md#57-builtins-)), and the step that uses it says where the text goes.
+
+```
+let $full: str[len.max: 64 bytes] = {$first & " " & $last} as str[len.max: 64 bytes] ?? str.empty;
+let $log: str[len.max: inf bytes] = str.from($first & " " & $last, alloc: Lend $heap)?;
+@std::io::fmt_print(Lend.mut $out, "{}{newln}", $first & $last) ?? crash;
+```
+
+What `&` accepts besides text, and its precedence, aren't decided ([12.3](12-not-decided.md#123-operators-and-conversion)).
+
 **Refused:** `str.utf8`, because it's the default ([1.7](1-programs.md#17-bare-names)), and `""`, with `fix: str.empty`, because it could look like unfinished work.
 
-**From:** D48, D50, D51, D103, D326, D327, D367, D368.
+**From:** D48, D50, D51, D103, D326, D327, D367, D368, D469.
 
 ## 2.10 Lists
 

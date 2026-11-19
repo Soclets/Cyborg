@@ -50,6 +50,7 @@ What Cyborg does now, in one place. The oracle, the compiler and check claude fo
 | `~` | [2.7](2-values-and-types.md#27-inexact-literals-) | | Precog | [9.10](9-limbs-and-shields.md#910-precog) |
 | `@csup` | [9.5](9-limbs-and-shields.md#95-c-support-csup) | | `refused:` | [11.2](11-errors.md#112-kinds) |
 | `@std` | [9.3](9-limbs-and-shields.md#93-stds-two-parts) | | `requires`, `ensures` | [5.4](5-functions.md#54-the-top-of-the-body), [5.5](5-functions.md#55-contracts) |
+| `&` (join text) | [2.9](2-values-and-types.md#29-strings) | | | |
 | `as` | [2.14](2-values-and-types.md#214-conversion-as) | | `return` | [5.3](5-functions.md#53-return) |
 | `at_least`, `at_most` | [3.5](3-operators.md#35-comparison) | | `shield` | [9.7](9-limbs-and-shields.md#97-shields) |
 | `because:` | [11.6](11-errors.md#116-because) | | `shift.left`, `rotate.left` | [3.7](3-operators.md#37-bits-and-shifts) |
