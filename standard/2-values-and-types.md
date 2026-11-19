@@ -803,9 +803,10 @@ end union.tagged chain
 **Rule:** data that many things point at, and that dies when the program decides, like a game's enemies, lives in one collection of slots that owns every value. Everyone else holds a handle, a small plain number saying which slot and which version of it, so it's copied anywhere, with no borrows. Looking a value up checks that its slot still holds that version, so a handle to a removed value gives a failure instead of reading freed memory. Removing a value is an explicit call, and the collection is `must_Give`, ending with `done` ([6.9](6-ownership.md#69-must_give)). There's no reference counting, since nothing is freed automatically.
 
 ```
-// placeholder spellings
-let $h: std::coll::slots.handle<enemy> = $enemies.std::coll::slots.%%put(val: Give $orc, alloc: Lend $heap)?;
+let mut $enemies: std::coll::slots<enemy> = std::coll::slots.empty;
+let $h: std::coll::slot_handle<enemy> = $enemies.std::coll::slots.%%put(val: Give $orc, alloc: Lend $heap)?;
 let $hp: i32 = $enemies.std::coll::slots.%get(at: $h)?.hp;
+change $enemies.std::coll::slots.%%get.mut(at: $h)?.hp = 10;
 ```
 
 `%%remove` empties a slot whose value has nothing of its own to free, and `%%take` empties it and hands the value back, as a box's `done` and `take` do ([2.23](#223-one-value-on-the-heap-stdmembox)). Either raises the slot's version, so every handle still pointing at it fails from then on.
@@ -817,8 +818,8 @@ let $orc: enemy = $enemies.std::coll::slots.%%take(at: $h)?;
 
 A handle also carries its collection's ID, so using it on another collection of the same type fails too, as a list checks its allocator ([2.10](#210-lists)).
 
-The spellings and the failure's name aren't decided ([12.2](12-not-decided.md#122-types)).
+`%%put` hands back a `std::coll::slot_handle`, and `%get(at:)` and `%%get.mut(at:)` lend the value, as a box's do ([2.23](#223-one-value-on-the-heap-stdmembox)). The failure's name isn't decided ([12.2](12-not-decided.md#122-types)).
 
 **Refused:** `%%remove` on a `must_Give` value, with `fix: %%take`.
 
-**From:** D322, D325, D452, D457, D458, D459.
+**From:** D322, D325, D428, D450, D452, D457, D458, D459, D465.

@@ -94,7 +94,7 @@ Waiting on the owner, most needed first. Each is `NotDesignedYet` unless it says
 
 - Whether `ptr.volatile` has `.%lend(from:)` (D451).
 - Unchecked versions (D462, D463): which operations have one.
-- Slots (D457 to D459): the spellings of `std::coll::slots`, its handle, `%%put` and `%get`, and the failure's name.
+- Slots (D457 to D459, D465): the name of the failure a stale or wrong handle gives.
 
 ## 12.3 Operators and conversion
 

@@ -1472,6 +1472,8 @@ Exactly which operations go in `.repro` and `.logic`, whether a bare `shield` is
 
 **D464. A box is made with `std::mem::box.new(val: Give $p, alloc: Lend $heap)`.** This settles D449's placeholder as it was: `.new` as the arena's `std::mem::arena.new` (D333), `val:` as the label for a value being put in, as in `%%append(val:)`, `.%write(val:)` and `.%store(val:)`, and `alloc:` as every allocating call (D322). `done` was already settled by D331, and `take` by D452. Claude proposed keeping it; the owner chose: "yea". (Owner, 2026-11-18)
 
+**D465. Slots are spelled `std::coll::slots`, with `std::coll::slot_handle`, `.empty`, `%%put`, `%get` and `%%get.mut`.** `let mut $enemies: std::coll::slots<enemy> = std::coll::slots.empty;` starts one, as every growable collection starts (D428). `$enemies.std::coll::slots.%%put(val: Give $orc, alloc: Lend $heap)?` puts a value in and hands back a `std::coll::slot_handle<enemy>`, and `%get(at: $h)?` and `%%get.mut(at: $h)?` lend the value read-only or to change, as a box's `.%get()` and `.%%get.mut()` do (D450). `slots` sits beside `list`, `map` and `array`, plural since it's many slots. The handle is `slot_handle`, not D457's placeholder `slots.handle`, since by D400 `.` picks a kind of the thing before it, and a handle isn't a kind of slots. `%%put` rather than lists' `%%append`, since slots have no order and no end. `%%remove` and `%%take` were settled by D458. This settles D457's placeholders, except the failure's name. Claude proposed it; the owner chose: "yea". (Owner, 2026-11-19)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude
