@@ -1,34 +1,42 @@
-# Kickoff prompt: Claude designs a systems language on its own
+# Kickoff prompt: Claude designs the systems language it thinks is best
 
-The owner pastes this into a new session, started in an empty folder, to see what Claude Opus 5.5 designs with nobody
-steering. It isn't part of Cyborg; it lives here only so it isn't lost. Written on 2026-11-17 by design claude, after
-reading the current prompting guide and the Opus 5.5 guide in full (rule 11 in `IMPLEMENTATION.md`).
+The owner pastes this into a new session, started in an empty folder, to see what Claude Opus 5.5 thinks the best
+systems programming language is, designed with nobody steering. This is stage 1, the standard; stage 2, making it real,
+is `own-language-build-prompt.md`. It isn't part of Cyborg; it lives here only so it isn't lost.
 
 It lets the session make its own public GitHub repository under Soclets, choose its own licences, and use at most 3 CPU
-cores (owner, 2026-11-17). Unlike Tankun's own sessions, it has no 8:30 PM stop and may work overnight (owner,
-2026-11-17).
+cores, and it has no 8:30 PM stop, since it may work overnight (owner, 2026-11-17). The first version was pasted into
+the "Systems programming language design" session on 2026-11-17, whose first reply was stopped by a safety classifier for
+an unknown reason, and that session was abandoned with its folder empty. This version, rewritten on 2026-11-20 after
+reading the current prompting guide and the Opus 5.5 guide in full (rule 11 in `IMPLEMENTATION.md`), asks for Claude's
+opinion of the best systems language, rather than any language of its own.
 
 ```text
 <context>
-Tankun, the owner of this folder, wants to see what you design when nobody
-steers you: a systems programming language, made entirely by your own choices.
-Tankun designs several languages with Claude, but in this one they won't
-weigh in on anything. Every decision is yours: the language's goals, its
-name, syntax, type system, memory model, error handling, tooling, and what
-it would eventually be built with.
+Tankun, the owner of this folder, wants to know what you think the best
+systems programming language would be, and to see it designed with nobody
+steering. Tankun designs several languages with Claude, but in this one
+they won't weigh in on anything. Every decision is yours: what the language
+is for, what it values, its name, syntax, type system, memory model, error
+handling, tooling, and what it would eventually be built with. Aim for the
+language you'd actually argue is the best design for systems programming,
+not a safe compromise or a tour of features, and be honest in the log
+about the trade-offs it loses.
 
 This first stage is the standard only: a written specification, precise
 enough that someone else could implement the language from it without asking
-you anything. No compiler or interpreter yet.
+you anything. A later stage will build it, from this standard alone, so
+anything the standard leaves vague will have to be guessed then.
 </context>
 
 <rules>
 - Make it your own. Don't open or search anything outside this folder,
   especially Tankun's other languages (Cyborg, CyborgPL, Jernal, Fale,
   Plainly, Radium) or any of Tankun's other projects. Borrowing ideas from
-  well-known languages is fine; just say where an idea came from.
-- Start by writing down what the language is for and what it values, then
-  let every later decision follow from that.
+  well-known languages is fine; say where an idea came from.
+- Start by writing down what the language is for, what it values, and why
+  you think those are the right values for a systems language. Then let
+  every later decision follow from that.
 - Keep a decision log, DECISIONS.md, numbered and never renumbered. Each
   entry says what was chosen, what alternatives you weighed, and why this
   one won. A changed decision gets a new entry saying which one it
@@ -46,23 +54,23 @@ you anything. No compiler or interpreter yet.
 - Choose the language's licences yourself, for its code and for its
   writing, record why in DECISIONS.md, and add the licence files before
   the first push, so the repository is never public without one.
-- Use at most 3 CPU cores for anything you run, such as builds or tests
-  (for example `-j 3`), since other sessions share this machine.
+- Use at most 3 CPU cores for anything you run, since other sessions share
+  this machine.
 </rules>
 
 <when_to_stop>
-This is long work and Tankun wants it to keep going. Don't stop to ask
-Tankun questions, since they won't answer design questions here. Don't end a
-turn by summarizing and announcing the next step instead of taking it, or
-by offering to continue. Put status notes in the same message as your next
-action.
+This is long work and Tankun wants it to keep going while they sleep.
+Don't stop to ask Tankun questions, since they won't answer design
+questions here. Don't end a turn by summarizing and announcing the next
+step instead of taking it, by offering to continue, or by listing
+decisions for Tankun when none of them blocks the rest. Put status notes
+in the same message as your next action.
 
 Stop when the standard covers the whole language: syntax, types, memory,
 errors, modules and packages, the standard library's core, and the
-toolchain's commands. Every chapter should be complete enough to implement
-from. Then write a short README saying what the language is and how its
-standard is organized, and tell Tankun you're done. There's no time limit:
-Tankun will be asleep while you work, so keep going through the night if
-the standard needs it.
+toolchain's commands, with every chapter complete enough to implement
+from. Then write a short README saying what the language is, why you
+think it's the best design for systems programming, and how the standard
+is organized, push, and tell Tankun you're done. There's no time limit.
 </when_to_stop>
 ```
