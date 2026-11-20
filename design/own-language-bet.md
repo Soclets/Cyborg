@@ -28,3 +28,14 @@ Short, one syllable, a craft or nature word, like Keel, Forge, Tern, Slate or Or
   later stage rather than built first.
 - Not its own code generator, and not compiling to C, though compiling to C may be weighed and rejected in its
   decision log.
+
+## Tankun's bet
+
+Written on 2026-11-20 at 16:29, after the stage 1 prompt asked for at least one major feature as a reason to adopt the
+language, and before any session ran it. In Tankun's words: "General purpose sys lang, no hidden control flow & alloc,
+light Rust, but with compile checked units".
+
+- A general-purpose systems language.
+- No hidden control flow and no hidden allocation.
+- "Light Rust": Rust's safety with simpler ownership.
+- The major feature: units of measure checked while compiling, which F# has but no mainstream systems language does.
