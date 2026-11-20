@@ -53,3 +53,25 @@ session ran it.
 - Runner-up for the major feature: contracts or refinement types proven while compiling, as SPARK does.
 - The rest of the first bet still stands: memory safety without a garbage collector, simpler than Rust, errors as
   values, a Rust compiler on LLVM, and a short name, with Keel still the pick.
+
+## Result of stage 1
+
+On 2026-11-20 at 18:08, the session ("Systems programming language design", in `/Users/ts/Folder titled untitled`)
+reported it was done, by message, without design claude opening its folder:
+
+- The language is **Tally**: 23 chapters, 519 rules, 69 decisions, and an open-questions chapter, reviewed three times.
+- Its headline feature is "cost accounting": effects (`alloc`, `block`, `panic`, `sys`) written in every public
+  signature and checked through every call, so a `may none` function provably can't allocate, wait, crash or make
+  system calls. The linker works out worst-case stack sizes from the real machine code, so fibers get exactly-sized
+  stacks and there's no `async`/`await` split.
+- Memory: a borrow checker with no lifetime syntax, through `from` clauses and single-region `view` types.
+
+Scored:
+- Design claude's second bet, an effect system as the major feature: right, down to most of the effects listed.
+- Memory safety without a garbage collector, simpler than Rust: right.
+- The name Keel, or Forge: wrong.
+- The backend: not known until stage 2.
+- Tankun's bet, compile-checked units: not the headline; whether Tally has units at all wasn't in the report.
+
+It also landed near Cyborg without seeing it: borrows naming where they're `from`, like Cyborg's `Lend from $r`, and
+stack sizes worked out by the compiler so tasks need no `async`, like Cyborg's D350.
