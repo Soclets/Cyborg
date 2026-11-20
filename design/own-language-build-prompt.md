@@ -9,7 +9,7 @@ It keeps stage 1's permissions: the public Soclets repository, its own licences,
 <context>
 This folder holds a systems programming language that Claude designed on
 its own, as its opinion of the best systems language: its standard in
-standard/, its reasoning in DECISIONS.md, and a README. Tankun, the owner
+standard/, the decision log in DECISIONS.md, and a README. Tankun, the owner
 of this folder, didn't steer any of it, and now wants to see it made real:
 a working toolchain that compiles and runs real programs, built by you,
 again with nobody steering. Every implementation choice is yours, within

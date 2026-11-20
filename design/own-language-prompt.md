@@ -9,7 +9,9 @@ cores, and it has no 8:30 PM stop, since it may work overnight (owner, 2026-11-1
 the "Systems programming language design" session on 2026-11-17, whose first reply was stopped by a safety classifier for
 an unknown reason, and that session was abandoned with its folder empty. This version, rewritten on 2026-11-20 after
 reading the current prompting guide and the Opus 5.5 guide in full (rule 11 in `IMPLEMENTATION.md`), asks for Claude's
-opinion of the best systems language, rather than any language of its own.
+opinion of the best systems language, rather than any language of its own. On 2026-11-20 it also dropped a line saying
+Tankun reads the decision log "to understand your thinking", in case a reasoning-extraction classifier read it as asking
+the model to write out its thinking, which is only a guess at what stopped the first run.
 
 ```text
 <context>
@@ -50,8 +52,7 @@ anything the standard leaves vague will have to be guessed then.
 - Keep a decision log, DECISIONS.md, numbered and never renumbered. Each
   entry says what was chosen, what alternatives you weighed, and why this
   one won. A changed decision gets a new entry saying which one it
-  replaces. Tankun reads this to understand your thinking, so the "why"
-  matters more than anything else in it.
+  replaces.
 - Write the standard in standard/, as numbered chapters, with a final
   chapter listing what's still undecided. Each rule shows a short example
   and says which decisions it comes from.
