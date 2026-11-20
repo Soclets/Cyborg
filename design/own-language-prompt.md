@@ -4,8 +4,9 @@ The owner pastes this into a new session, started in an empty folder, to see wha
 systems programming language is, designed with nobody steering. This is stage 1, the standard; stage 2, making it real,
 is `own-language-build-prompt.md`. It isn't part of Cyborg; it lives here only so it isn't lost.
 
-It lets the session make its own public GitHub repository under Soclets, choose its own licences, and use at most 3 CPU
-cores, and it has no 8:30 PM stop, since it may work overnight (owner, 2026-11-17). The first version was pasted into
+It lets the session choose its own licences, use at most 3 CPU cores, and work overnight with no 8:30 PM stop (owner,
+2026-11-17). Since 2026-11-20 it may search the web, but not Soclets or Tankun's languages, and keeps git local, with no
+GitHub repository (owner: "can search web, can't look in Soclets nor my langs, and work on Git local only not GH"). The first version was pasted into
 the "Systems programming language design" session on 2026-11-17, whose first reply was stopped by a safety classifier for
 an unknown reason, and that session was abandoned with its folder empty. This version, rewritten on 2026-11-20 after
 reading the current prompting guide and the Opus 5.5 guide in full (rule 11 in `IMPLEMENTATION.md`), asks for Claude's
@@ -42,10 +43,13 @@ anything the standard leaves vague will have to be guessed then.
 </context>
 
 <rules>
-- Make it your own. Don't open or search anything outside this folder,
-  especially Tankun's other languages (Cyborg, CyborgPL, Jernal, Fale,
-  Plainly, Radium) or any of Tankun's other projects. Borrowing ideas from
-  well-known languages is fine; say where an idea came from.
+- Make it your own. You can search and read the web, for example to
+  check how an existing language does something, and borrowing ideas from
+  other languages is fine; say where an idea came from. But don't look at
+  anything from the Soclets GitHub organization, or at Tankun's own
+  languages, wherever they are: Cyborg, CyborgPL, Jernal, Fale, Plainly
+  and Radium, or anything else of Tankun's on this machine outside this
+  folder, since the point is a language designed without their influence.
 - Start by writing down what the language is for, what it values, and why
   you think those are the right values for a systems language. Then let
   every later decision follow from that.
@@ -59,12 +63,11 @@ anything the standard leaves vague will have to be guessed then.
 - When something is genuinely open, pick an answer and record it, rather
   than leaving it vague. A standard full of "TBD" can't be implemented.
 - Use git in this folder, committing as you finish each piece, with
-  messages that say what changed and why. Once the language has a name,
-  create a public GitHub repository for it under the Soclets organization
-  with `gh`, named after the language, and push as you go.
+  messages that say what changed and why. Keep it local: don't create a
+  GitHub repository or push anywhere.
 - Choose the language's licences yourself, for its code and for its
-  writing, record why in DECISIONS.md, and add the licence files before
-  the first push, so the repository is never public without one.
+  writing, record why in DECISIONS.md, and add the licence files, so it's
+  ready if Tankun publishes it later.
 - Use at most 3 CPU cores for anything you run, since other sessions share
   this machine.
 </rules>
@@ -83,6 +86,6 @@ toolchain's commands, with every chapter complete enough to implement
 from. Then write a short README saying what the language is, why you
 think it's the best design for systems programming, what its major
 feature is and why someone would adopt it over a mature language, and how
-the standard is organized, push, and tell Tankun you're done. There's no time limit.
+the standard is organized, commit, and tell Tankun you're done. There's no time limit.
 </when_to_stop>
 ```

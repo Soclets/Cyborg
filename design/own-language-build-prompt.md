@@ -3,7 +3,8 @@
 The owner pastes this into a new session, started in the folder where stage 1 (`own-language-prompt.md`) wrote its
 standard, once that session says it's done. It isn't part of Cyborg; it lives here only so it isn't lost. Written on
 2026-11-20 after reading the current prompting guide and the Opus 5.5 guide in full (rule 11 in `IMPLEMENTATION.md`).
-It keeps stage 1's permissions: the public Soclets repository, its own licences, 3 cores, and no 8:30 PM stop.
+It keeps stage 1's permissions: the web but not Soclets or Tankun's languages, local git only, its own licences, 3
+cores, and no 8:30 PM stop.
 
 ```text
 <context>
@@ -41,17 +42,19 @@ why.
   a progress file with what's done, what's next and any known bugs, the
   test results, and git history. After a compaction, read those before
   doing anything else.
-- Make it your own. Don't open or search anything outside this folder,
-  especially Tankun's other languages (Cyborg, CyborgPL, Jernal, Fale,
-  Plainly, Radium) or any of Tankun's other projects. Borrowing ideas and
-  well-known libraries is fine; say where they came from.
+- Make it your own. You can search and read the web, and borrowing
+  ideas and well-known libraries is fine; say where they came from. But
+  don't look at anything from the Soclets GitHub organization, or at
+  Tankun's own languages, wherever they are: Cyborg, CyborgPL, Jernal,
+  Fale, Plainly and Radium, or anything else of Tankun's on this machine
+  outside this folder.
 - Use what's already installed where you can. If the toolchain needs
   something that isn't, like a compiler backend, install it with the
   usual tool for it (Homebrew, rustup or the language's own package
   manager), and record what and why in DECISIONS.md.
-- Use git, committing as each piece works, with messages that say what
-  changed and why, and push to the language's GitHub repository as you
-  go.
+- Use git in this folder, committing as each piece works, with messages
+  that say what changed and why. Keep it local: don't create a GitHub
+  repository or push anywhere.
 - Use at most 3 CPU cores for anything you run, such as builds and tests
   (for example `-j 3`), since other sessions share this machine.
 </rules>
@@ -68,7 +71,7 @@ Stop when the toolchain implements the whole standard: every chapter has
 tests and they all pass, the commands the standard names work, and at
 least three real example programs, each a few hundred lines and between
 them using most of the language, build and run correctly. Then update the
-README with how to install the toolchain and run a program, push, and
+README with how to install the toolchain and run a program, commit, and
 tell Tankun you're done, with what works, what doesn't, and what you'd do
 next. There's no time limit.
 </when_to_stop>
