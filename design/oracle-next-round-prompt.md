@@ -10,7 +10,7 @@ before changing it (rule 11 in `IMPLEMENTATION.md`).
 You've been idle since the generator was finished. Since then, compiler
 claude has nearly caught up: about 1571 of tests/'s 1719 pass on OKAY\n,
 and it's building everything up to D416 from the standard. Tankun has also
-made D403 to D478, which you haven't built yet, and the compiler found a
+made D403 to D481, which you haven't built yet, and the compiler found a
 few things in tests/ that need fixing. This round brings the oracle and
 tests/ up to date, so the live comparison can start finding real compiler
 bugs once both sides agree on what Cyborg is.
@@ -24,7 +24,7 @@ agreed, so it doesn't need asking again.
 </context>
 
 <work>
-Read DECISIONS.md from D403 to D478 and the standard sections they point
+Read DECISIONS.md from D403 to D481 and the standard sections they point
 to first. Then, in this order, committing in small steps:
 
 1. The fixes compiler claude found, all agreed with design claude:
@@ -57,9 +57,10 @@ to first. Then, in this order, committing in small steps:
    yet, since its time limit isn't decided; say so if that's the case.
    Also D417 and D419: each atomic operation takes only the orderings
    that fit it, and atomics get `.%store(val:)`.
-   And D421 and D422: methods are declared inside their type's
-   `fam.fn <type>:` block, which can hold normal functions too, so the
-   ~42 tests declaring `fn type.%name` one at a time get respelled.
+   And D421, with D480 and D481 on top: methods are declared together
+   in a `methods <type>:` block, so the ~42 tests declaring
+   `fn type.%name` one at a time get respelled, and a `fam.fn` holds
+   only a function and its kinds, like `print` and `print.stored`.
    D424 and D425 settle number conversion with `as`: integers plain,
    checked like bounds, or `as.wrap` and `as.saturate`; floats plain, and
    float to integer always naming how the fraction goes.

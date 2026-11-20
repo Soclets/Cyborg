@@ -143,28 +143,26 @@ $p.%area();
 
 **Refused:** `$xs.%%append(val: 4);` with no `use`, with `fix: $xs.std::coll::list.%%append(val: 4);`; `$xs.std::%%append(val: 4);`, with the same fix; and `$xs.std::coll::list.%append(val: 4);`, with `fix: .%%`, since `append` changes its receiver.
 
-A `fam.fn` groups related functions, called with the family's name, as `geometry.area(…)`. A family named after a type also holds that type's methods, marked by their `%` or `%%`, and every method sits in its receiver's type's family. Each method is a normal function inside it, and is the family member `reading.%%warm_up`. The first parameter is the receiver, and says how it's held, which has to match the `%` or `%%` in the name.
+A type's methods are declared together in a `methods` block named after the type. Each is a normal function inside it, and its first parameter is the receiver, which says how it's held, matching the `%` or `%%` in its name. A method isn't a family member, since warming up isn't a kind of reading ([1.6](1-programs.md#16-narrowings-)).
 
 ```
-fam.fn reading:
-    fn new [$celsius: i32] -> reading:
-        return reading[celsius = $celsius];
-    end fn new
-
+methods reading:
     fn %%warm_up [$r: Lent.mut reading, $by: i32] -> void:
         labels [$by as by];
         change $r.celsius = $r.celsius + $by;
         return void;
     end fn %%warm_up
-end fam.fn reading
+end methods reading
 
-let mut $r: reading = reading.new(20);
+let mut $r: reading = reading[celsius = 20];
 $r.%%warm_up(by: 2);
 ```
 
-A receiver that's `Given` is refused, because methods only borrow, and so is a method in a family not named after its receiver's type.
+A family holds only a word and its kinds, so a `fam.fn` holds a function and its kinds, as `print` and `print.stored`, and related functions that aren't kinds of one another go in a module, as `geometry::area` ([1.5](1-programs.md#15-paths-)). Where a type's makers, like `.new` and `.from`, are declared isn't decided ([12.5](12-not-decided.md#125-functions)).
 
-**From:** D4, D5, D8, D115, D130, D135, D211, D421, D422, D423.
+**Refused:** a receiver that's `Given`, because methods only borrow; a method in a `methods` block not named after its receiver's type; and a `fam.fn` member that isn't a kind of the family's name, as `area` in `fam.fn geometry`, with a fix moving it to a module.
+
+**From:** D4, D5, D8, D115, D130, D135, D211, D423, D480, D481.
 
 ## 5.7 Builtins: `@`
 

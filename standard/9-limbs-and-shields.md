@@ -295,14 +295,14 @@ $led.%write(val: 0);
 
 ```
 // std's own code, sketched
-fam.fn box<?item: any.type>:
+methods box<?item: any.type>:
     fn %get [$b: Lent box<?item>] -> Lend from $b ?item:
         shield.danger lend_inside:
             reason "a box's pointer stays valid while the box is alive"
             return $b.at.%lend(from: Lend $b);
         end shield.danger lend_inside
     end fn %get
-end fam.fn box
+end methods box
 ```
 
 Writing your own allocator is shield code, against `std::mem::allocator`, whose `%allocate` takes a size and an alignment in bytes ([2.10](2-values-and-types.md#210-lists)). `@size_of<player>()` gives how many bytes a type takes, and `@align_of<player>()` which addresses it may start at, both known while compiling, as builtins ([5.7](5-functions.md#57-builtins-)). They work anywhere, not only in shields.
