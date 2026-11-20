@@ -202,7 +202,7 @@ A `fmt` becomes text as a number does: `@fmt("{$name}: {$count}") as str[len.max
 
 ```
 fn largest<?item: ordered> [$a: Lent ?item, $b: Lent ?item] -> ?item:
-    if $a above $b:
+    if $a > $b:
         return Copy $a;
     end if
     return Copy $b;
@@ -224,8 +224,8 @@ A requirement is one of two kinds, never mixed. An `interface` lists operations 
 ```
 interface ordered<?self>:
     includes equatable;
-    op below [$a: Lent ?self, $b: Lent ?self] -> bool;
-    law if $a below $b and $b below $c then $a below $c;
+    op < [$a: Lent ?self, $b: Lent ?self] -> bool;
+    law if $a < $b and $b < $c then $a < $c;
 end interface ordered
 
 type_set whole:

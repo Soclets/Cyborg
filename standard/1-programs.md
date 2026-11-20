@@ -171,11 +171,11 @@ let $a: str = "hi";
 
 `( )` always runs something: grouping uses `{ }`, so `sqrt({$a + $b} x 2)` shows a call and a group apart (D460).
 
-An opening `<` has no space after it, and a closing `>` has none before it. `<` and `>` are never comparisons, which are `below` and `above` ([3.5](3-operators.md#35-comparison)).
+An opening `<` has no space after it, and a closing `>` has none before it. As comparisons, `<` and `>` have a space on each side ([3.5](3-operators.md#35-comparison)), so `$a < $b` compares and `list<i32>` fills in a type.
 
-**Refused:** `$a < $b`, with `fix: below`.
+**Refused:** `$a<$b`, with `fix: $a < $b`.
 
-**From:** D23, D460.
+**From:** D23, D460, D483.
 
 ## 1.9 Labels: `:`
 
@@ -320,7 +320,7 @@ A literal format is checked when building.
 | Around `.`, `::`, `%`, `%%`, `@` | None | `fn.main`, `@std::io::fmt_print`, `$p.%area()` |
 | After `$`, a unary `-`, a `~` on a literal, an opening `(`, `[`, `<`, `{` | None | `-$x`, `~0.1`, `total(Lend $xs)`, `std::coll::list<i32>`, `{$a + $b}` |
 | Before a closing bracket, a postfix `?`, or an unchecked `^` | None | `read()?`, `$xs[pos^: $i]` |
-| Around a binary operator, word operators and `=` included | One on each side | `1 below 8`, `$a + $b`, `$x at_least 0` |
+| Around a binary operator, word operators and `=` included | One on each side | `1 < 8`, `$a + $b`, `$x at_least 0` |
 | After a comma, or a label's `:` | One | `range[from: 1, to: 3]` |
 
 **Refused:** `fn . main`, `std :: io`, `$a+$b`, `$a  +  $b`, `( $x )` and `{ $a + $b }`, each with the spaced version as its fix, and a line break anywhere else, such as between `end` and `fn.main`, with a fix that joins the line.

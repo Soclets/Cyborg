@@ -695,12 +695,12 @@ for $chunk in $pixels.std::coll::list.%%simd_chunks.mut.exact(lanes: 16):
 end for
 ```
 
-Comparisons work lane by lane: `==`, `!=`, `below`, `above`, `at_least` and `at_most` on two `simd` values give a `simd<bool>` of the same count. "Every lane" and "any lane" are written out, so the code chooses.
+Comparisons work lane by lane: `==`, `!=`, `<`, `>`, `at_least` and `at_most` on two `simd` values give a `simd<bool>` of the same count. "Every lane" and "any lane" are written out, so the code chooses.
 
 ```
 let $a: simd<i32>[lanes: 4] = [1, 8, 3, 6];
 let $b: simd<i32>[lanes: 4] = [5, 5, 5, 5];
-let $m: simd<bool>[lanes: 4] = $a above $b;
+let $m: simd<bool>[lanes: 4] = $a > $b;
 if {$a == $b}.%all_true():
 ```
 
