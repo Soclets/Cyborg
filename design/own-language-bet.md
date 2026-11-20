@@ -39,3 +39,17 @@ light Rust, but with compile checked units".
 - No hidden control flow and no hidden allocation.
 - "Light Rust": Rust's safety with simpler ownership.
 - The major feature: units of measure checked while compiling, which F# has but no mainstream systems language does.
+
+## Design claude's second bet
+
+Written on 2026-11-20 at 16:32, after the stage 1 prompt asked for a major feature and after Tankun's bet, before any
+session ran it.
+
+- The major feature: an effect system for systems code. Every function's header says what it can do, such as
+  allocate, do I/O, panic, block or touch unchecked memory, and the compiler checks it all the way up the call chain,
+  so a function marked as doing none of these provably can't, and the language's "no hidden control flow and
+  allocation" becomes something the compiler proves rather than a promise. Likely carried by capabilities, values
+  passed in like Zig's allocators but for every effect. Ideas from Koka and Austral, framed for systems work.
+- Runner-up for the major feature: contracts or refinement types proven while compiling, as SPARK does.
+- The rest of the first bet still stands: memory safety without a garbage collector, simpler than Rust, errors as
+  values, a Rust compiler on LLVM, and a short name, with Keel still the pick.
