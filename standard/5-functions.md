@@ -158,11 +158,23 @@ let mut $r: reading = reading[celsius = 20];
 $r.%%warm_up(by: 2);
 ```
 
-A family holds only a word and its kinds, so a `fam.fn` holds a function and its kinds, as `print` and `print.stored`, and related functions that aren't kinds of one another go in a module, as `geometry::area` ([1.5](1-programs.md#15-paths-)). Where a type's makers, like `.new` and `.from`, are declared isn't decided ([12.5](12-not-decided.md#125-functions)).
+A family holds only a word and its kinds, so a `fam.fn` holds a function and its kinds, as `print` and `print.stored`, and related functions that aren't kinds of one another go in a module, as `geometry::area` ([1.5](1-programs.md#15-paths-)). A type's constructors, which build a new value of it, like `.new` and `.from`, sit in its `methods` block with no `%`, since there's no value yet to call them on. A constructor is called on the type, and a method on a value:
+
+```
+methods reading:
+    fn new [$celsius: i32] -> reading:
+        return reading[celsius = $celsius];
+    end fn new
+end methods reading
+
+let mut $r: reading = reading.new(20);
+```
+
+A value that is a kind of its type, as `std::coll::list.empty` is an empty kind of list, stays in the type's family.
 
 **Refused:** a receiver that's `Given`, because methods only borrow; a method in a `methods` block not named after its receiver's type; and a `fam.fn` member that isn't a kind of the family's name, as `area` in `fam.fn geometry`, with a fix moving it to a module.
 
-**From:** D4, D5, D8, D115, D130, D135, D211, D423, D480, D481.
+**From:** D4, D5, D8, D115, D130, D135, D211, D423, D480, D481, D482.
 
 ## 5.7 Builtins: `@`
 
