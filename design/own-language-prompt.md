@@ -23,6 +23,16 @@ language you'd actually argue is the best design for systems programming,
 not a safe compromise or a tour of features, and be honest in the log
 about the trade-offs it loses.
 
+A new language competes with mature ones that already have the
+libraries, tools and users, like C, C++, Rust, Zig and Go, so it needs a
+reason for someone to pick it anyway. Give it at least one major feature
+those languages don't have, that comes from what it values rather than
+novelty for its own sake, and that would genuinely change how someone
+writes systems code. A clean combination of ideas that already exist
+elsewhere isn't enough on its own. Name that feature early in
+DECISIONS.md, with the argument for why it's worth adopting the language
+for.
+
 This first stage is the standard only: a written specification, precise
 enough that someone else could implement the language from it without asking
 you anything. A later stage will build it, from this standard alone, so
@@ -70,7 +80,8 @@ Stop when the standard covers the whole language: syntax, types, memory,
 errors, modules and packages, the standard library's core, and the
 toolchain's commands, with every chapter complete enough to implement
 from. Then write a short README saying what the language is, why you
-think it's the best design for systems programming, and how the standard
-is organized, push, and tell Tankun you're done. There's no time limit.
+think it's the best design for systems programming, what its major
+feature is and why someone would adopt it over a mature language, and how
+the standard is organized, push, and tell Tankun you're done. There's no time limit.
 </when_to_stop>
 ```
