@@ -232,6 +232,14 @@ fmt_print.stored(Lend.mut $out, "{}{newln}", $x) ?? crash;
 let $t: i32[unit: time.minutes] = 5 time.minutes;
 ```
 
+A group can be shortened too, so its members keep the group's name, for names that would mislead alone, like `log`:
+
+```
+use std::math;
+
+let $y: f64.stable = math::log($x);
+```
+
 A limb works the same way: `use @money::round;`, then `round.half_even($x)`. A limb's short name has no `@`, since a bare `@name` is a builtin.
 
 A limb's narrowing of a base family is shortened with the family in front, so the `use` line minus its path is what's written afterwards:
@@ -256,7 +264,7 @@ A method of your own with the same name on the same type in that file clashes, a
 
 **Refused:** `use` on a function's narrowing, as in `use @std::io::fmt_print.stored;`, with `fix: use @std::io::fmt_print;`; `as %append` for a `%%` method, which drops a `%`; `use @money::round as @round;`, because `@round` looks like a builtin; a quoted name, as in `as "say"`, with `fix: as say`; a short name that's a keyword; and a limb's narrowing of a base family without its family, as in `use @os::io::os;`, with `fix: use str.@os::io::os;`.
 
-**From:** D93, D150, D151, D155, D178, D179, D220, D225, D232, D248, D432, D477.
+**From:** D93, D150, D151, D155, D178, D179, D220, D225, D232, D248, D432, D477, D484.
 
 ## 1.12 Comments
 
