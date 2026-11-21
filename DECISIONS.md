@@ -1512,6 +1512,8 @@ Exactly which operations go in `.repro` and `.logic`, whether a bare `shield` is
 
 **D484. `use` can shorten a group, so its members keep their group's name.** `use std::math;` gives the short name `math`, so `math::log($x)` and `math::sqrt($d2)`, as D432's rule gives the path's last word, which can be a group as well as a function or a type. It's for names that would mislead alone: `use std::math::log;` gives a bare `log`, which reads as logging as easily as a logarithm, while `math::log` can't. One `use` covers the whole group. D432 never said a group could be shortened; this says it. The owner said "`use` should be able to somehow make it still be `math::` also. Since `log` can be print and can be logar"; Claude showed that D432 already allows it; the owner chose: "yea", to writing it down. (Owner, 2026-11-21)
 
+**D485. Rounding to the nearest integer is `as.nearest.even` and `as.nearest.away`.** These replace D425's `as.round.even` and `as.round.away`, since every float-to-integer conversion rounds: IEEE 754 calls all five "rounding", toward zero (`as.trunc`), down (`as.floor`), up (`as.ceil`) and to nearest with ties to even or away, so `round` named the whole family and only in everyday speech means "to the nearest". `nearest` is what sets these two apart, so `2.5 as.nearest.even i32` gives 2 and `2.5 as.nearest.away i32` gives 3, and they sit beside `trunc`, `floor` and `ceil` as one more direction. The owner said "`.round`, Isn't all of them rounding too?"; Claude proposed `nearest`; the owner chose: "yea". (Owner, 2026-11-21)
+
 ## Open
 
 - **The test in D9 on a type that's already known.** `if $n: i32[min: 0, max: 100]:` works on a plain `i32` (D20). Claude

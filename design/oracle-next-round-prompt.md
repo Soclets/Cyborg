@@ -10,7 +10,7 @@ before changing it (rule 11 in `IMPLEMENTATION.md`).
 You've been idle since the generator was finished. Since then, compiler
 claude has nearly caught up: about 1571 of tests/'s 1719 pass on OKAY\n,
 and it's building everything up to D416 from the standard. Tankun has also
-made D403 to D483, which you haven't built yet, and the compiler found a
+made D403 to D485, which you haven't built yet, and the compiler found a
 few things in tests/ that need fixing. This round brings the oracle and
 tests/ up to date, so the live comparison can start finding real compiler
 bugs once both sides agree on what Cyborg is.
@@ -24,7 +24,7 @@ agreed, so it doesn't need asking again.
 </context>
 
 <work>
-Read DECISIONS.md from D403 to D483 and the standard sections they point
+Read DECISIONS.md from D403 to D485 and the standard sections they point
 to first. Then, in this order, committing in small steps:
 
 1. The fixes compiler claude found, all agreed with design claude:
@@ -64,6 +64,9 @@ to first. Then, in this order, committing in small steps:
    D482 puts constructors in the `methods` block too, and D483 brings
    back `<` and `>` for ordering, spaced on both sides, replacing
    `below` and `above`, while `at_least` and `at_most` stay words.
+   D484 lets `use std::math;` shorten a group, and D485 respells
+   `as.round.even` and `as.round.away` as `as.nearest.even` and
+   `as.nearest.away`.
    D424 and D425 settle number conversion with `as`: integers plain,
    checked like bounds, or `as.wrap` and `as.saturate`; floats plain, and
    float to integer always naming how the fraction goes.
