@@ -118,6 +118,8 @@ let $reading: f64.ieee = read_sensor();
 let $clean: f64.stable = $reading as f64.stable;
 ```
 
+A whole-number literal can be a float where a float type is written, so `let $n: f64.stable = 1;` holds `1.0` exactly. Where nothing says the type, as in a print hole, a literal is refused, asking which.
+
 **Refused:** `let $x: f64.stable = $reading;`.
 
 Comparing works as usual, and `-0.0 == 0.0` is true. The linter can flag comparing floats with `==`.
@@ -146,7 +148,7 @@ It takes and gives values 0 or above, written as bounds in its own signature, `[
 let $r: f64.stable = std::math::sqrt($d2);
 ```
 
-**From:** D54, D59, D158, D159, D160, D161, D162, D163, D166, D167, D257, D405, D406, D407.
+**From:** D54, D59, D158, D159, D160, D161, D162, D163, D166, D167, D257, D405, D406, D407, D486.
 
 ## 2.7 Inexact literals: `~`
 
