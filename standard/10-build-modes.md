@@ -34,13 +34,13 @@
 **Rule:** there's no default build mode. You always say which, as its own flag. The compiler is `OKAY\n`, typed `okay`: `okay comp` compiles, and `okay run` compiles and runs. `--max_cores=` takes a number, `max` or `min`, and is `max` when left out. Built objects are cached in the system's cache folder, `~/Library/Caches/okay` on macOS and `~/.cache/okay` on Linux, or where `OKAY_CACHE` says, shared by every project, and found by a hash of everything that changes them, so the cache never changes what a build gives. `okay` links by itself, with nothing else installed, and cross-compiles with one flag, as in `--target=arduino_uno_r4_wifi`. A bare-metal target names the exact board, since its memory map, startup code and pins are the board's. An operating-system target names the OS and the chip family, `macos_aarch64`, `linux_aarch64` or `linux_x86_64`, since the OS hides the board, and a specific chip in the family is chosen with `--machine.cpu=` ([10.11](#1011-tuning-for-one-machine-machine)).
 
 ```
-okay comp --FinalSafe
+okay comp --FinalSafe --machine.cpu=baseline
 ```
 
 `--FeelLucky` picks one of the six modes at random, `FinalShit` included, and always prints which one first:
 
 ```
-$ okay comp --FeelLucky
+$ okay comp --FeelLucky --machine.cpu=baseline
 feeling lucky: FinalShit
 ```
 
@@ -49,7 +49,7 @@ It counts as choosing a mode. In a language about reproducibility, a build that'
 `--Working` always says its optimization with `--opt=`, using LLVM's own levels: `O0`, `O1`, `O2`, `O3`, `Os` or `Oz`. There's no separate debug mode, so `Working` is for both debugging, where `O0` keeps every variable and line where a debugger expects them, and quick runs, where `O1` or higher is faster. Every check stays at every level.
 
 ```
-okay run --Working --opt=O0
+okay run --Working --opt=O0 --machine.cpu=native
 ```
 
 **Refused:** `okay comp` with no mode flag, and `--mode FinalSafe`, with `fix: --FinalSafe`. `--Working` without `--opt=`, with `fix: --opt=O0` for debugging or `--opt=O1` for quick runs, and `--opt=` with any other mode, whose optimization is fixed.
@@ -137,7 +137,7 @@ Everything else that exists to stop you doing something dumb is gone: ownership 
 **Rule:** building in `FinalShit` prints this. It's exempt from the one-fix rule in [11.5](11-errors.md#115-fixes).
 
 ```
-$ okay comp --FinalShit
+$ okay comp --FinalShit --machine.cpu=baseline
 
 warning: you chose FinalShit
 what:  every contract is now a fucking promise nobody checked
@@ -201,8 +201,8 @@ Every benchmark reports the same six things:
 **Rule:** profile-guided optimization is asked for by name, and what it depends on is a committed file, so the build stays reproducible from what's written. `--profile.record` builds with counters, running the program on real work writes a profile, and `--profile.use=` builds tuned for it. The same code and the same profile file always give the same program.
 
 ```
-okay comp --FinalPerf --profile.record server.cy
-okay comp --FinalPerf --profile.use=server.profile server.cy
+okay comp --FinalPerf --machine.cpu=baseline --profile.record server.cy
+okay comp --FinalPerf --machine.cpu=baseline --profile.use=server.profile server.cy
 ```
 
 A profile is about the program and the work it did, not the machine: which branches are taken and which functions are hot. It changes only speed, never what the program does, and the build report says which profile was used, so a tuned build is labelled as one ([10.9](#109-benchmarks)).
