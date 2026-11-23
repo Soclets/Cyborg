@@ -213,12 +213,18 @@ A profile is about the program and the work it did, not the machine: which branc
 
 ## 10.11 Tuning for one machine: `--machine`
 
-**Rule:** without tuning, a build uses the target's baseline, so it runs on every chip of that target. `--machine.` tunes for one machine's parts, `.cpu` for its processor and `.gpu` for its graphics chip, so it may use instructions only those have. An exact name, like `apple_m5`, is reproducible, the way a board's is ([10.2](#102-no-default)), and `native` means the machine building, which the build report records as the name it meant. A tuned program checks the machine when it starts, and stops with an error naming any missing instruction instead of crashing midway.
+**Rule:** every build says which processor it's for: there's no default, as there's no default mode ([10.2](#102-no-default)). `--machine.cpu=baseline` runs on every chip of the target. `--machine.` tunes for one machine's parts, `.cpu` for its processor and `.gpu` for its graphics chip, so it may use instructions only those have. An exact name, like `apple_m5`, is reproducible, the way a board's is ([10.2](#102-no-default)), and `native` means the machine building, which the build report records as the name it meant. A tuned program checks the machine when it starts, and stops with an error naming any missing instruction instead of crashing midway.
 
 ```
+okay comp --FinalSafe --machine.cpu=baseline server.cy
 okay comp --FinalPerf --machine.cpu=apple_m5 server.cy
 okay comp --FinalPerf --machine.cpu=native --machine.gpu=native render.cy
+okay comp --FinalPerf --machine.cpu=x86_64_v2,x86_64_v3,x86_64_v4 --target=linux_x86_64 server.cy
 ```
+
+A machine part takes any name LLVM knows for the target. A list builds each entry separately, one file each. A further choice builds one file holding the functions that gain in a version for each level, picking the best when the program starts.
+
+"All" works along each choice: every build mode, each built separately, every target `OKAY\n` supports, and every option of every machine part, baseline, each level and chip, and the one-file choice. One switch sets them all, so every combination for the program is built, each as its own file named by a fixed scheme, as `game.FinalSafe.linux_x86_64.x86_64_v3`. Targets are those `OKAY\n` has an `os` layer, start-up code and linking for, growing towards what LLVM can make code for. The spellings of "all", the one switch, the one-file choice and the file names aren't decided ([12.7](12-not-decided.md#127-build-modes)).
 
 The base handles `.cpu`. `.gpu` goes to whichever limb gives the program its GPU code, since a limb owns its own code, and other parts, like an AI accelerator, can join as narrowings.
 
@@ -228,9 +234,9 @@ A tuned program checks the processor when it starts, and stops before running an
 check failed: this processor is missing instructions the program was built for
  what: built with --machine.cpu=apple_m5, and this processor has no `ssbs` instructions
  why:  a program tuned for one processor needs its instructions (D365)
- fix:  rebuild for this machine with --machine.cpu=native, or without --machine.cpu=
+ fix:  rebuild for this machine with --machine.cpu=native, or with --machine.cpu=baseline
 ```
 
-**Refused:** `--machine.gpu=` when no limb gives the program GPU code, and `--machine.` with `Literal`.
+**Refused:** a build with no `--machine.cpu=`, asking which; `--machine.gpu=` when no limb gives the program GPU code; and `Literal` with anything but `--machine.cpu=baseline`.
 
-**From:** D365, D420.
+**From:** D365, D420, D487.
