@@ -17,7 +17,7 @@
 | [2.13](#213-labels-in--) | Labels in `< >` | One bare, more labeled |
 | [2.14](#214-conversion-as) | `as` | Builds a new value |
 | [2.15](#215-void-and-bool) | `void`, `bool` | |
-| [2.16](#216-units) | `3600 time.seconds` | A number says its unit |
+| [2.16](#216-units) | `3600 time::seconds` | A number says its unit |
 | [2.17](#217-getting-an-item) | `$xs[pos: 1]`, `$xs[offset.items: 0]` | Counting from 1, or from 0 |
 | [2.18](#218-naming-a-type) | `type.alias`, `type.new` | Another name, or a different type |
 | [2.19](#219-decl-and-assign) | `decl`, `assign` | A value given later, once |
@@ -138,7 +138,7 @@ The first prints `0.1`, and the second prints every digit, with no limit: `0.100
 
 On `f64.ieee`, both print NaN and infinity as the words `NaN`, `inf` and `-inf`.
 
-`std::math::sin` and similar functions are correctly rounded, so they give the same bits on every machine. They come from CORE-MATH, third-party C kept in `std` under rule 1's exception (D161). Its license is MIT, checked in its repository's LICENSE file on 2026-11-10. They ask for an angle in radians, `f64.stable[unit: std::units::angle.radians]`, so a plain number is refused, and degrees are converted with `as` ([2.16](#216-units)). `std::math::sin.fast` is a placeholder for a version that isn't.
+`std::math::sin` and similar functions are correctly rounded, so they give the same bits on every machine. They come from CORE-MATH, third-party C kept in `std` under rule 1's exception (D161). Its license is MIT, checked in its repository's LICENSE file on 2026-11-10. They ask for an angle in radians, `f64.stable[unit: std::units::angle::radians]`, so a plain number is refused, and degrees are converted with `as` ([2.16](#216-units)). `std::math::sin.fast` is a placeholder for a version that isn't.
 
 `std::math::sqrt` is correctly rounded on every float kind, `.stable` included, since square root is one of IEEE 754's basic operations, like `+` and `div`, and every CPU's square-root instruction already gives the closest float. So it needs no CORE-MATH, compiles to that one instruction, and is reproducible at no cost. On a chip with no instruction for that float, like `f64` on the Uno R4 WiFi's Cortex-M4, it's software, still correctly rounded.
 
@@ -394,18 +394,18 @@ Text from `as` goes into a bounded `str`, held inside the value, so no allocator
 
 These examples assume `time` and `storage` are declared with `fam.unit`, further down. Nothing is built in except `items`.
 
-**Rule:** a number says its unit, behind it where possible. Where the unit can't go behind, it goes in front. A unit always says its family, or its path from a kit, and `items` is base language, so it stays bare. The compiler checks units: a unit is part of the type, written as a label in its brackets, next to any bounds, as in `i32[unit: time.seconds]` and `f64.stable[unit: length.meters, min: 0.0 length.meters, max: 1.0 length.kilometers]`. The labels go `unit:`, then `min:`, then `max:`. A bound writes its unit like any value, in any unit with the same base, converted when compiling, and exactly for an integer type. The same units can add and compare.
+**Rule:** a number says its unit, behind it where possible. Where the unit can't go behind, it goes in front. A unit always says its family, or its path from a kit, and `items` is base language, so it stays bare. The compiler checks units: a unit is part of the type, written as a label in its brackets, next to any bounds, as in `i32[unit: time::seconds]` and `f64.stable[unit: length::meters, min: 0.0 length::meters, max: 1.0 length::kilometers]`. The labels go `unit:`, then `min:`, then `max:`. A bound writes its unit like any value, in any unit with the same base, converted when compiling, and exactly for an integer type. The same units can add and compare.
 
 ```
-let $a: i32[unit: time.seconds] = 3600 time.seconds;
-let $b: i32[unit: time.seconds] = 5 time.seconds;
-let $c: i32[unit: time.seconds] = $a + $b;
+let $a: i32[unit: time::seconds] = 3600 time::seconds;
+let $b: i32[unit: time::seconds] = 5 time::seconds;
+let $c: i32[unit: time::seconds] = $a + $b;
 
-use std::units::time.seconds;
+use std::units::time::seconds;
 let $d: i32[unit: seconds] = 3600 seconds;
 ```
 
-A unit is required only where the type asks for one. A plain `i32` means just a number. The language and `std` ask for units on things that have them, like lengths, sizes and durations, and your own code opts in with a type like `i32[unit: time.seconds]`.
+A unit is required only where the type asks for one. A plain `i32` means just a number. The language and `std` ask for units on things that have them, like lengths, sizes and durations, and your own code opts in with a type like `i32[unit: time::seconds]`.
 
 ```
 std::coll::array<u8>[len: 4096 items]
@@ -425,17 +425,17 @@ end fn draw
 draw(at.screen.pixels: 5);
 ```
 
-**Refused:** a bound with no unit on a unit type, a bound in another base, an integer bound that doesn't convert exactly, a type's labels out of order, a plain `as` from an integer to a bigger unit, a point plus a point, a value with neither `.point` nor `.span` in a family that needs one, mixing units, as in `$a + 5 storage.bytes`, a missing unit, as in `let $b: i32[unit: time.seconds] = 3600;`, a bare `3600 seconds` with no `use`, and storing a value whose units don't match the declared unit, as in `let $s: f64.stable[unit: motion.speed] = $time div $dist;`.
+**Refused:** a bound with no unit on a unit type, a bound in another base, an integer bound that doesn't convert exactly, a type's labels out of order, a plain `as` from an integer to a bigger unit, a point plus a point, a value with neither `.point` nor `.span` in a family that needs one, mixing units, as in `$a + 5 storage::bytes`, a missing unit, as in `let $b: i32[unit: time::seconds] = 3600;`, a bare `3600 seconds` with no `use`, and storing a value whose units don't match the declared unit, as in `let $s: f64.stable[unit: motion::speed] = $time div $dist;`.
 
 You define units in a collection. Every unit says what it is: `: base`, or `=` with a conversion, which can point at a unit in any family. Two units convert if they trace back to the same base, and otherwise they don't.
 
 ```
 fam.unit money:
-    money.cents: base;
-    money.dollars = 100 money.cents;
+    money::cents: base;
+    money::dollars = 100 money::cents;
 
-    money.euro_cents: base;
-    money.euros = 100 money.euro_cents;
+    money::euro_cents: base;
+    money::euros = 100 money::euro_cents;
 end fam.unit money
 ```
 
@@ -443,41 +443,41 @@ Prefixes are declared once, and a unit opts in with `with`, which creates its pr
 
 ```
 fam.prefix metric:
-    metric.kilo = 1000;
-    metric.milli = 1 per 1000;
+    metric::kilo = 1000;
+    metric::milli = 1 per 1000;
 end fam.prefix metric
 
 fam.unit length:
-    length.meters: base with metric;
+    length::meters: base with metric;
 end fam.unit length
 
-let $road: f64.stable[unit: length.kilometers] = 2.5 length.kilometers;
+let $road: f64.stable[unit: length::kilometers] = 2.5 length::kilometers;
 ```
 
-`std` ships `metric` and `binary`, as in `storage.bytes: base with binary;` giving `storage.kibibytes`. `fam.prefix` and `with` are placeholders.
+`std` ships `metric` and `binary`, as in `storage::bytes: base with binary;` giving `storage::kibibytes`. `fam.prefix` and `with` are placeholders.
 
 A family is only a group of related names that a generic can ask for. A unit from a kit is written with its path, `name::unit`.
 
 **Refused:** a unit that says neither `base` nor `=`, a loop of `=` lines, and converting between units with different bases.
 
-A unit made of others is declared once, with `per` and `x`, which describe what it's made of rather than calculate anything. The compiler tracks every unit as powers of its bases, so maths can make any combination, but storing a value needs a declared unit whose powers match. Comparing follows the same rule: two values compare when one could be stored into the other's type, as a computed `$dist div $time` against a stored `motion.speed`, and what would need `as` to store needs it to compare.
+A unit made of others is declared once, with `per` and `x`, which describe what it's made of rather than calculate anything. The compiler tracks every unit as powers of its bases, so maths can make any combination, but storing a value needs a declared unit whose powers match. Comparing follows the same rule: two values compare when one could be stored into the other's type, as a computed `$dist div $time` against a stored `motion::speed`, and what would need `as` to store needs it to compare.
 
 ```
 fam.unit motion:
-    motion.speed = length.meters per time.seconds;
-    motion.accel = motion.speed per time.seconds;
-    motion.area = length.meters x length.meters;
+    motion::speed = length::meters per time::seconds;
+    motion::accel = motion::speed per time::seconds;
+    motion::area = length::meters x length::meters;
 end fam.unit motion
 
-let $speed: f64.stable[unit: motion.speed] = $dist div $time;
-let $accel: f64.stable[unit: motion.accel] = $speed div $time;
+let $speed: f64.stable[unit: motion::speed] = $dist div $time;
+let $accel: f64.stable[unit: motion::accel] = $speed div $time;
 ```
 
 `std` has an `angle` family, with radians as the base, degrees and turns:
 
 ```
-use std::units::angle.degrees;
-use std::units::angle.radians;
+use std::units::angle::degrees;
+use std::units::angle::radians;
 
 let $a: f64.stable[unit: degrees] = 90.0 degrees;
 let $s: f64.stable = std::math::sin($a as f64.stable[unit: radians]);
@@ -492,7 +492,7 @@ fn average<?u: any.unit> [$xs: Lent std::coll::list<f64.stable[unit: ?u]>[len.mi
     …
 end fn average
 
-let $t: f64.stable[unit: time.seconds] = average($times);
+let $t: f64.stable[unit: time::seconds] = average($times);
 ```
 
 A unit parameter goes only where a unit goes, after a number type. A body can add and compare values of the same `?u`.
@@ -501,11 +501,11 @@ In a family with an offset, like temperature, and in `std`'s `time`, every value
 
 ```
 fam.unit temperature:
-    temperature.kelvin: base;
-    temperature.celsius = temperature.kelvin offset ~-273.15;
+    temperature::kelvin: base;
+    temperature::celsius = temperature::kelvin offset ~-273.15;
 end fam.unit temperature
 
-use my::temperature.celsius;
+use my::temperature::celsius;
 
 let $now: f64.stable[unit: celsius.point] = 20.0 celsius;
 let $rise: f64.stable[unit: celsius.span] = 10.0 celsius;
@@ -517,8 +517,8 @@ A point plus a span is a point, a point minus a point is a span, and spans add. 
 A value changes unit with `as`. A float rounds to the nearest, like any float maths. An integer converting to a smaller unit is exact, and to a bigger one says how with a narrowing:
 
 ```
-let $m: f64.stable[unit: length.meters] = $km as f64.stable[unit: length.meters];
-let $k: i32[unit: length.kilometers] = $big as.trunc i32[unit: length.kilometers];
+let $m: f64.stable[unit: length::meters] = $km as f64.stable[unit: length::meters];
+let $k: i32[unit: length::kilometers] = $big as.trunc i32[unit: length::kilometers];
 ```
 
 `as.trunc`, `as.floor` and `as.exact`, which fails if anything would be lost, follow integer `div` ([3.3](3-operators.md#33-division-div)).
@@ -527,13 +527,13 @@ Logarithmic units, like decibels, use the same split. A level is a point and a g
 
 ```
 fam.unit power:
-    power.milliwatts: base;
-    power.dbm = decibels of 1 power.milliwatts;
+    power::milliwatts: base;
+    power::dbm = decibels of 1 power::milliwatts;
 end fam.unit power
 
-let $input: f64.stable[unit: power.dbm.point] = 10.0 power.dbm;
-let $gain: f64.stable[unit: power.dbm.span] = 3.0 power.dbm;
-let $output: f64.stable[unit: power.dbm.point] = $input + $gain;
+let $input: f64.stable[unit: power::dbm.point] = 10.0 power::dbm;
+let $gain: f64.stable[unit: power::dbm.span] = 3.0 power::dbm;
+let $output: f64.stable[unit: power::dbm.point] = $input + $gain;
 ```
 
 Two levels can't be added, since in dB that would mean multiplying two powers, so you convert to watts, add, and convert back.
@@ -834,12 +834,12 @@ let $orc: enemy = $enemies.std::coll::slots.%%take(at: $h)?;
 
 A handle also carries its collection's ID, so using it on another collection of the same type fails too, as a list checks its allocator ([2.10](#210-lists)).
 
-`%%put` hands back a `std::coll::slot_handle`, and `%get(at:)` and `%%get.mut(at:)` lend the value, as a box's do ([2.23](#223-one-value-on-the-heap-stdmembox)). A bad handle fails with `slot_failed.stale` when its value was removed, or `slot_failed.wrong_slots` when it came from another collection ([8.3](8-failures.md#83-named-sets-famfailure)):
+`%%put` hands back a `std::coll::slot_handle`, and `%get(at:)` and `%%get.mut(at:)` lend the value, as a box's do ([2.23](#223-one-value-on-the-heap-stdmembox)). A bad handle fails with `slot_failed::stale` when its value was removed, or `slot_failed::wrong_slots` when it came from another collection ([8.3](8-failures.md#83-named-sets-famfailure)):
 
 ```
 fam.failure slot_failed:
-    slot_failed.stale;
-    slot_failed.wrong_slots;
+    slot_failed::stale;
+    slot_failed::wrong_slots;
 end fam.failure slot_failed
 ```
 

@@ -196,7 +196,7 @@ Lend.mut from $r reading
 A stored borrow ends at its last use. `.held` makes it last until the end of its block instead, even if it's never used again:
 
 ```
-let mut $r: reading = reading[celsius = 21, time = 3600 std::units::time.seconds];
+let mut $r: reading = reading[celsius = 21, time = 3600 std::units::time::seconds];
 let $view: Lend from $r reading = Lend $r;
 @std::io::fmt_print(Lend.mut $out, "{}{newln}", $view.celsius) ?? crash;
 change $r.celsius = 22;
@@ -295,7 +295,7 @@ A parameter is never typed as a stored borrow, because `Lent` already is one, an
 
 ```
 $xs.len
-reading[celsius = 21, time = 3600 std::units::time.seconds]
+reading[celsius = 21, time = 3600 std::units::time::seconds]
 ```
 
 **From:** D2, D182, D393.

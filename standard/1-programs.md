@@ -77,7 +77,7 @@ end if
 **Rule:** variables, parameters and constants start with `$`. Struct fields don't.
 
 ```
-let $r: reading = reading[celsius = 21, time = 3600 std::units::time.seconds];
+let $r: reading = reading[celsius = 21, time = 3600 std::units::time::seconds];
 @std::io::fmt_print(Lend.mut $out, "{}{newln}", $r.celsius) ?? crash;
 ```
 
@@ -85,7 +85,7 @@ let $r: reading = reading[celsius = 21, time = 3600 std::units::time.seconds];
 
 ## 1.5 Paths: `::`
 
-**Rule:** `::` reaches into a kit or limb by its path. `std` is grouped with `::`, as in `std::math::sin`, and `use` shortens a long path. `::` is for paths, which never run anything. A family is one level deep. A file imports what it uses, and a manifest lists which packages are installed and which version ([9.1](9-limbs-and-shields.md#91-base-kits-and-limbs)). Everything gets imported, including `std`, limbs and the package's other files, but not builtins or a file's own `my::` names. `import pkg std;`, with a space, imports both halves of a package, and `import pkg::parser;` one of this package's files. Every program has a manifest, `CyJet.siml`, even one using only `std`. Imports go at the top of the file. There is no `@import`.
+**Rule:** `::` reaches inside something by name: a kit or limb, a folder or file of a package, or a member of a named set, like a unit, a failure or a handler, as in `time::seconds` and `file_failed::not_found` ([1.6](#16-narrowings-)). `std` is grouped with `::`, as in `std::math::sin`, and `use` shortens a long path. `::` is for paths, which never run anything. A family is one level deep. A file imports what it uses, and a manifest lists which packages are installed and which version ([9.1](9-limbs-and-shields.md#91-base-kits-and-limbs)). Everything gets imported, including `std`, limbs and the package's other files, but not builtins or a file's own `my::` names. `import pkg std;`, with a space, imports both halves of a package, and `import pkg::parser;` one of this package's files. Every program has a manifest, `CyJet.siml`, even one using only `std`. Imports go at the top of the file. There is no `@import`.
 
 ```
 import std;
@@ -113,11 +113,13 @@ The compiler reads every `.cy` file in the package, and every one has a `module`
 
 `import @std::io::fmt_print;` imports only that one thing, with its narrowings, like `.stored`, and the file can reach nothing else from `std`. It still writes the full path, unless a `use` shortens it. `import std::units::time;` imports a whole unit family.
 
-**From:** D22, D56, D80, D81, D82, D92, D161, D183, D186, D187, D188, D191, D196, D198, D199, D229, D412, D413, D414, D415.
+**From:** D22, D56, D80, D81, D82, D92, D161, D183, D186, D187, D188, D191, D196, D198, D199, D229, D412, D413, D414, D415, D488.
 
 ## 1.6 Narrowings: `.`
 
-**Rule:** a `.` makes the thing before it more specific. It also reads a field. It never runs code; a `.%` does ([5.6](5-functions.md#56-methods-)).
+**Rule:** a `.` makes the thing before it more specific: it goes into that thing, which stays itself, changed, as `print.stored` is still printing. Narrowings stack, as in `Lend.mut.held`. It also reads a field. It never runs code; a `.%` does ([5.6](5-functions.md#56-methods-)).
+
+Picking one member out of a named set isn't a narrowing, since the member is a different thing, not the set changed, and a set can't be stacked onto: units, prefixes, failures and handlers are reached with `::`, as in `time::seconds`, `metric::kilo`, `file_failed::not_found` and `word_failed::use_placeholder` ([1.5](#15-paths-)). A unit's `.point` or `.span` is a narrowing again, as in `temperature::celsius.point`, and so is a union's case, as in `status.failed`, since a failed status is still a status.
 
 ```
 fn.main
@@ -140,7 +142,7 @@ Shapes in a format hole are labels, so they go in any order.
 
 **Refused:** narrowings out of order, as in `Lend.held.mut`, with the right order as the fix.
 
-**From:** D8, D54, D223, D400.
+**From:** D8, D54, D223, D400, D488.
 
 ## 1.7 Bare names
 
@@ -215,7 +217,7 @@ If Cyborg later adds a built-in with the same name, old code gets a compile erro
 **Rule:** `use` gives a path into a kit or limb a shorter name for that file. With no `as`, the short name is the path's last word, so it can't lie. `as name` gives your own name, a visible rename on the `use` line. Anything in the base language, like `inline.asm`, has no path to shorten, so `use` refuses it.
 
 ```
-use std::units::time.seconds;
+use std::units::time::seconds;
 use @std::io::fmt_print as say;
 
 let $a: i32[unit: seconds] = 3600 seconds;
@@ -229,7 +231,7 @@ use @std::io::fmt_print;
 use std::units::time;
 
 fmt_print.stored(Lend.mut $out, "{}{newln}", $x) ?? crash;
-let $t: i32[unit: time.minutes] = 5 time.minutes;
+let $t: i32[unit: time::minutes] = 5 time::minutes;
 ```
 
 A group can be shortened too, so its members keep the group's name, for names that would mislead alone, like `log`:
@@ -310,7 +312,7 @@ With `$name` as `"rope"`, `$count` as `3`, `$price` as an `f64.stable` holding `
 - **Shapes are words:** `align: left`, `right` or `center`; `width:` with its unit, `cols`, `cols.east_asian`, `graphemes`, `points` or `bytes`; `places:`; `base: bin`, `oct`, `hex` or `hex.upper`; `form: science`; and bare `zeros` and `sign`.
 - **Escapes in the text:** `\\`, `\"`, `\'`, `\r`, `\0`, `\xHH`, `\uHHHH`, `\UHHHHHHHH`, and `\{` and `\}` for a brace.
 - **Too wide:** a value wider than its width prints whole.
-- **`unit`:** prints the value and its unit, the way its own file writes it, so with `use std::units::time.seconds;`, `{unit}` prints `3600 seconds`. The package path is left off.
+- **`unit`:** prints the value and its unit, the way its own file writes it, so with `use std::units::time::seconds;`, `{unit}` prints `3600 seconds`. The package path is left off.
 - **`.stored`:** prints every float exactly as it's stored.
 
 A literal format is checked when building.

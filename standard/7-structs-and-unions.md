@@ -17,7 +17,7 @@
 ```
 struct reading:
     celsius: i32;
-    time: i64[unit: std::units::time.seconds];
+    time: i64[unit: std::units::time::seconds];
 end struct reading
 ```
 
@@ -37,7 +37,7 @@ end struct.any_order cache_entry
 **Rule:** building one uses `[ ]`, because it holds values and runs nothing. `=` sets a field.
 
 ```
-let $r: reading = reading[celsius = 21, time = 3600 std::units::time.seconds];
+let $r: reading = reading[celsius = 21, time = 3600 std::units::time::seconds];
 ```
 
 **From:** D23, D57, D276, D283.

@@ -47,15 +47,15 @@ fail negative[got = $n];
 
 ```
 fam.failure file_failed:
-    file_failed.not_found;
-    file_failed.denied;
-    file_failed.disk_full[free: i32];
+    file_failed::not_found;
+    file_failed::denied;
+    file_failed::disk_full[free: i32];
 end fam.failure file_failed
 ```
 
-Two sets sharing a failure's name need the full name in a list: `file_failed.denied`.
+Two sets sharing a failure's name need the full name in a list: `file_failed::denied`.
 
-**From:** D47.
+**From:** D47, D488.
 
 ## 8.4 `?`: pass it up
 
@@ -106,36 +106,36 @@ end otherwise
 
 ## 8.7 Handler narrowings
 
-**Rule:** a handler narrowing is a named set of `otherwise` arms, used at a call as if written there. The spelling `fam.handler` is Radium's.
+**Rule:** a handler is a named set of `otherwise` arms, used at a call as if written there, and a handler family is a named set of handlers for one failure set, each reached with `::`, since a handler isn't a kind of its failure ([1.6](1-programs.md#16-narrowings-)). The spelling `fam.handler` is Radium's.
 
 ```
 fam.handler word_failed:
-    word_failed.use_placeholder:
+    word_failed::use_placeholder:
         case too_long:
             instead "…";
         case no_words:
             instead "(none)";
-    end word_failed.use_placeholder
+    end word_failed::use_placeholder
 end fam.handler word_failed
 
-let $w: str = first_word(Lend $text) otherwise word_failed.use_placeholder;
+let $w: str = first_word(Lend $text) otherwise word_failed::use_placeholder;
 ```
 
 A handler whose arms hold a shield, like inline assembly in a `shield.danger`, can only be used inside a shield of each kind it holds, so the danger shows where it's used too (D445). Using one outside is refused, with a fix wrapping the call in that kind of shield.
 
-**From:** D45, D46, D445.
+**From:** D45, D46, D445, D488.
 
 ## 8.8 `*`: handlers that jump
 
 **Rule:** a handler that can `return` or `break` is marked `*` where it's used, and not where it's declared.
 
 ```
-let $w: str = first_word(Lend $text) otherwise word_failed.*bail;
+let $w: str = first_word(Lend $text) otherwise word_failed::*bail;
 ```
 
 **Refused:** leaving `*` off a handler that can jump, and putting it on one that can't.
 
-**From:** D46, D128.
+**From:** D46, D128, D488.
 
 ## 8.9 Every failure is handled
 
