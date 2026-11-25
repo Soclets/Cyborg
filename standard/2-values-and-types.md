@@ -417,12 +417,12 @@ let $x: i32 = 3600;
 A label can carry the unit instead, when the writer declares it that way. A plain number takes the label's unit, and a value in another unit is refused.
 
 ```
-fn draw [$x: i32[unit: screen.pixels]] -> void:
-    labels [$x as at.screen.pixels];
+fn draw [$x: i32[unit: screen::pixels]] -> void:
+    labels [$x as at.screen::pixels];
     …
 end fn draw
 
-draw(at.screen.pixels: 5);
+draw(at.screen::pixels: 5);
 ```
 
 **Refused:** a bound with no unit on a unit type, a bound in another base, an integer bound that doesn't convert exactly, a type's labels out of order, a plain `as` from an integer to a bigger unit, a point plus a point, a value with neither `.point` nor `.span` in a family that needs one, mixing units, as in `$a + 5 storage::bytes`, a missing unit, as in `let $b: i32[unit: time::seconds] = 3600;`, a bare `3600 seconds` with no `use`, and storing a value whose units don't match the declared unit, as in `let $s: f64.stable[unit: motion::speed] = $time div $dist;`.
