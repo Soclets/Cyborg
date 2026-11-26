@@ -204,8 +204,9 @@ A `fmt` becomes text as a number does: `@fmt("{$name}: {$count}") as str[len.max
 fn largest<?item: ordered> [$a: Lent ?item, $b: Lent ?item] -> ?item:
     if $a > $b:
         return Copy $a;
+    else:
+        return Copy $b;
     end if
-    return Copy $b;
 end fn largest
 
 struct pair<?left: any.type, ?right: any.type>:
