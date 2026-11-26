@@ -213,8 +213,9 @@ A function can return a borrow by naming where it comes from. That's Cyborg's li
 fn warmer [$a: Lent reading, $b: Lent reading] -> Lend from <$a, $b> reading:
     if $a.celsius > $b.celsius:
         return Lend $a;
+    else:
+        return Lend $b;
     end if
-    return Lend $b;
 end fn warmer
 
 let $w: Lend from <$x, $y> reading = warmer(Lend $x, Lend $y);

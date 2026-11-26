@@ -115,8 +115,9 @@ Whether `-` and `x` follow the same table isn't stated ([12.3](12-not-decided.md
 fn clamp [$n: i32[min: 0, max: 100]] -> i32:
     if $n at_least 101:
         return 100;
+    else:
+        return $n;
     end if
-    return $n;
 end fn clamp
 ```
 
